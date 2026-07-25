@@ -31,6 +31,7 @@ import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -138,7 +139,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final Object2LongOpenHashMap<AEKey> pendingByproducts = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> cachedPrimaryOutputs = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> cachedByproducts = new Object2LongOpenHashMap<>();
-    private final Object2LongOpenHashMap<AEKey> flushScratch = new Object2LongOpenHashMap<>();
+    private final AEKeyTransferScheduler pendingPrimaryTransferScheduler = new AEKeyTransferScheduler();
+    private final AEKeyTransferScheduler pendingByproductTransferScheduler = new AEKeyTransferScheduler();
+    private final AEKeyTransferScheduler cachedPrimaryTransferScheduler = new AEKeyTransferScheduler();
+    private final AEKeyTransferScheduler cachedByproductTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
     private final PipelineStorageProvider pipelineStorageProvider = new PipelineStorageProvider();
     private PipelineRoute primaryRoute = PipelineRoute.NETWORK;
@@ -1993,26 +1997,29 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             boolean changed = false;
             boolean blocked = false;
             long transferred = 0;
+            var transferBudget = AEKeyTransferScheduler.defaultBudget();
 
-            var primaryCacheResult = flushCached(cachedPrimaryOutputs, primaryRoute, storage);
+            var primaryCacheResult = flushCached(cachedPrimaryOutputs, primaryRoute, storage,
+                    cachedPrimaryTransferScheduler, transferBudget);
             changed |= primaryCacheResult.changed();
             blocked |= primaryCacheResult.blocked();
             transferred = saturatedAdd(transferred, primaryCacheResult.transferred());
 
-            var byproductCacheResult = flushCached(cachedByproducts, byproductRoute, storage);
+            var byproductCacheResult = flushCached(cachedByproducts, byproductRoute, storage,
+                    cachedByproductTransferScheduler, transferBudget);
             changed |= byproductCacheResult.changed();
             blocked |= byproductCacheResult.blocked();
             transferred = saturatedAdd(transferred, byproductCacheResult.transferred());
 
             if (gameTime >= outputReadyTick) {
                 var primaryResult = flushPending(pendingPrimaryOutputs, cachedPrimaryOutputs,
-                        primaryRoute, storage, craftingService);
+                        primaryRoute, storage, craftingService, pendingPrimaryTransferScheduler, transferBudget);
                 changed |= primaryResult.changed();
                 blocked |= primaryResult.blocked();
                 transferred = saturatedAdd(transferred, primaryResult.transferred());
 
                 var byproductResult = flushPending(pendingByproducts, cachedByproducts,
-                        byproductRoute, storage, craftingService);
+                        byproductRoute, storage, craftingService, pendingByproductTransferScheduler, transferBudget);
                 changed |= byproductResult.changed();
                 blocked |= byproductResult.blocked();
                 transferred = saturatedAdd(transferred, byproductResult.transferred());
@@ -2035,108 +2042,67 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private FlushResult flushCached(Object2LongOpenHashMap<AEKey> cached,
-            PipelineRoute route, MEStorage storage) {
+            PipelineRoute route, MEStorage storage, AEKeyTransferScheduler scheduler,
+            AEKeyTransferScheduler.TransferBudget transferBudget) {
         if (route == PipelineRoute.INTERNAL || cached.isEmpty()) {
             return FlushResult.EMPTY;
         }
         return route == PipelineRoute.NETWORK
-                ? flushMapToNetwork(cached, storage)
-                : flushMapToPort(cached);
+                ? flushMapToNetwork(cached, storage, scheduler, transferBudget)
+                : flushMapToPort(cached, scheduler, transferBudget);
     }
 
     private FlushResult flushPending(Object2LongOpenHashMap<AEKey> pending,
             Object2LongOpenHashMap<AEKey> cache, PipelineRoute route, MEStorage storage,
-            appeng.api.networking.crafting.ICraftingService craftingService) {
+            appeng.api.networking.crafting.ICraftingService craftingService,
+            AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
         if (pending.isEmpty()) {
             return FlushResult.EMPTY;
         }
 
-        boolean changed = false;
-        boolean blocked = false;
-        long transferred = 0;
-        flushScratch.clear();
-        for (var entry : pending.object2LongEntrySet()) {
-            var key = entry.getKey();
-            long remaining = entry.getLongValue();
-
+        var result = scheduler.flush(pending, transferBudget, (key, amount) -> {
+            long remaining = amount;
             long requested = Math.min(remaining, craftingService.getRequestedAmount(key));
             if (requested > 0) {
                 long delivered = storage.insert(key, requested, Actionable.MODULATE, actionSource);
                 remaining -= delivered;
-                transferred = saturatedAdd(transferred, delivered);
-                changed |= delivered > 0;
             }
 
             if (remaining > 0 && route == PipelineRoute.NETWORK) {
                 long inserted = storage.insert(key, remaining, Actionable.MODULATE, actionSource);
                 remaining -= inserted;
-                transferred = saturatedAdd(transferred, inserted);
-                changed |= inserted > 0;
-                blocked |= remaining > 0;
             } else if (remaining > 0 && route == PipelineRoute.PORT) {
                 long inserted = insertIntoOutputPort(key, remaining);
                 remaining -= inserted;
-                transferred = saturatedAdd(transferred, inserted);
-                changed |= inserted > 0;
-                blocked |= remaining > 0;
             } else if (remaining > 0) {
                 cache.put(key, Math.addExact(cache.getLong(key), remaining));
-                transferred = saturatedAdd(transferred, remaining);
                 remaining = 0;
-                changed = true;
             }
-
-            if (remaining > 0) {
-                flushScratch.put(key, remaining);
-            }
-        }
-        pending.clear();
-        pending.putAll(flushScratch);
-        flushScratch.clear();
-        return new FlushResult(changed, blocked, transferred);
+            return amount - remaining;
+        });
+        return new FlushResult(result.changed(), result.blocked(), result.transferred());
     }
 
-    private FlushResult flushMapToNetwork(Object2LongOpenHashMap<AEKey> source, MEStorage storage) {
-        boolean changed = false;
-        long transferred = 0;
-        flushScratch.clear();
-        for (var entry : source.object2LongEntrySet()) {
-            long inserted = storage.insert(entry.getKey(), entry.getLongValue(),
-                    Actionable.MODULATE, actionSource);
-            long remaining = entry.getLongValue() - inserted;
-            if (remaining > 0) {
-                flushScratch.put(entry.getKey(), remaining);
-            }
-            changed |= inserted > 0;
-            transferred = saturatedAdd(transferred, inserted);
-        }
-        source.clear();
-        source.putAll(flushScratch);
-        flushScratch.clear();
-        return new FlushResult(changed, !source.isEmpty(), transferred);
+    private FlushResult flushMapToNetwork(Object2LongOpenHashMap<AEKey> source, MEStorage storage,
+            AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
+        var result = scheduler.flush(source, transferBudget,
+                (key, amount) -> storage.insert(key, amount, Actionable.MODULATE, actionSource));
+        return new FlushResult(result.changed(), result.blocked(), result.transferred());
     }
 
-    private FlushResult flushMapToPort(Object2LongOpenHashMap<AEKey> source) {
-        boolean changed = false;
-        long transferred = 0;
-        int budget = MAX_PORT_ITEMS_PER_TICK;
-        flushScratch.clear();
-        for (var entry : source.object2LongEntrySet()) {
-            long inserted = budget > 0
-                    ? insertIntoOutputPort(entry.getKey(), Math.min(entry.getLongValue(), budget))
-                    : 0;
-            budget -= (int) inserted;
-            long remaining = entry.getLongValue() - inserted;
-            if (remaining > 0) {
-                flushScratch.put(entry.getKey(), remaining);
+    private FlushResult flushMapToPort(Object2LongOpenHashMap<AEKey> source,
+            AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
+        int[] remainingItemBudget = { MAX_PORT_ITEMS_PER_TICK };
+        var result = scheduler.flush(source, transferBudget, (key, amount) -> {
+            if (remainingItemBudget[0] <= 0) {
+                return 0;
             }
-            changed |= inserted > 0;
-            transferred = saturatedAdd(transferred, inserted);
-        }
-        source.clear();
-        source.putAll(flushScratch);
-        flushScratch.clear();
-        return new FlushResult(changed, !source.isEmpty() && !changed, transferred);
+            long inserted = insertIntoOutputPort(key, Math.min(amount, remainingItemBudget[0]));
+            remainingItemBudget[0] -= (int) inserted;
+            return inserted;
+        });
+        return new FlushResult(result.changed(), !source.isEmpty() && result.transferred() == 0,
+                result.transferred());
     }
 
     private long insertIntoOutputPort(AEKey key, long amount) {

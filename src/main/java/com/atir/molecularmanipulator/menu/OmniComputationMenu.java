@@ -47,8 +47,6 @@ public final class OmniComputationMenu extends AEBaseMenu {
     public int activeMaterialCalculations;
     @GuiSync(12)
     public int completedMaterialCalculations;
-    @GuiSync(13)
-    public int materialCalculationCacheHits;
     @GuiSync(14)
     public int lastMaterialCalculationMillis;
     @GuiSync(15)
@@ -134,7 +132,6 @@ public final class OmniComputationMenu extends AEBaseMenu {
             buildTotal = core.getBuildTotal();
             activeMaterialCalculations = core.getActiveMaterialCalculations();
             completedMaterialCalculations = core.getCompletedMaterialCalculations();
-            materialCalculationCacheHits = core.getMaterialCalculationCacheHits();
             lastMaterialCalculationMillis = core.getLastMaterialCalculationMillis();
             quantumFrequency = core.getQuantumFrequency();
             quantumLinkState = core.getQuantumLinkState();

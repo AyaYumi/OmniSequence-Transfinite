@@ -24,7 +24,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.concurrent.Semaphore;
 
@@ -40,10 +39,7 @@ public abstract class OmniCraftingCalculationMixin {
     private static final Semaphore MOLECULARMANIPULATOR_INTERACTIVE_SLOT = new Semaphore(1, true);
 
     @Shadow
-    private Object monitor;
-
-    @Shadow
-    private boolean done;
+    abstract void handlePausing() throws InterruptedException;
 
     @Unique
     private OmniComputationCoreBlockEntity molecularmanipulator$omniController;
@@ -103,29 +99,6 @@ public abstract class OmniCraftingCalculationMixin {
         }
     }
 
-    @Inject(method = "handlePausing", at = @At("HEAD"), cancellable = true)
-    private void molecularmanipulator$runContinuously(CallbackInfo callback)
-            throws InterruptedException {
-        var controller = molecularmanipulator$omniController;
-        if (controller != null && controller.isMaterialCalculationEnabled()) {
-            if (Thread.interrupted()) {
-                throw new InterruptedException();
-            }
-            callback.cancel();
-        }
-    }
-
-    @Inject(method = "simulateFor", at = @At("HEAD"), cancellable = true)
-    private void molecularmanipulator$neverBlockServerThread(int micros,
-            CallbackInfoReturnable<Boolean> callback) {
-        var controller = molecularmanipulator$omniController;
-        if (controller == null || !controller.isMaterialCalculationEnabled()) {
-            return;
-        }
-        synchronized (monitor) {
-            callback.setReturnValue(!done);
-        }
-    }
 
     @WrapOperation(method = "runCraftAttempt", at = @At(value = "INVOKE",
             target = "Lappeng/crafting/CraftingTreeNode;request(Lappeng/crafting/inv/CraftingSimulationState;JLappeng/api/stacks/KeyCounter;)V"))
@@ -144,7 +117,8 @@ public abstract class OmniCraftingCalculationMixin {
         if (session == null) {
             session = new OmniMaxFastPlanner.Session(
                     ModConfig.OMNI_MAX_FAST_MAX_NODES.get(),
-                    ModConfig.OMNI_MAX_FAST_COMPILE_BUDGET_MS.get());
+                    ModConfig.OMNI_MAX_FAST_COMPILE_BUDGET_MS.get(),
+                    this::handlePausing);
             molecularmanipulator$maxFastSession = session;
         }
 

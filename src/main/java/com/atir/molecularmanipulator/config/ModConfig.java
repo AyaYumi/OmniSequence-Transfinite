@@ -17,6 +17,11 @@ public final class ModConfig {
     public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_DIAGNOSTICS;
     public static final ModConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
     public static final ModConfigSpec.BooleanValue OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS;
+    public static final ModConfigSpec.IntValue OMNI_PROVIDER_MAX_QUEUED_ITEMS;
+    public static final ModConfigSpec.IntValue OMNI_PROVIDER_SEND_OPERATIONS;
+    public static final ModConfigSpec.IntValue OMNI_DISPATCH_TARGET_BUDGET_MS;
+    public static final ModConfigSpec.IntValue OMNI_DISPATCH_HARD_BUDGET_MS;
+    public static final ModConfigSpec.IntValue OMNI_DISPATCH_MAX_WORK_UNITS;
 
     public static final ModConfigSpec CLIENT_SPEC;
     public static final ModConfigSpec.IntValue DYNAMIC_EFFECT_LEVEL;
@@ -60,6 +65,26 @@ public final class ModConfig {
                 "Allow item-substitution patterns to use batch dispatch. Fluid-only substitution remains deterministic and is allowed by default. Disabled by default for contextual and NBT-sensitive item matching.")
                 .translation("molecularmanipulator.configuration.omni_batch_allow_substitution_patterns")
                 .define("omni_batch_allow_substitution_patterns", false);
+        OMNI_PROVIDER_MAX_QUEUED_ITEMS = server.comment(
+                "Maximum total items owned by one adaptive dispatch chunk in a standard AE2 or ExtendedAE pattern provider.")
+                .translation("molecularmanipulator.configuration.omni_provider_max_queued_items")
+                .defineInRange("omni_provider_max_queued_items", 65536, 1, 999999);
+        OMNI_PROVIDER_SEND_OPERATIONS = server.comment(
+                "Maximum transfer operations requested for each ingredient during one fair pattern-provider send round.")
+                .translation("molecularmanipulator.configuration.omni_provider_send_operations")
+                .defineInRange("omni_provider_send_operations", 4096, 1, 65536);
+        OMNI_DISPATCH_TARGET_BUDGET_MS = server.comment(
+                "Target Omni crafting dispatch time per controller and server tick. The adaptive work-unit budget uses this value; logical batch size is not capped.")
+                .translation("molecularmanipulator.configuration.omni_dispatch_target_budget_ms")
+                .defineInRange("omni_dispatch_target_budget_ms", 4, 1, 20);
+        OMNI_DISPATCH_HARD_BUDGET_MS = server.comment(
+                "Emergency wall-clock limit shared by every Omni controller on the server during one tick. Work resumes on the next tick.")
+                .translation("molecularmanipulator.configuration.omni_dispatch_hard_budget_ms")
+                .defineInRange("omni_dispatch_hard_budget_ms", 8, 1, 50);
+        OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
+                "Maximum adaptive dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
+                .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
+                .defineInRange("omni_dispatch_max_work_units", 4096, 64, 65536);
         SERVER_SPEC = server.build();
 
         var client = new ModConfigSpec.Builder();
@@ -78,7 +103,8 @@ public final class ModConfig {
     }
 
     public static void register(ModContainer container) {
-        container.registerConfig(Type.SERVER, SERVER_SPEC);
-        container.registerConfig(Type.CLIENT, CLIENT_SPEC);
+        ConfigFileMigration.migrateGlobalConfigs();
+        container.registerConfig(Type.SERVER, SERVER_SPEC, ConfigFileMigration.SERVER_FILE);
+        container.registerConfig(Type.CLIENT, CLIENT_SPEC, ConfigFileMigration.CLIENT_FILE);
     }
 }

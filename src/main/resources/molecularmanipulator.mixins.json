@@ -16,10 +16,11 @@
     "CraftingCpuLogicMixin",
     "CraftAmountMenuMixin",
     "CraftConfirmMenuMixin",
+    "CraftingPlanSummaryAccessor",
+    "CraftingPlanSummaryMixin",
     "CreativeCellInventoryMixin",
     "ExtendedAEInfinityCellInventoryMixin",
     "KeyCounterMixin",
-    "NetworkCraftingSimulationStateMixin",
     "NbtTearPatternContextMixin",
     "NbtTearPatternMatchHelperMixin",
     "OmniCraftingCpuClusterMixin",
@@ -28,14 +29,17 @@
     "OmniCraftingTreeNodeAccessor",
     "OmniCraftingTreeProcessAccessor",
     "PatternProviderLogicMixin",
+    "ServerLifecycleHooksMixin",
     "TileAssemblerMatrixPatternMixin"
   ],
   "client": [
     "AEKeyTypeMixin",
+    "AE2WTLibCraftingTerminalHandlerMixin",
     "CPUSelectionListMixin",
     "CPUSelectionListInfoBarMixin",
     "CraftAmountScreenMixin",
-    "NumberEntryWidgetAccessor"
+    "NumberEntryWidgetAccessor",
+    "ReadableNumberConverterMixin"
   ],
   "injectors": {
     "defaultRequire": 1

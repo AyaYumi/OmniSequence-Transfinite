@@ -2,12 +2,15 @@ package com.atir.molecularmanipulator.crafting;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.stacks.KeyCounter;
 import appeng.crafting.pattern.AECraftingPattern;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
@@ -20,40 +23,57 @@ public final class MolecularBatchDispatchSafety {
     }
 
     public static long getAvailableBatchLimit(CraftingService craftingService,
-            IPatternDetails patternDetails, Predicate<ICraftingProvider> supportsProvider) {
+            IPatternDetails patternDetails, KeyCounter[] firstInputs,
+            Predicate<ICraftingProvider> supportsProvider) {
+        long batchLimit = 0;
+        for (var offer : getAvailableBatchOffers(
+                craftingService, patternDetails, firstInputs, supportsProvider)) {
+            batchLimit = Math.max(batchLimit, offer.batchLimit());
+        }
+        return batchLimit;
+    }
+
+    public static List<BatchOffer> getAvailableBatchOffers(CraftingService craftingService,
+            IPatternDetails patternDetails, KeyCounter[] firstInputs,
+            Predicate<ICraftingProvider> supportsProvider) {
         if (!ModConfig.OMNI_BATCH_DISPATCH_ENABLED.get()) {
-            return 0;
+            return List.of();
         }
 
         try {
             String unsafeReason = getUnsafePatternReason(patternDetails);
             if (unsafeReason != null) {
                 logFallbackOnce(patternDetails, unsafeReason, null);
-                return 0;
+                return List.of();
             }
 
             var providers = craftingService.getProviders(patternDetails);
             if (providers == null) {
                 logFallbackOnce(patternDetails, "provider_iterable_missing", null);
-                return 0;
+                return List.of();
             }
 
             var iterator = providers.iterator();
-            long batchLimit = 0;
+            var offers = new ArrayList<BatchOffer>();
             while (iterator.hasNext()) {
                 var provider = iterator.next();
                 if (provider != null && !provider.isBusy() && supportsProvider.test(provider)) {
-                    batchLimit = Math.max(batchLimit,
-                            MolecularBatchCraftingProvider.getBatchLimit(provider, patternDetails));
+                    long batchLimit = MolecularBatchCraftingProvider.getBatchLimit(
+                            provider, patternDetails, firstInputs);
+                    if (batchLimit > 0) {
+                        offers.add(new BatchOffer(provider, batchLimit));
+                    }
                 }
             }
-            return batchLimit;
+            return offers;
         } catch (RuntimeException exception) {
             logFallbackOnce(patternDetails, "provider_iteration_unstable", exception);
-            return 0;
+            return List.of();
         }
     }
 
+    public record BatchOffer(ICraftingProvider provider, long batchLimit) {
+    }
     private static String getUnsafePatternReason(IPatternDetails patternDetails) {
         if (patternDetails == null) {
             return "missing_pattern_details";

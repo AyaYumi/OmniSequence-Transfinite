@@ -15,6 +15,7 @@ import appeng.me.helpers.MachineSource;
 import appeng.menu.ISubMenu;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuHostLocator;
+import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -41,7 +42,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     private final MachineSource actionSource = new MachineSource(this);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
-    private final Object2LongOpenHashMap<AEKey> flushScratch = new Object2LongOpenHashMap<>();
+    private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
     private boolean assembling;
     private long craftingEventTick = Long.MIN_VALUE;
@@ -175,25 +176,15 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         assembling = true;
         try {
             var storage = grid.getStorageService().getInventory();
-            boolean changed = false;
-            flushScratch.clear();
-            for (var entry : bufferedOutputs.object2LongEntrySet()) {
-                long inserted = storage.insert(entry.getKey(), entry.getLongValue(), Actionable.MODULATE, actionSource);
-                if (inserted < entry.getLongValue()) {
-                    flushScratch.put(entry.getKey(), entry.getLongValue() - inserted);
-                }
-                changed |= inserted > 0;
+            var result = outputTransferScheduler.flush(bufferedOutputs,
+                    AEKeyTransferScheduler.defaultBudget(),
+                    (key, amount) -> storage.insert(key, amount, Actionable.MODULATE, actionSource));
+            outputReadyTick = bufferedOutputs.isEmpty()
+                    ? Long.MIN_VALUE
+                    : level.getGameTime() + (result.transferred() > 0 ? 1 : 5);
+            if (result.changed()) {
+                saveChanges();
             }
-            if (!changed) {
-                flushScratch.clear();
-                return;
-            }
-
-            bufferedOutputs.clear();
-            bufferedOutputs.putAll(flushScratch);
-            flushScratch.clear();
-            outputReadyTick = bufferedOutputs.isEmpty() ? Long.MIN_VALUE : level.getGameTime() + 1;
-            saveChanges();
         } finally {
             assembling = false;
         }

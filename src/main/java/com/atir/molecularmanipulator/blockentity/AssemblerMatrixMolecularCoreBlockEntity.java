@@ -12,6 +12,7 @@ import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.CraftingEvent;
 import appeng.me.helpers.MachineSource;
+import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.glodblock.github.extendedae.common.me.matrix.ClusterAssemblerMatrix;
@@ -34,7 +35,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     private final MachineSource actionSource = new MachineSource(this);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
-    private final Object2LongOpenHashMap<AEKey> flushScratch = new Object2LongOpenHashMap<>();
+    private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
     private boolean assembling;
     private boolean availableThisTick;
@@ -155,8 +156,11 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     @Override
     public TickRateModulation tickingRequest(IGridNode node, int ticksSinceLastCall) {
-        flushBufferedOutputs();
-        return bufferedOutputs.isEmpty() ? TickRateModulation.SLEEP : TickRateModulation.FASTER;
+        var result = flushBufferedOutputs();
+        if (bufferedOutputs.isEmpty()) {
+            return TickRateModulation.SLEEP;
+        }
+        return result.transferred() > 0 ? TickRateModulation.FASTER : TickRateModulation.SLOWER;
     }
 
     @Override
@@ -197,38 +201,27 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
                 : Long.MIN_VALUE;
     }
 
-    private void flushBufferedOutputs() {
+    private AEKeyTransferScheduler.FlushResult flushBufferedOutputs() {
         var level = getLevel();
         if (level == null || assembling || bufferedOutputs.isEmpty() || level.getGameTime() < outputReadyTick) {
-            return;
+            return AEKeyTransferScheduler.FlushResult.EMPTY;
         }
         var grid = getMainNode().getGrid();
         if (grid == null) {
-            return;
+            return AEKeyTransferScheduler.FlushResult.EMPTY;
         }
 
         assembling = true;
         try {
             var storage = grid.getStorageService().getInventory();
-            boolean changed = false;
-            flushScratch.clear();
-            for (var entry : bufferedOutputs.object2LongEntrySet()) {
-                long inserted = storage.insert(entry.getKey(), entry.getLongValue(), Actionable.MODULATE, actionSource);
-                if (inserted < entry.getLongValue()) {
-                    flushScratch.put(entry.getKey(), entry.getLongValue() - inserted);
-                }
-                changed |= inserted > 0;
-            }
-            if (!changed) {
-                flushScratch.clear();
-                return;
-            }
-
-            bufferedOutputs.clear();
-            bufferedOutputs.putAll(flushScratch);
-            flushScratch.clear();
+            var result = outputTransferScheduler.flush(bufferedOutputs,
+                    AEKeyTransferScheduler.defaultBudget(),
+                    (key, amount) -> storage.insert(key, amount, Actionable.MODULATE, actionSource));
             outputReadyTick = bufferedOutputs.isEmpty() ? Long.MIN_VALUE : level.getGameTime() + 1;
-            saveChanges();
+            if (result.changed()) {
+                saveChanges();
+            }
+            return result;
         } finally {
             assembling = false;
         }

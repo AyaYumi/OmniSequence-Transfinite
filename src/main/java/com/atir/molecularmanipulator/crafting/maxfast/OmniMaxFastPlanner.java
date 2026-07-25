@@ -31,18 +31,26 @@ public final class OmniMaxFastPlanner {
     private OmniMaxFastPlanner() {
     }
 
+    @FunctionalInterface
+    public interface PauseCheckpoint {
+        void pause() throws InterruptedException;
+    }
+
     public static final class Session {
         private final int maxNodes;
         private final long compileBudgetNanos;
+        private final PauseCheckpoint pauseCheckpoint;
         private CraftingTreeNode root;
         private Graph graph;
         private String structuralFailure;
         private Throwable structuralError;
         private long compileNanos;
 
-        public Session(int maxNodes, int compileBudgetMillis) {
+        public Session(int maxNodes, int compileBudgetMillis,
+                PauseCheckpoint pauseCheckpoint) {
             this.maxNodes = maxNodes;
             this.compileBudgetNanos = TimeUnit.MILLISECONDS.toNanos(compileBudgetMillis);
+            this.pauseCheckpoint = pauseCheckpoint;
         }
 
         public Result tryExecute(CraftingTreeNode requestedRoot, CraftingSimulationState inventory,
@@ -57,15 +65,18 @@ public final class OmniMaxFastPlanner {
 
             if (graph == null && structuralFailure == null) {
                 long startedAt = System.nanoTime();
+                var compiler = new Compiler(maxNodes, startedAt + compileBudgetNanos,
+                        pauseCheckpoint);
                 try {
-                    graph = new Compiler(maxNodes, startedAt + compileBudgetNanos).compile(requestedRoot);
+                    graph = compiler.compile(requestedRoot);
                 } catch (Fallback fallback) {
                     structuralFailure = fallback.reason;
                 } catch (RuntimeException exception) {
                     structuralFailure = "internal_compile_exception";
                     structuralError = exception;
                 } finally {
-                    compileNanos = System.nanoTime() - startedAt;
+                    compileNanos = Math.max(0,
+                            System.nanoTime() - startedAt - compiler.pausedNanos);
                 }
             }
 
@@ -76,7 +87,7 @@ public final class OmniMaxFastPlanner {
 
             long startedAt = System.nanoTime();
             try {
-                execute(graph, inventory, requestedAmount);
+                execute(graph, inventory, requestedAmount, pauseCheckpoint);
                 return Result.applied(graph.nodes.size(), graph.mergedOccurrences, graph.barrierCount,
                         graph.logicalNodeCount, compileNanos, System.nanoTime() - startedAt);
             } catch (CraftBranchFailure failure) {
@@ -118,13 +129,14 @@ public final class OmniMaxFastPlanner {
     }
 
     private static void execute(Graph graph, CraftingSimulationState parent,
-            long requestedAmount) throws Fallback, CraftBranchFailure, InterruptedException {
+            long requestedAmount, PauseCheckpoint pauseCheckpoint)
+            throws Fallback, CraftBranchFailure, InterruptedException {
         var inventory = new ChildCraftingSimulationState(parent);
         var requests = new long[graph.nodes.size()];
         requests[graph.rootIndex] = requestedAmount;
 
         for (int nodeIndex : graph.topologicalOrder) {
-            checkInterrupted();
+            checkpoint(pauseCheckpoint);
             long requestMultipliers = requests[nodeIndex];
             if (requestMultipliers <= 0) {
                 continue;
@@ -135,14 +147,15 @@ public final class OmniMaxFastPlanner {
                 if (node.occurrences.size() != 1) {
                     throw new Fallback("shared_unsafe_boundary:" + node.barrierReason);
                 }
-                if (tryExecuteReusableContainerBoundary(node, inventory, requestMultipliers)) {
+                if (tryExecuteReusableContainerBoundary(
+                        node, inventory, requestMultipliers, pauseCheckpoint)) {
                     continue;
                 }
                 var bridge = (OmniCraftingTreeNodeBridge) node.occurrences.getFirst();
                 bridge.molecularmanipulator$request(inventory, requestMultipliers, null);
                 continue;
             }
-            validateTemplates(node, inventory);
+            validateTemplates(node, inventory, pauseCheckpoint);
             inventory.addStackBytes(node.key, node.amount, requestMultipliers);
 
             long extractLimit = saturatedMultiply(node.amount, requestMultipliers);
@@ -189,17 +202,20 @@ public final class OmniMaxFastPlanner {
     }
 
     private static boolean tryExecuteReusableContainerBoundary(Node node,
-            CraftingSimulationState parent, long requestedAmount)
+            CraftingSimulationState parent, long requestedAmount,
+            PauseCheckpoint pauseCheckpoint)
             throws CraftBranchFailure, InterruptedException {
         try {
-            return tryExecuteReusableContainerBoundaryUnchecked(node, parent, requestedAmount);
+            return tryExecuteReusableContainerBoundaryUnchecked(
+                    node, parent, requestedAmount, pauseCheckpoint);
         } catch (NoSuchElementException exception) {
             return rejectReusableBoundary(node, null, "provider_missing", exception);
         }
     }
 
     private static boolean tryExecuteReusableContainerBoundaryUnchecked(Node node,
-            CraftingSimulationState parent, long requestedAmount)
+            CraftingSimulationState parent, long requestedAmount,
+            PauseCheckpoint pauseCheckpoint)
             throws CraftBranchFailure, InterruptedException {
         if (!"container_items".equals(node.barrierReason)) {
             return rejectReusableBoundary(node, null,
@@ -261,7 +277,7 @@ public final class OmniMaxFastPlanner {
         var inputPlans = new ArrayList<BoundaryInputPlan>(inputs.length);
         int inputIndex = 0;
         for (var entry : childNodes.entrySet()) {
-            checkInterrupted();
+            checkpoint(pauseCheckpoint);
             CraftingTreeNode child = entry.getKey();
             var childBridge = (OmniCraftingTreeNodeBridge) child;
             IPatternDetails.IInput input = inputs[inputIndex++];
@@ -272,7 +288,8 @@ public final class OmniMaxFastPlanner {
                 return rejectReusableBoundary(node, details, "self_referencing_input", null);
             }
 
-            BoundaryInputClassification classification = classifyBoundaryInput(input, childBridge, attempt);
+            BoundaryInputClassification classification = classifyBoundaryInput(
+                    input, childBridge, attempt, pauseCheckpoint);
             if (classification.rejectionReason() != null) {
                 return rejectReusableBoundary(node, details, classification.rejectionReason(), null);
             }
@@ -342,14 +359,15 @@ public final class OmniMaxFastPlanner {
     }
 
     private static BoundaryInputClassification classifyBoundaryInput(IPatternDetails.IInput input,
-            OmniCraftingTreeNodeBridge child, CraftingSimulationState inventory)
+            OmniCraftingTreeNodeBridge child, CraftingSimulationState inventory,
+            PauseCheckpoint pauseCheckpoint)
             throws InterruptedException {
         BoundaryInputMode mode = classifyRemainingKey(input, child.molecularmanipulator$getWhat());
         if (mode == BoundaryInputMode.UNSAFE) {
             return BoundaryInputClassification.rejected("container_changes_key");
         }
         for (InputTemplate template : child.molecularmanipulator$getValidItemTemplates(inventory)) {
-            checkInterrupted();
+            checkpoint(pauseCheckpoint);
             BoundaryInputMode templateMode = classifyRemainingKey(input, template.key());
             if (templateMode == BoundaryInputMode.UNSAFE) {
                 return BoundaryInputClassification.rejected("container_changes_key");
@@ -405,10 +423,11 @@ public final class OmniMaxFastPlanner {
     private record BoundaryInputPlan(OmniCraftingTreeNodeBridge child, long requestedAmount) {
     }
 
-    private static void validateTemplates(Node node, CraftingSimulationState inventory)
+    private static void validateTemplates(Node node, CraftingSimulationState inventory,
+            PauseCheckpoint pauseCheckpoint)
             throws Fallback, InterruptedException {
         for (CraftingTreeNode occurrence : node.occurrences) {
-            checkInterrupted();
+            checkpoint(pauseCheckpoint);
             var bridge = (OmniCraftingTreeNodeBridge) occurrence;
             Iterable<InputTemplate> templates = bridge.molecularmanipulator$getValidItemTemplates(inventory);
             for (InputTemplate template : templates) {
@@ -421,15 +440,18 @@ public final class OmniMaxFastPlanner {
 
     private static final class Compiler {
         private final int maxNodes;
-        private final long deadline;
+        private long deadline;
+        private final PauseCheckpoint pauseCheckpoint;
         private final List<Node> nodes = new ArrayList<>();
         private final Map<NodeKey, Integer> nodeIndexes = new HashMap<>();
         private final Map<IPatternDetails, Integer> patternOwners = new IdentityHashMap<>();
         private long mergedOccurrences;
+        private long pausedNanos;
 
-        private Compiler(int maxNodes, long deadline) {
+        private Compiler(int maxNodes, long deadline, PauseCheckpoint pauseCheckpoint) {
             this.maxNodes = maxNodes;
             this.deadline = deadline;
+            this.pauseCheckpoint = pauseCheckpoint;
         }
 
         private Graph compile(CraftingTreeNode root) throws Fallback, InterruptedException {
@@ -658,8 +680,13 @@ public final class OmniMaxFastPlanner {
         }
 
         private void checkBudget() throws InterruptedException, Fallback {
-            checkInterrupted();
-            if (System.nanoTime() > deadline) {
+            long beforePause = System.nanoTime();
+            checkpoint(pauseCheckpoint);
+            long afterPause = System.nanoTime();
+            long paused = Math.max(0, afterPause - beforePause);
+            pausedNanos = saturatedAdd(pausedNanos, paused);
+            deadline = saturatedAdd(deadline, paused);
+            if (afterPause > deadline) {
                 throw new Fallback("compile_time_budget");
             }
         }
@@ -692,6 +719,12 @@ public final class OmniMaxFastPlanner {
         if (Thread.interrupted()) {
             throw new InterruptedException();
         }
+    }
+
+    private static void checkpoint(PauseCheckpoint pauseCheckpoint)
+            throws InterruptedException {
+        checkInterrupted();
+        pauseCheckpoint.pause();
     }
 
     private static long saturatedAdd(long left, long right) {

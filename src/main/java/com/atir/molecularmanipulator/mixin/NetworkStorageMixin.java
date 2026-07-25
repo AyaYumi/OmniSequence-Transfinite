@@ -6,25 +6,28 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.MEStorage;
 import appeng.me.storage.NetworkStorage;
+import java.util.ArrayList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = NetworkStorage.class, remap = false)
 public abstract class NetworkStorageMixin {
-    @Redirect(method = "getAvailableStacks", at = @At(value = "INVOKE",
-            target = "Lappeng/api/storage/MEStorage;getAvailableStacks(Lappeng/api/stacks/KeyCounter;)V"))
-    private void molecularmanipulator$exposeInfiniteAmounts(MEStorage inventory, KeyCounter output) {
-        var available = new KeyCounter();
-        inventory.getAvailableStacks(available);
+    @Inject(method = "getAvailableStacks", at = @At("RETURN"))
+    private void molecularmanipulator$exposeInfiniteAmounts(KeyCounter output, CallbackInfo callback) {
+        var candidates = new ArrayList<AEKey>();
 
-        for (var entry : available) {
-            AEKey key = entry.getKey();
-            long amount = entry.getLongValue();
-            if (molecularmanipulator$isInfinite(inventory, key, amount)) {
+        for (var entry : output) {
+            if (entry.getLongValue() >= Integer.MAX_VALUE) {
+                candidates.add(entry.getKey());
+            }
+        }
+
+        var networkStorage = (MEStorage) (Object) this;
+        for (var key : candidates) {
+            if (molecularmanipulator$isInfinite(networkStorage, key, output.get(key))) {
                 output.set(key, Long.MAX_VALUE);
-            } else {
-                output.add(key, amount);
             }
         }
     }

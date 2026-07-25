@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"molecularmanipulator:block/infinite_parallel_matrix"},"facing=east":{"model":"molecularmanipulator:block/infinite_parallel_matrix","y":90},"facing=south":{"model":"molecularmanipulator:block/infinite_parallel_matrix","y":180},"facing=west":{"model":"molecularmanipulator:block/infinite_parallel_matrix","y":270}}}

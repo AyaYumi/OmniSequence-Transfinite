@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"molecularmanipulator:block/computation_energy_stabilizer"},"facing=east":{"model":"molecularmanipulator:block/computation_energy_stabilizer","y":90},"facing=south":{"model":"molecularmanipulator:block/computation_energy_stabilizer","y":180},"facing=west":{"model":"molecularmanipulator:block/computation_energy_stabilizer","y":270}}}

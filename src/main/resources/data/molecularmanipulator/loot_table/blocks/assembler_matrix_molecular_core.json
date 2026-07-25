@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "molecularmanipulator:assembler_matrix_molecular_core"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "molecularmanipulator:blocks/assembler_matrix_molecular_core"
+}

@@ -1,0 +1,23 @@
+{
+  "replace": false,
+  "values": [
+    "molecularmanipulator:molecular_manipulator",
+    "molecularmanipulator:assembler_matrix_molecular_core",
+    "molecularmanipulator:molecular_center_controller",
+    "molecularmanipulator:molecular_center_casing",
+    "molecularmanipulator:molecular_center_glass",
+    "molecularmanipulator:molecular_center_coil",
+    "molecularmanipulator:molecular_center_stabilizer",
+    "molecularmanipulator:molecular_center_core",
+    "molecularmanipulator:omni_computation_controller",
+    "molecularmanipulator:omni_computation_casing",
+    "molecularmanipulator:omni_computation_glass",
+    "molecularmanipulator:infinite_parallel_matrix",
+    "molecularmanipulator:infinite_crafting_storage",
+    "molecularmanipulator:universal_pattern_matrix",
+    "molecularmanipulator:computation_data_entangler",
+    "molecularmanipulator:computation_energy_stabilizer",
+    "molecularmanipulator:computation_output_node",
+    "molecularmanipulator:computation_crystal_pylon"
+  ]
+}

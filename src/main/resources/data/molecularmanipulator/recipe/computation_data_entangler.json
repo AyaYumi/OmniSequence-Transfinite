@@ -1,0 +1,1 @@
+{"neoforge:conditions":[{"type":"neoforge:mod_loaded","modid":"advanced_ae"}],"type":"minecraft:crafting_shaped","pattern":["DDD","DUD","DDD"],"key":{"D":{"item":"advanced_ae:data_entangler"},"U":{"item":"advanced_ae:quantum_unit"}},"result":{"id":"molecularmanipulator:computation_data_entangler","count":8}}

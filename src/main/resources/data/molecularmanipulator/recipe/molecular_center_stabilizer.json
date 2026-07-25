@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","pattern":["OEO","ENE","OEO"],"key":{"O":{"item":"minecraft:crying_obsidian"},"E":{"item":"minecraft:ender_eye"},"N":{"item":"minecraft:nether_star"}},"result":{"id":"molecularmanipulator:molecular_center_stabilizer","count":2}}

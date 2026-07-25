@@ -1,0 +1,1 @@
+{"neoforge:conditions":[{"type":"neoforge:mod_loaded","modid":"advanced_ae"}],"type":"minecraft:crafting_shaped","pattern":["AAA","AQA","AAA"],"key":{"A":{"item":"advanced_ae:quantum_accelerator"},"Q":{"item":"ae2:fluix_block"}},"result":{"id":"molecularmanipulator:computation_energy_stabilizer","count":8}}

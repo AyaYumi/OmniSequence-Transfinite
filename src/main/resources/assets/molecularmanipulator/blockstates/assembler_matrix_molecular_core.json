@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"molecularmanipulator:block/assembler_matrix_molecular_core"},"facing=east":{"model":"molecularmanipulator:block/assembler_matrix_molecular_core","y":90},"facing=south":{"model":"molecularmanipulator:block/assembler_matrix_molecular_core","y":180},"facing=west":{"model":"molecularmanipulator:block/assembler_matrix_molecular_core","y":270}}}

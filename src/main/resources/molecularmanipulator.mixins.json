@@ -1,0 +1,40 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.atir.molecularmanipulator.mixin",
+  "plugin": "com.atir.molecularmanipulator.mixin.MolecularManipulatorMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixinextras": {
+    "minVersion": "0.5.3"
+  },
+  "mixins": [
+    "AECraftingPatternInputMixin",
+    "AdvancedAECraftingCpuLogicMixin",
+    "CalculatorAssemblerMatrixMixin",
+    "ClusterAssemblerMatrixMixin",
+    "CraftingCPUClusterAccessor",
+    "CraftingCpuLogicMixin",
+    "CraftAmountMenuMixin",
+    "CraftConfirmMenuMixin",
+    "CreativeCellInventoryMixin",
+    "KeyCounterMixin",
+    "NetworkCraftingSimulationStateMixin",
+    "NetworkStorageMixin",
+    "NbtTearPatternContextMixin",
+    "NbtTearPatternMatchHelperMixin",
+    "OmniCraftingCpuClusterMixin",
+    "OmniCraftingCalculationMixin",
+    "OmniCraftingServiceMixin",
+    "OmniCraftingTreeNodeAccessor",
+    "OmniCraftingTreeProcessAccessor",
+    "PatternProviderLogicMixin",
+    "TileAssemblerMatrixPatternMixin"
+  ],
+  "client": [
+    "CraftAmountScreenMixin",
+    "NumberEntryWidgetAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

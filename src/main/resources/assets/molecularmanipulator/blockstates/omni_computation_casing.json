@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"molecularmanipulator:block/omni_computation_casing"},"facing=east":{"model":"molecularmanipulator:block/omni_computation_casing","y":90},"facing=south":{"model":"molecularmanipulator:block/omni_computation_casing","y":180},"facing=west":{"model":"molecularmanipulator:block/omni_computation_casing","y":270}}}

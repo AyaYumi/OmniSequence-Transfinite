@@ -211,6 +211,7 @@
   "gui.molecularmanipulator.omni.projection_tooltip": "显示缺失位置应放置的真实方块外观；再次点击关闭。红色边框表示该位置存在冲突方块。",
   "gui.molecularmanipulator.omni.refresh": "检测",
   "gui.molecularmanipulator.omni.refresh_tooltip": "立即重新检查全部结构方块和 AE 网络状态。",
+  "gui.molecularmanipulator.omni.infinite": "无限",
   "gui.molecularmanipulator.omni.cpu_name": "万物演算核心 · 通道 %s",
   "gui.molecularmanipulator.omni.jei_structure": "万物演算核心完整结构",
   "gui.molecularmanipulator.omni.jei_materials": "结构材料",

@@ -211,6 +211,7 @@
   "gui.molecularmanipulator.omni.projection_tooltip": "Shows the actual expected block model at every exposed missing position. Click again to hide it. Red outlines indicate conflicts.",
   "gui.molecularmanipulator.omni.refresh": "Refresh",
   "gui.molecularmanipulator.omni.refresh_tooltip": "Immediately checks every structure block and the AE network state.",
+  "gui.molecularmanipulator.omni.infinite": "Infinite",
   "gui.molecularmanipulator.omni.cpu_name": "Omni-Computation Core · Lane %s",
   "gui.molecularmanipulator.omni.jei_structure": "Complete Omni-Computation Core",
   "gui.molecularmanipulator.omni.jei_materials": "Structure Materials",

@@ -1,12 +1,33 @@
 # Changelog
 
+## 1.3.2 - 2026-07-25
+
+### Changed
+
+- Replaced Quantum Entangled Singularities in OmniSequence recipes with ME
+  Quantum Rings.
+- Replaced the Quartz Cluster in the Computation Crystal Pylon recipe with a
+  256k ME Storage Component.
+
+### Fixed
+
+- Infinite amounts now use source-specific compatibility for AE2 creative cells
+  and ExtendedAE infinity cells.
+- Removed network-wide simulated extraction probes so storage buses and external
+  storage providers retain their native amounts without inventory refresh stalls.
+- Displayed exact `Long.MAX_VALUE` storage amounts as `Infinite` instead of `9.2E`
+  in AE2 terminals and storage tooltips.
+
 ## 1.3.1 - 2026-07-25
 
 ### Fixed
 
-- Fixed an AE2 grid startup crash when Data Energistics and OmniSequence both
-  processed `NetworkStorage` availability; infinite amounts now use compatible
-  post-processing without replacing Data Energistics' saturating merge.
+- Fixed an Omni Computation Core formation crash by respecting AE2's 16-thread
+  per-block limit while preserving transfinite cluster-level parallelism.
+- Displayed transfinite crafting storage and parallelism as `Infinite` in AE2's
+  crafting CPU list and tooltip instead of abbreviated integer limits.
+- Fixed shutdown stalls while unloading quantum-linked multiblocks by avoiding
+  block updates and redundant AE2 grid work after their chunks begin unloading.
 
 ## 1.3.0 - 2026-07-25
 

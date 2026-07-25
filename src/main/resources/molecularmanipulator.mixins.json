@@ -17,9 +17,9 @@
     "CraftAmountMenuMixin",
     "CraftConfirmMenuMixin",
     "CreativeCellInventoryMixin",
+    "ExtendedAEInfinityCellInventoryMixin",
     "KeyCounterMixin",
     "NetworkCraftingSimulationStateMixin",
-    "NetworkStorageMixin",
     "NbtTearPatternContextMixin",
     "NbtTearPatternMatchHelperMixin",
     "OmniCraftingCpuClusterMixin",
@@ -31,6 +31,9 @@
     "TileAssemblerMatrixPatternMixin"
   ],
   "client": [
+    "AEKeyTypeMixin",
+    "CPUSelectionListMixin",
+    "CPUSelectionListInfoBarMixin",
     "CraftAmountScreenMixin",
     "NumberEntryWidgetAccessor"
   ],

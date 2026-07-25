@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity implements InternalInventoryHost {
     public static final long INFINITE_STORAGE = Long.MAX_VALUE;
     public static final long INFINITE_PARALLELISM = Long.MAX_VALUE;
+    public static final int AE2_MAX_THREADS_PER_BLOCK = 16;
     public static final int AE2_PARALLELISM_SENTINEL = Integer.MAX_VALUE;
     public static final double IDLE_POWER = 8_192.0;
     public static final double QUANTUM_LINK_POWER = 512.0;
@@ -119,7 +120,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public int getAcceleratorThreads() {
-        return structureFormed ? AE2_PARALLELISM_SENTINEL : 0;
+        return structureFormed ? AE2_MAX_THREADS_PER_BLOCK : 0;
     }
 
     public long getParallelismLimit() {
@@ -147,7 +148,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public void onChunkUnloaded() {
         unregisterSpawnProtection();
         releaseQuantumFrequency();
-        disconnectQuantumLink(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
+        clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         super.onChunkUnloaded();
     }
 
@@ -155,7 +156,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public void setRemoved() {
         unregisterSpawnProtection();
         releaseQuantumFrequency();
-        disconnectQuantumLink(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
+        clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         super.setRemoved();
     }
 
@@ -174,7 +175,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void updateSubType(boolean updateFormed) {
-        if (level == null || isRemoved()) {
+        if (level == null || notLoaded() || isRemoved()) {
             return;
         }
         var current = level.getBlockState(worldPosition);
@@ -390,14 +391,24 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         quantumConnection = null;
         quantumRemoteNode = null;
         quantumConnectionFrequency = 0;
-        getMainNode().setIdlePowerUsage(IDLE_POWER);
         quantumLinkState = nextState;
+        var mainNode = getMainNode();
+        if (mainNode.getNode() != null) {
+            mainNode.setIdlePowerUsage(IDLE_POWER);
+        }
         if (connection != null) {
             try {
                 connection.destroy();
             } catch (RuntimeException ignored) {
             }
         }
+    }
+
+    private void clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState nextState) {
+        quantumConnection = null;
+        quantumRemoteNode = null;
+        quantumConnectionFrequency = 0;
+        quantumLinkState = nextState;
     }
 
     private boolean claimQuantumFrequency(ServerLevel serverLevel, long frequency) {

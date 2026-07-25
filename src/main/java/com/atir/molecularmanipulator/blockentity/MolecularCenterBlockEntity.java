@@ -286,7 +286,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public void onChunkUnloaded() {
         unregisterSpawnProtection();
         releaseQuantumFrequency();
-        disconnectQuantumLink(QuantumLinkState.SEARCHING);
+        clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.onChunkUnloaded();
     }
 
@@ -294,7 +294,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public void setRemoved() {
         unregisterSpawnProtection();
         releaseQuantumFrequency();
-        disconnectQuantumLink(QuantumLinkState.SEARCHING);
+        clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.setRemoved();
     }
 
@@ -742,8 +742,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         quantumConnection = null;
         quantumRemoteNode = null;
         quantumConnectionFrequency = 0;
-        getMainNode().setIdlePowerUsage(ModConfig.IDLE_POWER.get());
         quantumLinkState = nextState;
+        var mainNode = getMainNode();
+        if (mainNode.getNode() != null) {
+            mainNode.setIdlePowerUsage(ModConfig.IDLE_POWER.get());
+        }
         if (connection != null) {
             try {
                 connection.destroy();
@@ -752,6 +755,13 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             getLogic().updatePatterns();
         }
+    }
+
+    private void clearQuantumLinkForRemoval(QuantumLinkState nextState) {
+        quantumConnection = null;
+        quantumRemoteNode = null;
+        quantumConnectionFrequency = 0;
+        quantumLinkState = nextState;
     }
 
     private boolean claimQuantumFrequency(net.minecraft.server.level.ServerLevel serverLevel, long frequency) {

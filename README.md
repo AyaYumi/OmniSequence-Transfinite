@@ -159,4 +159,4 @@
 ./gradlew.bat clean build --no-configuration-cache
 ```
 
-当前版本为 `1.3.0`，产物为 `build/libs/omnisequence-transfinite-1.3.0.jar`。
+当前版本为 `1.3.1`，产物为 `build/libs/omnisequence-transfinite-1.3.1.jar`。

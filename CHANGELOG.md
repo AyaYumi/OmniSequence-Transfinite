@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1 - 2026-07-25
+
+### Fixed
+
+- Fixed an AE2 grid startup crash when Data Energistics and OmniSequence both
+  processed `NetworkStorage` availability; infinite amounts now use compatible
+  post-processing without replacing Data Energistics' saturating merge.
+
 ## 1.3.0 - 2026-07-25
 
 ### Highlights
@@ -22,9 +30,6 @@
 
 ### Compatibility
 
-- Fixed an AE2 grid startup crash when Data Energistics and OmniSequence both
-  processed `NetworkStorage` availability; infinite amounts now use compatible
-  post-processing without replacing Data Energistics' saturating merge.
 - Minecraft 1.21.1
 - NeoForge 21.1.230 or later
 - Applied Energistics 2 19.2.17 or later

@@ -1,12 +1,37 @@
 # Changelog
 
-## 1.3.3 - 2026-07-25
+## 1.3.3-hotfix - 2026-07-26
 
 ### Fixed
 
 - Reacquired render buffers after every render-type switch in the Omni
   Computation Core and separated multiblock projection model/outline passes,
   preventing `BufferBuilder: Not building!` client crashes.
+- Replaced output-return-driven adaptive dispatch with complete-input acceptance
+  feedback, so slow, high-parallel and output-less processing targets no longer
+  stall material delivery while waiting for products.
+- Repeated standard provider attempts safely within the same server tick. Every
+  attempt remains one complete AE2 recipe with independent extraction and
+  accounting; rejection or provider-side queuing stops the current tick and
+  contracts the dispatch window.
+- Removed the exact `PatternProviderLogic` class requirement from the standard
+  adaptive path. Third-party providers that correctly implement AE2's
+  `ICraftingProvider` success, rejection and busy-state contract can now use the
+  same bounded high-throughput dispatch.
+- Added full-amount preflight checks and cache-aware initial windows for standard
+  AE2 pattern providers, while preserving the existing direct-batch path for
+  explicitly compatible machines.
+
+### Compatibility
+
+- Existing worlds, patterns and configuration files remain compatible.
+- The stable mod ID remains `molecularmanipulator`.
+- Dedicated batch-provider and machine whitelist behavior is unchanged.
+
+## 1.3.3 - 2026-07-25
+
+### Fixed
+
 - Made missing-material crafting summaries use the `ICraftingPlan` result from
   the same calculation, preventing unstable missing-item lists when external
   storage providers report different results during confirmation-page probes.

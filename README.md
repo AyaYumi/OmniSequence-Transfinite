@@ -15,7 +15,7 @@
 | Glodium | 1.21-2.2-neoforge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.3`
+当前版本：`1.3.3-hotfix`
 
 ## 主要功能
 
@@ -122,7 +122,7 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.3.jar
+build/libs/omnisequence-transfinite-1.3.3-hotfix.jar
 ```
 
 版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。

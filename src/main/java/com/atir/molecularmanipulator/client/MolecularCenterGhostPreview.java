@@ -86,9 +86,9 @@ public final class MolecularCenterGhostPreview {
         var camera = event.getCamera().getPosition();
         var poseStack = event.getPoseStack();
         var buffers = minecraft.renderBuffers().bufferSource();
+        var translucentType = RenderType.translucent();
         var translucent = new ProjectionVertexConsumer(
-                buffers.getBuffer(RenderType.translucent()), PROJECTION_ALPHA);
-        var lines = buffers.getBuffer(RenderType.lines());
+                buffers.getBuffer(translucentType), PROJECTION_ALPHA);
         var dispatcher = minecraft.getBlockRenderer();
 
         poseStack.pushPose();
@@ -106,15 +106,22 @@ public final class MolecularCenterGhostPreview {
                     poseStack.last(), translucent, ghost.expectedState(), model,
                     1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
             poseStack.popPose();
+        }
+        poseStack.popPose();
+        buffers.endBatch(translucentType);
 
-            if (ghost.conflict()) {
+        var linesType = RenderType.lines();
+        var lines = buffers.getBuffer(linesType);
+        poseStack.pushPose();
+        poseStack.translate(-camera.x, -camera.y, -camera.z);
+        for (var ghost : BLOCKS) {
+            if (ghost.conflict() && event.getFrustum().isVisible(ghost.bounds())) {
                 LevelRenderer.renderLineBox(poseStack, lines, ghost.bounds(),
                         1.0F, 0.12F, 0.12F, 0.9F);
             }
         }
         poseStack.popPose();
-        buffers.endBatch(RenderType.translucent());
-        buffers.endBatch(RenderType.lines());
+        buffers.endBatch(linesType);
     }
 
     private static void refresh(Level level) {

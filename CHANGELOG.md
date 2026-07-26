@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- Reacquired render buffers after every render-type switch in the Omni
+  Computation Core and separated multiblock projection model/outline passes,
+  preventing `BufferBuilder: Not building!` client crashes.
 - Made missing-material crafting summaries use the `ICraftingPlan` result from
   the same calculation, preventing unstable missing-item lists when external
   storage providers report different results during confirmation-page probes.

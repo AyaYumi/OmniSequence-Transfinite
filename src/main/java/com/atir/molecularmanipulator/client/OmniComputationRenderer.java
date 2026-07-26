@@ -75,18 +75,22 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
 
         renderQuantumGate(poseStack, buffers, angle, activityStrength, detailed, torusSegments, torusSides);
 
-        var field = buffers.getBuffer(RenderType.entityTranslucentEmissive(FIELD_TEXTURE));
+        var fieldType = RenderType.entityTranslucentEmissive(FIELD_TEXTURE);
+        var field = buffers.getBuffer(fieldType);
         renderSingularity(poseStack, field, angle, activityStrength, pulse, detailed);
 
-        var rings = buffers.getBuffer(RenderType.energySwirl(RING_TEXTURE,
-                angle * 0.0032F, -angle * 0.0021F));
+        var ringType = RenderType.energySwirl(RING_TEXTURE,
+                angle * 0.0032F, -angle * 0.0021F);
+        var rings = buffers.getBuffer(ringType);
         renderAstralRings(poseStack, rings, angle, activityStrength, detailed, torusSegments, torusSides);
 
+        field = buffers.getBuffer(fieldType);
         if (detailed) {
             renderPylonBeams(poseStack, field, angle, activityStrength);
             renderOrbitalNodes(poseStack, field, angle, activity);
         }
         renderCrownBeam(poseStack, field, angle, activityStrength, detailed);
+        rings = buffers.getBuffer(ringType);
         renderCompletionPulse(poseStack, rings, core.getClientCompletionPulse(), torusSegments, torusSides);
         poseStack.popPose();
     }

@@ -1,9 +1,0 @@
-{
-  "parent": "ae2:block/molecular_assembler",
-  "render_type": "translucent",
-  "textures": {
-    "particle": "molecularmanipulator:block/molecular_manipulator",
-    "outside": "molecularmanipulator:block/molecular_manipulator",
-    "base": "molecularmanipulator:block/molecular_manipulator"
-  }
-}

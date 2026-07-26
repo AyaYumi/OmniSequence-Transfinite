@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.client;
 
-import appeng.init.client.InitScreens;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
@@ -21,8 +20,6 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void clientSetup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
-            InitScreens.register(ModContent.MOLECULAR_MANIPULATOR_MENU.get(), MolecularManipulatorScreen::new,
-                    "/screens/molecular_manipulator.json");
             MenuScreens.register(ModContent.MOLECULAR_CENTER_MENU.get(), MolecularCenterScreen::new);
             MenuScreens.register(ModContent.OMNI_COMPUTATION_MENU.get(), OmniComputationScreen::new);
         });

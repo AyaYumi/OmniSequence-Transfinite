@@ -54,6 +54,11 @@
 
 - Removed the obsolete material-calculation cache-hit statistic from the Omni
   Computation Core interface.
+- Removed the standalone Molecular Sequence Rewrite Array block, its block entity,
+  menu, recipe and client resources from the Forge 1.20.1 build. Existing placed
+  copies are removed as missing blocks when old worlds are loaded.
+- Replaced the removed block in the Assembler Matrix Sequence Rewrite Core recipe
+  with an AE2 Molecular Assembler.
 
 ## 1.3.2 - 2026-07-25
 

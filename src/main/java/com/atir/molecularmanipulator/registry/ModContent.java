@@ -2,7 +2,6 @@ package com.atir.molecularmanipulator.registry;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
-import com.atir.molecularmanipulator.block.MolecularManipulatorBlock;
 import com.atir.molecularmanipulator.block.MolecularCenterControllerBlock;
 import com.atir.molecularmanipulator.block.MolecularCenterPartBlock;
 import com.atir.molecularmanipulator.block.MolecularCenterCoreBlock;
@@ -12,12 +11,10 @@ import com.atir.molecularmanipulator.block.OmniComputationControllerBlock;
 import com.atir.molecularmanipulator.block.OmniComputationGlassBlock;
 import com.atir.molecularmanipulator.block.OmniComputationPartBlock;
 import com.atir.molecularmanipulator.blockentity.AssemblerMatrixMolecularCoreBlockEntity;
-import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
-import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.core.registries.Registries;
@@ -42,11 +39,6 @@ public final class ModContent {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MolecularManipulator.MOD_ID);
 
-    public static final RegistryObject<MolecularManipulatorBlock> MOLECULAR_MANIPULATOR =
-            BLOCKS.register("molecular_manipulator", MolecularManipulatorBlock::new);
-    public static final RegistryObject<BlockItem> MOLECULAR_MANIPULATOR_ITEM =
-            ITEMS.register("molecular_manipulator",
-                    () -> new BlockItem(MOLECULAR_MANIPULATOR.get(), new Item.Properties()));
     public static final RegistryObject<AssemblerMatrixMolecularCoreBlock> ASSEMBLER_MATRIX_MOLECULAR_CORE =
             BLOCKS.register("assembler_matrix_molecular_core", AssemblerMatrixMolecularCoreBlock::new);
     public static final RegistryObject<BlockItem> ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM =
@@ -148,10 +140,6 @@ public final class ModContent {
     public static final RegistryObject<BlockItem> COMPUTATION_CRYSTAL_PYLON_ITEM =
             registerBlockItem("computation_crystal_pylon", COMPUTATION_CRYSTAL_PYLON);
 
-    public static final RegistryObject<BlockEntityType<MolecularManipulatorBlockEntity>>
-            MOLECULAR_MANIPULATOR_BLOCK_ENTITY = BLOCK_ENTITIES.register("molecular_manipulator",
-                    () -> BlockEntityType.Builder.of(MolecularManipulatorBlockEntity::new,
-                            MOLECULAR_MANIPULATOR.get()).build(null));
     public static final RegistryObject<BlockEntityType<AssemblerMatrixMolecularCoreBlockEntity>>
             ASSEMBLER_MATRIX_MOLECULAR_CORE_BLOCK_ENTITY = BLOCK_ENTITIES.register("assembler_matrix_molecular_core",
                     () -> BlockEntityType.Builder.of(AssemblerMatrixMolecularCoreBlockEntity::new,
@@ -168,8 +156,6 @@ public final class ModContent {
             OMNI_COMPUTATION_CONTROLLER_BE = BLOCK_ENTITIES.register("omni_computation_controller",
                     () -> BlockEntityType.Builder.of(OmniComputationCoreBlockEntity::new,
                             OMNI_COMPUTATION_CONTROLLER.get()).build(null));
-    public static final RegistryObject<MenuType<MolecularManipulatorMenu>> MOLECULAR_MANIPULATOR_MENU =
-            MENUS.register("molecular_manipulator", () -> MolecularManipulatorMenu.TYPE);
     public static final RegistryObject<MenuType<MolecularCenterMenu>> MOLECULAR_CENTER_MENU =
             MENUS.register("molecular_center", () -> MolecularCenterMenu.TYPE);
     public static final RegistryObject<MenuType<OmniComputationMenu>> OMNI_COMPUTATION_MENU =
@@ -179,9 +165,8 @@ public final class ModContent {
             "main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.molecularmanipulator"))
-                    .icon(() -> MOLECULAR_MANIPULATOR_ITEM.get().getDefaultInstance())
+                    .icon(() -> ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
-                        output.accept(MOLECULAR_MANIPULATOR_ITEM.get());
                         output.accept(ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get());
                         output.accept(MOLECULAR_CENTER_CONTROLLER_ITEM.get());
                         output.accept(MOLECULAR_CENTER_CASING_ITEM.get());
@@ -235,11 +220,6 @@ public final class ModContent {
     }
 
     public static void bindBlockEntity() {
-        MOLECULAR_MANIPULATOR.get().setBlockEntity(
-                MolecularManipulatorBlockEntity.class,
-                MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(),
-                null,
-                null);
         ASSEMBLER_MATRIX_MOLECULAR_CORE.get().setBlockEntity(
                 AssemblerMatrixMolecularCoreBlockEntity.class,
                 ASSEMBLER_MATRIX_MOLECULAR_CORE_BLOCK_ENTITY.get(),

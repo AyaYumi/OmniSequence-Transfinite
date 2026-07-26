@@ -7,7 +7,8 @@ calculation designed for very large automation networks.
 
 ## Main Features
 
-- Molecular Sequence Rewrite Array with 720 pattern slots and persistent output routing.
+- Sequence Array multiblock with 720 default pattern slots, configurable matter rewriting
+  and persistent output routing.
 - Omni Computation Core with effectively unlimited logical crafting storage and parallelism.
 - Long-value AE2 crafting orders and long-value display for supported infinite item sources.
 - Entangled quantum links for remote AE network access.
@@ -35,6 +36,10 @@ calculation designed for very large automation networks.
 Install the required dependencies, then place the OmniSequence: Transfinite JAR in the
 `mods` directory on both the client and server. Client and server versions must match.
 
+The standalone Molecular Sequence Rewrite Array block is not included in the Forge 1.20.1
+build. Existing copies of that block are removed as missing blocks when an old world is loaded;
+use the Sequence Array multiblock for pattern and matter-rewriting functionality.
+
 ---
 
 # 万象构序：超限
@@ -44,3 +49,6 @@ Install the required dependencies, then place the OmniSequence: Transfinite JAR 
 
 安装 AE2、ExtendedAE 及其必要前置后，将本模组 JAR 同时放入客户端与服务端的 `mods`
 目录即可。Advanced AE、ExtendedAE Plus 与 JEI 均为可选兼容项。
+
+Forge 1.20.1 版不再包含独立的 `分子构序重写阵列` 单方块；旧世界中的该方块会作为缺失方块移除，
+样板与物质重写功能由 `构序阵列` 多方块提供。

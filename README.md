@@ -106,7 +106,7 @@ config/molecularmanipulator/matter_rewrite_rules.json
 | `omni_batch_allow_substitution_patterns` | `false` | 允许物品替代样板进入批量发配 |
 | `omni_dispatch_target_budget_ms` | 16 | 每核心每 Tick 的目标调度耗时 |
 | `omni_dispatch_hard_budget_ms` | 40 | 全服所有万物演算核心共享的紧急耗时上限 |
-| `omni_dispatch_max_work_units` | 2100000000 | 每核心每 Tick 的最大自适应工作单元 |
+| `omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大自适应工作单元 |
 | `dynamic_effect_level` | 2 | 客户端动态效果：0 关闭、1 精简、2 完整 |
 
 ## 安装与构建

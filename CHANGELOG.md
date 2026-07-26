@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.3.3-hotfix-forge - 2026-07-26
+
+### Fixed
+
+- Replaced output-return-driven adaptive dispatch with complete-input acceptance
+  feedback, so slow, high-parallel and output-less processing targets no longer
+  stall material delivery while waiting for products.
+- Repeated standard provider attempts safely within the same server tick. Every
+  attempt remains one complete AE2 recipe with independent extraction and
+  accounting; rejection or provider-side queuing stops the current tick and
+  contracts the dispatch window.
+- Removed the exact `PatternProviderLogic` class requirement from the standard
+  adaptive path. Third-party providers that correctly implement AE2 15.4.10's
+  `ICraftingProvider` success, rejection and busy-state contract can now use the
+  same bounded high-throughput dispatch.
+- Added full-amount preflight checks and cache-aware initial windows for standard
+  AE2 pattern providers, while preserving the existing direct-batch path for
+  explicitly compatible machines.
+
+### Compatibility
+
+- Ported the hotfix to Minecraft 1.20.1, Forge 47.4.10 and AE2 15.4.10.
+- Existing worlds, patterns and configuration files remain compatible.
+- The standalone Molecular Sequence Rewrite Array remains removed from the
+  Forge 1.20.1 build and was not restored by this port.
+- The stable mod ID remains `molecularmanipulator`.
+
 ## 1.3.3-forge - 2026-07-25
 
 ### Platform

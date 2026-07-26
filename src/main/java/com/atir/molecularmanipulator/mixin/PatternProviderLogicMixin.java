@@ -1,8 +1,10 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.config.Actionable;
+import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
@@ -28,6 +30,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Mixin(value = PatternProviderLogic.class, remap = false)
 public abstract class PatternProviderLogicMixin implements MolecularBalancedBatchProvider {
@@ -74,9 +77,16 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
             new Object2LongOpenHashMap<>();
     @Unique
     private boolean molecularmanipulator$balancingBatch;
+    @Unique
+    private boolean molecularmanipulator$requireFullBatchAcceptance;
 
     @Shadow
     private PatternProviderTarget findAdapter(Direction direction) {
+        throw new AssertionError();
+    }
+
+    @Shadow
+    private Set<Direction> getActiveSides() {
         throw new AssertionError();
     }
 
@@ -84,6 +94,7 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
     public void molecularmanipulator$beginBalancedBatch(KeyCounter[] firstInputs) {
         molecularmanipulator$initialBatchAmounts.clear();
         molecularmanipulator$balancingBatch = false;
+        molecularmanipulator$requireFullBatchAcceptance = false;
         if (firstInputs == null || !sendList.isEmpty()) {
             return;
         }
@@ -113,9 +124,71 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
     }
 
     @Override
+    public void molecularmanipulator$beginAdaptiveBatch(KeyCounter[] firstInputs) {
+        molecularmanipulator$beginBalancedBatch(firstInputs);
+        molecularmanipulator$requireFullBatchAcceptance =
+                molecularmanipulator$balancingBatch;
+    }
+
+    @Override
+    public long molecularmanipulator$estimateFreeCrafts(IPatternDetails patternDetails,
+            KeyCounter[] firstInputs, long maxCrafts) {
+        if (patternDetails == null || firstInputs == null || maxCrafts <= 0
+                || !sendList.isEmpty() || !mainNode.isActive()
+                || !patternDetails.supportsPushInputsToExternalInventory()) {
+            return -1;
+        }
+
+        AEItemKey inputKey = null;
+        long amountPerCraft = 0;
+        try {
+            for (var input : firstInputs) {
+                if (input == null || input.isEmpty()) {
+                    return -1;
+                }
+                for (var entry : input) {
+                    if (!(entry.getKey() instanceof AEItemKey itemKey)
+                            || entry.getLongValue() <= 0) {
+                        return -1;
+                    }
+                    if (inputKey == null) {
+                        inputKey = itemKey;
+                    } else if (!inputKey.equals(itemKey)) {
+                        return -1;
+                    }
+                    amountPerCraft = Math.addExact(amountPerCraft, entry.getLongValue());
+                }
+            }
+        } catch (ArithmeticException exception) {
+            return -1;
+        }
+        if (inputKey == null || amountPerCraft <= 0) {
+            return -1;
+        }
+
+        long requested = amountPerCraft > Long.MAX_VALUE / maxCrafts
+                ? Long.MAX_VALUE
+                : amountPerCraft * maxCrafts;
+        long best = 0;
+        boolean foundAdapter = false;
+        for (var direction : getActiveSides()) {
+            var target = findAdapter(direction);
+            if (target == null) {
+                continue;
+            }
+            foundAdapter = true;
+            long inserted = target.insert(inputKey, requested, Actionable.SIMULATE);
+            inserted = Math.max(0, Math.min(inserted, requested));
+            best = Math.max(best, inserted / amountPerCraft);
+        }
+        return foundAdapter ? Math.min(best, maxCrafts) : -1;
+    }
+
+    @Override
     public void molecularmanipulator$endBalancedBatch() {
-        boolean saveBatchState = molecularmanipulator$balancingBatch;
-        if (saveBatchState) {
+        boolean wasBalancingBatch = molecularmanipulator$balancingBatch;
+        boolean saveBatchState = wasBalancingBatch && !sendList.isEmpty();
+        if (wasBalancingBatch) {
             if (sendList.isEmpty()) {
                 molecularmanipulator$queuedBatchAmounts.clear();
             } else {
@@ -127,10 +200,24 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
             }
         }
         molecularmanipulator$balancingBatch = false;
+        molecularmanipulator$requireFullBatchAcceptance = false;
         molecularmanipulator$initialBatchAmounts.clear();
         if (saveBatchState) {
             saveChanges();
         }
+    }
+
+    @WrapOperation(method = "adapterAcceptsAll", at = @At(value = "INVOKE",
+            target = "Lappeng/helpers/patternprovider/PatternProviderTarget;insert(Lappeng/api/stacks/AEKey;JLappeng/api/config/Actionable;)J"))
+    private long molecularmanipulator$requireCompleteAdaptiveBatch(
+            PatternProviderTarget target, AEKey key, long amount, Actionable mode,
+            Operation<Long> original) {
+        long inserted = original.call(target, key, amount, mode);
+        if (molecularmanipulator$requireFullBatchAcceptance
+                && amount > 0 && inserted < amount) {
+            return 0;
+        }
+        return inserted;
     }
 
     @WrapOperation(method = "lambda$pushPattern$2", at = @At(value = "INVOKE",
@@ -175,7 +262,10 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
             }
         }
 
-        if (!molecularmanipulator$isLegacyBatchQueue()) {
+        boolean recoverUnsafeAdaptiveBatch = !savedBatchRecipe.isEmpty()
+                && !sendList.isEmpty()
+                && ((Object) this).getClass() == PatternProviderLogic.class;
+        if (!recoverUnsafeAdaptiveBatch && !molecularmanipulator$isLegacyBatchQueue()) {
             if (sendList.isEmpty()) {
                 molecularmanipulator$queuedBatchAmounts.clear();
             } else {
@@ -188,10 +278,17 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
         sendList.clear();
         sendDirection = null;
         molecularmanipulator$queuedBatchAmounts.clear();
-        com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
-                "Recovered a legacy oversized pattern-provider batch queue with {} material types; "
-                        + "its contents will be returned to ME storage instead of being sent to a machine",
-                molecularmanipulator$legacyBatchRefund.size());
+        if (recoverUnsafeAdaptiveBatch) {
+            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+                    "Recovered an unsafe adaptive pattern-provider batch queue with {} material types; "
+                            + "its contents will be returned to ME storage",
+                    molecularmanipulator$legacyBatchRefund.size());
+        } else {
+            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+                    "Recovered a legacy oversized pattern-provider batch queue with {} material types; "
+                            + "its contents will be returned to ME storage instead of being sent to a machine",
+                    molecularmanipulator$legacyBatchRefund.size());
+        }
     }
 
     @Inject(method = "writeToNBT", at = @At("TAIL"))
@@ -276,6 +373,7 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
         molecularmanipulator$initialBatchAmounts.clear();
         molecularmanipulator$queuedBatchAmounts.clear();
         molecularmanipulator$balancingBatch = false;
+        molecularmanipulator$requireFullBatchAcceptance = false;
     }
 
     @Unique

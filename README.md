@@ -100,11 +100,9 @@ config/molecularmanipulator/matter_rewrite_rules.json
 | `omni_max_fast_diagnostics` | `false` | 记录聚合耗时和回退原因 |
 | `omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |
 | `omni_batch_allow_substitution_patterns` | `false` | 允许物品替代样板进入批量发配 |
-| `omni_provider_max_queued_items` | 65536 | 标准供应器单个自适应推送块的物品总量 |
-| `omni_provider_send_operations` | 4096 | 每轮、每种材料的最大传输操作数 |
 | `omni_dispatch_target_budget_ms` | 16 | 每核心每 Tick 的目标调度耗时 |
 | `omni_dispatch_hard_budget_ms` | 40 | 全服所有万物演算核心共享的紧急耗时上限 |
-| `omni_dispatch_max_work_units` | 65536 | 每核心每 Tick 的最大自适应工作单元 |
+| `omni_dispatch_max_work_units` | 2100000000 | 每核心每 Tick 的最大自适应工作单元 |
 | `dynamic_effect_level` | 2 | 客户端动态效果：0 关闭、1 精简、2 完整 |
 
 ## 安装与构建

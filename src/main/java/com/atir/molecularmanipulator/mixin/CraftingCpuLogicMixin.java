@@ -12,7 +12,6 @@ import appeng.hooks.ticking.TickHandler;
 import appeng.me.service.CraftingService;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
-import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularAdaptiveBatchController;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor.BatchExtraction;
@@ -79,9 +78,9 @@ public abstract class CraftingCpuLogicMixin {
     @Unique
     private long molecularmanipulator$dispatchStartedNanos;
     @Unique
-    private int molecularmanipulator$dispatchAllowance;
+    private long molecularmanipulator$dispatchAllowance;
     @Unique
-    private int molecularmanipulator$dispatchUsed;
+    private long molecularmanipulator$dispatchUsed;
     @Unique
     private boolean molecularmanipulator$dispatchStopped;
     @Unique
@@ -227,8 +226,7 @@ public abstract class CraftingCpuLogicMixin {
                 return extraction.inputs();
             }
 
-            long maxAdaptiveWindow = Math.max(1, Math.min(
-                    taskValue, ModConfig.OMNI_PROVIDER_MAX_QUEUED_ITEMS.get()));
+            long maxAdaptiveWindow = Math.max(1L, taskValue);
             long adaptiveLimit = 0;
             boolean foundAdaptiveProvider = false;
             for (var provider : craftingService.getProviders(patternDetails)) {

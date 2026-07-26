@@ -2,6 +2,16 @@
 
 ## 1.3.3-forge - 2026-07-26
 
+### Changed
+
+- Removed the obsolete `omni_provider_max_queued_items` and
+  `omni_provider_send_operations` server options. Adaptive dispatch no longer has a
+  configured material-window cap; fair remainder draining uses an internal high-throughput
+  limit.
+- Converted the complete dispatch work-unit accounting path to `long` and changed
+  `omni_dispatch_max_work_units` to a long-valued option with a default of
+  `2100000000` and a maximum of `Long.MAX_VALUE`.
+
 ### Fixed
 
 - Replaced output-return-driven adaptive dispatch with complete-input acceptance

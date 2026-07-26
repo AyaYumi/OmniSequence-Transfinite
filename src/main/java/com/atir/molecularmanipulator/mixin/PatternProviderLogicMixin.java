@@ -10,7 +10,6 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.helpers.patternprovider.PatternProviderTarget;
-import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -36,6 +35,8 @@ import java.util.Set;
 public abstract class PatternProviderLogicMixin implements MolecularBalancedBatchProvider {
     @Unique
     private static final long MOLECULARMANIPULATOR_FAIR_SEND_BUDGET_NANOS = 2_000_000L;
+    @Unique
+    private static final long MOLECULARMANIPULATOR_FAIR_SEND_OPERATIONS = 65_536L;
     @Unique
     private static final long MOLECULARMANIPULATOR_LEGACY_BATCH_THRESHOLD = 1_000_000L;
     @Unique
@@ -556,7 +557,7 @@ public abstract class PatternProviderLogicMixin implements MolecularBalancedBatc
     @Unique
     private static long molecularmanipulator$fairTransportLimit(AEKey key) {
         long operation = Math.max(1L, key.getAmountPerOperation());
-        long transportOperations = ModConfig.OMNI_PROVIDER_SEND_OPERATIONS.get();
+        long transportOperations = MOLECULARMANIPULATOR_FAIR_SEND_OPERATIONS;
         if (operation > Long.MAX_VALUE / transportOperations) {
             return Long.MAX_VALUE;
         }

@@ -61,8 +61,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public static final double QUANTUM_LINK_POWER = 512.0;
     private static final int STRUCTURE_CHECK_INTERVAL = 20;
     private static final int BUILD_BLOCKS_PER_TICK = 128;
-    private static final int MIN_DISPATCH_WORK_UNITS = 64;
-    private static final int INITIAL_DISPATCH_WORK_UNITS = 512;
+    private static final long MIN_DISPATCH_WORK_UNITS = 64L;
+    private static final long INITIAL_DISPATCH_WORK_UNITS = 512L;
     private static final double DISPATCH_EWMA_ALPHA = 0.2D;
     private static final String VIRTUAL_CPUS_TAG = "omni_virtual_cpus";
     private static final String SUSPENDED_CPUS_TAG = "omni_suspended_cpus";
@@ -86,11 +86,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private boolean restoredCpuState;
     private long nextStructureCheck;
     private long dispatchBudgetTick = Long.MIN_VALUE;
-    private int dispatchWorkUnitsRemaining;
-    private int dispatchReservedWorkUnits;
-    private int dispatchAdaptiveWorkUnits;
+    private long dispatchWorkUnitsRemaining;
+    private long dispatchReservedWorkUnits;
+    private long dispatchAdaptiveWorkUnits;
     private int dispatchLaneRotation;
-    private final Map<CraftingCPUCluster, Integer> dispatchLaneAllowances = new IdentityHashMap<>();
+    private final Map<CraftingCPUCluster, Long> dispatchLaneAllowances = new IdentityHashMap<>();
     private long dispatchSampleElapsedNanos;
     private long dispatchSampleWorkUnits;
     private double dispatchNanosPerWorkUnit;
@@ -582,11 +582,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
 
         var reservedValue = dispatchLaneAllowances.remove(cpu);
-        int reserved = reservedValue == null ? 0 : reservedValue;
+        long reserved = reservedValue == null ? 0L : reservedValue;
         dispatchReservedWorkUnits -= reserved;
         dispatchWorkUnitsRemaining -= reserved;
-        int returnedWork = Math.max(0, dispatchWorkUnitsRemaining - dispatchReservedWorkUnits);
-        int allowance = reserved + Math.min(reserved, returnedWork);
+        long returnedWork = Math.max(0L, dispatchWorkUnitsRemaining - dispatchReservedWorkUnits);
+        long allowance = reserved + Math.min(reserved, returnedWork);
         dispatchWorkUnitsRemaining -= allowance - reserved;
         if (allowance <= 0) {
             return new DispatchAllowance(0, 0);
@@ -606,38 +606,38 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
         int start = Math.floorMod(dispatchLaneRotation, activeLanes);
         if ((long) dispatchAdaptiveWorkUnits >= (long) activeLanes * 2L) {
-            int base = dispatchAdaptiveWorkUnits / activeLanes;
-            int extra = dispatchAdaptiveWorkUnits % activeLanes;
+            long base = dispatchAdaptiveWorkUnits / activeLanes;
+            int extra = (int) (dispatchAdaptiveWorkUnits % activeLanes);
             for (int offset = 0; offset < activeLanes; offset++) {
                 int index = (start + offset) % activeLanes;
-                dispatchLaneAllowances.put(activeCpus.get(index), base + (offset < extra ? 1 : 0));
+                dispatchLaneAllowances.put(activeCpus.get(index), base + (offset < extra ? 1L : 0L));
             }
             dispatchLaneRotation = (start + Math.max(1, extra)) % activeLanes;
         } else {
-            int runnableLanes = dispatchAdaptiveWorkUnits / 2;
+            int runnableLanes = (int) (dispatchAdaptiveWorkUnits / 2L);
             for (int offset = 0; offset < runnableLanes; offset++) {
                 int index = (start + offset) % activeLanes;
-                dispatchLaneAllowances.put(activeCpus.get(index), 2);
+                dispatchLaneAllowances.put(activeCpus.get(index), 2L);
             }
-            if ((dispatchAdaptiveWorkUnits & 1) != 0 && runnableLanes > 0) {
+            if ((dispatchAdaptiveWorkUnits & 1L) != 0L && runnableLanes > 0) {
                 var first = activeCpus.get(start);
-                dispatchLaneAllowances.put(first, dispatchLaneAllowances.get(first) + 1);
+                dispatchLaneAllowances.put(first, dispatchLaneAllowances.get(first) + 1L);
             }
             dispatchLaneRotation = (start + Math.max(1, runnableLanes)) % activeLanes;
         }
         dispatchReservedWorkUnits = dispatchLaneAllowances.values().stream()
-                .mapToInt(Integer::intValue)
+                .mapToLong(Long::longValue)
                 .sum();
     }
 
-    public synchronized void recordDispatchWork(long tick, int allowance, int used,
+    public synchronized void recordDispatchWork(long tick, long allowance, long used,
             long elapsedNanos) {
         if (tick != dispatchBudgetTick) {
             return;
         }
 
-        int charged = Math.max(0, Math.min(allowance, used));
-        int unused = Math.max(0, allowance - charged);
+        long charged = Math.max(0L, Math.min(allowance, used));
+        long unused = Math.max(0L, allowance - charged);
         dispatchWorkUnitsRemaining = Math.min(dispatchAdaptiveWorkUnits,
                 dispatchWorkUnitsRemaining + unused);
         if (charged > 0) {
@@ -661,15 +661,15 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         dispatchSampleWorkUnits = 0;
     }
 
-    private int calculateDispatchWorkUnits() {
-        int maximum = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
+    private long calculateDispatchWorkUnits() {
+        long maximum = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
         if (dispatchNanosPerWorkUnit <= 0) {
             return Math.min(INITIAL_DISPATCH_WORK_UNITS, maximum);
         }
 
         long targetNanos = ModConfig.OMNI_DISPATCH_TARGET_BUDGET_MS.get() * 1_000_000L;
         long estimated = (long) (targetNanos / dispatchNanosPerWorkUnit);
-        return (int) Math.max(MIN_DISPATCH_WORK_UNITS, Math.min(maximum, estimated));
+        return Math.max(MIN_DISPATCH_WORK_UNITS, Math.min(maximum, estimated));
     }
 
     private static long claimServerDispatchDeadline(MinecraftServer server, long tick) {
@@ -684,7 +684,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
     }
 
-    public record DispatchAllowance(int workUnits, long deadlineNanos) {
+    public record DispatchAllowance(long workUnits, long deadlineNanos) {
     }
 
     private record ServerDispatchWindow(long tick, long deadlineNanos) {

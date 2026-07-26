@@ -22,6 +22,23 @@ public final class MolecularBatchDispatchSafety {
     private MolecularBatchDispatchSafety() {
     }
 
+    public static boolean isBatchablePattern(IPatternDetails patternDetails) {
+        if (!ModConfig.OMNI_BATCH_DISPATCH_ENABLED.get()) {
+            return false;
+        }
+        try {
+            String unsafeReason = getUnsafePatternReason(patternDetails);
+            if (unsafeReason != null) {
+                logFallbackOnce(patternDetails, unsafeReason, null);
+                return false;
+            }
+            return true;
+        } catch (RuntimeException exception) {
+            logFallbackOnce(patternDetails, "pattern_validation_failed", exception);
+            return false;
+        }
+    }
+
     public static long getAvailableBatchLimit(CraftingService craftingService,
             IPatternDetails patternDetails, KeyCounter[] firstInputs,
             Predicate<ICraftingProvider> supportsProvider) {
@@ -36,14 +53,8 @@ public final class MolecularBatchDispatchSafety {
     public static List<BatchOffer> getAvailableBatchOffers(CraftingService craftingService,
             IPatternDetails patternDetails, KeyCounter[] firstInputs,
             Predicate<ICraftingProvider> supportsProvider) {
-        if (!ModConfig.OMNI_BATCH_DISPATCH_ENABLED.get()) {
-            return List.of();
-        }
-
         try {
-            String unsafeReason = getUnsafePatternReason(patternDetails);
-            if (unsafeReason != null) {
-                logFallbackOnce(patternDetails, unsafeReason, null);
+            if (!isBatchablePattern(patternDetails)) {
                 return List.of();
             }
 

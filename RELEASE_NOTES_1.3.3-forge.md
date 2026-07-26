@@ -1,6 +1,6 @@
-# OmniSequence: Transfinite 1.3.3-hotfix-forge
+# OmniSequence: Transfinite 1.3.3-forge
 
-这是面向 Minecraft 1.20.1 Forge 的稳定性与自动合成发配热修复版本，建议所有 `1.3.3-forge` 用户更新。
+这是面向 Minecraft 1.20.1 Forge 的稳定性与自动合成发配更新版本。
 
 ## 主要更新
 
@@ -40,10 +40,10 @@
 
 ## 更新方法
 
-删除旧的 `omnisequence-transfinite-1.3.3-forge.jar`，只保留：
+安装时只保留：
 
 ```text
-omnisequence-transfinite-1.3.3-hotfix-forge.jar
+omnisequence-transfinite-1.3.3-forge.jar
 ```
 
 请勿同时安装两个版本，否则会因重复加载同一 Mod ID 而无法启动。

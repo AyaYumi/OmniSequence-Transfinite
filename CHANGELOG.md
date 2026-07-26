@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.3-hotfix-forge - 2026-07-26
+## 1.3.3-forge - 2026-07-26
 
 ### Fixed
 
@@ -26,8 +26,6 @@
 - The standalone Molecular Sequence Rewrite Array remains removed from the
   Forge 1.20.1 build and was not restored by this port.
 - The stable mod ID remains `molecularmanipulator`.
-
-## 1.3.3-forge - 2026-07-25
 
 ### Platform
 

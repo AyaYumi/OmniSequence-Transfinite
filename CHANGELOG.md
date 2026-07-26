@@ -10,7 +10,7 @@
   limit.
 - Converted the complete dispatch work-unit accounting path to `long` and changed
   `omni_dispatch_max_work_units` to a long-valued option with a default of
-  `2100000000` and a maximum of `Long.MAX_VALUE`.
+  `2147483647` and a maximum of `Long.MAX_VALUE`.
 
 ### Fixed
 

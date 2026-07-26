@@ -169,7 +169,7 @@
   "molecularmanipulator.configuration.omni_dispatch_hard_budget_ms": "Omni Dispatch Emergency Limit (ms)",
   "molecularmanipulator.configuration.omni_dispatch_hard_budget_ms.tooltip": "Emergency wall-clock limit shared by all Omni-Computation Cores on the server during one tick. Remaining work resumes next tick. Range: 1-50 ms; default: 40 ms.",
   "molecularmanipulator.configuration.omni_dispatch_max_work_units": "Omni Dispatch Work Unit Limit",
-  "molecularmanipulator.configuration.omni_dispatch_max_work_units.tooltip": "Maximum adaptive work allowance per Omni-Computation Core and tick. One input extraction and each provider attempt cost one unit, regardless of batch quantity. Range: 64-9223372036854775807; default: 2100000000.",
+  "molecularmanipulator.configuration.omni_dispatch_max_work_units.tooltip": "Maximum adaptive work allowance per Omni-Computation Core and tick. One input extraction and each provider attempt cost one unit, regardless of batch quantity. Range: 64-9223372036854775807; default: 2147483647.",
   "molecularmanipulator.configuration.dynamic_effect_level": "Dynamic Multiblock Effect Level",
   "molecularmanipulator.configuration.dynamic_effect_level.tooltip": "Client-side Molecular Center and Omni-Computation Core effects: 0=off, 1=reduced, 2=full orrery and quantum gate. This does not affect crafting speed.",
   "block.molecularmanipulator.omni_computation_controller": "Omni-Computation Core",

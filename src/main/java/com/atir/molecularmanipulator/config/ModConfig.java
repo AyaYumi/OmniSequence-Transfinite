@@ -74,7 +74,7 @@ public final class ModConfig {
         OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
                 "Maximum adaptive dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
                 .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
-                .defineInRange("omni_dispatch_max_work_units", 2_100_000_000L, 64L, Long.MAX_VALUE);
+                .defineInRange("omni_dispatch_max_work_units", 2_147_483_647L, 64L, Long.MAX_VALUE);
         SERVER_SPEC = server.build();
 
         var client = new ForgeConfigSpec.Builder();

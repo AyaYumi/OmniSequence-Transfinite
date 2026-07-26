@@ -14,14 +14,14 @@ import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.me.helpers.MachineSource;
 import appeng.menu.ISubMenu;
 import appeng.menu.MenuOpener;
-import appeng.menu.locator.MenuHostLocator;
+import appeng.menu.locator.MenuLocator;
+import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -41,7 +41,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     private final MachineSource actionSource = new MachineSource(this);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
-    private final Object2LongOpenHashMap<AEKey> flushScratch = new Object2LongOpenHashMap<>();
+    private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
     private boolean assembling;
     private long craftingEventTick = Long.MIN_VALUE;
@@ -132,12 +132,12 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     }
 
     @Override
-    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    public void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
             if (entry.getKey() != null && entry.getLongValue() > 0) {
-                outputList.add(GenericStack.writeTag(registries,
+                outputList.add(GenericStack.writeTag(
                         new GenericStack(entry.getKey(), entry.getLongValue())));
             }
         }
@@ -146,12 +146,12 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     }
 
     @Override
-    public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadTag(tag, registries);
+    public void loadTag(CompoundTag tag) {
+        super.loadTag(tag);
         bufferedOutputs.clear();
         var outputList = tag.getList(OUTPUT_BUFFER_TAG, Tag.TAG_COMPOUND);
         for (var entryTag : outputList) {
-            var stack = GenericStack.readTag(registries, (CompoundTag) entryTag);
+            var stack = GenericStack.readTag( (CompoundTag) entryTag);
             if (stack != null && stack.amount() > 0) {
                 bufferedOutputs.addTo(stack.what(), stack.amount());
             }
@@ -175,25 +175,15 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         assembling = true;
         try {
             var storage = grid.getStorageService().getInventory();
-            boolean changed = false;
-            flushScratch.clear();
-            for (var entry : bufferedOutputs.object2LongEntrySet()) {
-                long inserted = storage.insert(entry.getKey(), entry.getLongValue(), Actionable.MODULATE, actionSource);
-                if (inserted < entry.getLongValue()) {
-                    flushScratch.put(entry.getKey(), entry.getLongValue() - inserted);
-                }
-                changed |= inserted > 0;
+            var result = outputTransferScheduler.flush(bufferedOutputs,
+                    AEKeyTransferScheduler.defaultBudget(),
+                    (key, amount) -> storage.insert(key, amount, Actionable.MODULATE, actionSource));
+            outputReadyTick = bufferedOutputs.isEmpty()
+                    ? Long.MIN_VALUE
+                    : level.getGameTime() + (result.transferred() > 0 ? 1 : 5);
+            if (result.changed()) {
+                saveChanges();
             }
-            if (!changed) {
-                flushScratch.clear();
-                return;
-            }
-
-            bufferedOutputs.clear();
-            bufferedOutputs.putAll(flushScratch);
-            flushScratch.clear();
-            outputReadyTick = bufferedOutputs.isEmpty() ? Long.MIN_VALUE : level.getGameTime() + 1;
-            saveChanges();
         } finally {
             assembling = false;
         }
@@ -209,7 +199,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     }
 
     @Override
-    public void openMenu(Player player, MenuHostLocator locator) {
+    public void openMenu(Player player, MenuLocator locator) {
         MenuOpener.open(MolecularManipulatorMenu.TYPE, player, locator);
     }
 

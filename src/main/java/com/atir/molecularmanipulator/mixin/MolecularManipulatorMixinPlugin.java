@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.mixin;
 
-import net.neoforged.fml.loading.FMLLoader;
+import net.minecraftforge.fml.loading.FMLLoader;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Set;
 
 public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin {
-    private static final String ADVANCED_AE_MIXIN = AdvancedAECraftingCpuLogicMixin.class.getName();
+    private static final String ADVANCED_AE_MIXIN =
+            "com.atir.molecularmanipulator.mixin.AdvancedAECraftingCpuLogicMixin";
 
     @Override
     public void onLoad(String mixinPackage) {

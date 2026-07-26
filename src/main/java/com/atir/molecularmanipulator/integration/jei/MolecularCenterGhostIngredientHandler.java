@@ -15,7 +15,7 @@ final class MolecularCenterGhostIngredientHandler
     public <I> List<Target<I>> getTargetsTyped(MolecularCenterScreen screen,
             ITypedIngredient<I> ingredient, boolean doStart) {
         var itemStack = ingredient.getItemStack().orElse(ItemStack.EMPTY);
-        var slot = screen.getMenu().getSequenceSlots().getFirst();
+        var slot = screen.getMenu().getSequenceSlots().get(0);
         if (itemStack.isEmpty()
                 || !slot.isActive()
                 || !(slot instanceof FakeSlot fakeSlot)

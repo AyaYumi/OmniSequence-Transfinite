@@ -4,10 +4,10 @@ OmniSequence: Transfinite integrates with the following separately installed
 Minecraft mods. Their binaries, source files, models and textures are not
 bundled in the produced mod JAR:
 
-- Applied Energistics 2, version 19.2.17 or later.
-- ExtendedAE, version 1.21-2.2.32-neoforge or later.
-- Glodium, version 1.21-2.2-neoforge or later.
-- Advanced AE, version 1.6.11 or later, when installed.
+- Applied Energistics 2, version 15.4.10.
+- ExtendedAE, version 1.20-1.4.12-forge.
+- Glodium, version 1.20-1.5-forge.
+- A compatible Forge 1.20.1 release of Advanced AE, when installed.
 - ExtendedAE Plus and JEI, when installed.
 
 The design was informed by GTLCore's Molecular Assembler Matrix implementation.

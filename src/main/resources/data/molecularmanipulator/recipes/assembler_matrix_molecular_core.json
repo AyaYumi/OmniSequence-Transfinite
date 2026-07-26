@@ -3,13 +3,13 @@
   "category": "misc",
   "key": {
     "C": {
-      "item": "extendedae:assembler_matrix_crafter"
+      "item": "expatternprovider:assembler_matrix_crafter"
     },
     "M": {
       "item": "molecularmanipulator:molecular_manipulator"
     },
     "S": {
-      "item": "extendedae:assembler_matrix_speed"
+      "item": "expatternprovider:assembler_matrix_speed"
     }
   },
   "pattern": [
@@ -19,6 +19,6 @@
   ],
   "result": {
     "count": 1,
-    "id": "molecularmanipulator:assembler_matrix_molecular_core"
+    "item": "molecularmanipulator:assembler_matrix_molecular_core"
   }
 }

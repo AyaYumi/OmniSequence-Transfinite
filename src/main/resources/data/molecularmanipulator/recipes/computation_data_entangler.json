@@ -1,0 +1,1 @@
+{"type":"forge:conditional","recipes":[{"conditions":[{"type":"forge:mod_loaded","modid":"advanced_ae"}],"recipe":{"type":"minecraft:crafting_shaped","pattern":["DDD","DUD","DDD"],"key":{"D":{"item":"advanced_ae:data_entangler"},"U":{"item":"advanced_ae:quantum_unit"}},"result":{"item":"molecularmanipulator:computation_data_entangler","count":8}}}]}

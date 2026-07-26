@@ -1,28 +1,33 @@
 package com.atir.molecularmanipulator.config;
 
 import com.atir.molecularmanipulator.crafting.maxfast.OmniMaxFastMode;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.config.ModConfig.Type;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.config.ModConfig.Type;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 public final class ModConfig {
-    public static final ModConfigSpec SERVER_SPEC;
-    public static final ModConfigSpec.IntValue PATTERN_PAGES;
-    public static final ModConfigSpec.IntValue BUILD_BLOCKS_PER_TICK;
-    public static final ModConfigSpec.IntValue IDLE_POWER;
-    public static final ModConfigSpec.LongValue MAX_CRAFTING_ORDER_AMOUNT;
-    public static final ModConfigSpec.EnumValue<OmniMaxFastMode> OMNI_MAX_FAST_MODE;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_MAX_NODES;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_COMPILE_BUDGET_MS;
-    public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_DIAGNOSTICS;
-    public static final ModConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
-    public static final ModConfigSpec.BooleanValue OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS;
+    public static final ForgeConfigSpec SERVER_SPEC;
+    public static final ForgeConfigSpec.IntValue PATTERN_PAGES;
+    public static final ForgeConfigSpec.IntValue BUILD_BLOCKS_PER_TICK;
+    public static final ForgeConfigSpec.IntValue IDLE_POWER;
+    public static final ForgeConfigSpec.LongValue MAX_CRAFTING_ORDER_AMOUNT;
+    public static final ForgeConfigSpec.EnumValue<OmniMaxFastMode> OMNI_MAX_FAST_MODE;
+    public static final ForgeConfigSpec.IntValue OMNI_MAX_FAST_MAX_NODES;
+    public static final ForgeConfigSpec.IntValue OMNI_MAX_FAST_COMPILE_BUDGET_MS;
+    public static final ForgeConfigSpec.BooleanValue OMNI_MAX_FAST_DIAGNOSTICS;
+    public static final ForgeConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS;
+    public static final ForgeConfigSpec.IntValue OMNI_PROVIDER_MAX_QUEUED_ITEMS;
+    public static final ForgeConfigSpec.IntValue OMNI_PROVIDER_SEND_OPERATIONS;
+    public static final ForgeConfigSpec.IntValue OMNI_DISPATCH_TARGET_BUDGET_MS;
+    public static final ForgeConfigSpec.IntValue OMNI_DISPATCH_HARD_BUDGET_MS;
+    public static final ForgeConfigSpec.IntValue OMNI_DISPATCH_MAX_WORK_UNITS;
 
-    public static final ModConfigSpec CLIENT_SPEC;
-    public static final ModConfigSpec.IntValue DYNAMIC_EFFECT_LEVEL;
+    public static final ForgeConfigSpec CLIENT_SPEC;
+    public static final ForgeConfigSpec.IntValue DYNAMIC_EFFECT_LEVEL;
 
     static {
-        var server = new ModConfigSpec.Builder();
+        var server = new ForgeConfigSpec.Builder();
         PATTERN_PAGES = server.comment("Number of pattern pages for Molecular Centers.")
                 .translation("molecularmanipulator.configuration.pattern_pages")
                 .defineInRange("pattern_pages", 20, 1, 1000);
@@ -60,9 +65,29 @@ public final class ModConfig {
                 "Allow item-substitution patterns to use batch dispatch. Fluid-only substitution remains deterministic and is allowed by default. Disabled by default for contextual and NBT-sensitive item matching.")
                 .translation("molecularmanipulator.configuration.omni_batch_allow_substitution_patterns")
                 .define("omni_batch_allow_substitution_patterns", false);
+        OMNI_PROVIDER_MAX_QUEUED_ITEMS = server.comment(
+                "Maximum total items owned by one adaptive dispatch chunk in a standard AE2 or ExtendedAE pattern provider.")
+                .translation("molecularmanipulator.configuration.omni_provider_max_queued_items")
+                .defineInRange("omni_provider_max_queued_items", 65536, 1, 999999);
+        OMNI_PROVIDER_SEND_OPERATIONS = server.comment(
+                "Maximum transfer operations requested for each ingredient during one fair pattern-provider send round.")
+                .translation("molecularmanipulator.configuration.omni_provider_send_operations")
+                .defineInRange("omni_provider_send_operations", 4096, 1, 65536);
+        OMNI_DISPATCH_TARGET_BUDGET_MS = server.comment(
+                "Target Omni crafting dispatch time per controller and server tick. The adaptive work-unit budget uses this value; logical batch size is not capped.")
+                .translation("molecularmanipulator.configuration.omni_dispatch_target_budget_ms")
+                .defineInRange("omni_dispatch_target_budget_ms", 4, 1, 20);
+        OMNI_DISPATCH_HARD_BUDGET_MS = server.comment(
+                "Emergency wall-clock limit shared by every Omni controller on the server during one tick. Work resumes on the next tick.")
+                .translation("molecularmanipulator.configuration.omni_dispatch_hard_budget_ms")
+                .defineInRange("omni_dispatch_hard_budget_ms", 8, 1, 50);
+        OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
+                "Maximum adaptive dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
+                .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
+                .defineInRange("omni_dispatch_max_work_units", 4096, 64, 65536);
         SERVER_SPEC = server.build();
 
-        var client = new ModConfigSpec.Builder();
+        var client = new ForgeConfigSpec.Builder();
         DYNAMIC_EFFECT_LEVEL = client.comment(
                 "Dynamic multiblock effects: 0=off, 1=reduced, 2=full astral rings and quantum gate.")
                 .translation("molecularmanipulator.configuration.dynamic_effect_level")
@@ -77,8 +102,9 @@ public final class ModConfig {
         return PATTERN_PAGES.get() * 36;
     }
 
-    public static void register(ModContainer container) {
-        container.registerConfig(Type.SERVER, SERVER_SPEC);
-        container.registerConfig(Type.CLIENT, CLIENT_SPEC);
+    public static void register() {
+        ConfigFileMigration.migrateGlobalConfigs();
+        ModLoadingContext.get().registerConfig(Type.SERVER, SERVER_SPEC, ConfigFileMigration.SERVER_FILE);
+        ModLoadingContext.get().registerConfig(Type.CLIENT, CLIENT_SPEC, ConfigFileMigration.CLIENT_FILE);
     }
 }

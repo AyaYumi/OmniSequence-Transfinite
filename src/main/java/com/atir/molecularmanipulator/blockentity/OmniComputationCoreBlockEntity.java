@@ -2,7 +2,7 @@ package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.config.Actionable;
 import appeng.api.features.Locatables;
-import appeng.api.ids.AEComponents;
+import appeng.api.inventories.InternalInventory;
 import appeng.api.networking.GridHelper;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridConnection;
@@ -16,6 +16,7 @@ import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocators;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
+import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
@@ -24,11 +25,11 @@ import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.world.MolecularCenterSpawnProtection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -37,6 +38,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,21 +59,24 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public static final int AE2_PARALLELISM_SENTINEL = Integer.MAX_VALUE;
     public static final double IDLE_POWER = 8_192.0;
     public static final double QUANTUM_LINK_POWER = 512.0;
-    public static final long DISPATCH_TIME_BUDGET_NANOS = 4_000_000L;
     private static final int STRUCTURE_CHECK_INTERVAL = 20;
     private static final int BUILD_BLOCKS_PER_TICK = 128;
+    private static final int MIN_DISPATCH_WORK_UNITS = 64;
+    private static final int INITIAL_DISPATCH_WORK_UNITS = 512;
+    private static final double DISPATCH_EWMA_ALPHA = 0.2D;
     private static final String VIRTUAL_CPUS_TAG = "omni_virtual_cpus";
     private static final String SUSPENDED_CPUS_TAG = "omni_suspended_cpus";
     private static final String QUANTUM_INVENTORY_TAG = "omni_quantum_inventory";
     private static final Map<CraftingCPUCluster, OmniComputationCoreBlockEntity> CPU_OWNERS =
             Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<MinecraftServer, ServerDispatchWindow> SERVER_DISPATCH_WINDOWS =
+            new WeakHashMap<>();
 
     private final List<CraftingCPUCluster> virtualCpus = new ArrayList<>();
     private final List<CompoundTag> pendingVirtualCpuStates = new ArrayList<>();
     private final List<CompoundTag> suspendedCpuStates = new ArrayList<>();
     private final AtomicInteger activeMaterialCalculations = new AtomicInteger();
     private final AtomicLong completedMaterialCalculations = new AtomicLong();
-    private final AtomicLong materialCalculationCacheHits = new AtomicLong();
     private final AtomicLong lastMaterialCalculationNanos = new AtomicLong();
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
     private OmniComputationStructure.Inspection inspection =
@@ -81,7 +86,14 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private boolean restoredCpuState;
     private long nextStructureCheck;
     private long dispatchBudgetTick = Long.MIN_VALUE;
-    private long dispatchDeadlineNanos;
+    private int dispatchWorkUnitsRemaining;
+    private int dispatchReservedWorkUnits;
+    private int dispatchAdaptiveWorkUnits;
+    private int dispatchLaneRotation;
+    private final Map<CraftingCPUCluster, Integer> dispatchLaneAllowances = new IdentityHashMap<>();
+    private long dispatchSampleElapsedNanos;
+    private long dispatchSampleWorkUnits;
+    private double dispatchNanosPerWorkUnit;
     private boolean building;
     private boolean dismantling;
     private List<OmniComputationStructure.Part> buildQueue = List.of();
@@ -106,6 +118,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         getMainNode()
                 .setFlags(GridFlags.MULTIBLOCK, GridFlags.REQUIRE_CHANNEL)
                 .setIdlePowerUsage(IDLE_POWER);
+    }
+
+    @Override
+    public AABB getRenderBoundingBox() {
+        return new AABB(worldPosition).inflate(42.0, 52.0, 42.0);
     }
 
     @Override
@@ -161,12 +178,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     @Override
-    public void saveChangedInventory(AppEngInternalInventory inventory) {
-        saveChanges();
-    }
-
-    @Override
-    public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
+    public void onChangeInventory(InternalInventory inventory, int slot) {
         if (inventory == quantumInventory && level != null && !level.isClientSide()) {
             disconnectQuantumLink(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
             updateQuantumLink();
@@ -232,7 +244,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         int nextActivity = Math.max(0, Math.min(255, activity));
         if (syncedVisualActivity != nextActivity) {
             syncedVisualActivity = nextActivity;
-            markForClientUpdate();
+            markForUpdate();
         }
     }
 
@@ -293,11 +305,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public long getQuantumFrequency() {
-        var stack = quantumInventory.getStackInSlot(0);
-        if (!MolecularCenterBlockEntity.isValidQuantumSingularity(stack)) {
-            return 0;
-        }
-        return stack.getOrDefault(AEComponents.ENTANGLED_SINGULARITY_ID, 0L);
+        return MolecularCenterBlockEntity.getQuantumSingularityFrequency(quantumInventory.getStackInSlot(0));
     }
 
     public MolecularCenterBlockEntity.QuantumLinkState getQuantumLinkState() {
@@ -438,10 +446,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         restoredCpuState = true;
 
         if (!suspendedCpuStates.isEmpty()) {
-            primary.readFromNBT(suspendedCpuStates.getFirst(), level.registryAccess());
+            primary.readFromNBT(suspendedCpuStates.get(0));
             for (int index = 1; index < suspendedCpuStates.size(); index++) {
                 var cpu = createVirtualCpu();
-                cpu.readFromNBT(suspendedCpuStates.get(index), level.registryAccess());
+                cpu.readFromNBT(suspendedCpuStates.get(index));
             }
             suspendedCpuStates.clear();
             pendingVirtualCpuStates.clear();
@@ -450,7 +458,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
         for (var state : pendingVirtualCpuStates) {
             var cpu = createVirtualCpu();
-            cpu.readFromNBT(state, level.registryAccess());
+            cpu.readFromNBT(state);
         }
         pendingVirtualCpuStates.clear();
     }
@@ -560,6 +568,128 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return allCpus().size();
     }
 
+    public synchronized DispatchAllowance claimDispatchAllowance(CraftingCPUCluster cpu, long tick) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return new DispatchAllowance(0, 0);
+        }
+
+        if (dispatchBudgetTick != tick) {
+            updateDispatchEstimate();
+            dispatchBudgetTick = tick;
+            dispatchAdaptiveWorkUnits = calculateDispatchWorkUnits();
+            dispatchWorkUnitsRemaining = dispatchAdaptiveWorkUnits;
+            prepareDispatchAllowances();
+        }
+
+        var reservedValue = dispatchLaneAllowances.remove(cpu);
+        int reserved = reservedValue == null ? 0 : reservedValue;
+        dispatchReservedWorkUnits -= reserved;
+        dispatchWorkUnitsRemaining -= reserved;
+        int returnedWork = Math.max(0, dispatchWorkUnitsRemaining - dispatchReservedWorkUnits);
+        int allowance = reserved + Math.min(reserved, returnedWork);
+        dispatchWorkUnitsRemaining -= allowance - reserved;
+        if (allowance <= 0) {
+            return new DispatchAllowance(0, 0);
+        }
+        long deadline = claimServerDispatchDeadline(serverLevel.getServer(), tick);
+        return new DispatchAllowance(allowance, deadline);
+    }
+
+    private void prepareDispatchAllowances() {
+        dispatchLaneAllowances.clear();
+        var activeCpus = allCpus().stream().filter(CraftingCPUCluster::isBusy).toList();
+        int activeLanes = activeCpus.size();
+        if (activeLanes == 0) {
+            dispatchReservedWorkUnits = 0;
+            return;
+        }
+
+        int start = Math.floorMod(dispatchLaneRotation, activeLanes);
+        if ((long) dispatchAdaptiveWorkUnits >= (long) activeLanes * 2L) {
+            int base = dispatchAdaptiveWorkUnits / activeLanes;
+            int extra = dispatchAdaptiveWorkUnits % activeLanes;
+            for (int offset = 0; offset < activeLanes; offset++) {
+                int index = (start + offset) % activeLanes;
+                dispatchLaneAllowances.put(activeCpus.get(index), base + (offset < extra ? 1 : 0));
+            }
+            dispatchLaneRotation = (start + Math.max(1, extra)) % activeLanes;
+        } else {
+            int runnableLanes = dispatchAdaptiveWorkUnits / 2;
+            for (int offset = 0; offset < runnableLanes; offset++) {
+                int index = (start + offset) % activeLanes;
+                dispatchLaneAllowances.put(activeCpus.get(index), 2);
+            }
+            if ((dispatchAdaptiveWorkUnits & 1) != 0 && runnableLanes > 0) {
+                var first = activeCpus.get(start);
+                dispatchLaneAllowances.put(first, dispatchLaneAllowances.get(first) + 1);
+            }
+            dispatchLaneRotation = (start + Math.max(1, runnableLanes)) % activeLanes;
+        }
+        dispatchReservedWorkUnits = dispatchLaneAllowances.values().stream()
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
+
+    public synchronized void recordDispatchWork(long tick, int allowance, int used,
+            long elapsedNanos) {
+        if (tick != dispatchBudgetTick) {
+            return;
+        }
+
+        int charged = Math.max(0, Math.min(allowance, used));
+        int unused = Math.max(0, allowance - charged);
+        dispatchWorkUnitsRemaining = Math.min(dispatchAdaptiveWorkUnits,
+                dispatchWorkUnitsRemaining + unused);
+        if (charged > 0) {
+            dispatchSampleWorkUnits += charged;
+            dispatchSampleElapsedNanos += Math.max(0, elapsedNanos);
+        }
+    }
+
+    private void updateDispatchEstimate() {
+        if (dispatchSampleWorkUnits <= 0) {
+            return;
+        }
+
+        double sample = (double) dispatchSampleElapsedNanos / dispatchSampleWorkUnits;
+        if (dispatchNanosPerWorkUnit <= 0) {
+            dispatchNanosPerWorkUnit = sample;
+        } else {
+            dispatchNanosPerWorkUnit += DISPATCH_EWMA_ALPHA * (sample - dispatchNanosPerWorkUnit);
+        }
+        dispatchSampleElapsedNanos = 0;
+        dispatchSampleWorkUnits = 0;
+    }
+
+    private int calculateDispatchWorkUnits() {
+        int maximum = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
+        if (dispatchNanosPerWorkUnit <= 0) {
+            return Math.min(INITIAL_DISPATCH_WORK_UNITS, maximum);
+        }
+
+        long targetNanos = ModConfig.OMNI_DISPATCH_TARGET_BUDGET_MS.get() * 1_000_000L;
+        long estimated = (long) (targetNanos / dispatchNanosPerWorkUnit);
+        return (int) Math.max(MIN_DISPATCH_WORK_UNITS, Math.min(maximum, estimated));
+    }
+
+    private static long claimServerDispatchDeadline(MinecraftServer server, long tick) {
+        synchronized (SERVER_DISPATCH_WINDOWS) {
+            var window = SERVER_DISPATCH_WINDOWS.get(server);
+            if (window == null || window.tick() != tick) {
+                long budgetNanos = ModConfig.OMNI_DISPATCH_HARD_BUDGET_MS.get() * 1_000_000L;
+                window = new ServerDispatchWindow(tick, System.nanoTime() + budgetNanos);
+                SERVER_DISPATCH_WINDOWS.put(server, window);
+            }
+            return window.deadlineNanos();
+        }
+    }
+
+    public record DispatchAllowance(int workUnits, long deadlineNanos) {
+    }
+
+    private record ServerDispatchWindow(long tick, long deadlineNanos) {
+    }
+
     public int getClientVisualActivity() {
         return clientVisualActivity;
     }
@@ -592,13 +722,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     @Override
-    protected void writeToStream(RegistryFriendlyByteBuf data) {
+    protected void writeToStream(FriendlyByteBuf data) {
         super.writeToStream(data);
         data.writeVarInt(syncedVisualActivity);
     }
 
     @Override
-    protected boolean readFromStream(RegistryFriendlyByteBuf data) {
+    protected boolean readFromStream(FriendlyByteBuf data) {
         boolean changed = super.readFromStream(data);
         int nextActivity = Math.max(0, data.readVarInt());
         if (nextActivity < clientVisualActivity && clientVisualActivity > 0) {
@@ -607,14 +737,6 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         changed |= clientVisualActivity != nextActivity;
         clientVisualActivity = nextActivity;
         return changed;
-    }
-
-    public long getDispatchDeadlineNanos(long gameTime) {
-        if (dispatchBudgetTick != gameTime) {
-            dispatchBudgetTick = gameTime;
-            dispatchDeadlineNanos = System.nanoTime() + DISPATCH_TIME_BUDGET_NANOS;
-        }
-        return dispatchDeadlineNanos;
     }
 
     public boolean isMaterialCalculationEnabled() {
@@ -631,20 +753,12 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         lastMaterialCalculationNanos.set(Math.max(0, elapsedNanos));
     }
 
-    public void recordMaterialCalculationCacheHit() {
-        materialCalculationCacheHits.incrementAndGet();
-    }
-
     public int getActiveMaterialCalculations() {
         return activeMaterialCalculations.get();
     }
 
     public int getCompletedMaterialCalculations() {
         return saturatedInt(completedMaterialCalculations.get());
-    }
-
-    public int getMaterialCalculationCacheHits() {
-        return saturatedInt(materialCalculationCacheHits.get());
     }
 
     public int getLastMaterialCalculationMillis() {
@@ -873,7 +987,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
         for (var inventoryStack : player.getInventory().items) {
             if (inventoryStack.isEmpty()
-                    || ItemStack.isSameItemSameComponents(inventoryStack, stack)
+                    || ItemStack.isSameItemSameTags(inventoryStack, stack)
                     && inventoryStack.getCount() < inventoryStack.getMaxStackSize()) {
                 return true;
             }
@@ -916,14 +1030,14 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     @Override
-    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
+    public void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
+        quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
         if (!virtualCpus.isEmpty()) {
             var list = new ListTag();
             for (var cpu : virtualCpus) {
                 var cpuTag = new CompoundTag();
-                cpu.writeToNBT(cpuTag, registries);
+                cpu.writeToNBT(cpuTag);
                 list.add(cpuTag);
             }
             tag.put(VIRTUAL_CPUS_TAG, list);
@@ -938,9 +1052,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     @Override
-    public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadTag(tag, registries);
-        quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
+    public void loadTag(CompoundTag tag) {
+        super.loadTag(tag);
+        quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);
         pendingVirtualCpuStates.clear();
         suspendedCpuStates.clear();
         readCpuTags(tag.getList(VIRTUAL_CPUS_TAG, CompoundTag.TAG_COMPOUND), pendingVirtualCpuStates);

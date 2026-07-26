@@ -225,12 +225,13 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
     private static void emitVertex(PoseStack.Pose pose, VertexConsumer consumer,
             float x, float y, float z, float normalX, float normalY, float normalZ,
             float u, float v, int color, int alpha) {
-        consumer.addVertex(pose, x, y, z)
-                .setColor(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, alpha)
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(LightTexture.FULL_BRIGHT)
-                .setNormal(pose, normalX, normalY, normalZ);
+        consumer.vertex(pose.pose(), x, y, z)
+                .color(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, alpha)
+                .uv(u, v)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(LightTexture.FULL_BRIGHT)
+                .normal(pose.normal(), normalX, normalY, normalZ)
+                .endVertex();
     }
 
     @Override
@@ -248,8 +249,4 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
         return true;
     }
 
-    @Override
-    public AABB getRenderBoundingBox(MolecularCenterBlockEntity center) {
-        return new AABB(center.getBlockPos()).inflate(34.0, 48.0, 34.0);
-    }
 }

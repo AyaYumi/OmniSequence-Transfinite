@@ -1,0 +1,1 @@
+{"type":"forge:conditional","recipes":[{"conditions":[{"type":"forge:mod_loaded","modid":"advanced_ae"}],"recipe":{"type":"minecraft:crafting_shaped","pattern":["CCC","CQC","CCC"],"key":{"C":{"item":"advanced_ae:quantum_crafter"},"Q":{"item":"advanced_ae:quantum_processor"}},"result":{"item":"molecularmanipulator:computation_output_node","count":4}}}]}

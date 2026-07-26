@@ -106,8 +106,7 @@ final class OmniComputationPreviewWidget implements IRecipeWidget, IJeiInputHand
     }
 
     @Override
-    public boolean handleMouseScrolled(double mouseX, double mouseY,
-            double scrollDeltaX, double scrollDeltaY) {
+    public boolean handleMouseScrolled(double mouseX, double mouseY, double scrollDeltaY) {
         if (!isInside(mouseX, mouseY, VIEW_LEFT, VIEW_TOP, VIEW_RIGHT, VIEW_BOTTOM)
                 || scrollDeltaY == 0) {
             return false;

@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.menu;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
-import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.RestrictedInputSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
@@ -17,9 +16,10 @@ public final class OmniComputationMenu extends AEBaseMenu {
     private static final String ACTION_DISMANTLE = "omni_dismantle";
     private static final String ACTION_REFRESH = "omni_refresh";
 
-    public static final MenuType<OmniComputationMenu> TYPE = MenuTypeBuilder
-            .create(OmniComputationMenu::new, OmniComputationCoreBlockEntity.class)
-            .buildUnregistered(MolecularManipulator.id("omni_computation"));
+    public static final MenuType<OmniComputationMenu> TYPE = ForgeMenuTypeFactory.create(
+            MolecularManipulator.id("omni_computation"),
+            OmniComputationMenu::new,
+            OmniComputationCoreBlockEntity.class);
 
     @GuiSync(0)
     public boolean formed;
@@ -47,8 +47,6 @@ public final class OmniComputationMenu extends AEBaseMenu {
     public int activeMaterialCalculations;
     @GuiSync(12)
     public int completedMaterialCalculations;
-    @GuiSync(13)
-    public int materialCalculationCacheHits;
     @GuiSync(14)
     public int lastMaterialCalculationMillis;
     @GuiSync(15)
@@ -134,7 +132,6 @@ public final class OmniComputationMenu extends AEBaseMenu {
             buildTotal = core.getBuildTotal();
             activeMaterialCalculations = core.getActiveMaterialCalculations();
             completedMaterialCalculations = core.getCompletedMaterialCalculations();
-            materialCalculationCacheHits = core.getMaterialCalculationCacheHits();
             lastMaterialCalculationMillis = core.getLastMaterialCalculationMillis();
             quantumFrequency = core.getQuantumFrequency();
             quantumLinkState = core.getQuantumLinkState();

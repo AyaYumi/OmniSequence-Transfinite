@@ -8,7 +8,6 @@ import com.atir.molecularmanipulator.network.LongCraftingRequestPayload;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -44,7 +43,7 @@ public abstract class CraftAmountScreenMixin {
     private void molecularmanipulator$confirmLongAmount(CallbackInfo callback) {
         long amount = this.amountToCraft.getLongValue().orElse(0);
         if (amount > 0) {
-            PacketDistributor.sendToServer(new LongCraftingRequestPayload(
+            LongCraftingRequestPayload.sendToServer(new LongCraftingRequestPayload(
                     amount,
                     this.amountToCraft.startsWithEquals(),
                     CraftAmountScreen.hasShiftDown()));

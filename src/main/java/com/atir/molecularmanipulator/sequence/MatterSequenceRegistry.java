@@ -8,7 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -117,7 +117,7 @@ public final class MatterSequenceRegistry {
 
     private static MatterRule findRule(ItemStack stack) {
         if (stack.isEmpty()
-                || !ItemStack.isSameItemSameComponents(stack, stack.getItem().getDefaultInstance())) {
+                || !ItemStack.isSameItemSameTags(stack, stack.getItem().getDefaultInstance())) {
             return null;
         }
         var itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();

@@ -1,10 +1,11 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.inventories.InternalInventory;
 import appeng.api.config.Actionable;
 import appeng.api.config.PowerMultiplier;
 import appeng.api.features.Locatables;
-import appeng.api.ids.AEComponents;
+import appeng.blockentity.qnb.QuantumBridgeBlockEntity;
 import appeng.api.networking.GridHelper;
 import appeng.api.networking.GridFlags;
 import appeng.api.networking.IGridConnection;
@@ -31,6 +32,7 @@ import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -41,26 +43,26 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.ItemHandlerHelper;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -138,7 +140,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final Object2LongOpenHashMap<AEKey> pendingByproducts = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> cachedPrimaryOutputs = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> cachedByproducts = new Object2LongOpenHashMap<>();
-    private final Object2LongOpenHashMap<AEKey> flushScratch = new Object2LongOpenHashMap<>();
+    private final AEKeyTransferScheduler pendingPrimaryTransferScheduler = new AEKeyTransferScheduler();
+    private final AEKeyTransferScheduler pendingByproductTransferScheduler = new AEKeyTransferScheduler();
+    private final AEKeyTransferScheduler cachedPrimaryTransferScheduler = new AEKeyTransferScheduler();
+    private final AEKeyTransferScheduler cachedByproductTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
     private final PipelineStorageProvider pipelineStorageProvider = new PipelineStorageProvider();
     private PipelineRoute primaryRoute = PipelineRoute.NETWORK;
@@ -209,6 +214,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     @Override
+    public AABB getRenderBoundingBox() {
+        return new AABB(worldPosition).inflate(34.0, 48.0, 34.0);
+    }
+
+    @Override
     protected MolecularCenterLogic createLogic() {
         return new MolecularCenterLogic(this);
     }
@@ -244,12 +254,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     @Override
-    public void saveChangedInventory(AppEngInternalInventory inventory) {
-        saveChanges();
-    }
-
-    @Override
-    public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
+    public void onChangeInventory(InternalInventory inventory, int slot) {
         if (inventory == matterInventory && slot == 3 && level != null && !level.isClientSide()) {
             disconnectQuantumLink(QuantumLinkState.SEARCHING);
             updateQuantumLink();
@@ -299,8 +304,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     @Override
-    public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    public void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         tag.putBoolean("molecular_center_formed", formed);
         tag.putBoolean("molecular_center_building", building);
         tag.putBoolean("molecular_center_dismantling", dismantling);
@@ -311,16 +316,16 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (workOwner != null) {
             tag.putUUID("molecular_center_work_owner", workOwner);
         }
-        writeStacks(tag, PENDING_PRIMARY_TAG, pendingPrimaryOutputs, registries);
-        writeStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts, registries);
-        writeStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs, registries);
-        writeStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts, registries);
+        writeStacks(tag, PENDING_PRIMARY_TAG, pendingPrimaryOutputs);
+        writeStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts);
+        writeStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs);
+        writeStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts);
         tag.putString(PRIMARY_ROUTE_TAG, primaryRoute.getSerializedName());
         tag.putString(BYPRODUCT_ROUTE_TAG, byproductRoute.getSerializedName());
         tag.putString(OUTPUT_PORT_TAG, outputPort.getSerializedName());
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
-        matterInventory.writeToNBT(tag, MATTER_INVENTORY_TAG, registries);
-        matterUpgrades.writeToNBT(tag, MATTER_UPGRADES_TAG, registries);
+        matterInventory.writeToNBT(tag, MATTER_INVENTORY_TAG);
+        matterUpgrades.writeToNBT(tag, MATTER_UPGRADES_TAG);
         tag.putLong(METAL_SEQUENCE_TAG, metalSequence);
         tag.putLong(MINERAL_SEQUENCE_TAG, mineralSequence);
         tag.putLong(CRYSTAL_SEQUENCE_TAG, crystalSequence);
@@ -339,20 +344,20 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         tag.putString(REWRITE_OUTPUT_MODE_TAG, rewriteOutputMode.name());
         tag.putBoolean(DECONSTRUCT_MARKER_FORMAT_TAG, true);
         if (!legacyDeconstructRefund.isEmpty()) {
-            tag.put(LEGACY_DECONSTRUCT_REFUND_TAG, legacyDeconstructRefund.save(registries));
+            tag.put(LEGACY_DECONSTRUCT_REFUND_TAG, legacyDeconstructRefund.save(new CompoundTag()));
         }
         if (!deconstructTemplate.isEmpty()) {
-            tag.put(DECONSTRUCT_TEMPLATE_TAG, deconstructTemplate.save(registries));
+            tag.put(DECONSTRUCT_TEMPLATE_TAG, deconstructTemplate.save(new CompoundTag()));
         }
         if (!rewriteTemplate.isEmpty()) {
-            tag.put(REWRITE_TEMPLATE_TAG, rewriteTemplate.save(registries));
+            tag.put(REWRITE_TEMPLATE_TAG, rewriteTemplate.save(new CompoundTag()));
         }
         writeVisualColors(tag);
     }
 
     @Override
-    public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadTag(tag, registries);
+    public void loadTag(CompoundTag tag) {
+        super.loadTag(tag);
         formed = tag.getBoolean("molecular_center_formed");
         building = tag.getBoolean("molecular_center_building");
         dismantling = tag.getBoolean("molecular_center_dismantling");
@@ -376,22 +381,22 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         cachedPrimaryOutputs.clear();
         cachedByproducts.clear();
         if (tag.contains(PENDING_PRIMARY_TAG, Tag.TAG_LIST)) {
-            readStacks(tag, PENDING_PRIMARY_TAG, pendingPrimaryOutputs, registries);
+            readStacks(tag, PENDING_PRIMARY_TAG, pendingPrimaryOutputs);
         } else {
-            readStacks(tag, LEGACY_OUTPUT_BUFFER_TAG, pendingPrimaryOutputs, registries);
+            readStacks(tag, LEGACY_OUTPUT_BUFFER_TAG, pendingPrimaryOutputs);
         }
-        readStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts, registries);
-        readStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs, registries);
-        readStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts, registries);
+        readStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts);
+        readStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs);
+        readStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts);
         primaryRoute = PipelineRoute.fromSerializedName(tag.getString(PRIMARY_ROUTE_TAG));
         byproductRoute = PipelineRoute.fromSerializedName(tag.getString(BYPRODUCT_ROUTE_TAG));
         outputPort = PipelinePort.fromSerializedName(tag.getString(OUTPUT_PORT_TAG));
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
-        matterInventory.readFromNBT(tag, MATTER_INVENTORY_TAG, registries);
+        matterInventory.readFromNBT(tag, MATTER_INVENTORY_TAG);
         legacyDeconstructRefund = tag.contains(LEGACY_DECONSTRUCT_REFUND_TAG, Tag.TAG_COMPOUND)
-                ? ItemStack.parseOptional(registries, tag.getCompound(LEGACY_DECONSTRUCT_REFUND_TAG))
+                ? ItemStack.of(tag.getCompound(LEGACY_DECONSTRUCT_REFUND_TAG))
                 : ItemStack.EMPTY;
         if (!tag.getBoolean(DECONSTRUCT_MARKER_FORMAT_TAG)
                 && legacyDeconstructRefund.isEmpty()
@@ -399,7 +404,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             legacyDeconstructRefund = matterInventory.getStackInSlot(0).copy();
             matterInventory.setItemDirect(0, legacyDeconstructRefund.copyWithCount(1));
         }
-        matterUpgrades.readFromNBT(tag, MATTER_UPGRADES_TAG, registries);
+        matterUpgrades.readFromNBT(tag, MATTER_UPGRADES_TAG);
         metalSequence = readStoredAmount(tag, METAL_SEQUENCE_TAG, MAX_SEQUENCE_CAPACITY);
         mineralSequence = readStoredAmount(tag, MINERAL_SEQUENCE_TAG, MAX_SEQUENCE_CAPACITY);
         crystalSequence = readStoredAmount(tag, CRYSTAL_SEQUENCE_TAG, MAX_SEQUENCE_CAPACITY);
@@ -436,10 +441,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         rewriteTarget = readStoredAmount(tag, REWRITE_TARGET_TAG, MAX_JOB_TARGET);
         rewriteOutputMode = readEnum(tag.getString(REWRITE_OUTPUT_MODE_TAG), RewriteOutputMode.NETWORK);
         deconstructTemplate = tag.contains(DECONSTRUCT_TEMPLATE_TAG, Tag.TAG_COMPOUND)
-                ? ItemStack.parseOptional(registries, tag.getCompound(DECONSTRUCT_TEMPLATE_TAG))
+                ? ItemStack.of(tag.getCompound(DECONSTRUCT_TEMPLATE_TAG))
                 : ItemStack.EMPTY;
         rewriteTemplate = tag.contains(REWRITE_TEMPLATE_TAG, Tag.TAG_COMPOUND)
-                ? ItemStack.parseOptional(registries, tag.getCompound(REWRITE_TEMPLATE_TAG))
+                ? ItemStack.of(tag.getCompound(REWRITE_TEMPLATE_TAG))
                 : ItemStack.EMPTY;
         fieldColor = readColor(tag, FIELD_COLOR_TAG, DEFAULT_FIELD_COLOR);
         coreColor = readColor(tag, CORE_COLOR_TAG, DEFAULT_CORE_COLOR);
@@ -483,7 +488,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     @Override
-    protected void writeToStream(RegistryFriendlyByteBuf data) {
+    protected void writeToStream(FriendlyByteBuf data) {
         super.writeToStream(data);
         data.writeInt(fieldColor);
         data.writeInt(coreColor);
@@ -493,7 +498,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     @Override
-    protected boolean readFromStream(RegistryFriendlyByteBuf data) {
+    protected boolean readFromStream(FriendlyByteBuf data) {
         boolean changed = super.readFromStream(data);
         int newFieldColor = data.readInt() & 0xFFFFFF;
         int newCoreColor = data.readInt() & 0xFFFFFF;
@@ -513,23 +518,21 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return changed;
     }
 
-    private static void writeStacks(CompoundTag tag, String key, Object2LongOpenHashMap<AEKey> stacks,
-            HolderLookup.Provider registries) {
+    private static void writeStacks(CompoundTag tag, String key, Object2LongOpenHashMap<AEKey> stacks) {
         var list = new ListTag();
         for (var entry : stacks.object2LongEntrySet()) {
             if (entry.getKey() != null && entry.getLongValue() > 0) {
-                list.add(GenericStack.writeTag(registries,
+                list.add(GenericStack.writeTag(
                         new GenericStack(entry.getKey(), entry.getLongValue())));
             }
         }
         tag.put(key, list);
     }
 
-    private static void readStacks(CompoundTag tag, String key, Object2LongOpenHashMap<AEKey> stacks,
-            HolderLookup.Provider registries) {
+    private static void readStacks(CompoundTag tag, String key, Object2LongOpenHashMap<AEKey> stacks) {
         var list = tag.getList(key, Tag.TAG_COMPOUND);
         for (var entryTag : list) {
-            var stack = GenericStack.readTag(registries, (CompoundTag) entryTag);
+            var stack = GenericStack.readTag( (CompoundTag) entryTag);
             if (stack != null && stack.amount() > 0) {
                 try {
                     stacks.put(stack.what(), Math.addExact(stacks.getLong(stack.what()), stack.amount()));
@@ -639,21 +642,23 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     public long getQuantumFrequency() {
-        var stack = matterInventory.getStackInSlot(3);
-        if (!isValidQuantumSingularity(stack)) {
-            return 0;
-        }
-        return stack.getOrDefault(AEComponents.ENTANGLED_SINGULARITY_ID, 0L);
+        return getQuantumSingularityFrequency(matterInventory.getStackInSlot(3));
     }
 
     public QuantumLinkState getQuantumLinkState() {
         return quantumLinkState;
     }
 
+    public static long getQuantumSingularityFrequency(ItemStack stack) {
+        if (!QuantumBridgeBlockEntity.isValidEntangledSingularity(stack)) {
+            return 0;
+        }
+        CompoundTag tag = stack.getTag();
+        return tag == null ? 0 : tag.getLong(QuantumBridgeBlockEntity.TAG_FREQUENCY);
+    }
+
     public static boolean isValidQuantumSingularity(ItemStack stack) {
-        return !stack.isEmpty()
-                && stack.has(AEComponents.ENTANGLED_SINGULARITY_ID)
-                && stack.getOrDefault(AEComponents.ENTANGLED_SINGULARITY_ID, 0L) > 0;
+        return getQuantumSingularityFrequency(stack) > 0;
     }
 
     private void updateQuantumLink() {
@@ -966,7 +971,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             stopDeconstruction(MatterJobState.INPUT_EMPTY);
             return;
         }
-        if (!ItemStack.isSameItemSameComponents(marker, deconstructTemplate)) {
+        if (!ItemStack.isSameItemSameTags(marker, deconstructTemplate)) {
             if (MatterSequenceRegistry.deconstructionOf(marker) == null) {
                 stopDeconstruction(MatterJobState.UNSUPPORTED);
                 return;
@@ -1110,7 +1115,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private MatterJobState processOneRewrite() {
         var blueprint = matterInventory.getStackInSlot(1);
         if (blueprint.isEmpty()
-                || !ItemStack.isSameItemSameComponents(blueprint, rewriteTemplate)) {
+                || !ItemStack.isSameItemSameTags(blueprint, rewriteTemplate)) {
             return MatterJobState.BLUEPRINT_CHANGED;
         }
         var value = MatterSequenceRegistry.rewriteCostOf(rewriteTemplate);
@@ -1168,7 +1173,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private boolean canAcceptMatterOutput(ItemStack stack) {
         var output = matterInventory.getStackInSlot(2);
         return output.isEmpty()
-                || ItemStack.isSameItemSameComponents(output, stack)
+                || ItemStack.isSameItemSameTags(output, stack)
                 && output.getCount() < output.getMaxStackSize();
     }
 
@@ -1766,7 +1771,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private boolean extractBuildMaterial(ServerPlayer player, ItemStack template,
             List<NetworkMaterialSource> materialSources) {
         for (var stack : player.getInventory().items) {
-            if (ItemStack.isSameItemSameComponents(stack, template) && !stack.isEmpty()) {
+            if (ItemStack.isSameItemSameTags(stack, template) && !stack.isEmpty()) {
                 stack.shrink(1);
                 return true;
             }
@@ -1851,7 +1856,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return true;
         }
         for (var slot : player.getInventory().items) {
-            if (slot.isEmpty() || ItemStack.isSameItemSameComponents(slot, stack)
+            if (slot.isEmpty() || ItemStack.isSameItemSameTags(slot, stack)
                     && slot.getCount() < slot.getMaxStackSize()) {
                 return true;
             }
@@ -1993,26 +1998,29 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             boolean changed = false;
             boolean blocked = false;
             long transferred = 0;
+            var transferBudget = AEKeyTransferScheduler.defaultBudget();
 
-            var primaryCacheResult = flushCached(cachedPrimaryOutputs, primaryRoute, storage);
+            var primaryCacheResult = flushCached(cachedPrimaryOutputs, primaryRoute, storage,
+                    cachedPrimaryTransferScheduler, transferBudget);
             changed |= primaryCacheResult.changed();
             blocked |= primaryCacheResult.blocked();
             transferred = saturatedAdd(transferred, primaryCacheResult.transferred());
 
-            var byproductCacheResult = flushCached(cachedByproducts, byproductRoute, storage);
+            var byproductCacheResult = flushCached(cachedByproducts, byproductRoute, storage,
+                    cachedByproductTransferScheduler, transferBudget);
             changed |= byproductCacheResult.changed();
             blocked |= byproductCacheResult.blocked();
             transferred = saturatedAdd(transferred, byproductCacheResult.transferred());
 
             if (gameTime >= outputReadyTick) {
                 var primaryResult = flushPending(pendingPrimaryOutputs, cachedPrimaryOutputs,
-                        primaryRoute, storage, craftingService);
+                        primaryRoute, storage, craftingService, pendingPrimaryTransferScheduler, transferBudget);
                 changed |= primaryResult.changed();
                 blocked |= primaryResult.blocked();
                 transferred = saturatedAdd(transferred, primaryResult.transferred());
 
                 var byproductResult = flushPending(pendingByproducts, cachedByproducts,
-                        byproductRoute, storage, craftingService);
+                        byproductRoute, storage, craftingService, pendingByproductTransferScheduler, transferBudget);
                 changed |= byproductResult.changed();
                 blocked |= byproductResult.blocked();
                 transferred = saturatedAdd(transferred, byproductResult.transferred());
@@ -2035,108 +2043,67 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private FlushResult flushCached(Object2LongOpenHashMap<AEKey> cached,
-            PipelineRoute route, MEStorage storage) {
+            PipelineRoute route, MEStorage storage, AEKeyTransferScheduler scheduler,
+            AEKeyTransferScheduler.TransferBudget transferBudget) {
         if (route == PipelineRoute.INTERNAL || cached.isEmpty()) {
             return FlushResult.EMPTY;
         }
         return route == PipelineRoute.NETWORK
-                ? flushMapToNetwork(cached, storage)
-                : flushMapToPort(cached);
+                ? flushMapToNetwork(cached, storage, scheduler, transferBudget)
+                : flushMapToPort(cached, scheduler, transferBudget);
     }
 
     private FlushResult flushPending(Object2LongOpenHashMap<AEKey> pending,
             Object2LongOpenHashMap<AEKey> cache, PipelineRoute route, MEStorage storage,
-            appeng.api.networking.crafting.ICraftingService craftingService) {
+            appeng.api.networking.crafting.ICraftingService craftingService,
+            AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
         if (pending.isEmpty()) {
             return FlushResult.EMPTY;
         }
 
-        boolean changed = false;
-        boolean blocked = false;
-        long transferred = 0;
-        flushScratch.clear();
-        for (var entry : pending.object2LongEntrySet()) {
-            var key = entry.getKey();
-            long remaining = entry.getLongValue();
-
+        var result = scheduler.flush(pending, transferBudget, (key, amount) -> {
+            long remaining = amount;
             long requested = Math.min(remaining, craftingService.getRequestedAmount(key));
             if (requested > 0) {
                 long delivered = storage.insert(key, requested, Actionable.MODULATE, actionSource);
                 remaining -= delivered;
-                transferred = saturatedAdd(transferred, delivered);
-                changed |= delivered > 0;
             }
 
             if (remaining > 0 && route == PipelineRoute.NETWORK) {
                 long inserted = storage.insert(key, remaining, Actionable.MODULATE, actionSource);
                 remaining -= inserted;
-                transferred = saturatedAdd(transferred, inserted);
-                changed |= inserted > 0;
-                blocked |= remaining > 0;
             } else if (remaining > 0 && route == PipelineRoute.PORT) {
                 long inserted = insertIntoOutputPort(key, remaining);
                 remaining -= inserted;
-                transferred = saturatedAdd(transferred, inserted);
-                changed |= inserted > 0;
-                blocked |= remaining > 0;
             } else if (remaining > 0) {
                 cache.put(key, Math.addExact(cache.getLong(key), remaining));
-                transferred = saturatedAdd(transferred, remaining);
                 remaining = 0;
-                changed = true;
             }
-
-            if (remaining > 0) {
-                flushScratch.put(key, remaining);
-            }
-        }
-        pending.clear();
-        pending.putAll(flushScratch);
-        flushScratch.clear();
-        return new FlushResult(changed, blocked, transferred);
+            return amount - remaining;
+        });
+        return new FlushResult(result.changed(), result.blocked(), result.transferred());
     }
 
-    private FlushResult flushMapToNetwork(Object2LongOpenHashMap<AEKey> source, MEStorage storage) {
-        boolean changed = false;
-        long transferred = 0;
-        flushScratch.clear();
-        for (var entry : source.object2LongEntrySet()) {
-            long inserted = storage.insert(entry.getKey(), entry.getLongValue(),
-                    Actionable.MODULATE, actionSource);
-            long remaining = entry.getLongValue() - inserted;
-            if (remaining > 0) {
-                flushScratch.put(entry.getKey(), remaining);
-            }
-            changed |= inserted > 0;
-            transferred = saturatedAdd(transferred, inserted);
-        }
-        source.clear();
-        source.putAll(flushScratch);
-        flushScratch.clear();
-        return new FlushResult(changed, !source.isEmpty(), transferred);
+    private FlushResult flushMapToNetwork(Object2LongOpenHashMap<AEKey> source, MEStorage storage,
+            AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
+        var result = scheduler.flush(source, transferBudget,
+                (key, amount) -> storage.insert(key, amount, Actionable.MODULATE, actionSource));
+        return new FlushResult(result.changed(), result.blocked(), result.transferred());
     }
 
-    private FlushResult flushMapToPort(Object2LongOpenHashMap<AEKey> source) {
-        boolean changed = false;
-        long transferred = 0;
-        int budget = MAX_PORT_ITEMS_PER_TICK;
-        flushScratch.clear();
-        for (var entry : source.object2LongEntrySet()) {
-            long inserted = budget > 0
-                    ? insertIntoOutputPort(entry.getKey(), Math.min(entry.getLongValue(), budget))
-                    : 0;
-            budget -= (int) inserted;
-            long remaining = entry.getLongValue() - inserted;
-            if (remaining > 0) {
-                flushScratch.put(entry.getKey(), remaining);
+    private FlushResult flushMapToPort(Object2LongOpenHashMap<AEKey> source,
+            AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
+        int[] remainingItemBudget = { MAX_PORT_ITEMS_PER_TICK };
+        var result = scheduler.flush(source, transferBudget, (key, amount) -> {
+            if (remainingItemBudget[0] <= 0) {
+                return 0;
             }
-            changed |= inserted > 0;
-            transferred = saturatedAdd(transferred, inserted);
-        }
-        source.clear();
-        source.putAll(flushScratch);
-        flushScratch.clear();
-        return new FlushResult(changed, !source.isEmpty() && !changed, transferred);
+            long inserted = insertIntoOutputPort(key, Math.min(amount, remainingItemBudget[0]));
+            remainingItemBudget[0] -= (int) inserted;
+            return inserted;
+        });
+        return new FlushResult(result.changed(), !source.isEmpty() && result.transferred() == 0,
+                result.transferred());
     }
 
     private long insertIntoOutputPort(AEKey key, long amount) {
@@ -2145,8 +2112,13 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var target = outputPort.resolve(worldPosition, facing);
-        IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK,
-                target.pos(), target.accessSide());
+        var targetBlockEntity = level.getBlockEntity(target.pos());
+        if (targetBlockEntity == null) {
+            return 0;
+        }
+        IItemHandler handler = targetBlockEntity
+                .getCapability(ForgeCapabilities.ITEM_HANDLER, target.accessSide())
+                .orElse(null);
         if (handler == null) {
             return 0;
         }
@@ -2199,7 +2171,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return false;
     }
 
-    public void openMenu(Player player, appeng.menu.locator.MenuHostLocator locator) {
+    public void openMenu(Player player, appeng.menu.locator.MenuLocator locator) {
         appeng.menu.MenuOpener.open(MolecularCenterMenu.TYPE, player, locator);
     }
 

@@ -226,7 +226,6 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.calculation_stats",
                         menu.completedMaterialCalculations,
-                        menu.materialCalculationCacheHits,
                         menu.lastMaterialCalculationMillis),
                 174, 158, 140, 0xFF9EA9BB);
 

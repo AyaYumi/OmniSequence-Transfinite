@@ -6,7 +6,6 @@ import appeng.api.util.AECableType;
 import com.atir.molecularmanipulator.registry.ModContent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -29,7 +28,6 @@ public final class MolecularCenterShellBlockEntity extends BlockEntity implement
         setChanged();
         Level level = getLevel();
         if (level != null) {
-            level.invalidateCapabilities(worldPosition);
             level.updateNeighborsAt(worldPosition, getBlockState().getBlock());
         }
     }
@@ -52,16 +50,16 @@ public final class MolecularCenterShellBlockEntity extends BlockEntity implement
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         if (controllerPos != null) {
             tag.putLong(CONTROLLER_POS_TAG, controllerPos.asLong());
         }
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
+    public void load(CompoundTag tag) {
+        super.load(tag);
         controllerPos = tag.contains(CONTROLLER_POS_TAG, CompoundTag.TAG_LONG)
                 ? BlockPos.of(tag.getLong(CONTROLLER_POS_TAG))
                 : null;

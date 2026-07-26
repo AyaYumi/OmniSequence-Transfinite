@@ -75,18 +75,22 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
 
         renderQuantumGate(poseStack, buffers, angle, activityStrength, detailed, torusSegments, torusSides);
 
-        var field = buffers.getBuffer(RenderType.entityTranslucentEmissive(FIELD_TEXTURE));
+        var fieldType = RenderType.entityTranslucentEmissive(FIELD_TEXTURE);
+        var field = buffers.getBuffer(fieldType);
         renderSingularity(poseStack, field, angle, activityStrength, pulse, detailed);
 
-        var rings = buffers.getBuffer(RenderType.energySwirl(RING_TEXTURE,
-                angle * 0.0032F, -angle * 0.0021F));
+        var ringType = RenderType.energySwirl(RING_TEXTURE,
+                angle * 0.0032F, -angle * 0.0021F);
+        var rings = buffers.getBuffer(ringType);
         renderAstralRings(poseStack, rings, angle, activityStrength, detailed, torusSegments, torusSides);
 
+        field = buffers.getBuffer(fieldType);
         if (detailed) {
             renderPylonBeams(poseStack, field, angle, activityStrength);
             renderOrbitalNodes(poseStack, field, angle, activity);
         }
         renderCrownBeam(poseStack, field, angle, activityStrength, detailed);
+        rings = buffers.getBuffer(ringType);
         renderCompletionPulse(poseStack, rings, core.getClientCompletionPulse(), torusSegments, torusSides);
         poseStack.popPose();
     }
@@ -401,12 +405,13 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
     private static void emitVertex(PoseStack.Pose pose, VertexConsumer consumer,
             float x, float y, float z, float normalX, float normalY, float normalZ,
             float u, float v, int color, int alpha) {
-        consumer.addVertex(pose, x, y, z)
-                .setColor(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, alpha)
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(LightTexture.FULL_BRIGHT)
-                .setNormal(pose, normalX, normalY, normalZ);
+        consumer.vertex(pose.pose(), x, y, z)
+                .color(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, alpha)
+                .uv(u, v)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(LightTexture.FULL_BRIGHT)
+                .normal(pose.normal(), normalX, normalY, normalZ)
+                .endVertex();
     }
 
     private static float facingRotation(Direction facing) {
@@ -433,8 +438,4 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
         return true;
     }
 
-    @Override
-    public AABB getRenderBoundingBox(OmniComputationCoreBlockEntity core) {
-        return new AABB(core.getBlockPos()).inflate(42.0, 52.0, 42.0);
-    }
 }

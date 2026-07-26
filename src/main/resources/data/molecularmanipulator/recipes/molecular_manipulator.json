@@ -3,13 +3,13 @@
   "category": "misc",
   "key": {
     "A": {
-      "item": "extendedae:ex_molecular_assembler"
+      "item": "expatternprovider:ex_molecular_assembler"
     },
     "C": {
-      "item": "extendedae:concurrent_processor"
+      "item": "ae2:engineering_processor"
     },
     "P": {
-      "item": "extendedae:ex_pattern_provider"
+      "item": "expatternprovider:ex_pattern_provider"
     }
   },
   "pattern": [
@@ -19,6 +19,6 @@
   ],
   "result": {
     "count": 1,
-    "id": "molecularmanipulator:molecular_manipulator"
+    "item": "molecularmanipulator:molecular_manipulator"
   }
 }

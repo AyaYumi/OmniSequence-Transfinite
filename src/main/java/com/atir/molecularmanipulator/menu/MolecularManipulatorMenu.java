@@ -4,7 +4,6 @@ import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.helpers.patternprovider.PatternProviderReturnInventory;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
-import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.AppEngSlot;
 import appeng.menu.slot.RestrictedInputSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
@@ -17,9 +16,10 @@ import java.util.List;
 public final class MolecularManipulatorMenu extends AEBaseMenu {
     private static final String ACTION_SET_PAGE = "set_page";
 
-    public static final MenuType<MolecularManipulatorMenu> TYPE = MenuTypeBuilder
-            .create(MolecularManipulatorMenu::new, PatternProviderLogicHost.class)
-            .buildUnregistered(MolecularManipulator.id("molecular_manipulator"));
+    public static final MenuType<MolecularManipulatorMenu> TYPE = ForgeMenuTypeFactory.create(
+            MolecularManipulator.id("molecular_manipulator"),
+            MolecularManipulatorMenu::new,
+            PatternProviderLogicHost.class);
 
     private final List<AppEngSlot> patternSlots;
     private int page;
@@ -31,7 +31,7 @@ public final class MolecularManipulatorMenu extends AEBaseMenu {
         var logic = host.getLogic();
         var patternInventory = logic.getPatternInv();
         for (int index = 0; index < patternInventory.size(); index++) {
-            addSlot(new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.PROVIDER_PATTERN,
+            addSlot(new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.ENCODED_PATTERN,
                     patternInventory, index), SlotSemantics.ENCODED_PATTERN);
         }
 

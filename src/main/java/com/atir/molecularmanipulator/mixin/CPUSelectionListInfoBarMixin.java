@@ -18,20 +18,18 @@ public abstract class CPUSelectionListInfoBarMixin {
             "gui.molecularmanipulator.omni.infinite";
 
     @WrapOperation(method = "drawBackgroundLayer", at = @At(value = "INVOKE",
-            target = "Lappeng/client/gui/widgets/InfoBar;add(Ljava/lang/String;IFII)V",
+            target = "Lappeng/client/gui/widgets/InfoBar;add(Ljava/lang/String;IF)V",
             ordinal = 2))
     private void molecularmanipulator$restoreInfiniteParallelismLabel(
             InfoBar instance,
             String text,
             int color,
             float scale,
-            int x,
-            int y,
             Operation<Void> original,
             @Local(name = "cpu") CraftingStatusMenu.CraftingCpuListEntry cpu) {
         if (cpu.coProcessors() == OmniComputationCoreBlockEntity.AE2_PARALLELISM_SENTINEL) {
             text = Component.translatable(INFINITE_VALUE_TRANSLATION).getString();
         }
-        original.call(instance, text, color, scale, x, y);
+        original.call(instance, text, color, scale);
     }
 }

@@ -1,7 +1,7 @@
 # OmniSequence: Transfinite
 
 OmniSequence: Transfinite is an endgame Applied Energistics 2 and ExtendedAE addon for
-Minecraft 1.21.1 on NeoForge. It adds molecular rewriting, transfinite crafting storage,
+Minecraft 1.20.1 on Forge. It adds molecular rewriting, transfinite crafting storage,
 large-scale parallel processing, quantum-linked multiblocks and accelerated crafting-plan
 calculation designed for very large automation networks.
 
@@ -18,15 +18,15 @@ calculation designed for very large automation networks.
 
 ## Requirements
 
-- Minecraft 1.21.1
-- NeoForge 21.1.230 or later
-- Applied Energistics 2 19.2.17 or later
-- ExtendedAE 1.21-2.2.32-neoforge or later
+- Minecraft 1.20.1
+- Forge 47.4.10 or later
+- Applied Energistics 2 15.4.10
+- ExtendedAE 1.20-1.4.12-forge
 - Dependencies required by ExtendedAE, including Glodium
 
 ## Optional Integrations
 
-- Advanced AE 1.6.11 or later
+- A compatible Forge 1.20.1 release of Advanced AE
 - ExtendedAE Plus
 - JEI
 
@@ -39,7 +39,7 @@ Install the required dependencies, then place the OmniSequence: Transfinite JAR 
 
 # 万象构序：超限
 
-《万象构序：超限》是面向 Minecraft 1.21.1 NeoForge 的 AE2 / ExtendedAE 后期附属模组，
+《万象构序：超限》是面向 Minecraft 1.20.1 Forge 的 AE2 / ExtendedAE 后期附属模组，
 提供分子重写、超限合成存储、大规模并行构序、缠绕态量子链路和大型配方计算优化。
 
 安装 AE2、ExtendedAE 及其必要前置后，将本模组 JAR 同时放入客户端与服务端的 `mods`

@@ -16,10 +16,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,9 +89,9 @@ public final class OmniComputationGhostPreview {
         }
         var poseStack = event.getPoseStack();
         var buffers = minecraft.renderBuffers().bufferSource();
+        var translucentType = RenderType.translucent();
         var translucent = new ProjectionVertexConsumer(
-                buffers.getBuffer(RenderType.translucent()), PROJECTION_ALPHA);
-        var lines = buffers.getBuffer(RenderType.lines());
+                buffers.getBuffer(translucentType), PROJECTION_ALPHA);
         var dispatcher = minecraft.getBlockRenderer();
 
         poseStack.pushPose();
@@ -111,15 +111,22 @@ public final class OmniComputationGhostPreview {
                     1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT,
                     OverlayTexture.NO_OVERLAY);
             poseStack.popPose();
+        }
+        poseStack.popPose();
+        buffers.endBatch(translucentType);
 
-            if (ghost.conflict()) {
+        var linesType = RenderType.lines();
+        var lines = buffers.getBuffer(linesType);
+        poseStack.pushPose();
+        poseStack.translate(-camera.x, -camera.y, -camera.z);
+        for (var ghost : BLOCKS) {
+            if (ghost.conflict() && event.getFrustum().isVisible(ghost.bounds())) {
                 LevelRenderer.renderLineBox(poseStack, lines, ghost.bounds(),
                         1.0F, 0.12F, 0.12F, 0.9F);
             }
         }
         poseStack.popPose();
-        buffers.endBatch(RenderType.translucent());
-        buffers.endBatch(RenderType.lines());
+        buffers.endBatch(linesType);
     }
 
     private static void refresh(Level level) {
@@ -181,39 +188,54 @@ public final class OmniComputationGhostPreview {
         }
 
         @Override
-        public VertexConsumer addVertex(float x, float y, float z) {
-            delegate.addVertex(x, y, z);
+        public VertexConsumer vertex(double x, double y, double z) {
+            delegate.vertex(x, y, z);
             return this;
         }
 
         @Override
-        public VertexConsumer setColor(int red, int green, int blue, int sourceAlpha) {
-            delegate.setColor(red, green, blue, Math.min(sourceAlpha, alpha));
+        public VertexConsumer color(int red, int green, int blue, int sourceAlpha) {
+            delegate.color(red, green, blue, Math.min(sourceAlpha, alpha));
             return this;
         }
 
         @Override
-        public VertexConsumer setUv(float u, float v) {
-            delegate.setUv(u, v);
+        public VertexConsumer uv(float u, float v) {
+            delegate.uv(u, v);
             return this;
         }
 
         @Override
-        public VertexConsumer setUv1(int u, int v) {
-            delegate.setUv1(u, v);
+        public VertexConsumer overlayCoords(int u, int v) {
+            delegate.overlayCoords(u, v);
             return this;
         }
 
         @Override
-        public VertexConsumer setUv2(int u, int v) {
-            delegate.setUv2(u, v);
+        public VertexConsumer uv2(int u, int v) {
+            delegate.uv2(u, v);
             return this;
         }
 
         @Override
-        public VertexConsumer setNormal(float x, float y, float z) {
-            delegate.setNormal(x, y, z);
+        public VertexConsumer normal(float x, float y, float z) {
+            delegate.normal(x, y, z);
             return this;
+        }
+
+        @Override
+        public void endVertex() {
+            delegate.endVertex();
+        }
+
+        @Override
+        public void defaultColor(int red, int green, int blue, int sourceAlpha) {
+            delegate.defaultColor(red, green, blue, Math.min(sourceAlpha, alpha));
+        }
+
+        @Override
+        public void unsetDefaultColor() {
+            delegate.unsetDefaultColor();
         }
     }
 }

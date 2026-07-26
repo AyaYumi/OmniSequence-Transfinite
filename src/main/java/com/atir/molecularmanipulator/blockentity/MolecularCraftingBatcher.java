@@ -136,15 +136,13 @@ final class MolecularCraftingBatcher {
     }
 
     private CraftPlan createPlan(IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs, Level level) {
-        var positionedInput = craftingGrid.asPositionedCraftInput();
-        var craftingInput = positionedInput.input();
+        var craftingInput = craftingGrid;
         var output = pattern.assemble(craftingInput, level);
         if (output.isEmpty()) {
             return null;
         }
 
         var crafted = output.copy();
-        crafted.onCraftedBySystem(level);
 
         var primaryOutputs = new Object2LongOpenHashMap<AEKey>();
         var remainderOutputs = new Object2LongOpenHashMap<AEKey>();

@@ -2,13 +2,13 @@ package com.atir.molecularmanipulator.block;
 
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.block.TransparentBlock;
+import net.minecraft.world.level.block.HalfTransparentBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.Block;
 
-public final class MolecularCenterGlassBlock extends TransparentBlock {
+public final class MolecularCenterGlassBlock extends HalfTransparentBlock {
     public MolecularCenterGlassBlock(Properties properties) {
         super(properties);
         registerDefaultState(defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH));

@@ -4,7 +4,6 @@ import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.client.gui.Icon;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
-import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.AppEngSlot;
 import appeng.menu.slot.FakeSlot;
 import appeng.menu.slot.OutputSlot;
@@ -51,9 +50,10 @@ public final class MolecularCenterMenu extends AEBaseMenu {
     public static final int SPEED_SLOT_X = 337;
     public static final int SPEED_SLOT_Y = 181;
 
-    public static final MenuType<MolecularCenterMenu> TYPE = MenuTypeBuilder
-            .create(MolecularCenterMenu::new, PatternProviderLogicHost.class)
-            .buildUnregistered(MolecularManipulator.id("molecular_center"));
+    public static final MenuType<MolecularCenterMenu> TYPE = ForgeMenuTypeFactory.create(
+            MolecularManipulator.id("molecular_center"),
+            MolecularCenterMenu::new,
+            PatternProviderLogicHost.class);
 
     @GuiSync(10)
     public boolean formed;
@@ -158,7 +158,7 @@ public final class MolecularCenterMenu extends AEBaseMenu {
         this.pageInventory = new PagedInventory(center.getLogic().getFullPatternInventory());
         this.patternSlots = new java.util.ArrayList<>(MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
         for (int slot = 0; slot < MolecularCenterBlockEntity.PATTERNS_PER_PAGE; slot++) {
-            var added = addSlot(new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.PROVIDER_PATTERN,
+            var added = addSlot(new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.ENCODED_PATTERN,
                     pageInventory, slot), SlotSemantics.ENCODED_PATTERN);
             added.x = PATTERN_X + slot % 9 * 18;
             added.y = PATTERN_Y + slot / 9 * 18;

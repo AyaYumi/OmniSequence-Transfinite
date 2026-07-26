@@ -1,0 +1,1 @@
+{"type":"forge:conditional","recipes":[{"conditions":[{"type":"forge:mod_loaded","modid":"advanced_ae"}],"recipe":{"type":"minecraft:crafting_shaped","pattern":["SSS","SQS","SSS"],"key":{"S":{"item":"advanced_ae:quantum_storage_256"},"Q":{"item":"ae2:quantum_ring"}},"result":{"item":"molecularmanipulator:infinite_crafting_storage","count":4}}}]}

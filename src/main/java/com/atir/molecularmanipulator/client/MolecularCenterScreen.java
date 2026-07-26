@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.client;
 
-import appeng.core.network.serverbound.InventoryActionPacket;
+import appeng.core.sync.network.NetworkHandler;
+import appeng.core.sync.packets.InventoryActionPacket;
 import appeng.helpers.InventoryAction;
 import appeng.menu.slot.FakeSlot;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
@@ -16,7 +17,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
-import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
@@ -64,7 +64,7 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
             var action = mouseButton == 1
                     ? InventoryAction.SPLIT_OR_PLACE_SINGLE
                     : InventoryAction.PICKUP_OR_SET_DOWN;
-            PacketDistributor.sendToServer(new InventoryActionPacket(action, slotId, 0));
+            NetworkHandler.instance().sendToServer(new InventoryActionPacket(action, slotId, 0));
             return;
         }
         super.slotClicked(slot, slotId, mouseButton, clickType);

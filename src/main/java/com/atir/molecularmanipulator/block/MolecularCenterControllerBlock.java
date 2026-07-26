@@ -9,7 +9,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -45,8 +44,9 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(ItemStack heldItem, BlockState state, Level level, BlockPos pos,
-            Player player, InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
+            InteractionHand hand, BlockHitResult hit) {
+        ItemStack heldItem = player.getItemInHand(hand);
         if (InteractionUtil.canWrenchRotate(heldItem)) {
             if (!level.isClientSide()) {
                 var next = state.getValue(HorizontalDirectionalBlock.FACING).getClockWise();
@@ -56,14 +56,9 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
                     be.refreshStructure();
                 }
             }
-            return ItemInteractionResult.sidedSuccess(level.isClientSide());
+            return InteractionResult.sidedSuccess(level.isClientSide());
         }
-        return super.useItemOn(heldItem, state, level, pos, player, hand, hit);
-    }
 
-    @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
-            BlockHitResult hitResult) {
         var blockEntity = getBlockEntity(level, pos);
         if (blockEntity == null) {
             return InteractionResult.PASS;
@@ -84,6 +79,7 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T extends net.minecraft.world.level.block.entity.BlockEntity> net.minecraft.world.level.block.entity.BlockEntityTicker<T>
             getTicker(Level level, BlockState state, net.minecraft.world.level.block.entity.BlockEntityType<T> type) {
         return level.isClientSide() ? null : (net.minecraft.world.level.block.entity.BlockEntityTicker<T>)

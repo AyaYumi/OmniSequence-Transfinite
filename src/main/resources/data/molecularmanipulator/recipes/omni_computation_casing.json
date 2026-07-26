@@ -1,0 +1,1 @@
+{"type":"forge:conditional","recipes":[{"conditions":[{"type":"forge:mod_loaded","modid":"advanced_ae"}],"recipe":{"type":"minecraft:crafting_shaped","pattern":["QQQ","QFQ","QQQ"],"key":{"Q":{"item":"advanced_ae:quantum_alloy_block"},"F":{"item":"ae2:fluix_block"}},"result":{"item":"molecularmanipulator:omni_computation_casing","count":16}}}]}

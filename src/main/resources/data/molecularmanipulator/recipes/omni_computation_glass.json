@@ -1,0 +1,1 @@
+{"type":"forge:conditional","recipes":[{"conditions":[{"type":"forge:mod_loaded","modid":"advanced_ae"}],"recipe":{"type":"minecraft:crafting_shaped","pattern":["GGG","GQG","GGG"],"key":{"G":{"item":"advanced_ae:quantum_structure"},"Q":{"item":"ae2:quartz_vibrant_glass"}},"result":{"item":"molecularmanipulator:omni_computation_glass","count":16}}}]}

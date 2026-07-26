@@ -79,8 +79,4 @@ public final class MolecularCenterJeiCategory implements IRecipeCategory<Molecul
                 137, 174, 0xFFF1F1F1, false);
     }
 
-    @Override
-    public boolean needsRecipeBorder() {
-        return false;
-    }
 }

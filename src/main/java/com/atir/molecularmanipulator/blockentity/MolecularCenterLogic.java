@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.inventories.InternalInventory;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.crafting.ICraftingProvider;
@@ -84,7 +85,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     }
 
     @Override
-    public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
+    public void onChangeInventory(InternalInventory inventory, int slot) {
         saveChanges();
         if (isClientSide() || rebuildScheduled) {
             return;

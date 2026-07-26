@@ -9,10 +9,10 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
-import net.neoforged.neoforge.event.level.LevelEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.event.level.LevelEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -90,7 +90,7 @@ public final class MolecularCenterSpawnProtection {
         int chunkZ = event.getPos().getZ() >> 4;
         for (var area : levelAreas.values()) {
             if (area.contains(chunkX, chunkZ)) {
-                event.setResult(MobSpawnEvent.SpawnPlacementCheck.Result.FAIL);
+                event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
                 return;
             }
         }

@@ -80,8 +80,4 @@ public final class OmniComputationJeiCategory implements IRecipeCategory<OmniCom
                 137, 174, 0xFFF1E8FF, false);
     }
 
-    @Override
-    public boolean needsRecipeBorder() {
-        return false;
-    }
 }

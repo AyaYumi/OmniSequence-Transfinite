@@ -22,10 +22,6 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
                 Component.translatable("gui.molecularmanipulator.molecular_manipulator"));
     }
 
-    @Override
-    protected boolean shouldAddToolbar() {
-        return false;
-    }
 
     @Override
     protected void init() {

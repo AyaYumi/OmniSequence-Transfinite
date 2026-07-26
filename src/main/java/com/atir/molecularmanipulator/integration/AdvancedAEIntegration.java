@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.integration;
 
-import net.neoforged.fml.ModList;
+import net.minecraftforge.fml.ModList;
 
 public final class AdvancedAEIntegration {
     public static final String MOD_ID = "advanced_ae";

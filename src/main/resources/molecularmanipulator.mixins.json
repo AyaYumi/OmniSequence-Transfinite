@@ -21,6 +21,7 @@
     "CreativeCellInventoryMixin",
     "ExtendedAEInfinityCellInventoryMixin",
     "KeyCounterMixin",
+    "ModConfigSpecMixin",
     "NbtTearPatternContextMixin",
     "NbtTearPatternMatchHelperMixin",
     "OmniCraftingCpuClusterMixin",

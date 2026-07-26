@@ -3,94 +3,172 @@ package com.atir.molecularmanipulator.crafting;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.hooks.ticking.TickHandler;
+import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider.PushResult;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**
- * Learns a safe dispatch window from complete input acceptance.
+ * Learns one safe, complete-recipe batch size for each job/provider/pattern.
  *
- * <p>Every accepted complete recipe consumes one permit. Completing the current
- * permit window immediately opens a larger window, so slow or output-less
- * processing targets can still be filled continuously. A rejected push or a
- * provider-side remainder queue contracts the window. Server tick time and work
- * unit budgets remain the hard limits for how much probing happens at once.</p>
+ * <p>The probe grows as {@code 1, 2, 4, ...} while complete batches are
+ * accepted. After rejection, the last successful size remains the next tick's
+ * baseline and a successful baseline may immediately probe twice that size.
+ * A provider-owned remainder queue blocks further pushes until it drains.</p>
  */
 public final class MolecularAdaptiveBatchController {
     private final Map<ICraftingProvider, Map<IPatternDetails, State>> states =
             new IdentityHashMap<>();
     private Object activeJob;
+    private long attemptSequence;
 
     public void setActiveJob(Object job) {
         if (activeJob == job) {
             return;
         }
         states.clear();
+        attemptSequence = 0;
         activeJob = job;
     }
 
-    public boolean hasState(ICraftingProvider provider, IPatternDetails patternDetails) {
-        var providerStates = states.get(provider);
-        return providerStates != null && providerStates.containsKey(patternDetails);
-    }
-
-    public long getAvailableCrafts(ICraftingProvider provider, IPatternDetails patternDetails) {
-        if (provider == null || patternDetails == null) {
-            return 0;
-        }
-        var state = getState(provider, patternDetails, 1);
-        return state.isBlocked(currentTick()) ? 0 : state.availableCrafts();
-    }
-
     public long getAvailableCrafts(ICraftingProvider provider, IPatternDetails patternDetails,
-            long initialWindow) {
-        return getAvailableCrafts(provider, patternDetails, initialWindow, Long.MAX_VALUE);
-    }
-
-    public long getAvailableCrafts(ICraftingProvider provider, IPatternDetails patternDetails,
-            long initialWindow, long maxWindow) {
-        if (provider == null || patternDetails == null
-                || initialWindow <= 0 || maxWindow <= 0) {
+            long maxWindow) {
+        if (provider == null || patternDetails == null || maxWindow <= 0) {
             return 0;
         }
 
-        var state = getState(provider, patternDetails, initialWindow);
+        var state = getState(provider, patternDetails);
         state.applyLimit(maxWindow);
-        return state.isBlocked(currentTick()) ? 0 : state.availableCrafts();
+        return state.isBlocked(currentTick()) ? 0 : state.nextBatch();
+    }
+
+    public long getLastAttemptOrder(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (provider == null || patternDetails == null) {
+            return Long.MIN_VALUE;
+        }
+        return getState(provider, patternDetails).lastAttemptOrder;
+    }
+
+    public boolean isSingleOnly(ICraftingProvider provider, IPatternDetails patternDetails) {
+        return provider != null && patternDetails != null
+                && getState(provider, patternDetails).singleOnly;
+    }
+
+    public void forceSingle(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (provider == null || patternDetails == null) {
+            return;
+        }
+        var state = getState(provider, patternDetails);
+        state.enterSingleOnly();
+        state.unblock();
     }
 
     public void onAccepted(ICraftingProvider provider, IPatternDetails patternDetails,
-            long craftCount, boolean providerBusy) {
-        if (provider == null || patternDetails == null || craftCount <= 0) {
+            long acceptedCrafts, long requestedCrafts, PushResult result) {
+        if (provider == null || patternDetails == null
+                || acceptedCrafts <= 0 || requestedCrafts <= 0 || result == null) {
             return;
         }
 
-        var state = getState(provider, patternDetails, 1);
-        state.remainingPermits = Math.max(0, state.remainingPermits - craftCount);
+        var tick = currentTick();
+        var state = getState(provider, patternDetails);
+        state.lastAttemptOrder = nextAttemptOrder();
+        state.lastAccepted = acceptedCrafts;
 
-        if (providerBusy) {
-            state.contractAndBlock(currentTick());
+        if (result == PushResult.ACCEPTED_QUEUED) {
+            state.nextBatch = Math.min(state.maxWindow, Math.max(1, acceptedCrafts));
+            state.probing = false;
+            state.block(tick);
+            return;
+        }
+        if (result == PushResult.ACCEPTED_UNVERIFIED) {
+            state.nextBatch = 1;
+            state.probing = false;
+            state.block(tick);
+            return;
+        }
+        if (result == PushResult.REJECTED) {
+            onRejected(provider, patternDetails, requestedCrafts);
+            return;
+        }
+        if (state.singleOnly) {
+            state.nextBatch = 1;
+            state.probing = false;
+            state.unblock();
             return;
         }
 
-        state.unblock();
-        if (state.remainingPermits == 0) {
-            state.grow();
+        long doubled = saturatingDouble(acceptedCrafts);
+        if (acceptedCrafts < requestedCrafts) {
+            // Inventory or energy, rather than the target, limited this attempt.
+            state.nextBatch = Math.min(state.maxWindow, Math.max(requestedCrafts, doubled));
+            state.probing = false;
+            state.block(tick);
+        } else {
+            state.nextBatch = Math.min(state.maxWindow, doubled);
+            // A successful steady-size push is the useful baseline for this tick.
+            // Immediately trying the doubled size either discovers more room or is
+            // rejected and leaves the baseline intact; it must not replace the
+            // successful tick with a probe-only tick.
+            state.unblock();
         }
     }
 
-    public void onRejected(ICraftingProvider provider, IPatternDetails patternDetails) {
-        if (provider == null || patternDetails == null) {
+    /**
+     * AE's waiting-for counter is a secondary bookkeeping signal. It is not a
+     * machine-capacity probe, but a mismatch means this provider/pattern pair can
+     * no longer be trusted for scaled accounting.
+     */
+    public void onStatusVerification(ICraftingProvider provider, IPatternDetails patternDetails,
+            boolean verified) {
+        if (verified || provider == null || patternDetails == null) {
             return;
         }
-        getState(provider, patternDetails, 1).contractAndBlock(currentTick());
+        var state = getState(provider, patternDetails);
+        state.enterSingleOnly();
+        state.lastAccepted = 0;
+        state.block(currentTick());
     }
 
-    private State getState(ICraftingProvider provider, IPatternDetails patternDetails,
-            long initialWindow) {
+    public void onRejected(ICraftingProvider provider, IPatternDetails patternDetails,
+            long attemptedCrafts) {
+        if (provider == null || patternDetails == null || attemptedCrafts <= 0) {
+            return;
+        }
+
+        var state = getState(provider, patternDetails);
+        state.lastAttemptOrder = nextAttemptOrder();
+        if (attemptedCrafts > 1 && state.lastAccepted == 1) {
+            state.enterSingleOnly();
+            state.block(currentTick());
+            return;
+        }
+        long next;
+        if (state.lastAccepted > 0 && attemptedCrafts > state.lastAccepted) {
+            next = state.lastAccepted;
+        } else {
+            next = Math.max(1, attemptedCrafts / 2);
+        }
+        state.nextBatch = Math.min(state.maxWindow, next);
+        state.probing = false;
+        state.block(currentTick());
+    }
+
+    private long nextAttemptOrder() {
+        if (attemptSequence == Long.MAX_VALUE) {
+            attemptSequence = 0;
+            for (var providerStates : states.values()) {
+                for (var state : providerStates.values()) {
+                    state.lastAttemptOrder = Long.MIN_VALUE;
+                }
+            }
+        }
+        return ++attemptSequence;
+    }
+
+    private State getState(ICraftingProvider provider, IPatternDetails patternDetails) {
         var providerStates = states.computeIfAbsent(provider, ignored -> new IdentityHashMap<>());
-        return providerStates.computeIfAbsent(
-                patternDetails, ignored -> new State(initialWindow));
+        return providerStates.computeIfAbsent(patternDetails, ignored -> new State());
     }
 
     private static long currentTick() {
@@ -102,35 +180,30 @@ public final class MolecularAdaptiveBatchController {
     }
 
     private static final class State {
-        private long window;
-        private long remainingPermits;
+        private long nextBatch = 1;
+        private long lastAccepted;
         private long maxWindow = Long.MAX_VALUE;
         private long blockedTick = Long.MIN_VALUE;
-
-        private State(long initialWindow) {
-            window = Math.max(1, initialWindow);
-            remainingPermits = window;
-        }
+        private long lastAttemptOrder = Long.MIN_VALUE;
+        private boolean probing = true;
+        private boolean singleOnly;
 
         private void applyLimit(long limit) {
             maxWindow = Math.max(1, limit);
-            window = Math.min(window, maxWindow);
-            remainingPermits = Math.min(Math.max(1, remainingPermits), window);
+            nextBatch = Math.max(1, Math.min(nextBatch, maxWindow));
         }
 
-        private long availableCrafts() {
-            return Math.max(1, Math.min(remainingPermits, maxWindow));
+        private long nextBatch() {
+            return Math.max(1, Math.min(nextBatch, maxWindow));
         }
 
-        private void grow() {
-            window = Math.min(maxWindow, saturatingDouble(window));
-            remainingPermits = window;
+        private void enterSingleOnly() {
+            singleOnly = true;
+            nextBatch = 1;
+            probing = false;
         }
 
-        private void contractAndBlock(long tick) {
-            window = Math.max(1, window / 2);
-            window = Math.min(window, maxWindow);
-            remainingPermits = window;
+        private void block(long tick) {
             blockedTick = tick;
         }
 

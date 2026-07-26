@@ -17,8 +17,7 @@ public final class ModConfig {
     public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_DIAGNOSTICS;
     public static final ModConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
     public static final ModConfigSpec.BooleanValue OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS;
-    public static final ModConfigSpec.IntValue OMNI_DISPATCH_TARGET_BUDGET_MS;
-    public static final ModConfigSpec.IntValue OMNI_DISPATCH_HARD_BUDGET_MS;
+    public static final ModConfigSpec.IntValue OMNI_UNSCALED_DISPATCH_ATTEMPTS_PER_TICK;
     public static final ModConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
 
     public static final ModConfigSpec CLIENT_SPEC;
@@ -63,16 +62,12 @@ public final class ModConfig {
                 "Allow item-substitution patterns to use batch dispatch. Fluid-only substitution remains deterministic and is allowed by default. Disabled by default for contextual and NBT-sensitive item matching.")
                 .translation("molecularmanipulator.configuration.omni_batch_allow_substitution_patterns")
                 .define("omni_batch_allow_substitution_patterns", false);
-        OMNI_DISPATCH_TARGET_BUDGET_MS = server.comment(
-                "Target Omni crafting dispatch time per controller and server tick. The adaptive work-unit budget uses this value; logical batch size is not capped.")
-                .translation("molecularmanipulator.configuration.omni_dispatch_target_budget_ms")
-                .defineInRange("omni_dispatch_target_budget_ms", 16, 1, 20);
-        OMNI_DISPATCH_HARD_BUDGET_MS = server.comment(
-                "Emergency wall-clock limit shared by every Omni controller on the server during one tick. Work resumes on the next tick.")
-                .translation("molecularmanipulator.configuration.omni_dispatch_hard_budget_ms")
-                .defineInRange("omni_dispatch_hard_budget_ms", 40, 1, 50);
+        OMNI_UNSCALED_DISPATCH_ATTEMPTS_PER_TICK = server.comment(
+                "Maximum real one-recipe provider calls shared by one Omni-Computation Core per tick when scaled dispatch is unavailable or rejected. Higher values improve compatibility throughput but can lengthen server ticks.")
+                .translation("molecularmanipulator.configuration.omni_unscaled_dispatch_attempts_per_tick")
+                .defineInRange("omni_unscaled_dispatch_attempts_per_tick", 32, 1, 256);
         OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
-                "Maximum adaptive dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
+                "Maximum dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
                 .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
                 .defineInRange("omni_dispatch_max_work_units", 2_147_483_647L, 64L, Long.MAX_VALUE);
         SERVER_SPEC = server.build();
@@ -93,7 +88,10 @@ public final class ModConfig {
     }
 
     public static void register(ModContainer container) {
+        ConfigSchemaGuard.registerStrictSpec(SERVER_SPEC, "server/save");
+        ConfigSchemaGuard.registerStrictSpec(CLIENT_SPEC, "client");
         ConfigFileMigration.migrateGlobalConfigs();
+        ConfigFileMigration.refreshGlobalConfigSchemas(SERVER_SPEC, CLIENT_SPEC);
         container.registerConfig(Type.SERVER, SERVER_SPEC, ConfigFileMigration.SERVER_FILE);
         container.registerConfig(Type.CLIENT, CLIENT_SPEC, ConfigFileMigration.CLIENT_FILE);
     }

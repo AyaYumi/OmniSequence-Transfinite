@@ -122,6 +122,13 @@ public final class MolecularBatchCraftingExtractor {
                     amountsPerKey.put(entry.getKey(), totalAmount);
                     representableCrafts = Math.min(representableCrafts, Long.MAX_VALUE / amount);
                 }
+                // The same AE key may occur in more than one input holder. The provider
+                // aggregates those holders before validating a scaled push, so clamp by
+                // the aggregate amount as well as by each individual slot.
+                for (var entry : amountsPerKey.object2LongEntrySet()) {
+                    representableCrafts = Math.min(representableCrafts,
+                            Long.MAX_VALUE / entry.getLongValue());
+                }
 
                 var plannedOutputs = new ArrayList<PlannedOutput>(expectedOutputs.size());
                 for (var entry : expectedOutputs) {
@@ -169,6 +176,8 @@ public final class MolecularBatchCraftingExtractor {
             long additionalCrafts = craftCount - 1;
             var extraInputs = new KeyCounter[inputs.length];
             var combinedInputs = new KeyCounter[inputs.length];
+            var firstExpectedOutputs = new KeyCounter();
+            firstExpectedOutputs.addAll(expectedOutputs);
 
             try {
                 for (int index = 0; index < inputs.length; index++) {
@@ -195,11 +204,15 @@ public final class MolecularBatchCraftingExtractor {
                     }
                 }
 
-                expectedOutputs.reset();
+                var scaledExpectedOutputs = new KeyCounter();
                 for (var output : outputs) {
-                    expectedOutputs.add(output.key(), Math.multiplyExact(output.amountPerCraft(), craftCount));
+                    scaledExpectedOutputs.add(output.key(),
+                            Math.multiplyExact(output.amountPerCraft(), craftCount));
                 }
-                return new BatchExtraction(combinedInputs, firstInputs, craftCount);
+                expectedOutputs.reset();
+                expectedOutputs.addAll(scaledExpectedOutputs);
+                return new BatchExtraction(combinedInputs, firstInputs, extraInputs,
+                        firstExpectedOutputs, craftCount);
             } catch (RuntimeException exception) {
                 CraftingCpuHelper.reinjectPatternInputs(inventory, extraInputs);
                 return null;
@@ -207,6 +220,16 @@ public final class MolecularBatchCraftingExtractor {
         }
     }
 
-    public record BatchExtraction(KeyCounter[] inputs, KeyCounter[] firstInputs, long craftCount) {
+    public record BatchExtraction(KeyCounter[] inputs, KeyCounter[] firstInputs,
+            KeyCounter[] additionalInputs, KeyCounter firstExpectedOutputs, long craftCount) {
+        /**
+         * Restores the already-valid one-craft extraction when a later runtime wrapper
+         * cannot be constructed.
+         */
+        public void rollbackAdditional(ICraftingInventory inventory, KeyCounter expectedOutputs) {
+            CraftingCpuHelper.reinjectPatternInputs(inventory, additionalInputs);
+            expectedOutputs.reset();
+            expectedOutputs.addAll(firstExpectedOutputs);
+        }
     }
 }

@@ -15,7 +15,7 @@
 | Glodium | 1.21-2.2-neoforge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.3-hotfix`
+当前版本：`1.3.4`
 
 ## 主要功能
 
@@ -34,9 +34,12 @@
 材料发配采用两条路径：
 
 - 明确支持批处理的机器保留 `long` 逻辑批量直推，仅受任务材料、能源和目标实际接收能力限制。
-- 标准 AE2 / ExtendedAE 样板供应器先执行有界探测，再根据主产物返回速度自动采用 `×16`、`×4`、`×2` 或保持当前窗口；机器忙碌、拒收或任务中断时会主动收缩。
+- 所有非显式批处理的 AE 合成供应器都会直接收到运行时缩放样板，以单次完整调用执行 `1 → 2 → 4 → 8 → …` 探测；整批输入成功后翻倍，拒收后保留最后成功倍率作为下一 Tick 的基础量，基础量成功后可继续探测双倍。
+- 原版 AE2 / ExtendedAE 供应器使用完整插入与内部排队的精确反馈；AE2LT、AdvancedAE 及其他第三方供应器使用 AE 公共的接受结果与忙碌状态反馈。供应器报告忙碌时等待，报告拒收时收缩倍率。
+- 缩放样板会保留 ExtendedAE Plus 的包装身份、AdvancedAE 定向输入信息和 AE2LT 过载供应器元数据；这些供应器不再因为类型未知而退回单份跨 Tick 发配。
+- 如果目标在成功接收 `1×` 后仍拒绝 `2×` 缩放样板，该供应器/样板会在当前订单内固定降级为完整单份推送；AE2 每次重新抽取并独立记账，同一 Tick 的真实调用次数由全核心共享的安全额度限制。额度会优先分给上一 Tick 确认需要单份模式的通道，并回收前序通道未使用的份额；达到额度后只跳过该 Tick 中仍需单份调用的样板，后续可倍增或显式 `long` 直推任务仍能继续。
 
-多材料样板会在每个发送 Tick 重新为全部材料建立一份配方占位，再按剩余比例公平轮转，避免第一种材料独占输入槽。调度器按虚拟 CPU 公平分配工作，并通过每核心目标耗时、全服紧急耗时和工作单元上限控制服务器 Tick 压力；这些预算限制的是调度工作量，不会截断单个批次的逻辑合成数量。
+多材料样板会把 N 份完整输入装进同一个运行时样板调用；供应器先验证所有材料的完整接收量，实际插入后若仍有余量则持久化排队并按材料公平轮转，避免第一种材料独占输入槽。AE2 的“正在合成”使用放大后的预计产物精确记账并作为二级一致性校验，但不被误当成机器输入容量；每次推送还会按当前 `waitingFor` 剩余空间限幅，避免累计待回产物越过 `Long.MAX_VALUE` 变成负数。EAP 虚拟合成在最终批次前会看到正确的剩余任务数。调度器按虚拟 CPU 公平分配工作，并以工作单元上限控制极端任务；逻辑批次本身不受固定材料窗口或毫秒预算截断。
 
 ## 核心设备
 
@@ -104,10 +107,11 @@ config/molecularmanipulator/matter_rewrite_rules.json
 | `omni_max_fast_diagnostics` | `false` | 记录聚合耗时和回退原因 |
 | `omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |
 | `omni_batch_allow_substitution_patterns` | `false` | 允许物品替代样板进入批量发配 |
-| `omni_dispatch_target_budget_ms` | 16 | 每核心每 Tick 的目标调度耗时 |
-| `omni_dispatch_hard_budget_ms` | 40 | 全服所有万物演算核心共享的紧急耗时上限 |
-| `omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大自适应工作单元 |
+| `omni_unscaled_dispatch_attempts_per_tick` | 32 | 不支持倍增时，每个万物演算核心每 Tick 共享的真实单份样板调用上限（1～256） |
+| `omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大调度工作单元 |
 | `dynamic_effect_level` | 2 | 客户端动态效果：0 关闭、1 精简、2 完整 |
+
+配置文件加载或热重载时，只要检测到当前版本未定义的旧配置项，就会先保留最多五份 `.toml.bak`，再将整份配置原子重建为当前默认值。仅缺少新选项或某个已知值越界时，仍由 NeoForge 定向补齐或修正，不会重置其他有效设置。
 
 ## 安装与构建
 
@@ -120,7 +124,7 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.3-hotfix.jar
+build/libs/omnisequence-transfinite-1.3.4.jar
 ```
 
 版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。

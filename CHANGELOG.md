@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.3-hotfix - 2026-07-26
+## 1.3.4 - 2026-07-27
 
 ### Changed
 
@@ -11,6 +11,58 @@
 - Converted the complete dispatch work-unit accounting path to `long` and changed
   `omni_dispatch_max_work_units` to a long-valued option with a default of
   `2147483647` and a maximum of `Long.MAX_VALUE`.
+
+### Fixed
+
+- Added runtime-scaled processing patterns. One provider call now carries a
+  complete `1, 2, 4, 8, ...` recipe batch, forwards every extracted input and
+  lets AE2 account the corresponding scaled expected outputs.
+- Added explicit provider feedback for rejected, fully inserted, queued and
+  unverified pushes. Probes grow by doubling; after congestion the last
+  successful batch remains the next tick's baseline before another doubled
+  probe, avoiding a probe-only throughput gap.
+- Enabled runtime-scaled patterns for every non-explicit AE crafting provider.
+  AE2/ExtendedAE providers retain precise full/queued feedback, while AE2LT,
+  AdvancedAE and other third-party providers use their public acceptance and
+  busy-state signals. Explicit project batch providers keep the direct
+  long-limit path.
+- Preserved ExtendedAE Plus scaled-pattern identity, AdvancedAE directional
+  input metadata and AE2LT overloaded-provider metadata while scaling, so
+  compatible third-party providers receive the multiplied pattern directly
+  instead of falling back to one recipe per tick.
+- Persisted legitimate scaled remainder queues with a versioned format and kept
+  fair multi-ingredient draining across reloads without confusing them with
+  legacy unsafe queues.
+- Added fair provider selection for duplicate patterns so a full or rejecting
+  target cannot starve other available providers.
+- Added a sticky single-recipe fallback for providers that accept `1x` but
+  reject scaled patterns. AE2 performs a fresh extraction and accounting cycle
+  for every call, while the new
+  `omni_unscaled_dispatch_attempts_per_tick` server option shares a default
+  limit of 32 real calls across all active CPU lanes of one Omni core.
+  Demand lanes are prioritized on the next tick and can borrow unused
+  reservations from lanes that ran earlier, while reaching the cap stops that
+  CPU lane's single-recipe path before it can repeatedly extract and reinject
+  the same task; already-scalable and explicit long-batch tasks remain eligible.
+- Limited every dispatch batch by the remaining positive `waitingFor` headroom
+  for all expected outputs and container items, preventing accumulated
+  outstanding results from wrapping past `Long.MAX_VALUE` into negative counts.
+- Added scaled AE waiting-for accounting as a secondary consistency check and
+  pre-adjusted batch task progress before provider calls, allowing EAP virtual
+  crafting to finish the final aggregate batch without leaving phantom outputs.
+- Added strict config-schema regeneration. If a TOML contains any option that
+  no longer exists in the current server or client schema, the previous file is
+  backed up and the complete configuration is atomically rebuilt from current
+  defaults. Missing current options and invalid values retain NeoForge's normal
+  targeted correction behavior.
+
+### Compatibility
+
+- Existing worlds, patterns and configuration files remain compatible.
+- The stable mod ID remains `molecularmanipulator`.
+- Dedicated batch-provider and machine whitelist behavior is unchanged.
+
+## 1.3.3-hotfix - 2026-07-26
 
 ### Fixed
 

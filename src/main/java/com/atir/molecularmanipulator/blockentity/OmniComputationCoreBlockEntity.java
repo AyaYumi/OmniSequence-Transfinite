@@ -30,7 +30,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -47,6 +46,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,16 +61,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public static final double QUANTUM_LINK_POWER = 512.0;
     private static final int STRUCTURE_CHECK_INTERVAL = 20;
     private static final int BUILD_BLOCKS_PER_TICK = 128;
-    private static final long MIN_DISPATCH_WORK_UNITS = 64L;
-    private static final long INITIAL_DISPATCH_WORK_UNITS = 512L;
-    private static final double DISPATCH_EWMA_ALPHA = 0.2D;
     private static final String VIRTUAL_CPUS_TAG = "omni_virtual_cpus";
     private static final String SUSPENDED_CPUS_TAG = "omni_suspended_cpus";
     private static final String QUANTUM_INVENTORY_TAG = "omni_quantum_inventory";
     private static final Map<CraftingCPUCluster, OmniComputationCoreBlockEntity> CPU_OWNERS =
             Collections.synchronizedMap(new WeakHashMap<>());
-    private static final Map<MinecraftServer, ServerDispatchWindow> SERVER_DISPATCH_WINDOWS =
-            new WeakHashMap<>();
 
     private final List<CraftingCPUCluster> virtualCpus = new ArrayList<>();
     private final List<CompoundTag> pendingVirtualCpuStates = new ArrayList<>();
@@ -91,9 +86,16 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private long dispatchAdaptiveWorkUnits;
     private int dispatchLaneRotation;
     private final Map<CraftingCPUCluster, Long> dispatchLaneAllowances = new IdentityHashMap<>();
-    private long dispatchSampleElapsedNanos;
-    private long dispatchSampleWorkUnits;
-    private double dispatchNanosPerWorkUnit;
+    private int dispatchUnscaledAttemptsRemaining;
+    private int dispatchUnscaledReservedAttempts;
+    private int dispatchUnscaledTotalAttempts;
+    private int dispatchUnscaledLaneRotation;
+    private final Map<CraftingCPUCluster, Integer> dispatchUnscaledLaneAllowances =
+            new IdentityHashMap<>();
+    private final Set<CraftingCPUCluster> dispatchUnscaledDemandLanes =
+            Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<CraftingCPUCluster> dispatchUnscaledDemandThisTick =
+            Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean building;
     private boolean dismantling;
     private List<OmniComputationStructure.Part> buildQueue = List.of();
@@ -573,42 +575,60 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public synchronized DispatchAllowance claimDispatchAllowance(CraftingCPUCluster cpu, long tick) {
-        if (!(level instanceof ServerLevel serverLevel)) {
+        if (!(level instanceof ServerLevel)) {
             return new DispatchAllowance(0, 0);
         }
 
         if (dispatchBudgetTick != tick) {
-            updateDispatchEstimate();
             dispatchBudgetTick = tick;
-            dispatchAdaptiveWorkUnits = calculateDispatchWorkUnits();
+            dispatchAdaptiveWorkUnits = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
             dispatchWorkUnitsRemaining = dispatchAdaptiveWorkUnits;
             prepareDispatchAllowances();
         }
 
         var reservedValue = dispatchLaneAllowances.remove(cpu);
+        var unscaledValue = dispatchUnscaledLaneAllowances.remove(cpu);
         long reserved = reservedValue == null ? 0L : reservedValue;
+        int unscaledReserved = unscaledValue == null ? 0 : unscaledValue;
         dispatchReservedWorkUnits -= reserved;
         dispatchWorkUnitsRemaining -= reserved;
         long returnedWork = Math.max(0L, dispatchWorkUnitsRemaining - dispatchReservedWorkUnits);
         long allowance = reserved + Math.min(reserved, returnedWork);
         dispatchWorkUnitsRemaining -= allowance - reserved;
+
+        dispatchUnscaledReservedAttempts -= unscaledReserved;
+        dispatchUnscaledAttemptsRemaining -= unscaledReserved;
+        int returnedAttempts = Math.max(
+                0,
+                dispatchUnscaledAttemptsRemaining
+                        - dispatchUnscaledReservedAttempts);
+        int unscaledAttempts = unscaledReserved + returnedAttempts;
+        dispatchUnscaledAttemptsRemaining -= returnedAttempts;
         if (allowance <= 0) {
-            return new DispatchAllowance(0, 0);
+            return new DispatchAllowance(0, unscaledAttempts);
         }
-        long deadline = claimServerDispatchDeadline(serverLevel.getServer(), tick);
-        return new DispatchAllowance(allowance, deadline);
+        return new DispatchAllowance(allowance, unscaledAttempts);
     }
 
     private void prepareDispatchAllowances() {
         dispatchLaneAllowances.clear();
+        dispatchUnscaledLaneAllowances.clear();
+        dispatchUnscaledDemandLanes.clear();
+        dispatchUnscaledDemandLanes.addAll(dispatchUnscaledDemandThisTick);
+        dispatchUnscaledDemandThisTick.clear();
+        dispatchUnscaledTotalAttempts =
+                ModConfig.OMNI_UNSCALED_DISPATCH_ATTEMPTS_PER_TICK.get();
+        dispatchUnscaledAttemptsRemaining = dispatchUnscaledTotalAttempts;
         var activeCpus = allCpus().stream().filter(CraftingCPUCluster::isBusy).toList();
         int activeLanes = activeCpus.size();
         if (activeLanes == 0) {
             dispatchReservedWorkUnits = 0;
+            dispatchUnscaledReservedAttempts = 0;
             return;
         }
 
         int start = Math.floorMod(dispatchLaneRotation, activeLanes);
+        prepareUnscaledDispatchAllowances(activeCpus);
         if ((long) dispatchAdaptiveWorkUnits >= (long) activeLanes * 2L) {
             long base = dispatchAdaptiveWorkUnits / activeLanes;
             int extra = (int) (dispatchAdaptiveWorkUnits % activeLanes);
@@ -634,8 +654,36 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 .sum();
     }
 
-    public synchronized void recordDispatchWork(long tick, long allowance, long used,
-            long elapsedNanos) {
+    private void prepareUnscaledDispatchAllowances(
+            List<CraftingCPUCluster> activeCpus) {
+        var demandCpus = activeCpus.stream()
+                .filter(dispatchUnscaledDemandLanes::contains)
+                .toList();
+        var targetCpus = demandCpus.isEmpty() ? activeCpus : demandCpus;
+        int targetLanes = targetCpus.size();
+        int start = Math.floorMod(dispatchUnscaledLaneRotation, targetLanes);
+        int base = dispatchUnscaledTotalAttempts / targetLanes;
+        int extra = dispatchUnscaledTotalAttempts % targetLanes;
+        for (int offset = 0; offset < targetLanes; offset++) {
+            int allowance = base + (offset < extra ? 1 : 0);
+            if (allowance > 0) {
+                int index = (start + offset) % targetLanes;
+                dispatchUnscaledLaneAllowances.put(
+                        targetCpus.get(index), allowance);
+            }
+        }
+        dispatchUnscaledLaneRotation =
+                (start + Math.max(1, extra)) % targetLanes;
+        dispatchUnscaledReservedAttempts =
+                dispatchUnscaledLaneAllowances.values().stream()
+                        .mapToInt(Integer::intValue)
+                        .sum();
+    }
+
+    public synchronized void recordDispatchWork(
+            CraftingCPUCluster cpu, long tick, long allowance, long used,
+            int unscaledAllowance, int unscaledUsed,
+            boolean unscaledNeedsMore) {
         if (tick != dispatchBudgetTick) {
             return;
         }
@@ -644,54 +692,20 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         long unused = Math.max(0L, allowance - charged);
         dispatchWorkUnitsRemaining = Math.min(dispatchAdaptiveWorkUnits,
                 dispatchWorkUnitsRemaining + unused);
-        if (charged > 0) {
-            dispatchSampleWorkUnits += charged;
-            dispatchSampleElapsedNanos += Math.max(0, elapsedNanos);
+
+        int unscaledCharged = Math.max(
+                0, Math.min(unscaledAllowance, unscaledUsed));
+        int unscaledUnused = Math.max(
+                0, unscaledAllowance - unscaledCharged);
+        dispatchUnscaledAttemptsRemaining = Math.min(
+                dispatchUnscaledTotalAttempts,
+                dispatchUnscaledAttemptsRemaining + unscaledUnused);
+        if (unscaledNeedsMore && cpu != null && cpu.isBusy()) {
+            dispatchUnscaledDemandThisTick.add(cpu);
         }
     }
 
-    private void updateDispatchEstimate() {
-        if (dispatchSampleWorkUnits <= 0) {
-            return;
-        }
-
-        double sample = (double) dispatchSampleElapsedNanos / dispatchSampleWorkUnits;
-        if (dispatchNanosPerWorkUnit <= 0) {
-            dispatchNanosPerWorkUnit = sample;
-        } else {
-            dispatchNanosPerWorkUnit += DISPATCH_EWMA_ALPHA * (sample - dispatchNanosPerWorkUnit);
-        }
-        dispatchSampleElapsedNanos = 0;
-        dispatchSampleWorkUnits = 0;
-    }
-
-    private long calculateDispatchWorkUnits() {
-        long maximum = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
-        if (dispatchNanosPerWorkUnit <= 0) {
-            return Math.min(INITIAL_DISPATCH_WORK_UNITS, maximum);
-        }
-
-        long targetNanos = ModConfig.OMNI_DISPATCH_TARGET_BUDGET_MS.get() * 1_000_000L;
-        long estimated = (long) (targetNanos / dispatchNanosPerWorkUnit);
-        return Math.max(MIN_DISPATCH_WORK_UNITS, Math.min(maximum, estimated));
-    }
-
-    private static long claimServerDispatchDeadline(MinecraftServer server, long tick) {
-        synchronized (SERVER_DISPATCH_WINDOWS) {
-            var window = SERVER_DISPATCH_WINDOWS.get(server);
-            if (window == null || window.tick() != tick) {
-                long budgetNanos = ModConfig.OMNI_DISPATCH_HARD_BUDGET_MS.get() * 1_000_000L;
-                window = new ServerDispatchWindow(tick, System.nanoTime() + budgetNanos);
-                SERVER_DISPATCH_WINDOWS.put(server, window);
-            }
-            return window.deadlineNanos();
-        }
-    }
-
-    public record DispatchAllowance(long workUnits, long deadlineNanos) {
-    }
-
-    private record ServerDispatchWindow(long tick, long deadlineNanos) {
+    public record DispatchAllowance(long workUnits, int unscaledAttempts) {
     }
 
     public int getClientVisualActivity() {

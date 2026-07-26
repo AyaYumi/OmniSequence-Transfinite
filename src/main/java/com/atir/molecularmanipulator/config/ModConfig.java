@@ -76,15 +76,15 @@ public final class ModConfig {
         OMNI_DISPATCH_TARGET_BUDGET_MS = server.comment(
                 "Target Omni crafting dispatch time per controller and server tick. The adaptive work-unit budget uses this value; logical batch size is not capped.")
                 .translation("molecularmanipulator.configuration.omni_dispatch_target_budget_ms")
-                .defineInRange("omni_dispatch_target_budget_ms", 4, 1, 20);
+                .defineInRange("omni_dispatch_target_budget_ms", 16, 1, 20);
         OMNI_DISPATCH_HARD_BUDGET_MS = server.comment(
                 "Emergency wall-clock limit shared by every Omni controller on the server during one tick. Work resumes on the next tick.")
                 .translation("molecularmanipulator.configuration.omni_dispatch_hard_budget_ms")
-                .defineInRange("omni_dispatch_hard_budget_ms", 8, 1, 50);
+                .defineInRange("omni_dispatch_hard_budget_ms", 40, 1, 50);
         OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
                 "Maximum adaptive dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
                 .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
-                .defineInRange("omni_dispatch_max_work_units", 4096, 64, 65536);
+                .defineInRange("omni_dispatch_max_work_units", 65536, 64, 65536);
         SERVER_SPEC = server.build();
 
         var client = new ForgeConfigSpec.Builder();

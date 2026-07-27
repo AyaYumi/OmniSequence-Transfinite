@@ -15,7 +15,7 @@
 | Glodium | 1.20-1.5-forge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.5`
+当前版本：`1.3.5-forge`
 
 > Minecraft 1.20.1 Forge 版不再注册独立的 `分子构序重写阵列` 单方块。旧世界中已经放置的该方块会在更新后作为缺失方块移除；样板与物质重写功能由 `构序阵列` 多方块提供。
 
@@ -121,7 +121,7 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.5.jar
+build/libs/omnisequence-transfinite-1.3.5-forge.jar
 ```
 
 版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。

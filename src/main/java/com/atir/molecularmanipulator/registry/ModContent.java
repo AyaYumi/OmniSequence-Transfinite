@@ -129,7 +129,7 @@ public final class ModContent {
     public static final DeferredItem<BlockItem> INFINITE_CRAFTING_STORAGE_ITEM =
             registerBlockItem("infinite_crafting_storage", INFINITE_CRAFTING_STORAGE);
     public static final DeferredBlock<OmniComputationPartBlock> UNIVERSAL_PATTERN_MATRIX =
-            registerOmniPart("universal_pattern_matrix", 12);
+            registerTranslucentOmniPart("universal_pattern_matrix", 12);
     public static final DeferredItem<BlockItem> UNIVERSAL_PATTERN_MATRIX_ITEM =
             registerBlockItem("universal_pattern_matrix", UNIVERSAL_PATTERN_MATRIX);
     public static final DeferredBlock<OmniComputationPartBlock> COMPUTATION_DATA_ENTANGLER =

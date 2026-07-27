@@ -15,7 +15,7 @@
 | Glodium | 1.21-2.2-neoforge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.4`
+当前版本：`1.3.5`
 
 ## 主要功能
 
@@ -34,7 +34,7 @@
 材料发配采用两条路径：
 
 - 明确支持批处理的机器保留 `long` 逻辑批量直推，仅受任务材料、能源和目标实际接收能力限制。
-- 所有非显式批处理的 AE 合成供应器都会直接收到运行时缩放样板，以单次完整调用执行 `1 → 2 → 4 → 8 → …` 探测；整批输入成功后翻倍，拒收后保留最后成功倍率作为下一 Tick 的基础量，基础量成功后可继续探测双倍。
+- 所有非显式批处理的 AE 合成供应器都会直接收到运行时缩放样板，并跨服务器 Tick 执行 `1 → 2 → 4 → 8 → …` 探测；每个供应器/样板组合每 Tick 最多增长一级，整批输入成功后把双倍倍率留给下一 Tick，拒收后保留最后成功倍率作为下一 Tick 的基础量。
 - 原版 AE2 / ExtendedAE 供应器使用完整插入与内部排队的精确反馈；AE2LT、AdvancedAE 及其他第三方供应器使用 AE 公共的接受结果与忙碌状态反馈。供应器报告忙碌时等待，报告拒收时收缩倍率。
 - 缩放样板会保留 ExtendedAE Plus 的包装身份、AdvancedAE 定向输入信息和 AE2LT 过载供应器元数据；这些供应器不再因为类型未知而退回单份跨 Tick 发配。
 - 如果目标在成功接收 `1×` 后仍拒绝 `2×` 缩放样板，该供应器/样板会在当前订单内固定降级为完整单份推送；AE2 每次重新抽取并独立记账，同一 Tick 的真实调用次数由全核心共享的安全额度限制。额度会优先分给上一 Tick 确认需要单份模式的通道，并回收前序通道未使用的份额；达到额度后只跳过该 Tick 中仍需单份调用的样板，后续可倍增或显式 `long` 直推任务仍能继续。
@@ -124,7 +124,7 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.4.jar
+build/libs/omnisequence-transfinite-1.3.5.jar
 ```
 
 版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。

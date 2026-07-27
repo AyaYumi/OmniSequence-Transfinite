@@ -11,10 +11,13 @@ import java.util.Map;
 /**
  * Learns one safe, complete-recipe batch size for each job/provider/pattern.
  *
- * <p>The probe grows as {@code 1, 2, 4, ...} while complete batches are
- * accepted. After rejection, the last successful size remains the next tick's
- * baseline and a successful baseline may immediately probe twice that size.
- * A provider-owned remainder queue blocks further pushes until it drains.</p>
+ * <p>The probe grows as {@code 1, 2, 4, ...} across server ticks while complete
+ * batches are accepted. Each provider/pattern pair may advance at most one
+ * growth step per tick; the doubled size only becomes available on the next
+ * tick. After rejection, the last successful size remains the next tick's
+ * baseline. Single-only compatibility dispatch keeps its separate per-tick
+ * quota. A provider-owned remainder queue blocks further pushes until it
+ * drains.</p>
  */
 public final class MolecularAdaptiveBatchController {
     private final Map<ICraftingProvider, Map<IPatternDetails, State>> states =
@@ -106,11 +109,10 @@ public final class MolecularAdaptiveBatchController {
             state.block(tick);
         } else {
             state.nextBatch = Math.min(state.maxWindow, doubled);
-            // A successful steady-size push is the useful baseline for this tick.
-            // Immediately trying the doubled size either discovers more room or is
-            // rejected and leaves the baseline intact; it must not replace the
-            // successful tick with a probe-only tick.
-            state.unblock();
+            // Grow only across ticks. The next tick may try the doubled batch,
+            // but this provider/pattern pair cannot immediately run 1, 2, 4, ...
+            // in the same server tick.
+            state.block(tick);
         }
     }
 

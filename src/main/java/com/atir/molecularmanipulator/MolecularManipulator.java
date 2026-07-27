@@ -1,8 +1,9 @@
 package com.atir.molecularmanipulator;
 
-import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.config.ConfigFileMigration;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.LongCraftingRequestPayload;
+import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
 import appeng.api.AECapabilities;
 import appeng.api.upgrades.Upgrades;
@@ -43,6 +44,7 @@ public final class MolecularManipulator {
     }
 
     private void serverAboutToStart(ServerAboutToStartEvent event) {
+        ConfigFileMigration.migrateServerConfig(event.getServer());
         MatterSequenceRegistry.loadOrCreate();
     }
 

@@ -21,7 +21,6 @@
     "CreativeCellInventoryMixin",
     "ExtendedAEInfinityCellInventoryMixin",
     "KeyCounterMixin",
-    "ModConfigSpecMixin",
     "NbtTearPatternContextMixin",
     "NbtTearPatternMatchHelperMixin",
     "OmniCraftingCpuClusterMixin",
@@ -30,7 +29,6 @@
     "OmniCraftingTreeNodeAccessor",
     "OmniCraftingTreeProcessAccessor",
     "PatternProviderLogicMixin",
-    "ServerLifecycleHooksMixin",
     "TileAssemblerMatrixPatternMixin"
   ],
   "client": [

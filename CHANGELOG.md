@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.3.5 - 2026-07-27
+
+### Changed
+
+- Added native six-direction connected rendering for the Computation Core Frame,
+  including seamless faces and non-overlapping translucent border corners.
+- Updated the Universal Pattern Matrix texture and enabled its translucent render layer.
+- Limited each provider/pattern pair to one scaled-dispatch growth step per server
+  tick, preventing a single lane from probing `1, 2, 4, ...` in one tick while
+  retaining the learned multiplier for the next tick.
+
+## 1.3.4-hotfix - 2026-07-27
+
+### Fixed
+
+- Removed the `ModConfigSpec` core-class mixin that could run after NeoForge had
+  already loaded its target and abort startup with `MixinTargetAlreadyLoadedException`.
+- Moved saved-world configuration migration to NeoForge's supported
+  `ServerAboutToStartEvent`, eliminating the remaining lifecycle core-class mixin.
+
 ## 1.3.4 - 2026-07-27
 
 ### Changed

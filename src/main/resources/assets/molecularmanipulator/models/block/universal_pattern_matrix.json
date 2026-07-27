@@ -1,1 +1,7 @@
-{"parent":"minecraft:block/cube_all","textures":{"all":"molecularmanipulator:block/universal_pattern_matrix"}}
+{
+  "parent": "minecraft:block/cube_all",
+  "render_type": "translucent",
+  "textures": {
+    "all": "molecularmanipulator:block/universal_pattern_matrix"
+  }
+}

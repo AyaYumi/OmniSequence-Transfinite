@@ -1,0 +1,39 @@
+{
+	"format_version": "1.21.11",
+	"credit": "Made with Blockbench",
+	"render_type": "translucent",
+	"textures": {
+		"particle": "molecularmanipulator:block/omni_computation_casing_border",
+		"border": "molecularmanipulator:block/omni_computation_casing_border"
+	},
+	"elements": [
+		{
+			"from": [3, 16, 0],
+			"to": [13, 16.01, 3],
+			"faces": {
+				"up": {"uv": [3, 0, 13, 3], "texture": "#border", "cullface": "up"}
+			}
+		},
+		{
+			"from": [3, -0.01, 0],
+			"to": [13, 0, 3],
+			"faces": {
+				"down": {"uv": [3, 13, 13, 16], "texture": "#border", "cullface": "down"}
+			}
+		},
+		{
+			"from": [16, 3, 0],
+			"to": [16.01, 13, 3],
+			"faces": {
+				"east": {"uv": [13, 3, 16, 13], "texture": "#border", "cullface": "east"}
+			}
+		},
+		{
+			"from": [-0.01, 3, 0],
+			"to": [0, 13, 3],
+			"faces": {
+				"west": {"uv": [0, 3, 3, 13], "texture": "#border", "cullface": "west"}
+			}
+		}
+	]
+}

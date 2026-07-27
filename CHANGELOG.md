@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.3.5 - 2026-07-27
+
+### Changed
+
+- Added native six-direction connected rendering for the Computation Core Frame,
+  including seamless faces and non-overlapping translucent border corners.
+- Updated the Universal Pattern Matrix texture and enabled its translucent render layer.
+- Limited each provider/pattern pair to one scaled-dispatch growth step per server
+  tick, preventing a single lane from probing `1, 2, 4, ...` in one tick while
+  retaining the learned multiplier for the next tick.
+
+### Compatibility
+
+- This release targets Minecraft 1.20.1, Forge 47.4.10 and AE2 15.4.10.
+- The standalone Molecular Sequence Rewrite Array remains removed from the
+  Forge 1.20.1 build; its functionality remains in the Molecular Center
+  multiblock.
+
+## 1.3.4-hotfix-forge - 2026-07-27
+
+### Fixed
+
+- Removed the `ForgeConfigSpec` core-class mixin that could run after Forge had
+  already loaded its target and abort startup with `MixinTargetAlreadyLoadedException`.
+- Kept the Forge-specific saved-world migration hook at the beginning of
+  `ServerLifecycleHooks.handleServerAboutToStart`, before Forge selects and loads
+  the world's server config. Forge posts `ServerAboutToStartEvent` only after that
+  load, so moving migration to the event would ignore legacy world values on the
+  first startup.
+
 ## 1.3.4-forge - 2026-07-27
 
 ### Changed

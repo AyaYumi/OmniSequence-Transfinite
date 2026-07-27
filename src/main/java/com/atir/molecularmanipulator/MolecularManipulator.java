@@ -1,11 +1,11 @@
 package com.atir.molecularmanipulator;
 
-import appeng.api.upgrades.Upgrades;
-import appeng.core.definitions.AEItems;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.LongCraftingRequestPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
+import appeng.api.upgrades.Upgrades;
+import appeng.core.definitions.AEItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;

@@ -2,7 +2,6 @@ package com.atir.molecularmanipulator.config;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.electronwill.nightconfig.core.CommentedConfig;
-import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.electronwill.nightconfig.core.io.ParsingMode;
 import com.electronwill.nightconfig.core.io.WritingMode;
@@ -10,7 +9,6 @@ import com.electronwill.nightconfig.toml.TomlFormat;
 import com.electronwill.nightconfig.toml.TomlParser;
 import com.electronwill.nightconfig.toml.TomlWriter;
 import net.minecraftforge.common.ForgeConfigSpec;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -18,10 +16,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Enforces exact option schemas for this mod's TOML files.
@@ -34,36 +30,8 @@ import java.util.Map;
 public final class ConfigSchemaGuard {
     private static final int MAX_BACKUPS = 5;
     private static final int MAX_LOGGED_PATHS = 16;
-    private static final Map<ForgeConfigSpec, String> STRICT_SPECS = new IdentityHashMap<>();
 
     private ConfigSchemaGuard() {
-    }
-
-    public static synchronized void registerStrictSpec(
-            ForgeConfigSpec spec, String displayName) {
-        STRICT_SPECS.put(spec, displayName);
-    }
-
-    /**
-     * Called from the ForgeConfigSpec mixin before Forge performs its normal
-     * correction. Existing disk configs are already backed up by ConfigTracker
-     * at this point.
-     */
-    public static void resetLoadedTomlIfOutdated(
-            ForgeConfigSpec spec, CommentedConfig config) {
-        String displayName = strictSpecName(spec);
-        var unexpectedPaths = unexpectedLoadedTomlPaths(spec, config);
-        if (unexpectedPaths.isEmpty()) {
-            return;
-        }
-
-        MolecularManipulator.LOGGER.warn(
-                "Outdated {} configuration contains options that are not in the current schema: {}. "
-                        + "Resetting the complete configuration to current defaults; "
-                        + "Forge keeps the previous file as a TOML backup.",
-                displayName, summarize(unexpectedPaths));
-        config.clear();
-        config.clearComments();
     }
 
     /**
@@ -104,19 +72,6 @@ public final class ConfigSchemaGuard {
                     displayName, file, exception);
             return false;
         }
-    }
-
-    private static synchronized @Nullable String strictSpecName(ForgeConfigSpec spec) {
-        return STRICT_SPECS.get(spec);
-    }
-
-    private static List<String> unexpectedLoadedTomlPaths(
-            ForgeConfigSpec spec, CommentedConfig config) {
-        if (strictSpecName(spec) == null
-                || config.configFormat() != TomlFormat.instance()) {
-            return List.of();
-        }
-        return findUnexpectedPaths(config, spec.getSpec());
     }
 
     private static List<String> findUnexpectedPaths(

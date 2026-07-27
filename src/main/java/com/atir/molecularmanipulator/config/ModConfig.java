@@ -88,8 +88,6 @@ public final class ModConfig {
     }
 
     public static void register() {
-        ConfigSchemaGuard.registerStrictSpec(SERVER_SPEC, "server/save");
-        ConfigSchemaGuard.registerStrictSpec(CLIENT_SPEC, "client");
         ConfigFileMigration.migrateGlobalConfigs();
         ConfigFileMigration.refreshGlobalConfigSchemas(SERVER_SPEC, CLIENT_SPEC);
         ModLoadingContext.get().registerConfig(Type.SERVER, SERVER_SPEC, ConfigFileMigration.SERVER_FILE);

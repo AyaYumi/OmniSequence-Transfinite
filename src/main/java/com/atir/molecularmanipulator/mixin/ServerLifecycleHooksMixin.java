@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = ServerLifecycleHooks.class, remap = false)
 public abstract class ServerLifecycleHooksMixin {
     @Inject(method = "handleServerAboutToStart", at = @At("HEAD"))
-    private static void molecularmanipulator$migrateServerConfig(MinecraftServer server,
-            CallbackInfoReturnable<Boolean> callback) {
+    private static void molecularmanipulator$migrateServerConfig(
+            MinecraftServer server, CallbackInfoReturnable<Boolean> callback) {
         ConfigFileMigration.migrateServerConfig(server);
     }
 }

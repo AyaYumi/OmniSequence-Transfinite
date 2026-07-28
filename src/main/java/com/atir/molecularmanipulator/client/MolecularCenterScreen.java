@@ -30,8 +30,11 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     private static final int PANEL_RIGHT = 426;
     private static final int ACCENT = 0xFFB77BFF;
     private static final int CYAN = 0xFF63D8FF;
+    private static final int DISMANTLE_CONFIRM_TICKS = 60;
+    private static final int DISMANTLE_CONFIRM_DELAY_TICKS = 6;
 
     private Button preview;
+    private Button dismantle;
     private Button previousPage;
     private Button nextPage;
     private Button matterTab;
@@ -51,6 +54,7 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     private Button resetColors;
     private final Button[][] colorButtons = new Button[5][3];
     private int detailTab = TAB_MATTER;
+    private int dismantleConfirmTicks;
 
     public MolecularCenterScreen(MolecularCenterMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -60,6 +64,7 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
 
     @Override
     protected void slotClicked(@Nullable Slot slot, int slotId, int mouseButton, ClickType clickType) {
+        cancelDismantleConfirmation();
         if (slot instanceof FakeSlot) {
             var action = mouseButton == 1
                     ? InventoryAction.SPLIT_OR_PLACE_SINGLE
@@ -71,8 +76,18 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     }
 
     @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        boolean clickedDismantle = button == 0 && dismantle != null && dismantle.isMouseOver(mouseX, mouseY);
+        if (!clickedDismantle) {
+            cancelDismantleConfirmation();
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
     protected void init() {
         super.init();
+        dismantleConfirmTicks = 0;
         preview = addRenderableWidget(Button.builder(previewLabel(),
                         button -> {
                             if (MolecularCenterGhostPreview.toggle(menu.getCenter())) {
@@ -85,32 +100,41 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
         addRenderableWidget(Button.builder(Component.translatable("gui.molecularmanipulator.build"),
                         button -> menu.requestBuild())
                 .bounds(leftPos + 58, topPos + 4, 46, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.molecularmanipulator.dismantle"),
-                        button -> menu.requestDismantle())
-                .bounds(leftPos + 108, topPos + 4, 58, 18).build());
         previousPage = addRenderableWidget(Button.builder(Component.literal("<"),
                         button -> menu.requestPage(menu.getPage() - 1))
-                .bounds(leftPos + 168, topPos + 4, 12, 18).build());
+                .bounds(leftPos + 108, topPos + 4, 20, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.page_previous_tooltip")))
+                .build());
         nextPage = addRenderableWidget(Button.builder(Component.literal(">"),
                         button -> menu.requestPage(menu.getPage() + 1))
-                .bounds(leftPos + 182, topPos + 4, 12, 18).build());
+                .bounds(leftPos + 130, topPos + 4, 20, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.page_next_tooltip")))
+                .build());
+        dismantle = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.dismantle"),
+                        button -> dismantleClicked())
+                .bounds(leftPos + 154, topPos + 4, 58, 18)
+                .build());
+        updateDismantleButton();
 
         matterTab = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.tab_matter"),
                         button -> selectTab(TAB_MATTER))
-                .bounds(leftPos + 202, topPos + 4, 52, 18).build());
+                .bounds(leftPos + 216, topPos + 4, 48, 18).build());
         pipelineTab = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.tab_pipeline"),
                         button -> selectTab(TAB_PIPELINE))
-                .bounds(leftPos + 256, topPos + 4, 52, 18).build());
+                .bounds(leftPos + 266, topPos + 4, 48, 18).build());
         quantumTab = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.tab_quantum"),
                         button -> selectTab(TAB_QUANTUM))
-                .bounds(leftPos + 310, topPos + 4, 52, 18).build());
+                .bounds(leftPos + 316, topPos + 4, 48, 18).build());
         colorsTab = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.tab_colors"),
                         button -> selectTab(TAB_COLORS))
-                .bounds(leftPos + 364, topPos + 4, 56, 18).build());
+                .bounds(leftPos + 366, topPos + 4, 54, 18).build());
 
         deconstruct = addRenderableWidget(Button.builder(
                         deconstructLabel(),
@@ -235,6 +259,9 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     @Override
     protected void containerTick() {
         super.containerTick();
+        if (dismantleConfirmTicks > 0 && --dismantleConfirmTicks == 0) {
+            updateDismantleButton();
+        }
         previousPage.active = menu.getPage() > 0;
         nextPage.active = menu.getPage() + 1 < menu.getPageCount();
         primaryRoute.setMessage(primaryRouteLabel());
@@ -246,6 +273,40 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
         rewriteOutput.setMessage(rewriteOutputLabel());
         syncTargetField(deconstructTarget, menu.deconstructTarget);
         syncTargetField(rewriteTarget, menu.rewriteTarget);
+    }
+
+    private void dismantleClicked() {
+        if (dismantleConfirmTicks == 0) {
+            dismantleConfirmTicks = DISMANTLE_CONFIRM_TICKS;
+            updateDismantleButton();
+            return;
+        }
+        if (dismantleConfirmTicks <= DISMANTLE_CONFIRM_TICKS - DISMANTLE_CONFIRM_DELAY_TICKS) {
+            cancelDismantleConfirmation();
+            menu.requestDismantle();
+        }
+    }
+
+    private void cancelDismantleConfirmation() {
+        if (dismantleConfirmTicks == 0) {
+            return;
+        }
+        dismantleConfirmTicks = 0;
+        updateDismantleButton();
+    }
+
+    private void updateDismantleButton() {
+        if (dismantle == null) {
+            return;
+        }
+        boolean confirming = dismantleConfirmTicks > 0;
+        dismantle.setMessage(confirming
+                ? Component.translatable("gui.molecularmanipulator.dismantle_confirm")
+                        .withStyle(ChatFormatting.RED)
+                : Component.translatable("gui.molecularmanipulator.dismantle"));
+        dismantle.setTooltip(Tooltip.create(Component.translatable(confirming
+                ? "gui.molecularmanipulator.dismantle_confirm_tooltip"
+                : "gui.molecularmanipulator.dismantle_tooltip")));
     }
 
     @Override

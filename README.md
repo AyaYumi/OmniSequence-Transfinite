@@ -15,17 +15,24 @@
 | Glodium | 1.21-2.2-neoforge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.5-fix`
+当前版本：`1.3.6`
+
+完整更新内容见 [1.3.6 双语发布说明](RELEASE_NOTES_1.3.6.md)。
+
+> 已知兼容性限制：`Expanded AE 2.1.1`（`expandedae-2.1.1.jar`，不是 ExtendedAE）
+> 与 AppliedFlux 同时安装时，会和本模组对 AE2 样板供应器的 Mixin 发生冲突。
+> 在完成专用兼容前，请不要将这组模组与 `1.3.6` 同时用于正式实例。
 
 ## 主要功能
 
 - 将 AE2 单次自动合成下单量扩展至可配置的 `long` 范围。
 - 兼容 AE2 创造存储元件和 ExtendedAE 无限存储元件，并将无限数量显示为 `∞`。
 - 修复无线终端自动补货覆盖层在超大或无限库存下的整数溢出崩溃。
-- 提供分子构序重写阵列、装配矩阵构序重写核心、万物演算核心和构序阵列多方块。
+- 提供分子构序重写阵列、装配矩阵构序重写核心、万物演算核心，以及由构序阵列控制器管理的构序阵列多方块。
 - 支持大型结构投影、一键搭建、一键拆卸、跨区块暂停恢复和动态视觉效果。
 - 支持有线 ME 接入及跨维度缠绕态量子链路。
 - 提供可由整合包配置的物质分解、序列储存和蓝图复制系统。
+- 为四个核心方块提供 AE2 GuideME 游戏内文档，可在物品提示中按 `G` 打开。
 
 ## 自动合成与材料发配
 
@@ -45,7 +52,7 @@
 
 ### 分子构序重写阵列
 
-- 默认提供 720 个样板槽，可通过配置扩展。
+- 固定提供 360 个样板槽（10 页×36 槽）。
 - 支持虚拟高并行和最快 1 Tick 配方处理。
 - 中间产物及容器返还通过持久化缓冲安全返回 ME 网络。
 
@@ -62,13 +69,26 @@
 - 结构损坏或区块未加载时保存任务、内部材料和进度，恢复后继续运行。
 - 支持投影、自动施工、自动拆卸及周边敌对生物生成抑制。
 
-### 构序阵列
+### 构序阵列控制器（构序阵列多方块）
 
 - 固定 31×46×31 结构，批量构序并行上限为 `Long.MAX_VALUE`。
+- 样板槽接受 AE2 编码合成、锻造及切石样板；处理、空白和失效样板会被拒绝。
+- Shift 快捷放入会优先填充当前样板页，当前页满后继续写入后续页面。
+- 一键拆卸采用限时二次确认，快速双击、点击其他控件或等待超时都不会误触拆卸。
 - 支持独立 RGB 能量场、内核和星环效果；合成时动画自动加速。
 - 不强制加载区块，结构范围未完整加载时会暂停并在恢复后重新校验。
 
 结构的完整材料清单和朝向以游戏内投影及 JEI 信息为准。
+
+## 游戏内文档
+
+以下方块均带有 AE2 GuideME 页面。在物品栏或 JEI 中指向对应方块并按 `G`，即可查看用途、
+结构搭建、网络连接、样板支持范围和操作说明：
+
+- 分子构序重写阵列
+- 装配矩阵构序重写核心
+- 万物演算核心
+- 构序阵列控制器
 
 ## 缠绕态量子链路
 
@@ -97,9 +117,9 @@ config/molecularmanipulator/matter_rewrite_rules.json
 
 | 配置项 | 默认值 | 作用 |
 | --- | ---: | --- |
-| `pattern_pages` | 20 | 分子构序重写阵列样板页数，每页 36 槽 |
+| `pattern_pages` | 20 | 构序阵列控制器样板页数，每页 36 槽 |
 | `build_blocks_per_tick` | 32 | 自动搭建或拆卸每 Tick 处理方块数 |
-| `idle_power` | 128 | 分子构序重写阵列待机功耗，单位 AE/t |
+| `idle_power` | 128 | 构序阵列控制器待机功耗，单位 AE/t |
 | `max_crafting_order_amount` | 1,000,000,000,000 | 单次 AE2 自动合成下单上限 |
 | `omni_max_fast_mode` | `SAFE` | 万物演算核心配方树聚合模式 |
 | `omni_max_fast_max_nodes` | 8192 | 单次聚合可编译的唯一配方节点上限 |
@@ -118,7 +138,9 @@ config/molecularmanipulator/matter_rewrite_rules.json
 
 ## 安装与构建
 
-将构建好的 JAR 放入服务端和客户端的 `mods` 目录，并安装上表中的必要依赖。
+将构建好的 JAR 放入服务端和客户端的 `mods` 目录，并安装上表中的必要依赖。升级时请先完全退出游戏，
+并确保客户端与服务端使用相同版本，且各自的 `mods` 目录中只存在一个启用中的
+`omnisequence-transfinite-*.jar`，避免重复 Mod ID。
 
 ```powershell
 ./gradlew.bat clean build --no-configuration-cache
@@ -127,7 +149,8 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.5-fix.jar
+build/libs/omnisequence-transfinite-1.3.6.jar
 ```
 
-版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。
+版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与升级说明见
+[RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md)。本项目使用 [MIT License](LICENSE)。

@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3.6 - 2026-07-29
+
+### Added
+
+- Added AE2 GuideME documentation for the Molecular Sequence Rewrite Array,
+  Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, and Sequence
+  Array Controller.
+
+### Changed
+
+- Reworked the Sequence Array Controller toolbar to widen its pattern page
+  buttons and separate Build from Dismantle.
+- Added a timed two-step confirmation to Dismantle so rapid double-clicks and
+  unrelated clicks cannot accidentally start structure removal.
+- Made Shift-moving supported encoded patterns fill the current pattern page
+  first and continue into later pages when needed.
+- Restricted the Sequence Array Controller pattern inventory and advertised
+  recipes to molecular-assembler-compatible AE2 crafting, smithing, and
+  stonecutting patterns.
+
+See [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for the complete bilingual
+release and upgrade notes.
+
 ## 1.3.5-fix - 2026-07-28
 
 ### Changed

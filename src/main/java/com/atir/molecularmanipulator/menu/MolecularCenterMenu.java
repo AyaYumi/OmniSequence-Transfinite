@@ -1,9 +1,13 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.helpers.patternprovider.PatternProviderLogicHost;
+import appeng.api.crafting.PatternDetailsHelper;
+import appeng.api.inventories.InternalInventory;
 import appeng.client.gui.Icon;
+import appeng.core.definitions.AEItems;
+import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
+import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.AppEngSlot;
 import appeng.menu.slot.FakeSlot;
@@ -11,14 +15,13 @@ import appeng.menu.slot.OutputSlot;
 import appeng.menu.slot.RestrictedInputSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MolecularCenterLogic;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import appeng.api.inventories.InternalInventory;
-import appeng.menu.guisync.GuiSync;
 
 import java.util.List;
 
@@ -158,8 +161,7 @@ public final class MolecularCenterMenu extends AEBaseMenu {
         this.pageInventory = new PagedInventory(center.getLogic().getFullPatternInventory());
         this.patternSlots = new java.util.ArrayList<>(MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
         for (int slot = 0; slot < MolecularCenterBlockEntity.PATTERNS_PER_PAGE; slot++) {
-            var added = addSlot(new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.PROVIDER_PATTERN,
-                    pageInventory, slot), SlotSemantics.ENCODED_PATTERN);
+            var added = addSlot(new SupportedPatternSlot(pageInventory, slot), SlotSemantics.ENCODED_PATTERN);
             added.x = PATTERN_X + slot % 9 * 18;
             added.y = PATTERN_Y + slot / 9 * 18;
             patternSlots.add(added);
@@ -347,6 +349,56 @@ public final class MolecularCenterMenu extends AEBaseMenu {
         if (isClientSide()) sendClientAction(ACTION_CYCLE_REWRITE_OUTPUT);
     }
 
+    @Override
+    public ItemStack quickMoveStack(Player player, int slotIndex) {
+        if (isClientSide() || slotIndex < 0 || slotIndex >= slots.size()) {
+            return ItemStack.EMPTY;
+        }
+
+        var clickedSlot = slots.get(slotIndex);
+        if (!isPlayerSideSlot(clickedSlot) || !clickedSlot.mayPickup(player)) {
+            return super.quickMoveStack(player, slotIndex);
+        }
+
+        var stack = clickedSlot.getItem();
+        if (stack.isEmpty() || !isPatternItem(stack)) {
+            return super.quickMoveStack(player, slotIndex);
+        }
+
+        // Encoded patterns must never fall through into the blueprint/sample slot.
+        if (!MolecularCenterLogic.isSupportedPattern(stack)) {
+            return ItemStack.EMPTY;
+        }
+
+        int transferred = insertSupportedPatterns(stack);
+        if (transferred > 0) {
+            clickedSlot.remove(transferred);
+            clickedSlot.setChanged();
+        }
+        return ItemStack.EMPTY;
+    }
+
+    private int insertSupportedPatterns(ItemStack stack) {
+        InternalInventory patternInventory = center.getTerminalPatternInventory();
+        int firstSlot = page * MolecularCenterBlockEntity.PATTERNS_PER_PAGE;
+        if (firstSlot >= patternInventory.size()) {
+            return 0;
+        }
+
+        var remainder = stack.copy();
+        for (int slot = firstSlot; slot < patternInventory.size() && !remainder.isEmpty(); slot++) {
+            if (!patternInventory.getStackInSlot(slot).isEmpty()) {
+                continue;
+            }
+            remainder = patternInventory.insertItem(slot, remainder, false);
+        }
+        return stack.getCount() - remainder.getCount();
+    }
+
+    private static boolean isPatternItem(ItemStack stack) {
+        return PatternDetailsHelper.isEncodedPattern(stack) || AEItems.BLANK_PATTERN.is(stack);
+    }
+
     private void applyPage(int requestedPage) {
         page = clampPage(requestedPage);
         pageInventory.setPage(page);
@@ -483,6 +535,23 @@ public final class MolecularCenterMenu extends AEBaseMenu {
             rewriteJobProcessed = center.getRewriteJobProcessed();
         }
         super.broadcastChanges();
+    }
+
+    private static final class SupportedPatternSlot extends RestrictedInputSlot {
+        private SupportedPatternSlot(InternalInventory inventory, int slot) {
+            super(PlacableItemType.PROVIDER_PATTERN, inventory, slot);
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return MolecularCenterLogic.isSupportedPattern(stack) && super.mayPlace(stack);
+        }
+
+        @Override
+        protected boolean getCurrentValidationState() {
+            var stack = getItem();
+            return stack.isEmpty() || MolecularCenterLogic.isSupportedPattern(stack);
+        }
     }
 
     private static final class PagedInventory implements InternalInventory {

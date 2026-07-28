@@ -73,6 +73,42 @@ public final class ConfigSchemaGuard {
         }
     }
 
+    /**
+     * Removes one retired option without resetting any still-supported values.
+     */
+    public static boolean removeObsoleteOption(
+            Path file, String optionPath, String displayName) {
+        if (!Files.isRegularFile(file)) {
+            return false;
+        }
+
+        try {
+            var config = readToml(file);
+            if (!config.contains(optionPath)) {
+                return false;
+            }
+
+            backUpConfig(file);
+            config.bulkCommentedUpdate(view -> {
+                view.remove(optionPath);
+                view.removeComment(optionPath);
+                return null;
+            });
+            new TomlWriter().write(
+                    config, file, WritingMode.REPLACE_ATOMIC);
+            MolecularManipulator.LOGGER.info(
+                    "Removed retired option {} from {} configuration {}",
+                    optionPath, displayName, file);
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            MolecularManipulator.LOGGER.warn(
+                    "Could not remove retired option {} from {} configuration {}; "
+                            + "the existing file was left in place",
+                    optionPath, displayName, file, exception);
+            return false;
+        }
+    }
+
     private static List<String> findUnexpectedPaths(
             UnmodifiableConfig actual, UnmodifiableConfig expected) {
         var unexpectedPaths = new ArrayList<String>();
@@ -107,7 +143,7 @@ public final class ConfigSchemaGuard {
         }
     }
 
-    private static UnmodifiableConfig readToml(Path file) throws IOException {
+    private static SynchronizedConfig readToml(Path file) throws IOException {
         var config = new SynchronizedConfig(TomlFormat.instance(), LinkedHashMap::new);
         try (var reader = Files.newBufferedReader(file)) {
             config.bulkCommentedUpdate(view -> {

@@ -30,6 +30,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -61,11 +62,16 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public static final double QUANTUM_LINK_POWER = 512.0;
     private static final int STRUCTURE_CHECK_INTERVAL = 20;
     private static final int BUILD_BLOCKS_PER_TICK = 128;
+    private static final long COMPAT_DISPATCH_TARGET_TICK_NANOS = 45_000_000L;
+    private static final long COMPAT_DISPATCH_MIN_GLOBAL_NANOS = 250_000L;
     private static final String VIRTUAL_CPUS_TAG = "omni_virtual_cpus";
     private static final String SUSPENDED_CPUS_TAG = "omni_suspended_cpus";
     private static final String QUANTUM_INVENTORY_TAG = "omni_quantum_inventory";
     private static final Map<CraftingCPUCluster, OmniComputationCoreBlockEntity> CPU_OWNERS =
             Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<MinecraftServer, SharedCompatDispatchState>
+            SHARED_COMPAT_DISPATCH_STATES =
+                    Collections.synchronizedMap(new WeakHashMap<>());
 
     private final List<CraftingCPUCluster> virtualCpus = new ArrayList<>();
     private final List<CompoundTag> pendingVirtualCpuStates = new ArrayList<>();
@@ -575,8 +581,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public synchronized DispatchAllowance claimDispatchAllowance(CraftingCPUCluster cpu, long tick) {
-        if (!(level instanceof ServerLevel)) {
-            return new DispatchAllowance(0, 0);
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return new DispatchAllowance(0, 0, 0, false);
         }
 
         if (dispatchBudgetTick != tick) {
@@ -590,6 +596,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         var unscaledValue = dispatchUnscaledLaneAllowances.remove(cpu);
         long reserved = reservedValue == null ? 0L : reservedValue;
         int unscaledReserved = unscaledValue == null ? 0 : unscaledValue;
+        var compatWindow = claimSharedCompatDispatchWindow(
+                serverLevel.getServer(), cpu, tick);
         dispatchReservedWorkUnits -= reserved;
         dispatchWorkUnitsRemaining -= reserved;
         long returnedWork = Math.max(0L, dispatchWorkUnitsRemaining - dispatchReservedWorkUnits);
@@ -605,19 +613,24 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         int unscaledAttempts = unscaledReserved + returnedAttempts;
         dispatchUnscaledAttemptsRemaining -= returnedAttempts;
         if (allowance <= 0) {
-            return new DispatchAllowance(0, unscaledAttempts);
+            return new DispatchAllowance(
+                    0, unscaledAttempts, compatWindow.deadlineNanos(),
+                    compatWindow.progressLane());
         }
-        return new DispatchAllowance(allowance, unscaledAttempts);
+        return new DispatchAllowance(
+                allowance, unscaledAttempts, compatWindow.deadlineNanos(),
+                compatWindow.progressLane());
     }
 
     private void prepareDispatchAllowances() {
         dispatchLaneAllowances.clear();
         dispatchUnscaledLaneAllowances.clear();
         dispatchUnscaledDemandLanes.clear();
-        dispatchUnscaledDemandLanes.addAll(dispatchUnscaledDemandThisTick);
+        dispatchUnscaledDemandLanes.addAll(
+                dispatchUnscaledDemandThisTick);
         dispatchUnscaledDemandThisTick.clear();
         dispatchUnscaledTotalAttempts =
-                ModConfig.OMNI_UNSCALED_DISPATCH_ATTEMPTS_PER_TICK.get();
+                ModConfig.OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK.get();
         dispatchUnscaledAttemptsRemaining = dispatchUnscaledTotalAttempts;
         var activeCpus = allCpus().stream().filter(CraftingCPUCluster::isBusy).toList();
         int activeLanes = activeCpus.size();
@@ -666,8 +679,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         int extra = dispatchUnscaledTotalAttempts % targetLanes;
         for (int offset = 0; offset < targetLanes; offset++) {
             int allowance = base + (offset < extra ? 1 : 0);
+            int index = (start + offset) % targetLanes;
             if (allowance > 0) {
-                int index = (start + offset) % targetLanes;
                 dispatchUnscaledLaneAllowances.put(
                         targetCpus.get(index), allowance);
             }
@@ -705,7 +718,103 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
     }
 
-    public record DispatchAllowance(long workUnits, int unscaledAttempts) {
+    private static CompatDispatchWindow claimSharedCompatDispatchWindow(
+            MinecraftServer server, CraftingCPUCluster cpu, long tick) {
+        synchronized (SHARED_COMPAT_DISPATCH_STATES) {
+            var state = SHARED_COMPAT_DISPATCH_STATES.computeIfAbsent(
+                    server, ignored -> new SharedCompatDispatchState());
+            if (state.tick != tick) {
+                state.tick = tick;
+                state.deadlineNanos = System.nanoTime()
+                        + getAdaptiveCompatTimeBudgetNanos(server);
+                var activeLanes = getActiveCompatDispatchLanes(server);
+                if (activeLanes.isEmpty()) {
+                    state.progressLane = null;
+                } else {
+                    int index = Math.floorMod(
+                            state.progressRotation, activeLanes.size());
+                    state.progressLane = activeLanes.get(index);
+                    state.progressRotation =
+                            (index + 1) % activeLanes.size();
+                }
+            }
+            return new CompatDispatchWindow(
+                    state.deadlineNanos, state.progressLane == cpu);
+        }
+    }
+
+    private static long getAdaptiveCompatTimeBudgetNanos(
+            MinecraftServer server) {
+        long configuredMax = Math.multiplyExact(
+                (long) ModConfig.OMNI_COMPAT_DISPATCH_MAX_TIME_US.get(),
+                1_000L);
+        long averageTickNanos = Math.max(
+                0L, server.getAverageTickTimeNanos());
+        float smoothedTickMillis = server.getCurrentSmoothedTickTime();
+        if (Float.isFinite(smoothedTickMillis)
+                && smoothedTickMillis > 0.0F) {
+            averageTickNanos = Math.max(
+                    averageTickNanos,
+                    (long) (smoothedTickMillis * 1_000_000.0F));
+        }
+        long headroom = Math.max(
+                0L, COMPAT_DISPATCH_TARGET_TICK_NANOS - averageTickNanos);
+        return Math.min(
+                configuredMax,
+                Math.max(COMPAT_DISPATCH_MIN_GLOBAL_NANOS, headroom));
+    }
+
+    private static List<CraftingCPUCluster> getActiveCompatDispatchLanes(
+            MinecraftServer server) {
+        var activeLanes = new ArrayList<CraftingCPUCluster>();
+        var demandLanes = new ArrayList<CraftingCPUCluster>();
+        synchronized (CPU_OWNERS) {
+            for (var entry : CPU_OWNERS.entrySet()) {
+                var cpu = entry.getKey();
+                var owner = entry.getValue();
+                if (cpu != null
+                        && owner != null
+                        && owner.level instanceof ServerLevel ownerLevel
+                        && ownerLevel.getServer() == server
+                        && !cpu.isDestroyed()
+                        && cpu.isActive()
+                        && cpu.isBusy()) {
+                    activeLanes.add(cpu);
+                    if (owner.hasCompatDispatchDemand(cpu)) {
+                        demandLanes.add(cpu);
+                    }
+                }
+            }
+        }
+        var candidates = demandLanes.isEmpty()
+                ? activeLanes
+                : demandLanes;
+        candidates.sort((left, right) -> Integer.compare(
+                System.identityHashCode(left),
+                System.identityHashCode(right)));
+        return candidates;
+    }
+
+    private synchronized boolean hasCompatDispatchDemand(
+            CraftingCPUCluster cpu) {
+        return dispatchUnscaledDemandLanes.contains(cpu)
+                || dispatchUnscaledDemandThisTick.contains(cpu);
+    }
+
+    public record DispatchAllowance(
+            long workUnits, int unscaledAttempts,
+            long compatDeadlineNanos, boolean compatProgressLane) {
+    }
+
+    private record CompatDispatchWindow(
+            long deadlineNanos, boolean progressLane) {
+    }
+
+    private static final class SharedCompatDispatchState {
+        private long tick = Long.MIN_VALUE;
+        private long deadlineNanos;
+        private int progressRotation;
+        private CraftingCPUCluster progressLane;
     }
 
     public int getClientVisualActivity() {

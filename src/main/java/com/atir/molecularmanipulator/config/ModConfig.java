@@ -17,7 +17,8 @@ public final class ModConfig {
     public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_DIAGNOSTICS;
     public static final ModConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
     public static final ModConfigSpec.BooleanValue OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS;
-    public static final ModConfigSpec.IntValue OMNI_UNSCALED_DISPATCH_ATTEMPTS_PER_TICK;
+    public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
+    public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
     public static final ModConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
 
     public static final ModConfigSpec CLIENT_SPEC;
@@ -62,10 +63,18 @@ public final class ModConfig {
                 "Allow item-substitution patterns to use batch dispatch. Fluid-only substitution remains deterministic and is allowed by default. Disabled by default for contextual and NBT-sensitive item matching.")
                 .translation("molecularmanipulator.configuration.omni_batch_allow_substitution_patterns")
                 .define("omni_batch_allow_substitution_patterns", false);
-        OMNI_UNSCALED_DISPATCH_ATTEMPTS_PER_TICK = server.comment(
-                "Maximum real one-recipe provider calls shared by one Omni-Computation Core per tick when scaled dispatch is unavailable or rejected. Higher values improve compatibility throughput but can lengthen server ticks.")
-                .translation("molecularmanipulator.configuration.omni_unscaled_dispatch_attempts_per_tick")
-                .defineInRange("omni_unscaled_dispatch_attempts_per_tick", 32, 1, 256);
+        OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK = server.comment(
+                "Hard safety ceiling for complete one-recipe provider calls shared by one Omni-Computation Core per tick. The adaptive time budget normally stops dispatch much earlier.")
+                .translation("molecularmanipulator.configuration.omni_compat_dispatch_max_calls_per_tick")
+                .defineInRange(
+                        "omni_compat_dispatch_max_calls_per_tick",
+                        Integer.MAX_VALUE, 256, Integer.MAX_VALUE);
+        OMNI_COMPAT_DISPATCH_MAX_TIME_US = server.comment(
+                "Maximum server-wide main-thread time in microseconds used by compatibility one-recipe dispatch each tick. All active Omni cores share one deadline, which shrinks automatically as average server MSPT approaches 45.")
+                .translation("molecularmanipulator.configuration.omni_compat_dispatch_max_time_us")
+                .defineInRange(
+                        "omni_compat_dispatch_max_time_us",
+                        20_000, 250, 50_000);
         OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
                 "Maximum dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
                 .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")

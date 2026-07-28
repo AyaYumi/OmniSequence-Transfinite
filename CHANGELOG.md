@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.3.5-fix - 2026-07-28
+
+### Changed
+
+- Replaced the retired fixed 32-call ordinary-provider throttle with an
+  `Integer.MAX_VALUE` logical scheduling ceiling and one server-wide,
+  load-adaptive time budget. Work rotates between tasks and patterns so a large
+  request cannot monopolize a server tick.
+- Cached negative explicit-batch-provider topology and classified extracted
+  inputs without temporary collection allocation on the ordinary-provider hot
+  path.
+- Removed the obsolete `omni_unscaled_dispatch_attempts_per_tick` configuration
+  option. Existing TOML files remove only that retired key while preserving
+  current custom settings.
+
+### Fixed
+
+- Ordinary multi-input processing patterns now dispatch repeated, complete
+  original `1x` recipes. Every call keeps all ingredients together, preventing
+  different machines from being filled by different ingredient types and
+  deadlocking one-to-many processing setups.
+- Normalized ExtendedAE Plus planning-time scaled multi-input wrappers before
+  dispatch, preventing an already-multiplied recipe from bypassing the atomic
+  multi-input guard.
+- Kept aggregate dispatch for explicit batch endpoints and adaptive doubling
+  for safe single-input patterns, preserving high throughput where the target
+  can accept it without breaking compatibility.
+- Removed production-unsafe Mixin helper class loading and routed the AE2 long
+  amount widget through an application bridge, fixing startup and crafting
+  amount screen class-loading crashes.
+
+See `RELEASE_NOTES_1.3.5-fix.md` for installation notes, dispatch behavior and
+compatibility limits.
+
 ## 1.3.5 - 2026-07-27
 
 ### Changed
@@ -10,7 +44,40 @@
 - Limited each provider/pattern pair to one scaled-dispatch growth step per server
   tick, preventing a single lane from probing `1, 2, 4, ...` in one tick while
   retaining the learned multiplier for the next tick.
+- Replaced the fixed 32-call compatibility throttle with an
+  `Integer.MAX_VALUE` hard ceiling plus one strict server-wide, load-aware time
+  slice. Active Omni cores share up to 20 ms while average MSPT is low and
+  automatically contract toward a rotating single-lane progress token as MSPT
+  approaches 45. Task iteration also rotates and gives each compatibility
+  pattern a short sub-slice so one huge recipe cannot starve later recipes.
+- Cached negative explicit-batch-provider topology once per job pattern and
+  server tick. Ordinary multi-input compatibility pushes now skip repeated
+  waiting-for analysis, pattern validation and provider pre-scans while retaining
+  the original complete-recipe `pushPattern` call and shared time budget.
+- Removed the obsolete `omni_unscaled_dispatch_attempts_per_tick` option from
+  the server config and configuration screen. Existing TOML files migrate by
+  deleting only that retired key, preserving every current custom value.
 
+### Fixed
+
+- Routed non-explicit multi-input providers through AE2-style repeated complete
+  `1x` recipe calls, bypassing the runtime-scaled-pattern context entirely. This
+  prevents one-to-many targets from routing large waves of the first, second and
+  later ingredients into different machines and deadlocking their input slots.
+  The `Integer.MAX_VALUE` parallelism remains a logical scheduling window; real
+  one-recipe calls are time-sliced by the controller-wide per-tick allowance,
+  while single-input patterns and explicit batch providers retain adaptive
+  scaling.
+- Removed helper and anonymous classes from the Mixin package so transformed
+  AE2 crafting CPU targets no longer trigger Mixin `IllegalClassLoadError`
+  during startup or adaptive provider iteration.
+- Normalized ExtendedAE Plus planning-time scaled multi-input tasks before an
+  Omni CPU executes them, so an EAP `1x` wrapper cannot conceal an already
+  multiplied ingredient batch from the atomic-dispatch guard.
+- Replaced the production-unsafe direct reference to the client accessor mixin
+  with an application bridge implemented on AE2's number entry widget. Opening
+  the long crafting amount screen no longer fails with
+  `NoClassDefFoundError: NumberEntryWidgetAccessor`.
 ## 1.3.4-hotfix - 2026-07-27
 
 ### Fixed

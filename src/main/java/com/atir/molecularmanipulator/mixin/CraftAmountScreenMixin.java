@@ -4,6 +4,7 @@ import appeng.client.gui.me.crafting.CraftAmountScreen;
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.widgets.NumberEntryWidget;
 import appeng.menu.me.crafting.CraftAmountMenu;
+import com.atir.molecularmanipulator.integration.ae2.LongNumberEntryWidgetBridge;
 import com.atir.molecularmanipulator.network.LongCraftingRequestPayload;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
@@ -30,9 +31,8 @@ public abstract class CraftAmountScreenMixin {
     private void molecularmanipulator$enableLongAmounts(CraftAmountMenu menu, Inventory playerInventory,
             Component title, ScreenStyle style, CallbackInfo callback) {
         this.amountToCraft.setMaxValue(Long.MAX_VALUE);
-        ((NumberEntryWidgetAccessor) this.amountToCraft)
-                .molecularmanipulator$getTextField()
-                .setMaxLength(20);
+        ((LongNumberEntryWidgetBridge) this.amountToCraft)
+                .molecularmanipulator$setInputMaxLength(20);
     }
 
     @Inject(method = "updateBeforeRender", at = @At("RETURN"))

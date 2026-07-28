@@ -17,6 +17,8 @@ public final class ConfigFileMigration {
 
     private static final String LEGACY_CLIENT_FILE = "molecularmanipulator-client.toml";
     private static final String LEGACY_SERVER_FILE = "molecularmanipulator-server.toml";
+    private static final String RETIRED_UNSCALED_DISPATCH_LIMIT =
+            "omni_unscaled_dispatch_attempts_per_tick";
     private static final LevelResource SERVER_CONFIG_DIRECTORY = new LevelResource("serverconfig");
 
     private ConfigFileMigration() {
@@ -25,6 +27,10 @@ public final class ConfigFileMigration {
     public static void migrateGlobalConfigs() {
         migrateDirectory(FMLPaths.CONFIGDIR.get());
         migrateDirectory(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
+        removeRetiredServerOptions(FMLPaths.CONFIGDIR.get(), "server/default");
+        removeRetiredServerOptions(
+                FMLPaths.GAMEDIR.get().resolve("defaultconfigs"),
+                "server/default");
     }
 
     public static void refreshGlobalConfigSchemas(
@@ -37,6 +43,7 @@ public final class ConfigFileMigration {
     public static void migrateServerConfig(MinecraftServer server) {
         var directory = server.getWorldPath(SERVER_CONFIG_DIRECTORY);
         migrateFile(directory, LEGACY_SERVER_FILE, SERVER_FILE);
+        removeRetiredServerOptions(directory, "server/save");
         ConfigSchemaGuard.regenerateFileIfOutdated(
                 directory.resolve(SERVER_FILE), ModConfig.SERVER_SPEC, "server/save");
     }
@@ -48,10 +55,19 @@ public final class ConfigFileMigration {
 
     private static void refreshDirectory(Path directory,
             ModConfigSpec serverSpec, ModConfigSpec clientSpec) {
+        removeRetiredServerOptions(directory, "server/default");
         ConfigSchemaGuard.regenerateFileIfOutdated(
                 directory.resolve(SERVER_FILE), serverSpec, "server/default");
         ConfigSchemaGuard.regenerateFileIfOutdated(
                 directory.resolve(CLIENT_FILE), clientSpec, "client");
+    }
+
+    private static void removeRetiredServerOptions(
+            Path directory, String displayName) {
+        ConfigSchemaGuard.removeObsoleteOption(
+                directory.resolve(SERVER_FILE),
+                RETIRED_UNSCALED_DISPATCH_LIMIT,
+                displayName);
     }
 
     static void migrateFile(Path directory, String legacyFileName, String fileName) {

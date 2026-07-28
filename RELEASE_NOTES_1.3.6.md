@@ -48,11 +48,12 @@ its guide page.
 The release is built for Minecraft 1.21.1 with NeoForge 21.1.230 and AE2 19.2.17.
 Later NeoForge 21.1 patch releases are not rejected by the mod metadata.
 
-Known limitation: `Expanded AE 2.1.1` (`expandedae-2.1.1.jar`, distinct from
-ExtendedAE) installs an AppliedFlux compatibility Mixin on the same AE2 pattern
-provider method modified by this mod. With AppliedFlux present, that
-combination currently causes a startup Mixin conflict. Do not use that
-combination in a production instance until dedicated compatibility is added.
+Known incompatibility: `Expanded AE 2.1.1` (`expandedae-2.1.1.jar`, distinct
+from ExtendedAE) is the only mod currently marked as conflicting with
+OmniSequence 1.3.6. The observed startup conflict comes from Expanded AE's
+AppliedFlux compatibility Mixin targeting the same AE2 pattern-provider method
+modified by this mod. AppliedFlux itself, ExtendedAE, and later NeoForge 21.1
+patch releases are not marked as incompatible.
 
 ## Installation and Upgrade
 
@@ -66,7 +67,7 @@ combination in a production instance until dedicated compatibility is added.
 
 This update does not require a new world or deletion of existing configuration.
 
-SHA-256: `C57602371903C20017C620506B58ECC9F72AADFA70F645B8EA16677359F18D92`
+SHA-256: `92FDAF103355B3B29CFC05FF43CE81091C5325FEF2D5B3E4EA7195B3EE66E7FB`
 
 ---
 
@@ -111,9 +112,10 @@ SHA-256: `C57602371903C20017C620506B58ECC9F72AADFA70F645B8EA16677359F18D92`
 本版本基于 Minecraft 1.21.1、NeoForge 21.1.230 和 AE2 19.2.17 构建。
 模组元数据不会拒绝同属 21.1 系列的后续 NeoForge 补丁版本。
 
-已知限制：`Expanded AE 2.1.1`（`expandedae-2.1.1.jar`，与 ExtendedAE 不是同一个模组）
-会在 AppliedFlux 存在时，对本模组修改的同一个 AE2 样板供应器方法安装兼容 Mixin，
-当前组合会造成启动阶段的 Mixin 冲突。在加入专用兼容前，请不要将该组合用于正式实例。
+已知兼容性限制：本模组目前只与 `Expanded AE 2.1.1`
+（`expandedae-2.1.1.jar`，与 ExtendedAE 不是同一个模组）存在已知冲突。
+已观察到的启动冲突来自 Expanded AE 自带的 AppliedFlux 兼容 Mixin，它与本模组修改了同一个
+AE2 样板供应器方法。AppliedFlux 本身、ExtendedAE 和 NeoForge 21.1 后续补丁版本均不标记为冲突项。
 
 ## 安装与升级
 
@@ -126,4 +128,4 @@ SHA-256: `C57602371903C20017C620506B58ECC9F72AADFA70F645B8EA16677359F18D92`
 
 本次更新不要求新建世界，也不要求删除现有配置。
 
-SHA-256：`C57602371903C20017C620506B58ECC9F72AADFA70F645B8EA16677359F18D92`
+SHA-256：`92FDAF103355B3B29CFC05FF43CE81091C5325FEF2D5B3E4EA7195B3EE66E7FB`

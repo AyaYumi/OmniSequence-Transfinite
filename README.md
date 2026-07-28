@@ -19,9 +19,10 @@
 
 完整更新内容见 [1.3.6 双语发布说明](RELEASE_NOTES_1.3.6.md)。
 
-> 已知兼容性限制：`Expanded AE 2.1.1`（`expandedae-2.1.1.jar`，不是 ExtendedAE）
-> 与 AppliedFlux 同时安装时，会和本模组对 AE2 样板供应器的 Mixin 发生冲突。
-> 在完成专用兼容前，请不要将这组模组与 `1.3.6` 同时用于正式实例。
+> 已知兼容性限制：本模组目前只与 `Expanded AE 2.1.1`
+>（`expandedae-2.1.1.jar`，不是 ExtendedAE）存在已知冲突。冲突代码来自 Expanded AE
+> 自带的 AppliedFlux 兼容 Mixin；AppliedFlux 本身、ExtendedAE 和 NeoForge 21.1
+> 后续补丁版本均不标记为冲突项。
 
 ## 主要功能
 

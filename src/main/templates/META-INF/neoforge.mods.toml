@@ -102,6 +102,14 @@ file="META-INF/accesstransformer.cfg"
     side="BOTH"
 
 [[dependencies.${mod_id}]]
+    modId="expandedae"
+    type="incompatible"
+    reason="Expanded AE 2.1.1 installs a conflicting AE2 pattern-provider Mixin."
+    versionRange="[2.1.1]"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
     modId="extendedae_plus"
     type="optional"
     versionRange="[0,)"

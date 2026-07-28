@@ -19,6 +19,8 @@
 - Restricted the Sequence Array Controller pattern inventory and advertised
   recipes to molecular-assembler-compatible AE2 crafting, smithing, and
   stonecutting patterns.
+- Marked only Expanded AE 2.1.1 as incompatible in NeoForge metadata. AppliedFlux,
+  ExtendedAE, and later NeoForge 21.1 patch releases are not conflict entries.
 
 See [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for the complete bilingual
 release and upgrade notes.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.6 - 2026-07-29 (Forge 1.20.1)
+## 1.3.6-forge - 2026-07-29
 
 ### Added
 
@@ -22,7 +22,7 @@
 - Kept the Minecraft 1.21.1 NeoForge-only Expanded AE 2.1.1 conflict declaration
   out of Forge metadata because it targets a different loader and AE2 line.
 
-See [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for the complete bilingual
+See [RELEASE_NOTES_1.3.6-forge.md](RELEASE_NOTES_1.3.6-forge.md) for the complete bilingual
 release and upgrade notes.
 
 ## 1.3.5-fix-forge - 2026-07-28

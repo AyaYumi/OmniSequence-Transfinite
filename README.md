@@ -17,9 +17,9 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on For
 | Glodium | 1.20-1.5-forge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.6` (Forge 1.20.1 build)
+Current release: `1.3.6-forge`
 
-See the [bilingual 1.3.6 release notes](RELEASE_NOTES_1.3.6.md) for the complete change and upgrade details.
+See the [bilingual 1.3.6-forge release notes](RELEASE_NOTES_1.3.6-forge.md) for the complete change and upgrade details.
 
 > The Forge 1.20.1 build does not register the standalone Molecular Sequence
 > Rewrite Array block. Existing worlds remove previously placed copies as missing
@@ -151,7 +151,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.6.jar
+build/libs/omnisequence-transfinite-1.3.6-forge.jar
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).
+See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.6-forge.md](RELEASE_NOTES_1.3.6-forge.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).

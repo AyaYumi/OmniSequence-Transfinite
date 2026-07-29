@@ -1,127 +1,157 @@
-# 万象构序：超限 / OmniSequence: Transfinite
+# OmniSequence: Transfinite
 
-面向 Minecraft 1.20.1 Forge 的 AE2 / ExtendedAE 后期附属模组，提供超大规模自动合成、反馈式材料发配、量子 ME 链路和大型多方块系统。
+English | [简体中文](README.zh-CN.md)
 
-> 为兼容已有世界、配置与整合包脚本，技术命名空间和 Mod ID 仍为 `molecularmanipulator`。
+An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on Forge. It provides massive-scale autocrafting, feedback-driven material dispatch, quantum-linked ME access, and large multiblock systems.
 
-## 版本与兼容
+> To preserve compatibility with existing worlds, configurations, and modpack scripts, the technical namespace and Mod ID remain `molecularmanipulator`.
 
-| 项目 | 版本 |
+## Versions and Compatibility
+
+| Component | Version |
 | --- | --- |
 | Minecraft | 1.20.1 |
-| Forge | 47.4.10 或更高 |
+| Forge | 47.4.10 or later |
 | Applied Energistics 2 | 15.4.10 |
 | ExtendedAE | 1.20-1.4.12-forge |
 | Glodium | 1.20-1.5-forge |
-| 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
+| Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-当前版本：`1.3.5-forge`
+Current release: `1.3.6` (Forge 1.20.1 build)
 
-> Minecraft 1.20.1 Forge 版不再注册独立的 `分子构序重写阵列` 单方块。旧世界中已经放置的该方块会在更新后作为缺失方块移除；样板与物质重写功能由 `构序阵列` 多方块提供。
+See the [bilingual 1.3.6 release notes](RELEASE_NOTES_1.3.6.md) for the complete change and upgrade details.
 
-## 主要功能
+> The Forge 1.20.1 build does not register the standalone Molecular Sequence
+> Rewrite Array block. Existing worlds remove previously placed copies as missing
+> blocks; its pattern and matter-rewriting functions remain available through the
+> Sequence Array multiblock.
 
-- 将 AE2 单次自动合成下单量扩展至可配置的 `long` 范围。
-- 兼容 AE2 创造存储元件和 ExtendedAE 无限存储元件，并将无限数量显示为 `∞`。
-- 修复无线终端自动补货覆盖层在超大或无限库存下的整数溢出崩溃。
-- 提供装配矩阵构序重写核心、万物演算核心和构序阵列多方块。
-- 支持大型结构投影、一键搭建、一键拆卸、跨区块暂停恢复和动态视觉效果。
-- 支持有线 ME 接入及跨维度缠绕态量子链路。
-- 提供可由整合包配置的物质分解、序列储存和蓝图复制系统。
+## Highlights
 
-## 自动合成与材料发配
+- Extends AE2's maximum amount for a single autocrafting order into a configurable `long` range.
+- Supports AE2 Creative Storage Cells and ExtendedAE Infinite Storage Cells, displaying unlimited amounts as `∞`.
+- Prevents integer-overflow crashes in wireless-terminal auto-stock overlays with extremely large or unlimited inventories.
+- Adds the Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, and the Sequence Array multiblock managed by the Sequence Array Controller.
+- Provides structure projection, automatic construction and dismantling, chunk-aware pause and resume, and dynamic visual effects.
+- Supports wired ME access and cross-dimensional entangled quantum links.
+- Provides modpack-configurable matter deconstruction, sequence storage, and blueprint reproduction.
+- Adds AE2 GuideME pages for all three registered primary blocks; hover an item and press `G` to open its guide.
 
-万物演算核心使用 `SAFE` 聚合模式加速确定性配方树。替代配方、容器返还、动态输入、循环或未知样板会自动回退到 AE2 原生计算，避免为了速度牺牲正确性。
+## Autocrafting and Material Dispatch
 
-材料发配采用两条路径：
+The Omni-Computation Core uses `SAFE` aggregation to accelerate deterministic recipe trees. Item-substitution patterns conservatively fall back, while fluid-only substitution remains deterministic and may stay on the fast path. Container remainders, dynamic inputs, cycles, and unknown pattern behavior also fall back to AE2's native calculation path.
 
-- 明确支持批处理的机器保留 `long` 逻辑批量直推，仅受任务材料、能源和目标实际接收能力限制。
-- 所有非显式批处理的 AE 合成供应器都会直接收到运行时缩放样板，并跨服务器 Tick 执行 `1 → 2 → 4 → 8 → …` 探测；每个供应器/样板组合每 Tick 最多增长一级，整批输入成功后把双倍倍率留给下一 Tick，拒收后保留最后成功倍率作为下一 Tick 的基础量。
-- 原版 AE2 / ExtendedAE 供应器使用完整插入与内部排队的精确反馈；AE2LT、AdvancedAE 及其他第三方供应器使用 AE 公共的接受结果与忙碌状态反馈。供应器报告忙碌时等待，报告拒收时收缩倍率。
-- 缩放样板会保留 ExtendedAE Plus 的包装身份、AdvancedAE 定向输入信息和 AE2LT 过载供应器元数据；这些供应器不再因为类型未知而退回单份跨 Tick 发配。
-- 如果目标在成功接收 `1×` 后仍拒绝 `2×` 缩放样板，该供应器/样板会在当前订单内固定降级为完整单份推送；AE2 每次重新抽取并独立记账，同一 Tick 的真实调用次数由全核心共享的安全额度限制。额度会优先分给上一 Tick 确认需要单份模式的通道，并回收前序通道未使用的份额；达到额度后只跳过该 Tick 中仍需单份调用的样板，后续可倍增或显式 `long` 直推任务仍能继续。
+Material dispatch uses three execution modes:
 
-多材料样板会把 N 份完整输入装进同一个运行时样板调用；供应器先验证所有材料的完整接收量，实际插入后若仍有余量则持久化排队并按材料公平轮转，避免第一种材料独占输入槽。AE2 的“正在合成”使用放大后的预计产物精确记账并作为二级一致性校验，但不被误当成机器输入容量；每次推送还会按当前 `waitingFor` 剩余空间限幅，避免累计待回产物越过 `Long.MAX_VALUE` 变成负数。EAP 虚拟合成在最终批次前会看到正确的剩余任务数。调度器按虚拟 CPU 公平分配工作，并以工作单元上限控制极端任务；逻辑批次本身不受固定材料窗口或毫秒预算截断。
+- Targets that explicitly implement atomic batch handling retain direct `long`-sized logical batches. Their throughput is limited only by available task inputs, energy, and the target's real acceptance capacity.
+- Ordinary AE crafting providers use runtime-scaled patterns only for single-ingredient recipes. Their multiplier probes across server ticks as `1 → 2 → 4 → 8 → …`, growing by at most one level per provider-and-pattern pair per tick. Successful batches keep the doubled multiplier for the next tick; rejection retains the last successful multiplier as the next baseline.
+- Multi-ingredient and other non-scalable paths bypass scaled wrappers entirely. AE2 repeatedly sends the original complete `1×` recipe, preventing one-to-many routing from splitting different ingredient waves across different machines.
 
-## 核心设备
+Provider compatibility and scheduling preserve the surrounding mods' behavior:
 
-### 装配矩阵构序重写核心
+- Native AE2 and ExtendedAE providers use precise feedback from complete insertion and internal queues. AE2LT, Advanced AE, and other third-party providers use the public AE acceptance and busy-state contracts. Busy providers wait; rejecting providers reduce their multiplier.
+- Single-ingredient scaled patterns retain ExtendedAE Plus wrapper identity, Advanced AE directional-input data, and AE2LT overloaded-provider metadata. Multi-ingredient jobs first unwrap EAP planning-time scaling and then dispatch complete recipes one at a time.
+- If a target accepts `1×` but rejects `2×`, that provider-and-pattern pair remains on complete single-recipe dispatch for the rest of the order. AE2 re-extracts and accounts for every successful recipe independently.
 
-- 可嵌入 ExtendedAE 装配矩阵，替代普通合成核心与速度核心。
-- 调用真实配方装配与容器返还逻辑，兼容工具耐久和不可消耗输入。
-- 输出按 `AEKey` 聚合后批量返回 ME 网络。
+All active Omni-Computation Cores share one server-wide compatibility deadline. After it is reached, one rotating lane receives a guaranteed progress attempt per tick. Jobs within the same CPU also rotate their starting point and receive short per-pattern slices, preventing the first massive task from starving later work. Explicitly scalable or atomic `long` batch tasks can continue after the compatibility limit is reached.
 
-### 万物演算核心
+Only providers that explicitly implement this project's atomic batch protocol receive a complete `N×` input for multi-ingredient patterns. `Integer.MAX_VALUE` remains AE2's logical per-tick parallel window, not an unconditional real loop count. Ordinary `1×` calls continue over later ticks under a server-load-adaptive time slice, while an explicit final atomic batch is not accidentally blocked by that compatibility budget.
 
-- 固定 31×31×39 结构，提供 `Long.MAX_VALUE` 级逻辑合成存储与并行能力。
-- 根据运行中的合成请求动态维护虚拟 CPU 通道，并保留空闲通道接收新任务。
-- 结构损坏或区块未加载时保存任务、内部材料和进度，恢复后继续运行。
-- 支持投影、自动施工、自动拆卸及周边敌对生物生成抑制。
-- 演算核心框架支持六向无缝连纹与透明边角，通用样板矩阵使用半透明渲染。
+Provider-owned remainder queues that already belong to an in-flight CPU task retain that ownership, preventing reinjection from leaving the CPU waiting forever for outputs that can no longer be produced. AE2's crafting-in-progress accounting uses the actual expected output, and every dispatch is capped by the remaining `waitingFor` output headroom to prevent pending output from overflowing `Long.MAX_VALUE`. The scheduler distributes work fairly across virtual CPUs and patterns, with a work-unit ceiling for extreme jobs.
 
-### 构序阵列
+## Core Machines
 
-- 固定 31×46×31 结构，批量构序并行上限为 `Long.MAX_VALUE`。
-- 支持独立 RGB 能量场、内核和星环效果；合成时动画自动加速。
-- 不强制加载区块，结构范围未完整加载时会暂停并在恢复后重新校验。
+### Assembler Matrix Sequence Rewrite Core
 
-结构的完整材料清单和朝向以游戏内投影及 JEI 信息为准。
+- Installs inside an ExtendedAE Assembler Matrix in place of ordinary crafting and speed cores.
+- Runs real recipe assembly and remainder logic, preserving tool durability and non-consumed inputs.
+- Aggregates outputs by `AEKey` and returns them to the ME Network in batches.
 
-## 缠绕态量子链路
+### Omni-Computation Core
 
-大型控制器内置量子端点。将一对缠绕态奇点分别放入远端 AE2 量子环和控制器，即可跨维度接入该 ME 网络。
+- Uses a fixed 31×31×39 structure with `Long.MAX_VALUE`-scale logical crafting storage and parallelism.
+- Creates virtual CPU lanes for active requests while reserving idle capacity for new jobs.
+- Preserves tasks, internal materials, and progress while the structure is damaged or its chunks are unavailable.
+- Supports projection, automatic construction, automatic dismantling, and suppression of natural hostile-mob spawning around the structure.
 
-- 未成型控制器可通过远端网络抽取一键搭建材料。
-- 成型后的样板、合成任务、存储、能源和拆卸返还均可走远端网络。
-- 链路额外消耗 512 AE/t 和 1 个 AE 频道。
-- 远端卸载、断电或频率冲突时自动断开，条件恢复后自动重连。
+### Sequence Array Controller (Sequence Array Multiblock)
 
-## 物质构序重写
+- Forms a fixed 31×46×31 structure with logical autocrafting parallelism up to `Long.MAX_VALUE`.
+- Pattern slots accept encoded AE2 crafting, smithing-table, and stonecutting patterns. Processing, blank, and invalid patterns are rejected.
+- Shift-moving a supported pattern fills the current pattern page first, then continues into later pages.
+- One-click dismantling uses a timed two-step confirmation. Rapid double-clicks, clicking another control, or waiting for the timeout will not trigger accidental removal.
+- Provides independent RGB effects for the energy field, core, rings, and lattice. Crafting accelerates the animation only; visual settings do not change processing speed.
+- Does not force-load chunks. Work pauses while any structure chunk is unavailable and resumes after validation.
 
-控制器内置分解标记、蓝图样品和重写产物槽，支持金属、矿物、晶体和有机四类独立构序储量。
+Use the in-game projection and JEI structure information as the authoritative material list and orientation reference.
 
-规则文件位于：
+## In-Game Guide
+
+AE2 GuideME pages are available for the following blocks. Hover the item in an inventory or JEI and press `G` to view its purpose, structure instructions, network requirements, supported patterns, and controls:
+
+- Assembler Matrix Sequence Rewrite Core
+- Omni-Computation Core
+- Sequence Array Controller
+
+## Entangled Quantum Link
+
+Large controllers include a quantum endpoint. Place one half of a paired Entangled Singularity in the controller and the other in a powered remote AE2 Quantum Ring to access that ME Network across dimensions.
+
+- An unformed controller can use the remote network to retrieve automatic-construction materials.
+- Once formed, patterns, crafting jobs, storage access, energy, and dismantled blocks can all travel through the remote network.
+- The link consumes an additional 512 AE/t and one AE channel.
+- It disconnects safely when the remote side unloads, loses power, or has a frequency conflict, then reconnects automatically when conditions recover.
+- A wired connection and a conflicting remote network cannot operate at the same time.
+
+## Matter Sequence Rewriting
+
+The Sequence Array Controller contains a deconstruction-marker slot, blueprint-sample slot, and rewritten-output slot. It independently stores metal, mineral, crystal, and organic matter sequences.
+
+Rules are loaded from:
 
 ```text
 config/molecularmanipulator/matter_rewrite_rules.json
 ```
 
-精确物品规则优先于标签规则；携带附魔、命名、耐久、容器内容等自定义数据的物品不会被分解或复制。安装 0～4 张 AE2 加速卡时，每件物品处理周期依次为 20、10、5、2、1 Tick。
+Exact item rules take priority over tag rules. Items with custom data such as enchantments, custom names, durability, or container contents are not deconstructed or reproduced. With 0–4 AE2 Acceleration Cards installed, the processing time per item is 20, 10, 5, 2, or 1 tick respectively.
 
-## 核心配置
+## Core Configuration
 
-服务端配置文件为 `omnisequence-transfinite-server.toml`，客户端配置文件为 `omnisequence-transfinite-client.toml`。旧版 `molecularmanipulator-*.toml` 会在新文件不存在时自动复制迁移。
+The server configuration is `omnisequence-transfinite-server.toml`; the client configuration is `omnisequence-transfinite-client.toml`. Legacy `molecularmanipulator-*.toml` files are copied forward automatically when the new file does not yet exist.
 
-| 配置项 | 默认值 | 作用 |
+| Option | Default | Purpose |
 | --- | ---: | --- |
-| `pattern_pages` | 20 | 构序阵列样板页数，每页 36 槽 |
-| `build_blocks_per_tick` | 32 | 自动搭建或拆卸每 Tick 处理方块数 |
-| `idle_power` | 128 | 构序阵列控制器待机功耗，单位 AE/t |
-| `max_crafting_order_amount` | 1,000,000,000,000 | 单次 AE2 自动合成下单上限 |
-| `omni_max_fast_mode` | `SAFE` | 万物演算核心配方树聚合模式 |
-| `omni_max_fast_max_nodes` | 8192 | 单次聚合可编译的唯一配方节点上限 |
-| `omni_max_fast_compile_budget_ms` | 100 | 聚合图编译超时，超时后回退 AE2 |
-| `omni_max_fast_diagnostics` | `false` | 记录聚合耗时和回退原因 |
-| `omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |
-| `omni_batch_allow_substitution_patterns` | `false` | 允许物品替代样板进入批量发配 |
-| `omni_unscaled_dispatch_attempts_per_tick` | 32 | 不支持倍增时，每个万物演算核心每 Tick 共享的真实单份样板调用上限（1～256） |
-| `omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大调度工作单元 |
-| `dynamic_effect_level` | 2 | 客户端动态效果：0 关闭、1 精简、2 完整 |
+| `pattern_pages` | 20 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
+| `build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
+| `idle_power` | 128 | Sequence Array Controller idle power in AE/t |
+| `max_crafting_order_amount` | 1,000,000,000,000 | Maximum amount in one AE2 autocrafting order |
+| `omni_max_fast_mode` | `SAFE` | Omni-Computation Core recipe-tree aggregation mode |
+| `omni_max_fast_max_nodes` | 8192 | Maximum unique recipe nodes compiled in one aggregation |
+| `omni_max_fast_compile_budget_ms` | 100 | Aggregation compile budget before falling back to AE2 |
+| `omni_max_fast_diagnostics` | `false` | Logs aggregation timing and fallback reasons |
+| `omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
+| `omni_batch_allow_substitution_patterns` | `false` | Allows item-substitution patterns to use batch dispatch |
+| `omni_compat_dispatch_max_calls_per_tick` | 2147483647 | Per-core, per-tick emergency ceiling for complete `1×` calls to ordinary providers |
+| `omni_compat_dispatch_max_time_us` | 20000 | Server-wide budget shared by all active Omni-Computation Cores; contracts as average MSPT approaches 45 |
+| `omni_dispatch_max_work_units` | 2147483647 | Maximum scheduler work units per core and tick |
+| `dynamic_effect_level` | 2 | Client-only visual effects: 0 off, 1 reduced, 2 full |
 
-配置文件加载或热重载时，只要检测到当前版本未定义的旧配置项，就会先保留最多五份 `.toml.bak`，再将整份配置原子重建为当前默认值。仅缺少新选项或某个已知值越界时，仍由 Forge 定向补齐或修正，不会重置其他有效设置。
+Ordinary and unknown providers receive adaptive runtime-scaled patterns only for safe single-ingredient recipes. Multi-ingredient and other non-scalable paths send complete original recipes one at a time, preserving machine rotation and back-pressure behavior. A server-wide adaptive time slice replaces the old fixed 32-call limit: dispatch accelerates while the server has headroom and contracts as average MSPT approaches 45. Multiple cores, CPUs, and patterns do not each claim a separate full time budget. Only providers that explicitly declare atomic batch support receive complete multiplied multi-ingredient inputs.
 
-## 安装与构建
+When configuration loading or hot reload detects an option that the current version no longer defines, the mod keeps up to five `.toml.bak` files and atomically rebuilds the configuration with current defaults. If only a new option is missing or a known value is out of range, Forge repairs that value without resetting other valid settings.
 
-将构建好的 JAR 放入服务端和客户端的 `mods` 目录，并安装上表中的必要依赖。
+## Installation and Build
+
+Install the required dependencies above and place the built JAR in both the client and server `mods` directories. Before upgrading, fully stop the game, use the same version on both sides, and keep exactly one active `omnisequence-transfinite-*.jar` in each `mods` directory to avoid duplicate Mod IDs.
 
 ```powershell
 ./gradlew.bat clean build --no-configuration-cache
 ```
 
-构建产物：
+Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.5-forge.jar
+build/libs/omnisequence-transfinite-1.3.6.jar
 ```
 
-版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。
+See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).

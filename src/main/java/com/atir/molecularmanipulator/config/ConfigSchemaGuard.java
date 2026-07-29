@@ -74,6 +74,38 @@ public final class ConfigSchemaGuard {
         }
     }
 
+    /**
+     * Removes one retired option without resetting any still-supported values.
+     */
+    public static boolean removeObsoleteOption(
+            Path file, String optionPath, String displayName) {
+        if (!Files.isRegularFile(file)) {
+            return false;
+        }
+
+        try {
+            var config = readToml(file);
+            if (!config.contains(optionPath)) {
+                return false;
+            }
+
+            backUpConfig(file);
+            config.remove(optionPath);
+            config.removeComment(optionPath);
+            writeConfig(file, config);
+            MolecularManipulator.LOGGER.info(
+                    "Removed retired option {} from {} configuration {}",
+                    optionPath, displayName, file);
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            MolecularManipulator.LOGGER.warn(
+                    "Could not remove retired option {} from {} configuration {}; "
+                            + "the existing file was left in place",
+                    optionPath, displayName, file, exception);
+            return false;
+        }
+    }
+
     private static List<String> findUnexpectedPaths(
             UnmodifiableConfig actual, UnmodifiableConfig expected) {
         var unexpectedPaths = new ArrayList<String>();
@@ -108,7 +140,7 @@ public final class ConfigSchemaGuard {
         }
     }
 
-    private static UnmodifiableConfig readToml(Path file) throws IOException {
+    private static CommentedConfig readToml(Path file) throws IOException {
         var config = CommentedConfig.of(LinkedHashMap::new, TomlFormat.instance());
         try (var reader = Files.newBufferedReader(file)) {
             new TomlParser().parse(reader, config, ParsingMode.REPLACE);
@@ -119,12 +151,15 @@ public final class ConfigSchemaGuard {
     private static void writeDefaults(Path file, ForgeConfigSpec spec) throws IOException {
         var defaults = CommentedConfig.of(LinkedHashMap::new, TomlFormat.instance());
         spec.correct(defaults);
+        writeConfig(file, defaults);
+    }
 
+    private static void writeConfig(Path file, CommentedConfig config) throws IOException {
         var directory = file.getParent();
         var temporaryFile = Files.createTempFile(
                 directory, file.getFileName().toString(), ".tmp");
         try {
-            new TomlWriter().write(defaults, temporaryFile, WritingMode.REPLACE);
+            new TomlWriter().write(config, temporaryFile, WritingMode.REPLACE);
             try {
                 Files.move(temporaryFile, file, StandardCopyOption.REPLACE_EXISTING,
                         StandardCopyOption.ATOMIC_MOVE);

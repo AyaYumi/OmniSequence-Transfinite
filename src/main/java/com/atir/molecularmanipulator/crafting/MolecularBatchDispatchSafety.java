@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.crafting;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.pattern.AECraftingPattern;
 import appeng.me.service.CraftingService;
@@ -20,6 +21,12 @@ public final class MolecularBatchDispatchSafety {
     private static final Set<String> LOGGED_DIAGNOSTICS = ConcurrentHashMap.newKeySet();
 
     private MolecularBatchDispatchSafety() {
+    }
+
+    public enum ExtractedInputShape {
+        INVALID,
+        ONE_KEY,
+        MULTIPLE_KEYS
     }
 
     public static boolean isBatchablePattern(IPatternDetails patternDetails) {
@@ -48,6 +55,63 @@ public final class MolecularBatchDispatchSafety {
             batchLimit = Math.max(batchLimit, offer.batchLimit());
         }
         return batchLimit;
+    }
+
+    /**
+     * Returns whether one extracted recipe contains multiple distinct material
+     * keys. Invalid extracted input is treated conservatively as multi-key.
+     */
+    public static ExtractedInputShape classifyExtractedInputs(
+            KeyCounter[] firstInputs) {
+        if (firstInputs == null || firstInputs.length == 0) {
+            return ExtractedInputShape.INVALID;
+        }
+        try {
+            AEKey firstKey = null;
+            boolean foundInput = false;
+            boolean multipleKeys = false;
+            for (var input : firstInputs) {
+                if (input == null) {
+                    return ExtractedInputShape.INVALID;
+                }
+                boolean holderHasInput = false;
+                for (var entry : input) {
+                    holderHasInput = true;
+                    var key = entry.getKey();
+                    long amount = entry.getLongValue();
+                    if (key == null || amount <= 0) {
+                        return ExtractedInputShape.INVALID;
+                    }
+                    if (!foundInput) {
+                        firstKey = key;
+                        foundInput = true;
+                    } else if (!firstKey.equals(key)) {
+                        multipleKeys = true;
+                    }
+                }
+                if (!holderHasInput) {
+                    return ExtractedInputShape.INVALID;
+                }
+            }
+            if (!foundInput) {
+                return ExtractedInputShape.INVALID;
+            }
+            return multipleKeys
+                    ? ExtractedInputShape.MULTIPLE_KEYS
+                    : ExtractedInputShape.ONE_KEY;
+        } catch (RuntimeException exception) {
+            return ExtractedInputShape.INVALID;
+        }
+    }
+
+    /**
+     * Invalid extracted input remains conservative for callers that only need a
+     * yes/no batching guard.
+     */
+    public static boolean hasMultipleDistinctInputKeys(
+            KeyCounter[] firstInputs) {
+        return classifyExtractedInputs(firstInputs)
+                != ExtractedInputShape.ONE_KEY;
     }
 
     public static List<BatchOffer> getAvailableBatchOffers(CraftingService craftingService,

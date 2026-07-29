@@ -1,5 +1,64 @@
 # Changelog
 
+## 1.3.6 - 2026-07-29 (Forge 1.20.1)
+
+### Added
+
+- Added AE2 GuideME documentation for the Assembler Matrix Sequence Rewrite
+  Core, Omni-Computation Core, and Sequence Array Controller. The standalone
+  Molecular Sequence Rewrite Array remains absent from the Forge 1.20.1 build.
+
+### Changed
+
+- Reworked the Sequence Array Controller toolbar to widen its pattern page
+  buttons and separate Build from Dismantle.
+- Added a timed two-step confirmation to Dismantle so rapid double-clicks and
+  unrelated clicks cannot accidentally start structure removal.
+- Made Shift-moving supported encoded patterns fill the current pattern page
+  first and continue into later pages when needed.
+- Restricted the Sequence Array Controller pattern inventory and advertised
+  recipes to molecular-assembler-compatible AE2 crafting, smithing, and
+  stonecutting patterns.
+- Kept the Minecraft 1.21.1 NeoForge-only Expanded AE 2.1.1 conflict declaration
+  out of Forge metadata because it targets a different loader and AE2 line.
+
+See [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for the complete bilingual
+release and upgrade notes.
+
+## 1.3.5-fix-forge - 2026-07-28
+
+### Changed
+
+- Replaced the retired fixed 32-call ordinary-provider throttle with an
+  `Integer.MAX_VALUE` logical scheduling ceiling and one server-wide,
+  load-adaptive time budget. Work rotates between tasks and patterns so a large
+  request cannot monopolize a server tick.
+- Cached negative explicit-batch-provider topology and classified extracted
+  inputs without temporary collection allocation on the ordinary-provider hot
+  path.
+- Removed the obsolete `omni_unscaled_dispatch_attempts_per_tick` configuration
+  option. Existing TOML files remove only that retired key while preserving
+  current custom settings.
+
+### Fixed
+
+- Ordinary multi-input processing patterns now dispatch repeated, complete
+  original `1x` recipes. Every call keeps all ingredients together, preventing
+  different machines from being filled by different ingredient types and
+  deadlocking one-to-many processing setups.
+- Normalized ExtendedAE Plus planning-time scaled multi-input wrappers before
+  dispatch, preventing an already-multiplied recipe from bypassing the atomic
+  multi-input guard.
+- Kept aggregate dispatch for explicit batch endpoints and adaptive doubling
+  for safe single-input patterns, preserving high throughput where the target
+  can accept it without breaking compatibility.
+- Removed production-unsafe Mixin helper class loading and routed the AE2 long
+  amount widget through an application bridge, fixing startup and crafting
+  amount screen class-loading crashes.
+
+See `RELEASE_NOTES_1.3.5-fix.md` for installation notes, dispatch behavior and
+compatibility limits.
+
 ## 1.3.5-forge - 2026-07-27
 
 ### Changed

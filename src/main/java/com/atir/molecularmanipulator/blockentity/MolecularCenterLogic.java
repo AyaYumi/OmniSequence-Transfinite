@@ -7,10 +7,13 @@ import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.AEKey;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
+import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.util.inv.AppEngInternalInventory;
+import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
@@ -32,10 +35,24 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
         this.machine = machine;
         this.node = machine.getMainNode();
         this.fullPatternInventory = (AppEngInternalInventory) super.getPatternInv();
+        this.fullPatternInventory.setFilter(new IAEItemFilter() {
+            @Override
+            public boolean allowInsert(appeng.api.inventories.InternalInventory inventory, int slot,
+                    ItemStack stack) {
+                return isSupportedPattern(stack);
+            }
+        });
     }
 
     public AppEngInternalInventory getFullPatternInventory() {
         return fullPatternInventory;
+    }
+
+    public static boolean isSupportedPattern(ItemStack stack) {
+        return (AEItems.CRAFTING_PATTERN.isSameAs(stack)
+                || AEItems.SMITHING_TABLE_PATTERN.isSameAs(stack)
+                || AEItems.STONECUTTING_PATTERN.isSameAs(stack))
+                && PatternDetailsHelper.isEncodedPattern(stack);
     }
 
     @Override
@@ -69,8 +86,12 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
         if (level != null) {
             int activeSlots = Math.min(ModConfig.activePatternSlots(), fullPatternInventory.size());
             for (int slot = 0; slot < activeSlots; slot++) {
-                var details = PatternDetailsHelper.decodePattern(fullPatternInventory.getStackInSlot(slot), level);
-                if (details != null) {
+                var stack = fullPatternInventory.getStackInSlot(slot);
+                if (!isSupportedPattern(stack)) {
+                    continue;
+                }
+                var details = PatternDetailsHelper.decodePattern(stack, level);
+                if (details instanceof IMolecularAssemblerSupportedPattern) {
                     availablePatterns.add(details);
                     availablePatternSet.add(details);
                 }

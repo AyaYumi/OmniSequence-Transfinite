@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -22,15 +23,31 @@ public final class OmniComputationStructure {
     public static final int CONTROLLER_X = 0;
     public static final int CONTROLLER_Y = 2;
     public static final int CONTROLLER_Z = MIN_Z;
+    public static final int EFFECT_X = 0;
+    public static final int EFFECT_Y = 17;
+    public static final int EFFECT_Z = 0;
+    public static final int RELOCATED_ENTANGLER_X = 0;
+    public static final int RELOCATED_ENTANGLER_Y = 9;
+    public static final int RELOCATED_ENTANGLER_Z = -12;
 
-    private static final List<Part> PARTS = createParts();
-    private static final Map<LocalPos, Part> PART_LOOKUP = createLookup();
+    private static final List<Part> PARTS = createParts(StructureLayout.CURRENT);
+    private static final List<Part> LEGACY_PARTS = createParts(StructureLayout.LEGACY);
+    private static final List<Part> DISMANTLE_PARTS = createDismantleParts();
+    private static final Map<LocalPos, Part> PART_LOOKUP = createLookup(PARTS);
 
     private OmniComputationStructure() {
     }
 
     public static List<Part> parts() {
         return PARTS;
+    }
+
+    public static List<Part> parts(StructureLayout layout) {
+        return layout == StructureLayout.LEGACY ? LEGACY_PARTS : PARTS;
+    }
+
+    public static List<Part> dismantleParts() {
+        return DISMANTLE_PARTS;
     }
 
     public static Part partAt(int x, int y, int z) {
@@ -84,15 +101,37 @@ public final class OmniComputationStructure {
     public static Inspection inspect(Level level, BlockPos controller, Direction facing) {
         if (!isWithinBuildHeight(level, controller)
                 || !areRequiredChunksLoaded(level, controller, facing)) {
-            return new Inspection(PARTS.size(), 0, PARTS.size(), 0, false);
+            return new Inspection(PARTS.size(), 0, PARTS.size(), 0, false,
+                    StructureLayout.INCOMPLETE);
         }
+        var effectPart = new Part(EFFECT_X, EFFECT_Y, EFFECT_Z, PartType.AIR);
+        var effectState = level.getBlockState(worldPos(controller, facing, effectPart));
+        if (effectState.isAir()) {
+            return inspectLayout(level, controller, facing, PARTS, StructureLayout.CURRENT);
+        }
+        if (effectState.is(ModContent.COMPUTATION_DATA_ENTANGLER.get())) {
+            return inspectLayout(level, controller, facing, LEGACY_PARTS, StructureLayout.LEGACY);
+        }
+        return inspectLayout(level, controller, facing, PARTS, StructureLayout.INCOMPLETE);
+    }
+
+    private static Inspection inspectLayout(Level level, BlockPos controller, Direction facing,
+            List<Part> parts, StructureLayout layout) {
         int correct = 0;
         int missing = 0;
         int conflicts = 0;
-        for (var part : PARTS) {
+        for (var part : parts) {
             var state = level.getBlockState(worldPos(controller, facing, part));
             if (part.type() == PartType.CONTROLLER) {
                 if (state.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
+                    correct++;
+                } else {
+                    conflicts++;
+                }
+                continue;
+            }
+            if (part.type() == PartType.AIR) {
+                if (state.isAir()) {
                     correct++;
                 } else {
                     conflicts++;
@@ -107,8 +146,8 @@ public final class OmniComputationStructure {
                 conflicts++;
             }
         }
-        return new Inspection(PARTS.size(), correct, missing, conflicts,
-                correct == PARTS.size());
+        return new Inspection(parts.size(), correct, missing, conflicts,
+                correct == parts.size(), layout);
     }
 
     public static Block block(PartType type) {
@@ -123,23 +162,43 @@ public final class OmniComputationStructure {
             case ENERGY_STABILIZER -> ModContent.COMPUTATION_ENERGY_STABILIZER.get();
             case OUTPUT_NODE -> ModContent.COMPUTATION_OUTPUT_NODE.get();
             case CRYSTAL_PYLON -> ModContent.COMPUTATION_CRYSTAL_PYLON.get();
+            case AIR -> Blocks.AIR;
         };
     }
 
-    private static List<Part> createParts() {
+    private static List<Part> createParts(StructureLayout layout) {
         var builder = new Builder();
         addBase(builder);
         addCentralChamber(builder);
         addLowerPylons(builder);
+        builder.put(EFFECT_X, EFFECT_Y, EFFECT_Z,
+                layout == StructureLayout.LEGACY ? PartType.DATA_ENTANGLER : PartType.AIR);
+        builder.put(RELOCATED_ENTANGLER_X, RELOCATED_ENTANGLER_Y, RELOCATED_ENTANGLER_Z,
+                layout == StructureLayout.LEGACY ? PartType.AIR : PartType.DATA_ENTANGLER);
         addOrbitalAssembly(builder);
         addUpperCrown(builder);
         builder.put(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, PartType.CONTROLLER);
         return List.copyOf(builder.build());
     }
 
-    private static Map<LocalPos, Part> createLookup() {
+    private static List<Part> createDismantleParts() {
         var result = new LinkedHashMap<LocalPos, Part>();
         for (var part : PARTS) {
+            if (part.type() != PartType.AIR) {
+                result.put(new LocalPos(part.x(), part.y(), part.z()), part);
+            }
+        }
+        for (var part : LEGACY_PARTS) {
+            if (part.type() != PartType.AIR) {
+                result.putIfAbsent(new LocalPos(part.x(), part.y(), part.z()), part);
+            }
+        }
+        return List.copyOf(result.values());
+    }
+
+    private static Map<LocalPos, Part> createLookup(List<Part> parts) {
+        var result = new LinkedHashMap<LocalPos, Part>();
+        for (var part : parts) {
             result.put(new LocalPos(part.x(), part.y(), part.z()), part);
         }
         return Map.copyOf(result);
@@ -268,13 +327,21 @@ public final class OmniComputationStructure {
         DATA_ENTANGLER,
         ENERGY_STABILIZER,
         OUTPUT_NODE,
-        CRYSTAL_PYLON
+        CRYSTAL_PYLON,
+        AIR
+    }
+
+    public enum StructureLayout {
+        CURRENT,
+        LEGACY,
+        INCOMPLETE
     }
 
     public record Part(int x, int y, int z, PartType type) {
     }
 
-    public record Inspection(int total, int correct, int missing, int conflicts, boolean formed) {
+    public record Inspection(int total, int correct, int missing, int conflicts, boolean formed,
+            StructureLayout layout) {
     }
 
     private record LocalPos(int x, int y, int z) {

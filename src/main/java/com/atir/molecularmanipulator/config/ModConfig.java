@@ -16,12 +16,13 @@ public final class ModConfig {
     public static final ForgeConfigSpec.IntValue OMNI_MAX_FAST_COMPILE_BUDGET_MS;
     public static final ForgeConfigSpec.BooleanValue OMNI_MAX_FAST_DIAGNOSTICS;
     public static final ForgeConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
-    public static final ForgeConfigSpec.BooleanValue OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS;
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
     public static final ForgeConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
 
     public static final ForgeConfigSpec CLIENT_SPEC;
+    public static final ForgeConfigSpec.EnumValue<MatterSequenceTooltipMode>
+            MATTER_SEQUENCE_TOOLTIP_MODE;
     public static final ForgeConfigSpec.IntValue DYNAMIC_EFFECT_LEVEL;
 
     static {
@@ -59,10 +60,6 @@ public final class ModConfig {
                 "Enable multi-craft material extraction and dispatch for explicitly compatible crafting providers.")
                 .translation("molecularmanipulator.configuration.omni_batch_dispatch_enabled")
                 .define("omni_batch_dispatch_enabled", true);
-        OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS = server.comment(
-                "Allow item-substitution patterns to use batch dispatch. Fluid-only substitution remains deterministic and is allowed by default. Disabled by default for contextual and NBT-sensitive item matching.")
-                .translation("molecularmanipulator.configuration.omni_batch_allow_substitution_patterns")
-                .define("omni_batch_allow_substitution_patterns", false);
         OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK = server.comment(
                 "Hard safety ceiling for complete one-recipe provider calls shared by one Omni-Computation Core per tick. The adaptive time budget normally stops dispatch much earlier.")
                 .translation("molecularmanipulator.configuration.omni_compat_dispatch_max_calls_per_tick")
@@ -82,6 +79,12 @@ public final class ModConfig {
         SERVER_SPEC = server.build();
 
         var client = new ForgeConfigSpec.Builder();
+        MATTER_SEQUENCE_TOOLTIP_MODE = client.comment(
+                "Matter Sequence item tooltip display mode. DISABLED turns it off, HOLD_SHIFT expands it while Shift is held, and ALWAYS_VISIBLE keeps it visible.")
+                .translation(
+                        "molecularmanipulator.configuration.matter_sequence_tooltip_mode")
+                .defineEnum("matter_sequence_tooltip_mode",
+                        MatterSequenceTooltipMode.HOLD_SHIFT);
         DYNAMIC_EFFECT_LEVEL = client.comment(
                 "Dynamic multiblock effects: 0=off, 1=reduced, 2=full astral rings and quantum gate.")
                 .translation("molecularmanipulator.configuration.dynamic_effect_level")

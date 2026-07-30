@@ -1,14 +1,17 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.energy.IEnergyService;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor.BatchExtraction;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchSafety;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
@@ -23,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Map;
 
 @Pseudo
@@ -34,6 +38,12 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     private static volatile Field molecularmanipulator$tasksField;
     @Unique
     private static volatile Field molecularmanipulator$taskValueField;
+    @Unique
+    private static volatile Field molecularmanipulator$cpuField;
+    @Unique
+    private static volatile Method molecularmanipulator$getLastLinkMethod;
+    @Unique
+    private static volatile Method molecularmanipulator$cpuGetLevelMethod;
     @Unique
     private static volatile boolean molecularmanipulator$reflectionAvailable = true;
     @Unique
@@ -47,12 +57,15 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     private IPatternDetails molecularmanipulator$batchPattern;
     @Unique
     private BatchExtraction molecularmanipulator$batchExtraction;
+    @Unique
+    private Level molecularmanipulator$lastLevel;
 
     @Inject(method = "executeCrafting", at = @At("HEAD"))
     private void molecularmanipulator$beginBatchContext(int maxPatterns, CraftingService craftingService,
             IEnergyService energyService, Level level, CallbackInfoReturnable<Integer> callback) {
         molecularmanipulator$craftingService = craftingService;
         molecularmanipulator$energyService = energyService;
+        molecularmanipulator$lastLevel = level;
         molecularmanipulator$clearBatch();
     }
 
@@ -62,6 +75,17 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$craftingService = null;
         molecularmanipulator$energyService = null;
         molecularmanipulator$clearBatch();
+    }
+
+    @Inject(method = "cancel", at = @At("HEAD"))
+    private void molecularmanipulator$recordReusableBatchCancellation(
+            org.spongepowered.asm.mixin.injection.callback.CallbackInfo callback) {
+        var link = molecularmanipulator$getLastLink();
+        var level = molecularmanipulator$resolveLevel();
+        if (link != null && level != null) {
+            MolecularBatchCancellationData.markCanceled(
+                    level, link.getCraftingID());
+        }
     }
 
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
@@ -91,7 +115,8 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         }
 
         var extraction = MolecularBatchCraftingExtractor.expandFromFirst(patternDetails, inventory,
-                energyService, firstInputs, expectedOutputs, expectedContainerItems, maxCrafts);
+                energyService, level, firstInputs, expectedOutputs,
+                expectedContainerItems, maxCrafts, true);
         if (extraction == null) {
             return firstInputs;
         }
@@ -117,19 +142,54 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
             return false;
         }
 
-        boolean accepted;
-        if (provider instanceof MolecularBalancedBatchProvider balancedProvider) {
-            balancedProvider.molecularmanipulator$beginBalancedBatch(extraction.firstInputs());
-            try {
-                accepted = original.call(provider, patternDetails, inputs);
-            } finally {
-                balancedProvider.molecularmanipulator$endBalancedBatch();
+        java.util.UUID reusableCraftingId = null;
+        if (extraction.reusablePlan() != null) {
+            var link = molecularmanipulator$getLastLink();
+            if (link == null || link.isCanceled() || link.isDone()) {
+                return false;
             }
-        } else {
-            accepted = original.call(provider, patternDetails, inputs);
+            reusableCraftingId = link.getCraftingID();
+        }
+
+        var taskAdjustment = molecularmanipulator$prepareBatchTask(
+                patternDetails, extraction.craftCount());
+        if (taskAdjustment == null) {
+            return false;
+        }
+
+        boolean accepted = false;
+        MolecularBatchDispatchContext.Scope reusableScope = null;
+        try {
+            if (reusableCraftingId != null) {
+                reusableScope = MolecularBatchDispatchContext.open(
+                        reusableCraftingId, patternDetails, inputs,
+                        extraction.reusablePlan());
+            }
+            if (provider instanceof MolecularBalancedBatchProvider balancedProvider) {
+                balancedProvider.molecularmanipulator$beginBalancedBatch(extraction.firstInputs());
+                try {
+                    accepted = original.call(provider, patternDetails, inputs);
+                } finally {
+                    try {
+                        balancedProvider.molecularmanipulator$endBalancedBatch();
+                    } catch (RuntimeException cleanupException) {
+                        MolecularManipulator.LOGGER.warn(
+                                "AdvancedAE balanced batch cleanup failed after provider dispatch",
+                                cleanupException);
+                    }
+                }
+            } else {
+                accepted = original.call(provider, patternDetails, inputs);
+            }
+        } finally {
+            if (reusableScope != null) {
+                reusableScope.close();
+            }
+            if (!accepted) {
+                molecularmanipulator$restoreBatchTask(taskAdjustment);
+            }
         }
         if (accepted) {
-            molecularmanipulator$consumeAdditionalCrafts(patternDetails, extraction.craftCount() - 1);
             molecularmanipulator$clearBatch();
         }
         return accepted;
@@ -158,18 +218,35 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     }
 
     @Unique
-    private void molecularmanipulator$consumeAdditionalCrafts(IPatternDetails patternDetails, long amount) {
-        if (amount <= 0) {
-            return;
+    private TaskAdjustment molecularmanipulator$prepareBatchTask(
+            IPatternDetails patternDetails, long craftCount) {
+        if (craftCount <= 1) {
+            return null;
         }
         var task = molecularmanipulator$getTask(patternDetails);
         if (task == null) {
-            return;
+            return null;
         }
         try {
             var valueField = molecularmanipulator$getTaskValueField(task);
             long currentValue = valueField.getLong(task);
-            valueField.setLong(task, Math.max(1, currentValue - amount));
+            if (currentValue < craftCount) {
+                return null;
+            }
+            valueField.setLong(task, currentValue - craftCount + 1);
+            return new TaskAdjustment(task, valueField, currentValue);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            molecularmanipulator$disableReflection(exception);
+            return null;
+        }
+    }
+
+    @Unique
+    private void molecularmanipulator$restoreBatchTask(
+            TaskAdjustment adjustment) {
+        try {
+            adjustment.valueField().setLong(
+                    adjustment.task(), adjustment.originalValue());
         } catch (ReflectiveOperationException | RuntimeException exception) {
             molecularmanipulator$disableReflection(exception);
         }
@@ -207,6 +284,53 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     }
 
     @Unique
+    private ICraftingLink molecularmanipulator$getLastLink() {
+        try {
+            var method = molecularmanipulator$getLastLinkMethod;
+            if (method == null) {
+                method = getClass().getMethod("getLastLink");
+                molecularmanipulator$getLastLinkMethod = method;
+            }
+            return (ICraftingLink) method.invoke(this);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            molecularmanipulator$disableReflection(exception);
+            return null;
+        }
+    }
+
+    @Unique
+    private Level molecularmanipulator$resolveLevel() {
+        if (molecularmanipulator$lastLevel != null) {
+            return molecularmanipulator$lastLevel;
+        }
+        try {
+            var cpuField = molecularmanipulator$cpuField;
+            if (cpuField == null) {
+                cpuField = getClass().getDeclaredField("cpu");
+                cpuField.setAccessible(true);
+                molecularmanipulator$cpuField = cpuField;
+            }
+            Object cpu = cpuField.get(this);
+            if (cpu == null) {
+                return null;
+            }
+
+            var getLevelMethod = molecularmanipulator$cpuGetLevelMethod;
+            if (getLevelMethod == null) {
+                getLevelMethod = cpu.getClass().getMethod("getLevel");
+                molecularmanipulator$cpuGetLevelMethod = getLevelMethod;
+            }
+            Object level = getLevelMethod.invoke(cpu);
+            return level instanceof Level resolvedLevel
+                    ? resolvedLevel
+                    : null;
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            molecularmanipulator$disableReflection(exception);
+            return null;
+        }
+    }
+
+    @Unique
     private static Field molecularmanipulator$getTaskValueField(Object task) throws NoSuchFieldException {
         var valueField = molecularmanipulator$taskValueField;
         if (valueField == null) {
@@ -230,5 +354,10 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     private void molecularmanipulator$clearBatch() {
         molecularmanipulator$batchPattern = null;
         molecularmanipulator$batchExtraction = null;
+    }
+
+    @Unique
+    private record TaskAdjustment(Object task, Field valueField,
+            long originalValue) {
     }
 }

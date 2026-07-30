@@ -64,8 +64,14 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     }
 
     @Override
+    public boolean isBusy() {
+        return machine.hasActiveReusableBatch() || super.isBusy();
+    }
+
+    @Override
     public boolean molecularmanipulator$supportsBatching(IPatternDetails patternDetails) {
-        return machine.isOperational() && availablePatternSet.contains(patternDetails)
+        return machine.isOperational() && !machine.hasActiveReusableBatch()
+                && availablePatternSet.contains(patternDetails)
                 && patternDetails instanceof IMolecularAssemblerSupportedPattern;
     }
 

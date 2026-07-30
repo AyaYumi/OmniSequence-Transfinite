@@ -96,7 +96,8 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
         var counts = new EnumMap<OmniComputationStructure.PartType, Integer>(
                 OmniComputationStructure.PartType.class);
         for (var part : OmniComputationStructure.parts()) {
-            if (part.type() != OmniComputationStructure.PartType.CONTROLLER) {
+            if (part.type() != OmniComputationStructure.PartType.CONTROLLER
+                    && part.type() != OmniComputationStructure.PartType.AIR) {
                 counts.merge(part.type(), 1, Integer::sum);
             }
         }

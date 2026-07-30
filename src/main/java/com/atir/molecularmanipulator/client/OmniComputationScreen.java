@@ -6,13 +6,12 @@ import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.util.Locale;
 
-public final class OmniComputationScreen extends AbstractContainerScreen<OmniComputationMenu> {
+public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniComputationMenu> {
     private static final int PURPLE = 0xFFB56CFF;
     private static final int CYAN = 0xFF69DBFF;
     private static final int GREEN = 0xFF72F2A5;
@@ -20,6 +19,10 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
     private Button buildButton;
     private Button dismantleButton;
     private Button projectionButton;
+    private Button refreshButton;
+    private Button confirmStructureUpdateButton;
+    private Button keepLegacyStructureButton;
+    private boolean confirmingLegacyUpdate;
 
     public OmniComputationScreen(OmniComputationMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -32,7 +35,13 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
         super.init();
         buildButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.omni.build"),
-                        button -> menu.requestBuild())
+                        button -> {
+                            if (menu.legacyStructure) {
+                                confirmingLegacyUpdate = true;
+                            } else {
+                                menu.requestBuild();
+                            }
+                        })
                 .bounds(leftPos + 14, topPos + 234, 73, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.omni.build_tooltip")))
@@ -53,23 +62,71 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.omni.projection_tooltip")))
                 .build());
-        addRenderableWidget(Button.builder(
+        refreshButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.omni.refresh"),
                         button -> menu.requestRefresh())
                 .bounds(leftPos + 245, topPos + 234, 73, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.omni.refresh_tooltip")))
                 .build());
+        confirmStructureUpdateButton = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_confirm"),
+                        button -> {
+                            confirmingLegacyUpdate = false;
+                            menu.requestStructureUpdate();
+                        })
+                .bounds(leftPos + 39, topPos + 234, 124, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_confirm_tooltip")))
+                .build());
+        keepLegacyStructureButton = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_keep_legacy"),
+                        button -> {
+                            confirmingLegacyUpdate = false;
+                            menu.requestKeepLegacyStructure();
+                        })
+                .bounds(leftPos + 169, topPos + 234, 124, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_keep_legacy_tooltip")))
+                .build());
+        updateStructureControls();
     }
 
     @Override
     protected void containerTick() {
         super.containerTick();
-        buildButton.active = !menu.formed && !menu.building && !menu.dismantling && menu.conflictParts == 0;
+        updateStructureControls();
+    }
+
+    private void updateStructureControls() {
+        if (!menu.legacyStructure) {
+            confirmingLegacyUpdate = false;
+        }
+        boolean busy = menu.building || menu.dismantling;
+        boolean showUpdateChoice = menu.legacyStructure
+                && (!menu.legacyStructureUpdateDismissed || confirmingLegacyUpdate);
+        buildButton.visible = !showUpdateChoice;
+        dismantleButton.visible = !showUpdateChoice;
+        projectionButton.visible = !showUpdateChoice;
+        refreshButton.visible = !showUpdateChoice;
+        confirmStructureUpdateButton.visible = showUpdateChoice;
+        keepLegacyStructureButton.visible = showUpdateChoice;
+        confirmStructureUpdateButton.active = !busy;
+        keepLegacyStructureButton.active = !busy;
+
+        buildButton.active = menu.legacyStructure
+                ? !busy
+                : !menu.formed && !busy && menu.conflictParts == 0;
         dismantleButton.active = !menu.building && !menu.dismantling && menu.correctParts > 1;
-        buildButton.setMessage(Component.translatable(menu.building
+        String buildLabel = menu.building
                 ? "gui.molecularmanipulator.omni.building"
-                : "gui.molecularmanipulator.omni.build"));
+                : menu.legacyStructure
+                        ? "gui.molecularmanipulator.structure_update_short"
+                        : "gui.molecularmanipulator.omni.build";
+        buildButton.setMessage(Component.translatable(buildLabel));
+        buildButton.setTooltip(Tooltip.create(Component.translatable(menu.legacyStructure
+                ? "gui.molecularmanipulator.structure_update_confirm_tooltip"
+                : "gui.molecularmanipulator.omni.build_tooltip")));
         dismantleButton.setMessage(Component.translatable(menu.dismantling
                 ? "gui.molecularmanipulator.omni.dismantling"
                 : "gui.molecularmanipulator.omni.dismantle"));
@@ -90,7 +147,7 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
         graphics.fill(x + 1, y + 1, x + imageWidth - 1, y + 3, PURPLE);
         panel(graphics, x + 10, y + 28, x + 154, y + 190, 0xFF392650);
         panel(graphics, x + 162, y + 28, x + 322, y + 190, 0xFF234352);
-        panel(graphics, x + 10, y + 194, x + 322, y + 226, 0xFF69408F);
+        panel(graphics, x + 10, y + 194, x + 322, y + 230, 0xFF69408F);
         panel(graphics, x + 75, y + 260, x + 257, y + 360, 0xFF29334A);
         slotFrame(graphics, x + 292, y + 200, 0xFF9B67CC);
         for (int row = 0; row < 3; row++) {
@@ -166,7 +223,14 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
                 Component.translatable("gui.molecularmanipulator.omni.parts",
                         menu.correctParts, menu.totalParts),
                 82, 145, 0xFFD9D4E3);
-        if (menu.conflictParts > 0) {
+        if (menu.legacyStructure) {
+            drawFittedString(graphics,
+                    Component.translatable(menu.legacyStructureUpdateDismissed
+                            && !confirmingLegacyUpdate
+                                    ? "gui.molecularmanipulator.legacy_structure_retained"
+                                    : "gui.molecularmanipulator.structure_update_available"),
+                    12, 174, 140, ORANGE);
+        } else if (menu.conflictParts > 0) {
             graphics.drawCenteredString(font,
                     Component.translatable("gui.molecularmanipulator.omni.conflicts",
                             menu.conflictParts),
@@ -178,63 +242,56 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
                     82, 174, 0xFFBDB5CC);
         }
 
-        int valueX = 306;
-        graphics.drawString(font,
+        int metricsLeft = 174;
+        int metricsRight = 314;
+        drawLabelValueRow(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.network"),
-                174, 42, 0xFFBFC9DB, false);
-        graphics.drawString(font,
                 Component.translatable(menu.networkOnline
                         ? "gui.molecularmanipulator.omni.online"
                         : "gui.molecularmanipulator.omni.offline"),
-                valueX - 42, 42, menu.networkOnline ? GREEN : ORANGE, false);
-
-        graphics.drawString(font,
+                metricsLeft, metricsRight, 38, 0xFFBFC9DB,
+                menu.networkOnline ? GREEN : ORANGE);
+        drawLabelValueRow(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.storage"),
-                174, 66, 0xFFBFC9DB, false);
-        graphics.drawString(font, Component.literal("\u221e"),
-                valueX, 66, PURPLE, false);
-
-        graphics.drawString(font,
+                Component.literal("\u221e"),
+                metricsLeft, metricsRight, 55, 0xFFBFC9DB, PURPLE);
+        drawLabelValueRow(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.parallel"),
-                174, 84, 0xFFBFC9DB, false);
-        graphics.drawString(font, Component.literal("\u221e"),
-                valueX, 84, CYAN, false);
-
-        graphics.drawString(font,
+                Component.literal("\u221e"),
+                metricsLeft, metricsRight, 70, 0xFFBFC9DB, CYAN);
+        drawLabelValueRow(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.active_jobs"),
-                174, 108, 0xFFBFC9DB, false);
-        graphics.drawString(font, Integer.toString(menu.activeJobs),
-                valueX, 108, menu.activeJobs > 0 ? GREEN : 0xFFD9D4E3, false);
-
-        graphics.drawString(font,
+                Component.literal(Integer.toString(menu.activeJobs)),
+                metricsLeft, metricsRight, 88, 0xFFBFC9DB,
+                menu.activeJobs > 0 ? GREEN : 0xFFD9D4E3);
+        drawLabelValueRow(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.virtual_lanes"),
-                174, 126, 0xFFBFC9DB, false);
-        graphics.drawString(font, Integer.toString(menu.cpuLanes),
-                valueX, 126, 0xFFD9D4E3, false);
+                Component.literal(Integer.toString(menu.cpuLanes)),
+                metricsLeft, metricsRight, 104, 0xFFBFC9DB, 0xFFD9D4E3);
 
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.omni.material_calculation"),
-                174, 144, 0xFFBFC9DB, false);
         var calculationStatus = menu.activeMaterialCalculations > 0
                 ? Component.translatable("gui.molecularmanipulator.omni.calculating",
                         menu.activeMaterialCalculations)
                 : Component.translatable("gui.molecularmanipulator.omni.calculation_idle");
-        graphics.drawString(font, calculationStatus,
-                valueX - (menu.activeMaterialCalculations > 0 ? 30 : 18), 144,
-                menu.activeMaterialCalculations > 0 ? CYAN : 0xFFD9D4E3, false);
+        drawLabelValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.omni.material_calculation"),
+                calculationStatus, metricsLeft, metricsRight, 120, 0xFFBFC9DB,
+                menu.activeMaterialCalculations > 0 ? CYAN : 0xFFD9D4E3);
 
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.calculation_stats",
                         menu.completedMaterialCalculations,
                         menu.lastMaterialCalculationMillis),
-                174, 158, 140, 0xFF9EA9BB);
+                metricsLeft, 132, metricsRight - metricsLeft, 0xFF9EA9BB);
 
-        drawFittedString(graphics,
+        drawWrappedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.tick_budget"),
-                174, 170, 140, 0xFF9EA9BB);
-        drawFittedString(graphics,
+                metricsLeft, 143, metricsRight - metricsLeft, 2, font.lineHeight,
+                0xFF9EA9BB);
+        drawWrappedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.fixed"),
-                174, 181, 140, 0xFF9EA9BB);
+                metricsLeft, 162, metricsRight - metricsLeft, 3, font.lineHeight,
+                0xFF9EA9BB);
 
         var quantumState = menu.quantumLinkState;
         int quantumColor = switch (quantumState) {
@@ -244,17 +301,19 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
             case STRUCTURE_INCOMPLETE, REMOTE_MISSING, REMOTE_OFFLINE -> ORANGE;
             case FREQUENCY_OCCUPIED, WIRED_CONFLICT, CONNECTION_ERROR -> 0xFFFF6D78;
         };
-        graphics.drawString(font,
+        int quantumLeft = 18;
+        int quantumRight = 286;
+        drawTwoSidedRow(graphics,
                 Component.translatable("gui.molecularmanipulator.quantum_title"),
-                18, 202, PURPLE, false);
-        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.quantum_frequency",
+                        menu.quantumFrequency == 0 ? "\u2014"
+                                : formatFrequency(menu.quantumFrequency)),
+                quantumLeft, quantumRight, 198, PURPLE, 0xFFD5DBE8);
+        drawWrappedString(graphics,
                 Component.translatable("gui.molecularmanipulator.quantum_state."
                         + quantumState.name().toLowerCase(Locale.ROOT)),
-                106, 202, 180, quantumColor);
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.quantum_frequency",
-                        menu.quantumFrequency == 0 ? "\u2014" : formatFrequency(menu.quantumFrequency)),
-                106, 214, 0xFFD5DBE8, false);
+                quantumLeft, 210, quantumRight - quantumLeft, 2, font.lineHeight,
+                quantumColor);
 
         graphics.drawString(font, Component.translatable("container.inventory"),
                 85, 268, 0xFFD9D4E3, false);
@@ -265,7 +324,46 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
                                     ? "gui.molecularmanipulator.omni.dismantle_progress"
                                     : "gui.molecularmanipulator.omni.build_progress",
                             menu.buildProgress, menu.buildTotal),
-                    imageWidth / 2, 187, 0xFFF1E8FF);
+                    imageWidth / 2, 19, 0xFFF1E8FF);
+        }
+    }
+
+    private void drawLabelValueRow(GuiGraphics graphics, Component label, Component value,
+                                   int left, int right, int y, int labelColor, int valueColor) {
+        int gap = 4;
+        int valueWidth = font.width(value);
+        int valueX = right - valueWidth;
+        int labelWidth = valueX - gap - left;
+        if (labelWidth <= 0) {
+            drawTwoSidedRow(graphics, label, value, left, right, y, labelColor, valueColor);
+            return;
+        }
+        drawFittedString(graphics, label, left, y, labelWidth, labelColor);
+        graphics.drawString(font, value, valueX, y, valueColor, false);
+    }
+
+    private void drawTwoSidedRow(GuiGraphics graphics, Component leftText, Component rightText,
+                                 int left, int right, int y, int leftColor, int rightColor) {
+        int gap = 6;
+        int leftWidth = font.width(leftText);
+        int rightWidth = font.width(rightText);
+        int availableWidth = Math.max(1, right - left);
+        int naturalWidth = leftWidth + gap + rightWidth;
+        float scale = naturalWidth <= availableWidth
+                ? 1.0F
+                : availableWidth / (float) naturalWidth;
+        drawScaledString(graphics, leftText, left, y, scale, leftColor);
+        int rightX = right - Math.round(rightWidth * scale);
+        drawScaledString(graphics, rightText, rightX, y, scale, rightColor);
+    }
+
+    private void drawWrappedString(GuiGraphics graphics, Component text, int x, int y,
+                                   int maxWidth, int maxLines, int lineHeight, int color) {
+        var lines = font.split(text, Math.max(1, maxWidth));
+        int lineCount = Math.min(maxLines, lines.size());
+        for (int line = 0; line < lineCount; line++) {
+            graphics.drawString(font, lines.get(line), x, y + line * lineHeight,
+                    color, false);
         }
     }
 
@@ -275,18 +373,21 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
             graphics.drawString(font, text, x, y, color, false);
             return;
         }
-        float scale = maxWidth / (float) textWidth;
+        drawScaledString(graphics, text, x, y,
+                Math.max(1, maxWidth) / (float) textWidth, color);
+    }
+
+    private void drawScaledString(GuiGraphics graphics, Component text, int x, int y,
+                                  float scale, int color) {
+        if (scale >= 0.999F) {
+            graphics.drawString(font, text, x, y, color, false);
+            return;
+        }
         graphics.pose().pushPose();
-        graphics.pose().translate(x, y, 0);
+        graphics.pose().translate(x, y, 0.0F);
         graphics.pose().scale(scale, scale, 1.0F);
         graphics.drawString(font, text, 0, 0, color, false);
         graphics.pose().popPose();
-    }
-
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        renderTooltip(graphics, mouseX, mouseY);
     }
 
     private static String formatFrequency(long frequency) {

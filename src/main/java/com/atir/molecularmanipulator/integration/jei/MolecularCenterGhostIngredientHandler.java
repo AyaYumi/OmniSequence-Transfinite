@@ -24,10 +24,10 @@ final class MolecularCenterGhostIngredientHandler
         }
 
         var area = new Rect2i(
-                screen.getGuiLeft() + slot.x,
-                screen.getGuiTop() + slot.y,
-                16,
-                16);
+                screen.responsiveScreenX(screen.getGuiLeft() + slot.x),
+                screen.responsiveScreenY(screen.getGuiTop() + slot.y),
+                screen.responsiveScreenLength(16),
+                screen.responsiveScreenLength(16));
         return List.of(new Target<>() {
             @Override
             public Rect2i getArea() {

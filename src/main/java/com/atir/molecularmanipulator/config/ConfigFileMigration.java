@@ -19,6 +19,8 @@ public final class ConfigFileMigration {
     private static final String LEGACY_SERVER_FILE = "molecularmanipulator-server.toml";
     private static final String RETIRED_UNSCALED_DISPATCH_LIMIT =
             "omni_unscaled_dispatch_attempts_per_tick";
+    private static final String RETIRED_BATCH_SUBSTITUTION_OPTION =
+            "omni_batch_allow_substitution_patterns";
     private static final LevelResource SERVER_CONFIG_DIRECTORY = new LevelResource("serverconfig");
 
     private ConfigFileMigration() {
@@ -67,6 +69,10 @@ public final class ConfigFileMigration {
         ConfigSchemaGuard.removeObsoleteOption(
                 directory.resolve(SERVER_FILE),
                 RETIRED_UNSCALED_DISPATCH_LIMIT,
+                displayName);
+        ConfigSchemaGuard.removeObsoleteOption(
+                directory.resolve(SERVER_FILE),
+                RETIRED_BATCH_SUBSTITUTION_OPTION,
                 displayName);
     }
 

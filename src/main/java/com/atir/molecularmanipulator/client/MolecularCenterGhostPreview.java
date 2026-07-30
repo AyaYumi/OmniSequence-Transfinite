@@ -3,33 +3,26 @@ package com.atir.molecularmanipulator.client;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
 
 import java.util.ArrayList;
-import java.util.List;
 
 @EventBusSubscriber(modid = MolecularManipulator.MOD_ID, value = Dist.CLIENT)
 public final class MolecularCenterGhostPreview {
-    private static final int REFRESH_INTERVAL = 10;
+    private static final int REFRESH_INTERVAL = 40;
     private static final int PROJECTION_ALPHA = 118;
-    private static final List<GhostBlock> BLOCKS = new ArrayList<>();
+    private static final double MAX_RENDER_DISTANCE = 192.0;
+    private static final SectionedGhostProjectionRenderer RENDERER =
+            new SectionedGhostProjectionRenderer(PROJECTION_ALPHA, MAX_RENDER_DISTANCE);
     private static BlockPos controller;
     private static Direction facing;
     private static ResourceKey<Level> dimension;
@@ -76,52 +69,17 @@ public final class MolecularCenterGhostPreview {
             clear();
             return;
         }
+        var camera = event.getCamera().getPosition();
+        if (!RENDERER.isInRenderRange(camera, controller)) {
+            return;
+        }
         if (level.getGameTime() - lastRefresh >= REFRESH_INTERVAL) {
             refresh(level);
         }
-        if (controller == null || BLOCKS.isEmpty()) {
+        if (controller == null || RENDERER.isEmpty()) {
             return;
         }
-
-        var camera = event.getCamera().getPosition();
-        var poseStack = event.getPoseStack();
-        var buffers = minecraft.renderBuffers().bufferSource();
-        var translucentType = RenderType.translucent();
-        var translucent = new ProjectionVertexConsumer(
-                buffers.getBuffer(translucentType), PROJECTION_ALPHA);
-        var dispatcher = minecraft.getBlockRenderer();
-
-        poseStack.pushPose();
-        poseStack.translate(-camera.x, -camera.y, -camera.z);
-        for (var ghost : BLOCKS) {
-            if (!event.getFrustum().isVisible(ghost.bounds())) {
-                continue;
-            }
-            poseStack.pushPose();
-            poseStack.translate(ghost.pos().getX() + 0.5, ghost.pos().getY() + 0.5, ghost.pos().getZ() + 0.5);
-            poseStack.scale(1.003F, 1.003F, 1.003F);
-            poseStack.translate(-0.5, -0.5, -0.5);
-            var model = dispatcher.getBlockModel(ghost.expectedState());
-            dispatcher.getModelRenderer().renderModel(
-                    poseStack.last(), translucent, ghost.expectedState(), model,
-                    1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-            poseStack.popPose();
-        }
-        poseStack.popPose();
-        buffers.endBatch(translucentType);
-
-        var linesType = RenderType.lines();
-        var lines = buffers.getBuffer(linesType);
-        poseStack.pushPose();
-        poseStack.translate(-camera.x, -camera.y, -camera.z);
-        for (var ghost : BLOCKS) {
-            if (ghost.conflict() && event.getFrustum().isVisible(ghost.bounds())) {
-                LevelRenderer.renderLineBox(poseStack, lines, ghost.bounds(),
-                        1.0F, 0.12F, 0.12F, 0.9F);
-            }
-        }
-        poseStack.popPose();
-        buffers.endBatch(linesType);
+        RENDERER.render(event);
     }
 
     private static void refresh(Level level) {
@@ -131,7 +89,7 @@ public final class MolecularCenterGhostPreview {
             return;
         }
         facing = level.getBlockState(controller).getValue(HorizontalDirectionalBlock.FACING);
-        BLOCKS.clear();
+        var blocks = new ArrayList<SectionedGhostProjectionRenderer.ProjectionBlock>();
         for (var part : MolecularCenterStructure.parts()) {
             if (MolecularCenterStructure.isController(part)) {
                 continue;
@@ -141,14 +99,16 @@ public final class MolecularCenterGhostPreview {
                 continue;
             }
             var currentState = level.getBlockState(pos);
+            boolean clearance = part.partType() == MolecularCenterStructure.PartType.AIR;
             var expectedState = MolecularCenterStructure.partState(part.partType());
-            if (currentState.is(expectedState.getBlock())) {
+            if (clearance ? currentState.isAir() : currentState.is(expectedState.getBlock())) {
                 continue;
             }
-            boolean conflict = !currentState.isAir() && !currentState.canBeReplaced();
-            BLOCKS.add(new GhostBlock(pos, expectedState,
-                    new AABB(pos).inflate(0.003), conflict));
+            boolean conflict = clearance || !currentState.canBeReplaced();
+            blocks.add(new SectionedGhostProjectionRenderer.ProjectionBlock(
+                    pos, expectedState, conflict));
         }
+        RENDERER.update(blocks);
         lastRefresh = level.getGameTime();
     }
 
@@ -156,71 +116,7 @@ public final class MolecularCenterGhostPreview {
         controller = null;
         facing = null;
         dimension = null;
-        BLOCKS.clear();
+        RENDERER.clear();
         lastRefresh = Long.MIN_VALUE;
-    }
-
-    private record GhostBlock(BlockPos pos, BlockState expectedState, AABB bounds, boolean conflict) {
-    }
-
-    private static final class ProjectionVertexConsumer implements VertexConsumer {
-        private final VertexConsumer delegate;
-        private final int alpha;
-
-        private ProjectionVertexConsumer(VertexConsumer delegate, int alpha) {
-            this.delegate = delegate;
-            this.alpha = alpha;
-        }
-
-        @Override
-        public VertexConsumer vertex(double x, double y, double z) {
-            delegate.vertex(x, y, z);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer color(int red, int green, int blue, int sourceAlpha) {
-            delegate.color(red, green, blue, Math.min(sourceAlpha, alpha));
-            return this;
-        }
-
-        @Override
-        public VertexConsumer uv(float u, float v) {
-            delegate.uv(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer overlayCoords(int u, int v) {
-            delegate.overlayCoords(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer uv2(int u, int v) {
-            delegate.uv2(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer normal(float x, float y, float z) {
-            delegate.normal(x, y, z);
-            return this;
-        }
-
-        @Override
-        public void endVertex() {
-            delegate.endVertex();
-        }
-
-        @Override
-        public void defaultColor(int red, int green, int blue, int sourceAlpha) {
-            delegate.defaultColor(red, green, blue, Math.min(sourceAlpha, alpha));
-        }
-
-        @Override
-        public void unsetDefaultColor() {
-            delegate.unsetDefaultColor();
-        }
     }
 }

@@ -39,6 +39,8 @@ public final class MolecularCenterMenu extends AEBaseMenu {
     private static final String ACTION_SET_DECONSTRUCT_TARGET = "set_deconstruct_target";
     private static final String ACTION_SET_REWRITE_TARGET = "set_rewrite_target";
     private static final String ACTION_CYCLE_REWRITE_OUTPUT = "cycle_rewrite_output";
+    private static final String ACTION_UPDATE_STRUCTURE = "update_structure";
+    private static final String ACTION_KEEP_LEGACY_STRUCTURE = "keep_legacy_structure";
     public static final int PATTERN_X = 17;
     public static final int PATTERN_Y = 46;
     public static final int PLAYER_X = 17;
@@ -141,6 +143,14 @@ public final class MolecularCenterMenu extends AEBaseMenu {
     public int rewriteJobProgress;
     @GuiSync(47)
     public long rewriteJobProcessed;
+    @GuiSync(48)
+    public boolean legacyStructure;
+    @GuiSync(49)
+    public boolean legacyStructureUpdateDismissed;
+    @GuiSync(50)
+    public boolean building;
+    @GuiSync(51)
+    public boolean dismantling;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
@@ -180,6 +190,8 @@ public final class MolecularCenterMenu extends AEBaseMenu {
         registerClientAction(ACTION_SET_DECONSTRUCT_TARGET, Long.class, this::setDeconstructTarget);
         registerClientAction(ACTION_SET_REWRITE_TARGET, Long.class, this::setRewriteTarget);
         registerClientAction(ACTION_CYCLE_REWRITE_OUTPUT, this::cycleRewriteOutput);
+        registerClientAction(ACTION_UPDATE_STRUCTURE, this::updateStructure);
+        registerClientAction(ACTION_KEEP_LEGACY_STRUCTURE, this::keepLegacyStructure);
         applyPage(0);
     }
 
@@ -349,6 +361,14 @@ public final class MolecularCenterMenu extends AEBaseMenu {
         if (isClientSide()) sendClientAction(ACTION_CYCLE_REWRITE_OUTPUT);
     }
 
+    public void requestStructureUpdate() {
+        if (isClientSide()) sendClientAction(ACTION_UPDATE_STRUCTURE);
+    }
+
+    public void requestKeepLegacyStructure() {
+        if (isClientSide()) sendClientAction(ACTION_KEEP_LEGACY_STRUCTURE);
+    }
+
     @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
         if (isClientSide() || slotIndex < 0 || slotIndex >= slots.size()) {
@@ -494,6 +514,18 @@ public final class MolecularCenterMenu extends AEBaseMenu {
         }
     }
 
+    private void updateStructure() {
+        if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
+            center.startStructureUpdate(player);
+        }
+    }
+
+    private void keepLegacyStructure() {
+        if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
+            center.keepLegacyStructure(player);
+        }
+    }
+
     @Override
     public void broadcastChanges() {
         if (isServerSide()) {
@@ -535,6 +567,10 @@ public final class MolecularCenterMenu extends AEBaseMenu {
             rewriteJobState = center.getRewriteJobState();
             rewriteJobProgress = center.getRewriteJobProgress();
             rewriteJobProcessed = center.getRewriteJobProcessed();
+            legacyStructure = center.hasLegacyStructure();
+            legacyStructureUpdateDismissed = center.isLegacyStructureUpdateDismissed();
+            building = center.isBuilding();
+            dismantling = center.isDismantling();
         }
         super.broadcastChanges();
     }

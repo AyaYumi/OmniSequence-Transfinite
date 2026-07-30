@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: Omni-Computation Core
   icon: molecularmanipulator:omni_computation_controller
   position: 1020
-categories:
-- devices
 item_ids:
 - molecularmanipulator:omni_computation_controller
 ---
@@ -27,6 +25,11 @@ When formed and online, it provides effectively unlimited logical crafting stora
 4. Clear conflicting blocks, then use **Build**. Missing materials are taken from the player's inventory first and then
    from the connected ME Network.
 5. Connect and power the controller, then use **Check** if the structure does not form immediately.
+
+Both the legacy and current singularity layouts remain valid. The current layout leaves the exact effect center as air
+and places the data entangler in the front lower pylon. When a complete legacy layout is detected, the controller shows
+an optional structure-update notice. Ignoring it keeps the legacy structure operational; accepting it recovers and
+relocates the center data entangler safely.
 
 An AE2 wrench rotates the controller and recalculates the structure.
 

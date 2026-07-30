@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: 万物演算核心
   icon: molecularmanipulator:omni_computation_controller
   position: 1020
-categories:
-- devices
 item_ids:
 - molecularmanipulator:omni_computation_controller
 ---
@@ -24,6 +22,10 @@ item_ids:
 3. 在 JEI 结构分类中查看全部层级和完整材料清单。
 4. 清理冲突方块后点击“一键搭建”。系统优先从玩家背包取材，随后从已连接的 ME 网络抽取。
 5. 接入并供应 ME 能量；若结构没有立即成型，可点击“检测”重新校验。
+
+旧版与新版奇点布局都可以正常成型。新版布局会让演算奇点的特效正中心保持为空气，并将数据纠缠节点
+放入前方下部塔体。控制器检测到完整旧布局时会显示可选的结构更新提示；忽略提示即可继续使用旧结构，
+确认更新后才会安全回收并迁移中心的数据纠缠节点。
 
 使用 AE2 扳手可旋转控制器并重新计算结构朝向。
 

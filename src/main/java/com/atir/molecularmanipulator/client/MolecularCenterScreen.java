@@ -12,7 +12,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
@@ -21,7 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
-public final class MolecularCenterScreen extends AbstractContainerScreen<MolecularCenterMenu> {
+public final class MolecularCenterScreen extends ResponsiveContainerScreen<MolecularCenterMenu> {
     private static final int TAB_MATTER = 0;
     private static final int TAB_PIPELINE = 1;
     private static final int TAB_QUANTUM = 2;
@@ -52,6 +51,8 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     private Button byproductRoute;
     private Button outputPort;
     private Button resetColors;
+    private Button structureUpdate;
+    private Button keepLegacyStructure;
     private final Button[][] colorButtons = new Button[5][3];
     private int detailTab = TAB_MATTER;
     private int dismantleConfirmTicks;
@@ -77,7 +78,8 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        boolean clickedDismantle = button == 0 && dismantle != null && dismantle.isMouseOver(mouseX, mouseY);
+        boolean clickedDismantle = button == 0 && dismantle != null
+                && dismantle.isMouseOver(logicalMouseX(mouseX), logicalMouseY(mouseY));
         if (!clickedDismantle) {
             cancelDismantleConfirmation();
         }
@@ -216,6 +218,21 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                         Component.translatable("gui.molecularmanipulator.visual_color_reset"),
                         button -> menu.requestResetVisualColors())
                 .bounds(leftPos + 286, topPos + 211, 128, 18).build());
+        structureUpdate = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_confirm"),
+                        button -> menu.requestStructureUpdate())
+                .bounds(leftPos + 210, topPos + 239, 100, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_confirm_tooltip")))
+                .build());
+        keepLegacyStructure = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_keep_legacy"),
+                        button -> menu.requestKeepLegacyStructure())
+                .bounds(leftPos + 314, topPos + 239, 100, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_keep_legacy_tooltip")))
+                .build());
+        updateStructureUpdateControls();
         selectTab(TAB_MATTER);
     }
 
@@ -249,7 +266,7 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                 button.visible = colorsVisible;
             }
         }
-        resetColors.visible = colorsVisible;
+        resetColors.visible = colorsVisible && !menu.legacyStructure;
         matterTab.active = !matterVisible;
         pipelineTab.active = !pipelineVisible;
         quantumTab.active = !quantumVisible;
@@ -273,6 +290,20 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
         rewriteOutput.setMessage(rewriteOutputLabel());
         syncTargetField(deconstructTarget, menu.deconstructTarget);
         syncTargetField(rewriteTarget, menu.rewriteTarget);
+        updateStructureUpdateControls();
+    }
+
+    private void updateStructureUpdateControls() {
+        if (structureUpdate == null || keepLegacyStructure == null) {
+            return;
+        }
+        structureUpdate.visible = menu.legacyStructure;
+        keepLegacyStructure.visible = menu.legacyStructure
+                && !menu.legacyStructureUpdateDismissed;
+        boolean idle = !menu.building && !menu.dismantling;
+        structureUpdate.active = menu.legacyStructure && idle;
+        keepLegacyStructure.active = menu.legacyStructure && idle;
+        resetColors.visible = detailTab == TAB_COLORS && !menu.legacyStructure;
     }
 
     private void dismantleClicked() {
@@ -325,7 +356,10 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                         : detailTab == TAB_PIPELINE ? CYAN
                         : detailTab == TAB_QUANTUM ? 0xFF8EAEFF
                         : 0xFFFF83D1);
-
+        if (menu.legacyStructure) {
+            graphics.fill(x + 204, y + 225, x + 422, y + 259, 0xF0201820);
+            drawPanelBorder(graphics, x + 204, y + 225, x + 422, y + 259, 0xFFFFB75E);
+        }
         drawSlotGrid(graphics, MolecularCenterMenu.PATTERN_X, MolecularCenterMenu.PATTERN_Y, 9, 4);
         drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_MAIN_Y, 9, 3);
         drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_HOTBAR_Y, 9, 1);
@@ -376,10 +410,11 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, Component.translatable("block.molecularmanipulator.molecular_center_controller"),
-                8, 30, 0xFFEBDFFF, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.page", menu.getPage() + 1,
-                menu.getPageCount()), 126, 30, 0xFFB7C3D7, false);
+        drawTwoSidedRow(graphics,
+                Component.translatable("block.molecularmanipulator.molecular_center_controller"),
+                Component.translatable("gui.molecularmanipulator.page", menu.getPage() + 1,
+                        menu.getPageCount()),
+                8, 188, 30, 0xFFEBDFFF, 0xFFB7C3D7);
         var state = menu.formed ? Component.translatable("gui.molecularmanipulator.formed")
                 : Component.translatable("gui.molecularmanipulator.incomplete");
         graphics.drawString(font, state, 8, 125, menu.formed ? 0xFF70F2A2 : 0xFFFFB75E, false);
@@ -397,6 +432,13 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
             default -> {
             }
         }
+        if (menu.legacyStructure) {
+            graphics.drawString(font, Component.translatable(
+                    menu.legacyStructureUpdateDismissed
+                            ? "gui.molecularmanipulator.legacy_structure_retained"
+                            : "gui.molecularmanipulator.structure_update_available"),
+                    210, 228, 0xFFFFB75E, false);
+        }
     }
 
     private void renderMatterTab(GuiGraphics graphics) {
@@ -411,9 +453,9 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                 MolecularCenterMenu.SEQUENCE_OUTPUT_X + 8, 53, 0xFFFFC4E9);
         var deconstructState = matterStateLabel(menu.deconstructJobState);
         var rewriteState = matterStateLabel(menu.rewriteJobState);
-        graphics.drawCenteredString(font, deconstructState, 255, 128,
+        drawCenteredFittedString(graphics, deconstructState, 255, 128, 96,
                 matterStateColor(menu.deconstructJobState));
-        graphics.drawCenteredString(font, rewriteState, 371, 128,
+        drawCenteredFittedString(graphics, rewriteState, 371, 128, 96,
                 matterStateColor(menu.rewriteJobState));
         var deconstructCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
                 formatAmount(menu.deconstructJobProcessed),
@@ -421,31 +463,111 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
         var rewriteCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
                 formatAmount(menu.rewriteJobProcessed),
                 menu.rewriteTarget == 0 ? "\u221e" : formatAmount(menu.rewriteTarget));
-        graphics.drawCenteredString(font, deconstructCount, 255, 138, 0xFFC8B8D8);
-        graphics.drawCenteredString(font, rewriteCount, 371, 138, 0xFFC8B8D8);
+        drawCenteredFittedString(graphics, deconstructCount, 255, 138, 96, 0xFFC8B8D8);
+        drawCenteredFittedString(graphics, rewriteCount, 371, 138, 96, 0xFFC8B8D8);
         drawMeter(graphics, 207, 149, 96, 3, menu.deconstructJobProgress, 1000, 0xFF9B68E8);
         drawMeter(graphics, 323, 149, 96, 3, menu.rewriteJobProgress, 1000, 0xFFFF82D8);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.matter_speed",
+        int contentLeft = 207;
+        int contentRight = 419;
+        int columnMiddle = (contentLeft + contentRight) / 2;
+        int columnGap = 6;
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.matter_speed",
                         menu.speedCards, menu.matterCycleTicks),
-                207, 185, 0xFFD9C8F5, false);
+                contentLeft, 185, MolecularCenterMenu.SPEED_SLOT_X - 8 - contentLeft,
+                0xFFD9C8F5);
 
-        drawSequenceAmount(graphics, "metal", menu.metalSequence, 205, 207, 0xFFB9C7D5);
-        drawSequenceAmount(graphics, "crystal", menu.crystalSequence, 205, 314, 0xFF73CFFF);
-        drawSequenceAmount(graphics, "mineral", menu.mineralSequence, 220, 207, 0xFFB58A62);
-        drawSequenceAmount(graphics, "organic", menu.organicSequence, 220, 314, 0xFF73D590);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.sequence_entropy"),
-                207, 239, 0xFFFFA4D8, false);
-        graphics.drawString(font, formatAmount(menu.entropy) + " / "
-                        + formatAmount(MolecularCenterBlockEntity.MAX_ENTROPY),
-                342, 239, 0xFFC8B8D8, false);
-        drawMeter(graphics, 207, 251, 212, 3,
-                menu.entropy, MolecularCenterBlockEntity.MAX_ENTROPY, 0xFFE75AAE);
+        drawSequenceAmount(graphics, "metal", menu.metalSequence, 205,
+                contentLeft, columnMiddle - columnGap / 2, 0xFFB9C7D5);
+        drawSequenceAmount(graphics, "crystal", menu.crystalSequence, 205,
+                columnMiddle + columnGap / 2, contentRight, 0xFF73CFFF);
+        drawSequenceAmount(graphics, "mineral", menu.mineralSequence, 220,
+                contentLeft, columnMiddle - columnGap / 2, 0xFFB58A62);
+        drawSequenceAmount(graphics, "organic", menu.organicSequence, 220,
+                columnMiddle + columnGap / 2, contentRight, 0xFF73D590);
+        if (!menu.legacyStructure) {
+            drawLabelValueRow(graphics,
+                    Component.translatable("gui.molecularmanipulator.sequence_entropy"),
+                    Component.literal(formatAmount(menu.entropy) + " / "
+                            + formatAmount(MolecularCenterBlockEntity.MAX_ENTROPY)),
+                    contentLeft, contentRight, 239, 0xFFFFA4D8, 0xFFC8B8D8);
+            drawMeter(graphics, contentLeft, 251, contentRight - contentLeft, 3,
+                    menu.entropy, MolecularCenterBlockEntity.MAX_ENTROPY, 0xFFE75AAE);
+        }
     }
 
-    private void drawSequenceAmount(GuiGraphics graphics, String type, long amount, int y, int x, int color) {
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.sequence_" + type),
-                x, y, color, false);
-        graphics.drawString(font, formatAmount(amount), x + 65, y, 0xFFE4E7EF, false);
+    private void drawSequenceAmount(GuiGraphics graphics, String type, long amount, int y,
+                                    int left, int right, int color) {
+        drawLabelValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.sequence_" + type),
+                Component.literal(formatAmount(amount)),
+                left, right, y, color, 0xFFE4E7EF);
+    }
+
+    private void drawLabelValueRow(GuiGraphics graphics, Component label, Component value,
+                                   int left, int right, int y, int labelColor, int valueColor) {
+        int gap = 4;
+        int valueWidth = font.width(value);
+        int valueX = right - valueWidth;
+        int labelWidth = valueX - gap - left;
+        if (labelWidth <= 0) {
+            drawTwoSidedRow(graphics, label, value, left, right, y, labelColor, valueColor);
+            return;
+        }
+        drawFittedString(graphics, label, left, y, labelWidth, labelColor);
+        graphics.drawString(font, value, valueX, y, valueColor, false);
+    }
+
+    private void drawTwoSidedRow(GuiGraphics graphics, Component leftText, Component rightText,
+                                 int left, int right, int y, int leftColor, int rightColor) {
+        int gap = 6;
+        int leftWidth = font.width(leftText);
+        int rightWidth = font.width(rightText);
+        int availableWidth = Math.max(1, right - left);
+        int naturalWidth = leftWidth + gap + rightWidth;
+        float scale = naturalWidth <= availableWidth
+                ? 1.0F
+                : availableWidth / (float) naturalWidth;
+        drawScaledString(graphics, leftText, left, y, scale, leftColor);
+        int rightX = right - Math.round(rightWidth * scale);
+        drawScaledString(graphics, rightText, rightX, y, scale, rightColor);
+    }
+
+    private void drawFittedString(GuiGraphics graphics, Component text, int x, int y,
+                                  int maxWidth, int color) {
+        int textWidth = font.width(text);
+        if (textWidth <= Math.max(1, maxWidth)) {
+            graphics.drawString(font, text, x, y, color, false);
+            return;
+        }
+        drawScaledString(graphics, text, x, y,
+                Math.max(1, maxWidth) / (float) textWidth, color);
+    }
+
+    private void drawCenteredFittedString(GuiGraphics graphics, Component text, int centerX, int y,
+                                          int maxWidth, int color) {
+        int availableWidth = Math.max(1, maxWidth);
+        int textWidth = font.width(text);
+        if (textWidth <= availableWidth) {
+            graphics.drawCenteredString(font, text, centerX, y, color);
+            return;
+        }
+        float scale = availableWidth / (float) textWidth;
+        drawScaledString(graphics, text,
+                centerX - Math.round(textWidth * scale * 0.5F), y, scale, color);
+    }
+
+    private void drawScaledString(GuiGraphics graphics, Component text, int x, int y,
+                                  float scale, int color) {
+        if (scale >= 0.999F) {
+            graphics.drawString(font, text, x, y, color, false);
+            return;
+        }
+        graphics.pose().pushPose();
+        graphics.pose().translate(x, y, 0.0F);
+        graphics.pose().scale(scale, scale, 1.0F);
+        graphics.drawString(font, text, 0, 0, color, false);
+        graphics.pose().popPose();
     }
 
     private static void drawMeter(GuiGraphics graphics, int x, int y, int width, int height,
@@ -476,8 +598,10 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                 menu.activePipelineRecipes), 210, 197, 0xFFB7C3D7, false);
         graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_crafts",
                 formatAmount(menu.activePipelineCrafts)), 210, 211, 0xFFB7C3D7, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_transfer",
-                formatAmount(menu.lastPipelineTransfer)), 210, 225, 0xFFB7C3D7, false);
+        if (!menu.legacyStructure) {
+            graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_transfer",
+                    formatAmount(menu.lastPipelineTransfer)), 210, 225, 0xFFB7C3D7, false);
+        }
     }
 
     private void renderQuantumTab(GuiGraphics graphics) {
@@ -510,8 +634,10 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                 210, 179, 0xFFB7C3D7, false);
         graphics.drawString(font, Component.translatable("gui.molecularmanipulator.spawn_protection"),
                 210, 205, 0xFF70F2A2, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
-                210, 220, 0xFFB7C3D7, false);
+        if (!menu.legacyStructure) {
+            graphics.drawString(font, Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
+                    210, 220, 0xFFB7C3D7, false);
+        }
     }
 
     private void renderColorsTab(GuiGraphics graphics) {

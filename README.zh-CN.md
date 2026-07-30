@@ -12,14 +12,14 @@
 | --- | --- |
 | Minecraft | 1.20.1 |
 | Forge | 47.4.10 或更高 |
-| Applied Energistics 2 | 15.4.10 |
+| Applied Energistics 2 | 官方版 15.4.10 或 AE2-UELM 15.5.0 |
 | ExtendedAE | 1.20-1.4.12-forge |
 | Glodium | 1.20-1.5-forge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.6-forge`
+当前版本：`1.3.7-forge-fix`
 
-完整更新内容见 [1.3.6-forge 双语发布说明](RELEASE_NOTES_1.3.6-forge.md)。
+完整更新内容见 [1.3.7-forge-fix 双语发布说明](RELEASE_NOTES_1.3.7-forge-fix.md)。
 
 > Minecraft 1.20.1 Forge 版不注册独立的“分子构序重写阵列”单方块。
 > 旧世界中已经放置的该方块会在更新后作为缺失方块移除；样板与物质重写功能仍由
@@ -32,13 +32,15 @@
 - 修复无线终端自动补货覆盖层在超大或无限库存下的整数溢出崩溃。
 - 提供装配矩阵构序重写核心、万物演算核心，以及由构序阵列控制器管理的构序阵列多方块。
 - 支持大型结构投影、一键搭建、一键拆卸、跨区块暂停恢复和动态视觉效果。
+- 两套固定多方块均兼容旧版与新版布局；控制器会为完整旧结构提供由玩家确认的可选更新。
+- 启动时自动识别 AE2-UELM，并调用其原生长整数 `planJob` 确认路径；官方 AE2 继续使用现有兼容路径。
 - 支持有线 ME 接入及跨维度缠绕态量子链路。
 - 提供可由整合包配置的物质分解、序列储存和蓝图复制系统。
 - 为三个仍注册的主要方块提供 AE2 GuideME 游戏内文档，可在物品提示中按 `G` 打开。
 
 ## 自动合成与材料发配
 
-万物演算核心使用 `SAFE` 聚合模式加速确定性配方树。物品替代样板会保守回退；仅流体替代仍具确定性，可继续使用快速路径。容器返还、动态输入、循环或未知样板行为也会自动回退到 AE2 原生计算，避免为了速度牺牲正确性。
+万物演算核心使用 `SAFE` 聚合模式加速确定性配方树。物品替代样板会从 MAX_FAST 规划中保守回退；仅流体替代仍具确定性，可继续使用快速路径。该规划回退不会阻止兼容的批量材料发配：物品替代样板永久允许进入批量路径，实际输入仍由 AE2 原生逻辑选择。容器返还、动态输入、循环或未知样板行为也会自动回退到 AE2 原生计算，避免为了速度牺牲正确性。
 
 材料发配采用三种执行模式：
 
@@ -111,6 +113,9 @@ config/molecularmanipulator/matter_rewrite_rules.json
 
 精确物品规则优先于标签规则；携带附魔、命名、耐久、容器内容等自定义数据的物品不会被分解或复制。安装 0～4 张 AE2 加速卡时，每件物品处理周期依次为 20、10、5、2、1 Tick。
 
+符合规则的物品默认只显示一行 Shift 展开提示。客户端配置
+`matter_sequence_tooltip_mode` 可选择 `DISABLED`、`HOLD_SHIFT` 或 `ALWAYS_VISIBLE`。
+
 ## 核心配置
 
 服务端配置文件为 `omnisequence-transfinite-server.toml`，客户端配置文件为 `omnisequence-transfinite-client.toml`。旧版 `molecularmanipulator-*.toml` 会在新文件不存在时自动复制迁移。
@@ -126,10 +131,10 @@ config/molecularmanipulator/matter_rewrite_rules.json
 | `omni_max_fast_compile_budget_ms` | 100 | 聚合图编译超时，超时后回退 AE2 |
 | `omni_max_fast_diagnostics` | `false` | 记录聚合耗时和回退原因 |
 | `omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |
-| `omni_batch_allow_substitution_patterns` | `false` | 允许物品替代样板进入批量发配 |
 | `omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 每个核心每 Tick 对普通供应器执行完整 `1×` 调用的紧急硬上限 |
 | `omni_compat_dispatch_max_time_us` | 20000 | 所有活跃万物演算核心共享的服务器级兼容派发预算；接近 45 MSPT 时自动收缩 |
 | `omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大调度工作单元 |
+| `matter_sequence_tooltip_mode` | `HOLD_SHIFT` | 仅客户端物质构序提示显示模式 |
 | `dynamic_effect_level` | 2 | 仅客户端视觉效果：0 关闭、1 精简、2 完整 |
 
 普通或未知供应器只会在安全单原料配方上收到自适应运行时缩放样板；多原料及其他不可缩放路径始终按原始样板逐份发送完整配方，保留供应器自己的机器轮转和背压语义。固定 32 次限制已由服务器级负载自适应时间片替代：服务器有余量时高速重放，平均 MSPT 接近 45 时自动降速；多核心、多 CPU 和多样板不会各自重复领取完整时间片。只有显式声明原子批量能力的供应器才会接收完整倍增的多原料输入。
@@ -149,8 +154,8 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.6-forge.jar
+build/libs/omnisequence-transfinite-1.3.7-forge-fix.jar
 ```
 
 版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与升级说明见
-[RELEASE_NOTES_1.3.6-forge.md](RELEASE_NOTES_1.3.6-forge.md)。本项目使用 [MIT License](LICENSE)。
+[RELEASE_NOTES_1.3.7-forge-fix.md](RELEASE_NOTES_1.3.7-forge-fix.md)。本项目使用 [MIT License](LICENSE)。

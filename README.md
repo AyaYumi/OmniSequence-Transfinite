@@ -12,14 +12,14 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on For
 | --- | --- |
 | Minecraft | 1.20.1 |
 | Forge | 47.4.10 or later |
-| Applied Energistics 2 | 15.4.10 |
+| Applied Energistics 2 | Official 15.4.10 or AE2-UELM 15.5.0 |
 | ExtendedAE | 1.20-1.4.12-forge |
 | Glodium | 1.20-1.5-forge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.6-forge`
+Current release: `1.3.7-forge-fix`
 
-See the [bilingual 1.3.6-forge release notes](RELEASE_NOTES_1.3.6-forge.md) for the complete change and upgrade details.
+See the [bilingual 1.3.7-forge-fix release notes](RELEASE_NOTES_1.3.7-forge-fix.md) for the complete change and upgrade details.
 
 > The Forge 1.20.1 build does not register the standalone Molecular Sequence
 > Rewrite Array block. Existing worlds remove previously placed copies as missing
@@ -33,13 +33,15 @@ See the [bilingual 1.3.6-forge release notes](RELEASE_NOTES_1.3.6-forge.md) for 
 - Prevents integer-overflow crashes in wireless-terminal auto-stock overlays with extremely large or unlimited inventories.
 - Adds the Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, and the Sequence Array multiblock managed by the Sequence Array Controller.
 - Provides structure projection, automatic construction and dismantling, chunk-aware pause and resume, and dynamic visual effects.
+- Keeps both fixed multiblocks compatible with their legacy and current layouts; controllers offer an optional, player-confirmed update for complete legacy structures.
+- Detects AE2-UELM at startup and routes confirmation through its native long-amount `planJob` path while retaining the existing compatibility path for official AE2.
 - Supports wired ME access and cross-dimensional entangled quantum links.
 - Provides modpack-configurable matter deconstruction, sequence storage, and blueprint reproduction.
 - Adds AE2 GuideME pages for all three registered primary blocks; hover an item and press `G` to open its guide.
 
 ## Autocrafting and Material Dispatch
 
-The Omni-Computation Core uses `SAFE` aggregation to accelerate deterministic recipe trees. Item-substitution patterns conservatively fall back, while fluid-only substitution remains deterministic and may stay on the fast path. Container remainders, dynamic inputs, cycles, and unknown pattern behavior also fall back to AE2's native calculation path.
+The Omni-Computation Core uses `SAFE` aggregation to accelerate deterministic recipe trees. Item-substitution patterns conservatively fall back from MAX_FAST planning, while fluid-only substitution remains deterministic and may stay on the fast path. This planning fallback does not prevent compatible batch material dispatch: item-substituting patterns are always eligible, and AE2 retains control of the actual input choice. Container remainders, dynamic inputs, cycles, and unknown pattern behavior also fall back to AE2's native calculation path.
 
 Material dispatch uses three execution modes:
 
@@ -115,6 +117,9 @@ config/molecularmanipulator/matter_rewrite_rules.json
 
 Exact item rules take priority over tag rules. Items with custom data such as enchantments, custom names, durability, or container contents are not deconstructed or reproduced. With 0–4 AE2 Acceleration Cards installed, the processing time per item is 20, 10, 5, 2, or 1 tick respectively.
 
+Eligible item tooltips show a compact Shift-expand hint by default. The client option
+`matter_sequence_tooltip_mode` supports `DISABLED`, `HOLD_SHIFT`, and `ALWAYS_VISIBLE`.
+
 ## Core Configuration
 
 The server configuration is `omnisequence-transfinite-server.toml`; the client configuration is `omnisequence-transfinite-client.toml`. Legacy `molecularmanipulator-*.toml` files are copied forward automatically when the new file does not yet exist.
@@ -130,10 +135,10 @@ The server configuration is `omnisequence-transfinite-server.toml`; the client c
 | `omni_max_fast_compile_budget_ms` | 100 | Aggregation compile budget before falling back to AE2 |
 | `omni_max_fast_diagnostics` | `false` | Logs aggregation timing and fallback reasons |
 | `omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
-| `omni_batch_allow_substitution_patterns` | `false` | Allows item-substitution patterns to use batch dispatch |
 | `omni_compat_dispatch_max_calls_per_tick` | 2147483647 | Per-core, per-tick emergency ceiling for complete `1×` calls to ordinary providers |
 | `omni_compat_dispatch_max_time_us` | 20000 | Server-wide budget shared by all active Omni-Computation Cores; contracts as average MSPT approaches 45 |
 | `omni_dispatch_max_work_units` | 2147483647 | Maximum scheduler work units per core and tick |
+| `matter_sequence_tooltip_mode` | `HOLD_SHIFT` | Client-only Matter Sequence tooltip display mode |
 | `dynamic_effect_level` | 2 | Client-only visual effects: 0 off, 1 reduced, 2 full |
 
 Ordinary and unknown providers receive adaptive runtime-scaled patterns only for safe single-ingredient recipes. Multi-ingredient and other non-scalable paths send complete original recipes one at a time, preserving machine rotation and back-pressure behavior. A server-wide adaptive time slice replaces the old fixed 32-call limit: dispatch accelerates while the server has headroom and contracts as average MSPT approaches 45. Multiple cores, CPUs, and patterns do not each claim a separate full time budget. Only providers that explicitly declare atomic batch support receive complete multiplied multi-ingredient inputs.
@@ -151,7 +156,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.6-forge.jar
+build/libs/omnisequence-transfinite-1.3.7-forge-fix.jar
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.6-forge.md](RELEASE_NOTES_1.3.6-forge.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).
+See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.7-forge-fix.md](RELEASE_NOTES_1.3.7-forge-fix.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).

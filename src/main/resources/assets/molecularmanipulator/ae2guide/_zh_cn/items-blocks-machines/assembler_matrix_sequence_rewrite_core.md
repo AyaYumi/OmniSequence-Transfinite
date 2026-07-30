@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: 装配矩阵构序重写核心
   icon: molecularmanipulator:assembler_matrix_molecular_core
   position: 1010
-categories:
-- machines
 item_ids:
 - molecularmanipulator:assembler_matrix_molecular_core
 ---

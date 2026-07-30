@@ -14,12 +14,14 @@ import appeng.crafting.pattern.AECraftingPattern;
 import appeng.crafting.pattern.AEProcessingPattern;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingTreeNodeBridge;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingTreeProcessBridge;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -299,16 +301,30 @@ public final class OmniMaxFastPlanner {
             if (multiplier <= 0 || entry.getValue() == null || entry.getValue() != multiplier) {
                 return rejectReusableBoundary(node, details, "invalid_input_multiplier", null);
             }
-            long childRequest = mode == BoundaryInputMode.REUSABLE
-                    ? multiplier
-                    : saturatedMultiply(multiplier, patternTimes);
-            inputPlans.add(new BoundaryInputPlan(childBridge, childRequest));
+            long childRequest = switch (mode) {
+                case INVARIANT_REUSABLE -> multiplier;
+                case CONSUMABLE -> saturatedMultiply(multiplier, patternTimes);
+                case DETERMINISTIC_DAMAGE -> 0;
+                case UNSAFE -> throw new IllegalStateException(
+                        "Unsafe reusable boundary input escaped classification");
+            };
+            inputPlans.add(new BoundaryInputPlan(
+                    input, childBridge, mode, childRequest, multiplier));
         }
 
         var containerItems = new KeyCounter();
         for (BoundaryInputPlan inputPlan : inputPlans) {
-            inputPlan.child.molecularmanipulator$request(
-                    attempt, inputPlan.requestedAmount, containerItems);
+            if (inputPlan.mode == BoundaryInputMode.DETERMINISTIC_DAMAGE) {
+                if (!allocateDeterministicDamageInput(attempt, inputPlan.input,
+                        inputPlan.child, inputPlan.multiplier, patternTimes,
+                        pauseCheckpoint)) {
+                    return rejectReusableBoundary(node, details,
+                            "insufficient_deterministic_damage_capacity", null);
+                }
+            } else {
+                inputPlan.child.molecularmanipulator$request(
+                        attempt, inputPlan.requestedAmount, containerItems);
+            }
         }
 
         for (var stack : containerItems) {
@@ -362,30 +378,123 @@ public final class OmniMaxFastPlanner {
             OmniCraftingTreeNodeBridge child, CraftingSimulationState inventory,
             PauseCheckpoint pauseCheckpoint)
             throws InterruptedException {
-        BoundaryInputMode mode = classifyRemainingKey(input, child.molecularmanipulator$getWhat());
+        BoundaryInputMode mode = classifyRemainingKey(
+                input, child.molecularmanipulator$getWhat(),
+                child.molecularmanipulator$getLevel());
         if (mode == BoundaryInputMode.UNSAFE) {
-            return BoundaryInputClassification.rejected("container_changes_key");
+            return BoundaryInputClassification.rejected("unsupported_container_transition");
         }
         for (InputTemplate template : child.molecularmanipulator$getValidItemTemplates(inventory)) {
             checkpoint(pauseCheckpoint);
-            BoundaryInputMode templateMode = classifyRemainingKey(input, template.key());
+            BoundaryInputMode templateMode = classifyRemainingKey(
+                    input, template.key(), child.molecularmanipulator$getLevel());
             if (templateMode == BoundaryInputMode.UNSAFE) {
-                return BoundaryInputClassification.rejected("container_changes_key");
+                return BoundaryInputClassification.rejected(
+                        "unsupported_container_transition");
             }
             if (templateMode != mode) {
                 return BoundaryInputClassification.rejected(
-                        "mixed_consumable_and_reusable_templates");
+                        "mixed_container_transition_modes");
             }
         }
         return BoundaryInputClassification.accepted(mode);
     }
 
-    private static BoundaryInputMode classifyRemainingKey(IPatternDetails.IInput input, AEKey key) {
-        AEKey remainingKey = input.getRemainingKey(key);
-        if (remainingKey == null) {
-            return BoundaryInputMode.CONSUMABLE;
+    private static BoundaryInputMode classifyRemainingKey(IPatternDetails.IInput input,
+            AEKey key, net.minecraft.world.level.Level level) {
+        var analysis = MolecularReusableInputAdapters.analyze(input, key, level, 2);
+        return switch (analysis.mode()) {
+            case CONSUMABLE -> BoundaryInputMode.CONSUMABLE;
+            case INVARIANT_REUSABLE -> BoundaryInputMode.INVARIANT_REUSABLE;
+            case DETERMINISTIC_DAMAGE -> BoundaryInputMode.DETERMINISTIC_DAMAGE;
+            case UNSUPPORTED -> BoundaryInputMode.UNSAFE;
+        };
+    }
+
+    /**
+     * Reserves real finite-durability tools for a pattern boundary.
+     *
+     * <p>Each selected group contains {@code inputMultiplier} tools with the
+     * exact same AE key, so a single pattern extraction never has to mix damage
+     * states. The sum of the conservatively observed capacities must cover all
+     * requested pattern executions. We intentionally do not credit the
+     * resulting damaged tools back into the simulation: execution may use the
+     * selected groups in a different order, and omitting those remainders keeps
+     * the plan safe without inventing a specific final damage distribution.</p>
+     */
+    private static boolean allocateDeterministicDamageInput(
+            CraftingSimulationState inventory, IPatternDetails.IInput input,
+            OmniCraftingTreeNodeBridge child, long inputMultiplier,
+            long patternTimes, PauseCheckpoint pauseCheckpoint)
+            throws InterruptedException {
+        if (inputMultiplier <= 0 || patternTimes <= 0
+                || child.molecularmanipulator$getAmount() != 1) {
+            return false;
         }
-        return remainingKey.equals(key) ? BoundaryInputMode.REUSABLE : BoundaryInputMode.UNSAFE;
+
+        var selections = new ArrayList<FiniteToolSelection>();
+        var seenKeys = new HashSet<AEKey>();
+        long remainingPatterns = patternTimes;
+        long selectedTools = 0;
+
+        for (InputTemplate template : child.molecularmanipulator$getValidItemTemplates(inventory)) {
+            checkpoint(pauseCheckpoint);
+            if (remainingPatterns == 0) {
+                break;
+            }
+            if (template == null || template.key() == null
+                    || template.amount() != 1 || !seenKeys.add(template.key())) {
+                continue;
+            }
+
+            long available = inventory.extract(
+                    template.key(), Long.MAX_VALUE, Actionable.SIMULATE);
+            long availableGroups = available / inputMultiplier;
+            if (availableGroups <= 0) {
+                continue;
+            }
+
+            var analysis = MolecularReusableInputAdapters.analyze(
+                    input, template.key(), child.molecularmanipulator$getLevel(),
+                    remainingPatterns);
+            if (analysis.mode()
+                    != MolecularReusableInputAdapters.Mode.DETERMINISTIC_DAMAGE
+                    || analysis.safeCrafts() <= 0) {
+                continue;
+            }
+
+            long groupsNeeded = ceilDiv(
+                    remainingPatterns, analysis.safeCrafts());
+            long selectedGroups = Math.min(availableGroups, groupsNeeded);
+            long toolAmount;
+            try {
+                toolAmount = Math.multiplyExact(selectedGroups, inputMultiplier);
+                selectedTools = Math.addExact(selectedTools, toolAmount);
+            } catch (ArithmeticException exception) {
+                return false;
+            }
+
+            selections.add(new FiniteToolSelection(template.key(), toolAmount));
+            long coveredPatterns = saturatedMultiply(
+                    selectedGroups, analysis.safeCrafts());
+            remainingPatterns -= Math.min(remainingPatterns, coveredPatterns);
+        }
+
+        if (remainingPatterns != 0 || selections.isEmpty()) {
+            return false;
+        }
+
+        for (FiniteToolSelection selection : selections) {
+            long extracted = inventory.extract(
+                    selection.key, selection.amount, Actionable.MODULATE);
+            if (extracted != selection.amount) {
+                throw new IllegalStateException(
+                        "Crafting simulation inventory changed during finite-tool extraction");
+            }
+        }
+        inventory.addStackBytes(
+                child.molecularmanipulator$getWhat(), 1, selectedTools);
+        return true;
     }
 
     private static long extractTemplateMultipliers(CraftingSimulationState inventory,
@@ -406,7 +515,8 @@ public final class OmniMaxFastPlanner {
 
     private enum BoundaryInputMode {
         CONSUMABLE,
-        REUSABLE,
+        INVARIANT_REUSABLE,
+        DETERMINISTIC_DAMAGE,
         UNSAFE
     }
 
@@ -420,7 +530,12 @@ public final class OmniMaxFastPlanner {
         }
     }
 
-    private record BoundaryInputPlan(OmniCraftingTreeNodeBridge child, long requestedAmount) {
+    private record BoundaryInputPlan(IPatternDetails.IInput input,
+            OmniCraftingTreeNodeBridge child, BoundaryInputMode mode,
+            long requestedAmount, long multiplier) {
+    }
+
+    private record FiniteToolSelection(AEKey key, long amount) {
     }
 
     private static void validateTemplates(Node node, CraftingSimulationState inventory,

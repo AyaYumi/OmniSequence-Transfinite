@@ -1,5 +1,57 @@
 # Changelog
 
+## 1.3.7-forge-fix - 2026-07-30
+
+### Added
+
+- Added runtime compatibility with AE2-UELM 15.5.0 while retaining official
+  Applied Energistics 2 15.4.10 support. UELM uses its native long-amount
+  confirmation path and skips the incompatible `int` field Mixin.
+
+### Changed
+
+- Added effect-cleared layouts for both fixed multiblocks while retaining
+  strict compatibility with their complete legacy layouts.
+- Controllers now identify a complete legacy layout and show an optional
+  structure-update notice. Legacy structures remain formed and operational
+  until a player explicitly starts the safe relocation.
+- Updated projection, automatic construction, dismantling, JEI previews, and
+  GuideME documentation for the current layouts and optional upgrade flow.
+- Moved all OmniSequence GuideME pages into a dedicated top-level
+  `OmniSequence: Transfinite` section while preserving item-page links.
+- Controller screens now scale down only when their native size would exceed
+  the current GUI area. Slots, buttons, tooltips, and JEI ghost targets use the
+  same transformed coordinates.
+- Replaced per-frame ghost-block model tessellation with reusable 16x16x16
+  section VBOs for both multiblock projections. Changed sections rebuild
+  incrementally, at most two per frame, while unchanged geometry is reused.
+- Item-substitution crafting patterns are now permanently eligible for compatible
+  batch dispatch. The retired `omni_batch_allow_substitution_patterns` option is
+  removed from existing TOML files without resetting other custom values.
+- Matter Sequence item tooltips now default to a compact Shift-expand prompt.
+  A client setting can disable them, keep the `HOLD_SHIFT` behavior, or make
+  them `ALWAYS_VISIBLE`.
+
+### Fixed
+
+- Restored the vanilla translucent world backdrop behind both controller
+  screens on Forge 1.20.1, drawing it before responsive GUI scaling so it
+  covers the complete viewport.
+- Sequence Array construction now honors Creative mode like Omni-Computation
+  construction: materials are not consumed, and a failed placement cannot
+  create a refunded block.
+- Added compact English controller labels for narrow buttons and verified that
+  every English and Chinese static/dynamic translation key has a matching
+  entry.
+- Reworked controller labels and values into width-aware columns and wrapped
+  rows, preventing English text overlap. The Omni-Computation fixed-capability
+  notice now renders at the normal readable font size.
+- The AE2 crafting CPU selector now renders a compact localized Omni lane name
+  inside its narrow row while retaining the complete name in the tooltip.
+
+See [RELEASE_NOTES_1.3.7-forge-fix.md](RELEASE_NOTES_1.3.7-forge-fix.md) for the complete
+bilingual release and upgrade notes.
+
 ## 1.3.6-forge - 2026-07-29
 
 ### Added

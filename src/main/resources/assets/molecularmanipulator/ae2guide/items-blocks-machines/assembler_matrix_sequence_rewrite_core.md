@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: Assembler Matrix Sequence Rewrite Core
   icon: molecularmanipulator:assembler_matrix_molecular_core
   position: 1010
-categories:
-- machines
 item_ids:
 - molecularmanipulator:assembler_matrix_molecular_core
 ---

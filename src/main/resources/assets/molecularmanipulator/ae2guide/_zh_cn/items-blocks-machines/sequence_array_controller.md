@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: 构序阵列控制器
   icon: molecularmanipulator:molecular_center_controller
   position: 1030
-categories:
-- machines
 item_ids:
 - molecularmanipulator:molecular_center_controller
 ---
@@ -24,6 +22,10 @@ item_ids:
 3. 在 JEI 结构分类中查看全部层级和完整材料清单。
 4. 加载结构覆盖的全部区块、清理冲突方块，然后点击“一键安放”；结构会分批补齐缺失方块。
 5. 将完整结构接入已经供电的 ME 网络。使用 AE2 扳手可旋转控制器并刷新结构校验。
+
+旧版与新版中心布局都可以正常成型。新版布局会让中央能量场的正中心保持为空气，并将实体核心放在
+核心球壳顶部。控制器检测到完整旧布局时会显示可选的结构更新提示；忽略提示即可继续使用旧结构，
+确认更新后才会安全回收原中心核心并将其迁移到新位置。
 
 阵列不会强制加载区块。结构范围未完整加载时会暂停，区块恢复后会重新校验并继续工作。
 
@@ -48,6 +50,9 @@ item_ids:
 
 只有 `config/molecularmanipulator/matter_rewrite_rules.json` 允许的物品才能处理。带命名、附魔、耐久、
 容器内容等自定义数据的物品会被拒绝。
+
+物品提示中的物质构序详情默认折叠为 `[按住 Shift]` 提示。客户端配置可选择永久关闭、
+按住 Shift 展开或永久显示。
 
 ## 量子链路与视觉设置
 

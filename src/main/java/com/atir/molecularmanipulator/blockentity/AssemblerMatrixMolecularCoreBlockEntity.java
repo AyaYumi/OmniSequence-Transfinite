@@ -12,6 +12,9 @@ import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.CraftingEvent;
 import appeng.me.helpers.MachineSource;
+import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -28,8 +31,11 @@ import net.minecraft.world.level.block.state.BlockState;
 public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssemblerMatrixFunction implements IGridTickable {
     public static final long VIRTUAL_PARALLEL_LIMIT = Integer.MAX_VALUE;
     private static final int MAX_BUFFERED_TYPES = 256;
+    private static final long MAX_REUSABLE_CRAFTS_PER_TICK = 65_536;
     private static final String OUTPUT_BUFFER_TAG = "output_buffer";
     private static final String OUTPUT_READY_TICK_TAG = "output_ready_tick";
+    private static final String ACTIVE_REUSABLE_BATCH_TAG =
+            "active_reusable_batch";
 
     private final MachineSource actionSource = new MachineSource(this);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
@@ -42,6 +48,8 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     private long craftingEventTick = Long.MIN_VALUE;
     private long bufferDirtyTick = Long.MIN_VALUE;
     private long outputReadyTick = Long.MIN_VALUE;
+    private MolecularReusableBatchJob activeReusableBatch;
+    private CompoundTag quarantinedReusableBatchTag;
 
     public AssemblerMatrixMolecularCoreBlockEntity(BlockPos pos, BlockState blockState) {
         super(ModContent.ASSEMBLER_MATRIX_MOLECULAR_CORE_BLOCK_ENTITY.get(), pos, blockState);
@@ -55,7 +63,8 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     }
 
     public boolean canAcceptCrafting() {
-        if (assembling) {
+        if (assembling || activeReusableBatch != null
+                || quarantinedReusableBatchTag != null) {
             return false;
         }
         var level = getLevel();
@@ -83,6 +92,12 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
         assembling = true;
         try {
+            var reusableContext = MolecularBatchDispatchContext.current(
+                    patternDetails, inputs);
+            if (reusableContext != null) {
+                return acceptReusableCrafting(patternDetails, pattern, inputs,
+                        reusableContext);
+            }
             if (!craftingBatcher.prepare(patternDetails, inputs, level, VIRTUAL_PARALLEL_LIMIT)) {
                 return false;
             }
@@ -110,17 +125,58 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         }
     }
 
-    private boolean canQueueOutputs(Object2LongOpenHashMap<AEKey> outputAmounts) {
-        int outputTypes = bufferedOutputs.size();
+    private boolean acceptReusableCrafting(IPatternDetails patternDetails,
+            IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs,
+            MolecularBatchDispatchContext.Context context) {
+        var level = getLevel();
+        if (level == null || activeReusableBatch != null) {
+            return false;
+        }
+
+        var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
+                context.craftingId(), context.plan());
+        if (job == null
+                || !canQueueOutputs(job.projectedPrimaryOutputs(),
+                        job.projectedFinalRemainders())
+                || !canQueueOutputs(job.cancellationRefunds())) {
+            return false;
+        }
+
+        // Commit point: after this assignment and holder clear, the machine owns
+        // every input. No later event hook may turn acceptance back into rejection.
+        activeReusableBatch = job;
+        craftingBatcher.consumeInputs(inputs);
+        saveChanges();
         try {
-            for (var entry : outputAmounts.object2LongEntrySet()) {
-                if (!bufferedOutputs.containsKey(entry.getKey())) {
-                    outputTypes++;
-                    if (outputTypes > MAX_BUFFERED_TYPES) {
-                        return false;
+            fireCraftingEventOncePerTick(level, patternDetails, pattern);
+        } catch (RuntimeException exception) {
+            MolecularManipulator.LOGGER.warn(
+                    "Crafting event failed after assembler-matrix reusable batch commit at {}",
+                    getBlockPos(), exception);
+        }
+        wakeForBufferedOutputs();
+        return true;
+    }
+
+    @SafeVarargs
+    private final boolean canQueueOutputs(
+            Object2LongOpenHashMap<AEKey>... outputGroups) {
+        int outputTypes = bufferedOutputs.size();
+        var totals = new Object2LongOpenHashMap<AEKey>();
+        totals.putAll(bufferedOutputs);
+        try {
+            for (var outputAmounts : outputGroups) {
+                for (var entry : outputAmounts.object2LongEntrySet()) {
+                    if (!totals.containsKey(entry.getKey())) {
+                        outputTypes++;
+                        if (outputTypes > MAX_BUFFERED_TYPES) {
+                            return false;
+                        }
                     }
+                    totals.put(entry.getKey(), Math.addExact(
+                            totals.getLong(entry.getKey()),
+                            entry.getLongValue()));
                 }
-                Math.addExact(bufferedOutputs.getLong(entry.getKey()), entry.getLongValue());
             }
         } catch (ArithmeticException exception) {
             return false;
@@ -150,22 +206,26 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     @Override
     public TickingRequest getTickingRequest(IGridNode node) {
-        return new TickingRequest(1, 20, bufferedOutputs.isEmpty(), true);
+        return new TickingRequest(1, 20,
+                bufferedOutputs.isEmpty() && activeReusableBatch == null, true);
     }
 
     @Override
     public TickRateModulation tickingRequest(IGridNode node, int ticksSinceLastCall) {
+        boolean progressed = processReusableBatch();
         var result = flushBufferedOutputs();
-        if (bufferedOutputs.isEmpty()) {
+        if (bufferedOutputs.isEmpty() && activeReusableBatch == null) {
             return TickRateModulation.SLEEP;
         }
-        return result.transferred() > 0 ? TickRateModulation.FASTER : TickRateModulation.SLOWER;
+        return progressed || result.transferred() > 0
+                ? TickRateModulation.FASTER
+                : TickRateModulation.SLOWER;
     }
 
     @Override
     public void onReady() {
         super.onReady();
-        if (!bufferedOutputs.isEmpty()) {
+        if (!bufferedOutputs.isEmpty() || activeReusableBatch != null) {
             wakeForBufferedOutputs();
         }
     }
@@ -182,6 +242,13 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         }
         tag.put(OUTPUT_BUFFER_TAG, outputList);
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
+        if (activeReusableBatch != null) {
+            tag.put(ACTIVE_REUSABLE_BATCH_TAG,
+                    activeReusableBatch.writeToTag());
+        } else if (quarantinedReusableBatchTag != null) {
+            tag.put(ACTIVE_REUSABLE_BATCH_TAG,
+                    quarantinedReusableBatchTag.copy());
+        }
     }
 
     @Override
@@ -198,6 +265,75 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
+        activeReusableBatch = null;
+        quarantinedReusableBatchTag = null;
+        if (tag.contains(ACTIVE_REUSABLE_BATCH_TAG, Tag.TAG_COMPOUND)) {
+            var jobTag = tag.getCompound(ACTIVE_REUSABLE_BATCH_TAG);
+            activeReusableBatch = MolecularReusableBatchJob.readFromTag(jobTag);
+            if (activeReusableBatch == null) {
+                quarantinedReusableBatchTag = jobTag.copy();
+                MolecularManipulator.LOGGER.error(
+                        "Invalid assembler-matrix reusable batch at {}; preserving its NBT and locking the core",
+                        getBlockPos());
+            }
+        }
+    }
+
+    private boolean processReusableBatch() {
+        var level = getLevel();
+        var job = activeReusableBatch;
+        if (level == null || job == null || assembling) {
+            return false;
+        }
+
+        if (MolecularBatchCancellationData.isCanceled(
+                level, job.craftingId())) {
+            var refunds = job.cancellationRefunds();
+            if (!canQueueOutputs(refunds)) {
+                return false;
+            }
+            addOutputs(bufferedOutputs, refunds);
+            activeReusableBatch = null;
+            outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
+            saveChanges();
+            return true;
+        }
+
+        if (!isFormed() || !getMainNode().isActive()) {
+            return false;
+        }
+
+        long step = job.nextStep(MAX_REUSABLE_CRAFTS_PER_TICK);
+        if (step <= 0) {
+            return false;
+        }
+        var primary = job.primaryOutputsFor(step);
+        boolean completes = step == job.totalCrafts() - job.completedCrafts();
+        var remainders = completes
+                ? job.projectedFinalRemainders()
+                : new Object2LongOpenHashMap<AEKey>();
+        if (!canQueueOutputs(primary, remainders)) {
+            return false;
+        }
+
+        job.advance(step);
+        addOutputs(bufferedOutputs, primary);
+        if (job.isComplete()) {
+            addOutputs(bufferedOutputs, job.completedRemainders());
+            activeReusableBatch = null;
+        }
+        outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
+        saveChanges();
+        return true;
+    }
+
+    private static void addOutputs(Object2LongOpenHashMap<AEKey> destination,
+            Object2LongOpenHashMap<AEKey> outputs) {
+        for (var entry : outputs.object2LongEntrySet()) {
+            destination.put(entry.getKey(), Math.addExact(
+                    destination.getLong(entry.getKey()),
+                    entry.getLongValue()));
+        }
     }
 
     private AEKeyTransferScheduler.FlushResult flushBufferedOutputs() {

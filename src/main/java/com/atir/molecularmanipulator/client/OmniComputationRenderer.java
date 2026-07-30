@@ -28,7 +28,6 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
             ResourceLocation.withDefaultNamespace("textures/entity/beacon_beam.png");
     private static final ResourceLocation PORTAL_TEXTURE =
             ResourceLocation.withDefaultNamespace("textures/entity/end_portal.png");
-    private static final double VISUAL_Y = 17.0;
     private static final int CYAN = 0x55EEFF;
     private static final int BLUE = 0x409CFF;
     private static final int PURPLE = 0x9D61FF;
@@ -53,7 +52,9 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
         }
 
         Direction facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        Vec3 visualCenter = OmniComputationStructure.worldPoint(core.getBlockPos(), facing, 0.0, VISUAL_Y, 0.0);
+        Vec3 visualCenter = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
+                OmniComputationStructure.EFFECT_X, OmniComputationStructure.EFFECT_Y,
+                OmniComputationStructure.EFFECT_Z);
         Vec3 camera = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         double distanceSquared = camera.distanceToSqr(visualCenter);
         boolean detailed = effectLevel > 1 && distanceSquared < 160.0 * 160.0;
@@ -184,7 +185,7 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
             if (intensity <= 0.025F) {
                 continue;
             }
-            Vec3 start = new Vec3(pylon[0], 15.0 - VISUAL_Y, pylon[1]);
+            Vec3 start = new Vec3(pylon[0], 15.0 - OmniComputationStructure.EFFECT_Y, pylon[1]);
             renderBeamBetween(poseStack, consumer, start, Vec3.ZERO,
                     0.035F + activityStrength * 0.035F, CYAN,
                     Math.round(35.0F + intensity * 150.0F));

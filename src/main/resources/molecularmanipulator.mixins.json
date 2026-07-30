@@ -15,6 +15,7 @@
     "CraftingCPUClusterAccessor",
     "CraftingCpuLogicMixin",
     "CraftAmountMenuMixin",
+    "CraftConfirmMenuLongMixin",
     "CraftConfirmMenuMixin",
     "CraftingPlanSummaryAccessor",
     "CraftingPlanSummaryMixin",

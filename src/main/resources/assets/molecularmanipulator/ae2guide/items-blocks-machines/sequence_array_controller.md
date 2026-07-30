@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: Sequence Array Controller
   icon: molecularmanipulator:molecular_center_controller
   position: 1030
-categories:
-- machines
 item_ids:
 - molecularmanipulator:molecular_center_controller
 ---
@@ -29,6 +27,11 @@ quantum connection.
    batches.
 5. Connect the completed structure to a powered ME Network. An AE2 wrench rotates the controller and refreshes the
    structure check.
+
+Both the legacy and current center layouts remain valid. The current layout leaves the exact center of the energy field
+as air and places the physical core at the top of the core sphere. When a complete legacy layout is detected, the
+controller shows an optional structure-update notice. Ignoring it keeps the legacy structure operational; accepting it
+recovers the old center core and relocates it safely.
 
 The array does not force-load chunks. It pauses when its full area is not loaded and validates itself again when the
 chunks return.
@@ -57,6 +60,9 @@ The matter tab stores four independent sequence types: metal, mineral, crystal, 
 
 Only items allowed by `config/molecularmanipulator/matter_rewrite_rules.json` can be processed. Items with custom data,
 such as names, enchantments, durability, or container contents, are rejected.
+
+Matter Sequence details in item tooltips default to a compact `[Hold Shift]` prompt. The client configuration can
+disable them, keep the Shift-expand behavior, or display them permanently.
 
 ## Quantum link and visual settings
 

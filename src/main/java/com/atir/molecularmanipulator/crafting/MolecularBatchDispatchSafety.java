@@ -4,7 +4,6 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
-import appeng.crafting.pattern.AECraftingPattern;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
@@ -154,12 +153,6 @@ public final class MolecularBatchDispatchSafety {
             return "missing_pattern_details";
         }
 
-        boolean allowSubstitution = ModConfig.OMNI_BATCH_ALLOW_SUBSTITUTION_PATTERNS.get();
-        if (!allowSubstitution && patternDetails instanceof AECraftingPattern craftingPattern
-                && craftingPattern.canSubstitute()) {
-            return "crafting_item_substitution_enabled";
-        }
-
         var inputs = patternDetails.getInputs();
         if (inputs == null) {
             return "missing_pattern_inputs";
@@ -172,16 +165,14 @@ public final class MolecularBatchDispatchSafety {
             if (possibleInputs == null || possibleInputs.length == 0) {
                 return "missing_input_templates";
             }
-            if (!allowSubstitution && possibleInputs.length != 1) {
-                return "multiple_input_templates";
-            }
             for (var possibleInput : possibleInputs) {
                 if (possibleInput == null || possibleInput.what() == null || possibleInput.amount() <= 0) {
                     return "invalid_input_template";
                 }
-                if (input.getRemainingKey(possibleInput.what()) != null) {
-                    return "container_or_reusable_input";
-                }
+                // Remainders are classified from the actual extracted key by
+                // MolecularBatchCraftingExtractor. Only explicit molecular
+                // providers may opt into reusable-input expansion; buckets,
+                // random damage and unknown NBT transitions still fall back.
             }
         }
         return null;

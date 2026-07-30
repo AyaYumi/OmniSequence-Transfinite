@@ -31,7 +31,10 @@ import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
+import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
@@ -77,6 +80,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final int MAX_BUFFERED_TYPES = 256;
     private static final int PIPELINE_STORAGE_PRIORITY = 1_000;
     private static final int MAX_PORT_ITEMS_PER_TICK = 4_096;
+    private static final long MAX_REUSABLE_CRAFTS_PER_TICK = 65_536;
     private static final String LEGACY_OUTPUT_BUFFER_TAG = "molecular_center_output_buffer";
     private static final String PENDING_PRIMARY_TAG = "pipeline_pending_primary";
     private static final String PENDING_BYPRODUCT_TAG = "pipeline_pending_byproduct";
@@ -86,7 +90,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final String BYPRODUCT_ROUTE_TAG = "pipeline_byproduct_route";
     private static final String OUTPUT_PORT_TAG = "pipeline_output_port";
     private static final String OUTPUT_READY_TICK_TAG = "molecular_center_output_ready_tick";
+    private static final String ACTIVE_REUSABLE_BATCH_TAG = "active_reusable_batch";
+    private static final String REUSABLE_BATCH_REFUNDS_TAG = "reusable_batch_refunds";
     private static final String REPAIR_ONLY_BUILD_TAG = "molecular_center_repair_only_build";
+    private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
+            "molecular_center_legacy_structure_update_dismissed";
     private static final String MATTER_INVENTORY_TAG = "matter_sequence_inventory";
     private static final String METAL_SEQUENCE_TAG = "matter_sequence_metal";
     private static final String MINERAL_SEQUENCE_TAG = "matter_sequence_mineral";
@@ -140,10 +148,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final Object2LongOpenHashMap<AEKey> pendingByproducts = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> cachedPrimaryOutputs = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> cachedByproducts = new Object2LongOpenHashMap<>();
+    private final Object2LongOpenHashMap<AEKey> reusableBatchRefunds = new Object2LongOpenHashMap<>();
     private final AEKeyTransferScheduler pendingPrimaryTransferScheduler = new AEKeyTransferScheduler();
     private final AEKeyTransferScheduler pendingByproductTransferScheduler = new AEKeyTransferScheduler();
     private final AEKeyTransferScheduler cachedPrimaryTransferScheduler = new AEKeyTransferScheduler();
     private final AEKeyTransferScheduler cachedByproductTransferScheduler = new AEKeyTransferScheduler();
+    private final AEKeyTransferScheduler reusableBatchRefundTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
     private final PipelineStorageProvider pipelineStorageProvider = new PipelineStorageProvider();
     private PipelineRoute primaryRoute = PipelineRoute.NETWORK;
@@ -151,6 +161,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private PipelinePort outputPort = PipelinePort.FRONT;
     private boolean assembling;
     private boolean formed;
+    private MolecularCenterStructure.StructureLayout structureLayout =
+            MolecularCenterStructure.StructureLayout.INCOMPLETE;
+    private boolean legacyStructureUpdateDismissed;
     private boolean pipelineBlocked;
     private long craftingEventTick = Long.MIN_VALUE;
     private long bufferDirtyTick = Long.MIN_VALUE;
@@ -158,6 +171,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private long pipelineActivityTick = Long.MIN_VALUE;
     private long pipelineCrafts;
     private long lastPipelineTransfer;
+    private MolecularReusableBatchJob activeReusableBatch;
+    private CompoundTag quarantinedReusableBatchTag;
     private long structureCheckTick = Long.MIN_VALUE;
     private int fieldColor = DEFAULT_FIELD_COLOR;
     private int coreColor = DEFAULT_CORE_COLOR;
@@ -310,6 +325,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         tag.putBoolean("molecular_center_building", building);
         tag.putBoolean("molecular_center_dismantling", dismantling);
         tag.putBoolean(REPAIR_ONLY_BUILD_TAG, repairOnlyBuild);
+        tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
         tag.putInt("molecular_center_work_cursor", workCursor);
         tag.putInt("molecular_center_work_total", workTotal);
         tag.putInt("molecular_center_work_conflicts", workConflicts);
@@ -320,6 +336,13 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         writeStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts);
         writeStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs);
         writeStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts);
+        writeStacks(tag, REUSABLE_BATCH_REFUNDS_TAG, reusableBatchRefunds);
+        if (activeReusableBatch != null) {
+            tag.put(ACTIVE_REUSABLE_BATCH_TAG, activeReusableBatch.writeToTag());
+        } else if (quarantinedReusableBatchTag != null) {
+            tag.put(ACTIVE_REUSABLE_BATCH_TAG,
+                    quarantinedReusableBatchTag.copy());
+        }
         tag.putString(PRIMARY_ROUTE_TAG, primaryRoute.getSerializedName());
         tag.putString(BYPRODUCT_ROUTE_TAG, byproductRoute.getSerializedName());
         tag.putString(OUTPUT_PORT_TAG, outputPort.getSerializedName());
@@ -362,6 +385,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         building = tag.getBoolean("molecular_center_building");
         dismantling = tag.getBoolean("molecular_center_dismantling");
         repairOnlyBuild = building && tag.getBoolean(REPAIR_ONLY_BUILD_TAG);
+        legacyStructureUpdateDismissed = tag.getBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG);
         buildQueueInitialized = false;
         buildWorkParts = List.of();
         workCursor = tag.getInt("molecular_center_work_cursor");
@@ -380,6 +404,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         pendingByproducts.clear();
         cachedPrimaryOutputs.clear();
         cachedByproducts.clear();
+        reusableBatchRefunds.clear();
         if (tag.contains(PENDING_PRIMARY_TAG, Tag.TAG_LIST)) {
             readStacks(tag, PENDING_PRIMARY_TAG, pendingPrimaryOutputs);
         } else {
@@ -388,6 +413,19 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         readStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts);
         readStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs);
         readStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts);
+        readStacks(tag, REUSABLE_BATCH_REFUNDS_TAG, reusableBatchRefunds);
+        activeReusableBatch = null;
+        quarantinedReusableBatchTag = null;
+        if (tag.contains(ACTIVE_REUSABLE_BATCH_TAG, Tag.TAG_COMPOUND)) {
+            var jobTag = tag.getCompound(ACTIVE_REUSABLE_BATCH_TAG);
+            activeReusableBatch = MolecularReusableBatchJob.readFromTag(jobTag);
+            if (activeReusableBatch == null) {
+                quarantinedReusableBatchTag = jobTag.copy();
+                MolecularManipulator.LOGGER.error(
+                        "Invalid sequence-array reusable batch at {}; preserving its NBT and locking the controller",
+                        getBlockPos());
+            }
+        }
         primaryRoute = PipelineRoute.fromSerializedName(tag.getString(PRIMARY_ROUTE_TAG));
         byproductRoute = PipelineRoute.fromSerializedName(tag.getString(BYPRODUCT_ROUTE_TAG));
         outputPort = PipelinePort.fromSerializedName(tag.getString(OUTPUT_PORT_TAG));
@@ -551,6 +589,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return formed && getMainNode().isActive();
     }
 
+    boolean hasActiveReusableBatch() {
+        return activeReusableBatch != null
+                || quarantinedReusableBatchTag != null;
+    }
+
     public PipelineRoute getPrimaryRoute() {
         return primaryRoute;
     }
@@ -602,7 +645,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     public long getPendingOutputAmount() {
-        return saturatedSum(pendingPrimaryOutputs, pendingByproducts);
+        return saturatedAdd(saturatedSum(pendingPrimaryOutputs, pendingByproducts),
+                sumAmounts(reusableBatchRefunds));
     }
 
     public boolean isPipelineBlocked() {
@@ -1376,7 +1420,15 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        boolean newFormed = MolecularCenterStructure.matches(level, worldPosition, facing);
+        var newLayout = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
+        boolean newFormed = newLayout.isFormed();
+        structureLayout = newLayout;
+        boolean stateChanged = false;
+        if (newLayout == MolecularCenterStructure.StructureLayout.CURRENT
+                && legacyStructureUpdateDismissed) {
+            legacyStructureUpdateDismissed = false;
+            stateChanged = true;
+        }
         if (newFormed != formed) {
             formed = newFormed;
             level.setBlock(worldPosition, getBlockState().setValue(
@@ -1386,6 +1438,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             invalidatePipelineStorageCache();
             IStorageProvider.requestUpdate(getMainNode());
             getLogic().updatePatterns();
+            stateChanged = true;
+        }
+        if (stateChanged) {
             saveChanges();
         }
         if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
@@ -1405,6 +1460,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         long gameTime = level.getGameTime();
         processWorkQueue();
+        processReusableBatch(gameTime);
         flushBufferedOutputs(gameTime);
         flushLegacyDeconstructRefund();
         processMatterJobs();
@@ -1460,6 +1516,22 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return workTotal;
     }
 
+    public boolean isBuilding() {
+        return building;
+    }
+
+    public boolean isDismantling() {
+        return dismantling;
+    }
+
+    public boolean hasLegacyStructure() {
+        return formed && structureLayout == MolecularCenterStructure.StructureLayout.LEGACY;
+    }
+
+    public boolean isLegacyStructureUpdateDismissed() {
+        return legacyStructureUpdateDismissed;
+    }
+
     public void startBuild(ServerPlayer player) {
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
@@ -1469,6 +1541,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || !MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
             player.displayClientMessage(
                     Component.translatable("message.molecularmanipulator.build_area_unavailable"), false);
+            return;
+        }
+        structureLayout = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
+        if (structureLayout == MolecularCenterStructure.StructureLayout.LEGACY) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_requires_confirmation"), false);
             return;
         }
         var missingParts = findMissingOnlyParts(facing);
@@ -1502,6 +1580,131 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                         ? "message.molecularmanipulator.build_repair_missing"
                         : "message.molecularmanipulator.build_full_calibration",
                 workTotal), false);
+        saveChanges();
+    }
+
+    public void startStructureUpdate(ServerPlayer player) {
+        if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
+            return;
+        }
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        if (!MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_unavailable"), false);
+            return;
+        }
+        var detected = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
+        structureLayout = detected;
+        if (detected != MolecularCenterStructure.StructureLayout.LEGACY) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_unavailable"), false);
+            return;
+        }
+
+        var visualCenterPos = MolecularCenterStructure.visualCenterPos(worldPosition, facing);
+        var upperCorePos = MolecularCenterStructure.upperCorePos(worldPosition, facing);
+        if (!level.hasChunkAt(visualCenterPos)
+                || !level.hasChunkAt(upperCorePos)
+                || !player.mayUseItemAt(visualCenterPos, Direction.UP, ItemStack.EMPTY)
+                || !player.mayUseItemAt(upperCorePos, Direction.UP, ItemStack.EMPTY)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_unavailable"), false);
+            return;
+        }
+
+        var visualCenterState = level.getBlockState(visualCenterPos);
+        var upperCoreState = level.getBlockState(upperCorePos);
+        if (!visualCenterState.is(MolecularCenterStructure.partState(
+                        MolecularCenterStructure.PartType.CORE).getBlock())
+                || !upperCoreState.is(MolecularCenterStructure.partState(
+                        MolecularCenterStructure.PartType.STABILIZER).getBlock())
+                || MolecularCenterStructure.detectLayout(level, worldPosition, facing)
+                        != MolecularCenterStructure.StructureLayout.LEGACY) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_unavailable"), false);
+            return;
+        }
+
+        var recoveredStabilizer = new ItemStack(upperCoreState.getBlock().asItem());
+        if (recoveredStabilizer.isEmpty() || !canStoreDismantled(player, recoveredStabilizer)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_storage_full"), false);
+            return;
+        }
+
+        boolean migrated = false;
+        try {
+            if (!level.setBlock(upperCorePos, visualCenterState, 3)
+                    || !level.getBlockState(upperCorePos).equals(visualCenterState)) {
+                throw new IllegalStateException("Could not place the molecular center upper core");
+            }
+            if (!level.setBlock(visualCenterPos,
+                    net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3)
+                    || !level.getBlockState(visualCenterPos).isAir()
+                    || MolecularCenterStructure.detectLayout(level, worldPosition, facing)
+                            != MolecularCenterStructure.StructureLayout.CURRENT) {
+                throw new IllegalStateException("Could not clear the molecular center visual core");
+            }
+            migrated = true;
+        } catch (RuntimeException exception) {
+            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+                    "Failed to update molecular center structure at {}; restoring the legacy layout",
+                    worldPosition, exception);
+        }
+        if (!migrated) {
+            rollbackStructureUpdate(visualCenterPos, visualCenterState, upperCorePos, upperCoreState);
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_unavailable"), false);
+            return;
+        }
+
+        storeDismantled(player, recoveredStabilizer);
+        legacyStructureUpdateDismissed = false;
+        refreshStructure();
+        player.displayClientMessage(Component.translatable(
+                "message.molecularmanipulator.structure_update_complete"), false);
+        saveChanges();
+    }
+
+    private void rollbackStructureUpdate(BlockPos visualCenterPos, BlockState visualCenterState,
+            BlockPos upperCorePos, BlockState upperCoreState) {
+        try {
+            level.setBlock(upperCorePos, upperCoreState, 3);
+            if (!level.getBlockState(upperCorePos).equals(upperCoreState)) {
+                com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+                        "Failed to restore the molecular center upper stabilizer at {}", upperCorePos);
+            }
+        } catch (RuntimeException exception) {
+            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+                    "Exception while restoring the molecular center upper stabilizer at {}",
+                    upperCorePos, exception);
+        }
+        try {
+            level.setBlock(visualCenterPos, visualCenterState, 3);
+            if (!level.getBlockState(visualCenterPos).equals(visualCenterState)) {
+                com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+                        "Failed to restore the molecular center visual core at {}", visualCenterPos);
+            }
+        } catch (RuntimeException exception) {
+            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+                    "Exception while restoring the molecular center visual core at {}",
+                    visualCenterPos, exception);
+        }
+        refreshStructure();
+    }
+
+    public void keepLegacyStructure(ServerPlayer player) {
+        if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
+            return;
+        }
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        structureLayout = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
+        if (structureLayout != MolecularCenterStructure.StructureLayout.LEGACY) {
+            return;
+        }
+        legacyStructureUpdateDismissed = true;
+        player.displayClientMessage(Component.translatable(
+                "message.molecularmanipulator.legacy_structure_retained"), false);
         saveChanges();
     }
 
@@ -1541,10 +1744,14 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             var state = level.getBlockState(MolecularCenterStructure.worldPos(worldPosition, facing, part));
             if (part.partType() == MolecularCenterStructure.PartType.AIR) {
-                if (MolecularCenterStructure.isStructurePart(state)) {
-                    return null;
+                if (state.isAir()) {
+                    continue;
                 }
-                continue;
+                if (state.canBeReplaced() || MolecularCenterStructure.isStructurePart(state)) {
+                    missing.add(part);
+                    continue;
+                }
+                return null;
             }
             if (state.is(MolecularCenterStructure.partState(part.partType()).getBlock())) {
                 continue;
@@ -1564,6 +1771,18 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         if (!MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
+            return;
+        }
+        if (MolecularCenterStructure.detectLayout(level, worldPosition, facing)
+                == MolecularCenterStructure.StructureLayout.LEGACY) {
+            building = false;
+            repairOnlyBuild = false;
+            buildWorkParts = List.of();
+            workCursor = 0;
+            workTotal = 0;
+            workConflicts = 0;
+            workOwner = null;
+            saveChanges();
             return;
         }
         if (repairOnlyBuild) {
@@ -1695,9 +1914,25 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private void processBuildPart(ServerPlayer player, MolecularCenterStructure.Part part, BlockPos pos,
             List<NetworkMaterialSource> materialSources) {
         if (part.partType() == MolecularCenterStructure.PartType.AIR) {
-            if (removeLegacyStructurePart(player, pos)) {
+            var current = level.getBlockState(pos);
+            if (current.isAir()) {
                 advanceWork();
+                return;
             }
+            if (MolecularCenterStructure.isStructurePart(current)) {
+                if (removeLegacyStructurePart(player, pos)) {
+                    advanceWork();
+                }
+                return;
+            }
+            if (current.canBeReplaced()
+                    && player.mayUseItemAt(pos, Direction.UP, ItemStack.EMPTY)
+                    && level.removeBlock(pos, false)) {
+                advanceWork();
+                return;
+            }
+            workConflicts++;
+            advanceWork();
             return;
         }
         var current = level.getBlockState(pos);
@@ -1755,13 +1990,15 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             advanceWork();
             return;
         }
+        if (!player.mayUseItemAt(pos, Direction.UP, ItemStack.EMPTY)) {
+            return;
+        }
         var item = new ItemStack(state.getBlock().asItem());
         if (item.isEmpty() || !canStoreDismantled(player, item)) {
             return;
         }
         if (!level.destroyBlock(pos, false, player)) {
             workConflicts++;
-            advanceWork();
             return;
         }
         storeDismantled(player, item);
@@ -1770,6 +2007,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     private boolean extractBuildMaterial(ServerPlayer player, ItemStack template,
             List<NetworkMaterialSource> materialSources) {
+        if (player.getAbilities().instabuild) {
+            return true;
+        }
         for (var stack : player.getInventory().items) {
             if (ItemStack.isSameItemSameTags(stack, template) && !stack.isEmpty()) {
                 stack.shrink(1);
@@ -1790,6 +2030,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     private void refundBuildMaterial(ServerPlayer player, ItemStack template,
             List<NetworkMaterialSource> materialSources) {
+        if (player.getAbilities().instabuild) {
+            return;
+        }
         if (player.getInventory().add(template.copy())) {
             return;
         }
@@ -1886,7 +2129,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
-        if (assembling || !isOperational() || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
+        if (assembling || hasActiveReusableBatch() || !isOperational()
+                || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
             return false;
         }
         var grid = getMainNode().getGrid();
@@ -1895,6 +2139,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         assembling = true;
         try {
+            var reusableContext = MolecularBatchDispatchContext.current(patternDetails, inputs);
+            if (reusableContext != null) {
+                return acceptReusablePattern(patternDetails, pattern, inputs, reusableContext);
+            }
             if (!craftingBatcher.prepare(patternDetails, inputs, level, VIRTUAL_PARALLEL_LIMIT)) {
                 return false;
             }
@@ -1914,6 +2162,37 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         } finally {
             assembling = false;
         }
+    }
+
+    private boolean acceptReusablePattern(IPatternDetails patternDetails,
+            IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs,
+            MolecularBatchDispatchContext.Context context) {
+        if (level == null || activeReusableBatch != null) {
+            return false;
+        }
+
+        var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
+                context.craftingId(), context.plan());
+        if (job == null
+                || !canQueueOutputs(job.projectedPrimaryOutputs(),
+                        job.projectedFinalRemainders())
+                || !canQueueRefunds(job.cancellationRefunds())) {
+            return false;
+        }
+
+        // Commit point: once the holders are cleared, this persisted job owns
+        // every extracted input until completion or cancellation refund.
+        activeReusableBatch = job;
+        craftingBatcher.consumeInputs(inputs);
+        saveChanges();
+        try {
+            fireCraftingEventOncePerTick(level, patternDetails, pattern);
+        } catch (RuntimeException exception) {
+            MolecularManipulator.LOGGER.warn(
+                    "Crafting event failed after sequence-array reusable batch commit at {}",
+                    getBlockPos(), exception);
+        }
+        return true;
     }
 
     private void fireCraftingEventOncePerTick(Level level, IPatternDetails details,
@@ -1965,6 +2244,62 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
+    private boolean canQueueRefunds(Object2LongOpenHashMap<AEKey> refunds) {
+        var totals = new Object2LongOpenHashMap<AEKey>();
+        try {
+            mergeChecked(totals, reusableBatchRefunds);
+            mergeChecked(totals, refunds);
+            return totals.size() <= MAX_BUFFERED_TYPES;
+        } catch (ArithmeticException exception) {
+            return false;
+        }
+    }
+
+    private void processReusableBatch(long gameTime) {
+        var job = activeReusableBatch;
+        if (level == null || job == null || assembling) {
+            return;
+        }
+
+        if (MolecularBatchCancellationData.isCanceled(level, job.craftingId())) {
+            var refunds = job.cancellationRefunds();
+            if (!canQueueRefunds(refunds)) {
+                return;
+            }
+            addOutputs(reusableBatchRefunds, refunds);
+            activeReusableBatch = null;
+            markOutputBufferChanged(gameTime);
+            return;
+        }
+
+        if (!isOperational()) {
+            return;
+        }
+
+        long step = job.nextStep(MAX_REUSABLE_CRAFTS_PER_TICK);
+        if (step <= 0) {
+            return;
+        }
+        var primary = job.primaryOutputsFor(step);
+        boolean completes = step == job.totalCrafts() - job.completedCrafts();
+        var remainders = completes
+                ? job.projectedFinalRemainders()
+                : new Object2LongOpenHashMap<AEKey>();
+        if (!canQueueOutputs(primary, remainders)) {
+            return;
+        }
+
+        job.advance(step);
+        addOutputs(pendingPrimaryOutputs, primary);
+        if (job.isComplete()) {
+            addOutputs(pendingByproducts, job.completedRemainders());
+            activeReusableBatch = null;
+        }
+        recordPipelineActivity(gameTime, step);
+        outputReadyTick = Math.max(outputReadyTick, gameTime + 1);
+        markOutputBufferChanged(gameTime);
+    }
+
     private static void mergeChecked(Object2LongOpenHashMap<AEKey> totals,
             Object2LongOpenHashMap<AEKey> source) {
         for (var entry : source.object2LongEntrySet()) {
@@ -1999,6 +2334,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             boolean blocked = false;
             long transferred = 0;
             var transferBudget = AEKeyTransferScheduler.defaultBudget();
+
+            var refundResult = flushMapToNetwork(reusableBatchRefunds, storage,
+                    reusableBatchRefundTransferScheduler, transferBudget);
+            changed |= refundResult.changed();
+            blocked |= refundResult.blocked();
+            transferred = saturatedAdd(transferred, refundResult.transferred());
 
             var primaryCacheResult = flushCached(cachedPrimaryOutputs, primaryRoute, storage,
                     cachedPrimaryTransferScheduler, transferBudget);
@@ -2130,7 +2471,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private boolean hasNetworkRoutedOutputs() {
-        return primaryRoute != PipelineRoute.INTERNAL
+        return !reusableBatchRefunds.isEmpty()
+                || primaryRoute != PipelineRoute.INTERNAL
                 && (!pendingPrimaryOutputs.isEmpty() || !cachedPrimaryOutputs.isEmpty())
                 || byproductRoute != PipelineRoute.INTERNAL
                 && (!pendingByproducts.isEmpty() || !cachedByproducts.isEmpty());
@@ -2145,11 +2487,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     private static long saturatedSum(Object2LongOpenHashMap<AEKey> first,
             Object2LongOpenHashMap<AEKey> second) {
+        return saturatedAdd(sumAmounts(first), sumAmounts(second));
+    }
+
+    private static long sumAmounts(Object2LongOpenHashMap<AEKey> stacks) {
         long total = 0;
-        for (var entry : first.object2LongEntrySet()) {
-            total = saturatedAdd(total, entry.getLongValue());
-        }
-        for (var entry : second.object2LongEntrySet()) {
+        for (var entry : stacks.object2LongEntrySet()) {
             total = saturatedAdd(total, entry.getLongValue());
         }
         return total;

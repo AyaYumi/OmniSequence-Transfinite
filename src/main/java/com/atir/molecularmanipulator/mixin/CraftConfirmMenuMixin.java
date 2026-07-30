@@ -23,6 +23,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Compatibility path for official AE2 releases whose CraftConfirmMenu stores
+ * the requested amount as an int. The mixin plugin disables this implementation
+ * when the target already provides native long-amount support.
+ */
 @Mixin(value = CraftConfirmMenu.class, remap = false)
 public abstract class CraftConfirmMenuMixin implements LongCraftingConfirmMenuBridge {
     @Shadow

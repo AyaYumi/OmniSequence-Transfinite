@@ -3,33 +3,27 @@ package com.atir.molecularmanipulator.client;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 import java.util.ArrayList;
-import java.util.List;
 
 @EventBusSubscriber(modid = MolecularManipulator.MOD_ID, value = Dist.CLIENT)
 public final class OmniComputationGhostPreview {
     private static final int REFRESH_INTERVAL = 40;
     private static final int PROJECTION_ALPHA = 112;
     private static final double MAX_RENDER_DISTANCE_SQUARED = 192.0 * 192.0;
-    private static final List<GhostBlock> BLOCKS = new ArrayList<>();
+    private static final SectionedGhostPreviewRenderer CACHE =
+            new SectionedGhostPreviewRenderer(PROJECTION_ALPHA);
     private static BlockPos controller;
     private static Direction facing;
     private static ResourceKey<Level> dimension;
@@ -76,57 +70,18 @@ public final class OmniComputationGhostPreview {
             clear();
             return;
         }
-        if (level.getGameTime() - lastRefresh >= REFRESH_INTERVAL) {
-            refresh(level);
-        }
-        if (controller == null || BLOCKS.isEmpty()) {
-            return;
-        }
-
         var camera = event.getCamera().getPosition();
         if (camera.distanceToSqr(controller.getCenter()) > MAX_RENDER_DISTANCE_SQUARED) {
             return;
         }
-        var poseStack = event.getPoseStack();
-        var buffers = minecraft.renderBuffers().bufferSource();
-        var translucentType = RenderType.translucent();
-        var translucent = new ProjectionVertexConsumer(
-                buffers.getBuffer(translucentType), PROJECTION_ALPHA);
-        var dispatcher = minecraft.getBlockRenderer();
-
-        poseStack.pushPose();
-        poseStack.translate(-camera.x, -camera.y, -camera.z);
-        for (var ghost : BLOCKS) {
-            if (!event.getFrustum().isVisible(ghost.bounds())) {
-                continue;
-            }
-            poseStack.pushPose();
-            poseStack.translate(ghost.pos().getX() + 0.5, ghost.pos().getY() + 0.5,
-                    ghost.pos().getZ() + 0.5);
-            poseStack.scale(1.003F, 1.003F, 1.003F);
-            poseStack.translate(-0.5, -0.5, -0.5);
-            var model = dispatcher.getBlockModel(ghost.expectedState());
-            dispatcher.getModelRenderer().renderModel(
-                    poseStack.last(), translucent, ghost.expectedState(), model,
-                    1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT,
-                    OverlayTexture.NO_OVERLAY);
-            poseStack.popPose();
+        if (level.getGameTime() - lastRefresh >= REFRESH_INTERVAL) {
+            refresh(level);
         }
-        poseStack.popPose();
-        buffers.endBatch(translucentType);
-
-        var linesType = RenderType.lines();
-        var lines = buffers.getBuffer(linesType);
-        poseStack.pushPose();
-        poseStack.translate(-camera.x, -camera.y, -camera.z);
-        for (var ghost : BLOCKS) {
-            if (ghost.conflict() && event.getFrustum().isVisible(ghost.bounds())) {
-                LevelRenderer.renderLineBox(poseStack, lines, ghost.bounds(),
-                        1.0F, 0.12F, 0.12F, 0.9F);
-            }
+        if (controller == null || CACHE.isEmpty()) {
+            return;
         }
-        poseStack.popPose();
-        buffers.endBatch(linesType);
+
+        CACHE.render(event);
     }
 
     private static void refresh(Level level) {
@@ -136,7 +91,7 @@ public final class OmniComputationGhostPreview {
             return;
         }
         facing = level.getBlockState(controller).getValue(HorizontalDirectionalBlock.FACING);
-        BLOCKS.clear();
+        var blocks = new ArrayList<SectionedGhostPreviewRenderer.GhostBlock>();
         for (var part : OmniComputationStructure.parts()) {
             if (part.type() == OmniComputationStructure.PartType.CONTROLLER
                     || isFullyEnclosed(part)) {
@@ -148,13 +103,15 @@ public final class OmniComputationGhostPreview {
             }
             var expectedState = OmniComputationStructure.block(part.type()).defaultBlockState();
             var currentState = level.getBlockState(pos);
-            if (currentState.is(expectedState.getBlock())) {
+            boolean clearance = part.type() == OmniComputationStructure.PartType.AIR;
+            if (clearance ? currentState.isAir() : currentState.is(expectedState.getBlock())) {
                 continue;
             }
-            boolean conflict = !currentState.isAir() && !currentState.canBeReplaced();
-            BLOCKS.add(new GhostBlock(pos, expectedState,
-                    new AABB(pos).inflate(0.003), conflict));
+            boolean conflict = clearance || !currentState.canBeReplaced();
+            blocks.add(new SectionedGhostPreviewRenderer.GhostBlock(
+                    pos, expectedState, conflict));
         }
+        CACHE.update(blocks);
         lastRefresh = level.getGameTime();
     }
 
@@ -167,60 +124,23 @@ public final class OmniComputationGhostPreview {
                 && OmniComputationStructure.partAt(part.x(), part.y(), part.z() + 1) != null;
     }
 
+    static void onResourceReload() {
+        Runnable reload = () -> {
+            CACHE.close();
+            lastRefresh = Long.MIN_VALUE;
+        };
+        if (RenderSystem.isOnRenderThread()) {
+            reload.run();
+        } else {
+            RenderSystem.recordRenderCall(reload::run);
+        }
+    }
+
     private static void clear() {
         controller = null;
         facing = null;
         dimension = null;
-        BLOCKS.clear();
+        CACHE.close();
         lastRefresh = Long.MIN_VALUE;
-    }
-
-    private record GhostBlock(BlockPos pos, BlockState expectedState, AABB bounds, boolean conflict) {
-    }
-
-    private static final class ProjectionVertexConsumer implements VertexConsumer {
-        private final VertexConsumer delegate;
-        private final int alpha;
-
-        private ProjectionVertexConsumer(VertexConsumer delegate, int alpha) {
-            this.delegate = delegate;
-            this.alpha = alpha;
-        }
-
-        @Override
-        public VertexConsumer addVertex(float x, float y, float z) {
-            delegate.addVertex(x, y, z);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setColor(int red, int green, int blue, int sourceAlpha) {
-            delegate.setColor(red, green, blue, Math.min(sourceAlpha, alpha));
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv(float u, float v) {
-            delegate.setUv(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv1(int u, int v) {
-            delegate.setUv1(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv2(int u, int v) {
-            delegate.setUv2(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setNormal(float x, float y, float z) {
-            delegate.setNormal(x, y, z);
-            return this;
-        }
     }
 }

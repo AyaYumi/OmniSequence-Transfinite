@@ -15,6 +15,7 @@ final class MolecularManipulatorLogic extends PatternProviderLogic implements Mo
     private final MolecularManipulatorBlockEntity machine;
     private final Set<IPatternDetails> availablePatterns = new HashSet<>();
     private boolean patternRebuildScheduled;
+    private int patternRevision;
 
     MolecularManipulatorLogic(IManagedGridNode mainNode, MolecularManipulatorBlockEntity machine) {
         super(mainNode, machine, MolecularManipulatorBlockEntity.PATTERN_SLOTS);
@@ -50,6 +51,7 @@ final class MolecularManipulatorLogic extends PatternProviderLogic implements Mo
 
     @Override
     public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
+        patternRevision++;
         saveChanges();
         if (isClientSide() || patternRebuildScheduled) {
             return;
@@ -64,5 +66,9 @@ final class MolecularManipulatorLogic extends PatternProviderLogic implements Mo
         })) {
             patternRebuildScheduled = false;
         }
+    }
+
+    int getPatternRevision() {
+        return patternRevision;
     }
 }

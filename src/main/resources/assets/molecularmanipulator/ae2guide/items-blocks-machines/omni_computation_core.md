@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: Omni-Computation Core
   icon: molecularmanipulator:omni_computation_controller
   position: 1020
-categories:
-- devices
 item_ids:
 - molecularmanipulator:omni_computation_controller
 ---
@@ -28,6 +26,11 @@ When formed and online, it provides effectively unlimited logical crafting stora
    from the connected ME Network.
 5. Connect and power the controller, then use **Check** if the structure does not form immediately.
 
+Both the legacy and current singularity layouts remain valid. The current layout leaves the exact effect center as air
+and places the data entangler in the front lower pylon. When a complete legacy layout is detected, the controller shows
+an optional structure-update notice. Ignoring it keeps the legacy structure operational; accepting it recovers and
+relocates the center data entangler safely.
+
 An AE2 wrench rotates the controller and recalculates the structure.
 
 ## Autocrafting
@@ -35,6 +38,10 @@ An AE2 wrench rotates the controller and recalculates the structure.
 The core creates virtual CPU lanes as crafting requests arrive and keeps an idle lane available for new work. Its SAFE
 calculation mode accelerates deterministic recipe trees. Recipes with substitution, container remainders, dynamic
 inputs, cycles, or unknown behavior automatically fall back to the normal AE2 calculation path.
+
+Item-substitution patterns remain outside SAFE aggregation, but are permanently eligible for compatible runtime batch
+dispatch; AE2 still selects the actual substituted input. The retired `omni_batch_allow_substitution_patterns` server
+option is removed from existing configuration files without resetting other custom values.
 
 Crafting dispatch adapts to machine acceptance and server load. The displayed unlimited capacity is logical capacity;
 ingredients, power, provider back-pressure, and server tick time still limit real throughput.

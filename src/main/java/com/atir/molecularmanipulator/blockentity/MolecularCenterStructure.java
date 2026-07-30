@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
@@ -35,6 +36,9 @@ public final class MolecularCenterStructure {
     private static final int LEGACY_WIDTH = 14;
     private static final int LEGACY_HEIGHT = 13;
     private static final List<Part> PARTS = createParts();
+    private static final List<Part> LEGACY_PARTS = createLegacyParts();
+    private static final Part VISUAL_CENTER_PART = new Part(0, CORE_Y, 0, PartType.AIR);
+    private static final Part UPPER_CORE_PART = new Part(0, CORE_Y + 7, 0, PartType.CORE);
     private static final Map<LocalPos, Part> PART_LOOKUP = createLookup();
     private static final List<Part> WORK_PARTS = createWorkParts();
 
@@ -47,6 +51,14 @@ public final class MolecularCenterStructure {
 
     public static List<Part> workParts() {
         return WORK_PARTS;
+    }
+
+    public static BlockPos visualCenterPos(BlockPos controller, Direction facing) {
+        return worldPos(controller, facing, VISUAL_CENTER_PART);
+    }
+
+    public static BlockPos upperCorePos(BlockPos controller, Direction facing) {
+        return worldPos(controller, facing, UPPER_CORE_PART);
     }
 
     public static Part partAt(int x, int y, int z) {
@@ -96,16 +108,42 @@ public final class MolecularCenterStructure {
     }
 
     public static boolean matches(Level level, BlockPos controller, Direction facing) {
+        return detectLayout(level, controller, facing).isFormed();
+    }
+
+    public static StructureLayout detectLayout(Level level, BlockPos controller, Direction facing) {
         if (!isWithinBuildHeight(level, controller)
                 || !areRequiredChunksLoaded(level, controller, facing)) {
-            return false;
+            return StructureLayout.INCOMPLETE;
         }
-        for (var part : PARTS) {
+
+        var center = level.getBlockState(visualCenterPos(controller, facing));
+        var upper = level.getBlockState(upperCorePos(controller, facing));
+        if (center.isAir() && upper.is(ModContent.MOLECULAR_CENTER_CORE.get())) {
+            return matchesParts(level, controller, facing, PARTS)
+                    ? StructureLayout.CURRENT
+                    : StructureLayout.INCOMPLETE;
+        }
+        if (center.is(ModContent.MOLECULAR_CENTER_CORE.get())
+                && upper.is(ModContent.MOLECULAR_CENTER_STABILIZER.get())) {
+            return matchesParts(level, controller, facing, LEGACY_PARTS)
+                    ? StructureLayout.LEGACY
+                    : StructureLayout.INCOMPLETE;
+        }
+        return StructureLayout.INCOMPLETE;
+    }
+
+    private static boolean matchesParts(Level level, BlockPos controller, Direction facing, List<Part> parts) {
+        for (var part : parts) {
             if (isController(part)) {
                 continue;
             }
             var state = level.getBlockState(worldPos(controller, facing, part));
-            if (!state.is(partBlock(part.partType()))) {
+            if (part.partType() == PartType.AIR) {
+                if (!state.isAir()) {
+                    return false;
+                }
+            } else if (!state.is(partBlock(part.partType()))) {
                 return false;
             }
         }
@@ -153,7 +191,7 @@ public final class MolecularCenterStructure {
             case AE_QUARTZ -> AEBlocks.QUARTZ_BLOCK.block();
             case AE_VIBRANT_GLASS -> AEBlocks.QUARTZ_VIBRANT_GLASS.block();
             case AE_FLUIX -> AEBlocks.FLUIX_BLOCK.block();
-            default -> throw new IllegalArgumentException("No block for " + type);
+            case AIR -> Blocks.AIR;
         };
     }
 
@@ -311,9 +349,11 @@ public final class MolecularCenterStructure {
         builder.verticalCircleX(CORE_Y, radius, 0, PartType.GLASS);
         builder.verticalCircleZ(CORE_Y, radius, 0, PartType.GLASS);
 
-        builder.put(0, CORE_Y, 0, PartType.CORE);
+        // The renderer is anchored here, so this position must stay empty.
+        builder.put(0, CORE_Y, 0, PartType.AIR);
         builder.put(0, CORE_Y - 7, 0, PartType.STABILIZER);
-        builder.put(0, CORE_Y + 7, 0, PartType.STABILIZER);
+        // Keep the physical core as the upper sphere anchor, outside the visual field.
+        builder.put(0, CORE_Y + 7, 0, PartType.CORE);
         builder.put(-7, CORE_Y, 0, PartType.STABILIZER);
         builder.put(7, CORE_Y, 0, PartType.STABILIZER);
         builder.put(0, CORE_Y, -7, PartType.STABILIZER);
@@ -430,6 +470,20 @@ public final class MolecularCenterStructure {
         return builder.build();
     }
 
+    private static List<Part> createLegacyParts() {
+        var result = new java.util.ArrayList<Part>(PARTS.size());
+        for (var part : PARTS) {
+            if (part.x() == 0 && part.y() == CORE_Y && part.z() == 0) {
+                result.add(new Part(part.x(), part.y(), part.z(), PartType.CORE));
+            } else if (part.x() == 0 && part.y() == CORE_Y + 7 && part.z() == 0) {
+                result.add(new Part(part.x(), part.y(), part.z(), PartType.STABILIZER));
+            } else {
+                result.add(part);
+            }
+        }
+        return List.copyOf(result);
+    }
+
     private static Map<LocalPos, Part> createLookup() {
         var result = new LinkedHashMap<LocalPos, Part>();
         for (var part : PARTS) {
@@ -460,6 +514,16 @@ public final class MolecularCenterStructure {
             result.put(new LocalPos(part.x(), part.y(), part.z()), part);
         }
         return List.copyOf(result.values());
+    }
+
+    public enum StructureLayout {
+        CURRENT,
+        LEGACY,
+        INCOMPLETE;
+
+        public boolean isFormed() {
+            return this != INCOMPLETE;
+        }
     }
 
     public enum PartType {

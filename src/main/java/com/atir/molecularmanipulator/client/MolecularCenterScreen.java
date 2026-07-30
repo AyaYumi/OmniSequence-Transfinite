@@ -11,7 +11,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
@@ -19,19 +18,25 @@ import net.minecraft.world.inventory.Slot;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Locale;
 
-public final class MolecularCenterScreen extends AbstractContainerScreen<MolecularCenterMenu> {
+public final class MolecularCenterScreen extends ResponsiveContainerScreen<MolecularCenterMenu> {
     private static final int TAB_MATTER = 0;
     private static final int TAB_PIPELINE = 1;
     private static final int TAB_QUANTUM = 2;
     private static final int TAB_COLORS = 3;
     private static final int PANEL_LEFT = 198;
     private static final int PANEL_RIGHT = 426;
+    private static final int LEFT_CONTENT_LEFT = 8;
+    private static final int LEFT_CONTENT_RIGHT = 188;
+    private static final int DETAIL_CONTENT_LEFT = PANEL_LEFT + 9;
+    private static final int DETAIL_CONTENT_RIGHT = PANEL_RIGHT - 7;
     private static final int ACCENT = 0xFFB77BFF;
     private static final int CYAN = 0xFF63D8FF;
     private static final int DISMANTLE_CONFIRM_TICKS = 60;
     private static final int DISMANTLE_CONFIRM_DELAY_TICKS = 6;
+    private static final int SEARCH_DEBOUNCE_TICKS = 5;
 
     private Button preview;
     private Button dismantle;
@@ -52,7 +57,17 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     private Button byproductRoute;
     private Button outputPort;
     private Button resetColors;
+    private Button structureUpdate;
+    private Button keepLegacyStructure;
+    private EditBox patternSearch;
     private final Button[][] colorButtons = new Button[5][3];
+    private final PatternSearchIndexState patternSearchIndex = new PatternSearchIndexState();
+    private List<Integer> filteredPatternSlots = List.of();
+    private String patternSearchQuery = "";
+    private int patternSearchDebounce;
+    private boolean patternSearchIndexPending;
+    private int requestedPatternRevision = -1;
+    private int indexedPatternRevision = -1;
     private int detailTab = TAB_MATTER;
     private int dismantleConfirmTicks;
 
@@ -77,7 +92,8 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        boolean clickedDismantle = button == 0 && dismantle != null && dismantle.isMouseOver(mouseX, mouseY);
+        boolean clickedDismantle = button == 0 && dismantle != null
+                && dismantle.isMouseOver(logicalMouseX(mouseX), logicalMouseY(mouseY));
         if (!clickedDismantle) {
             cancelDismantleConfirmation();
         }
@@ -87,6 +103,7 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     @Override
     protected void init() {
         super.init();
+        menu.setPatternSearchIndexListener(this::acceptPatternSearchIndexChunk);
         dismantleConfirmTicks = 0;
         preview = addRenderableWidget(Button.builder(previewLabel(),
                         button -> {
@@ -101,13 +118,13 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                         button -> menu.requestBuild())
                 .bounds(leftPos + 58, topPos + 4, 46, 18).build());
         previousPage = addRenderableWidget(Button.builder(Component.literal("<"),
-                        button -> menu.requestPage(menu.getPage() - 1))
+                        button -> changePatternPage(-1))
                 .bounds(leftPos + 108, topPos + 4, 20, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.page_previous_tooltip")))
                 .build());
         nextPage = addRenderableWidget(Button.builder(Component.literal(">"),
-                        button -> menu.requestPage(menu.getPage() + 1))
+                        button -> changePatternPage(1))
                 .bounds(leftPos + 130, topPos + 4, 20, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.page_next_tooltip")))
@@ -118,6 +135,19 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                 .bounds(leftPos + 154, topPos + 4, 58, 18)
                 .build());
         updateDismantleButton();
+
+        patternSearch = new EditBox(font, leftPos + 17, topPos + 29, 112, 15,
+                Component.translatable("gui.molecularmanipulator.pattern_search"));
+        patternSearch.setMaxLength(64);
+        patternSearch.setHint(Component.translatable("gui.molecularmanipulator.pattern_search"));
+        patternSearch.setTooltip(Tooltip.create(Component.translatable(
+                "gui.molecularmanipulator.pattern_search_tooltip")));
+        patternSearch.setValue(patternSearchQuery);
+        patternSearch.setResponder(this::patternSearchChanged);
+        addRenderableWidget(patternSearch);
+        if (!patternSearchQuery.isBlank()) {
+            patternSearchDebounce = 1;
+        }
 
         matterTab = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.tab_matter"),
@@ -216,7 +246,99 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                         Component.translatable("gui.molecularmanipulator.visual_color_reset"),
                         button -> menu.requestResetVisualColors())
                 .bounds(leftPos + 286, topPos + 211, 128, 18).build());
+        structureUpdate = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_confirm"),
+                        button -> menu.requestStructureUpdate())
+                .bounds(leftPos + 210, topPos + 239, 100, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_confirm_tooltip")))
+                .build());
+        keepLegacyStructure = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_keep_legacy"),
+                        button -> menu.requestKeepLegacyStructure())
+                .bounds(leftPos + 314, topPos + 239, 100, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_keep_legacy_tooltip")))
+                .build());
+        updateStructureUpdateControls();
         selectTab(TAB_MATTER);
+    }
+
+    private void changePatternPage(int offset) {
+        if (patternSearchQuery.isBlank()) {
+            menu.requestPage(menu.getPage() + offset);
+        } else {
+            showPatternSearchPage(menu.getPage() + offset);
+        }
+    }
+
+    private void patternSearchChanged(String query) {
+        patternSearchQuery = query == null ? "" : query.strip();
+        patternSearchDebounce = SEARCH_DEBOUNCE_TICKS;
+        if (patternSearchQuery.isBlank()) {
+            filteredPatternSlots = List.of();
+            patternSearchIndexPending = false;
+            menu.clearPatternSearch();
+        }
+    }
+
+    private void applyPatternSearchQuery() {
+        if (patternSearchQuery.isBlank()) {
+            return;
+        }
+        if (patternSearchIndex.complete() && indexedPatternRevision == menu.patternRevision) {
+            rebuildPatternSearchResults();
+        } else {
+            requestPatternSearchIndex();
+        }
+    }
+
+    private void requestPatternSearchIndex() {
+        if (patternSearchIndexPending) {
+            return;
+        }
+        patternSearchIndexPending = true;
+        requestedPatternRevision = menu.patternRevision;
+        menu.requestPatternSearchIndex();
+    }
+
+    private void acceptPatternSearchIndexChunk(
+            com.atir.molecularmanipulator.network.PatternSearchIndexChunk chunk) {
+        if (!patternSearchIndex.accept(chunk) || !patternSearchIndex.complete()) {
+            return;
+        }
+        patternSearchIndexPending = false;
+        indexedPatternRevision = requestedPatternRevision;
+        if (patternSearchQuery.isBlank()) {
+            return;
+        }
+        if (indexedPatternRevision != menu.patternRevision) {
+            requestPatternSearchIndex();
+        } else {
+            rebuildPatternSearchResults();
+        }
+    }
+
+    private void rebuildPatternSearchResults() {
+        filteredPatternSlots = patternSearchIndex.entries().stream()
+                .filter(entry -> ClientSearchMatcher.matchesPattern(entry, patternSearchQuery))
+                .map(entry -> entry.sourceSlot())
+                .toList();
+        showPatternSearchPage(0);
+    }
+
+    private void showPatternSearchPage(int requestedPage) {
+        int resultCount = filteredPatternSlots.size();
+        int pageCount = Math.max(1, (resultCount + MolecularCenterBlockEntity.PATTERNS_PER_PAGE - 1)
+                / MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
+        int page = Math.max(0, Math.min(pageCount - 1, requestedPage));
+        int first = page * MolecularCenterBlockEntity.PATTERNS_PER_PAGE;
+        int last = Math.min(resultCount, first + MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
+        int[] sourceSlots = new int[Math.max(0, last - first)];
+        for (int index = first; index < last; index++) {
+            sourceSlots[index - first] = filteredPatternSlots.get(index);
+        }
+        menu.requestPatternSearchPage(page, resultCount, sourceSlots);
     }
 
     private void selectTab(int tab) {
@@ -249,7 +371,7 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                 button.visible = colorsVisible;
             }
         }
-        resetColors.visible = colorsVisible;
+        resetColors.visible = colorsVisible && !menu.legacyStructure;
         matterTab.active = !matterVisible;
         pipelineTab.active = !pipelineVisible;
         quantumTab.active = !quantumVisible;
@@ -259,11 +381,21 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     @Override
     protected void containerTick() {
         super.containerTick();
+        if (patternSearchDebounce > 0 && --patternSearchDebounce == 0) {
+            applyPatternSearchQuery();
+        }
+        if (!patternSearchQuery.isBlank()
+                && indexedPatternRevision != menu.patternRevision
+                && !patternSearchIndexPending
+                && patternSearchDebounce == 0) {
+            requestPatternSearchIndex();
+        }
         if (dismantleConfirmTicks > 0 && --dismantleConfirmTicks == 0) {
             updateDismantleButton();
         }
-        previousPage.active = menu.getPage() > 0;
-        nextPage.active = menu.getPage() + 1 < menu.getPageCount();
+        boolean waiting = !patternSearchQuery.isBlank() && patternSearchIndexPending;
+        previousPage.active = !waiting && menu.getPage() > 0;
+        nextPage.active = !waiting && menu.getPage() + 1 < menu.getPageCount();
         primaryRoute.setMessage(primaryRouteLabel());
         byproductRoute.setMessage(byproductRouteLabel());
         outputPort.setMessage(outputPortLabel());
@@ -273,6 +405,26 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
         rewriteOutput.setMessage(rewriteOutputLabel());
         syncTargetField(deconstructTarget, menu.deconstructTarget);
         syncTargetField(rewriteTarget, menu.rewriteTarget);
+        updateStructureUpdateControls();
+    }
+
+    @Override
+    public void removed() {
+        menu.setPatternSearchIndexListener(null);
+        super.removed();
+    }
+
+    private void updateStructureUpdateControls() {
+        if (structureUpdate == null || keepLegacyStructure == null) {
+            return;
+        }
+        structureUpdate.visible = menu.legacyStructure;
+        keepLegacyStructure.visible = menu.legacyStructure
+                && !menu.legacyStructureUpdateDismissed;
+        boolean idle = !menu.building && !menu.dismantling;
+        structureUpdate.active = menu.legacyStructure && idle;
+        keepLegacyStructure.active = menu.legacyStructure && idle;
+        resetColors.visible = detailTab == TAB_COLORS && !menu.legacyStructure;
     }
 
     private void dismantleClicked() {
@@ -325,7 +477,10 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                         : detailTab == TAB_PIPELINE ? CYAN
                         : detailTab == TAB_QUANTUM ? 0xFF8EAEFF
                         : 0xFFFF83D1);
-
+        if (menu.legacyStructure) {
+            graphics.fill(x + 204, y + 225, x + 422, y + 259, 0xF0201820);
+            drawPanelBorder(graphics, x + 204, y + 225, x + 422, y + 259, 0xFFFFB75E);
+        }
         drawSlotGrid(graphics, MolecularCenterMenu.PATTERN_X, MolecularCenterMenu.PATTERN_Y, 9, 4);
         drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_MAIN_Y, 9, 3);
         drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_HOTBAR_Y, 9, 1);
@@ -376,10 +531,15 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, Component.translatable("block.molecularmanipulator.molecular_center_controller"),
-                8, 30, 0xFFEBDFFF, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.page", menu.getPage() + 1,
-                menu.getPageCount()), 126, 30, 0xFFB7C3D7, false);
+        var pageText = patternSearchIndexPending && !patternSearchQuery.isBlank()
+                ? Component.translatable("gui.molecularmanipulator.pattern_search_indexing")
+                : !patternSearchQuery.isBlank() && menu.patternSearchActive
+                        && menu.patternSearchResultCount == 0
+                                ? Component.translatable("gui.molecularmanipulator.pattern_search_no_results")
+                                : Component.translatable("gui.molecularmanipulator.page", menu.getPage() + 1,
+                                        menu.getPageCount());
+        drawRightAlignedFittedString(graphics, pageText, LEFT_CONTENT_RIGHT, 32, 55,
+                0xFFB7C3D7);
         var state = menu.formed ? Component.translatable("gui.molecularmanipulator.formed")
                 : Component.translatable("gui.molecularmanipulator.incomplete");
         graphics.drawString(font, state, 8, 125, menu.formed ? 0xFF70F2A2 : 0xFFFFB75E, false);
@@ -397,6 +557,13 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
             default -> {
             }
         }
+        if (menu.legacyStructure) {
+            graphics.drawString(font, Component.translatable(
+                    menu.legacyStructureUpdateDismissed
+                            ? "gui.molecularmanipulator.legacy_structure_retained"
+                            : "gui.molecularmanipulator.structure_update_available"),
+                    210, 228, 0xFFFFB75E, false);
+        }
     }
 
     private void renderMatterTab(GuiGraphics graphics) {
@@ -411,9 +578,9 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
                 MolecularCenterMenu.SEQUENCE_OUTPUT_X + 8, 53, 0xFFFFC4E9);
         var deconstructState = matterStateLabel(menu.deconstructJobState);
         var rewriteState = matterStateLabel(menu.rewriteJobState);
-        graphics.drawCenteredString(font, deconstructState, 255, 128,
+        drawCenteredFittedString(graphics, deconstructState, 255, 128, 96,
                 matterStateColor(menu.deconstructJobState));
-        graphics.drawCenteredString(font, rewriteState, 371, 128,
+        drawCenteredFittedString(graphics, rewriteState, 371, 128, 96,
                 matterStateColor(menu.rewriteJobState));
         var deconstructCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
                 formatAmount(menu.deconstructJobProcessed),
@@ -421,31 +588,46 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
         var rewriteCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
                 formatAmount(menu.rewriteJobProcessed),
                 menu.rewriteTarget == 0 ? "\u221e" : formatAmount(menu.rewriteTarget));
-        graphics.drawCenteredString(font, deconstructCount, 255, 138, 0xFFC8B8D8);
-        graphics.drawCenteredString(font, rewriteCount, 371, 138, 0xFFC8B8D8);
+        drawCenteredFittedString(graphics, deconstructCount, 255, 138, 96, 0xFFC8B8D8);
+        drawCenteredFittedString(graphics, rewriteCount, 371, 138, 96, 0xFFC8B8D8);
         drawMeter(graphics, 207, 149, 96, 3, menu.deconstructJobProgress, 1000, 0xFF9B68E8);
         drawMeter(graphics, 323, 149, 96, 3, menu.rewriteJobProgress, 1000, 0xFFFF82D8);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.matter_speed",
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.matter_speed",
                         menu.speedCards, menu.matterCycleTicks),
-                207, 185, 0xFFD9C8F5, false);
+                DETAIL_CONTENT_LEFT, 185,
+                MolecularCenterMenu.SPEED_SLOT_X - DETAIL_CONTENT_LEFT - 6,
+                0xFFD9C8F5);
 
-        drawSequenceAmount(graphics, "metal", menu.metalSequence, 205, 207, 0xFFB9C7D5);
-        drawSequenceAmount(graphics, "crystal", menu.crystalSequence, 205, 314, 0xFF73CFFF);
-        drawSequenceAmount(graphics, "mineral", menu.mineralSequence, 220, 207, 0xFFB58A62);
-        drawSequenceAmount(graphics, "organic", menu.organicSequence, 220, 314, 0xFF73D590);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.sequence_entropy"),
-                207, 239, 0xFFFFA4D8, false);
-        graphics.drawString(font, formatAmount(menu.entropy) + " / "
-                        + formatAmount(MolecularCenterBlockEntity.MAX_ENTROPY),
-                342, 239, 0xFFC8B8D8, false);
-        drawMeter(graphics, 207, 251, 212, 3,
-                menu.entropy, MolecularCenterBlockEntity.MAX_ENTROPY, 0xFFE75AAE);
+        int columnGap = 10;
+        int columnWidth = (DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT - columnGap) / 2;
+        int rightColumnX = DETAIL_CONTENT_LEFT + columnWidth + columnGap;
+        drawSequenceAmount(graphics, "metal", menu.metalSequence,
+                DETAIL_CONTENT_LEFT, 205, columnWidth, 0xFFB9C7D5);
+        drawSequenceAmount(graphics, "crystal", menu.crystalSequence,
+                rightColumnX, 205, columnWidth, 0xFF73CFFF);
+        drawSequenceAmount(graphics, "mineral", menu.mineralSequence,
+                DETAIL_CONTENT_LEFT, 220, columnWidth, 0xFFB58A62);
+        drawSequenceAmount(graphics, "organic", menu.organicSequence,
+                rightColumnX, 220, columnWidth, 0xFF73D590);
+        if (!menu.legacyStructure) {
+            drawKeyValueRow(graphics,
+                    Component.translatable("gui.molecularmanipulator.sequence_entropy"),
+                    Component.literal(formatAmount(menu.entropy) + " / "
+                            + formatAmount(MolecularCenterBlockEntity.MAX_ENTROPY)),
+                    DETAIL_CONTENT_LEFT, DETAIL_CONTENT_RIGHT, 239, 6,
+                    0xFFFFA4D8, 0xFFC8B8D8);
+            drawMeter(graphics, 207, 251, 212, 3,
+                    menu.entropy, MolecularCenterBlockEntity.MAX_ENTROPY, 0xFFE75AAE);
+        }
     }
 
-    private void drawSequenceAmount(GuiGraphics graphics, String type, long amount, int y, int x, int color) {
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.sequence_" + type),
-                x, y, color, false);
-        graphics.drawString(font, formatAmount(amount), x + 65, y, 0xFFE4E7EF, false);
+    private void drawSequenceAmount(GuiGraphics graphics, String type, long amount,
+            int x, int y, int width, int color) {
+        drawKeyValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.sequence_" + type),
+                Component.literal(formatAmount(amount)),
+                x, x + width, y, 4, color, 0xFFE4E7EF);
     }
 
     private static void drawMeter(GuiGraphics graphics, int x, int y, int width, int height,
@@ -459,30 +641,38 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
     }
 
     private void renderPipelineTab(GuiGraphics graphics) {
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline"),
-                210, 34, CYAN, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_cache_types",
-                menu.pipelineCacheTypes), 210, 133, 0xFFD5DBE8, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_cache_amount",
-                formatAmount(menu.pipelineCacheAmount)), 210, 147, 0xFFD5DBE8, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_pending",
-                formatAmount(menu.pendingOutputAmount)), 210, 161, 0xFFD5DBE8, false);
+        int contentWidth = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.pipeline"),
+                DETAIL_CONTENT_LEFT, 34, contentWidth, CYAN);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.pipeline_cache_types",
+                menu.pipelineCacheTypes), DETAIL_CONTENT_LEFT, 133, contentWidth, 0xFFD5DBE8);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.pipeline_cache_amount",
+                formatAmount(menu.pipelineCacheAmount)), DETAIL_CONTENT_LEFT, 147,
+                contentWidth, 0xFFD5DBE8);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.pipeline_pending",
+                formatAmount(menu.pendingOutputAmount)), DETAIL_CONTENT_LEFT, 161,
+                contentWidth, 0xFFD5DBE8);
         var pipelineState = menu.pipelineBlocked
                 ? Component.translatable("gui.molecularmanipulator.pipeline_blocked")
                 : Component.translatable("gui.molecularmanipulator.pipeline_clear");
-        graphics.drawString(font, pipelineState, 210, 179,
-                menu.pipelineBlocked ? 0xFFFF6D78 : 0xFF70F2A2, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_recipes",
-                menu.activePipelineRecipes), 210, 197, 0xFFB7C3D7, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_crafts",
-                formatAmount(menu.activePipelineCrafts)), 210, 211, 0xFFB7C3D7, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.pipeline_transfer",
-                formatAmount(menu.lastPipelineTransfer)), 210, 225, 0xFFB7C3D7, false);
+        drawFittedString(graphics, pipelineState, DETAIL_CONTENT_LEFT, 179, contentWidth,
+                menu.pipelineBlocked ? 0xFFFF6D78 : 0xFF70F2A2);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.pipeline_recipes",
+                menu.activePipelineRecipes), DETAIL_CONTENT_LEFT, 197, contentWidth, 0xFFB7C3D7);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.pipeline_crafts",
+                formatAmount(menu.activePipelineCrafts)), DETAIL_CONTENT_LEFT, 211,
+                contentWidth, 0xFFB7C3D7);
+        if (!menu.legacyStructure) {
+            drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.pipeline_transfer",
+                    formatAmount(menu.lastPipelineTransfer)), DETAIL_CONTENT_LEFT, 225,
+                    contentWidth, 0xFFB7C3D7);
+        }
     }
 
     private void renderQuantumTab(GuiGraphics graphics) {
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.quantum_title"),
-                210, 35, 0xFF8EAEFF, false);
+        int contentWidth = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_title"),
+                DETAIL_CONTENT_LEFT, 35, contentWidth, 0xFF8EAEFF);
         graphics.drawCenteredString(font,
                 Component.translatable("gui.molecularmanipulator.quantum_singularity"),
                 MolecularCenterMenu.QUANTUM_SLOT_X + 8, 52, 0xFFD9E2FF);
@@ -495,23 +685,27 @@ public final class MolecularCenterScreen extends AbstractContainerScreen<Molecul
             case REMOTE_MISSING, REMOTE_OFFLINE, STRUCTURE_INCOMPLETE -> 0xFFFFB75E;
             default -> 0xFFFF6D78;
         };
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.quantum_status",
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_status",
                 Component.translatable("gui.molecularmanipulator.quantum_state."
-                        + state.name().toLowerCase(Locale.ROOT))), 210, 107, stateColor, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.quantum_frequency",
+                        + state.name().toLowerCase(Locale.ROOT))),
+                DETAIL_CONTENT_LEFT, 107, contentWidth, stateColor);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_frequency",
                 menu.quantumFrequency == 0 ? "—" : formatFrequency(menu.quantumFrequency)),
-                210, 125, 0xFFD5DBE8, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.quantum_power",
+                DETAIL_CONTENT_LEFT, 125, contentWidth, 0xFFD5DBE8);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_power",
                 formatAmount((long) MolecularCenterBlockEntity.QUANTUM_LINK_POWER)),
-                210, 143, 0xFFD5DBE8, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.quantum_channel"),
-                210, 161, 0xFFB7C3D7, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.quantum_remote_ring"),
-                210, 179, 0xFFB7C3D7, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.spawn_protection"),
-                210, 205, 0xFF70F2A2, false);
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
-                210, 220, 0xFFB7C3D7, false);
+                DETAIL_CONTENT_LEFT, 143, contentWidth, 0xFFD5DBE8);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_channel"),
+                DETAIL_CONTENT_LEFT, 161, contentWidth, 0xFFB7C3D7);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_remote_ring"),
+                DETAIL_CONTENT_LEFT, 179, contentWidth, 0xFFB7C3D7);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.spawn_protection"),
+                DETAIL_CONTENT_LEFT, 205, contentWidth, 0xFF70F2A2);
+        if (!menu.legacyStructure) {
+            drawFittedString(graphics,
+                    Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
+                    DETAIL_CONTENT_LEFT, 220, contentWidth, 0xFFB7C3D7);
+        }
     }
 
     private void renderColorsTab(GuiGraphics graphics) {

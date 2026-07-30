@@ -6,20 +6,27 @@ import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.util.Locale;
 
-public final class OmniComputationScreen extends AbstractContainerScreen<OmniComputationMenu> {
+public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniComputationMenu> {
     private static final int PURPLE = 0xFFB56CFF;
     private static final int CYAN = 0xFF69DBFF;
     private static final int GREEN = 0xFF72F2A5;
     private static final int ORANGE = 0xFFFFB766;
+    private static final int RIGHT_CONTENT_LEFT = 174;
+    private static final int RIGHT_CONTENT_RIGHT = 314;
+    private static final int QUANTUM_CONTENT_LEFT = 18;
+    private static final int QUANTUM_CONTENT_RIGHT = 286;
     private Button buildButton;
     private Button dismantleButton;
     private Button projectionButton;
+    private Button refreshButton;
+    private Button confirmStructureUpdateButton;
+    private Button keepLegacyStructureButton;
+    private boolean confirmingLegacyUpdate;
 
     public OmniComputationScreen(OmniComputationMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -32,7 +39,13 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
         super.init();
         buildButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.omni.build"),
-                        button -> menu.requestBuild())
+                        button -> {
+                            if (menu.legacyStructure) {
+                                confirmingLegacyUpdate = true;
+                            } else {
+                                menu.requestBuild();
+                            }
+                        })
                 .bounds(leftPos + 14, topPos + 234, 73, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.omni.build_tooltip")))
@@ -53,23 +66,71 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.omni.projection_tooltip")))
                 .build());
-        addRenderableWidget(Button.builder(
+        refreshButton = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.omni.refresh"),
                         button -> menu.requestRefresh())
                 .bounds(leftPos + 245, topPos + 234, 73, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.omni.refresh_tooltip")))
                 .build());
+        confirmStructureUpdateButton = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_confirm"),
+                        button -> {
+                            confirmingLegacyUpdate = false;
+                            menu.requestStructureUpdate();
+                        })
+                .bounds(leftPos + 39, topPos + 234, 124, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_confirm_tooltip")))
+                .build());
+        keepLegacyStructureButton = addRenderableWidget(Button.builder(
+                        Component.translatable("gui.molecularmanipulator.structure_update_keep_legacy"),
+                        button -> {
+                            confirmingLegacyUpdate = false;
+                            menu.requestKeepLegacyStructure();
+                        })
+                .bounds(leftPos + 169, topPos + 234, 124, 18)
+                .tooltip(Tooltip.create(Component.translatable(
+                        "gui.molecularmanipulator.structure_update_keep_legacy_tooltip")))
+                .build());
+        updateStructureControls();
     }
 
     @Override
     protected void containerTick() {
         super.containerTick();
-        buildButton.active = !menu.formed && !menu.building && !menu.dismantling && menu.conflictParts == 0;
+        updateStructureControls();
+    }
+
+    private void updateStructureControls() {
+        if (!menu.legacyStructure) {
+            confirmingLegacyUpdate = false;
+        }
+        boolean busy = menu.building || menu.dismantling;
+        boolean showUpdateChoice = menu.legacyStructure
+                && (!menu.legacyStructureUpdateDismissed || confirmingLegacyUpdate);
+        buildButton.visible = !showUpdateChoice;
+        dismantleButton.visible = !showUpdateChoice;
+        projectionButton.visible = !showUpdateChoice;
+        refreshButton.visible = !showUpdateChoice;
+        confirmStructureUpdateButton.visible = showUpdateChoice;
+        keepLegacyStructureButton.visible = showUpdateChoice;
+        confirmStructureUpdateButton.active = !busy;
+        keepLegacyStructureButton.active = !busy;
+
+        buildButton.active = menu.legacyStructure
+                ? !busy
+                : !menu.formed && !busy && menu.conflictParts == 0;
         dismantleButton.active = !menu.building && !menu.dismantling && menu.correctParts > 1;
-        buildButton.setMessage(Component.translatable(menu.building
+        String buildLabel = menu.building
                 ? "gui.molecularmanipulator.omni.building"
-                : "gui.molecularmanipulator.omni.build"));
+                : menu.legacyStructure
+                        ? "gui.molecularmanipulator.structure_update_short"
+                        : "gui.molecularmanipulator.omni.build";
+        buildButton.setMessage(Component.translatable(buildLabel));
+        buildButton.setTooltip(Tooltip.create(Component.translatable(menu.legacyStructure
+                ? "gui.molecularmanipulator.structure_update_confirm_tooltip"
+                : "gui.molecularmanipulator.omni.build_tooltip")));
         dismantleButton.setMessage(Component.translatable(menu.dismantling
                 ? "gui.molecularmanipulator.omni.dismantling"
                 : "gui.molecularmanipulator.omni.dismantle"));
@@ -156,85 +217,92 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
                         ? "gui.molecularmanipulator.omni.formed"
                         : "gui.molecularmanipulator.omni.incomplete"),
                 82, 119, menu.formed ? GREEN : ORANGE);
-        graphics.drawCenteredString(font,
+        drawCenteredFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.size",
                         OmniComputationStructure.WIDTH,
                         OmniComputationStructure.WIDTH,
                         OmniComputationStructure.HEIGHT),
-                82, 132, 0xFFBDB5CC);
-        graphics.drawCenteredString(font,
+                82, 132, 136, 0xFFBDB5CC);
+        drawCenteredFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.parts",
                         menu.correctParts, menu.totalParts),
-                82, 145, 0xFFD9D4E3);
-        if (menu.conflictParts > 0) {
-            graphics.drawCenteredString(font,
+                82, 145, 136, 0xFFD9D4E3);
+        if (menu.legacyStructure) {
+            drawCenteredFittedString(graphics,
+                    Component.translatable(menu.legacyStructureUpdateDismissed
+                            && !confirmingLegacyUpdate
+                                    ? "gui.molecularmanipulator.legacy_structure_retained"
+                                    : "gui.molecularmanipulator.structure_update_available"),
+                    82, 174, 136, ORANGE);
+        } else if ((menu.building || menu.dismantling) && menu.buildTotal > 0) {
+            drawCenteredFittedString(graphics,
+                    Component.translatable(menu.dismantling
+                                    ? "gui.molecularmanipulator.omni.dismantle_progress"
+                                    : "gui.molecularmanipulator.omni.build_progress",
+                            menu.buildProgress, menu.buildTotal),
+                    82, 174, 136, 0xFFF1E8FF);
+        } else if (menu.conflictParts > 0) {
+            drawCenteredFittedString(graphics,
                     Component.translatable("gui.molecularmanipulator.omni.conflicts",
                             menu.conflictParts),
-                    82, 174, 0xFFFF6D78);
+                    82, 174, 136, 0xFFFF6D78);
         } else {
-            graphics.drawCenteredString(font,
+            drawCenteredFittedString(graphics,
                     Component.translatable("gui.molecularmanipulator.omni.missing",
                             menu.missingParts),
-                    82, 174, 0xFFBDB5CC);
+                    82, 174, 136, 0xFFBDB5CC);
         }
 
-        int valueX = 306;
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.omni.network"),
-                174, 42, 0xFFBFC9DB, false);
-        graphics.drawString(font,
-                Component.translatable(menu.networkOnline
-                        ? "gui.molecularmanipulator.omni.online"
-                        : "gui.molecularmanipulator.omni.offline"),
-                valueX - 42, 42, menu.networkOnline ? GREEN : ORANGE, false);
-
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.omni.storage"),
-                174, 66, 0xFFBFC9DB, false);
-        graphics.drawString(font, Component.literal("\u221e"),
-                valueX, 66, PURPLE, false);
-
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.omni.parallel"),
-                174, 84, 0xFFBFC9DB, false);
-        graphics.drawString(font, Component.literal("\u221e"),
-                valueX, 84, CYAN, false);
-
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.omni.active_jobs"),
-                174, 108, 0xFFBFC9DB, false);
-        graphics.drawString(font, Integer.toString(menu.activeJobs),
-                valueX, 108, menu.activeJobs > 0 ? GREEN : 0xFFD9D4E3, false);
-
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.omni.virtual_lanes"),
-                174, 126, 0xFFBFC9DB, false);
-        graphics.drawString(font, Integer.toString(menu.cpuLanes),
-                valueX, 126, 0xFFD9D4E3, false);
-
-        graphics.drawString(font,
-                Component.translatable("gui.molecularmanipulator.omni.material_calculation"),
-                174, 144, 0xFFBFC9DB, false);
         var calculationStatus = menu.activeMaterialCalculations > 0
                 ? Component.translatable("gui.molecularmanipulator.omni.calculating",
                         menu.activeMaterialCalculations)
                 : Component.translatable("gui.molecularmanipulator.omni.calculation_idle");
-        graphics.drawString(font, calculationStatus,
-                valueX - (menu.activeMaterialCalculations > 0 ? 30 : 18), 144,
-                menu.activeMaterialCalculations > 0 ? CYAN : 0xFFD9D4E3, false);
-
+        drawKeyValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.omni.network"),
+                Component.translatable(menu.networkOnline
+                        ? "gui.molecularmanipulator.omni.online"
+                        : "gui.molecularmanipulator.omni.offline"),
+                RIGHT_CONTENT_LEFT, RIGHT_CONTENT_RIGHT, 42, 6,
+                0xFFBFC9DB, menu.networkOnline ? GREEN : ORANGE);
+        drawKeyValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.omni.storage"),
+                Component.literal("\u221e"),
+                RIGHT_CONTENT_LEFT, RIGHT_CONTENT_RIGHT, 59, 6,
+                0xFFBFC9DB, PURPLE);
+        drawKeyValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.omni.parallel"),
+                Component.literal("\u221e"),
+                RIGHT_CONTENT_LEFT, RIGHT_CONTENT_RIGHT, 75, 6,
+                0xFFBFC9DB, CYAN);
+        drawKeyValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.omni.active_jobs"),
+                Component.literal(Integer.toString(menu.activeJobs)),
+                RIGHT_CONTENT_LEFT, RIGHT_CONTENT_RIGHT, 95, 6,
+                0xFFBFC9DB, menu.activeJobs > 0 ? GREEN : 0xFFD9D4E3);
+        drawKeyValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.omni.virtual_lanes"),
+                Component.literal(Integer.toString(menu.cpuLanes)),
+                RIGHT_CONTENT_LEFT, RIGHT_CONTENT_RIGHT, 110, 6,
+                0xFFBFC9DB, 0xFFD9D4E3);
+        drawKeyValueRow(graphics,
+                Component.translatable("gui.molecularmanipulator.omni.material_calculation"),
+                calculationStatus,
+                RIGHT_CONTENT_LEFT, RIGHT_CONTENT_RIGHT, 125, 6,
+                0xFFBFC9DB, menu.activeMaterialCalculations > 0 ? CYAN : 0xFFD9D4E3);
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.calculation_stats",
                         menu.completedMaterialCalculations,
                         menu.lastMaterialCalculationMillis),
-                174, 158, 140, 0xFF9EA9BB);
-
+                RIGHT_CONTENT_LEFT, 139,
+                RIGHT_CONTENT_RIGHT - RIGHT_CONTENT_LEFT, 0xFF9EA9BB);
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.tick_budget"),
-                174, 170, 140, 0xFF9EA9BB);
-        drawFittedString(graphics,
+                RIGHT_CONTENT_LEFT, 151,
+                RIGHT_CONTENT_RIGHT - RIGHT_CONTENT_LEFT, 0xFF9EA9BB);
+        drawWrappedString(graphics,
                 Component.translatable("gui.molecularmanipulator.omni.fixed"),
-                174, 181, 140, 0xFF9EA9BB);
+                RIGHT_CONTENT_LEFT, 163,
+                RIGHT_CONTENT_RIGHT - RIGHT_CONTENT_LEFT, 2, 10, 0xFF9EA9BB);
 
         var quantumState = menu.quantumLinkState;
         int quantumColor = switch (quantumState) {
@@ -244,49 +312,21 @@ public final class OmniComputationScreen extends AbstractContainerScreen<OmniCom
             case STRUCTURE_INCOMPLETE, REMOTE_MISSING, REMOTE_OFFLINE -> ORANGE;
             case FREQUENCY_OCCUPIED, WIRED_CONFLICT, CONNECTION_ERROR -> 0xFFFF6D78;
         };
-        graphics.drawString(font,
+        drawKeyValueRow(graphics,
                 Component.translatable("gui.molecularmanipulator.quantum_title"),
-                18, 202, PURPLE, false);
-        drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.quantum_state."
                         + quantumState.name().toLowerCase(Locale.ROOT)),
-                106, 202, 180, quantumColor);
-        graphics.drawString(font,
+                QUANTUM_CONTENT_LEFT, QUANTUM_CONTENT_RIGHT, 202, 8,
+                PURPLE, quantumColor);
+        drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.quantum_frequency",
                         menu.quantumFrequency == 0 ? "\u2014" : formatFrequency(menu.quantumFrequency)),
-                106, 214, 0xFFD5DBE8, false);
+                QUANTUM_CONTENT_LEFT, 214,
+                QUANTUM_CONTENT_RIGHT - QUANTUM_CONTENT_LEFT, 0xFFD5DBE8);
 
         graphics.drawString(font, Component.translatable("container.inventory"),
                 85, 268, 0xFFD9D4E3, false);
 
-        if ((menu.building || menu.dismantling) && menu.buildTotal > 0) {
-            graphics.drawCenteredString(font,
-                    Component.translatable(menu.dismantling
-                                    ? "gui.molecularmanipulator.omni.dismantle_progress"
-                                    : "gui.molecularmanipulator.omni.build_progress",
-                            menu.buildProgress, menu.buildTotal),
-                    imageWidth / 2, 187, 0xFFF1E8FF);
-        }
-    }
-
-    private void drawFittedString(GuiGraphics graphics, Component text, int x, int y, int maxWidth, int color) {
-        int textWidth = font.width(text);
-        if (textWidth <= maxWidth) {
-            graphics.drawString(font, text, x, y, color, false);
-            return;
-        }
-        float scale = maxWidth / (float) textWidth;
-        graphics.pose().pushPose();
-        graphics.pose().translate(x, y, 0);
-        graphics.pose().scale(scale, scale, 1.0F);
-        graphics.drawString(font, text, 0, 0, color, false);
-        graphics.pose().popPose();
-    }
-
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        renderTooltip(graphics, mouseX, mouseY);
     }
 
     private static String formatFrequency(long frequency) {

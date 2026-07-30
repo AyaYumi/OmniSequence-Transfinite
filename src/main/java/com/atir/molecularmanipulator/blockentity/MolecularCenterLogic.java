@@ -28,6 +28,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     private final List<IPatternDetails> availablePatterns = new ArrayList<>();
     private final Set<IPatternDetails> availablePatternSet = new HashSet<>();
     private boolean rebuildScheduled;
+    private int patternRevision;
 
     MolecularCenterLogic(MolecularCenterBlockEntity machine) {
         super(machine.getMainNode(), machine, MolecularCenterBlockEntity.MAX_PATTERN_SLOTS);
@@ -47,6 +48,14 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
         return fullPatternInventory;
     }
 
+    /**
+     * Monotonically changing client hint used to invalidate the lightweight
+     * pattern-search index. It is intentionally not persisted.
+     */
+    public int getPatternRevision() {
+        return patternRevision;
+    }
+
     public static boolean isSupportedPattern(ItemStack stack) {
         return (AEItems.CRAFTING_PATTERN.is(stack)
                 || AEItems.SMITHING_TABLE_PATTERN.is(stack)
@@ -63,8 +72,14 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     }
 
     @Override
+    public boolean isBusy() {
+        return machine.hasActiveReusableBatch() || super.isBusy();
+    }
+
+    @Override
     public boolean molecularmanipulator$supportsBatching(IPatternDetails patternDetails) {
-        return machine.isOperational() && availablePatternSet.contains(patternDetails)
+        return machine.isOperational() && !machine.hasActiveReusableBatch()
+                && availablePatternSet.contains(patternDetails)
                 && patternDetails instanceof IMolecularAssemblerSupportedPattern;
     }
 
@@ -106,6 +121,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
 
     @Override
     public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
+        patternRevision++;
         saveChanges();
         if (isClientSide() || rebuildScheduled) {
             return;

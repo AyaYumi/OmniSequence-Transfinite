@@ -6,10 +6,12 @@ import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 @EventBusSubscriber(modid = MolecularManipulator.MOD_ID, value = Dist.CLIENT,
@@ -32,5 +34,13 @@ public final class ClientEvents {
                 MolecularCenterRenderer::new);
         event.registerBlockEntityRenderer(ModContent.OMNI_COMPUTATION_CONTROLLER_BE.get(),
                 OmniComputationRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void registerReloadListeners(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
+            MolecularCenterGhostPreview.onResourceReload();
+            OmniComputationGhostPreview.onResourceReload();
+        });
     }
 }

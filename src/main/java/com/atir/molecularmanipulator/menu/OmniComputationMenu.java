@@ -16,6 +16,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
     private static final String ACTION_BUILD = "omni_build";
     private static final String ACTION_DISMANTLE = "omni_dismantle";
     private static final String ACTION_REFRESH = "omni_refresh";
+    private static final String ACTION_UPDATE_STRUCTURE = "omni_update_structure";
+    private static final String ACTION_KEEP_LEGACY_STRUCTURE = "omni_keep_legacy_structure";
 
     public static final MenuType<OmniComputationMenu> TYPE = MenuTypeBuilder
             .create(OmniComputationMenu::new, OmniComputationCoreBlockEntity.class)
@@ -56,6 +58,10 @@ public final class OmniComputationMenu extends AEBaseMenu {
             MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
     @GuiSync(17)
     public boolean dismantling;
+    @GuiSync(18)
+    public boolean legacyStructure;
+    @GuiSync(19)
+    public boolean legacyStructureUpdateDismissed;
 
     private final OmniComputationCoreBlockEntity core;
 
@@ -72,6 +78,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
         registerClientAction(ACTION_BUILD, this::build);
         registerClientAction(ACTION_DISMANTLE, this::dismantle);
         registerClientAction(ACTION_REFRESH, this::refresh);
+        registerClientAction(ACTION_UPDATE_STRUCTURE, this::updateStructure);
+        registerClientAction(ACTION_KEEP_LEGACY_STRUCTURE, this::keepLegacyStructure);
     }
 
     public OmniComputationCoreBlockEntity getCore() {
@@ -96,6 +104,18 @@ public final class OmniComputationMenu extends AEBaseMenu {
         }
     }
 
+    public void requestStructureUpdate() {
+        if (isClientSide()) {
+            sendClientAction(ACTION_UPDATE_STRUCTURE);
+        }
+    }
+
+    public void requestKeepLegacyStructure() {
+        if (isClientSide()) {
+            sendClientAction(ACTION_KEEP_LEGACY_STRUCTURE);
+        }
+    }
+
     private void build() {
         if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
             core.startBuild(player);
@@ -111,6 +131,18 @@ public final class OmniComputationMenu extends AEBaseMenu {
     private void refresh() {
         if (!isClientSide()) {
             core.refreshStructureNow();
+        }
+    }
+
+    private void updateStructure() {
+        if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
+            core.startStructureUpdate(player);
+        }
+    }
+
+    private void keepLegacyStructure() {
+        if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
+            core.keepLegacyStructure(player);
         }
     }
 
@@ -135,6 +167,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
             lastMaterialCalculationMillis = core.getLastMaterialCalculationMillis();
             quantumFrequency = core.getQuantumFrequency();
             quantumLinkState = core.getQuantumLinkState();
+            legacyStructure = core.hasLegacyStructure();
+            legacyStructureUpdateDismissed = core.isLegacyStructureUpdateDismissed();
         }
         super.broadcastChanges();
     }

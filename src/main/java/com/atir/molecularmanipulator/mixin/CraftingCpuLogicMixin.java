@@ -17,8 +17,10 @@ import appeng.me.cluster.implementations.CraftingCPUCluster;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.crafting.MolecularAdaptiveBatchController;
 import com.atir.molecularmanipulator.crafting.MolecularAdaptiveProviderIterable;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor.BatchExtraction;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchSafety;
 import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularRotatingTaskEntries;
@@ -240,6 +242,16 @@ public abstract class CraftingCpuLogicMixin {
         molecularmanipulator$clearCompatPatternSlices();
     }
 
+    @Inject(method = "cancel", at = @At("HEAD"))
+    private void molecularmanipulator$recordReusableBatchCancellation(
+            CallbackInfo callback) {
+        var link = cluster.craftingLogic.getLastLink();
+        if (link != null) {
+            MolecularBatchCancellationData.markCanceled(
+                    cluster.getLevel(), link.getCraftingID());
+        }
+    }
+
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
             target = "Ljava/util/Map;entrySet()Ljava/util/Set;", ordinal = 0))
     private Set<Map.Entry<IPatternDetails, Object>>
@@ -407,8 +419,9 @@ public abstract class CraftingCpuLogicMixin {
                         waitingForCraftLimit);
                 if (maxCrafts > 1) {
                     var extraction = MolecularBatchCraftingExtractor.expandFromFirst(
-                            patternDetails, inventory, energyService, firstInputs,
-                            expectedOutputs, expectedContainerItems, maxCrafts);
+                            patternDetails, inventory, energyService, level,
+                            firstInputs, expectedOutputs, expectedContainerItems,
+                            maxCrafts, true);
                     if (extraction != null) {
                         molecularmanipulator$batchPattern = patternDetails;
                         molecularmanipulator$batchExtraction = extraction;
@@ -534,8 +547,8 @@ public abstract class CraftingCpuLogicMixin {
             BatchExtraction adaptiveExtraction = null;
             if (selectedWindow > 1) {
                 var extraction = MolecularBatchCraftingExtractor.expandFromFirst(patternDetails, inventory,
-                        energyService, firstInputs, expectedOutputs, expectedContainerItems,
-                        selectedWindow);
+                        energyService, level, firstInputs, expectedOutputs,
+                        expectedContainerItems, selectedWindow, false);
                 if (extraction != null) {
                     adaptiveExtraction = extraction;
                     craftCount = extraction.craftCount();
@@ -552,7 +565,8 @@ public abstract class CraftingCpuLogicMixin {
                         : patternDetails;
             } catch (RuntimeException exception) {
                 if (adaptiveExtraction != null) {
-                    adaptiveExtraction.rollbackAdditional(inventory, expectedOutputs);
+                    adaptiveExtraction.rollbackAdditional(inventory,
+                            expectedOutputs, expectedContainerItems);
                 }
                 molecularmanipulator$adaptiveBatchController.forceSingle(
                         selectedProvider, patternDetails);
@@ -582,7 +596,8 @@ public abstract class CraftingCpuLogicMixin {
         }
 
         var extraction = MolecularBatchCraftingExtractor.expandFromFirst(patternDetails, inventory,
-                energyService, firstInputs, expectedOutputs, expectedContainerItems, maxCrafts);
+                energyService, level, firstInputs, expectedOutputs,
+                expectedContainerItems, maxCrafts, true);
         if (extraction == null) {
             return firstInputs;
         }
@@ -671,6 +686,21 @@ public abstract class CraftingCpuLogicMixin {
             return false;
         }
 
+        var reusablePlan = expandedContext
+                ? extraction.reusablePlan()
+                : null;
+        java.util.UUID reusableCraftingId = null;
+        if (reusablePlan != null) {
+            if (!explicitBatchProvider) {
+                return false;
+            }
+            var link = cluster.craftingLogic.getLastLink();
+            if (link == null || link.isCanceled() || link.isDone()) {
+                return false;
+            }
+            reusableCraftingId = link.getCraftingID();
+        }
+
         var taskAdjustment = craftCount > 1
                 ? molecularmanipulator$prepareBatchTask(patternDetails, craftCount)
                 : null;
@@ -688,7 +718,13 @@ public abstract class CraftingCpuLogicMixin {
 
         var acceptedJob = job;
         boolean providerAccepted = false;
+        MolecularBatchDispatchContext.Scope reusableScope = null;
         try {
+            if (reusablePlan != null) {
+                reusableScope = MolecularBatchDispatchContext.open(
+                        reusableCraftingId, patternDetails, inputs,
+                        reusablePlan);
+            }
             boolean accepted;
             PushResult adaptiveResult = null;
             if (adaptiveContext
@@ -792,6 +828,9 @@ public abstract class CraftingCpuLogicMixin {
             }
             return accepted;
         } finally {
+            if (reusableScope != null) {
+                reusableScope.close();
+            }
             if (!providerAccepted && taskAdjustment != null) {
                 molecularmanipulator$setTaskValue(
                         taskAdjustment.getKey(), taskAdjustment.getValue());

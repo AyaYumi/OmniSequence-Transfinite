@@ -6,11 +6,14 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.menu.AutoCraftingMenu;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+
+import java.util.UUID;
 
 final class MolecularCraftingBatcher {
     private static final int CRAFTING_GRID_SIZE = 9;
@@ -66,6 +69,93 @@ final class MolecularCraftingBatcher {
         craftingGridPrepared = true;
 
         return prepareOutputs(plan);
+    }
+
+    MolecularReusableBatchJob prepareReusable(IPatternDetails patternDetails,
+            KeyCounter[] inputs, Level level, UUID craftingId,
+            MolecularReusableBatchPlan reusablePlan) {
+        if (!(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)
+                || craftingId == null || reusablePlan == null
+                || !reusablePlan.matchesProvidedInputs(inputs)) {
+            return null;
+        }
+
+        try {
+            var firstInputs = createOneCraftInputs(reusablePlan, 0);
+            if (firstInputs == null || !fillCraftingGrid(pattern, firstInputs)) {
+                return null;
+            }
+
+            var firstCraftingInput = craftingGrid.asPositionedCraftInput().input();
+            ItemStack output = pattern.assemble(firstCraftingInput, level);
+            if (output.isEmpty()) {
+                return null;
+            }
+            var crafted = output.copy();
+            crafted.onCraftedBySystem(level);
+            var primaryPerCraft = new Object2LongOpenHashMap<AEKey>();
+            if (!addOutput(primaryPerCraft, crafted)) {
+                return null;
+            }
+            if (!remainingItemsMatch(pattern, reusablePlan.expectedRemainders(1))) {
+                return null;
+            }
+
+            var firstGrid = new ItemStack[CRAFTING_GRID_SIZE];
+            for (int slot = 0; slot < CRAFTING_GRID_SIZE; slot++) {
+                firstGrid[slot] = craftingGrid.getItem(slot).copy();
+            }
+
+            if (hasTransitioningInput(reusablePlan)) {
+                // Finite-durability batching is safe only when every intermediate
+                // state produces the same output and the predicted next tool key.
+                for (long completedBefore = 1;
+                        completedBefore < reusablePlan.craftCount();
+                        completedBefore++) {
+                    var stateInputs = createOneCraftInputs(
+                            reusablePlan, completedBefore);
+                    if (stateInputs == null
+                            || !fillCraftingGrid(pattern, stateInputs)) {
+                        return null;
+                    }
+                    var stateCraftingInput =
+                            craftingGrid.asPositionedCraftInput().input();
+                    ItemStack stateOutput =
+                            pattern.assemble(stateCraftingInput, level);
+                    if (!stateOutput.isEmpty()) {
+                        stateOutput = stateOutput.copy();
+                        stateOutput.onCraftedBySystem(level);
+                    }
+                    var statePrimary = new Object2LongOpenHashMap<AEKey>();
+                    if (stateOutput.isEmpty()
+                            || !addOutput(statePrimary, stateOutput)
+                            || !mapsEqual(primaryPerCraft, statePrimary)
+                            || !remainingItemsMatch(pattern,
+                                    reusablePlan.expectedRemainders(
+                                            completedBefore + 1))) {
+                        return null;
+                    }
+                }
+            }
+
+            clearCraftingGrid();
+            for (int slot = 0; slot < CRAFTING_GRID_SIZE; slot++) {
+                craftingGrid.setItem(slot, firstGrid[slot]);
+            }
+            preparedPlan = null;
+            craftingGridPrepared = true;
+            craftCount = reusablePlan.craftCount();
+            craftedOutput = crafted;
+            outputAmounts.clear();
+            primaryOutputAmounts.clear();
+            remainderOutputAmounts.clear();
+
+            return MolecularReusableBatchJob.create(craftingId,
+                    patternDetails.getDefinition(), reusablePlan, inputs,
+                    primaryPerCraft);
+        } catch (RuntimeException exception) {
+            return null;
+        }
     }
 
     private boolean prepareOutputs(CraftPlan plan) {
@@ -133,6 +223,96 @@ final class MolecularCraftingBatcher {
         for (var input : inputs) {
             input.clear();
         }
+    }
+
+    private KeyCounter[] createOneCraftInputs(
+            MolecularReusableBatchPlan plan, long completedCrafts) {
+        var plannedInputs = plan.inputs();
+        var result = new KeyCounter[plannedInputs.length];
+        for (int index = 0; index < plannedInputs.length; index++) {
+            var input = plannedInputs[index];
+            AEKey key = input.mode()
+                    == MolecularReusableBatchPlan.InputMode.CONSUMABLE
+                            ? input.initialKey()
+                            : input.keyAfter(
+                                    completedCrafts, plan.craftCount());
+            if (key == null) {
+                return null;
+            }
+            var holder = result[index] = new KeyCounter();
+            holder.add(key, input.amountPerCraft());
+        }
+        return result;
+    }
+
+    private boolean fillCraftingGrid(IMolecularAssemblerSupportedPattern pattern,
+            KeyCounter[] oneCraftInputs) {
+        clearCraftingGrid();
+        pattern.fillCraftingGrid(oneCraftInputs, craftingGrid::setItem);
+        for (var input : oneCraftInputs) {
+            input.removeZeros();
+            if (!input.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean remainingItemsMatch(
+            IMolecularAssemblerSupportedPattern pattern,
+            KeyCounter expectedRemainders) {
+        var actual = new KeyCounter();
+        var craftingInput = craftingGrid.asPositionedCraftInput().input();
+        for (var remainder : pattern.getRemainingItems(craftingInput)) {
+            if (remainder.isEmpty()) {
+                continue;
+            }
+            var key = AEItemKey.of(remainder);
+            if (key == null) {
+                return false;
+            }
+            actual.add(key, remainder.getCount());
+        }
+        return countersEqual(actual, expectedRemainders);
+    }
+
+    private static boolean hasTransitioningInput(
+            MolecularReusableBatchPlan plan) {
+        for (var input : plan.inputs()) {
+            if (input.mode()
+                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean countersEqual(KeyCounter left, KeyCounter right) {
+        left.removeZeros();
+        right.removeZeros();
+        if (left.size() != right.size()) {
+            return false;
+        }
+        for (var entry : left) {
+            if (entry.getKey() == null || entry.getLongValue() <= 0
+                    || right.get(entry.getKey()) != entry.getLongValue()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean mapsEqual(Object2LongOpenHashMap<AEKey> left,
+            Object2LongOpenHashMap<AEKey> right) {
+        if (left.size() != right.size()) {
+            return false;
+        }
+        for (var entry : left.object2LongEntrySet()) {
+            if (right.getLong(entry.getKey()) != entry.getLongValue()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private CraftPlan createPlan(IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs, Level level) {

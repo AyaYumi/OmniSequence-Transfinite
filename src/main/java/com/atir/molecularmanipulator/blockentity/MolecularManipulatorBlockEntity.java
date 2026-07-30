@@ -59,6 +59,10 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         return new MolecularManipulatorLogic(getMainNode(), this);
     }
 
+    public int getPatternRevision() {
+        return ((MolecularManipulatorLogic) getLogic()).getPatternRevision();
+    }
+
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
         if (assembling || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
             return false;

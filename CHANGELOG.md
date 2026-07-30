@@ -1,5 +1,68 @@
 # Changelog
 
+## 1.3.7 - 2026-07-30
+
+### Changed
+
+- Added effect-cleared layouts for both fixed multiblocks while retaining
+  strict compatibility with their complete legacy layouts.
+- Controllers now identify a complete legacy layout and show an optional
+  structure-update notice. Legacy structures remain formed and operational
+  until a player explicitly starts the safe relocation.
+- Updated projection, automatic construction, dismantling, JEI previews, and
+  GuideME documentation for the current layouts and optional upgrade flow.
+- Moved all OmniSequence GuideME pages into a dedicated top-level
+  `OmniSequence: Transfinite` section while preserving item-page links.
+- Controller screens now scale down only when their native size would exceed
+  the current GUI area. Slots, buttons, tooltips, and JEI ghost targets use the
+  same transformed coordinates.
+- Replaced per-frame ghost-block model tessellation with reusable 16x16x16
+  section VBOs for both multiblock projections. Changed sections rebuild
+  incrementally, at most two per frame, while unchanged geometry is reused.
+- Item-substitution crafting patterns are now permanently eligible for
+  compatible runtime batch dispatch. AE2 still selects the actual substituted
+  input, and the retired `omni_batch_allow_substitution_patterns` option is
+  removed from existing TOML files without resetting other custom values.
+- The Assembler Matrix Sequence Rewrite Core and Sequence Array now own and
+  persist accepted reusable-input batches across saves, chunk unloads, and
+  server restarts.
+- Same-key and unbreakable remainders can run as one reusable batch.
+  Finite-durability tools batch only when each craft deterministically adds
+  exactly one damage; probabilistic, contextual, and key-changing transitions
+  retain AE2's original one-craft path.
+- Reusable batch expansion now uses AE2's native pattern-power calculation
+  over the actual combined input set.
+- Matter Sequence item tooltips now default to a compact Shift-expand prompt.
+  The client setting supports `DISABLED`, `HOLD_SHIFT`, and `ALWAYS_VISIBLE`.
+- Pattern inventories now have debounced, cross-page input/output search while
+  retaining AE2's detailed encoded-pattern hover tooltip. Search uses
+  client-localized names and optionally delegates matching to Just Enough
+  Characters, enabling Pinyin queries without making JEC a required mod.
+
+### Fixed
+
+- Canceling an AE2 job now persistently stops every remaining provider-side
+  reusable execution and refunds the exact unused materials together with the
+  reusable item's current state. Completed outputs remain valid, and canceled
+  work cannot resume after a reload.
+- Kept the vanilla translucent world backdrop behind controller screens while
+  responsive scaling is active, covering the complete viewport.
+- Sequence Array construction now honors Creative mode like Omni-Computation
+  construction: materials are not consumed, and a failed placement cannot
+  create a refunded block.
+- Added compact English controller labels for narrow buttons and verified that
+  every English and Chinese static/dynamic translation key has a matching
+  entry.
+- Reworked controller labels and values into width-aware columns and wrapped
+  rows, preventing English text overlap. The Sequence Array's two matter-job
+  states and counters fit independently inside their 96-pixel columns, and the
+  Omni-Computation fixed-capability notice renders at normal readable size.
+- The AE2 crafting CPU selector now renders a compact localized Omni lane name
+  inside its narrow row while retaining the complete name in the tooltip.
+
+See [RELEASE_NOTES_1.3.7.md](RELEASE_NOTES_1.3.7.md) for the complete bilingual
+release and upgrade notes.
+
 ## 1.3.6 - 2026-07-29
 
 ### Added

@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: 分子构序重写阵列
   icon: molecularmanipulator:molecular_manipulator
   position: 1000
-categories:
-- machines
 item_ids:
 - molecularmanipulator:molecular_manipulator
 ---

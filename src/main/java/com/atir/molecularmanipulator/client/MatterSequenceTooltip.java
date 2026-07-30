@@ -1,9 +1,12 @@
 package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.config.MatterSequenceTooltipMode;
+import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry.MatterValue;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.neoforged.api.distmarker.Dist;
@@ -20,6 +23,11 @@ public final class MatterSequenceTooltip {
 
     @SubscribeEvent
     public static void addMatterSequenceTooltip(ItemTooltipEvent event) {
+        var displayMode = ModConfig.MATTER_SEQUENCE_TOOLTIP_MODE.get();
+        if (displayMode == MatterSequenceTooltipMode.DISABLED) {
+            return;
+        }
+
         var deconstruct = MatterSequenceRegistry.deconstructionOf(event.getItemStack());
         var rewrite = MatterSequenceRegistry.rewriteCostOf(event.getItemStack());
         if (deconstruct == null && rewrite == null) {
@@ -27,6 +35,15 @@ public final class MatterSequenceTooltip {
         }
 
         var tooltip = event.getToolTip();
+        if (displayMode == MatterSequenceTooltipMode.HOLD_SHIFT
+                && !Screen.hasShiftDown()) {
+            tooltip.add(Component.translatable(
+                    "tooltip.molecularmanipulator.matter_sequence_hold_shift",
+                    Component.literal("Shift").withStyle(ChatFormatting.LIGHT_PURPLE))
+                    .withStyle(ChatFormatting.DARK_GRAY));
+            return;
+        }
+
         tooltip.add(Component.translatable("tooltip.molecularmanipulator.matter_sequence")
                 .withStyle(ChatFormatting.DARK_PURPLE));
         if (deconstruct != null) {

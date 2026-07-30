@@ -179,6 +179,9 @@ final class OmniComputationPreviewWidget implements IRecipeWidget, IJeiInputHand
     private static List<RenderPart> createRenderParts(boolean overview) {
         var result = new ArrayList<RenderPart>();
         for (var part : OmniComputationStructure.parts()) {
+            if (part.type() == OmniComputationStructure.PartType.AIR) {
+                continue;
+            }
             if (overview && shouldCullFromOverview(part)) {
                 continue;
             }

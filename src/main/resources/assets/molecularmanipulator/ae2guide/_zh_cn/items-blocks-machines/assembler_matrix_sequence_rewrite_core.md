@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: 装配矩阵构序重写核心
   icon: molecularmanipulator:assembler_matrix_molecular_core
   position: 1010
-categories:
-- machines
 item_ids:
 - molecularmanipulator:assembler_matrix_molecular_core
 ---
@@ -34,6 +32,18 @@ item_ids:
 - 产生多种 AE Key 的配方结果。
 
 产物会按 AE Key 聚合后批量返回 ME 网络。输出受阻时，持久化缓冲会安全保存产物，直到网络能够接收。
+
+## 可复用输入与取消
+
+核心可将同键返还物品作为一个可复用批次执行，其中也包括物品数据判定为不可损坏的物品。
+有限耐久工具仅在每次合成都确定增加恰好 1 点损伤时才会批量执行；带耐久附魔、随机变化或依赖上下文
+的工具会回退 AE2 原生逐份路径。水桶变为空桶等换键返还也继续逐份执行。
+
+核心接受可复用批次后会持有并持久化完整执行状态，保存、区块卸载或服务器重启不会丢失或重复剩余工作。
+取消 AE2 合成任务会写入持久取消标记、停止所有尚未执行的合成，并精确退回未使用材料以及可复用物品
+的当前状态；取消前已经完成的产物仍然有效。
+
+批量执行会对实际合并后的输入调用 AE2 原生样板能耗计算，保持 AE2 原版合成能耗行为。
 
 ## 配方
 

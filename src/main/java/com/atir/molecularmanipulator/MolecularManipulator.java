@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator;
 import com.atir.molecularmanipulator.config.ConfigFileMigration;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.LongCraftingRequestPayload;
+import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
 import appeng.api.AECapabilities;
@@ -30,6 +31,7 @@ public final class MolecularManipulator {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(LongCraftingRequestPayload::register);
+        modEventBus.addListener(PatternSearchIndexPayload::register);
         MatterSequenceRegistry.loadOrCreate();
         NeoForge.EVENT_BUS.addListener(this::serverAboutToStart);
     }

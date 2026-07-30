@@ -17,9 +17,9 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | Glodium | 1.21-2.2-neoforge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.6`
+Current release: `1.3.7`
 
-See the [bilingual 1.3.6 release notes](RELEASE_NOTES_1.3.6.md) for the complete change and upgrade details.
+See the [bilingual 1.3.7 release notes](RELEASE_NOTES_1.3.7.md) for the complete change and upgrade details.
 
 > Known incompatibility: the only currently declared conflict is `Expanded AE 2.1.1`
 > (`expandedae-2.1.1.jar`, not ExtendedAE). The conflicting code is Expanded AE's
@@ -33,13 +33,14 @@ See the [bilingual 1.3.6 release notes](RELEASE_NOTES_1.3.6.md) for the complete
 - Prevents integer-overflow crashes in wireless-terminal auto-stock overlays with extremely large or unlimited inventories.
 - Adds the Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, and the Sequence Array multiblock managed by the Sequence Array Controller.
 - Provides structure projection, automatic construction and dismantling, chunk-aware pause and resume, and dynamic visual effects.
+- Keeps both fixed multiblocks compatible with their legacy and current layouts; controllers offer an optional, player-confirmed update for complete legacy structures.
 - Supports wired ME access and cross-dimensional entangled quantum links.
 - Provides modpack-configurable matter deconstruction, sequence storage, and blueprint reproduction.
 - Adds AE2 GuideME pages for all four primary blocks; hover an item and press `G` to open its guide.
 
 ## Autocrafting and Material Dispatch
 
-The Omni-Computation Core uses `SAFE` aggregation to accelerate deterministic recipe trees. Item-substitution patterns conservatively fall back, while fluid-only substitution remains deterministic and may stay on the fast path. Container remainders, dynamic inputs, cycles, and unknown pattern behavior also fall back to AE2's native calculation path.
+The Omni-Computation Core uses `SAFE` aggregation to accelerate deterministic recipe trees. Item-substitution patterns conservatively fall back from this planner, while fluid-only substitution remains deterministic and may stay on the fast path. This planning fallback does not block compatible runtime batch dispatch: item-substitution patterns are permanently eligible, and AE2 still chooses the actual substituted input. Container remainders, dynamic inputs, cycles, and unknown pattern behavior also fall back to AE2's native calculation path.
 
 Material dispatch uses three execution modes:
 
@@ -59,6 +60,10 @@ Only providers that explicitly implement this project's atomic batch protocol re
 
 Provider-owned remainder queues that already belong to an in-flight CPU task retain that ownership, preventing reinjection from leaving the CPU waiting forever for outputs that can no longer be produced. AE2's crafting-in-progress accounting uses the actual expected output, and every dispatch is capped by the remaining `waitingFor` output headroom to prevent pending output from overflowing `Long.MAX_VALUE`. The scheduler distributes work fairly across virtual CPUs and patterns, with a work-unit ceiling for extreme jobs.
 
+The Assembler Matrix Sequence Rewrite Core and Sequence Array use a persistent execution model for reusable inputs. Same-key remainders, including items marked as unbreakable, can be reused across a whole batch. Finite-durability tools are batched only when each craft deterministically adds exactly one point of damage; Unbreaking-enchanted and other probabilistic or context-dependent transitions fall back to AE2's original one-craft path. Key-changing remainders, such as a water bucket becoming an empty bucket, also stay on that native path.
+
+Accepted reusable batches remain owned by the provider across saves, chunk unloads, and server restarts. Canceling the AE2 crafting job persistently stops the remaining executions and refunds the exact unconsumed materials together with the reusable item's current state; completed outputs remain valid and canceled work cannot resume after reload. Batch expansion uses AE2's native pattern-power calculation over the actual combined inputs, preserving the original crafting-energy semantics.
+
 ## Core Machines
 
 ### Molecular Sequence Rewrite Array
@@ -71,6 +76,7 @@ Provider-owned remainder queues that already belong to an in-flight CPU task ret
 
 - Installs inside an ExtendedAE Assembler Matrix in place of ordinary crafting and speed cores.
 - Runs real recipe assembly and remainder logic, preserving tool durability and non-consumed inputs.
+- Persists reusable-input batches and provides exact cancellation refunds across unloads and restarts.
 - Aggregates outputs by `AEKey` and returns them to the ME Network in batches.
 
 ### Omni-Computation Core
@@ -84,6 +90,7 @@ Provider-owned remainder queues that already belong to an in-flight CPU task ret
 
 - Forms a fixed 31×46×31 structure with logical autocrafting parallelism up to `Long.MAX_VALUE`.
 - Pattern slots accept encoded AE2 crafting, smithing-table, and stonecutting patterns. Processing, blank, and invalid patterns are rejected.
+- Supports deterministic reusable-input batches with persistent cancellation and refund state.
 - Shift-moving a supported pattern fills the current pattern page first, then continues into later pages.
 - One-click dismantling uses a timed two-step confirmation. Rapid double-clicks, clicking another control, or waiting for the timeout will not trigger accidental removal.
 - Provides independent RGB effects for the energy field, core, rings, and lattice. Crafting accelerates the animation only; visual settings do not change processing speed.
@@ -122,6 +129,8 @@ config/molecularmanipulator/matter_rewrite_rules.json
 
 Exact item rules take priority over tag rules. Items with custom data such as enchantments, custom names, durability, or container contents are not deconstructed or reproduced. With 0–4 AE2 Acceleration Cards installed, the processing time per item is 20, 10, 5, 2, or 1 tick respectively.
 
+Eligible item tooltips default to a compact Shift-expand prompt. The client option `matter_sequence_tooltip_mode` supports `DISABLED`, `HOLD_SHIFT`, and `ALWAYS_VISIBLE`.
+
 ## Core Configuration
 
 The server configuration is `omnisequence-transfinite-server.toml`; the client configuration is `omnisequence-transfinite-client.toml`. Legacy `molecularmanipulator-*.toml` files are copied forward automatically when the new file does not yet exist.
@@ -137,15 +146,15 @@ The server configuration is `omnisequence-transfinite-server.toml`; the client c
 | `omni_max_fast_compile_budget_ms` | 100 | Aggregation compile budget before falling back to AE2 |
 | `omni_max_fast_diagnostics` | `false` | Logs aggregation timing and fallback reasons |
 | `omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
-| `omni_batch_allow_substitution_patterns` | `false` | Allows item-substitution patterns to use batch dispatch |
 | `omni_compat_dispatch_max_calls_per_tick` | 2147483647 | Per-core, per-tick emergency ceiling for complete `1×` calls to ordinary providers |
 | `omni_compat_dispatch_max_time_us` | 20000 | Server-wide budget shared by all active Omni-Computation Cores; contracts as average MSPT approaches 45 |
 | `omni_dispatch_max_work_units` | 2147483647 | Maximum scheduler work units per core and tick |
+| `matter_sequence_tooltip_mode` | `HOLD_SHIFT` | Client-only Matter Sequence tooltip mode |
 | `dynamic_effect_level` | 2 | Client-only visual effects: 0 off, 1 reduced, 2 full |
 
 Ordinary and unknown providers receive adaptive runtime-scaled patterns only for safe single-ingredient recipes. Multi-ingredient and other non-scalable paths send complete original recipes one at a time, preserving machine rotation and back-pressure behavior. A server-wide adaptive time slice replaces the old fixed 32-call limit: dispatch accelerates while the server has headroom and contracts as average MSPT approaches 45. Multiple cores, CPUs, and patterns do not each claim a separate full time budget. Only providers that explicitly declare atomic batch support receive complete multiplied multi-ingredient inputs.
 
-When configuration loading or hot reload detects an option that the current version no longer defines, the mod keeps up to five `.toml.bak` files and atomically rebuilds the configuration with current defaults. If only a new option is missing or a known value is out of range, NeoForge repairs that value without resetting other valid settings.
+The retired `omni_batch_allow_substitution_patterns` key is removed from existing server TOML files without resetting other custom values. When configuration loading or hot reload detects another option that the current version no longer defines, the mod keeps up to five `.toml.bak` files and atomically rebuilds the configuration with current defaults. If only a new option is missing or a known value is out of range, NeoForge repairs that value without resetting other valid settings.
 
 ## Installation and Build
 
@@ -158,7 +167,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.6.jar
+build/libs/omnisequence-transfinite-1.3.7.jar
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).
+See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.7.md](RELEASE_NOTES_1.3.7.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).

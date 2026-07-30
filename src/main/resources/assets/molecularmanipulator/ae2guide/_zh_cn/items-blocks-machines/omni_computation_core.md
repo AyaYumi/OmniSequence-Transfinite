@@ -1,11 +1,9 @@
 ---
 navigation:
-  parent: ae2:items-blocks-machines/items-blocks-machines-index.md
+  parent: omnisequence-index.md
   title: 万物演算核心
   icon: molecularmanipulator:omni_computation_controller
   position: 1020
-categories:
-- devices
 item_ids:
 - molecularmanipulator:omni_computation_controller
 ---
@@ -25,12 +23,20 @@ item_ids:
 4. 清理冲突方块后点击“一键搭建”。系统优先从玩家背包取材，随后从已连接的 ME 网络抽取。
 5. 接入并供应 ME 能量；若结构没有立即成型，可点击“检测”重新校验。
 
+旧版与新版奇点布局都可以正常成型。新版布局会让演算奇点的特效正中心保持为空气，并将数据纠缠节点
+放入前方下部塔体。控制器检测到完整旧布局时会显示可选的结构更新提示；忽略提示即可继续使用旧结构，
+确认更新后才会安全回收并迁移中心的数据纠缠节点。
+
 使用 AE2 扳手可旋转控制器并重新计算结构朝向。
 
 ## 自动合成
 
 核心会随合成请求动态创建虚拟 CPU 通道，并保留空闲通道接收新任务。`SAFE` 演算模式会加速确定性配方树；
 遇到替代配方、容器返还、动态输入、循环或未知配方行为时，会自动回退到 AE2 原生计算路径。
+
+物品替代样板仍不会参与 SAFE 聚合，但永久允许进入兼容的运行时批量发配；实际替代输入继续由 AE2
+原生逻辑选择。已停用的 `omni_batch_allow_substitution_patterns` 服务端配置会从现有文件中移除，
+其他自定义值不会被重置。
 
 材料派发会根据机器接收能力与服务器负载动态调整。界面中的“无限”代表逻辑容量；实际吞吐量仍受原料、
 能量、供应器背压和服务器 Tick 时间限制。

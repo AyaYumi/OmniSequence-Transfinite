@@ -100,9 +100,16 @@ injection.
   otherwise clip its text.
 - GuideME now lists the mod under its own top-level `OmniSequence: Transfinite`
   section instead of mixing its pages into AE2's machine category.
+- The Sequence Array guide now explains JEI marker selection, ME-fed
+  deconstruction, blueprint reproduction, all four sequence values, rewrite
+  entropy and cooling, acceleration intervals, and the matter-rule file.
 - Matter Sequence item details now use a compact Shift-expand prompt by default.
   The client configuration can disable them, keep Shift expansion, or show them
   permanently.
+- The Sequence Array Controller now searches encoded patterns across every
+  configured page by localized input/output names while preserving AE2's full
+  hover details. Just Enough Characters is optional; when present, the same
+  field accepts Pinyin queries.
 - Width-aware label/value rows prevent English text from overlapping in both
   controller screens. The Sequence Array's two matter-job states and counters
   are independently fitted to their 96-pixel columns, and the fixed-capability
@@ -120,7 +127,7 @@ injection.
 5. Start the game, verify version `1.3.7-forge-fix`, and decide from each controller
    whether an existing legacy structure should be updated.
 
-SHA-256: `078ED4AD99B6484EC0155A9951F3249806FD1742503D18E2E107F21705F74485`
+SHA-256: `42E774B90DDFF5BCE47B6FD4B5A3B7B97D147F89D017FFC515AC63DD218BC5D5`
 
 ---
 
@@ -194,8 +201,13 @@ AE2-UELM 15.5.0 后会调用其原生长整数 `planJob` 确认路径，避免�
   降低大型结构预览期间的重复模型构建开销。
 - GuideME 现在将本模组文档独立列在“万象构序：超限”顶级分类中，不再混入
   AE2 的机器分类。
+- 构序阵列指南现在会完整说明 JEI 分解标记、从 ME 网络抽取物品、蓝图复制、
+  四类序列价值、重写熵与冷却、加速卡处理周期，以及物质规则配置文件。
 - 物品提示中的物质构序详情默认折叠为按住 Shift 展开；客户端配置可以永久关闭、
   保持按键展开或永久显示。
+- 构序阵列控制器现在可按本地化输入/输出名称跨全部配置页搜索编码样板，并保留
+  AE2 的完整悬停详情。“通用拼音搜索”为可选兼容模组，安装后同一搜索框可直接
+  使用拼音查询。
 - 两个控制器会按实际字体宽度排列标签与数值，避免英文文本相互覆盖；构序阵列的
   两条物质作业状态与计数会分别适配各自 96 像素宽的栏位。
 - 万物演算核心的固定能力说明改为正常字号换行显示，不再缩小整行文字。
@@ -210,4 +222,4 @@ AE2-UELM 15.5.0 后会调用其原生长整数 `planJob` 确认路径，避免�
 4. 确保每个 `mods` 目录中只有一个启用中的万象构序 JAR。
 5. 启动游戏并确认版本为 `1.3.7-forge-fix`，再由各控制器决定是否更新已有的旧版结构。
 
-SHA-256：`078ED4AD99B6484EC0155A9951F3249806FD1742503D18E2E107F21705F74485`
+SHA-256：`42E774B90DDFF5BCE47B6FD4B5A3B7B97D147F89D017FFC515AC63DD218BC5D5`

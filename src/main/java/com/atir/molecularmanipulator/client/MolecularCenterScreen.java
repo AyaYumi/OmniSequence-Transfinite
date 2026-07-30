@@ -17,7 +17,10 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
 
 public final class MolecularCenterScreen extends ResponsiveContainerScreen<MolecularCenterMenu> {
@@ -31,6 +34,8 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private static final int CYAN = 0xFF63D8FF;
     private static final int DISMANTLE_CONFIRM_TICKS = 60;
     private static final int DISMANTLE_CONFIRM_DELAY_TICKS = 6;
+    private static final int PATTERN_SEARCH_DEBOUNCE_TICKS = 5;
+    private static final int PATTERN_SEARCH_MAX_LENGTH = 64;
 
     private Button preview;
     private Button dismantle;
@@ -43,6 +48,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private Button deconstruct;
     private Button rewrite;
     private Button rewriteOutput;
+    private EditBox patternSearch;
     private EditBox deconstructTarget;
     private EditBox rewriteTarget;
     private Button applyDeconstructTarget;
@@ -56,6 +62,11 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private final Button[][] colorButtons = new Button[5][3];
     private int detailTab = TAB_MATTER;
     private int dismantleConfirmTicks;
+    private int patternSearchDebounceTicks = -1;
+    private int observedPatternSearchGeneration = -1;
+    private int observedPatternInventoryRevision = Integer.MIN_VALUE;
+    private int patternIndexRefreshDebounceTicks = -1;
+    private final ArrayList<Integer> filteredPatternSources = new ArrayList<>();
 
     public MolecularCenterScreen(MolecularCenterMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -103,13 +114,13 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                         button -> menu.requestBuild())
                 .bounds(leftPos + 58, topPos + 4, 46, 18).build());
         previousPage = addRenderableWidget(Button.builder(Component.literal("<"),
-                        button -> menu.requestPage(menu.getPage() - 1))
+                        button -> changePatternPage(menu.getPage() - 1))
                 .bounds(leftPos + 108, topPos + 4, 20, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.page_previous_tooltip")))
                 .build());
         nextPage = addRenderableWidget(Button.builder(Component.literal(">"),
-                        button -> menu.requestPage(menu.getPage() + 1))
+                        button -> changePatternPage(menu.getPage() + 1))
                 .bounds(leftPos + 130, topPos + 4, 20, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.page_next_tooltip")))
@@ -137,6 +148,21 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                         Component.translatable("gui.molecularmanipulator.tab_colors"),
                         button -> selectTab(TAB_COLORS))
                 .bounds(leftPos + 366, topPos + 4, 54, 18).build());
+
+        patternSearch = new EditBox(
+                font,
+                leftPos + 17,
+                topPos + 29,
+                112,
+                15,
+                Component.translatable("gui.molecularmanipulator.pattern_search"));
+        patternSearch.setMaxLength(PATTERN_SEARCH_MAX_LENGTH);
+        patternSearch.setHint(Component.translatable(
+                "gui.molecularmanipulator.pattern_search_hint"));
+        patternSearch.setValue(menu.getClientPatternSearchQuery());
+        patternSearch.setResponder(value -> patternSearchDebounceTicks =
+                PATTERN_SEARCH_DEBOUNCE_TICKS);
+        addRenderableWidget(patternSearch);
 
         deconstruct = addRenderableWidget(Button.builder(
                         deconstructLabel(),
@@ -234,6 +260,20 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 .build());
         updateStructureUpdateControls();
         selectTab(TAB_MATTER);
+        observedPatternInventoryRevision = menu.patternInventoryRevision;
+        boolean hasPatternSearchQuery = !menu.getClientPatternSearchQuery().isBlank();
+        if (hasPatternSearchQuery
+                && menu.getClientPatternSearchRevision() != observedPatternInventoryRevision) {
+            menu.invalidateClientPatternSearchIndex(observedPatternInventoryRevision);
+            patternIndexRefreshDebounceTicks = PATTERN_SEARCH_DEBOUNCE_TICKS;
+        } else if (hasPatternSearchQuery && !menu.isClientPatternSearchComplete()) {
+            patternIndexRefreshDebounceTicks = PATTERN_SEARCH_DEBOUNCE_TICKS;
+        }
+        observedPatternSearchGeneration = menu.getClientPatternSearchGeneration();
+        if (menu.isClientPatternSearchComplete()
+                && !menu.getClientPatternSearchQuery().isBlank()) {
+            rebuildPatternSearch(menu.getPage());
+        }
     }
 
     private void selectTab(int tab) {
@@ -276,6 +316,34 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     @Override
     protected void containerTick() {
         super.containerTick();
+        patternSearch.tick();
+        if (patternSearchDebounceTicks > 0 && --patternSearchDebounceTicks == 0) {
+            commitPatternSearch();
+        }
+        if (menu.patternInventoryRevision != observedPatternInventoryRevision) {
+            observedPatternInventoryRevision = menu.patternInventoryRevision;
+            menu.invalidateClientPatternSearchIndex(observedPatternInventoryRevision);
+            patternIndexRefreshDebounceTicks =
+                    menu.getClientPatternSearchQuery().isBlank()
+                            ? -1
+                            : PATTERN_SEARCH_DEBOUNCE_TICKS;
+        }
+        if (patternIndexRefreshDebounceTicks > 0
+                && --patternIndexRefreshDebounceTicks == 0) {
+            if (!menu.getClientPatternSearchQuery().isBlank()) {
+                menu.requestPatternSearchIndex();
+            }
+        }
+        int searchGeneration = menu.getClientPatternSearchGeneration();
+        if (searchGeneration != observedPatternSearchGeneration) {
+            observedPatternSearchGeneration = searchGeneration;
+            if (menu.isClientPatternSearchComplete()
+                    && !menu.getClientPatternSearchQuery().isBlank()) {
+                rebuildPatternSearch(menu.getPage());
+            } else if (!menu.isClientPatternSearchComplete()) {
+                filteredPatternSources.clear();
+            }
+        }
         if (dismantleConfirmTicks > 0 && --dismantleConfirmTicks == 0) {
             updateDismantleButton();
         }
@@ -291,6 +359,91 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         syncTargetField(deconstructTarget, menu.deconstructTarget);
         syncTargetField(rewriteTarget, menu.rewriteTarget);
         updateStructureUpdateControls();
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (patternSearch != null && patternSearch.isFocused()) {
+            if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                patternSearchDebounceTicks = -1;
+                commitPatternSearch();
+                return true;
+            }
+            if (patternSearch.keyPressed(keyCode, scanCode, modifiers)) {
+                return true;
+            }
+            if (keyCode != GLFW.GLFW_KEY_ESCAPE) {
+                return true;
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private void commitPatternSearch() {
+        String query = patternSearch.getValue().strip();
+        menu.setClientPatternSearchQuery(query);
+        filteredPatternSources.clear();
+        if (query.isEmpty()) {
+            patternIndexRefreshDebounceTicks = -1;
+            menu.requestPage(0);
+            return;
+        }
+        if (menu.isClientPatternSearchComplete()) {
+            rebuildPatternSearch(0);
+        } else if (patternIndexRefreshDebounceTicks <= 0) {
+            menu.requestPatternSearchIndex();
+        }
+    }
+
+    private void rebuildPatternSearch(int preferredPage) {
+        String query = menu.getClientPatternSearchQuery().strip();
+        filteredPatternSources.clear();
+        if (query.isEmpty()) {
+            menu.requestPage(0);
+            return;
+        }
+        menu.forEachClientPatternSearchEntry((sourceSlot, keys) -> {
+            for (var key : keys) {
+                try {
+                    if (PatternSearchMatcher.contains(key.getDisplayName().getString(), query)
+                            || PatternSearchMatcher.contains(key.getId().toString(), query)) {
+                        filteredPatternSources.add(sourceSlot);
+                        return;
+                    }
+                } catch (RuntimeException ignored) {
+                    // An optional/custom AE key must not make the controller screen unusable.
+                }
+            }
+        });
+        showFilteredPatternPage(preferredPage);
+    }
+
+    private void changePatternPage(int requestedPage) {
+        if (menu.getClientPatternSearchQuery().isBlank()) {
+            menu.requestPage(requestedPage);
+        } else {
+            showFilteredPatternPage(requestedPage);
+        }
+    }
+
+    private void showFilteredPatternPage(int requestedPage) {
+        int pageCount = Math.max(1, (filteredPatternSources.size()
+                + MolecularCenterBlockEntity.PATTERNS_PER_PAGE - 1)
+                / MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
+        int selectedPage = Math.max(0, Math.min(pageCount - 1, requestedPage));
+        int[] projection = new int[MolecularCenterBlockEntity.PATTERNS_PER_PAGE];
+        Arrays.fill(projection, -1);
+        int firstResult = selectedPage * MolecularCenterBlockEntity.PATTERNS_PER_PAGE;
+        for (int slot = 0;
+                slot < projection.length && firstResult + slot < filteredPatternSources.size();
+                slot++) {
+            projection[slot] = filteredPatternSources.get(firstResult + slot);
+        }
+        menu.requestFilteredPatternPage(
+                menu.getClientPatternSearchRevision(),
+                selectedPage,
+                filteredPatternSources.size(),
+                projection);
     }
 
     private void updateStructureUpdateControls() {
@@ -410,11 +563,19 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        drawTwoSidedRow(graphics,
-                Component.translatable("block.molecularmanipulator.molecular_center_controller"),
-                Component.translatable("gui.molecularmanipulator.page", menu.getPage() + 1,
-                        menu.getPageCount()),
-                8, 188, 30, 0xFFEBDFFF, 0xFFB7C3D7);
+        var pageLabel = Component.translatable(
+                "gui.molecularmanipulator.page",
+                menu.getPage() + 1,
+                menu.getPageCount());
+        int pageLabelWidth = font.width(pageLabel);
+        float pageLabelScale = Math.min(1.0F, 54.0F / Math.max(1, pageLabelWidth));
+        drawScaledString(
+                graphics,
+                pageLabel,
+                188 - Math.round(pageLabelWidth * pageLabelScale),
+                33,
+                pageLabelScale,
+                0xFFB7C3D7);
         var state = menu.formed ? Component.translatable("gui.molecularmanipulator.formed")
                 : Component.translatable("gui.molecularmanipulator.incomplete");
         graphics.drawString(font, state, 8, 125, menu.formed ? 0xFF70F2A2 : 0xFFFFB75E, false);

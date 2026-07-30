@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator;
 
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.LongCraftingRequestPayload;
+import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
 import appeng.api.upgrades.Upgrades;
@@ -28,6 +29,7 @@ public final class MolecularManipulator {
         ModContent.register(modEventBus);
         modEventBus.addListener(this::commonSetup);
         LongCraftingRequestPayload.register();
+        PatternSearchIndexPayload.register();
         MatterSequenceRegistry.loadOrCreate();
         MinecraftForge.EVENT_BUS.addListener(this::serverAboutToStart);
     }

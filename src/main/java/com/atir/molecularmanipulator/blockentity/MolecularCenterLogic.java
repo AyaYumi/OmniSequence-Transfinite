@@ -29,6 +29,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     private final List<IPatternDetails> availablePatterns = new ArrayList<>();
     private final Set<IPatternDetails> availablePatternSet = new HashSet<>();
     private boolean rebuildScheduled;
+    private int patternInventoryRevision;
 
     MolecularCenterLogic(MolecularCenterBlockEntity machine) {
         super(machine.getMainNode(), machine, MolecularCenterBlockEntity.MAX_PATTERN_SLOTS);
@@ -46,6 +47,10 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
 
     public AppEngInternalInventory getFullPatternInventory() {
         return fullPatternInventory;
+    }
+
+    public int getPatternInventoryRevision() {
+        return patternInventoryRevision;
     }
 
     public static boolean isSupportedPattern(ItemStack stack) {
@@ -113,6 +118,11 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
 
     @Override
     public void onChangeInventory(InternalInventory inventory, int slot) {
+        if (!isClientSide()) {
+            patternInventoryRevision = patternInventoryRevision == Integer.MAX_VALUE
+                    ? 0
+                    : patternInventoryRevision + 1;
+        }
         saveChanges();
         if (isClientSide() || rebuildScheduled) {
             return;

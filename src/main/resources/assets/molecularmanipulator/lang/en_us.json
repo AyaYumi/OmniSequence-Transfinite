@@ -17,6 +17,8 @@
   "gui.molecularmanipulator.page_previous_tooltip": "Previous pattern page",
   "gui.molecularmanipulator.page_next_tooltip": "Next pattern page",
   "gui.molecularmanipulator.page": "Page %s/%s",
+  "gui.molecularmanipulator.pattern_search": "Pattern search",
+  "gui.molecularmanipulator.pattern_search_hint": "Search patterns...",
   "gui.molecularmanipulator.formed": "Formed",
   "gui.molecularmanipulator.incomplete": "Incomplete",
   "gui.molecularmanipulator.progress": "Build %s/%s",

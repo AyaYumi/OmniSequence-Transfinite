@@ -31,6 +31,10 @@
 - Matter Sequence item tooltips now default to a compact Shift-expand prompt.
   A client setting can disable them, keep the `HOLD_SHIFT` behavior, or make
   them `ALWAYS_VISIBLE`.
+- The Sequence Array Controller now supports debounced, cross-page
+  input/output pattern search while retaining AE2's detailed encoded-pattern
+  hover tooltip. Just Enough Characters remains optional and enables Pinyin
+  matching when installed.
 
 ### Fixed
 

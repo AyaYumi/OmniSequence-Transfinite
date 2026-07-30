@@ -17,6 +17,8 @@
   "gui.molecularmanipulator.page_previous_tooltip": "\u4e0a\u4e00\u6837\u677f\u9875",
   "gui.molecularmanipulator.page_next_tooltip": "\u4e0b\u4e00\u6837\u677f\u9875",
   "gui.molecularmanipulator.page": "\u7b2c %s/%s \u9875",
+  "gui.molecularmanipulator.pattern_search": "\u6837\u677f\u641c\u7d22",
+  "gui.molecularmanipulator.pattern_search_hint": "\u641c\u7d22\u6837\u677f...",
   "gui.molecularmanipulator.formed": "\u7ed3\u6784\u5df2\u6210\u578b",
   "gui.molecularmanipulator.incomplete": "\u7ed3\u6784\u672a\u6210\u578b",
   "gui.molecularmanipulator.progress": "\u65bd\u5de5\u8fdb\u5ea6 %s/%s",

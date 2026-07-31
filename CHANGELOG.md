@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.8-UI-Refactor - 2026-07-31
+## 1.3.8 - 2026-07-31
 
 ### Changed
 
@@ -21,6 +21,10 @@
   LDLib2 navigation and status layer, animated pattern-capacity feedback, and
   a shared dark transfinite visual theme while retaining native AE2 slots and
   the existing Java search field.
+- Rebalanced all Sequence Array component recipes around ExtendedAE's
+  higher-tier progression. High-volume parts now use Assembler Matrix blocks,
+  Entro blocks, and concurrent processors, while the unique core and
+  controller require matrix cores and a wireless hub.
 
 ### Fixed
 
@@ -31,18 +35,6 @@
   loading and synchronized its powered model before AE2 cluster restoration can
   return early, preventing an online core from retaining its inactive texture
   after joining a world.
-
-## 1.3.8 - 2026-07-31
-
-### Changed
-
-- Rebalanced all Sequence Array component recipes around ExtendedAE's
-  higher-tier progression. High-volume parts now use Assembler Matrix blocks,
-  Entro blocks, and concurrent processors, while the unique core and
-  controller require matrix cores and a wireless hub.
-
-### Fixed
-
 - Sequence Array formation now validates physical multiblock parts only. The
   rendered center at local `(0, 29, 0)` may be occupied without unforming the
   structure, and automatic repair, dismantling, or ghost previews leave that

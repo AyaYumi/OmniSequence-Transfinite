@@ -18,7 +18,7 @@
 | LDLib2 | 2.2.29 或更高 |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.8-UI-Refactor`
+当前版本：`1.3.8`
 
 完整更新内容见 [1.3.8 双语发布说明](RELEASE_NOTES_1.3.8.md)。
 

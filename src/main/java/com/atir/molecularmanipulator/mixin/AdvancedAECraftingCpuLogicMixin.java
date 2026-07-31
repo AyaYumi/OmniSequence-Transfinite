@@ -159,13 +159,12 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         }
 
         boolean accepted = false;
-        MolecularBatchDispatchContext.Scope reusableScope = null;
+        MolecularBatchDispatchContext.Scope batchScope = null;
         try {
-            if (reusableCraftingId != null) {
-                reusableScope = MolecularBatchDispatchContext.open(
-                        reusableCraftingId, patternDetails, inputs,
-                        extraction.reusablePlan());
-            }
+            batchScope = MolecularBatchDispatchContext.open(
+                    reusableCraftingId, patternDetails, inputs,
+                    extraction.firstInputs(), extraction.craftCount(),
+                    extraction.reusablePlan());
             if (provider instanceof MolecularBalancedBatchProvider balancedProvider) {
                 balancedProvider.molecularmanipulator$beginBalancedBatch(extraction.firstInputs());
                 try {
@@ -183,8 +182,8 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
                 accepted = original.call(provider, patternDetails, inputs);
             }
         } finally {
-            if (reusableScope != null) {
-                reusableScope.close();
+            if (batchScope != null) {
+                batchScope.close();
             }
             if (!accepted) {
                 molecularmanipulator$restoreBatchTask(taskAdjustment);

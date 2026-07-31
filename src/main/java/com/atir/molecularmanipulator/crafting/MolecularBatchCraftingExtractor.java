@@ -33,6 +33,20 @@ public final class MolecularBatchCraftingExtractor {
             return null;
         }
 
+        /*
+         * A substitutable crafting input cannot be expanded by multiplying the key
+         * AE2 happened to select for the first craft. That key may be exhausted while
+         * another valid ingredient is still abundant. Ask AE2 to select the additional
+         * ingredients again against a read-only inventory overlay, then reserve exactly
+         * that selection once the largest viable batch has been found.
+         */
+        var substitutionExtraction = expandConsumableSubstitution(
+                patternDetails, inventory, energyService, level, firstInputs,
+                expectedOutputs, expectedContainerItems, maxCrafts);
+        if (substitutionExtraction != null) {
+            return substitutionExtraction;
+        }
+
         var plan = ExpansionPlan.fromFirst(patternDetails, level, firstInputs,
                 expectedOutputs, expectedContainerItems, maxCrafts,
                 allowReusableInputs);
@@ -55,6 +69,379 @@ public final class MolecularBatchCraftingExtractor {
                     expectedContainerItems, firstInputs, craftCount);
         } catch (RuntimeException exception) {
             return null;
+        }
+    }
+
+    @Nullable
+    private static BatchExtraction expandConsumableSubstitution(
+            IPatternDetails patternDetails, ICraftingInventory inventory,
+            IEnergyService energyService, Level level, KeyCounter[] firstInputs,
+            KeyCounter expectedOutputs, KeyCounter expectedContainerItems,
+            long maxCrafts) {
+        try {
+            if (!hasSubstitutionPossibility(patternDetails)
+                    || !isEmpty(expectedContainerItems)) {
+                return null;
+            }
+
+            var patternInputs = patternDetails.getInputs();
+            if (firstInputs == null || patternInputs == null
+                    || firstInputs.length != patternInputs.length
+                    || !allActualInputsConsumable(
+                            patternInputs, firstInputs, level, maxCrafts)) {
+                return null;
+            }
+
+            var firstExpectedOutputs = copyCounter(expectedOutputs);
+            if (!hasOnlyPositiveEntries(firstExpectedOutputs)) {
+                return null;
+            }
+
+            long low = 1;
+            long high = maxCrafts - 1;
+            ConsumableSubstitutionProbe best = null;
+            while (low <= high) {
+                long additionalCrafts = low + (high - low) / 2;
+                var candidate = probeConsumableSubstitution(
+                        patternDetails, inventory, energyService, level,
+                        firstInputs, firstExpectedOutputs, additionalCrafts);
+                if (candidate != null) {
+                    best = candidate;
+                    low = additionalCrafts + 1;
+                } else {
+                    high = additionalCrafts - 1;
+                }
+            }
+            if (best == null) {
+                return null;
+            }
+
+            return reserveConsumableSubstitution(
+                    inventory, firstInputs, expectedOutputs,
+                    expectedContainerItems, firstExpectedOutputs, best);
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private static boolean hasSubstitutionPossibility(
+            IPatternDetails patternDetails) {
+        if (patternDetails == null || patternDetails.getInputs() == null) {
+            return false;
+        }
+        for (var input : patternDetails.getInputs()) {
+            if (input == null || input.getPossibleInputs() == null) {
+                return false;
+            }
+            if (input.getPossibleInputs().length > 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean allActualInputsConsumable(
+            IPatternDetails.IInput[] patternInputs, KeyCounter[] actualInputs,
+            Level level, long maxCrafts) {
+        for (int index = 0; index < actualInputs.length; index++) {
+            var holder = actualInputs[index];
+            if (holder == null || holder.isEmpty()) {
+                return false;
+            }
+            for (var entry : holder) {
+                if (entry.getKey() == null || entry.getLongValue() <= 0) {
+                    return false;
+                }
+                var analysis = MolecularReusableInputAdapters.analyze(
+                        patternInputs[index], entry.getKey(), level, maxCrafts);
+                if (analysis.mode()
+                        != MolecularReusableInputAdapters.Mode.CONSUMABLE) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Nullable
+    private static ConsumableSubstitutionProbe probeConsumableSubstitution(
+            IPatternDetails patternDetails, ICraftingInventory inventory,
+            IEnergyService energyService, Level level, KeyCounter[] firstInputs,
+            KeyCounter firstExpectedOutputs, long additionalCrafts) {
+        if (additionalCrafts <= 0) {
+            return null;
+        }
+
+        var additionalExpectedOutputs = new KeyCounter();
+        var additionalRemainders = new KeyCounter();
+        var overlay = new ReadOnlyCraftingInventory(inventory);
+        KeyCounter[] additionalInputs;
+        try {
+            additionalInputs = CraftingCpuHelper.extractPatternInputs(
+                    new MolecularScaledPattern(patternDetails, additionalCrafts),
+                    overlay, level, additionalExpectedOutputs,
+                    additionalRemainders);
+        } catch (RuntimeException exception) {
+            return null;
+        }
+        if (additionalInputs == null || !isEmpty(additionalRemainders)) {
+            return null;
+        }
+
+        var patternInputs = patternDetails.getInputs();
+        long craftCount = Math.addExact(additionalCrafts, 1);
+        if (additionalInputs.length != patternInputs.length
+                || !allActualInputsConsumable(
+                        patternInputs, additionalInputs, level, craftCount)) {
+            return null;
+        }
+
+        var expectedAdditionalOutputs =
+                scaleCounter(firstExpectedOutputs, additionalCrafts);
+        if (!countersEqualWithoutMutation(
+                expectedAdditionalOutputs, additionalExpectedOutputs)) {
+            return null;
+        }
+
+        var combinedInputs = combineInputs(firstInputs, additionalInputs);
+        double requestedPower =
+                CraftingCpuHelper.calculatePatternPower(combinedInputs);
+        if (!hasEnergyFor(energyService, requestedPower)) {
+            return null;
+        }
+
+        return new ConsumableSubstitutionProbe(
+                additionalInputs, combinedInputs,
+                scaleCounter(firstExpectedOutputs, craftCount), craftCount);
+    }
+
+    @Nullable
+    private static BatchExtraction reserveConsumableSubstitution(
+            ICraftingInventory inventory, KeyCounter[] firstInputs,
+            KeyCounter expectedOutputs, KeyCounter expectedContainerItems,
+            KeyCounter firstExpectedOutputs,
+            ConsumableSubstitutionProbe probe) {
+        var requiredPerKey = new Object2LongOpenHashMap<AEKey>();
+        var actuallyExtracted = new KeyCounter[] { new KeyCounter() };
+        var firstExpectedContainerItems = copyCounter(expectedContainerItems);
+        try {
+            for (var holder : probe.additionalInputs()) {
+                for (var entry : holder) {
+                    long total = Math.addExact(
+                            requiredPerKey.getLong(entry.getKey()),
+                            entry.getLongValue());
+                    requiredPerKey.put(entry.getKey(), total);
+                }
+            }
+
+            for (var entry : requiredPerKey.object2LongEntrySet()) {
+                long available = inventory.extract(
+                        entry.getKey(), entry.getLongValue(),
+                        Actionable.SIMULATE);
+                if (available != entry.getLongValue()) {
+                    return null;
+                }
+            }
+
+            for (var entry : requiredPerKey.object2LongEntrySet()) {
+                long extracted = inventory.extract(
+                        entry.getKey(), entry.getLongValue(),
+                        Actionable.MODULATE);
+                if (extracted > 0) {
+                    actuallyExtracted[0].add(entry.getKey(), extracted);
+                }
+                if (extracted != entry.getLongValue()) {
+                    CraftingCpuHelper.reinjectPatternInputs(
+                            inventory, actuallyExtracted);
+                    return null;
+                }
+            }
+
+            expectedOutputs.reset();
+            expectedOutputs.addAll(probe.scaledExpectedOutputs());
+            expectedContainerItems.reset();
+            return new BatchExtraction(
+                    probe.combinedInputs(), firstInputs,
+                    probe.additionalInputs(), firstExpectedOutputs,
+                    firstExpectedContainerItems, probe.craftCount(), null);
+        } catch (RuntimeException exception) {
+            CraftingCpuHelper.reinjectPatternInputs(inventory, actuallyExtracted);
+            expectedOutputs.reset();
+            expectedOutputs.addAll(firstExpectedOutputs);
+            expectedContainerItems.reset();
+            expectedContainerItems.addAll(firstExpectedContainerItems);
+            return null;
+        }
+    }
+
+    private static KeyCounter[] combineInputs(
+            KeyCounter[] firstInputs, KeyCounter[] additionalInputs) {
+        if (firstInputs.length != additionalInputs.length) {
+            throw new IllegalArgumentException("Input holder count changed");
+        }
+        var combined = new KeyCounter[firstInputs.length];
+        for (int index = 0; index < firstInputs.length; index++) {
+            var holder = combined[index] = new KeyCounter();
+            holder.addAll(firstInputs[index]);
+            holder.addAll(additionalInputs[index]);
+            if (!hasOnlyPositiveEntries(holder)) {
+                throw new IllegalArgumentException("Invalid combined inputs");
+            }
+        }
+        return combined;
+    }
+
+    private static KeyCounter scaleCounter(
+            KeyCounter source, long multiplier) {
+        if (source == null || multiplier <= 0) {
+            throw new IllegalArgumentException("Invalid counter multiplier");
+        }
+        var scaled = new KeyCounter();
+        for (var entry : source) {
+            if (entry.getKey() == null || entry.getLongValue() <= 0) {
+                throw new IllegalArgumentException("Invalid counter entry");
+            }
+            scaled.add(entry.getKey(),
+                    Math.multiplyExact(entry.getLongValue(), multiplier));
+        }
+        return scaled;
+    }
+
+    private static KeyCounter copyCounter(KeyCounter source) {
+        if (source == null) {
+            throw new IllegalArgumentException("Missing counter");
+        }
+        var copy = new KeyCounter();
+        copy.addAll(source);
+        return copy;
+    }
+
+    private static boolean hasOnlyPositiveEntries(KeyCounter counter) {
+        if (counter == null || counter.isEmpty()) {
+            return false;
+        }
+        for (var entry : counter) {
+            if (entry.getKey() == null || entry.getLongValue() <= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isEmpty(KeyCounter counter) {
+        if (counter == null) {
+            return false;
+        }
+        for (var entry : counter) {
+            if (entry.getLongValue() != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean countersEqualWithoutMutation(
+            KeyCounter left, KeyCounter right) {
+        if (left == null || right == null) {
+            return false;
+        }
+        int leftSize = 0;
+        for (var entry : left) {
+            if (entry.getLongValue() != 0) {
+                leftSize++;
+                if (entry.getKey() == null
+                        || right.get(entry.getKey()) != entry.getLongValue()) {
+                    return false;
+                }
+            }
+        }
+        int rightSize = 0;
+        for (var entry : right) {
+            if (entry.getLongValue() != 0) {
+                rightSize++;
+            }
+        }
+        return leftSize == rightSize;
+    }
+
+    private static boolean hasEnergyFor(
+            IEnergyService energyService, double requestedPower) {
+        if (energyService == null || !Double.isFinite(requestedPower)
+                || requestedPower <= 0) {
+            return false;
+        }
+        double availablePower = energyService.extractAEPower(
+                requestedPower, Actionable.SIMULATE, PowerMultiplier.CONFIG);
+        return availablePower >= requestedPower - POWER_EPSILON;
+    }
+
+    private record ConsumableSubstitutionProbe(
+            KeyCounter[] additionalInputs, KeyCounter[] combinedInputs,
+            KeyCounter scaledExpectedOutputs, long craftCount) {
+    }
+
+    /**
+     * Gives AE2 a mutable view of a stable inventory snapshot without forwarding
+     * any mutation to the real crafting inventory. It is recreated for every
+     * binary-search probe.
+     */
+    private static final class ReadOnlyCraftingInventory
+            implements ICraftingInventory {
+        private final ICraftingInventory delegate;
+        private final Object2LongOpenHashMap<AEKey> baseAmounts =
+                new Object2LongOpenHashMap<>();
+        private final Object2LongOpenHashMap<AEKey> adjustments =
+                new Object2LongOpenHashMap<>();
+
+        private ReadOnlyCraftingInventory(ICraftingInventory delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void insert(AEKey key, long amount, Actionable mode) {
+            if (key == null || amount <= 0 || mode != Actionable.MODULATE) {
+                return;
+            }
+            adjustments.put(key, Math.addExact(
+                    adjustments.getLong(key), amount));
+        }
+
+        @Override
+        public long extract(AEKey key, long amount, Actionable mode) {
+            if (key == null || amount <= 0) {
+                return 0;
+            }
+
+            long available = available(key);
+            long extracted = Math.min(amount, available);
+            if (mode == Actionable.MODULATE && extracted > 0) {
+                adjustments.put(key, Math.subtractExact(
+                        adjustments.getLong(key), extracted));
+            }
+            return extracted;
+        }
+
+        @Override
+        public Iterable<AEKey> findFuzzyTemplates(AEKey key) {
+            return delegate.findFuzzyTemplates(key);
+        }
+
+        private long available(AEKey key) {
+            long baseAmount;
+            if (baseAmounts.containsKey(key)) {
+                baseAmount = baseAmounts.getLong(key);
+            } else {
+                baseAmount = delegate.extract(
+                        key, Long.MAX_VALUE, Actionable.SIMULATE);
+                baseAmounts.put(key, baseAmount);
+            }
+            long adjustment = adjustments.getLong(key);
+            if (adjustment >= 0) {
+                return adjustment > Long.MAX_VALUE - baseAmount
+                        ? Long.MAX_VALUE
+                        : baseAmount + adjustment;
+            }
+            return Math.max(0, baseAmount + adjustment);
         }
     }
 

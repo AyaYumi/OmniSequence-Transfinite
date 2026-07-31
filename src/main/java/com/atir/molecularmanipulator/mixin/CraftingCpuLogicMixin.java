@@ -718,12 +718,12 @@ public abstract class CraftingCpuLogicMixin {
 
         var acceptedJob = job;
         boolean providerAccepted = false;
-        MolecularBatchDispatchContext.Scope reusableScope = null;
+        MolecularBatchDispatchContext.Scope batchScope = null;
         try {
-            if (reusablePlan != null) {
-                reusableScope = MolecularBatchDispatchContext.open(
+            if (expandedContext && explicitBatchProvider) {
+                batchScope = MolecularBatchDispatchContext.open(
                         reusableCraftingId, patternDetails, inputs,
-                        reusablePlan);
+                        firstInputs, craftCount, reusablePlan);
             }
             boolean accepted;
             PushResult adaptiveResult = null;
@@ -828,8 +828,8 @@ public abstract class CraftingCpuLogicMixin {
             }
             return accepted;
         } finally {
-            if (reusableScope != null) {
-                reusableScope.close();
+            if (batchScope != null) {
+                batchScope.close();
             }
             if (!providerAccepted && taskAdjustment != null) {
                 molecularmanipulator$setTaskValue(
@@ -1003,6 +1003,7 @@ public abstract class CraftingCpuLogicMixin {
         return molecularmanipulator$dispatchOwner != null
                 && provider != null
                 && patternDetails != null
+                && !MolecularBatchCraftingProvider.requiresSerialDispatch(provider)
                 && !MolecularBatchCraftingProvider.supports(provider, patternDetails);
     }
 

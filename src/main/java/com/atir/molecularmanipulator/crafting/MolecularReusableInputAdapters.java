@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.crafting;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
@@ -69,9 +70,12 @@ public final class MolecularReusableInputAdapters {
             if (firstRemainder.equals(initialKey)) {
                 // A damageable item can return the same key due to an Unbreaking
                 // roll or another contextual rule. Never cache that random result
-                // as an infinite catalyst.
+                // as an infinite catalyst. Minecraft 1.21 also reports stacks with
+                // MAX_DAMAGE=0 as damageable; reusable recipe items such as the
+                // Master Infusion Crystal intentionally use that representation.
+                // An explicit UNBREAKABLE component is likewise a stable invariant.
                 if (!(initialKey instanceof AEItemKey itemKey)
-                        || itemKey.toStack().isDamageableItem()) {
+                        || hasFiniteMutableDurability(itemKey.toStack())) {
                     return unsupported(initialKey);
                 }
                 return new Analysis(Mode.INVARIANT_REUSABLE, initialKey,
@@ -134,9 +138,15 @@ public final class MolecularReusableInputAdapters {
             return false;
         }
         ItemStack stack = itemKey.toStack();
-        return stack.isDamageableItem()
+        return hasFiniteMutableDurability(stack)
                 && stack.hasCraftingRemainingItem()
                 && !hasUnbreaking(stack);
+    }
+
+    private static boolean hasFiniteMutableDurability(ItemStack stack) {
+        return stack.isDamageableItem()
+                && stack.getMaxDamage() > 0
+                && !stack.has(DataComponents.UNBREAKABLE);
     }
 
     private static boolean hasUnbreaking(ItemStack stack) {

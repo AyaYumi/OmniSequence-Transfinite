@@ -93,13 +93,23 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
         assembling = true;
         try {
-            var reusableContext = MolecularBatchDispatchContext.current(
+            var batchContext = MolecularBatchDispatchContext.current(
                     patternDetails, inputs);
-            if (reusableContext != null) {
+            if (batchContext != null
+                    && batchContext.reusablePlan() != null) {
                 return acceptReusableCrafting(patternDetails, pattern, inputs,
-                        reusableContext);
+                        batchContext);
             }
-            if (!craftingBatcher.prepare(patternDetails, inputs, level, VIRTUAL_PARALLEL_LIMIT)) {
+            boolean prepared = batchContext != null
+                    ? craftingBatcher.prepareSelected(
+                            patternDetails, inputs, level,
+                            VIRTUAL_PARALLEL_LIMIT,
+                            batchContext.firstInputs(),
+                            batchContext.craftCount())
+                    : craftingBatcher.prepare(
+                            patternDetails, inputs, level,
+                            VIRTUAL_PARALLEL_LIMIT);
+            if (!prepared) {
                 return false;
             }
             var outputAmounts = craftingBatcher.getOutputAmounts();
@@ -135,7 +145,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         }
 
         var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
-                context.craftingId(), context.plan());
+                context.craftingId(), context.reusablePlan());
         if (job == null
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),
                         job.projectedFinalRemainders())

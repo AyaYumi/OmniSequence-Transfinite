@@ -13,7 +13,20 @@ public interface MolecularBatchCraftingProvider {
         return Long.MAX_VALUE;
     }
 
+    /**
+     * AE2 blocking mode must inspect the target again between complete recipes.
+     * An aggregate provider call would perform that check only once for the
+     * whole batch and would therefore weaken the configured blocking semantics.
+     */
+    static boolean requiresSerialDispatch(ICraftingProvider provider) {
+        return provider instanceof PatternProviderLogic patternProvider
+                && patternProvider.isBlocking();
+    }
+
     static boolean supports(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (requiresSerialDispatch(provider)) {
+            return false;
+        }
         if (provider instanceof MolecularBatchCraftingProvider batchProvider) {
             return batchProvider.molecularmanipulator$supportsBatching(patternDetails);
         }
@@ -21,6 +34,9 @@ public interface MolecularBatchCraftingProvider {
     }
 
     static boolean supportsOmniDispatch(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (requiresSerialDispatch(provider)) {
+            return false;
+        }
         if (supports(provider, patternDetails)) {
             return true;
         }
@@ -42,6 +58,9 @@ public interface MolecularBatchCraftingProvider {
 
     static long getBatchLimit(ICraftingProvider provider, IPatternDetails patternDetails,
             KeyCounter[] firstInputs) {
+        if (requiresSerialDispatch(provider)) {
+            return 0;
+        }
         if (provider instanceof MolecularBatchCraftingProvider batchProvider
                 && batchProvider.molecularmanipulator$supportsBatching(patternDetails)) {
             return Math.max(0, batchProvider.molecularmanipulator$getBatchLimit(patternDetails));

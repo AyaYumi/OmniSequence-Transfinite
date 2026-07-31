@@ -24,7 +24,7 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
         super.init();
         modularView = new OmniComputationLdUi(menu);
         modularView.attach(this);
-        addRenderableWidget(modularView.widget());
+        addResponsiveModularWidget(modularView.widget());
     }
 
     @Override

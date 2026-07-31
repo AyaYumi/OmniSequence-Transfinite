@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.client;
 
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
@@ -19,6 +20,8 @@ abstract class ResponsiveContainerScreen<T extends AbstractContainerMenu>
         extends AbstractContainerScreen<T> {
     private static final int SCREEN_MARGIN = 4;
     private boolean renderingScaledContent;
+    private int rawMouseX;
+    private int rawMouseY;
 
     protected ResponsiveContainerScreen(T menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -26,6 +29,8 @@ abstract class ResponsiveContainerScreen<T extends AbstractContainerMenu>
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        rawMouseX = mouseX;
+        rawMouseY = mouseY;
         float scale = responsiveScale();
         if (scale >= 1.0F) {
             super.render(graphics, mouseX, mouseY, partialTick);
@@ -100,6 +105,21 @@ abstract class ResponsiveContainerScreen<T extends AbstractContainerMenu>
                 tooltip,
                 responsiveScale() < 1.0F ? DefaultTooltipPositioner.INSTANCE : positioner,
                 override);
+    }
+
+    /**
+     * Registers an LDLib2 widget without passing the already transformed logical
+     * mouse coordinates back into LDLib2's pose-aware hit test.
+     *
+     * <p>Container input is dispatched through {@link #addWidget} and therefore
+     * still receives the logical coordinates produced by this screen. Rendering is
+     * registered separately so LDLib2 receives the original screen coordinates;
+     * its GUI context then applies the inverse responsive pose exactly once.</p>
+     */
+    protected final void addResponsiveModularWidget(ModularUI.ModularUIWidget widget) {
+        addWidget(widget);
+        addRenderableOnly((graphics, ignoredMouseX, ignoredMouseY, partialTick) ->
+                widget.render(graphics, rawMouseX, rawMouseY, partialTick));
     }
 
     private float responsiveScale() {

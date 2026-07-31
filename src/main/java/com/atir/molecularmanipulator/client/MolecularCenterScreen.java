@@ -115,7 +115,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         selectTab(TAB_MATTER);
         modularView = new MolecularCenterLdUi(this, menu);
         modularView.attach(this);
-        addRenderableWidget(modularView.widget());
+        addResponsiveModularWidget(modularView.widget());
     }
 
     void changePatternPage(int offset) {

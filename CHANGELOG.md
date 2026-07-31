@@ -35,6 +35,9 @@
   loading and synchronized its powered model before AE2 cluster restoration can
   return early, preventing an online core from retaining its inactive texture
   after joining a world.
+- Kept LDLib2 hover and click hit-testing aligned with responsively scaled
+  controller screens by supplying raw screen mouse coordinates to its
+  pose-aware render pass instead of transforming the pointer twice.
 - Sequence Array formation now validates physical multiblock parts only. The
   rendered center at local `(0, 29, 0)` may be occupied without unforming the
   structure, and automatic repair, dismantling, or ghost previews leave that

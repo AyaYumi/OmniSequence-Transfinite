@@ -102,6 +102,14 @@ file="META-INF/accesstransformer.cfg"
     side="BOTH"
 
 [[dependencies.${mod_id}]]
+    modId="ldlib2"
+    type="required"
+    reason="Required by the refactored modular controller interface."
+    versionRange="[${ldlib2_version},)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
     modId="expandedae"
     type="incompatible"
     reason="Expanded AE 2.1.1 installs a conflicting AE2 pattern-provider Mixin."

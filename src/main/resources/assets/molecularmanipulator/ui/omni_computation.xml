@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ldlib2-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Low-Drag-MC/LDLib2/refs/heads/1.21/ldlib2-ui.xsd">
+    <stylesheet location="ldlib2:lss/mc.lss"/>
+    <style>
+        #root { width: 332; height: 364; }
+        .placed { position: absolute; }
+        .ui-label {
+            font-size: 9;
+            text-shadow: false;
+            text-wrap: HOVER_ROLL;
+            vertical-align: TOP;
+            overflow: hidden;
+        }
+        .center-label { horizontal-align: CENTER; }
+        .left-label { horizontal-align: LEFT; }
+        .right-label { horizontal-align: RIGHT; }
+        .primary-text { text-color: #D9D4E3; }
+        .secondary-text { text-color: #BDB5CC; }
+        .muted-text { text-color: #9EA9BB; }
+        .purple-text { text-color: #B56CFF; }
+        .cyan-text { text-color: #69DBFF; }
+        .green-text { text-color: #72F2A5; }
+        .key-text { text-color: #BFC9DB; }
+        .button-row {
+            position: absolute;
+            flex-direction: row;
+            align-items: center;
+            height: 18;
+        }
+        .action-button { width: 73; height: 18; }
+        .update-button { width: 124; height: 18; }
+        .progress { position: absolute; }
+        #telemetry-title { font-size: 9; }
+        #telemetry-close, #telemetry-toggle { font-size: 10; }
+        #telemetry-network {
+            vertical-align: CENTER;
+            horizontal-align: CENTER;
+        }
+        #telemetry-hint { text-wrap: WRAP; }
+    </style>
+    <root id="root">
+        <label id="title" class="placed ui-label center-label"
+               style="left: 0; top: 9; width: 332; height: 9; text-color: #F1E8FF">
+            <lang key="block.molecularmanipulator.omni_computation_controller"/>
+        </label>
+
+        <label id="structure-state" class="placed ui-label center-label"
+               style="left: 14; top: 119; width: 136; height: 9; text-color: #FFB766"/>
+        <label id="structure-size" class="placed ui-label center-label secondary-text"
+               style="left: 14; top: 132; width: 136; height: 9"/>
+        <label id="structure-parts" class="placed ui-label center-label primary-text"
+               style="left: 14; top: 145; width: 136; height: 9"/>
+        <progress-bar id="structure-progress" class="progress"
+                      style="left: 18; top: 160; width: 128; height: 8"
+                      min-value="0" max-value="1" value="0"/>
+        <label id="structure-detail" class="placed ui-label center-label secondary-text"
+               style="left: 14; top: 174; width: 136; height: 9"/>
+
+        <element id="row-network" class="placed"
+                 style="left: 174; top: 42; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">
+            <label class="ui-label left-label key-text" style="flex: 1; height: 9">
+                <lang key="gui.molecularmanipulator.omni.network"/>
+            </label>
+            <label id="network-value" class="ui-label right-label primary-text"
+                   style="width: 76; height: 9"/>
+        </element>
+        <element id="row-storage" class="placed"
+                 style="left: 174; top: 59; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">
+            <label class="ui-label left-label key-text" style="flex: 1; height: 9">
+                <lang key="gui.molecularmanipulator.omni.storage"/>
+            </label>
+            <label class="ui-label right-label purple-text" style="width: 76; height: 9">∞</label>
+        </element>
+        <element id="row-parallel" class="placed"
+                 style="left: 174; top: 75; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">
+            <label class="ui-label left-label key-text" style="flex: 1; height: 9">
+                <lang key="gui.molecularmanipulator.omni.parallel"/>
+            </label>
+            <label class="ui-label right-label cyan-text" style="width: 76; height: 9">∞</label>
+        </element>
+        <element id="row-active-jobs" class="placed"
+                 style="left: 174; top: 95; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">
+            <label class="ui-label left-label key-text" style="flex: 1; height: 9">
+                <lang key="gui.molecularmanipulator.omni.active_jobs"/>
+            </label>
+            <label id="active-jobs-value" class="ui-label right-label primary-text"
+                   style="width: 76; height: 9"/>
+        </element>
+        <element id="row-cpu-lanes" class="placed"
+                 style="left: 174; top: 110; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">
+            <label class="ui-label left-label key-text" style="flex: 1; height: 9">
+                <lang key="gui.molecularmanipulator.omni.virtual_lanes"/>
+            </label>
+            <label id="cpu-lanes-value" class="ui-label right-label primary-text"
+                   style="width: 76; height: 9"/>
+        </element>
+        <element id="row-calculation" class="placed"
+                 style="left: 174; top: 125; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">
+            <label class="ui-label left-label key-text" style="flex: 1; height: 9">
+                <lang key="gui.molecularmanipulator.omni.material_calculation"/>
+            </label>
+            <label id="calculation-value" class="ui-label right-label primary-text"
+                   style="width: 76; height: 9"/>
+        </element>
+        <label id="calculation-stats" class="placed ui-label left-label muted-text"
+               style="left: 174; top: 139; width: 140; height: 9"/>
+        <label id="tick-budget" class="placed ui-label left-label muted-text"
+               style="left: 174; top: 151; width: 140; height: 9">
+            <lang key="gui.molecularmanipulator.omni.tick_budget"/>
+        </label>
+        <label id="fixed-model" class="placed ui-label left-label muted-text"
+               style="left: 174; top: 163; width: 140; height: 19; text-wrap: WRAP">
+            <lang key="gui.molecularmanipulator.omni.fixed"/>
+        </label>
+
+        <element id="row-quantum" class="placed"
+                 style="left: 18; top: 202; width: 268; height: 9; flex-direction: row; align-items: center; gap: 8">
+            <label class="ui-label left-label purple-text" style="flex: 1; height: 9">
+                <lang key="gui.molecularmanipulator.quantum_title"/>
+            </label>
+            <label id="quantum-state-value" class="ui-label right-label primary-text"
+                   style="width: 188; height: 9"/>
+        </element>
+        <label id="quantum-frequency" class="placed ui-label left-label"
+               style="left: 18; top: 214; width: 268; height: 9; text-color: #D5DBE8"/>
+
+        <element id="normal-button-row" class="button-row"
+                 style="left: 14; top: 234; width: 304; gap: 4">
+            <button id="build" class="action-button"/>
+            <button id="dismantle" class="action-button"/>
+            <button id="projection" class="action-button"/>
+            <button id="refresh" class="action-button"/>
+        </element>
+        <element id="structure-update-button-row" class="button-row"
+                 style="left: 39; top: 234; width: 254; gap: 6">
+            <button id="structure-update" class="update-button"/>
+            <button id="structure-keep-legacy" class="update-button"/>
+        </element>
+
+        <label id="inventory-title" class="placed ui-label left-label primary-text"
+               style="left: 85; top: 268; width: 162; height: 9">
+            <lang key="container.inventory"/>
+        </label>
+
+        <element id="telemetry-panel" class="placed"
+                 style="left: 162; top: 28; width: 160; height: 162; overflow: hidden">
+            <label id="telemetry-title" class="placed ui-label left-label cyan-text"
+                   style="left: 8; top: 7; width: 124; height: 9">
+                <lang key="gui.molecularmanipulator.omni.telemetry_title"/>
+            </label>
+            <button id="telemetry-close" class="placed"
+                    style="left: 136; top: 4; width: 18; height: 15" text="×"/>
+            <label id="telemetry-network" class="placed ui-label primary-text"
+                   style="left: 8; top: 24; width: 144; height: 16"/>
+            <progress-bar id="telemetry-structure-progress" class="progress"
+                          style="left: 8; top: 47; width: 144; height: 14"
+                          min-value="0" max-value="1" value="0"/>
+            <progress-bar id="telemetry-job-progress" class="progress"
+                          style="left: 8; top: 66; width: 144; height: 14"
+                          min-value="0" max-value="1" value="0"/>
+            <label id="telemetry-framework" class="placed ui-label left-label secondary-text"
+                   style="left: 8; top: 88; width: 144; height: 9"/>
+            <label id="telemetry-sync" class="placed ui-label left-label secondary-text"
+                   style="left: 8; top: 101; width: 144; height: 9"/>
+            <label id="telemetry-ui-tick" class="placed ui-label left-label green-text"
+                   style="left: 8; top: 114; width: 144; height: 9"/>
+            <label id="telemetry-hint" class="placed ui-label left-label muted-text"
+                   style="left: 8; top: 130; width: 144; height: 24">
+                <lang key="gui.molecularmanipulator.omni.telemetry_hint"/>
+            </label>
+        </element>
+        <button id="telemetry-toggle" class="placed"
+                style="left: 294; top: 6; width: 24; height: 16" text="≡"/>
+    </root>
+</ldlib2-ui>

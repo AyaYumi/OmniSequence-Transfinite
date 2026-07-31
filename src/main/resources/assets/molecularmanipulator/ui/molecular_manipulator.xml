@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ldlib2-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Low-Drag-MC/LDLib2/refs/heads/1.21/ldlib2-ui.xsd">
+    <stylesheet location="ldlib2:lss/mc.lss"/>
+    <style>
+        #root { width: 194; height: 274; }
+        .placed { position: absolute; }
+        .ui-label {
+            font-size: 9;
+            text-shadow: false;
+            text-wrap: HOVER_ROLL;
+            vertical-align: TOP;
+            overflow: hidden;
+        }
+        .left-label { horizontal-align: LEFT; }
+        .center-label { horizontal-align: CENTER; }
+        .right-label { horizontal-align: RIGHT; }
+        .section-label { text-color: #CFC5DC; }
+        .page-button { width: 16; height: 16; }
+        .capacity-progress { position: absolute; }
+        #title { text-color: #F1E8FF; }
+        #framework-badge { text-color: #B77BFF; font-size: 7; }
+        #page-label { text-color: #B7C3D7; }
+        #capacity-label { text-color: #69DBFF; font-size: 8; }
+    </style>
+    <root id="root">
+        <label id="title" class="placed ui-label left-label"
+               style="left: 8; top: 7; width: 162; height: 9">
+            <lang key="gui.molecularmanipulator.molecular_manipulator"/>
+        </label>
+        <label id="framework-badge" class="placed ui-label right-label"
+               style="left: 171; top: 8; width: 15; height: 8">LD²</label>
+
+        <button id="page-previous" class="placed page-button"
+                style="left: 51; top: 18" text="&lt;"/>
+        <label id="page-label" class="placed ui-label center-label"
+               style="left: 68; top: 22; width: 58; height: 9"/>
+        <button id="page-next" class="placed page-button"
+                style="left: 127; top: 18" text="&gt;"/>
+        <label id="capacity-label" class="placed ui-label right-label"
+               style="left: 146; top: 22; width: 32; height: 8"/>
+
+        <label id="patterns-title" class="placed ui-label left-label section-label"
+               style="left: 12; top: 39; width: 46; height: 9">
+            <lang key="gui.ae2.Patterns"/>
+        </label>
+        <progress-bar id="capacity-progress" class="capacity-progress"
+                      style="left: 15; top: 126; width: 162; height: 3"
+                      min-value="0" max-value="1" value="0"/>
+
+        <label id="return-title" class="placed ui-label left-label section-label"
+               style="left: 12; top: 136; width: 166; height: 9">
+            <lang key="gui.ae2.ReturnInventory"/>
+        </label>
+        <label id="inventory-title" class="placed ui-label left-label section-label"
+               style="left: 12; top: 178; width: 166; height: 9">
+            <lang key="container.inventory"/>
+        </label>
+    </root>
+</ldlib2-ui>

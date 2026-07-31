@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ldlib2-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Low-Drag-MC/LDLib2/refs/heads/1.21/ldlib2-ui.xsd">
+    <stylesheet location="ldlib2:lss/mc.lss"/>
+    <style>
+        #root { width: 430; height: 262; }
+        .placed { position: absolute; }
+        .compact-button { height: 18; }
+        .progress-meter { height: 5; }
+        #framework-badge {
+            font-size: 7;
+            text-color: #B77BFF;
+            text-shadow: false;
+            horizontal-align: CENTER;
+            vertical-align: CENTER;
+            text-wrap: HOVER_ROLL;
+        }
+        #tab-indicator { height: 2; }
+    </style>
+    <root id="root">
+        <button id="preview" class="placed compact-button"
+                style="left: 8; top: 4; width: 46"/>
+        <button id="build" class="placed compact-button"
+                style="left: 58; top: 4; width: 46"/>
+        <button id="page-previous" class="placed compact-button"
+                style="left: 108; top: 4; width: 20" text="&lt;"/>
+        <button id="page-next" class="placed compact-button"
+                style="left: 130; top: 4; width: 20" text="&gt;"/>
+        <button id="dismantle" class="placed compact-button"
+                style="left: 154; top: 4; width: 58"/>
+
+        <label id="framework-badge" class="placed"
+               style="left: 199; top: 9; width: 15; height: 9">LD²</label>
+        <button id="tab-matter" class="placed compact-button"
+                style="left: 216; top: 4; width: 48"/>
+        <button id="tab-pipeline" class="placed compact-button"
+                style="left: 266; top: 4; width: 48"/>
+        <button id="tab-quantum" class="placed compact-button"
+                style="left: 316; top: 4; width: 48"/>
+        <button id="tab-colors" class="placed compact-button"
+                style="left: 366; top: 4; width: 54"/>
+        <element id="tab-indicator" class="placed"
+                 style="left: 216; top: 23; width: 48"/>
+
+        <button id="matter-deconstruct" class="placed compact-button matter-control"
+                style="left: 207; top: 107; width: 76"/>
+        <button id="matter-rewrite-output" class="placed compact-button matter-control"
+                style="left: 287; top: 107; width: 52"/>
+        <button id="matter-rewrite" class="placed compact-button matter-control"
+                style="left: 343; top: 107; width: 76"/>
+        <button id="matter-apply-deconstruct" class="placed compact-button matter-control"
+                style="left: 265; top: 153; width: 38"/>
+        <button id="matter-apply-rewrite" class="placed compact-button matter-control"
+                style="left: 381; top: 153; width: 38"/>
+        <progress-bar id="matter-deconstruct-progress"
+                      class="placed progress-meter matter-control"
+                      style="left: 207; top: 148; width: 96"
+                      min-value="0" max-value="1" value="0"/>
+        <progress-bar id="matter-rewrite-progress"
+                      class="placed progress-meter matter-control"
+                      style="left: 323; top: 148; width: 96"
+                      min-value="0" max-value="1" value="0"/>
+        <progress-bar id="matter-entropy-progress"
+                      class="placed progress-meter matter-control"
+                      style="left: 207; top: 250; width: 212"
+                      min-value="0" max-value="1" value="0"/>
+
+        <button id="pipeline-primary-route" class="placed pipeline-control"
+                style="left: 210; top: 50; width: 204; height: 20"/>
+        <button id="pipeline-byproduct-route" class="placed pipeline-control"
+                style="left: 210; top: 76; width: 204; height: 20"/>
+        <button id="pipeline-output-port" class="placed pipeline-control"
+                style="left: 210; top: 102; width: 204; height: 20"/>
+
+        <button id="color-0-0" class="placed compact-button color-control" style="left: 323; top: 48; width: 27" text="R"/>
+        <button id="color-0-1" class="placed compact-button color-control" style="left: 353; top: 48; width: 27" text="G"/>
+        <button id="color-0-2" class="placed compact-button color-control" style="left: 383; top: 48; width: 27" text="B"/>
+        <button id="color-1-0" class="placed compact-button color-control" style="left: 323; top: 80; width: 27" text="R"/>
+        <button id="color-1-1" class="placed compact-button color-control" style="left: 353; top: 80; width: 27" text="G"/>
+        <button id="color-1-2" class="placed compact-button color-control" style="left: 383; top: 80; width: 27" text="B"/>
+        <button id="color-2-0" class="placed compact-button color-control" style="left: 323; top: 112; width: 27" text="R"/>
+        <button id="color-2-1" class="placed compact-button color-control" style="left: 353; top: 112; width: 27" text="G"/>
+        <button id="color-2-2" class="placed compact-button color-control" style="left: 383; top: 112; width: 27" text="B"/>
+        <button id="color-3-0" class="placed compact-button color-control" style="left: 323; top: 144; width: 27" text="R"/>
+        <button id="color-3-1" class="placed compact-button color-control" style="left: 353; top: 144; width: 27" text="G"/>
+        <button id="color-3-2" class="placed compact-button color-control" style="left: 383; top: 144; width: 27" text="B"/>
+        <button id="color-4-0" class="placed compact-button color-control" style="left: 323; top: 176; width: 27" text="R"/>
+        <button id="color-4-1" class="placed compact-button color-control" style="left: 353; top: 176; width: 27" text="G"/>
+        <button id="color-4-2" class="placed compact-button color-control" style="left: 383; top: 176; width: 27" text="B"/>
+        <button id="color-reset" class="placed compact-button color-control"
+                style="left: 286; top: 211; width: 128"/>
+
+        <button id="legacy-update" class="placed compact-button legacy-control"
+                style="left: 210; top: 239; width: 100"/>
+        <button id="legacy-keep" class="placed compact-button legacy-control"
+                style="left: 314; top: 239; width: 100"/>
+    </root>
+</ldlib2-ui>

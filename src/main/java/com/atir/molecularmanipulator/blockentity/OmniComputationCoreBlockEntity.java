@@ -70,6 +70,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private static final String QUANTUM_INVENTORY_TAG = "omni_quantum_inventory";
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "omni_legacy_structure_update_dismissed";
+    private static final String STRUCTURE_FORMED_TAG = "omni_structure_formed";
     private static final Map<CraftingCPUCluster, OmniComputationCoreBlockEntity> CPU_OWNERS =
             Collections.synchronizedMap(new WeakHashMap<>());
     private static final Map<MinecraftServer, SharedCompatDispatchState>
@@ -231,9 +232,16 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             nextStructureCheck = gameTime + STRUCTURE_CHECK_INTERVAL;
         }
         if (!structureFormed) {
+            updateSubType(false);
             syncVisualActivity(0);
             return;
         }
+
+        // Keep the controller model in sync even while AE2 is still rebuilding its
+        // crafting cluster after a world or chunk load. Cluster restoration may
+        // legitimately take longer than grid activation and must not leave a formed,
+        // online controller displaying its inactive texture.
+        updateSubType(false);
 
         if (getCluster() == null) {
             updateMultiBlock(worldPosition);
@@ -247,7 +255,6 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         restoreAdditionalCpus(primary);
         ensureOneIdleCpu();
         registerCpusWithGrid();
-        updateSubType(false);
         syncVisualActivity(getMainNode().isActive()
                 ? getActiveJobCount() + activeMaterialCalculations.get()
                 : 0);
@@ -1307,6 +1314,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         super.saveAdditional(tag, registries);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
+        tag.putBoolean(STRUCTURE_FORMED_TAG, structureFormed);
         if (!virtualCpus.isEmpty()) {
             var list = new ListTag();
             for (var cpu : virtualCpus) {
@@ -1335,7 +1343,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         readCpuTags(tag.getList(VIRTUAL_CPUS_TAG, CompoundTag.TAG_COMPOUND), pendingVirtualCpuStates);
         readCpuTags(tag.getList(SUSPENDED_CPUS_TAG, CompoundTag.TAG_COMPOUND), suspendedCpuStates);
         restoredCpuState = false;
-        structureFormed = false;
+        // Restore the last validated structure state optimistically so AE2's early
+        // subtype callbacks do not turn off a persisted active model before the first
+        // scheduled inspection. The inspection still runs immediately and corrects
+        // stale state if the structure changed while this chunk was unloaded.
+        structureFormed = tag.contains(STRUCTURE_FORMED_TAG)
+                ? tag.getBoolean(STRUCTURE_FORMED_TAG)
+                : getBlockState().getValue(BlockStateProperties.POWERED);
         nextStructureCheck = 0;
         claimedQuantumFrequency = 0;
         quantumLinkState = MolecularCenterBlockEntity.QuantumLinkState.EMPTY;

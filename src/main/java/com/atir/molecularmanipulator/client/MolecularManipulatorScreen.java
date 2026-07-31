@@ -5,7 +5,6 @@ import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
@@ -17,9 +16,8 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
     private static final int HIDDEN_SLOT_POSITION = -10_000;
     private static final int SEARCH_DEBOUNCE_TICKS = 5;
 
-    private Button previousPage;
-    private Button nextPage;
     private EditBox patternSearch;
+    private MolecularManipulatorLdUi modularView;
     private final PatternSearchIndexState patternSearchIndex = new PatternSearchIndexState();
     private List<Integer> filteredPatternSlots = List.of();
     private String patternSearchQuery = "";
@@ -31,8 +29,6 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
     public MolecularManipulatorScreen(MolecularManipulatorMenu menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
         super(menu, playerInventory, title, style);
-        setTextContent(TEXT_ID_DIALOG_TITLE,
-                Component.translatable("gui.molecularmanipulator.molecular_manipulator"));
     }
 
     @Override
@@ -42,14 +38,11 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
 
     @Override
     protected void init() {
+        if (modularView != null) {
+            modularView.close();
+        }
         super.init();
         menu.setPatternSearchIndexListener(this::acceptPatternSearchIndexChunk);
-        previousPage = addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1))
-                .bounds(leftPos + 51, topPos + 18, 16, 16)
-                .build());
-        nextPage = addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1))
-                .bounds(leftPos + 127, topPos + 18, 16, 16)
-                .build());
         patternSearch = new EditBox(font, leftPos + 62, topPos + 36, 116, 14,
                 Component.translatable("gui.molecularmanipulator.pattern_search"));
         patternSearch.setMaxLength(64);
@@ -63,14 +56,9 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
             patternSearchDebounce = 1;
         }
         layoutPatternPage();
-    }
-
-    @Override
-    protected void updateBeforeRender() {
-        super.updateBeforeRender();
-        boolean waiting = !patternSearchQuery.isBlank() && patternSearchIndexPending;
-        previousPage.active = !waiting && menu.getPage() > 0;
-        nextPage.active = !waiting && menu.getPage() + 1 < menu.getPageCount();
+        modularView = new MolecularManipulatorLdUi(this, menu);
+        modularView.attach(this);
+        addRenderableWidget(modularView.widget());
     }
 
     @Override
@@ -85,50 +73,69 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
                 && patternSearchDebounce == 0) {
             requestPatternSearchIndex();
         }
+        if (modularView != null) {
+            modularView.tick();
+        }
     }
 
     @Override
     public void removed() {
         menu.setPatternSearchIndexListener(null);
+        if (modularView != null) {
+            modularView.close();
+            modularView = null;
+        }
         super.removed();
-    }
-
-    @Override
-    public void drawFG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        super.drawFG(guiGraphics, offsetX, offsetY, mouseX, mouseY);
-        var pageText = patternSearchIndexPending && !patternSearchQuery.isBlank()
-                ? Component.translatable("gui.molecularmanipulator.pattern_search_indexing")
-                : !patternSearchQuery.isBlank() && menu.patternSearchActive
-                        && menu.patternSearchResultCount == 0
-                                ? Component.translatable("gui.molecularmanipulator.pattern_search_no_results")
-                                : Component.translatable("gui.molecularmanipulator.page", menu.getPage() + 1,
-                                        menu.getPageCount());
-        guiGraphics.drawCenteredString(font, pageText, 97, 22, 0x403748);
     }
 
     @Override
     public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
             float partialTicks) {
         super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
+        guiGraphics.fillGradient(offsetX, offsetY, offsetX + imageWidth, offsetY + imageHeight,
+                0xFF171424, 0xFF0C1320);
+        guiGraphics.fill(offsetX + 1, offsetY + 1, offsetX + imageWidth - 1, offsetY + 3,
+                0xFFB77BFF);
         panel(guiGraphics, offsetX + 8, offsetY + 35, offsetX + 186, offsetY + 130,
-                0xFFEDE7F2, 0xFF8D6AA8);
+                0xE6192233, 0xFF8D6AA8);
         panel(guiGraphics, offsetX + 8, offsetY + 134, offsetX + 186, offsetY + 170,
-                0xFFE5EDF4, 0xFF6388A5);
+                0xE6152130, 0xFF6388A5);
         panel(guiGraphics, offsetX + 8, offsetY + 176, offsetX + 186, offsetY + 267,
-                0xFFE9E9EC, 0xFF777782);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 51, 9, 4, 0xFF7B648C);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 1, 0xFF55758D);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 189, 9, 3, 0xFF676771);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 247, 9, 1, 0xFF676771);
+                0xE6151C2B, 0xFF54536A);
+        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 51, 9, 4, 0xFF72558C);
+        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 1, 0xFF426E87);
+        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 189, 9, 3, 0xFF48485B);
+        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 247, 9, 1, 0xFF48485B);
     }
 
-    private void changePage(int offset) {
+    void changePage(int offset) {
         if (patternSearchQuery.isBlank()) {
             menu.requestPage(menu.getPage() + offset);
         } else {
             showPatternSearchPage(menu.getPage() + offset);
         }
         layoutPatternPage();
+    }
+
+    boolean patternSearchWaiting() {
+        return !patternSearchQuery.isBlank() && patternSearchIndexPending;
+    }
+
+    boolean patternSearchHasNoResults() {
+        return !patternSearchQuery.isBlank()
+                && menu.patternSearchActive
+                && menu.patternSearchResultCount == 0;
+    }
+
+    Component patternPageLabel() {
+        if (patternSearchWaiting()) {
+            return Component.translatable("gui.molecularmanipulator.pattern_search_indexing");
+        }
+        if (patternSearchHasNoResults()) {
+            return Component.translatable("gui.molecularmanipulator.pattern_search_no_results");
+        }
+        return Component.translatable("gui.molecularmanipulator.page",
+                menu.getPage() + 1, menu.getPageCount());
     }
 
     private void layoutPatternPage() {

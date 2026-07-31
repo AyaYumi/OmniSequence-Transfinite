@@ -7,6 +7,7 @@ bundled in the produced mod JAR:
 - Applied Energistics 2, version 19.2.17 or later.
 - ExtendedAE, version 1.21-2.2.32-neoforge or later.
 - Glodium, version 1.21-2.2-neoforge or later.
+- LowDragLib2, version 2.2.29 or later.
 - Advanced AE, version 1.6.11 or later, when installed.
 - ExtendedAE Plus and JEI, when installed.
 

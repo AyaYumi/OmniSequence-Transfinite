@@ -15,9 +15,10 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | Applied Energistics 2 | 19.2.17 or later |
 | ExtendedAE | 1.21-2.2.32-neoforge or later |
 | Glodium | 1.21-2.2-neoforge |
+| LDLib2 | 2.2.29 or later |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.8`
+Current release: `1.3.8-UI-Refactor`
 
 See the [bilingual 1.3.8 release notes](RELEASE_NOTES_1.3.8.md) for the complete change and upgrade details.
 

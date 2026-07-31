@@ -1,10 +1,10 @@
-# OmniSequence: Transfinite 1.3.7 NeoForge Fix
+# OmniSequence: Transfinite 1.3.8 Release Notes
 
-Release date: 2026-07-30
+Release date: 2026-07-31
 
 ## Target Build
 
-- File: `omnisequence-transfinite-1.3.7.jar`
+- File: `omnisequence-transfinite-1.3.8.jar`
 - Minecraft: 1.21.1
 - Loader: NeoForge
 - Applied Energistics 2: 19.2.17+
@@ -24,6 +24,13 @@ Release date: 2026-07-30
 - A compressed crafting input may contain several actual substitute keys. The
   molecular providers reconstruct and validate those selections in bounded
   groups before producing the aggregated output.
+- Sequence Array formation now validates physical multiblock parts only. The
+  rendered center at local `(0, 29, 0)` may be occupied without unforming the
+  structure, and automatic repair or ghost previews no longer report it as a
+  conflict.
+- Rebalanced all six Sequence Array component recipes around ExtendedAE's
+  higher-tier progression, including Assembler Matrix blocks, Entro blocks,
+  concurrent processors, matrix cores, and the wireless hub.
 
 ## Safety and Compatibility
 
@@ -44,17 +51,17 @@ Release date: 2026-07-30
 
 SHA-256:
 
-`DB6A7AA75D80942A342EDDDD26905A13E2EF5B9B71A76CA08EE33549507D74FC`
+`EB6B5D5FC4E688D9F5ADC7AC1EDC5EC6A0962A302EFF35BCB7EFC3AFCB38D598`
 
 ---
 
-# 万象构序：超限 1.3.7 NeoForge 修复更新
+# 万象构序：超限 1.3.8 更新说明
 
-发布日期：2026-07-30
+发布日期：2026-07-31
 
 ## 目标版本
 
-- 文件：`omnisequence-transfinite-1.3.7.jar`
+- 文件：`omnisequence-transfinite-1.3.8.jar`
 - Minecraft：1.21.1
 - 加载器：NeoForge
 - Applied Energistics 2：19.2.17+
@@ -83,4 +90,4 @@ SHA-256:
 
 SHA-256：
 
-`DB6A7AA75D80942A342EDDDD26905A13E2EF5B9B71A76CA08EE33549507D74FC`
+`EB6B5D5FC4E688D9F5ADC7AC1EDC5EC6A0962A302EFF35BCB7EFC3AFCB38D598`

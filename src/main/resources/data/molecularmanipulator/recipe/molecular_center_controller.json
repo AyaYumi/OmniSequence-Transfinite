@@ -1,1 +1,27 @@
-{"type":"minecraft:crafting_shaped","pattern":["NEN","QIQ","NEN"],"key":{"N":{"item":"minecraft:netherite_block"},"E":{"item":"ae2:engineering_processor"},"Q":{"item":"ae2:quantum_ring"},"I":{"item":"minecraft:iron_block"}},"result":{"id":"molecularmanipulator:molecular_center_controller"}}
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "extendedae:assembler_matrix_crafter"
+    },
+    "P": {
+      "item": "extendedae:assembler_matrix_pattern"
+    },
+    "S": {
+      "item": "extendedae:assembler_matrix_speed"
+    },
+    "W": {
+      "item": "extendedae:wireless_hub"
+    }
+  },
+  "pattern": [
+    "PSP",
+    "CWC",
+    "PSP"
+  ],
+  "result": {
+    "count": 1,
+    "id": "molecularmanipulator:molecular_center_controller"
+  }
+}

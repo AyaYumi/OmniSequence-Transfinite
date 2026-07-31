@@ -61,6 +61,12 @@ public final class MolecularCenterStructure {
         return worldPos(controller, facing, UPPER_CORE_PART);
     }
 
+    public static boolean isVisualCenter(Part part) {
+        return part.x() == VISUAL_CENTER_PART.x()
+                && part.y() == VISUAL_CENTER_PART.y()
+                && part.z() == VISUAL_CENTER_PART.z();
+    }
+
     public static Part partAt(int x, int y, int z) {
         return PART_LOOKUP.get(new LocalPos(x, y, z));
     }
@@ -117,13 +123,13 @@ public final class MolecularCenterStructure {
             return StructureLayout.INCOMPLETE;
         }
 
-        var center = level.getBlockState(visualCenterPos(controller, facing));
         var upper = level.getBlockState(upperCorePos(controller, facing));
-        if (center.isAir() && upper.is(ModContent.MOLECULAR_CENTER_CORE.get())) {
+        if (upper.is(ModContent.MOLECULAR_CENTER_CORE.get())) {
             return matchesParts(level, controller, facing, PARTS)
                     ? StructureLayout.CURRENT
                     : StructureLayout.INCOMPLETE;
         }
+        var center = level.getBlockState(visualCenterPos(controller, facing));
         if (center.is(ModContent.MOLECULAR_CENTER_CORE.get())
                 && upper.is(ModContent.MOLECULAR_CENTER_STABILIZER.get())) {
             return matchesParts(level, controller, facing, LEGACY_PARTS)
@@ -138,12 +144,14 @@ public final class MolecularCenterStructure {
             if (isController(part)) {
                 continue;
             }
-            var state = level.getBlockState(worldPos(controller, facing, part));
+            // AIR entries are construction and migration hints, not physical
+            // multiblock parts. Occupying the visual center must not unform an
+            // otherwise complete structure.
             if (part.partType() == PartType.AIR) {
-                if (!state.isAir()) {
-                    return false;
-                }
-            } else if (!state.is(partBlock(part.partType()))) {
+                continue;
+            }
+            var state = level.getBlockState(worldPos(controller, facing, part));
+            if (!state.is(partBlock(part.partType()))) {
                 return false;
             }
         }
@@ -349,7 +357,7 @@ public final class MolecularCenterStructure {
         builder.verticalCircleX(CORE_Y, radius, 0, PartType.GLASS);
         builder.verticalCircleZ(CORE_Y, radius, 0, PartType.GLASS);
 
-        // The renderer is anchored here, so this position must stay empty.
+        // Logical renderer anchor only; this is not a required physical part.
         builder.put(0, CORE_Y, 0, PartType.AIR);
         builder.put(0, CORE_Y - 7, 0, PartType.STABILIZER);
         // Keep the physical core as the upper sphere anchor, outside the visual field.

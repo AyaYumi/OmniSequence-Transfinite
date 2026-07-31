@@ -1,1 +1,24 @@
-{"type":"minecraft:crafting_shaped","pattern":["NIN","ICI","NIN"],"key":{"N":{"item":"minecraft:netherite_block"},"I":{"item":"minecraft:iron_block"},"C":{"item":"ae2:calculation_processor"}},"result":{"id":"molecularmanipulator:molecular_center_casing","count":4}}
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "F": {
+      "item": "extendedae:assembler_matrix_frame"
+    },
+    "N": {
+      "item": "minecraft:netherite_block"
+    },
+    "W": {
+      "item": "extendedae:assembler_matrix_wall"
+    }
+  },
+  "pattern": [
+    "NWN",
+    "WFW",
+    "NWN"
+  ],
+  "result": {
+    "count": 4,
+    "id": "molecularmanipulator:molecular_center_casing"
+  }
+}

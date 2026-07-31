@@ -1,1 +1,24 @@
-{"type":"minecraft:crafting_shaped","pattern":["CAC","AEA","CAC"],"key":{"C":{"item":"minecraft:copper_block"},"A":{"item":"minecraft:amethyst_block"},"E":{"item":"ae2:engineering_processor"}},"result":{"id":"molecularmanipulator:molecular_center_coil","count":4}}
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "extendedae:concurrent_processor"
+    },
+    "E": {
+      "item": "extendedae:entro_block"
+    },
+    "S": {
+      "item": "extendedae:assembler_matrix_speed"
+    }
+  },
+  "pattern": [
+    "ECE",
+    "CSC",
+    "ECE"
+  ],
+  "result": {
+    "count": 4,
+    "id": "molecularmanipulator:molecular_center_coil"
+  }
+}

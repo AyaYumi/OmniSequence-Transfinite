@@ -1742,14 +1742,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             var state = level.getBlockState(MolecularCenterStructure.worldPos(worldPosition, facing, part));
             if (part.partType() == MolecularCenterStructure.PartType.AIR) {
-                if (state.isAir()) {
-                    continue;
-                }
-                if (state.canBeReplaced() || MolecularCenterStructure.isStructurePart(state)) {
-                    missing.add(part);
-                    continue;
-                }
-                return null;
+                continue;
             }
             if (state.is(MolecularCenterStructure.partState(part.partType()).getBlock())) {
                 continue;
@@ -1912,6 +1905,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private void processBuildPart(ServerPlayer player, MolecularCenterStructure.Part part, BlockPos pos,
             List<NetworkMaterialSource> materialSources) {
         if (part.partType() == MolecularCenterStructure.PartType.AIR) {
+            if (MolecularCenterStructure.isVisualCenter(part)) {
+                advanceWork();
+                return;
+            }
             var current = level.getBlockState(pos);
             if (current.isAir()) {
                 advanceWork();
@@ -1981,6 +1978,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void processDismantlePart(ServerPlayer player, MolecularCenterStructure.Part part, BlockPos pos) {
+        if (part.partType() == MolecularCenterStructure.PartType.AIR
+                && MolecularCenterStructure.isVisualCenter(part)) {
+            advanceWork();
+            return;
+        }
         var state = level.getBlockState(pos);
         boolean matches = part.partType() != MolecularCenterStructure.PartType.AIR
                 && state.is(MolecularCenterStructure.partState(part.partType()).getBlock());

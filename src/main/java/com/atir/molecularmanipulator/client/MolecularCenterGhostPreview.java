@@ -92,7 +92,8 @@ public final class MolecularCenterGhostPreview {
         facing = level.getBlockState(controller).getValue(HorizontalDirectionalBlock.FACING);
         var blocks = new ArrayList<SectionedGhostPreviewRenderer.GhostBlock>();
         for (var part : MolecularCenterStructure.parts()) {
-            if (MolecularCenterStructure.isController(part)) {
+            if (MolecularCenterStructure.isController(part)
+                    || part.partType() == MolecularCenterStructure.PartType.AIR) {
                 continue;
             }
             var pos = MolecularCenterStructure.worldPos(controller, facing, part);
@@ -100,12 +101,11 @@ public final class MolecularCenterGhostPreview {
                 continue;
             }
             var currentState = level.getBlockState(pos);
-            boolean clearance = part.partType() == MolecularCenterStructure.PartType.AIR;
             var expectedState = MolecularCenterStructure.partState(part.partType());
-            if (clearance ? currentState.isAir() : currentState.is(expectedState.getBlock())) {
+            if (currentState.is(expectedState.getBlock())) {
                 continue;
             }
-            boolean conflict = clearance || !currentState.canBeReplaced();
+            boolean conflict = !currentState.canBeReplaced();
             blocks.add(new SectionedGhostPreviewRenderer.GhostBlock(
                     pos, expectedState, conflict));
         }

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.3.8 - 2026-07-31
+
+### Changed
+
+- Rebalanced all Sequence Array component recipes around ExtendedAE's
+  higher-tier progression. High-volume parts now use Assembler Matrix blocks,
+  Entro blocks, and concurrent processors, while the unique core and
+  controller require matrix cores and a wireless hub.
+
+### Fixed
+
+- Sequence Array formation now validates physical multiblock parts only. The
+  rendered center at local `(0, 29, 0)` may be occupied without unforming the
+  structure, and automatic repair, dismantling, or ghost previews leave that
+  position untouched.
+- Blocking AE2 and ExtendedAE pattern providers now retain serial dispatch
+  semantics when connected to OmniSequence batch-crafting providers.
+
+See [RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md) for the complete bilingual
+release and upgrade notes.
+
 ## 1.3.7 - 2026-07-30
 
 ### Changed

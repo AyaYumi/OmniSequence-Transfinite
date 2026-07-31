@@ -17,9 +17,9 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | Glodium | 1.21-2.2-neoforge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.7`
+Current release: `1.3.8`
 
-See the [bilingual 1.3.7 release notes](RELEASE_NOTES_1.3.7.md) for the complete change and upgrade details.
+See the [bilingual 1.3.8 release notes](RELEASE_NOTES_1.3.8.md) for the complete change and upgrade details.
 
 > Known incompatibility: the only currently declared conflict is `Expanded AE 2.1.1`
 > (`expandedae-2.1.1.jar`, not ExtendedAE). The conflicting code is Expanded AE's
@@ -167,7 +167,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.7.jar
+build/libs/omnisequence-transfinite-1.3.8.jar
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.7.md](RELEASE_NOTES_1.3.7.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).
+See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).

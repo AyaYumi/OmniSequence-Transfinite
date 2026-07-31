@@ -17,9 +17,9 @@
 | Glodium | 1.21-2.2-neoforge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.7`
+当前版本：`1.3.8`
 
-完整更新内容见 [1.3.7 双语发布说明](RELEASE_NOTES_1.3.7.md)。
+完整更新内容见 [1.3.8 双语发布说明](RELEASE_NOTES_1.3.8.md)。
 
 > 已知兼容性限制：本模组目前只与 `Expanded AE 2.1.1`
 >（`expandedae-2.1.1.jar`，不是 ExtendedAE）存在已知冲突。冲突代码来自 Expanded AE
@@ -166,8 +166,8 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.7.jar
+build/libs/omnisequence-transfinite-1.3.8.jar
 ```
 
 版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与升级说明见
-[RELEASE_NOTES_1.3.7.md](RELEASE_NOTES_1.3.7.md)。本项目使用 [MIT License](LICENSE)。
+[RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md)。本项目使用 [MIT License](LICENSE)。

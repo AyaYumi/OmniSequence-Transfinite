@@ -1,1 +1,24 @@
-{"type":"minecraft:crafting_shaped","pattern":["FGF","GAG","FGF"],"key":{"F":{"item":"ae2:fluix_crystal"},"G":{"item":"minecraft:glass"},"A":{"item":"minecraft:amethyst_block"}},"result":{"id":"molecularmanipulator:molecular_center_glass","count":4}}
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": {
+      "item": "extendedae:entro_block"
+    },
+    "F": {
+      "item": "ae2:fluix_block"
+    },
+    "G": {
+      "item": "extendedae:assembler_matrix_glass"
+    }
+  },
+  "pattern": [
+    "FGF",
+    "GEG",
+    "FGF"
+  ],
+  "result": {
+    "count": 4,
+    "id": "molecularmanipulator:molecular_center_glass"
+  }
+}

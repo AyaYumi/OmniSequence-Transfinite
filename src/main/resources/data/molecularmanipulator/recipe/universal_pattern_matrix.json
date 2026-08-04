@@ -1,1 +1,0 @@
-{"neoforge:conditions":[{"type":"neoforge:mod_loaded","modid":"advanced_ae"}],"type":"minecraft:crafting_shaped","pattern":["UPU","PDP","UPU"],"key":{"U":{"item":"advanced_ae:quantum_unit"},"P":{"item":"ae2:engineering_processor"},"D":{"item":"advanced_ae:data_entangler"}},"result":{"id":"molecularmanipulator:universal_pattern_matrix","count":8}}

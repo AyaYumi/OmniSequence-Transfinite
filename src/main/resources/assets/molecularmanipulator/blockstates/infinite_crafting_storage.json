@@ -1,1 +1,0 @@
-{"variants":{"facing=north":{"model":"molecularmanipulator:block/infinite_crafting_storage"},"facing=east":{"model":"molecularmanipulator:block/infinite_crafting_storage","y":90},"facing=south":{"model":"molecularmanipulator:block/infinite_crafting_storage","y":180},"facing=west":{"model":"molecularmanipulator:block/infinite_crafting_storage","y":270}}}

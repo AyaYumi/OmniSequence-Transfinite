@@ -1,1 +1,0 @@
-{"type":"minecraft:block","pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"molecularmanipulator:computation_crystal_pylon"}],"conditions":[{"condition":"minecraft:survives_explosion"}]}]}

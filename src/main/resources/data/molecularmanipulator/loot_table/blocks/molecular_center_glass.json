@@ -1,1 +1,0 @@
-{"type":"minecraft:block","pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"molecularmanipulator:molecular_center_glass"}],"conditions":[{"condition":"minecraft:survives_explosion"}]}]}

@@ -1,1 +1,0 @@
-{"neoforge:conditions":[{"type":"neoforge:mod_loaded","modid":"advanced_ae"}],"type":"minecraft:crafting_shaped","pattern":["MTM","TQT","MTM"],"key":{"M":{"item":"advanced_ae:quantum_multi_threader"},"T":{"item":"advanced_ae:quantum_processor"},"Q":{"item":"ae2:quantum_ring"}},"result":{"id":"molecularmanipulator:infinite_parallel_matrix","count":4}}

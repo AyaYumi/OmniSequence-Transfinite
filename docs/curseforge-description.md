@@ -13,16 +13,18 @@ calculation designed for very large automation networks.
 - Entangled quantum links for remote AE network access.
 - Construction-only AE access before multiblock formation and full functionality after formation.
 - Safe demand aggregation and duplicate subtree merging with automatic AE2 fallback for unsafe recipes.
+- Exclusive persistent multi-tool durability batching in all three molecular crafting machines for deterministic reusable crafting tools.
 - Optional Advanced AE visibility and compatibility without making Advanced AE a required dependency.
 - Original black-purple crystal models, textures, animated effects and redesigned machine interfaces.
 
 ## Requirements
 
 - Minecraft 1.21.1
-- NeoForge 21.1.230 or later
+- NeoForge 21.1.220 or later
 - Applied Energistics 2 19.2.17 or later
 - ExtendedAE 1.21-2.2.32-neoforge or later
 - Dependencies required by ExtendedAE, including Glodium
+- LDLib2 2.2.18 or later
 
 ## Optional Integrations
 

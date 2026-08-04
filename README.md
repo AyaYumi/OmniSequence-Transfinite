@@ -11,16 +11,21 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | Component | Version |
 | --- | --- |
 | Minecraft | 1.21.1 |
-| NeoForge | 21.1.230 or later in the 21.1 line |
+| NeoForge | 21.1.220 or later in the 21.1 line |
 | Applied Energistics 2 | 19.2.17 or later |
 | ExtendedAE | 1.21-2.2.32-neoforge or later |
 | Glodium | 1.21-2.2-neoforge |
-| LDLib2 | 2.2.29 or later |
+| LDLib2 | 2.2.18 or later |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.8`
+Current release: `1.3.9`
 
-See the [bilingual 1.3.8 release notes](RELEASE_NOTES_1.3.8.md) for the complete change and upgrade details.
+See the [1.3.9 changelog](CHANGELOG.md#139---2026-08-04) for the complete
+change list. The [bilingual 1.3.8 release notes](RELEASE_NOTES_1.3.8.md)
+remain available for upgrades from older installations.
+
+Third-party pattern-holding machines can opt into atomic material batching
+through the [Omni Batch Provider API v1](docs/omni-batch-provider-api.md).
 
 > Known incompatibility: the only currently declared conflict is `Expanded AE 2.1.1`
 > (`expandedae-2.1.1.jar`, not ExtendedAE). The conflicting code is Expanded AE's
@@ -41,7 +46,24 @@ See the [bilingual 1.3.8 release notes](RELEASE_NOTES_1.3.8.md) for the complete
 
 ## Autocrafting and Material Dispatch
 
-The Omni-Computation Core uses `SAFE` aggregation to accelerate deterministic recipe trees. Item-substitution patterns conservatively fall back from this planner, while fluid-only substitution remains deterministic and may stay on the fast path. This planning fallback does not block compatible runtime batch dispatch: item-substitution patterns are permanently eligible, and AE2 still chooses the actual substituted input. Container remainders, dynamic inputs, cycles, and unknown pattern behavior also fall back to AE2's native calculation path.
+The Omni-Computation Core uses `SAFE` aggregation to compile deterministic AE2
+recipe graphs and merge repeated subtree demand. Multi-candidate plans preserve
+AE2 priority order transactionally, while stable same-key catalysts and
+deterministic `+1` durability tools remain batchable even when nested below the
+requested product. Exact terminal shortages fail the real attempt immediately
+and are aggregated into the simulated missing-material plan in one pass instead
+of re-entering AE2's per-craft traversal. Whenever a speculative fast-path
+attempt is rejected, fails, or is interrupted, its staged missing-item entries
+and candidate-availability changes are rolled back before AE2 retries or the
+calculation exits.
+
+Item-substitution patterns still conservatively fall back from this planner,
+while fluid-only substitution remains deterministic and may stay on the fast
+path. This planning fallback does not block compatible runtime batch dispatch:
+item-substitution patterns remain eligible there, and AE2 still chooses the
+actual substituted input. Random or context-dependent remainders, key-changing
+containers, cycles, and unknown pattern behavior retain AE2's native calculation
+path.
 
 Material dispatch uses three execution modes:
 
@@ -61,9 +83,9 @@ Only providers that explicitly implement this project's atomic batch protocol re
 
 Provider-owned remainder queues that already belong to an in-flight CPU task retain that ownership, preventing reinjection from leaving the CPU waiting forever for outputs that can no longer be produced. AE2's crafting-in-progress accounting uses the actual expected output, and every dispatch is capped by the remaining `waitingFor` output headroom to prevent pending output from overflowing `Long.MAX_VALUE`. The scheduler distributes work fairly across virtual CPUs and patterns, with a work-unit ceiling for extreme jobs.
 
-The Assembler Matrix Sequence Rewrite Core and Sequence Array use a persistent execution model for reusable inputs. Same-key remainders, including items marked as unbreakable, can be reused across a whole batch. Finite-durability tools are batched only when each craft deterministically adds exactly one point of damage; Unbreaking-enchanted and other probabilistic or context-dependent transitions fall back to AE2's original one-craft path. Key-changing remainders, such as a water bucket becoming an empty bucket, also stay on that native path.
+The Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core, and Sequence Array use a persistent execution model for reusable inputs. Same-key remainders, including items marked as unbreakable, can be reused across a whole batch. Finite-durability tools are batched only when each craft deterministically adds exactly one point of damage. A single tool input may reserve a pool of multiple tools, including different current damage states, and consume that pool inside one provider-owned batch instead of dispatching every craft separately. Unbreaking-enchanted and other probabilistic or context-dependent transitions fall back to AE2's original one-craft path. Key-changing remainders, such as a water bucket becoming an empty bucket, also stay on that native path. This reusable tool-pool path is exclusive to this mod's three molecular crafting machines and is not part of the public third-party batch-provider API.
 
-Accepted reusable batches remain owned by the provider across saves, chunk unloads, and server restarts. Canceling the AE2 crafting job persistently stops the remaining executions and refunds the exact unconsumed materials together with the reusable item's current state; completed outputs remain valid and canceled work cannot resume after reload. Batch expansion uses AE2's native pattern-power calculation over the actual combined inputs, preserving the original crafting-energy semantics.
+Accepted reusable batches remain owned by the provider across saves, chunk unloads, and server restarts. Canceling the AE2 crafting job persistently stops the remaining executions and refunds the exact unconsumed materials together with the reusable item's current state; completed outputs remain valid and canceled work cannot resume after reload. Breaking a molecular crafting machine while it owns a batch or long-count output buffer drops one state-bearing recovery machine instead of materializing an unsafe number of item entities; placing that machine restores the pending state. Batch expansion uses AE2's native pattern-power calculation over the actual combined inputs, preserving the original crafting-energy semantics.
 
 ## Core Machines
 
@@ -71,12 +93,13 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 
 - Provides a fixed 360 pattern slots: 10 pages with 36 slots each.
 - Supports virtual high parallelism and recipe processing in as little as one tick.
+- Persists deterministic reusable-tool pools and returns their exact current states when an AE2 job is canceled.
 - Returns intermediate results and container remainders to the ME Network through a persistent safety buffer.
 
 ### Assembler Matrix Sequence Rewrite Core
 
 - Installs inside an ExtendedAE Assembler Matrix in place of ordinary crafting and speed cores.
-- Runs real recipe assembly and remainder logic, preserving tool durability and non-consumed inputs.
+- Runs real recipe assembly and remainder logic, preserving and batching deterministic tool durability across multiple stored tools.
 - Persists reusable-input batches and provides exact cancellation refunds across unloads and restarts.
 - Aggregates outputs by `AEKey` and returns them to the ME Network in batches.
 
@@ -91,7 +114,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 
 - Forms a fixed 31×46×31 structure with logical autocrafting parallelism up to `Long.MAX_VALUE`.
 - Pattern slots accept encoded AE2 crafting, smithing-table, and stonecutting patterns. Processing, blank, and invalid patterns are rejected.
-- Supports deterministic reusable-input batches with persistent cancellation and refund state.
+- Supports deterministic reusable-input and multi-tool durability-pool batches with persistent cancellation and refund state.
 - Shift-moving a supported pattern fills the current pattern page first, then continues into later pages.
 - One-click dismantling uses a timed two-step confirmation. Rapid double-clicks, clicking another control, or waiting for the timeout will not trigger accidental removal.
 - Provides independent RGB effects for the energy field, core, rings, and lattice. Crafting accelerates the animation only; visual settings do not change processing speed.
@@ -168,7 +191,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.8.jar
+build/libs/omnisequence-transfinite-1.3.9.jar
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).

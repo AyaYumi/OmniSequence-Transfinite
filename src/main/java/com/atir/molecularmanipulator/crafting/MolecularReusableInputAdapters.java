@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Conservative reusable-input adapters shared by planning, extraction and the
- * two molecular crafting providers.
+ * three molecular crafting providers.
  */
 public final class MolecularReusableInputAdapters {
     // Finite tools are exhaustively validated against the real recipe for every

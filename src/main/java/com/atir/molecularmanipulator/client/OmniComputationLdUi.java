@@ -150,7 +150,7 @@ final class OmniComputationLdUi {
         telemetryJobProgress = progress(ui, "telemetry-job-progress",
                 new ColorRectTexture(CYAN), true);
         label(ui, "telemetry-framework").setValue(Component.translatable(
-                "gui.molecularmanipulator.omni.telemetry_framework", "LDLib2 2.2.29"));
+                "gui.molecularmanipulator.omni.telemetry_framework", "LDLib2 2.2.18+"));
         label(ui, "telemetry-sync").setValue(Component.translatable(
                 "gui.molecularmanipulator.omni.telemetry_sync", "AE2 @GuiSync"));
         button(ui, "telemetry-close", Component.literal("\u00d7"),

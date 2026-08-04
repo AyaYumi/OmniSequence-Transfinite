@@ -202,6 +202,9 @@ tasks.named('jar', Jar).configure {
     from('LICENSE.txt')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
+    from('docs/omni-batch-provider-api.md') {
+        into 'docs'
+    }
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

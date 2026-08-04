@@ -89,6 +89,12 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     }
 
     @Override
+    public boolean molecularmanipulator$supportsReusableBatching(
+            IPatternDetails patternDetails) {
+        return molecularmanipulator$supportsBatching(patternDetails);
+    }
+
+    @Override
     public void updatePatterns() {
         availablePatterns.clear();
         availablePatternSet.clear();

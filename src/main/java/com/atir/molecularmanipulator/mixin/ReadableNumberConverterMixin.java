@@ -9,9 +9,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = ReadableNumberConverter.class, remap = false)
 public abstract class ReadableNumberConverterMixin {
     @Inject(method = "format(JI)Ljava/lang/String;", at = @At("HEAD"), cancellable = true)
-    private static void molecularmanipulator$formatInfiniteAmount(long amount, int width,
+    private static void molecularmanipulator$formatNegativeSentinel(long amount, int width,
             CallbackInfoReturnable<String> callback) {
-        if (amount < 0 || amount == Long.MAX_VALUE) {
+        if (amount < 0) {
             callback.setReturnValue("\u221e");
         }
     }

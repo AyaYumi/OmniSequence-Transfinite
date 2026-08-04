@@ -28,7 +28,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Pseudo
 @Mixin(targets = "net.pedroksl.advanced_ae.common.logic.AdvCraftingCPULogic", remap = false)
@@ -60,6 +63,12 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     private BatchExtraction molecularmanipulator$batchExtraction;
     @Unique
     private Level molecularmanipulator$lastLevel;
+    @Unique
+    private final Map<ICraftingProvider, Set<IPatternDetails>>
+            molecularmanipulator$reusableSingleOnly =
+                    new IdentityHashMap<>();
+    @Unique
+    private Object molecularmanipulator$reusableSingleOnlyJob;
 
     @Inject(method = "executeCrafting", at = @At("HEAD"))
     private void molecularmanipulator$beginBatchContext(int maxPatterns, CraftingService craftingService,
@@ -67,6 +76,7 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$craftingService = craftingService;
         molecularmanipulator$energyService = energyService;
         molecularmanipulator$lastLevel = level;
+        molecularmanipulator$refreshReusableSingleOnlyJob();
         molecularmanipulator$clearBatch();
     }
 
@@ -87,6 +97,8 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
             MolecularBatchCancellationData.markCanceled(
                     level, link.getCraftingID());
         }
+        molecularmanipulator$reusableSingleOnly.clear();
+        molecularmanipulator$reusableSingleOnlyJob = null;
     }
 
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
@@ -117,7 +129,20 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
 
         var extraction = MolecularBatchCraftingExtractor.expandFromFirst(patternDetails, inventory,
                 energyService, level, firstInputs, expectedOutputs,
-                expectedContainerItems, maxCrafts, true);
+                expectedContainerItems, maxCrafts, false);
+        if (extraction == null) {
+            long reusableBatchLimit =
+                    molecularmanipulator$getAvailableReusableBatchLimit(
+                            craftingService, patternDetails, firstInputs);
+            long reusableMaxCrafts = Math.min(
+                    remainingCrafts, reusableBatchLimit);
+            if (reusableMaxCrafts > 1) {
+                extraction = MolecularBatchCraftingExtractor.expandFromFirst(
+                        patternDetails, inventory, energyService, level,
+                        firstInputs, expectedOutputs, expectedContainerItems,
+                        reusableMaxCrafts, true);
+            }
+        }
         if (extraction == null) {
             return firstInputs;
         }
@@ -145,6 +170,12 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
 
         java.util.UUID reusableCraftingId = null;
         if (extraction.reusablePlan() != null) {
+            if (!MolecularBatchCraftingProvider.supportsReusable(
+                    provider, patternDetails)
+                    || molecularmanipulator$isReusableSingleOnly(
+                            provider, patternDetails)) {
+                return false;
+            }
             var link = molecularmanipulator$getLastLink();
             if (link == null || link.isCanceled() || link.isDone()) {
                 return false;
@@ -191,6 +222,13 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         }
         if (accepted) {
             molecularmanipulator$clearBatch();
+        } else if (extraction.reusablePlan() != null) {
+            // Full reusable-state validation happens inside the target. Once
+            // it rejects a candidate, use AdvancedAE's ordinary one-recipe
+            // route for this provider/pattern pair instead of retrying the
+            // same aggregate indefinitely.
+            molecularmanipulator$markReusableSingleOnly(
+                    provider, patternDetails);
         }
         return accepted;
     }
@@ -201,6 +239,34 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         return MolecularBatchDispatchSafety.getAvailableBatchLimit(
                 craftingService, patternDetails, firstInputs,
                 provider -> MolecularBatchCraftingProvider.supports(provider, patternDetails));
+    }
+
+    @Unique
+    private long molecularmanipulator$getAvailableReusableBatchLimit(
+            CraftingService craftingService, IPatternDetails patternDetails,
+            KeyCounter[] firstInputs) {
+        return MolecularBatchDispatchSafety.getAvailableBatchLimit(
+                craftingService, patternDetails, firstInputs,
+                provider -> MolecularBatchCraftingProvider.supportsReusable(
+                        provider, patternDetails)
+                        && !molecularmanipulator$isReusableSingleOnly(
+                                provider, patternDetails));
+    }
+
+    @Unique
+    private boolean molecularmanipulator$isReusableSingleOnly(
+            ICraftingProvider provider, IPatternDetails patternDetails) {
+        var patterns = molecularmanipulator$reusableSingleOnly.get(provider);
+        return patterns != null && patterns.contains(patternDetails);
+    }
+
+    @Unique
+    private void molecularmanipulator$markReusableSingleOnly(
+            ICraftingProvider provider, IPatternDetails patternDetails) {
+        molecularmanipulator$reusableSingleOnly.computeIfAbsent(
+                provider,
+                ignored -> Collections.newSetFromMap(new IdentityHashMap<>()))
+                .add(patternDetails);
     }
 
     @Unique
@@ -254,21 +320,11 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
 
     @Unique
     private Object molecularmanipulator$getTask(IPatternDetails patternDetails) {
-        if (!molecularmanipulator$reflectionAvailable) {
-            return null;
-        }
         try {
-            var jobField = molecularmanipulator$jobField;
-            if (jobField == null) {
-                jobField = getClass().getDeclaredField("job");
-                jobField.setAccessible(true);
-                molecularmanipulator$jobField = jobField;
-            }
-            var job = jobField.get(this);
+            var job = molecularmanipulator$getCurrentJob();
             if (job == null) {
                 return null;
             }
-
             var tasksField = molecularmanipulator$tasksField;
             if (tasksField == null) {
                 tasksField = job.getClass().getDeclaredField("tasks");
@@ -296,6 +352,35 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
             molecularmanipulator$disableReflection(exception);
             return null;
         }
+    }
+
+    @Unique
+    private Object molecularmanipulator$getCurrentJob() {
+        if (!molecularmanipulator$reflectionAvailable) {
+            return null;
+        }
+        try {
+            var jobField = molecularmanipulator$jobField;
+            if (jobField == null) {
+                jobField = getClass().getDeclaredField("job");
+                jobField.setAccessible(true);
+                molecularmanipulator$jobField = jobField;
+            }
+            return jobField.get(this);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            molecularmanipulator$disableReflection(exception);
+            return null;
+        }
+    }
+
+    @Unique
+    private void molecularmanipulator$refreshReusableSingleOnlyJob() {
+        var currentJob = molecularmanipulator$getCurrentJob();
+        if (molecularmanipulator$reusableSingleOnlyJob == currentJob) {
+            return;
+        }
+        molecularmanipulator$reusableSingleOnly.clear();
+        molecularmanipulator$reusableSingleOnlyJob = currentJob;
     }
 
     @Unique

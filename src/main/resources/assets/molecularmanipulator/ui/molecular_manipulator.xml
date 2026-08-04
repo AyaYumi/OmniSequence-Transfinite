@@ -19,7 +19,6 @@
         .page-button { width: 16; height: 16; }
         .capacity-progress { position: absolute; }
         #title { text-color: #F1E8FF; }
-        #framework-badge { text-color: #B77BFF; font-size: 7; }
         #page-label { text-color: #B7C3D7; }
         #capacity-label { text-color: #69DBFF; font-size: 8; }
     </style>
@@ -28,9 +27,6 @@
                style="left: 8; top: 7; width: 162; height: 9">
             <lang key="gui.molecularmanipulator.molecular_manipulator"/>
         </label>
-        <label id="framework-badge" class="placed ui-label right-label"
-               style="left: 171; top: 8; width: 15; height: 8">LD²</label>
-
         <button id="page-previous" class="placed page-button"
                 style="left: 51; top: 18" text="&lt;"/>
         <label id="page-label" class="placed ui-label center-label"

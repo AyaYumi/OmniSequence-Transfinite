@@ -24,4 +24,10 @@ public abstract class TileAssemblerMatrixPatternMixin implements MolecularBatchC
     public long molecularmanipulator$getBatchLimit(IPatternDetails patternDetails) {
         return AssemblerMatrixMolecularCoreBlockEntity.VIRTUAL_PARALLEL_LIMIT;
     }
+
+    @Override
+    public boolean molecularmanipulator$supportsReusableBatching(
+            IPatternDetails patternDetails) {
+        return molecularmanipulator$supportsBatching(patternDetails);
+    }
 }

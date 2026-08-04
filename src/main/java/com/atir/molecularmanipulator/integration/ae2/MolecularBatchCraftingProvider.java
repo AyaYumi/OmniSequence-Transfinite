@@ -14,6 +14,16 @@ public interface MolecularBatchCraftingProvider {
     }
 
     /**
+     * Internal capability used only by this mod's three molecular crafting
+     * machines. The public Omni Batch Provider API intentionally remains
+     * consumable-only.
+     */
+    default boolean molecularmanipulator$supportsReusableBatching(
+            IPatternDetails patternDetails) {
+        return false;
+    }
+
+    /**
      * AE2 blocking mode must inspect the target again between complete recipes.
      * An aggregate provider call would perform that check only once for the
      * whole batch and would therefore weaken the configured blocking semantics.
@@ -50,6 +60,16 @@ public interface MolecularBatchCraftingProvider {
                 && provider.getClass() == PatternProviderLogic.class
                 && patternDetails != null
                 && patternDetails.supportsPushInputsToExternalInventory();
+    }
+
+    static boolean supportsReusable(ICraftingProvider provider,
+            IPatternDetails patternDetails) {
+        return !requiresSerialDispatch(provider)
+                && provider instanceof MolecularBatchCraftingProvider batchProvider
+                && batchProvider.molecularmanipulator$supportsBatching(
+                        patternDetails)
+                && batchProvider.molecularmanipulator$supportsReusableBatching(
+                        patternDetails);
     }
 
     static long getBatchLimit(ICraftingProvider provider, IPatternDetails patternDetails) {

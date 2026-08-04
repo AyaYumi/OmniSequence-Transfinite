@@ -26,4 +26,12 @@ public interface OmniCraftingTreeProcessAccessor extends OmniCraftingTreeProcess
     @Override
     @Accessor("limitQty")
     boolean molecularmanipulator$limitsQuantity();
+
+    @Override
+    @Accessor("possible")
+    boolean molecularmanipulator$isPossible();
+
+    @Override
+    @Accessor("possible")
+    void molecularmanipulator$setPossible(boolean possible);
 }

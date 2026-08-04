@@ -9,11 +9,14 @@ import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftBranchFailure;
 import appeng.crafting.CraftingCalculation;
 import appeng.crafting.CraftingTreeNode;
+import appeng.crafting.CraftingTreeProcess;
 import appeng.crafting.inv.CraftingSimulationState;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.maxfast.OmniMaxFastMode;
 import com.atir.molecularmanipulator.crafting.maxfast.OmniMaxFastPlanner;
+import com.atir.molecularmanipulator.integration.ae2.OmniCraftingTreeNodeBridge;
+import com.atir.molecularmanipulator.integration.ae2.OmniCraftingTreeProcessBridge;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -25,6 +28,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayDeque;
+import java.util.IdentityHashMap;
 import java.util.concurrent.Semaphore;
 
 @Mixin(value = CraftingCalculation.class, remap = false)
@@ -40,6 +45,12 @@ public abstract class OmniCraftingCalculationMixin {
 
     @Shadow
     abstract void handlePausing() throws InterruptedException;
+
+    @Shadow
+    public abstract KeyCounter getMissingItems();
+
+    @Shadow
+    public abstract boolean isSimulation();
 
     @Unique
     private OmniComputationCoreBlockEntity molecularmanipulator$omniController;
@@ -122,13 +133,32 @@ public abstract class OmniCraftingCalculationMixin {
             molecularmanipulator$maxFastSession = session;
         }
 
-        var result = session.tryExecute(tree, inventory, requestedAmount);
+        KeyCounter missingItems = getMissingItems();
+        var missingSnapshot = new KeyCounter();
+        missingSnapshot.addAll(missingItems);
+        var possibleSnapshot = molecularmanipulator$snapshotPossibleStates(tree);
+
+        OmniMaxFastPlanner.Result result;
+        try {
+            result = session.tryExecute(
+                    tree, inventory, requestedAmount, isSimulation(), missingItems);
+        } catch (InterruptedException | RuntimeException | Error failure) {
+            molecularmanipulator$restoreAttemptState(
+                    tree, missingItems, missingSnapshot, possibleSnapshot);
+            throw failure;
+        }
+        if (!result.applied()) {
+            molecularmanipulator$restoreAttemptState(
+                    tree, missingItems, missingSnapshot, possibleSnapshot);
+        }
         if (result.branchFailure() != null) {
             throw result.branchFailure();
         }
         if (result.applied()) {
-            molecularmanipulator$maxFastNodeCount = Math.min(
-                    result.logicalNodeCount(), Long.MAX_VALUE / 8);
+            if (!result.nativeNodeCount()) {
+                molecularmanipulator$maxFastNodeCount = Math.min(
+                        result.logicalNodeCount(), Long.MAX_VALUE / 8);
+            }
             if (ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
                 com.atir.molecularmanipulator.MolecularManipulator.LOGGER.info(
                         "Omni MAX_FAST applied: amount={}, uniqueNodes={}, mergedOccurrences={}, barriers={}, logicalNodes={}, compileMs={}, executeMs={}",
@@ -153,6 +183,59 @@ public abstract class OmniCraftingCalculationMixin {
                     result.executionNanos() / 1_000_000.0);
         }
         original.call(tree, inventory, requestedAmount, containerItems);
+    }
+
+    @Unique
+    private static IdentityHashMap<CraftingTreeProcess, Boolean>
+            molecularmanipulator$snapshotPossibleStates(CraftingTreeNode root) {
+        var result = new IdentityHashMap<CraftingTreeProcess, Boolean>();
+        molecularmanipulator$visitBuiltProcesses(root, process -> result.put(
+                process,
+                ((OmniCraftingTreeProcessBridge) process).molecularmanipulator$isPossible()));
+        return result;
+    }
+
+    @Unique
+    private static void molecularmanipulator$restoreAttemptState(
+            CraftingTreeNode root, KeyCounter missingItems, KeyCounter missingSnapshot,
+            IdentityHashMap<CraftingTreeProcess, Boolean> possibleSnapshot) {
+        missingItems.clear();
+        missingItems.addAll(missingSnapshot);
+        molecularmanipulator$visitBuiltProcesses(root, process -> {
+            Boolean previous = possibleSnapshot.get(process);
+            ((OmniCraftingTreeProcessBridge) process).molecularmanipulator$setPossible(
+                    previous == null || previous);
+        });
+    }
+
+    @Unique
+    private static void molecularmanipulator$visitBuiltProcesses(
+            CraftingTreeNode root,
+            java.util.function.Consumer<CraftingTreeProcess> visitor) {
+        var pending = new ArrayDeque<CraftingTreeNode>();
+        var visited = new IdentityHashMap<CraftingTreeNode, Boolean>();
+        pending.addLast(root);
+        while (!pending.isEmpty()) {
+            CraftingTreeNode node = pending.removeFirst();
+            if (visited.put(node, Boolean.TRUE) != null) {
+                continue;
+            }
+            var bridge = (OmniCraftingTreeNodeBridge) node;
+            var processes = bridge.molecularmanipulator$getProcesses();
+            if (processes == null) {
+                continue;
+            }
+            for (CraftingTreeProcess process : processes) {
+                visitor.accept(process);
+                var processBridge = (OmniCraftingTreeProcessBridge) process;
+                var children = processBridge.molecularmanipulator$getChildNodes();
+                if (children != null) {
+                    for (CraftingTreeNode child : children.keySet()) {
+                        pending.addLast(child);
+                    }
+                }
+            }
+        }
     }
 
     @WrapOperation(method = "runCraftAttempt", at = @At(value = "INVOKE",

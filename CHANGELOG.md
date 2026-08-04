@@ -1,5 +1,72 @@
 # Changelog
 
+## 1.3.9 - 2026-08-04
+
+### Added
+
+- Added the public Omni Batch Provider API v1 for pattern-holding AE2 machines.
+  Third-party `ICraftingProvider` implementations can advertise an atomic batch
+  admission, receive exact multi-craft material deliveries, and explicitly
+  commit or reject input ownership without any Mod-specific adapter.
+- Added a read-only Omni CPU marker so provider mods with their own AE2 CPU
+  batching hook can skip it while an Omni CPU owns material allocation.
+- Added an internal reusable-tool pool for all three molecular crafting
+  machines. One deterministic `+1` durability input can reserve multiple tools,
+  including different damage states, execute them as one persistent batch, and
+  refund every exact remaining tool state when the AE2 job is canceled.
+
+### Changed
+
+- Lowered the minimum NeoForge requirement from 21.1.230 to 21.1.220 while
+  retaining compatibility with newer NeoForge 21.1 patch releases.
+- Lowered the minimum LDLib2 requirement from 2.2.29 to 2.2.18 while retaining
+  compatibility with newer LDLib2 releases.
+- Replaced the sole MixinExtras Expressions injection with a standard Sponge
+  Mixin redirect compatible with the MixinExtras 0.5.0 bundled by NeoForge
+  21.1.220.
+- Removed the project-added `LD²` badges from the LDLib2 interfaces.
+- Restored AE2's numeric formatting for `Long.MAX_VALUE` network-storage
+  amounts instead of replacing them with an infinity symbol.
+- Made accepted machine batches retain input ownership even when a post-commit
+  save, event, or wake hook throws, preventing the same AE2 work from being
+  scheduled twice.
+- Reusable-tool candidates that fail a machine's full recipe-state validation
+  now fall back to AE2's original one-recipe dispatch for that provider instead
+  of rebuilding the same rejected aggregate indefinitely.
+- Removed the 65,536-crafts-per-tick execution slice from accepted reusable-tool
+  batches. All three molecular crafting machines now settle the complete
+  long-count aggregate in one machine tick.
+- Multi-candidate AE2 plans now transactionally aggregate the first
+  deterministic candidate in AE2 priority order instead of expanding it one
+  craft at a time, with an exact fallback whenever the full candidate cannot
+  satisfy the request.
+- Recursively nested crafting patterns that return an unchanged catalyst now
+  reuse only the physically required catalyst count while preserving AE2 input
+  order, network extraction peaks, crafting counts, and byte accounting.
+  Substitute-enabled catalyst slots are supported when the actually selected
+  stack has a stable identical remainder; non-deterministic durability, random,
+  or dynamic remainder transitions still fall back to AE2's original planner.
+- Directly requested recipes with one deterministic `+1` durability tool input
+  can now bulk-plan missing fresh tools. Existing tool capacity is consumed
+  first, then the remaining tools and their ingredients are requested in one
+  recursive batch instead of forcing the entire order through AE2's one-craft
+  container loop.
+- Deterministic `+1` durability recipes can now stay on the MAX_FAST path when
+  nested inside a larger recipe graph. Rejected nested boundaries abort the
+  speculative child transaction before AE2 reruns the complete native tree.
+- Failed or interrupted speculative boundaries now restore both AE2's
+  missing-item accounting and mutable pattern-candidate availability, avoiding
+  duplicate missing entries or leaked candidate state so a native retry or a
+  later calculation starts from clean state.
+- Exact terminal shortages now fail the real MAX_FAST attempt immediately and
+  are staged into the simulated missing-material plan in one aggregated pass.
+  Merged terminal nodes are accepted only when every recursion context confirms
+  that the input is genuinely uncraftable.
+- Stateful molecular crafting machines now drop one NBT-backed recovery block
+  when broken with an active batch, quarantined batch, or long-count output
+  buffer. Replacing it restores the pending state without spawning an unsafe
+  number of item entities.
+
 ## 1.3.8 - 2026-07-31
 
 ### Changed

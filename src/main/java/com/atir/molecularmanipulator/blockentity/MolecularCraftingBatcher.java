@@ -6,6 +6,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.menu.AutoCraftingMenu;
+import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
@@ -13,11 +14,15 @@ import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.UUID;
 
 final class MolecularCraftingBatcher {
     private static final int CRAFTING_GRID_SIZE = 9;
     private static final int MAX_CACHED_PATTERNS = 2048;
+    private static final int MAX_REUSABLE_VALIDATION_STATES =
+            (int) MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS;
 
     private final TransientCraftingContainer craftingGrid =
             new TransientCraftingContainer(new AutoCraftingMenu(), 3, 3);
@@ -242,10 +247,16 @@ final class MolecularCraftingBatcher {
             var crafted = output.copy();
             crafted.onCraftedBySystem(level);
             var primaryPerCraft = new Object2LongOpenHashMap<AEKey>();
-            if (!addOutput(primaryPerCraft, crafted)) {
+            var expectedPrimaryPerCraft = expectedPrimaryOutputs(
+                    patternDetails);
+            if (!addOutput(primaryPerCraft, crafted)
+                    || expectedPrimaryPerCraft == null
+                    || !mapsEqual(expectedPrimaryPerCraft,
+                            primaryPerCraft)) {
                 return null;
             }
-            if (!remainingItemsMatch(pattern, reusablePlan.expectedRemainders(1))) {
+            if (!remainingItemsMatch(pattern,
+                    reusablePlan.expectedCraftRemainders(0))) {
                 return null;
             }
 
@@ -254,36 +265,10 @@ final class MolecularCraftingBatcher {
                 firstGrid[slot] = craftingGrid.getItem(slot).copy();
             }
 
-            if (hasTransitioningInput(reusablePlan)) {
-                // Finite-durability batching is safe only when every intermediate
-                // state produces the same output and the predicted next tool key.
-                for (long completedBefore = 1;
-                        completedBefore < reusablePlan.craftCount();
-                        completedBefore++) {
-                    var stateInputs = createOneCraftInputs(
-                            reusablePlan, completedBefore);
-                    if (stateInputs == null
-                            || !fillCraftingGrid(pattern, stateInputs)) {
-                        return null;
-                    }
-                    var stateCraftingInput =
-                            craftingGrid.asPositionedCraftInput().input();
-                    ItemStack stateOutput =
-                            pattern.assemble(stateCraftingInput, level);
-                    if (!stateOutput.isEmpty()) {
-                        stateOutput = stateOutput.copy();
-                        stateOutput.onCraftedBySystem(level);
-                    }
-                    var statePrimary = new Object2LongOpenHashMap<AEKey>();
-                    if (stateOutput.isEmpty()
-                            || !addOutput(statePrimary, stateOutput)
-                            || !mapsEqual(primaryPerCraft, statePrimary)
-                            || !remainingItemsMatch(pattern,
-                                    reusablePlan.expectedRemainders(
-                                            completedBefore + 1))) {
-                        return null;
-                    }
-                }
+            if (hasTransitioningInput(reusablePlan)
+                    && !validateDamagePool(pattern, reusablePlan, level,
+                            primaryPerCraft)) {
+                return null;
             }
 
             clearCraftingGrid();
@@ -558,10 +543,9 @@ final class MolecularCraftingBatcher {
         for (int index = 0; index < plannedInputs.length; index++) {
             var input = plannedInputs[index];
             AEKey key = input.mode()
-                    == MolecularReusableBatchPlan.InputMode.CONSUMABLE
-                            ? input.initialKey()
-                            : input.keyAfter(
-                                    completedCrafts, plan.craftCount());
+                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE
+                            ? input.keyForCraft(completedCrafts)
+                            : input.initialKey();
             if (key == null) {
                 return null;
             }
@@ -611,6 +595,121 @@ final class MolecularCraftingBatcher {
             }
         }
         return false;
+    }
+
+    /**
+     * Validates every distinct damage state once, regardless of how many tools
+     * with that same initial key are present in the pool. The validation budget
+     * applies to the complete pool, not to each tool or group. Multiple
+     * transitioning slots are rejected by the plan before reaching this method.
+     */
+    private boolean validateDamagePool(
+            IMolecularAssemblerSupportedPattern pattern,
+            MolecularReusableBatchPlan plan, Level level,
+            Object2LongOpenHashMap<AEKey> primaryPerCraft) {
+        var longestGroups = new HashMap<AEItemKey,
+                MolecularReusableBatchPlan.DamageGroup>();
+        for (var input : plan.inputs()) {
+            if (input.mode()
+                    != MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE) {
+                continue;
+            }
+            for (var group : input.damageGroups()) {
+                var previous = longestGroups.get(group.initialKey());
+                if (previous == null
+                        || group.usesPerTool() > previous.usesPerTool()) {
+                    longestGroups.put(group.initialKey(), group);
+                } else if (group.usesPerTool() == previous.usesPerTool()
+                        && !java.util.Objects.equals(
+                                group.finalKey(), previous.finalKey())) {
+                    return false;
+                }
+            }
+        }
+
+        try {
+            var validatedStates = new HashSet<AEItemKey>();
+            for (var entry : longestGroups.entrySet()) {
+                var group = entry.getValue();
+                for (long used = 0; used < group.usesPerTool(); used++) {
+                    AEItemKey stateKey = group.keyAfter(used);
+                    if (!validatedStates.add(stateKey)) {
+                        continue;
+                    }
+                    if (validatedStates.size()
+                            > MAX_REUSABLE_VALIDATION_STATES) {
+                        return false;
+                    }
+                    var stateInputs = createValidationInputs(
+                            plan, group, used);
+                    if (stateInputs == null
+                            || !fillCraftingGrid(pattern, stateInputs)) {
+                        return false;
+                    }
+                    var stateCraftingInput =
+                            craftingGrid.asPositionedCraftInput().input();
+                    ItemStack stateOutput =
+                            pattern.assemble(stateCraftingInput, level);
+                    if (!stateOutput.isEmpty()) {
+                        stateOutput = stateOutput.copy();
+                        stateOutput.onCraftedBySystem(level);
+                    }
+                    var statePrimary = new Object2LongOpenHashMap<AEKey>();
+                    if (stateOutput.isEmpty()
+                            || !addOutput(statePrimary, stateOutput)
+                            || !mapsEqual(primaryPerCraft, statePrimary)
+                            || !remainingItemsMatch(pattern,
+                                    expectedValidationRemainders(
+                                            plan, group, used))) {
+                        return false;
+                    }
+                }
+            }
+            return !longestGroups.isEmpty();
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private KeyCounter[] createValidationInputs(
+            MolecularReusableBatchPlan plan,
+            MolecularReusableBatchPlan.DamageGroup activeGroup,
+            long used) {
+        var plannedInputs = plan.inputs();
+        var result = new KeyCounter[plannedInputs.length];
+        for (int index = 0; index < plannedInputs.length; index++) {
+            var input = plannedInputs[index];
+            AEKey key = input.mode()
+                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE
+                            ? activeGroup.keyAfter(used)
+                            : input.initialKey();
+            if (key == null) {
+                return null;
+            }
+            var holder = result[index] = new KeyCounter();
+            holder.add(key, input.amountPerCraft());
+        }
+        return result;
+    }
+
+    private static KeyCounter expectedValidationRemainders(
+            MolecularReusableBatchPlan plan,
+            MolecularReusableBatchPlan.DamageGroup activeGroup,
+            long used) {
+        var result = new KeyCounter();
+        for (var input : plan.inputs()) {
+            if (input.mode()
+                    == MolecularReusableBatchPlan.InputMode.INVARIANT_REUSABLE) {
+                result.add(input.initialKey(), input.amountPerCraft());
+            } else if (input.mode()
+                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE) {
+                AEKey next = activeGroup.keyAfter(used + 1);
+                if (next != null) {
+                    result.add(next, 1);
+                }
+            }
+        }
+        return result;
     }
 
     private static boolean countersEqual(KeyCounter left, KeyCounter right) {

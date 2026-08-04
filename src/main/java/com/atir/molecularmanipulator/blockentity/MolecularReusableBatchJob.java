@@ -5,6 +5,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.DamageGroup;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputMode;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputPlan;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -14,6 +15,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -33,16 +35,19 @@ final class MolecularReusableBatchJob {
     private static final String FINAL_KEY_TAG = "final_key";
     private static final String AMOUNT_PER_CRAFT_TAG = "amount_per_craft";
     private static final String REMAINING_AMOUNT_TAG = "remaining_amount";
+    private static final String DAMAGE_GROUPS_TAG = "damage_groups";
+    private static final String COUNT_TAG = "count";
+    private static final String USES_PER_TOOL_TAG = "uses_per_tool";
 
     private final UUID craftingId;
     private final AEItemKey patternDefinition;
     private final long totalCrafts;
-    private final InputState[] inputs;
+    private final InputPlan[] inputs;
     private final Object2LongOpenHashMap<AEKey> primaryPerCraft;
     private long completedCrafts;
 
     private MolecularReusableBatchJob(UUID craftingId, AEItemKey patternDefinition,
-            long totalCrafts, long completedCrafts, InputState[] inputs,
+            long totalCrafts, long completedCrafts, InputPlan[] inputs,
             Object2LongOpenHashMap<AEKey> primaryPerCraft) {
         this.craftingId = craftingId;
         this.patternDefinition = patternDefinition;
@@ -64,13 +69,6 @@ final class MolecularReusableBatchJob {
 
         try {
             InputPlan[] plannedInputs = plan.inputs();
-            var states = new InputState[plannedInputs.length];
-            for (int index = 0; index < plannedInputs.length; index++) {
-                var input = plannedInputs[index];
-                states[index] = new InputState(input.mode(), input.initialKey(),
-                        input.initialKey(), input.finalKey(), input.amountPerCraft(),
-                        input.providedAmount(plan.craftCount()));
-            }
 
             var primaryCopy = new Object2LongOpenHashMap<AEKey>();
             for (var entry : primaryPerCraft.object2LongEntrySet()) {
@@ -82,7 +80,7 @@ final class MolecularReusableBatchJob {
             }
 
             return new MolecularReusableBatchJob(craftingId, patternDefinition,
-                    plan.craftCount(), 0, states, primaryCopy);
+                    plan.craftCount(), 0, plannedInputs, primaryCopy);
         } catch (RuntimeException exception) {
             return null;
         }
@@ -129,13 +127,7 @@ final class MolecularReusableBatchJob {
     Object2LongOpenHashMap<AEKey> projectedFinalRemainders() {
         var result = new Object2LongOpenHashMap<AEKey>();
         for (var input : inputs) {
-            if (input.mode == InputMode.CONSUMABLE || input.finalKey == null) {
-                continue;
-            }
-            AEKey finalKey = input.mode == InputMode.INVARIANT_REUSABLE
-                    ? input.initialKey
-                    : damageKeyAfter(input.initialKey, totalCrafts);
-            addChecked(result, finalKey, input.amountPerCraft);
+            addCheckpointRemainders(result, input, totalCrafts);
         }
         return result;
     }
@@ -147,21 +139,6 @@ final class MolecularReusableBatchJob {
         }
         long nextCompleted = Math.addExact(completedCrafts, step);
 
-        for (var input : inputs) {
-            if (input.mode == InputMode.CONSUMABLE) {
-                long consumed = Math.multiplyExact(input.amountPerCraft, step);
-                if (consumed > input.remainingAmount) {
-                    throw new IllegalStateException("Reusable batch consumed too much input");
-                }
-                input.remainingAmount -= consumed;
-            } else if (input.mode == InputMode.DETERMINISTIC_DAMAGE) {
-                if (nextCompleted == totalCrafts && input.finalKey == null) {
-                    input.currentKey = null;
-                } else {
-                    input.currentKey = damageKeyAfter(input.initialKey, nextCompleted);
-                }
-            }
-        }
         completedCrafts = nextCompleted;
     }
 
@@ -171,9 +148,7 @@ final class MolecularReusableBatchJob {
         }
         var result = new Object2LongOpenHashMap<AEKey>();
         for (var input : inputs) {
-            if (input.mode != InputMode.CONSUMABLE && input.currentKey != null) {
-                addChecked(result, input.currentKey, input.amountPerCraft);
-            }
+            addCheckpointRemainders(result, input, completedCrafts);
         }
         return result;
     }
@@ -181,12 +156,14 @@ final class MolecularReusableBatchJob {
     Object2LongOpenHashMap<AEKey> cancellationRefunds() {
         var result = new Object2LongOpenHashMap<AEKey>();
         for (var input : inputs) {
-            if (input.mode == InputMode.CONSUMABLE) {
-                if (input.remainingAmount > 0) {
-                    addChecked(result, input.initialKey, input.remainingAmount);
+            if (input.mode() == InputMode.CONSUMABLE) {
+                long remaining = Math.multiplyExact(input.amountPerCraft(),
+                        totalCrafts - completedCrafts);
+                if (remaining > 0) {
+                    addChecked(result, input.initialKey(), remaining);
                 }
-            } else if (input.currentKey != null) {
-                addChecked(result, input.currentKey, input.amountPerCraft);
+            } else {
+                addCheckpointRemainders(result, input, completedCrafts);
             }
         }
         return result;
@@ -202,16 +179,41 @@ final class MolecularReusableBatchJob {
         var inputList = new ListTag();
         for (var input : inputs) {
             var inputTag = new CompoundTag();
-            inputTag.putString(MODE_TAG, input.mode.name());
-            inputTag.put(INITIAL_KEY_TAG, writeKey(registries, input.initialKey));
-            if (input.currentKey != null) {
-                inputTag.put(CURRENT_KEY_TAG, writeKey(registries, input.currentKey));
+            inputTag.putString(MODE_TAG, input.mode().name());
+            inputTag.put(INITIAL_KEY_TAG,
+                    writeKey(registries, input.initialKey()));
+            if (input.finalKey() != null) {
+                inputTag.put(FINAL_KEY_TAG,
+                        writeKey(registries, input.finalKey()));
             }
-            if (input.finalKey != null) {
-                inputTag.put(FINAL_KEY_TAG, writeKey(registries, input.finalKey));
+            inputTag.putLong(AMOUNT_PER_CRAFT_TAG,
+                    input.amountPerCraft());
+            if (input.mode() == InputMode.CONSUMABLE) {
+                inputTag.putLong(REMAINING_AMOUNT_TAG,
+                        Math.multiplyExact(input.amountPerCraft(),
+                                totalCrafts - completedCrafts));
+            } else if (input.mode() == InputMode.INVARIANT_REUSABLE) {
+                inputTag.put(CURRENT_KEY_TAG,
+                        writeKey(registries, input.initialKey()));
+                inputTag.putLong(REMAINING_AMOUNT_TAG,
+                        input.amountPerCraft());
+            } else {
+                var damageGroups = new ListTag();
+                for (var group : input.damageGroups()) {
+                    var groupTag = new CompoundTag();
+                    groupTag.put(INITIAL_KEY_TAG,
+                            writeKey(registries, group.initialKey()));
+                    groupTag.putLong(COUNT_TAG, group.count());
+                    groupTag.putLong(USES_PER_TOOL_TAG,
+                            group.usesPerTool());
+                    if (group.finalKey() != null) {
+                        groupTag.put(FINAL_KEY_TAG,
+                                writeKey(registries, group.finalKey()));
+                    }
+                    damageGroups.add(groupTag);
+                }
+                inputTag.put(DAMAGE_GROUPS_TAG, damageGroups);
             }
-            inputTag.putLong(AMOUNT_PER_CRAFT_TAG, input.amountPerCraft);
-            inputTag.putLong(REMAINING_AMOUNT_TAG, input.remainingAmount);
             inputList.add(inputTag);
         }
         tag.put(INPUTS_TAG, inputList);
@@ -241,25 +243,36 @@ final class MolecularReusableBatchJob {
             if (inputList.isEmpty()) {
                 return null;
             }
-            var states = new InputState[inputList.size()];
+            var plans = new InputPlan[inputList.size()];
             for (int index = 0; index < inputList.size(); index++) {
                 var inputTag = inputList.getCompound(index);
                 InputMode mode = InputMode.valueOf(inputTag.getString(MODE_TAG));
                 AEKey initialKey = readKey(registries, inputTag, INITIAL_KEY_TAG);
-                AEKey currentKey = inputTag.contains(CURRENT_KEY_TAG, Tag.TAG_COMPOUND)
-                        ? readKey(registries, inputTag, CURRENT_KEY_TAG) : null;
                 AEKey finalKey = inputTag.contains(FINAL_KEY_TAG, Tag.TAG_COMPOUND)
                         ? readKey(registries, inputTag, FINAL_KEY_TAG) : null;
                 long amountPerCraft = inputTag.getLong(AMOUNT_PER_CRAFT_TAG);
-                long remainingAmount = inputTag.getLong(REMAINING_AMOUNT_TAG);
-                if (!isValidPersistedInput(mode, initialKey, currentKey,
-                        finalKey, amountPerCraft, remainingAmount,
-                        totalCrafts, completedCrafts)) {
+                if (mode == null || initialKey == null
+                        || amountPerCraft <= 0) {
                     return null;
                 }
-                states[index] = new InputState(mode, initialKey, currentKey,
-                        finalKey, amountPerCraft, remainingAmount);
+                if (mode == InputMode.DETERMINISTIC_DAMAGE) {
+                    plans[index] = readDamagePlan(registries, inputTag,
+                            initialKey, finalKey, amountPerCraft,
+                            totalCrafts, completedCrafts);
+                } else {
+                    plans[index] = new InputPlan(initialKey, amountPerCraft,
+                            mode, finalKey);
+                    if (!isValidLegacyAmount(inputTag, mode,
+                            amountPerCraft, totalCrafts, completedCrafts)) {
+                        return null;
+                    }
+                }
+                if (plans[index] == null) {
+                    return null;
+                }
             }
+
+            new MolecularReusableBatchPlan(totalCrafts, plans);
 
             var primaryOutputs = readMap(registries, tag.getList(
                     PRIMARY_OUTPUTS_TAG, Tag.TAG_COMPOUND));
@@ -271,53 +284,106 @@ final class MolecularReusableBatchJob {
                         totalCrafts - completedCrafts);
             }
             return new MolecularReusableBatchJob(craftingId, definition,
-                    totalCrafts, completedCrafts, states, primaryOutputs);
+                    totalCrafts, completedCrafts, plans, primaryOutputs);
         } catch (RuntimeException exception) {
             return null;
         }
     }
 
-    private static boolean isValidPersistedInput(InputMode mode,
-            @Nullable AEKey initialKey, @Nullable AEKey currentKey,
-            @Nullable AEKey finalKey, long amountPerCraft,
-            long remainingAmount, long totalCrafts, long completedCrafts) {
-        if (mode == null || initialKey == null || amountPerCraft <= 0
-                || remainingAmount < 0) {
-            return false;
-        }
+    private static boolean isValidLegacyAmount(CompoundTag inputTag,
+            InputMode mode, long amountPerCraft, long totalCrafts,
+            long completedCrafts) {
+        long remainingAmount = inputTag.getLong(REMAINING_AMOUNT_TAG);
         try {
             return switch (mode) {
-                case CONSUMABLE -> currentKey != null
-                        && currentKey.equals(initialKey)
-                        && finalKey == null
-                        && remainingAmount == Math.multiplyExact(
-                                amountPerCraft,
-                                totalCrafts - completedCrafts);
-                case INVARIANT_REUSABLE -> currentKey != null
-                        && currentKey.equals(initialKey)
-                        && finalKey != null
-                        && finalKey.equals(initialKey)
-                        && remainingAmount == amountPerCraft;
-                case DETERMINISTIC_DAMAGE -> currentKey != null
-                        && currentKey.equals(
-                                damageKeyAfter(initialKey, completedCrafts))
-                        && (finalKey == null || finalKey.equals(
-                                damageKeyAfter(initialKey, totalCrafts)))
-                        && remainingAmount == amountPerCraft;
+                case CONSUMABLE -> remainingAmount == Math.multiplyExact(
+                        amountPerCraft, totalCrafts - completedCrafts);
+                case INVARIANT_REUSABLE -> remainingAmount == amountPerCraft;
+                case DETERMINISTIC_DAMAGE -> false;
             };
         } catch (RuntimeException exception) {
             return false;
         }
     }
 
-    private static AEKey damageKeyAfter(AEKey initialKey, long crafts) {
+    @Nullable
+    private static InputPlan readDamagePlan(
+            HolderLookup.Provider registries, CompoundTag inputTag,
+            AEKey initialKey, @Nullable AEKey legacyFinalKey,
+            long amountPerCraft, long totalCrafts,
+            long completedCrafts) {
+        if (!(initialKey instanceof AEItemKey initialItem)
+                || amountPerCraft != 1) {
+            return null;
+        }
+
+        var groupTags = inputTag.getList(
+                DAMAGE_GROUPS_TAG, Tag.TAG_COMPOUND);
+        if (!groupTags.isEmpty()) {
+            var groups = new ArrayList<DamageGroup>(groupTags.size());
+            for (var entry : groupTags) {
+                var groupTag = (CompoundTag) entry;
+                AEKey groupInitial = readKey(
+                        registries, groupTag, INITIAL_KEY_TAG);
+                AEKey groupFinal = groupTag.contains(
+                        FINAL_KEY_TAG, Tag.TAG_COMPOUND)
+                                ? readKey(registries, groupTag, FINAL_KEY_TAG)
+                                : null;
+                if (!(groupInitial instanceof AEItemKey groupInitialItem)
+                        || groupFinal != null
+                                && !(groupFinal instanceof AEItemKey)) {
+                    return null;
+                }
+                groups.add(new DamageGroup(groupInitialItem,
+                        groupTag.getLong(COUNT_TAG),
+                        groupTag.getLong(USES_PER_TOOL_TAG),
+                        (AEItemKey) groupFinal));
+            }
+            var result = InputPlan.deterministicDamage(groups);
+            return result.initialKey().equals(initialItem) ? result : null;
+        }
+
+        // Backward-compatible migration of the former single-tool format.
+        AEKey currentKey = inputTag.contains(
+                CURRENT_KEY_TAG, Tag.TAG_COMPOUND)
+                        ? readKey(registries, inputTag, CURRENT_KEY_TAG)
+                        : null;
+        long remainingAmount = inputTag.getLong(REMAINING_AMOUNT_TAG);
+        if (!(currentKey instanceof AEItemKey)
+                || legacyFinalKey != null
+                        && !(legacyFinalKey instanceof AEItemKey)
+                || remainingAmount != 1
+                || !currentKey.equals(
+                        damageKeyAfter(initialItem, completedCrafts))
+                || legacyFinalKey != null
+                        && !legacyFinalKey.equals(
+                                damageKeyAfter(initialItem, totalCrafts))) {
+            return null;
+        }
+        return InputPlan.deterministicDamage(java.util.List.of(
+                new DamageGroup(initialItem, 1, totalCrafts,
+                        (AEItemKey) legacyFinalKey)));
+    }
+
+    private static void addCheckpointRemainders(
+            Object2LongOpenHashMap<AEKey> target, InputPlan input,
+            long completedCrafts) {
+        var remainders = new KeyCounter();
+        input.addCheckpointRemainders(remainders, completedCrafts);
+        for (var entry : remainders) {
+            addChecked(target, entry.getKey(), entry.getLongValue());
+        }
+    }
+
+    private static AEItemKey damageKeyAfter(AEItemKey initialKey,
+            long crafts) {
         var stack = ((AEItemKey) initialKey).toStack();
         long damage = Math.addExact(stack.getDamageValue(), crafts);
         if (damage > Integer.MAX_VALUE) {
             throw new ArithmeticException("Damage value overflow");
         }
         stack.setDamageValue((int) damage);
-        var key = AEItemKey.of(stack);
+        AEItemKey key = AEItemKey.of(stack);
         if (key == null) {
             throw new IllegalStateException("Could not advance damageable input");
         }
@@ -366,25 +432,4 @@ final class MolecularReusableBatchJob {
         target.put(key, Math.addExact(target.getLong(key), amount));
     }
 
-    private static final class InputState {
-        private final InputMode mode;
-        private final AEKey initialKey;
-        @Nullable
-        private AEKey currentKey;
-        @Nullable
-        private final AEKey finalKey;
-        private final long amountPerCraft;
-        private long remainingAmount;
-
-        private InputState(InputMode mode, AEKey initialKey,
-                @Nullable AEKey currentKey, @Nullable AEKey finalKey,
-                long amountPerCraft, long remainingAmount) {
-            this.mode = mode;
-            this.initialKey = initialKey;
-            this.currentKey = currentKey;
-            this.finalKey = finalKey;
-            this.amountPerCraft = amountPerCraft;
-            this.remainingAmount = remainingAmount;
-        }
-    }
 }

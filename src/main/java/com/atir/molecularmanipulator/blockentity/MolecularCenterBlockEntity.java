@@ -28,6 +28,7 @@ import appeng.core.definitions.AEItems;
 import appeng.items.tools.powered.WirelessTerminalItem;
 import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
+import appeng.util.SettingsFrom;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.MolecularManipulator;
@@ -46,6 +47,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -79,7 +81,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final int MAX_BUFFERED_TYPES = 256;
     private static final int PIPELINE_STORAGE_PRIORITY = 1_000;
     private static final int MAX_PORT_ITEMS_PER_TICK = 4_096;
-    private static final long MAX_REUSABLE_CRAFTS_PER_TICK = 65_536;
     private static final String LEGACY_OUTPUT_BUFFER_TAG = "molecular_center_output_buffer";
     private static final String PENDING_PRIMARY_TAG = "pipeline_pending_primary";
     private static final String PENDING_BYPRODUCT_TAG = "pipeline_pending_byproduct";
@@ -315,6 +316,85 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.setRemoved();
+    }
+
+    public boolean hasRemovalRecovery() {
+        return activeReusableBatch != null
+                || quarantinedReusableBatchTag != null
+                || !pendingPrimaryOutputs.isEmpty()
+                || !pendingByproducts.isEmpty()
+                || !cachedPrimaryOutputs.isEmpty()
+                || !cachedByproducts.isEmpty()
+                || !reusableBatchRefunds.isEmpty();
+    }
+
+    @Override
+    public void addAdditionalDrops(Level level, BlockPos pos,
+            List<ItemStack> drops) {
+        super.addAdditionalDrops(level, pos, drops);
+        for (var stack : matterInventory) {
+            if (!stack.isEmpty()) {
+                drops.add(stack.copy());
+            }
+        }
+        for (var stack : matterUpgrades) {
+            if (!stack.isEmpty()) {
+                drops.add(stack.copy());
+            }
+        }
+        if (hasRemovalRecovery()) {
+            drops.add(createRemovalRecovery(level.registryAccess()));
+        }
+    }
+
+    @Override
+    public void clearContent() {
+        super.clearContent();
+        matterInventory.clear();
+        matterUpgrades.clear();
+        pendingPrimaryOutputs.clear();
+        pendingByproducts.clear();
+        cachedPrimaryOutputs.clear();
+        cachedByproducts.clear();
+        reusableBatchRefunds.clear();
+        activeReusableBatch = null;
+        quarantinedReusableBatchTag = null;
+        outputReadyTick = Long.MIN_VALUE;
+    }
+
+    private ItemStack createRemovalRecovery(
+            HolderLookup.Provider registries) {
+        var recovery = new ItemStack(getBlockState().getBlock());
+        var settings = DataComponentMap.builder();
+        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
+        recovery.applyComponents(settings.build());
+
+        var payload = new CompoundTag();
+        writeStacks(payload, PENDING_PRIMARY_TAG,
+                pendingPrimaryOutputs, registries);
+        writeStacks(payload, PENDING_BYPRODUCT_TAG,
+                pendingByproducts, registries);
+        writeStacks(payload, CACHED_PRIMARY_TAG,
+                cachedPrimaryOutputs, registries);
+        writeStacks(payload, CACHED_BYPRODUCT_TAG,
+                cachedByproducts, registries);
+        writeStacks(payload, REUSABLE_BATCH_REFUNDS_TAG,
+                reusableBatchRefunds, registries);
+        if (activeReusableBatch != null) {
+            payload.put(ACTIVE_REUSABLE_BATCH_TAG,
+                    activeReusableBatch.writeToTag(registries));
+        } else if (quarantinedReusableBatchTag != null) {
+            payload.put(ACTIVE_REUSABLE_BATCH_TAG,
+                    quarantinedReusableBatchTag.copy());
+        }
+        payload.putString(PRIMARY_ROUTE_TAG,
+                primaryRoute.getSerializedName());
+        payload.putString(BYPRODUCT_ROUTE_TAG,
+                byproductRoute.getSerializedName());
+        payload.putString(OUTPUT_PORT_TAG,
+                outputPort.getSerializedName());
+        BlockItem.setBlockEntityData(recovery, getType(), payload);
+        return recovery;
     }
 
     @Override
@@ -2165,11 +2245,25 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             addOutputs(pendingPrimaryOutputs, primaryOutputs);
             addOutputs(pendingByproducts, remainderOutputs);
-            craftingBatcher.consumeInputs(inputs);
-            fireCraftingEventOncePerTick(level, patternDetails, pattern);
+            // The output buffers now own the complete batch. No post-commit
+            // hook may escape and make AE2 schedule the same work again.
+            try {
+                craftingBatcher.consumeInputs(inputs);
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("input holder clear", exception);
+            }
+            try {
+                fireCraftingEventOncePerTick(level, patternDetails, pattern);
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("crafting event", exception);
+            }
             recordPipelineActivity(level.getGameTime(), craftingBatcher.getCraftCount());
             outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
-            markOutputBufferChanged(level.getGameTime());
+            try {
+                markOutputBufferChanged(level.getGameTime());
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("dirty-state update", exception);
+            }
             return true;
         } finally {
             assembling = false;
@@ -2195,16 +2289,29 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         // Commit point: once the holders are cleared, this persisted job owns
         // every extracted input until completion or cancellation refund.
         activeReusableBatch = job;
-        craftingBatcher.consumeInputs(inputs);
-        saveChanges();
+        try {
+            craftingBatcher.consumeInputs(inputs);
+        } catch (RuntimeException exception) {
+            logPostCommitFailure("reusable input holder clear", exception);
+        }
+        try {
+            saveChanges();
+        } catch (RuntimeException exception) {
+            logPostCommitFailure("reusable dirty-state update", exception);
+        }
         try {
             fireCraftingEventOncePerTick(level, patternDetails, pattern);
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.warn(
-                    "Crafting event failed after sequence-array reusable batch commit at {}",
-                    getBlockPos(), exception);
+            logPostCommitFailure("reusable crafting event", exception);
         }
         return true;
+    }
+
+    private void logPostCommitFailure(String stage,
+            RuntimeException exception) {
+        MolecularManipulator.LOGGER.warn(
+                "Molecular sequence array {} failed after batch ownership committed at {}",
+                stage, getBlockPos(), exception);
     }
 
     private void fireCraftingEventOncePerTick(Level level, IPatternDetails details,
@@ -2288,7 +2395,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
 
-        long step = job.nextStep(MAX_REUSABLE_CRAFTS_PER_TICK);
+        // The complete accepted batch is a constant-size aggregate operation.
+        long step = job.nextStep(Long.MAX_VALUE);
         if (step <= 0) {
             return;
         }

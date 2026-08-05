@@ -62,6 +62,23 @@
   are staged into the simulated missing-material plan in one aggregated pass.
   Merged terminal nodes are accepted only when every recursion context confirms
   that the input is genuinely uncraftable.
+- MAX_FAST now validates merged recipe occurrences to a fixed point, including
+  occurrences discovered after their shared graph node was first compiled.
+  Contexts that disagree about terminal status, candidate priority, or child
+  recipe structure—including occurrences with different request-unit
+  amounts—are never executed through the context-insensitive aggregate path,
+  preventing a craftable intermediate from being reported as a generic
+  terminal shortage.
+- Recursion-context conflicts now trigger a bounded recompilation that isolates
+  only the affected recipe occurrences instead of immediately abandoning the
+  complete graph. Context-sensitive graphs retain AE2's depth-first input order
+  so parent output surplus cannot satisfy its own still-unplanned descendants;
+  graphs with substitutions, reusable inputs, or unsafe boundaries continue to
+  use the native planner.
+- Exact AE2 smithing-table and stonecutting patterns now participate in
+  deterministic MAX_FAST graph compilation instead of forcing the complete
+  crafting order back to the native planner. Patterns with real input
+  substitutions still retain the existing safe local fallback.
 - Stateful molecular crafting machines now drop one NBT-backed recovery block
   when broken with an active batch, quarantined batch, or long-count output
   buffer. Replacing it restores the pending state without spawning an unsafe

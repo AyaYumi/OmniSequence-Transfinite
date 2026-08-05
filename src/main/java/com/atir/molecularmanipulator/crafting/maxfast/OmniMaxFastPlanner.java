@@ -13,6 +13,8 @@ import appeng.crafting.inv.ChildCraftingSimulationState;
 import appeng.crafting.inv.CraftingSimulationState;
 import appeng.crafting.pattern.AECraftingPattern;
 import appeng.crafting.pattern.AEProcessingPattern;
+import appeng.crafting.pattern.AESmithingTablePattern;
+import appeng.crafting.pattern.AEStonecuttingPattern;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
@@ -28,9 +30,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public final class OmniMaxFastPlanner {
+    private static final int MAX_CONTEXT_SPLIT_KEYS = 64;
+
     private OmniMaxFastPlanner() {
     }
 
@@ -75,18 +80,50 @@ public final class OmniMaxFastPlanner {
 
             if (graph == null && structuralFailure == null) {
                 long startedAt = System.nanoTime();
-                var compiler = new Compiler(maxNodes, startedAt + compileBudgetNanos,
-                        pauseCheckpoint);
+                long compileDeadline = saturatedAdd(startedAt, compileBudgetNanos);
+                long pausedNanos = 0;
+                var contextSplitKeys = new HashSet<AEKey>();
                 try {
-                    graph = compiler.compile(requestedRoot);
-                } catch (Fallback fallback) {
-                    structuralFailure = fallback.reason;
-                } catch (RuntimeException exception) {
-                    structuralFailure = "internal_compile_exception";
-                    structuralError = exception;
+                    while (graph == null && structuralFailure == null) {
+                        var compiler = new Compiler(maxNodes, compileDeadline,
+                                pauseCheckpoint, Set.copyOf(contextSplitKeys));
+                        try {
+                            graph = compiler.compile(requestedRoot);
+                        } catch (ContextSplit split) {
+                            int splitLimit = Math.min(MAX_CONTEXT_SPLIT_KEYS, maxNodes);
+                            boolean changed = false;
+                            if (contextSplitKeys.size() < splitLimit) {
+                                changed = contextSplitKeys.add(split.triggerKey);
+                                for (AEKey key : split.keys) {
+                                    if (contextSplitKeys.size() >= splitLimit) {
+                                        break;
+                                    }
+                                    changed |= contextSplitKeys.add(key);
+                                }
+                            }
+                            if (!changed) {
+                                structuralFailure = contextSplitKeys.size() >= splitLimit
+                                        ? "context_split_limit"
+                                        : "context_split_unstable:" + split.reason;
+                            } else if (ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
+                                MolecularManipulator.LOGGER.info(
+                                        "Omni MAX_FAST context split retry: key={}, reason={}, splitKeys={}",
+                                        split.triggerKey, split.reason,
+                                        contextSplitKeys.size());
+                            }
+                        } catch (Fallback fallback) {
+                            structuralFailure = fallback.reason;
+                        } catch (RuntimeException exception) {
+                            structuralFailure = "internal_compile_exception";
+                            structuralError = exception;
+                        } finally {
+                            compileDeadline = compiler.deadline;
+                            pausedNanos = saturatedAdd(pausedNanos, compiler.pausedNanos);
+                        }
+                    }
                 } finally {
                     compileNanos = Math.max(0,
-                            System.nanoTime() - startedAt - compiler.pausedNanos);
+                            System.nanoTime() - startedAt - pausedNanos);
                 }
             }
 
@@ -167,9 +204,19 @@ public final class OmniMaxFastPlanner {
             PauseCheckpoint pauseCheckpoint)
             throws Fallback, CraftBranchFailure, InterruptedException {
         var inventory = new ChildCraftingSimulationState(parent);
+        if (graph.contextSensitive) {
+            var stagedMissing = new KeyCounter();
+            executeTransactionalNode(
+                    graph, graph.rootIndex, inventory, requestedAmount,
+                    simulation, stagedMissing, pauseCheckpoint);
+            inventory.applyDiff(parent);
+            missingItems.addAll(stagedMissing);
+            return;
+        }
         if (graph.requiresTransactionalFallback()) {
             executeTransactionalNode(
-                    graph, graph.rootIndex, inventory, requestedAmount, pauseCheckpoint);
+                    graph, graph.rootIndex, inventory, requestedAmount,
+                    simulation, null, pauseCheckpoint);
             inventory.applyDiff(parent);
             return;
         }
@@ -186,7 +233,7 @@ public final class OmniMaxFastPlanner {
 
             Node node = graph.nodes.get(nodeIndex);
             if (node.barrier) {
-                if (node.occurrences.size() != 1) {
+                if (node.logicalOccurrences != 1) {
                     throw new Fallback("shared_unsafe_boundary:" + node.barrierReason);
                 }
                 boolean nestedRecursiveDurability = node.index != graph.rootIndex
@@ -268,8 +315,9 @@ public final class OmniMaxFastPlanner {
 
     private static void executeTransactionalNode(Graph graph, int nodeIndex,
             CraftingSimulationState inventory, long requestMultipliers,
+            boolean simulation, KeyCounter stagedMissing,
             PauseCheckpoint pauseCheckpoint)
-            throws Fallback, InterruptedException {
+            throws Fallback, CraftBranchFailure, InterruptedException {
         checkpoint(pauseCheckpoint);
         if (requestMultipliers <= 0) {
             return;
@@ -309,7 +357,14 @@ public final class OmniMaxFastPlanner {
             return;
         }
         if (node.terminal) {
-            throw new Fallback("missing_terminal_input");
+            if (!simulation) {
+                throw new CraftBranchFailure(node.key, totalRequestedItems);
+            }
+            if (stagedMissing == null) {
+                throw new Fallback("missing_terminal_input");
+            }
+            stagedMissing.add(node.key, totalRequestedItems);
+            return;
         }
 
         long patternTimes = ceilDiv(totalRequestedItems, node.outputPerPattern);
@@ -330,7 +385,7 @@ public final class OmniMaxFastPlanner {
                         "child_request_overflow");
                 executeTransactionalNode(
                         graph, orderedInput.childIndex, inventory,
-                        childRequests, pauseCheckpoint);
+                        childRequests, simulation, stagedMissing, pauseCheckpoint);
             }
         }
 
@@ -867,31 +922,47 @@ public final class OmniMaxFastPlanner {
         private final PauseCheckpoint pauseCheckpoint;
         private final List<Node> nodes = new ArrayList<>();
         private final Map<NodeKey, Integer> nodeIndexes = new HashMap<>();
-        private final Map<IPatternDetails, Integer> patternOwners = new IdentityHashMap<>();
+        private final Map<NodeKey, IdentityHashMap<CraftingTreeNode, Integer>>
+                splitNodeIndexes = new HashMap<>();
+        private final Map<IPatternDetails, NodeKey> patternOwners = new IdentityHashMap<>();
+        private final Map<AEKey, KeyContextBehavior> keyContextBehaviors = new HashMap<>();
+        private final Set<AEKey> crossAmountContextSensitiveKeys = new HashSet<>();
+        private final ArrayDeque<Integer> pendingInspections = new ArrayDeque<>();
+        private final Set<AEKey> contextSplitKeys;
         private long mergedOccurrences;
         private long pausedNanos;
         private int orderedChoiceCount;
 
-        private Compiler(int maxNodes, long deadline, PauseCheckpoint pauseCheckpoint) {
+        private Compiler(int maxNodes, long deadline, PauseCheckpoint pauseCheckpoint,
+                Set<AEKey> contextSplitKeys) {
             this.maxNodes = maxNodes;
             this.deadline = deadline;
             this.pauseCheckpoint = pauseCheckpoint;
+            this.contextSplitKeys = contextSplitKeys;
         }
 
-        private Graph compile(CraftingTreeNode root) throws Fallback, InterruptedException {
-            int rootIndex = intern(root);
+        private Graph compile(CraftingTreeNode root)
+                throws Fallback, ContextSplit, InterruptedException {
+            int rootIndex = intern(root, RecipeContext.ROOT);
             nodes.get(rootIndex).reachable = true;
-            for (int index = 0; index < nodes.size(); index++) {
+            // Interning a later branch may add another recursion context to a
+            // node that was already inspected. Drain dirty nodes to a fixed
+            // point so every merged occurrence and its descendants are proven
+            // equivalent before the graph can execute.
+            while (!pendingInspections.isEmpty()) {
                 checkBudget();
+                int index = pendingInspections.removeFirst();
                 Node node = nodes.get(index);
+                node.inspectionQueued = false;
                 if (!node.reachable) {
                     continue;
                 }
                 try {
-                    inspect(node);
+                    inspectPendingOccurrences(node);
                 } catch (Barrier barrier) {
                     node.barrier = true;
                     node.barrierReason = barrier.reason;
+                    node.inspectedOccurrences = node.occurrences.size();
                     if (requiresImmediateFallback(barrier.reason)) {
                         if (ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
                             MolecularManipulator.LOGGER.info(
@@ -915,7 +986,9 @@ public final class OmniMaxFastPlanner {
                 }
             }
             return new Graph(List.copyOf(nodes), topologicalOrder, rootIndex,
-                    logicalNodeCount, mergedOccurrences, barrierCount, orderedChoiceCount);
+                    logicalNodeCount, mergedOccurrences, barrierCount, orderedChoiceCount,
+                    !contextSplitKeys.isEmpty()
+                            || !crossAmountContextSensitiveKeys.isEmpty());
         }
 
         /**
@@ -955,7 +1028,8 @@ public final class OmniMaxFastPlanner {
             }
         }
 
-        private int intern(CraftingTreeNode occurrence) throws Fallback, InterruptedException {
+        private int intern(CraftingTreeNode occurrence, RecipeContext context)
+                throws Fallback, InterruptedException {
             checkBudget();
             var bridge = (OmniCraftingTreeNodeBridge) occurrence;
             AEKey key = bridge.molecularmanipulator$getWhat();
@@ -965,10 +1039,27 @@ public final class OmniMaxFastPlanner {
             }
 
             var nodeKey = new NodeKey(key, amount);
-            Integer existing = nodeIndexes.get(nodeKey);
+            var occurrenceContext = new OccurrenceContext(
+                    context, bridge.molecularmanipulator$getParentInput());
+            boolean splitByOccurrence = contextSplitKeys.contains(key);
+            IdentityHashMap<CraftingTreeNode, Integer> occurrenceIndexes = splitByOccurrence
+                    ? splitNodeIndexes.computeIfAbsent(
+                            nodeKey, ignored -> new IdentityHashMap<>())
+                    : null;
+            Integer existing = splitByOccurrence
+                    ? occurrenceIndexes.get(occurrence)
+                    : nodeIndexes.get(nodeKey);
             if (existing != null) {
-                nodes.get(existing).occurrences.add(occurrence);
-                mergedOccurrences = saturatedAdd(mergedOccurrences, 1);
+                Node node = nodes.get(existing);
+                if (node.occurrenceSet.put(occurrence, Boolean.TRUE) == null) {
+                    mergedOccurrences = saturatedAdd(mergedOccurrences, 1);
+                    if (node.contextOccurrences.putIfAbsent(
+                            occurrenceContext, occurrence) == null) {
+                        node.occurrences.add(occurrence);
+                        node.occurrenceContexts.add(context);
+                        scheduleInspection(node);
+                    }
+                }
                 return existing;
             }
             if (nodes.size() >= maxNodes) {
@@ -978,41 +1069,68 @@ public final class OmniMaxFastPlanner {
             int index = nodes.size();
             var node = new Node(index, key, amount, bridge.molecularmanipulator$getLevel());
             node.occurrences.add(occurrence);
+            node.occurrenceContexts.add(context);
+            node.occurrenceSet.put(occurrence, Boolean.TRUE);
+            node.contextOccurrences.put(occurrenceContext, occurrence);
             nodes.add(node);
-            nodeIndexes.put(nodeKey, index);
+            if (splitByOccurrence) {
+                occurrenceIndexes.put(occurrence, index);
+            } else {
+                nodeIndexes.put(nodeKey, index);
+            }
+            scheduleInspection(node);
             return index;
         }
 
-        private void inspect(Node node) throws Fallback, Barrier, InterruptedException {
-            var occurrence = node.occurrences.getFirst();
+        private void scheduleInspection(Node node) {
+            if (!node.inspectionQueued) {
+                node.inspectionQueued = true;
+                pendingInspections.addLast(node.index);
+            }
+        }
+
+        private void inspectPendingOccurrences(Node node)
+                throws Fallback, Barrier, ContextSplit, InterruptedException {
+            if (node.barrier) {
+                node.inspectedOccurrences = node.occurrences.size();
+                return;
+            }
+            while (node.inspectedOccurrences < node.occurrences.size()) {
+                checkBudget();
+                int occurrenceIndex = node.inspectedOccurrences;
+                CraftingTreeNode occurrence = node.occurrences.get(occurrenceIndex);
+                RecipeContext context = node.occurrenceContexts.get(occurrenceIndex);
+                if (node.inspectedOccurrences == 0) {
+                    inspect(node, occurrence, context);
+                } else {
+                    validateOccurrence(node, occurrence, context);
+                }
+                node.inspectedOccurrences++;
+            }
+        }
+
+        private void inspect(Node node, CraftingTreeNode occurrence, RecipeContext context)
+                throws Fallback, Barrier, InterruptedException {
             var nodeBridge = (OmniCraftingTreeNodeBridge) occurrence;
             if (nodeBridge.molecularmanipulator$canEmit()) {
                 node.emitter = true;
+                recordKeyContextBehavior(node, context, true, List.of());
                 return;
             }
 
             nodeBridge.molecularmanipulator$buildChildPatterns();
             List<CraftingTreeProcess> processes = nodeBridge.molecularmanipulator$getProcesses();
-            if (processes == null || processes.isEmpty()) {
-                // Pattern availability is recursion-contextual in AE2. A key
-                // merged from several tree occurrences is a safe terminal only
-                // when every occurrence has no viable process; otherwise fast
-                // simulation could report craftable items as missing.
-                for (int occurrenceIndex = 1;
-                        occurrenceIndex < node.occurrences.size(); occurrenceIndex++) {
-                    checkBudget();
-                    var occurrenceBridge = (OmniCraftingTreeNodeBridge)
-                            node.occurrences.get(occurrenceIndex);
-                    occurrenceBridge.molecularmanipulator$buildChildPatterns();
-                    List<CraftingTreeProcess> occurrenceProcesses =
-                            occurrenceBridge.molecularmanipulator$getProcesses();
-                    if (occurrenceProcesses == null || !occurrenceProcesses.isEmpty()) {
-                        throw new Fallback("contextual_terminal");
-                    }
-                }
+            if (processes == null) {
+                throw new Fallback("missing_process_state");
+            }
+            if (processes.isEmpty()) {
+                recordKeyContextBehavior(node, context, false, List.of());
                 node.terminal = true;
                 return;
             }
+            node.candidatePatterns = getCandidatePatterns(processes);
+            recordKeyContextBehavior(
+                    node, context, false, node.candidatePatterns);
             if (processes.size() > 1) {
                 // AE2 tries candidates in this exact order and exhausts the first viable one
                 // before considering the next. Compile that first choice transactionally so a
@@ -1024,7 +1142,9 @@ public final class OmniMaxFastPlanner {
 
             var process = (OmniCraftingTreeProcessBridge) processes.getFirst();
             boolean hasContainerItems = process.molecularmanipulator$hasContainerItems();
-            if (process.molecularmanipulator$limitsQuantity() && !hasContainerItems) {
+            node.hasContainerItems = hasContainerItems;
+            node.limitsQuantity = process.molecularmanipulator$limitsQuantity();
+            if (node.limitsQuantity && !hasContainerItems) {
                 throw new Barrier("quantity_limited_pattern");
             }
 
@@ -1052,11 +1172,12 @@ public final class OmniMaxFastPlanner {
 
             IPatternDetails.IInput[] inputs = details.getInputs();
             Map<CraftingTreeNode, Long> childNodes = process.molecularmanipulator$getChildNodes();
-            if (inputs.length != childNodes.size()) {
+            if (inputs == null || childNodes == null || inputs.length != childNodes.size()) {
                 throw new Barrier("dynamic_input_layout");
             }
 
-            var accumulators = new LinkedHashMap<Integer, EdgeAccumulator>();
+            var validatedInputs = new ArrayList<ValidatedOccurrenceInput>(inputs.length);
+            boolean hasReusableInput = false;
             int inputIndex = 0;
             for (var entry : childNodes.entrySet()) {
                 checkBudget();
@@ -1101,33 +1222,47 @@ public final class OmniMaxFastPlanner {
                     if (inputMode == BoundaryInputMode.DETERMINISTIC_DAMAGE) {
                         throw new Barrier("recursive_durability_input");
                     }
+                    hasReusableInput = true;
+                }
+                validatedInputs.add(new ValidatedOccurrenceInput(
+                        child, input, inputMode, multiplier));
+            }
+            if (hasContainerItems && !hasReusableInput) {
+                throw new Barrier("container_flag_without_supported_input");
+            }
+
+            var patternNodeKey = new NodeKey(node.key, node.amount);
+            NodeKey patternOwner = patternOwners.putIfAbsent(details, patternNodeKey);
+            if (patternOwner != null && !patternOwner.equals(patternNodeKey)) {
+                throw new Barrier("shared_pattern_with_different_request_units");
+            }
+
+            var accumulators = new LinkedHashMap<Integer, EdgeAccumulator>();
+            RecipeContext childContext = context.extend(node.key);
+            for (ValidatedOccurrenceInput validatedInput : validatedInputs) {
+                var childBridge = (OmniCraftingTreeNodeBridge) validatedInput.child;
+                if (validatedInput.mode != BoundaryInputMode.CONSUMABLE) {
                     var reusableInput = new GraphReusableInput(
-                            input, childBridge, inputMode, multiplier);
+                            validatedInput.input, childBridge,
+                            validatedInput.mode, validatedInput.multiplier);
                     node.reusableInputs.add(reusableInput);
                     node.orderedInputs.add(OrderedGraphInput.reusable(reusableInput));
                     continue;
                 }
 
-                int childIndex = intern(child);
+                int childIndex = intern(validatedInput.child, childContext);
                 node.orderedInputs.add(OrderedGraphInput.consumable(
-                        childIndex, multiplier));
+                        childIndex, validatedInput.multiplier));
                 var accumulator = accumulators.get(childIndex);
                 if (accumulator == null) {
-                    accumulators.put(childIndex, new EdgeAccumulator(multiplier));
+                    accumulators.put(childIndex,
+                            new EdgeAccumulator(validatedInput.multiplier));
                 } else {
                     accumulator.requestMultiplier = checkedAdd(
-                            accumulator.requestMultiplier, multiplier,
+                            accumulator.requestMultiplier, validatedInput.multiplier,
                             "input_multiplier_overflow");
                     accumulator.occurrences++;
                 }
-            }
-            if (hasContainerItems && node.reusableInputs.isEmpty()) {
-                throw new Barrier("container_flag_without_supported_input");
-            }
-
-            Integer patternOwner = patternOwners.putIfAbsent(details, node.index);
-            if (patternOwner != null && patternOwner != node.index) {
-                throw new Barrier("shared_pattern_with_different_request_units");
             }
             node.outputPerPattern = outputPerPattern;
             for (var entry : accumulators.entrySet()) {
@@ -1138,6 +1273,351 @@ public final class OmniMaxFastPlanner {
                 child.indegree++;
                 child.reachable = true;
             }
+        }
+
+        /**
+         * Verifies that another tree occurrence represented by the same graph
+         * node has exactly the same recursion-contextual behavior as the
+         * canonical occurrence. Consumable children are interned only after the
+         * full occurrence has passed validation, so a rejected context cannot
+         * partially mutate the graph.
+         */
+        private void validateOccurrence(Node node, CraftingTreeNode occurrence,
+                RecipeContext context)
+                throws Fallback, ContextSplit, InterruptedException {
+            var nodeBridge = (OmniCraftingTreeNodeBridge) occurrence;
+            if (nodeBridge.molecularmanipulator$getLevel() != node.level) {
+                throw new Fallback("contextual_level");
+            }
+
+            boolean canEmit = nodeBridge.molecularmanipulator$canEmit();
+            if (canEmit != node.emitter) {
+                throw new Fallback("contextual_emitter");
+            }
+            if (canEmit) {
+                return;
+            }
+
+            nodeBridge.molecularmanipulator$buildChildPatterns();
+            List<CraftingTreeProcess> processes = nodeBridge.molecularmanipulator$getProcesses();
+            if (processes == null) {
+                throw new Fallback("missing_process_state");
+            }
+            if (processes.isEmpty()) {
+                if (!node.terminal) {
+                    logContextualTerminalConflict(node, context, processes);
+                    throw createContextSplit(node, context, "contextual_terminal");
+                }
+                return;
+            }
+            if (node.terminal) {
+                logContextualTerminalConflict(node, context, processes);
+                throw createContextSplit(node, context, "contextual_terminal");
+            }
+
+            List<IPatternDetails> candidatePatterns = getCandidatePatterns(processes);
+            if (candidatePatterns.size() != node.candidatePatterns.size()) {
+                throw createContextSplit(
+                        node, context, "contextual_pattern_candidates");
+            }
+            for (int index = 0; index < candidatePatterns.size(); index++) {
+                if (candidatePatterns.get(index) != node.candidatePatterns.get(index)) {
+                    throw createContextSplit(
+                            node, context, "contextual_pattern_candidates");
+                }
+            }
+
+            var process = (OmniCraftingTreeProcessBridge) processes.getFirst();
+            if (process.molecularmanipulator$getDetails() != node.details
+                    || process.molecularmanipulator$hasContainerItems()
+                            != node.hasContainerItems
+                    || process.molecularmanipulator$limitsQuantity()
+                            != node.limitsQuantity) {
+                throw new Fallback("contextual_pattern_behavior");
+            }
+
+            IPatternDetails.IInput[] inputs = node.details.getInputs();
+            Map<CraftingTreeNode, Long> childNodes = process.molecularmanipulator$getChildNodes();
+            if (childNodes == null || inputs.length != childNodes.size()
+                    || inputs.length != node.orderedInputs.size()) {
+                throw new Fallback("contextual_input_layout");
+            }
+
+            var contextualChildren = new ArrayList<ContextualChild>();
+            int inputIndex = 0;
+            for (var entry : childNodes.entrySet()) {
+                checkBudget();
+                CraftingTreeNode child = entry.getKey();
+                var childBridge = (OmniCraftingTreeNodeBridge) child;
+                IPatternDetails.IInput input = inputs[inputIndex];
+                OrderedGraphInput expected = node.orderedInputs.get(inputIndex++);
+                if (childBridge.molecularmanipulator$getParentInput() != input) {
+                    throw new Fallback("contextual_input_identity");
+                }
+
+                GenericStack possibleInput = getPrimaryInputChoice(input);
+                if (possibleInput == null
+                        || !possibleInput.what().equals(
+                                childBridge.molecularmanipulator$getWhat())
+                        || possibleInput.amount()
+                                != childBridge.molecularmanipulator$getAmount()
+                        || !input.isValid(possibleInput.what(), node.level)) {
+                    throw new Fallback("contextual_input_template");
+                }
+
+                long multiplier = input.getMultiplier();
+                if (multiplier <= 0 || entry.getValue() == null
+                        || entry.getValue() != multiplier) {
+                    throw new Fallback("contextual_input_multiplier");
+                }
+
+                BoundaryInputMode inputMode = classifyRemainingKey(
+                        input, possibleInput.what(), node.level);
+                if (inputMode == BoundaryInputMode.UNSAFE
+                        || (inputMode == BoundaryInputMode.CONSUMABLE
+                                && getSingleExactInputChoice(input) == null)) {
+                    throw new Fallback("contextual_input_behavior");
+                }
+
+                if (expected.reusable()) {
+                    GraphReusableInput reusable = expected.reusableInput;
+                    var canonicalChild = reusable.child;
+                    if (inputMode == BoundaryInputMode.CONSUMABLE
+                            || reusable.input != input
+                            || reusable.mode != inputMode
+                            || reusable.multiplier != multiplier
+                            || !canonicalChild.molecularmanipulator$getWhat().equals(
+                                    childBridge.molecularmanipulator$getWhat())
+                            || canonicalChild.molecularmanipulator$getAmount()
+                                    != childBridge.molecularmanipulator$getAmount()) {
+                        throw new Fallback("contextual_reusable_input");
+                    }
+                } else {
+                    if (inputMode != BoundaryInputMode.CONSUMABLE
+                            || expected.multiplier != multiplier) {
+                        throw new Fallback("contextual_consumable_input");
+                    }
+                    Node expectedChild = nodes.get(expected.childIndex);
+                    if (!expectedChild.key.equals(childBridge.molecularmanipulator$getWhat())
+                            || expectedChild.amount
+                                    != childBridge.molecularmanipulator$getAmount()) {
+                        throw new Fallback("contextual_child_template");
+                    }
+                    contextualChildren.add(new ContextualChild(
+                            child, expected.childIndex));
+                }
+            }
+
+            RecipeContext childContext = context.extend(node.key);
+            for (ContextualChild contextualChild : contextualChildren) {
+                int childIndex = intern(contextualChild.child, childContext);
+                if (childIndex != contextualChild.expectedIndex) {
+                    throw createContextSplit(node, context, "contextual_child_node");
+                }
+            }
+        }
+
+        /**
+         * AE2's recursion filter is keyed by the requested item, not by the
+         * amount stored in a particular tree node. Nodes for the same key but
+         * different request units therefore still need depth-first execution
+         * when their visible pattern candidates differ by recursion context.
+         *
+         * <p>Same-amount occurrences are validated by {@link #validateOccurrence}
+         * and, when necessary, recompiled as split nodes. This index only
+         * compares different amounts, allowing context-insensitive multi-amount
+         * graphs to retain the aggregated topological fast path.</p>
+         */
+        private void recordKeyContextBehavior(Node node, RecipeContext context,
+                boolean emitter, List<IPatternDetails> candidatePatterns) {
+            var behavior = new KeyContextBehavior(
+                    node.amount, context, emitter, candidatePatterns);
+            KeyContextBehavior existing = keyContextBehaviors.putIfAbsent(
+                    node.key, behavior);
+            if (existing == null || existing.amount == node.amount
+                    || sameKeyContextBehavior(existing, behavior)) {
+                return;
+            }
+            if (crossAmountContextSensitiveKeys.add(node.key)
+                    && ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
+                MolecularManipulator.LOGGER.info(
+                        "Omni MAX_FAST cross-amount context sensitivity: key={}, canonicalAmount={}, conflictingAmount={}, canonicalPath={}, conflictingPath={}",
+                        node.key, existing.amount, node.amount,
+                        describeRecipeContext(existing.context),
+                        describeRecipeContext(context));
+            }
+        }
+
+        private boolean sameKeyContextBehavior(KeyContextBehavior left,
+                KeyContextBehavior right) {
+            if (left.emitter != right.emitter
+                    || left.candidatePatterns.size()
+                            != right.candidatePatterns.size()) {
+                return false;
+            }
+            for (int index = 0; index < left.candidatePatterns.size(); index++) {
+                if (left.candidatePatterns.get(index)
+                        != right.candidatePatterns.get(index)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private ContextSplit createContextSplit(Node node, RecipeContext context,
+                String reason) {
+            var keys = new HashSet<AEKey>();
+            keys.add(node.key);
+            if (!node.occurrenceContexts.isEmpty()) {
+                addContextKeys(keys, node.occurrenceContexts.getFirst());
+            }
+            addContextKeys(keys, context);
+            return new ContextSplit(reason, node.key, Set.copyOf(keys));
+        }
+
+        private void addContextKeys(Set<AEKey> keys, RecipeContext context) {
+            for (RecipeContext cursor = context; cursor.depth > 0; cursor = cursor.parent) {
+                keys.add(cursor.key);
+            }
+        }
+
+        /**
+         * Records enough recursion context to identify the exact reversible or
+         * cyclic pattern that made a key craftable in one occurrence and a
+         * terminal shortage in another. This stays behind the existing
+         * diagnostics option because large recipe paths are intentionally
+         * omitted from normal logs.
+         */
+        private void logContextualTerminalConflict(Node node, RecipeContext context,
+                List<CraftingTreeProcess> occurrenceProcesses) {
+            if (!ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
+                return;
+            }
+
+            RecipeContext canonicalContext = node.occurrenceContexts.isEmpty()
+                    ? RecipeContext.ROOT
+                    : node.occurrenceContexts.getFirst();
+            RecipeContext terminalContext = node.terminal ? canonicalContext : context;
+            var diagnosticPatterns = new ArrayList<IPatternDetails>();
+            String patternSource;
+            if (node.terminal) {
+                patternSource = "conflicting";
+                for (CraftingTreeProcess process : occurrenceProcesses) {
+                    diagnosticPatterns.add(((OmniCraftingTreeProcessBridge) process)
+                            .molecularmanipulator$getDetails());
+                }
+            } else {
+                patternSource = "canonical";
+                diagnosticPatterns.addAll(node.candidatePatterns);
+            }
+
+            MolecularManipulator.LOGGER.info(
+                    "Omni MAX_FAST contextual terminal conflict: key={}, amount={}, canonicalTerminal={}, conflictingTerminal={}, canonicalPath={}, conflictingPath={}, patternSource={}, patterns={}",
+                    node.key, node.amount, node.terminal, occurrenceProcesses.isEmpty(),
+                    describeRecipeContext(canonicalContext), describeRecipeContext(context),
+                    patternSource,
+                    describeDiagnosticPatterns(diagnosticPatterns, terminalContext));
+        }
+
+        private String describeDiagnosticPatterns(List<IPatternDetails> patterns,
+                RecipeContext terminalContext) {
+            if (patterns.isEmpty()) {
+                return "[]";
+            }
+            var result = new StringBuilder("[");
+            int limit = Math.min(patterns.size(), 16);
+            for (int index = 0; index < limit; index++) {
+                if (index > 0) {
+                    result.append(", ");
+                }
+                IPatternDetails details = patterns.get(index);
+                result.append(details == null ? "unknown" : details.getClass().getName())
+                        .append(':').append(describePattern(details))
+                        .append(" blockedBy=")
+                        .append(describePatternBlockers(details, terminalContext));
+            }
+            if (patterns.size() > limit) {
+                result.append(", ... +").append(patterns.size() - limit);
+            }
+            return result.append(']').toString();
+        }
+
+        private String describePatternBlockers(IPatternDetails details,
+                RecipeContext context) {
+            var result = new StringBuilder("[");
+            int blockerCount = 0;
+            for (RecipeContext cursor = context;
+                    cursor.depth > 0 && blockerCount < 16; cursor = cursor.parent) {
+                if (!patternMentions(details, cursor.key)) {
+                    continue;
+                }
+                if (blockerCount++ > 0) {
+                    result.append(", ");
+                }
+                result.append(cursor.key);
+            }
+            return result.append(']').toString();
+        }
+
+        private boolean patternMentions(IPatternDetails details, AEKey ancestor) {
+            if (details == null || ancestor == null) {
+                return false;
+            }
+            try {
+                for (GenericStack output : details.getOutputs()) {
+                    if (output != null && ancestor.matches(output)) {
+                        return true;
+                    }
+                }
+                for (IPatternDetails.IInput input : details.getInputs()) {
+                    if (input == null) {
+                        continue;
+                    }
+                    GenericStack[] choices = input.getPossibleInputs();
+                    if (choices != null && choices.length > 0 && choices[0] != null
+                            && ancestor.matches(choices[0])) {
+                        return true;
+                    }
+                }
+            } catch (RuntimeException exception) {
+                return false;
+            }
+            return false;
+        }
+
+        private String describeRecipeContext(RecipeContext context) {
+            var path = new ArrayDeque<AEKey>();
+            RecipeContext cursor = context;
+            while (cursor.depth > 0 && path.size() < 64) {
+                path.addFirst(cursor.key);
+                cursor = cursor.parent;
+            }
+            var result = new StringBuilder("[");
+            if (cursor.depth > 0) {
+                result.append("... -> ");
+            }
+            boolean first = true;
+            for (AEKey key : path) {
+                if (!first) {
+                    result.append(" -> ");
+                }
+                result.append(key);
+                first = false;
+            }
+            return result.append(']').toString();
+        }
+
+        private List<IPatternDetails> getCandidatePatterns(
+                List<CraftingTreeProcess> processes) throws Fallback {
+            var result = new ArrayList<IPatternDetails>(processes.size());
+            for (CraftingTreeProcess candidate : processes) {
+                var candidateBridge = (OmniCraftingTreeProcessBridge) candidate;
+                if (!candidateBridge.molecularmanipulator$isPossible()) {
+                    throw new Fallback("contextual_pattern_state");
+                }
+                result.add(candidateBridge.molecularmanipulator$getDetails());
+            }
+            return result;
         }
 
         private int[] buildTopologicalOrder() throws Fallback, InterruptedException {
@@ -1176,6 +1656,7 @@ public final class OmniMaxFastPlanner {
             for (int nodeIndex : topologicalOrder) {
                 checkBudget();
                 long nodeOccurrences = occurrences[nodeIndex];
+                nodes.get(nodeIndex).logicalOccurrences = nodeOccurrences;
                 total = saturatedAdd(total, nodeOccurrences);
                 for (Edge edge : nodes.get(nodeIndex).edges) {
                     long childOccurrences = saturatedMultiply(nodeOccurrences, edge.occurrences);
@@ -1207,6 +1688,12 @@ public final class OmniMaxFastPlanner {
             return null;
         }
         if (details.getClass() == AECraftingPattern.class) {
+            return null;
+        }
+        if (details.getClass() == AESmithingTablePattern.class) {
+            return null;
+        }
+        if (details.getClass() == AEStonecuttingPattern.class) {
             return null;
         }
         return "unsupported_pattern_type:" + details.getClass().getName();
@@ -1301,23 +1788,136 @@ public final class OmniMaxFastPlanner {
     private record NodeKey(AEKey key, long amount) {
     }
 
+    private record ValidatedOccurrenceInput(CraftingTreeNode child,
+            IPatternDetails.IInput input, BoundaryInputMode mode, long multiplier) {
+    }
+
+    private record ContextualChild(CraftingTreeNode child, int expectedIndex) {
+    }
+
+    private record KeyContextBehavior(long amount, RecipeContext context,
+            boolean emitter, List<IPatternDetails> candidatePatterns) {
+    }
+
+    /**
+     * Ordered ancestor-key chain used by AE2's recursion filter. Keeping it
+     * persistent makes sibling occurrences cheap, while structural equality
+     * safely deduplicates equivalent paths without relying on a hash alone.
+     */
+    private static final class RecipeContext {
+        private static final RecipeContext ROOT = new RecipeContext();
+
+        private final RecipeContext parent;
+        private final AEKey key;
+        private final int depth;
+        private final int hash;
+
+        private RecipeContext() {
+            this.parent = null;
+            this.key = null;
+            this.depth = 0;
+            this.hash = 1;
+        }
+
+        private RecipeContext(RecipeContext parent, AEKey key) {
+            this.parent = parent;
+            this.key = key;
+            this.depth = parent.depth + 1;
+            this.hash = 31 * parent.hash + key.hashCode();
+        }
+
+        private RecipeContext extend(AEKey key) {
+            return new RecipeContext(this, key);
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            }
+            if (!(object instanceof RecipeContext other)
+                    || depth != other.depth || hash != other.hash) {
+                return false;
+            }
+            RecipeContext left = this;
+            RecipeContext right = other;
+            while (left.depth > 0) {
+                if (!left.key.equals(right.key)) {
+                    return false;
+                }
+                left = left.parent;
+                right = right.parent;
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Recursion context alone is insufficient because two slots may request
+     * the same key and amount but use different substitution or remainder
+     * rules. Parent inputs therefore participate by identity, matching AE2's
+     * own tree-node construction.
+     */
+    private static final class OccurrenceContext {
+        private final RecipeContext recipeContext;
+        private final IPatternDetails.IInput parentInput;
+        private final int hash;
+
+        private OccurrenceContext(RecipeContext recipeContext,
+                IPatternDetails.IInput parentInput) {
+            this.recipeContext = recipeContext;
+            this.parentInput = parentInput;
+            this.hash = 31 * recipeContext.hashCode()
+                    + System.identityHashCode(parentInput);
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object object) {
+            return this == object
+                    || object instanceof OccurrenceContext other
+                            && parentInput == other.parentInput
+                            && recipeContext.equals(other.recipeContext);
+        }
+    }
+
     private static final class Node {
         private final int index;
         private final AEKey key;
         private final long amount;
         private final net.minecraft.world.level.Level level;
         private final List<CraftingTreeNode> occurrences = new ArrayList<>();
+        private final List<RecipeContext> occurrenceContexts = new ArrayList<>();
+        private final IdentityHashMap<CraftingTreeNode, Boolean> occurrenceSet =
+                new IdentityHashMap<>();
+        private final Map<OccurrenceContext, CraftingTreeNode> contextOccurrences =
+                new HashMap<>();
         private final List<Edge> edges = new ArrayList<>();
         private final List<GraphReusableInput> reusableInputs = new ArrayList<>();
         private final List<OrderedGraphInput> orderedInputs = new ArrayList<>();
         private int indegree;
+        private int inspectedOccurrences;
+        private boolean inspectionQueued;
         private boolean emitter;
         private boolean terminal;
         private boolean reachable;
         private boolean barrier;
         private String barrierReason;
         private IPatternDetails details;
+        private List<IPatternDetails> candidatePatterns = List.of();
+        private boolean hasContainerItems;
+        private boolean limitsQuantity;
         private long outputPerPattern;
+        private long logicalOccurrences;
 
         private Node(int index, AEKey key, long amount, net.minecraft.world.level.Level level) {
             this.index = index;
@@ -1341,7 +1941,7 @@ public final class OmniMaxFastPlanner {
 
     private record Graph(List<Node> nodes, int[] topologicalOrder, int rootIndex,
             long logicalNodeCount, long mergedOccurrences, int barrierCount,
-            int orderedChoiceCount) {
+            int orderedChoiceCount, boolean contextSensitive) {
         private boolean hasOnlyUnitRequestAmounts() {
             for (Node node : nodes) {
                 if (node.reachable && node.amount != 1) {
@@ -1352,6 +1952,15 @@ public final class OmniMaxFastPlanner {
         }
 
         private String executionSafetyFailure() {
+            if (contextSensitive) {
+                if (barrierCount > 0) {
+                    return "context_sensitive_graph_with_unsafe_boundary";
+                }
+                if (requiresTransactionalFallback()) {
+                    return "context_sensitive_graph_with_transactional_features";
+                }
+                return null;
+            }
             if (!requiresTransactionalFallback()) {
                 return null;
             }
@@ -1368,7 +1977,7 @@ public final class OmniMaxFastPlanner {
         }
 
         private boolean requiresNativeNodeCount() {
-            return barrierCount > 0 || requiresTransactionalFallback();
+            return contextSensitive || barrierCount > 0 || requiresTransactionalFallback();
         }
 
         private boolean requiresTransactionalFallback() {
@@ -1389,6 +1998,18 @@ public final class OmniMaxFastPlanner {
 
         private Barrier(String reason) {
             this.reason = reason;
+        }
+    }
+
+    private static final class ContextSplit extends Exception {
+        private final String reason;
+        private final AEKey triggerKey;
+        private final Set<AEKey> keys;
+
+        private ContextSplit(String reason, AEKey triggerKey, Set<AEKey> keys) {
+            this.reason = reason;
+            this.triggerKey = triggerKey;
+            this.keys = keys;
         }
     }
 

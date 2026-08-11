@@ -77,6 +77,11 @@ sourceSets.main.resources {
 
 repositories {
     maven {
+        name = 'MinecraftForgeReleases'
+        url = 'https://maven.minecraftforge.net/releases/'
+        content { includeGroup 'net.minecraftforge' }
+    }
+    maven {
         name = 'Modrinth'
         url = 'https://api.modrinth.com/maven'
         content { includeGroup 'maven.modrinth' }

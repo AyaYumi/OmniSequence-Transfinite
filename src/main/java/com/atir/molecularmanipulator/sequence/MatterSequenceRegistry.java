@@ -24,7 +24,10 @@ public final class MatterSequenceRegistry {
     private static final long MAX_CONFIGURED_SEQUENCE = Long.MAX_VALUE;
     private static final Pattern MATCHER_PATTERN =
             Pattern.compile("#?[a-z0-9_.-]+:[a-z0-9/._-]+(?:\\*)?");
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder()
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
+            .create();
     private static final Map<String, MatterValue> DEFAULT_VALUES = Map.ofEntries(
             entry("minecraft:iron_nugget", 32, 0, 0, 0),
             entry("minecraft:iron_ingot", 288, 0, 0, 0),

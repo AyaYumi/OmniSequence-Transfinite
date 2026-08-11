@@ -16,12 +16,14 @@ public final class MolecularBatchDispatchContext {
     private MolecularBatchDispatchContext() {
     }
 
-    public static Scope open(UUID craftingId, IPatternDetails pattern,
-            KeyCounter[] inputs, MolecularReusableBatchPlan plan) {
+    public static Scope open(@Nullable UUID craftingId, IPatternDetails pattern,
+            KeyCounter[] inputs, KeyCounter[] firstInputs, long craftCount,
+            @Nullable MolecularReusableBatchPlan reusablePlan) {
         if (CURRENT.get() != null) {
             throw new IllegalStateException("Nested molecular batch dispatch");
         }
-        CURRENT.set(new Context(craftingId, pattern, inputs, plan));
+        CURRENT.set(new Context(craftingId, pattern, inputs, firstInputs,
+                craftCount, reusablePlan));
         return new Scope();
     }
 
@@ -32,10 +34,15 @@ public final class MolecularBatchDispatchContext {
                 && context.inputs == inputs ? context : null;
     }
 
-    public record Context(UUID craftingId, IPatternDetails pattern,
-            KeyCounter[] inputs, MolecularReusableBatchPlan plan) {
+    public record Context(@Nullable UUID craftingId, IPatternDetails pattern,
+            KeyCounter[] inputs, KeyCounter[] firstInputs, long craftCount,
+            @Nullable MolecularReusableBatchPlan reusablePlan) {
         public Context {
-            if (craftingId == null || pattern == null || inputs == null || plan == null) {
+            if (pattern == null || inputs == null || firstInputs == null
+                    || inputs.length != firstInputs.length || craftCount <= 1
+                    || reusablePlan != null
+                            && (craftingId == null
+                                    || reusablePlan.craftCount() != craftCount)) {
                 throw new IllegalArgumentException("Incomplete molecular batch context");
             }
         }

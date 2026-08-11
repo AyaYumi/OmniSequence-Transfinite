@@ -13,4 +13,8 @@ public interface OmniCraftingTreeProcessBridge {
     boolean molecularmanipulator$hasContainerItems();
 
     boolean molecularmanipulator$limitsQuantity();
+
+    boolean molecularmanipulator$isPossible();
+
+    void molecularmanipulator$setPossible(boolean possible);
 }

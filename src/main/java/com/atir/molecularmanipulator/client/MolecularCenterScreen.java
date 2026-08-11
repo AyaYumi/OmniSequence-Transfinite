@@ -36,8 +36,24 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private static final int DISMANTLE_CONFIRM_DELAY_TICKS = 6;
     private static final int PATTERN_SEARCH_DEBOUNCE_TICKS = 5;
     private static final int PATTERN_SEARCH_MAX_LENGTH = 64;
+    private static final int MATTER_HEADER_Y = 33;
+    private static final int MATTER_ACTION_Y = 71;
+    private static final int MATTER_STATE_Y = 93;
+    private static final int MATTER_COUNT_Y = 104;
+    private static final int MATTER_PROGRESS_Y = 115;
+    private static final int MATTER_TARGET_Y = 122;
+    private static final int MATTER_ENTROPY_PER_ITEM_Y = 148;
+    private static final int MATTER_LEFT_COLUMN_CENTER = 244;
+    private static final int MATTER_MIDDLE_COLUMN_CENTER = 312;
+    private static final int MATTER_RIGHT_COLUMN_CENTER = 380;
+    private static final int MATTER_LEFT_JOB_X = 206;
+    private static final int MATTER_RIGHT_JOB_X = 322;
+    private static final int MATTER_JOB_WIDTH = 96;
+    private static final int MATTER_CONTENT_LEFT = 206;
+    private static final int MATTER_CONTENT_RIGHT = 418;
 
     private Button preview;
+    private Button build;
     private Button dismantle;
     private Button previousPage;
     private Button nextPage;
@@ -110,7 +126,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                             }
                         })
                 .bounds(leftPos + 8, topPos + 4, 46, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.molecularmanipulator.build"),
+        build = addRenderableWidget(Button.builder(Component.translatable("gui.molecularmanipulator.build"),
                         button -> menu.requestBuild())
                 .bounds(leftPos + 58, topPos + 4, 46, 18).build());
         previousPage = addRenderableWidget(Button.builder(Component.literal("<"),
@@ -167,44 +183,51 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         deconstruct = addRenderableWidget(Button.builder(
                         deconstructLabel(),
                         button -> menu.requestDeconstructMatter())
-                .bounds(leftPos + 207, topPos + 107, 76, 18)
+                .bounds(leftPos + MATTER_LEFT_COLUMN_CENTER - 38,
+                        topPos + MATTER_ACTION_Y, 76, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.sequence_deconstruct_tooltip")))
                 .build());
         rewrite = addRenderableWidget(Button.builder(
                         rewriteLabel(),
                         button -> menu.requestRewriteMatter())
-                .bounds(leftPos + 343, topPos + 107, 76, 18)
+                .bounds(leftPos + MATTER_RIGHT_COLUMN_CENTER - 38,
+                        topPos + MATTER_ACTION_Y, 76, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.sequence_rewrite_tooltip")))
                 .build());
         rewriteOutput = addRenderableWidget(Button.builder(
                         rewriteOutputLabel(),
                         button -> menu.requestCycleRewriteOutput())
-                .bounds(leftPos + 287, topPos + 107, 52, 18)
+                .bounds(leftPos + MATTER_MIDDLE_COLUMN_CENTER - 26,
+                        topPos + MATTER_ACTION_Y, 52, 18)
                 .tooltip(Tooltip.create(Component.translatable(
                         "gui.molecularmanipulator.rewrite_output_tooltip")))
                 .build());
         var targetTooltip = Tooltip.create(
                 Component.translatable("gui.molecularmanipulator.matter_target_tooltip"));
-        deconstructTarget = new EditBox(font, leftPos + 207, topPos + 153, 56, 18,
+        deconstructTarget = new EditBox(font, leftPos + MATTER_LEFT_JOB_X,
+                topPos + MATTER_TARGET_Y, 56, 18,
                 Component.translatable("gui.molecularmanipulator.matter_deconstruct_target"));
         configureTargetField(deconstructTarget, menu.deconstructTarget, targetTooltip);
         addRenderableWidget(deconstructTarget);
         applyDeconstructTarget = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.matter_target_apply"),
                         button -> menu.requestSetDeconstructTarget(parseTarget(deconstructTarget)))
-                .bounds(leftPos + 265, topPos + 153, 38, 18)
+                .bounds(leftPos + MATTER_LEFT_JOB_X + 58,
+                        topPos + MATTER_TARGET_Y, 38, 18)
                 .tooltip(targetTooltip)
                 .build());
-        rewriteTarget = new EditBox(font, leftPos + 323, topPos + 153, 56, 18,
+        rewriteTarget = new EditBox(font, leftPos + MATTER_RIGHT_JOB_X,
+                topPos + MATTER_TARGET_Y, 56, 18,
                 Component.translatable("gui.molecularmanipulator.matter_rewrite_target"));
         configureTargetField(rewriteTarget, menu.rewriteTarget, targetTooltip);
         addRenderableWidget(rewriteTarget);
         applyRewriteTarget = addRenderableWidget(Button.builder(
                         Component.translatable("gui.molecularmanipulator.matter_target_apply"),
                         button -> menu.requestSetRewriteTarget(parseTarget(rewriteTarget)))
-                .bounds(leftPos + 381, topPos + 153, 38, 18)
+                .bounds(leftPos + MATTER_RIGHT_JOB_X + 58,
+                        topPos + MATTER_TARGET_Y, 38, 18)
                 .tooltip(targetTooltip)
                 .build());
 
@@ -259,6 +282,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                         "gui.molecularmanipulator.structure_update_keep_legacy_tooltip")))
                 .build());
         updateStructureUpdateControls();
+        updateBuildControls();
         selectTab(TAB_MATTER);
         observedPatternInventoryRevision = menu.patternInventoryRevision;
         boolean hasPatternSearchQuery = !menu.getClientPatternSearchQuery().isBlank();
@@ -355,10 +379,27 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         preview.setMessage(previewLabel());
         deconstruct.setMessage(deconstructLabel());
         rewrite.setMessage(rewriteLabel());
+        deconstruct.setTooltip(Tooltip.create(matterActionTooltip(
+                "gui.molecularmanipulator.sequence_deconstruct_tooltip",
+                "gui.molecularmanipulator.matter_deconstruct_entropy",
+                menu.deconstructEntropyPerItem,
+                menu.deconstructCoolingSeconds)));
+        rewrite.setTooltip(Tooltip.create(matterActionTooltip(
+                "gui.molecularmanipulator.sequence_rewrite_tooltip",
+                "gui.molecularmanipulator.matter_rewrite_entropy",
+                menu.rewriteEntropyPerItem,
+                menu.rewriteCoolingSeconds)));
         rewriteOutput.setMessage(rewriteOutputLabel());
         syncTargetField(deconstructTarget, menu.deconstructTarget);
         syncTargetField(rewriteTarget, menu.rewriteTarget);
         updateStructureUpdateControls();
+        updateBuildControls();
+    }
+
+    private void updateBuildControls() {
+        if (build != null) {
+            build.visible = !menu.formed;
+        }
     }
 
     @Override
@@ -527,16 +568,33 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 drawSlotFrame(graphics, MolecularCenterMenu.SPEED_SLOT_X + slot * 18,
                         MolecularCenterMenu.SPEED_SLOT_Y, 0xFFB77BFF);
             }
-            graphics.fill(x + 249, y + 85, x + 272, y + 87, 0xFF755A9A);
-            graphics.fill(x + 321, y + 85, x + 344, y + 87, 0xFF755A9A);
-            graphics.fill(x + 269, y + 83, x + 272, y + 89, 0xFFB985FF);
-            graphics.fill(x + 341, y + 83, x + 344, y + 89, 0xFFB985FF);
+            int connectorY = MolecularCenterMenu.SEQUENCE_SLOT_Y + 7;
+            drawMatterConnector(graphics, x, y, connectorY,
+                    MolecularCenterMenu.SEQUENCE_INPUT_X,
+                    MolecularCenterMenu.SEQUENCE_SAMPLE_X);
+            drawMatterConnector(graphics, x, y, connectorY,
+                    MolecularCenterMenu.SEQUENCE_SAMPLE_X,
+                    MolecularCenterMenu.SEQUENCE_OUTPUT_X);
         } else if (detailTab == TAB_QUANTUM) {
             drawSlotFrame(graphics, MolecularCenterMenu.QUANTUM_SLOT_X, MolecularCenterMenu.QUANTUM_SLOT_Y,
                     0xFF8EAEFF);
-            graphics.fill(x + 302, y + 91, x + 304, y + 98, 0xFF536B9F);
-            graphics.fill(x + 302, y + 98, x + 304, y + 101, 0xFF8EAEFF);
+            int quantumCenterX = MolecularCenterMenu.QUANTUM_SLOT_X + 8;
+            graphics.fill(x + quantumCenterX - 1, y + 91,
+                    x + quantumCenterX + 1, y + 98, 0xFF536B9F);
+            graphics.fill(x + quantumCenterX - 1, y + 98,
+                    x + quantumCenterX + 1, y + 101, 0xFF8EAEFF);
         }
+    }
+
+    private static void drawMatterConnector(GuiGraphics graphics,
+            int panelX, int panelY, int connectorY,
+            int leftSlotX, int rightSlotX) {
+        int startX = panelX + leftSlotX + 24;
+        int endX = panelX + rightSlotX - 5;
+        graphics.fill(startX, panelY + connectorY,
+                endX, panelY + connectorY + 2, 0xFF755A9A);
+        graphics.fill(endX - 3, panelY + connectorY - 2,
+                endX, panelY + connectorY + 4, 0xFFB985FF);
     }
 
     private void drawSlotGrid(GuiGraphics graphics, int startX, int startY, int columns, int rows) {
@@ -579,7 +637,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         var state = menu.formed ? Component.translatable("gui.molecularmanipulator.formed")
                 : Component.translatable("gui.molecularmanipulator.incomplete");
         graphics.drawString(font, state, 8, 125, menu.formed ? 0xFF70F2A2 : 0xFFFFB75E, false);
-        if (menu.buildTotal > 0 && menu.buildProgress < menu.buildTotal) {
+        if (!menu.formed && menu.buildTotal > 0 && menu.buildProgress < menu.buildTotal) {
             graphics.drawString(font, Component.translatable("gui.molecularmanipulator.progress",
                     menu.buildProgress, menu.buildTotal), 90, 125, 0xFFD8DDE8, false);
         }
@@ -605,18 +663,22 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private void renderMatterTab(GuiGraphics graphics) {
         graphics.drawCenteredString(font,
                 Component.translatable("gui.molecularmanipulator.sequence_input"),
-                MolecularCenterMenu.SEQUENCE_INPUT_X + 8, 53, 0xFFD9C8F5);
+                MolecularCenterMenu.SEQUENCE_INPUT_X + 8, MATTER_HEADER_Y, 0xFFD9C8F5);
         graphics.drawCenteredString(font,
                 Component.translatable("gui.molecularmanipulator.sequence_blueprint"),
-                MolecularCenterMenu.SEQUENCE_SAMPLE_X + 8, 53, 0xFFC1E9FF);
+                MolecularCenterMenu.SEQUENCE_SAMPLE_X + 8, MATTER_HEADER_Y, 0xFFC1E9FF);
         graphics.drawCenteredString(font,
                 Component.translatable("gui.molecularmanipulator.sequence_output"),
-                MolecularCenterMenu.SEQUENCE_OUTPUT_X + 8, 53, 0xFFFFC4E9);
+                MolecularCenterMenu.SEQUENCE_OUTPUT_X + 8, MATTER_HEADER_Y, 0xFFFFC4E9);
         var deconstructState = matterStateLabel(menu.deconstructJobState);
         var rewriteState = matterStateLabel(menu.rewriteJobState);
-        drawCenteredFittedString(graphics, deconstructState, 255, 128, 96,
+        drawCenteredFittedString(graphics, deconstructState,
+                MATTER_LEFT_JOB_X + MATTER_JOB_WIDTH / 2,
+                MATTER_STATE_Y, MATTER_JOB_WIDTH,
                 matterStateColor(menu.deconstructJobState));
-        drawCenteredFittedString(graphics, rewriteState, 371, 128, 96,
+        drawCenteredFittedString(graphics, rewriteState,
+                MATTER_RIGHT_JOB_X + MATTER_JOB_WIDTH / 2,
+                MATTER_STATE_Y, MATTER_JOB_WIDTH,
                 matterStateColor(menu.rewriteJobState));
         var deconstructCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
                 formatAmount(menu.deconstructJobProcessed),
@@ -624,37 +686,99 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         var rewriteCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
                 formatAmount(menu.rewriteJobProcessed),
                 menu.rewriteTarget == 0 ? "\u221e" : formatAmount(menu.rewriteTarget));
-        drawCenteredFittedString(graphics, deconstructCount, 255, 138, 96, 0xFFC8B8D8);
-        drawCenteredFittedString(graphics, rewriteCount, 371, 138, 96, 0xFFC8B8D8);
-        drawMeter(graphics, 207, 149, 96, 3, menu.deconstructJobProgress, 1000, 0xFF9B68E8);
-        drawMeter(graphics, 323, 149, 96, 3, menu.rewriteJobProgress, 1000, 0xFFFF82D8);
-        int contentLeft = 207;
-        int contentRight = 419;
+        drawCenteredFittedString(graphics, deconstructCount,
+                MATTER_LEFT_JOB_X + MATTER_JOB_WIDTH / 2,
+                MATTER_COUNT_Y, MATTER_JOB_WIDTH, 0xFFC8B8D8);
+        drawCenteredFittedString(graphics, rewriteCount,
+                MATTER_RIGHT_JOB_X + MATTER_JOB_WIDTH / 2,
+                MATTER_COUNT_Y, MATTER_JOB_WIDTH, 0xFFC8B8D8);
+        drawMeter(graphics, MATTER_LEFT_JOB_X, MATTER_PROGRESS_Y,
+                MATTER_JOB_WIDTH, 3,
+                menu.deconstructJobProgress, 1000, 0xFF9B68E8);
+        drawMeter(graphics, MATTER_RIGHT_JOB_X, MATTER_PROGRESS_Y,
+                MATTER_JOB_WIDTH, 3,
+                menu.rewriteJobProgress, 1000, 0xFFFF82D8);
+        int contentLeft = MATTER_CONTENT_LEFT;
+        int contentRight = MATTER_CONTENT_RIGHT;
         int columnMiddle = (contentLeft + contentRight) / 2;
         int columnGap = 6;
         drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.matter_speed",
-                        menu.speedCards, menu.matterCycleTicks),
-                contentLeft, 185, MolecularCenterMenu.SPEED_SLOT_X - 8 - contentLeft,
+                Component.translatable(
+                        "gui.molecularmanipulator.matter_entropy_per_item",
+                        formatAmount(menu.deconstructEntropyPerItem),
+                        formatAmount(menu.rewriteEntropyPerItem)),
+                contentLeft, MATTER_ENTROPY_PER_ITEM_Y, contentRight - contentLeft,
+                0xFFFFC4E9);
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.matter_speed_parallel",
+                        menu.speedCards, menu.matterParallelOperations),
+                contentLeft, MolecularCenterMenu.SPEED_SLOT_Y,
+                MolecularCenterMenu.SPEED_SLOT_X - 4 - contentLeft,
                 0xFFD9C8F5);
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.matter_speed_cycle",
+                        menu.matterCycleTicks),
+                contentLeft, MolecularCenterMenu.SPEED_SLOT_Y + 11,
+                MolecularCenterMenu.SPEED_SLOT_X - 4 - contentLeft,
+                0xFFD9C8F5);
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.matter_cooling_rate",
+                        formatAmount(menu.entropyCoolingPerSecond)),
+                contentLeft, MolecularCenterMenu.SPEED_SLOT_Y + 26,
+                contentRight - contentLeft,
+                0xFF73CFFF);
 
-        drawSequenceAmount(graphics, "metal", menu.metalSequence, 205,
+        drawSequenceAmount(graphics, "metal", menu.metalSequence,
+                MolecularCenterMenu.SPEED_SLOT_Y + 43,
                 contentLeft, columnMiddle - columnGap / 2, 0xFFB9C7D5);
-        drawSequenceAmount(graphics, "crystal", menu.crystalSequence, 205,
+        drawSequenceAmount(graphics, "crystal", menu.crystalSequence,
+                MolecularCenterMenu.SPEED_SLOT_Y + 43,
                 columnMiddle + columnGap / 2, contentRight, 0xFF73CFFF);
-        drawSequenceAmount(graphics, "mineral", menu.mineralSequence, 220,
+        drawSequenceAmount(graphics, "mineral", menu.mineralSequence,
+                MolecularCenterMenu.SPEED_SLOT_Y + 58,
                 contentLeft, columnMiddle - columnGap / 2, 0xFFB58A62);
-        drawSequenceAmount(graphics, "organic", menu.organicSequence, 220,
+        drawSequenceAmount(graphics, "organic", menu.organicSequence,
+                MolecularCenterMenu.SPEED_SLOT_Y + 58,
                 columnMiddle + columnGap / 2, contentRight, 0xFF73D590);
         if (!menu.legacyStructure) {
             drawLabelValueRow(graphics,
                     Component.translatable("gui.molecularmanipulator.sequence_entropy"),
                     Component.literal(formatAmount(menu.entropy) + " / "
-                            + formatAmount(MolecularCenterBlockEntity.MAX_ENTROPY)),
-                    contentLeft, contentRight, 239, 0xFFFFA4D8, 0xFFC8B8D8);
-            drawMeter(graphics, contentLeft, 251, contentRight - contentLeft, 3,
-                    menu.entropy, MolecularCenterBlockEntity.MAX_ENTROPY, 0xFFE75AAE);
+                            + formatAmount(menu.entropyCapacity)),
+                    contentLeft, contentRight, MolecularCenterMenu.SPEED_SLOT_Y + 75,
+                    0xFFFFA4D8, 0xFFC8B8D8);
+            drawMeter(graphics, contentLeft, MolecularCenterMenu.SPEED_SLOT_Y + 87,
+                    contentRight - contentLeft, 3,
+                    menu.entropy, menu.entropyCapacity, 0xFFE75AAE);
         }
+    }
+
+    private static Component coolingLabel(long seconds) {
+        if (seconds < 0) {
+            return Component.literal("--");
+        }
+        if (seconds == 0) {
+            return Component.translatable(
+                    "gui.molecularmanipulator.matter_cooling_ready");
+        }
+        if (seconds == Long.MAX_VALUE) {
+            return Component.translatable(
+                    "gui.molecularmanipulator.matter_entropy_over_capacity");
+        }
+        return Component.translatable(
+                "gui.molecularmanipulator.matter_cooling_seconds", seconds);
+    }
+
+    private static Component matterActionTooltip(String baseKey, String entropyKey,
+            long entropyPerItem, long coolingSeconds) {
+        return Component.translatable(baseKey)
+                .append("\n")
+                .append(Component.translatable(entropyKey,
+                        formatAmount(entropyPerItem)))
+                .append("\n")
+                .append(Component.translatable(
+                        "gui.molecularmanipulator.matter_cooling_estimate",
+                        coolingLabel(coolingSeconds)));
     }
 
     private void drawSequenceAmount(GuiGraphics graphics, String type, long amount, int y,

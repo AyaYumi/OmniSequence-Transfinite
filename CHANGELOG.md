@@ -1,5 +1,56 @@
 # Changelog
 
+## 1.3.8-forge - 2026-08-11
+
+### Added
+
+- Exposed the Molecular Center's large pattern inventory as segmented logical
+  containers in AE2's Pattern Access Terminal.
+- Added the public Omni Batch Provider API v1, including atomic two-phase
+  admission/commit, explicit ownership, rejection, backpressure, and an Omni CPU
+  marker for third-party provider integrations.
+- Ported transactional MAX_FAST graph planning for deterministic crafting,
+  smithing, stonecutting, and supported AdvancedAE processing patterns, with
+  reusable-input boundaries and exact native AE2 fallbacks.
+- Added persistent reusable-input batches for deterministic unchanged remainders
+  and `+1` durability tools, including mixed damage states, cancellation refunds,
+  and NBT-backed dismantling recovery.
+- Added configurable Matter Sequence capacity, entropy capacity and cooling, plus
+  independent throughput, cycle-time, and cooling multipliers for 0–4
+  Acceleration Cards.
+
+### Changed
+
+- Moved server options to the global
+  `config/omnisequence-transfinite-common.toml` file and grouped every common and
+  client option by subsystem. Existing flat/server values migrate with a backup.
+- Matter Sequence capacity now defaults to `Long.MAX_VALUE`; infinite storage
+  uses source-agnostic boundary detection and displays the numeric `9.22E` long
+  limit instead of an infinity symbol.
+- Accepted reusable batches settle their complete long-count aggregate in one
+  machine tick. Post-commit failures retain provider ownership so AE2 cannot
+  duplicate an already accepted batch.
+- Reorganized and centered the Molecular Center matter interface, expanded its
+  status information, and hid Build once the structure is formed.
+
+### Fixed
+
+- Added cancellation-aware MAX_FAST queueing and task-local transactional state,
+  preventing obsolete calculations and speculative state from surviving a
+  canceled request or unsafe fallback.
+- Added saturating arithmetic to network storage, matter values, output recovery,
+  and AE2 key-counter aggregation without allowing signed wraparound.
+- Plans whose required counts, recipe totals, or byte usage exceed the signed-long
+  limit are now marked incomplete and cannot be submitted, preventing apparently
+  craftable jobs from stalling forever.
+- Added precise reusable-batch cancellation lifetimes, safe late-rejection
+  fallback, invalid-NBT quarantine, and recovery drops for active batches and
+  long-count output buffers.
+- Added the production refmap declaration required by Forge's obfuscated runtime,
+  fixing the storage-cell tooltip Mixin startup crash.
+- Completed and verified matching English and Chinese labels/tooltips for every
+  grouped configuration entry.
+
 ## 1.3.7-forge-fix - 2026-07-30
 
 ### Added
@@ -53,9 +104,6 @@
 - The AE2 crafting CPU selector now renders a compact localized Omni lane name
   inside its narrow row while retaining the complete name in the tooltip.
 
-See [RELEASE_NOTES_1.3.7-forge-fix.md](RELEASE_NOTES_1.3.7-forge-fix.md) for the complete
-bilingual release and upgrade notes.
-
 ## 1.3.6-forge - 2026-07-29
 
 ### Added
@@ -77,9 +125,6 @@ bilingual release and upgrade notes.
   stonecutting patterns.
 - Kept the Minecraft 1.21.1 NeoForge-only Expanded AE 2.1.1 conflict declaration
   out of Forge metadata because it targets a different loader and AE2 line.
-
-See [RELEASE_NOTES_1.3.6-forge.md](RELEASE_NOTES_1.3.6-forge.md) for the complete bilingual
-release and upgrade notes.
 
 ## 1.3.5-fix-forge - 2026-07-28
 
@@ -111,9 +156,6 @@ release and upgrade notes.
 - Removed production-unsafe Mixin helper class loading and routed the AE2 long
   amount widget through an application bridge, fixing startup and crafting
   amount screen class-loading crashes.
-
-See `RELEASE_NOTES_1.3.5-fix.md` for installation notes, dispatch behavior and
-compatibility limits.
 
 ## 1.3.5-forge - 2026-07-27
 

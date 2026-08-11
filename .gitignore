@@ -38,3 +38,9 @@ run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
+
+### Local diagnostics and Codex workspaces ###
+*.log
+logs/
+.codex-tmp/
+.worktrees/

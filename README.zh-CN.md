@@ -17,9 +17,13 @@
 | Glodium | 1.20-1.5-forge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.7-forge-fix`
+当前版本：`1.3.8-forge`
 
-完整更新内容见 [1.3.7-forge-fix 双语发布说明](RELEASE_NOTES_1.3.7-forge-fix.md)。
+完整更新内容见 [1.3.8-forge 更新日志](CHANGELOG.md#138-forge---2026-08-11)。
+
+第三方持样板机器可通过
+[万物演算批量样板供应器 API v1](docs/omni-batch-provider-api.md)
+接入原子批量材料发配。
 
 > Minecraft 1.20.1 Forge 版不注册独立的“分子构序重写阵列”单方块。
 > 旧世界中已经放置的该方块会在更新后作为缺失方块移除；样板与物质重写功能仍由
@@ -28,7 +32,8 @@
 ## 主要功能
 
 - 将 AE2 单次自动合成下单量扩展至可配置的 `long` 范围。
-- 兼容 AE2 创造存储元件和 ExtendedAE 无限存储元件，并将无限数量显示为 `∞`。
+- 兼容 AE2 创造存储元件、ExtendedAE 无限存储元件及兼容的第三方无限存储，
+  显示数量在数值 `Long.MAX_VALUE` 上限（约 `9.22E`）处饱和。
 - 修复无线终端自动补货覆盖层在超大或无限库存下的整数溢出崩溃。
 - 提供装配矩阵构序重写核心、万物演算核心，以及由构序阵列控制器管理的构序阵列多方块。
 - 支持大型结构投影、一键搭建、一键拆卸、跨区块暂停恢复和动态视觉效果。
@@ -154,8 +159,7 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.7-forge-fix.jar
+build/libs/omnisequence-transfinite-1.3.8-forge.jar
 ```
 
-版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与升级说明见
-[RELEASE_NOTES_1.3.7-forge-fix.md](RELEASE_NOTES_1.3.7-forge-fix.md)。本项目使用 [MIT License](LICENSE)。
+版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。

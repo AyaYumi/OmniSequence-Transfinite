@@ -17,9 +17,12 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on For
 | Glodium | 1.20-1.5-forge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.7-forge-fix`
+Current release: `1.3.8-forge`
 
-See the [bilingual 1.3.7-forge-fix release notes](RELEASE_NOTES_1.3.7-forge-fix.md) for the complete change and upgrade details.
+See the [1.3.8-forge changelog](CHANGELOG.md#138-forge---2026-08-11) for the complete change list.
+
+Third-party pattern-holding machines can opt into atomic material batching
+through the [Omni Batch Provider API v1](docs/omni-batch-provider-api.md).
 
 > The Forge 1.20.1 build does not register the standalone Molecular Sequence
 > Rewrite Array block. Existing worlds remove previously placed copies as missing
@@ -29,7 +32,9 @@ See the [bilingual 1.3.7-forge-fix release notes](RELEASE_NOTES_1.3.7-forge-fix.
 ## Highlights
 
 - Extends AE2's maximum amount for a single autocrafting order into a configurable `long` range.
-- Supports AE2 Creative Storage Cells and ExtendedAE Infinite Storage Cells, displaying unlimited amounts as `∞`.
+- Supports AE2 Creative Storage Cells, ExtendedAE Infinite Storage Cells, and
+  compatible third-party infinite storage, saturating the displayed amount at
+  the numeric `Long.MAX_VALUE` limit (about `9.22E`).
 - Prevents integer-overflow crashes in wireless-terminal auto-stock overlays with extremely large or unlimited inventories.
 - Adds the Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, and the Sequence Array multiblock managed by the Sequence Array Controller.
 - Provides structure projection, automatic construction and dismantling, chunk-aware pause and resume, and dynamic visual effects.
@@ -156,7 +161,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.7-forge-fix.jar
+build/libs/omnisequence-transfinite-1.3.8-forge.jar
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.7-forge-fix.md](RELEASE_NOTES_1.3.7-forge-fix.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).
+See [CHANGELOG.md](CHANGELOG.md) for version history. This project is licensed under the [MIT License](LICENSE).

@@ -13,7 +13,22 @@ public interface MolecularBatchCraftingProvider {
         return Long.MAX_VALUE;
     }
 
+    /** Internal capability for the mod's molecular machines only. */
+    default boolean molecularmanipulator$supportsReusableBatching(
+            IPatternDetails patternDetails) {
+        return false;
+    }
+
+    /** Blocking providers must re-check their target between complete recipes. */
+    static boolean requiresSerialDispatch(ICraftingProvider provider) {
+        return provider instanceof PatternProviderLogic patternProvider
+                && patternProvider.isBlocking();
+    }
+
     static boolean supports(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (requiresSerialDispatch(provider)) {
+            return false;
+        }
         if (provider instanceof MolecularBatchCraftingProvider batchProvider) {
             return batchProvider.molecularmanipulator$supportsBatching(patternDetails);
         }
@@ -21,6 +36,9 @@ public interface MolecularBatchCraftingProvider {
     }
 
     static boolean supportsOmniDispatch(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (requiresSerialDispatch(provider)) {
+            return false;
+        }
         if (supports(provider, patternDetails)) {
             return true;
         }
@@ -36,12 +54,25 @@ public interface MolecularBatchCraftingProvider {
                 && patternDetails.supportsPushInputsToExternalInventory();
     }
 
+    static boolean supportsReusable(ICraftingProvider provider,
+            IPatternDetails patternDetails) {
+        return !requiresSerialDispatch(provider)
+                && provider instanceof MolecularBatchCraftingProvider batchProvider
+                && batchProvider.molecularmanipulator$supportsBatching(
+                        patternDetails)
+                && batchProvider.molecularmanipulator$supportsReusableBatching(
+                        patternDetails);
+    }
+
     static long getBatchLimit(ICraftingProvider provider, IPatternDetails patternDetails) {
         return getBatchLimit(provider, patternDetails, null);
     }
 
     static long getBatchLimit(ICraftingProvider provider, IPatternDetails patternDetails,
             KeyCounter[] firstInputs) {
+        if (requiresSerialDispatch(provider)) {
+            return 0;
+        }
         if (provider instanceof MolecularBatchCraftingProvider batchProvider
                 && batchProvider.molecularmanipulator$supportsBatching(patternDetails)) {
             return Math.max(0, batchProvider.molecularmanipulator$getBatchLimit(patternDetails));

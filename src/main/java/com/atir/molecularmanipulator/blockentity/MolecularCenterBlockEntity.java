@@ -27,16 +27,20 @@ import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.blockentity.crafting.PatternProviderBlockEntity;
 import appeng.core.definitions.AEItems;
 import appeng.items.tools.powered.WirelessTerminalItem;
+import appeng.helpers.patternprovider.PatternContainer;
 import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
+import appeng.util.SettingsFrom;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
+import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
+import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
@@ -72,7 +76,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity implements InternalInventoryHost {
+public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
+        implements InternalInventoryHost, SegmentedPatternContainerHost {
     public static final int PATTERNS_PER_PAGE = 36;
     public static final int MAX_PATTERN_PAGES = 1000;
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
@@ -80,7 +85,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final int MAX_BUFFERED_TYPES = 256;
     private static final int PIPELINE_STORAGE_PRIORITY = 1_000;
     private static final int MAX_PORT_ITEMS_PER_TICK = 4_096;
-    private static final long MAX_REUSABLE_CRAFTS_PER_TICK = 65_536;
     private static final String LEGACY_OUTPUT_BUFFER_TAG = "molecular_center_output_buffer";
     private static final String PENDING_PRIMARY_TAG = "pipeline_pending_primary";
     private static final String PENDING_BYPRODUCT_TAG = "pipeline_pending_byproduct";
@@ -129,8 +133,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final String LATTICE_COLOR_TAG = "visual_lattice_color";
     private static final int VISUAL_ACTIVITY_EVENT = 91;
     public static final double QUANTUM_LINK_POWER = 512.0;
-    public static final long MAX_SEQUENCE_CAPACITY = 1_000_000_000_000L;
-    public static final long MAX_ENTROPY = 100_000L;
     public static final long MAX_JOB_TARGET = 1_000_000_000_000L;
     public static final int MAX_SPEED_CARDS = 4;
     public static final int DEFAULT_FIELD_COLOR = 0xC98CFF;
@@ -140,6 +142,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public static final int DEFAULT_LATTICE_COLOR = 0x8C60FF;
 
     private final MachineSource actionSource = new MachineSource(this);
+    private final SegmentedPatternContainers terminalPatternContainers = new SegmentedPatternContainers(this);
     private final AppEngInternalInventory matterInventory = new AppEngInternalInventory(this, 4);
     private final IUpgradeInventory matterUpgrades = UpgradeInventories.forMachine(
             ModContent.MOLECULAR_CENTER_CONTROLLER.get(), MAX_SPEED_CARDS, this::onMatterUpgradesChanged);
@@ -250,6 +253,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     @Override
+    public List<PatternContainer> molecularmanipulator$getTerminalPatternContainers() {
+        return terminalPatternContainers.getContainers();
+    }
+
+    @Override
     public AEItemKey getTerminalIcon() {
         return AEItemKey.of(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get());
     }
@@ -294,6 +302,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     @Override
     public void onReady() {
         super.onReady();
+        if (activeReusableBatch != null) {
+            registerReusableBatch(activeReusableBatch);
+        }
         refreshStructure();
         restoreBuildQueue();
         syncShellConnections(formed);
@@ -316,6 +327,85 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.setRemoved();
+    }
+
+    public boolean hasRemovalRecovery() {
+        return activeReusableBatch != null
+                || quarantinedReusableBatchTag != null
+                || !pendingPrimaryOutputs.isEmpty()
+                || !pendingByproducts.isEmpty()
+                || !cachedPrimaryOutputs.isEmpty()
+                || !cachedByproducts.isEmpty()
+                || !reusableBatchRefunds.isEmpty();
+    }
+
+    @Override
+    public void addAdditionalDrops(Level level, BlockPos pos, List<ItemStack> drops) {
+        super.addAdditionalDrops(level, pos, drops);
+        // Slot 0 is a FakeSlot marker: it never consumes an item from the
+        // player and therefore must never become a physical drop. Slots 1-3
+        // are the real blueprint, output and entangled singularity slots.
+        for (int slot = 1; slot < matterInventory.size(); slot++) {
+            var stack = matterInventory.getStackInSlot(slot);
+            if (!stack.isEmpty()) {
+                drops.add(stack.copy());
+            }
+        }
+        // Older saves used a real item in slot 0. loadTag migrates ownership
+        // into this refund stack while retaining only a marker in the slot.
+        if (!legacyDeconstructRefund.isEmpty()) {
+            drops.add(legacyDeconstructRefund.copy());
+        }
+        for (var stack : matterUpgrades) {
+            if (!stack.isEmpty()) {
+                drops.add(stack.copy());
+            }
+        }
+        if (hasRemovalRecovery()) {
+            drops.add(createRemovalRecovery());
+        }
+    }
+
+    @Override
+    public void clearContent() {
+        super.clearContent();
+        matterInventory.clear();
+        matterUpgrades.clear();
+        legacyDeconstructRefund = ItemStack.EMPTY;
+        pendingPrimaryOutputs.clear();
+        pendingByproducts.clear();
+        cachedPrimaryOutputs.clear();
+        cachedByproducts.clear();
+        reusableBatchRefunds.clear();
+        activeReusableBatch = null;
+        quarantinedReusableBatchTag = null;
+        outputReadyTick = Long.MIN_VALUE;
+    }
+
+    private ItemStack createRemovalRecovery() {
+        var recovery = new ItemStack(getBlockState().getBlock());
+        var settings = new CompoundTag();
+        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
+        if (!settings.isEmpty()) {
+            recovery.setTag(settings);
+        }
+
+        var payload = new CompoundTag();
+        writeStacks(payload, PENDING_PRIMARY_TAG, pendingPrimaryOutputs);
+        writeStacks(payload, PENDING_BYPRODUCT_TAG, pendingByproducts);
+        writeStacks(payload, CACHED_PRIMARY_TAG, cachedPrimaryOutputs);
+        writeStacks(payload, CACHED_BYPRODUCT_TAG, cachedByproducts);
+        writeStacks(payload, REUSABLE_BATCH_REFUNDS_TAG, reusableBatchRefunds);
+        if (activeReusableBatch != null) {
+            payload.put(ACTIVE_REUSABLE_BATCH_TAG, activeReusableBatch.writeToTag());
+        } else if (quarantinedReusableBatchTag != null) {
+            payload.put(ACTIVE_REUSABLE_BATCH_TAG, quarantinedReusableBatchTag.copy());
+        }
+        payload.putString(PRIMARY_ROUTE_TAG, primaryRoute.getSerializedName());
+        payload.putString(BYPRODUCT_ROUTE_TAG, byproductRoute.getSerializedName());
+        payload.putString(OUTPUT_PORT_TAG, outputPort.getSerializedName());
+        BlockItem.setBlockEntityData(recovery, getType(), payload);
+        return recovery;
     }
 
     @Override
@@ -443,11 +533,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             matterInventory.setItemDirect(0, legacyDeconstructRefund.copyWithCount(1));
         }
         matterUpgrades.readFromNBT(tag, MATTER_UPGRADES_TAG);
-        metalSequence = readStoredAmount(tag, METAL_SEQUENCE_TAG, MAX_SEQUENCE_CAPACITY);
-        mineralSequence = readStoredAmount(tag, MINERAL_SEQUENCE_TAG, MAX_SEQUENCE_CAPACITY);
-        crystalSequence = readStoredAmount(tag, CRYSTAL_SEQUENCE_TAG, MAX_SEQUENCE_CAPACITY);
-        organicSequence = readStoredAmount(tag, ORGANIC_SEQUENCE_TAG, MAX_SEQUENCE_CAPACITY);
-        entropy = readStoredAmount(tag, ENTROPY_TAG, MAX_ENTROPY);
+        long sequenceCapacity = getMatterSequenceCapacity();
+        metalSequence = readStoredAmount(tag, METAL_SEQUENCE_TAG, sequenceCapacity);
+        mineralSequence = readStoredAmount(tag, MINERAL_SEQUENCE_TAG, sequenceCapacity);
+        crystalSequence = readStoredAmount(tag, CRYSTAL_SEQUENCE_TAG, sequenceCapacity);
+        organicSequence = readStoredAmount(tag, ORGANIC_SEQUENCE_TAG, sequenceCapacity);
+        entropy = readStoredAmount(tag, ENTROPY_TAG, getMatterEntropyCapacity());
         if (tag.contains(DECONSTRUCT_ENABLED_TAG, Tag.TAG_BYTE)) {
             deconstructEnabled = tag.getBoolean(DECONSTRUCT_ENABLED_TAG);
             deconstructJobState = readEnum(tag.getString(DECONSTRUCT_STATE_TAG), MatterJobState.IDLE);
@@ -685,6 +776,24 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return entropy;
     }
 
+    public long getMatterSequenceCapacity() {
+        return ModConfig.MATTER_SEQUENCE_CAPACITY.get();
+    }
+
+    public long getMatterEntropyCapacity() {
+        return ModConfig.MATTER_ENTROPY_CAPACITY.get();
+    }
+
+    public long getMatterEntropyCoolingPerSecond() {
+        return saturatedMultiply(
+                ModConfig.MATTER_ENTROPY_COOLING_PER_SECOND.get(),
+                getMatterEntropyCoolingMultiplier());
+    }
+
+    public long getMatterEntropyCoolingMultiplier() {
+        return ModConfig.matterCoolingMultiplier(getInstalledSpeedCards());
+    }
+
     public long getQuantumFrequency() {
         return getQuantumSingularityFrequency(matterInventory.getStackInSlot(3));
     }
@@ -894,13 +1003,51 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     public int getMatterCycleTicks() {
-        return switch (getInstalledSpeedCards()) {
-            case 1 -> 10;
-            case 2 -> 5;
-            case 3 -> 2;
-            case 4 -> 1;
-            default -> 20;
-        };
+        return ModConfig.matterCycleTicks(getInstalledSpeedCards());
+    }
+
+    public int getMatterParallelOperations() {
+        return ModConfig.matterParallelOperations(getInstalledSpeedCards());
+    }
+
+    public long getDeconstructionEntropyPerItem() {
+        var value = MatterSequenceRegistry.deconstructionOf(
+                matterInventory.getStackInSlot(0));
+        return value == null ? 0 : entropyPerItem(value, 64);
+    }
+
+    public long getRewriteEntropyPerItem() {
+        var value = MatterSequenceRegistry.rewriteCostOf(
+                matterInventory.getStackInSlot(1));
+        return value == null ? 0 : entropyPerItem(value, 16);
+    }
+
+    public long getDeconstructionCoolingSeconds() {
+        return estimatedCoolingSeconds(getDeconstructionEntropyPerItem());
+    }
+
+    public long getRewriteCoolingSeconds() {
+        return estimatedCoolingSeconds(getRewriteEntropyPerItem());
+    }
+
+    private long estimatedCoolingSeconds(long entropyPerItem) {
+        if (entropyPerItem <= 0) {
+            return -1;
+        }
+        long capacity = getMatterEntropyCapacity();
+        if (entropyPerItem > capacity) {
+            return Long.MAX_VALUE;
+        }
+        long availableCapacity = Math.max(0,
+                capacity - Math.min(entropy, capacity));
+        if (entropyPerItem <= availableCapacity) {
+            return 0;
+        }
+        long requiredCooling = entropyPerItem - availableCapacity;
+        long coolingPerSecond = getMatterEntropyCoolingPerSecond();
+        return requiredCooling <= coolingPerSecond
+                ? 1
+                : 1 + (requiredCooling - 1) / coolingPerSecond;
     }
 
     public void setDeconstructTarget(long target) {
@@ -1040,15 +1187,27 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         deconstructJobProgress = 0;
 
-        var result = processOneDeconstruction();
-        if (result == MatterJobState.RUNNING) {
-            setDeconstructJobState(MatterJobState.RUNNING);
-            deconstructJobProcessed = Math.min(MAX_JOB_TARGET, deconstructJobProcessed + 1);
-            if (deconstructTarget > 0 && deconstructJobProcessed >= deconstructTarget) {
-                stopDeconstruction(MatterJobState.TARGET_REACHED);
-            } else {
-                saveChanges();
+        int completed = 0;
+        int parallelOperations = batchLimit(deconstructTarget,
+                deconstructJobProcessed);
+        MatterJobState result = MatterJobState.RUNNING;
+        while (completed < parallelOperations) {
+            result = processOneDeconstruction();
+            if (result != MatterJobState.RUNNING) {
+                break;
             }
+            completed++;
+        }
+        if (completed > 0) {
+            deconstructJobProcessed = Math.min(
+                    MAX_JOB_TARGET, deconstructJobProcessed + completed);
+            finishMatterOperations();
+        }
+        if (deconstructTarget > 0
+                && deconstructJobProcessed >= deconstructTarget) {
+            stopDeconstruction(MatterJobState.TARGET_REACHED);
+        } else if (result == MatterJobState.RUNNING) {
+            setDeconstructJobState(MatterJobState.RUNNING);
         } else if (isRetryableMatterState(result, false)) {
             setDeconstructJobState(result);
         } else {
@@ -1073,23 +1232,44 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         rewriteJobProgress = 0;
 
-        var result = processOneRewrite();
-        if (result == MatterJobState.RUNNING) {
-            setRewriteJobState(MatterJobState.RUNNING);
-            rewriteJobProcessed = Math.min(MAX_JOB_TARGET, rewriteJobProcessed + 1);
-            if (rewriteTarget > 0 && rewriteJobProcessed >= rewriteTarget) {
-                stopRewrite(MatterJobState.TARGET_REACHED);
-            } else if (rewriteOutputMode == RewriteOutputMode.OUTPUT_SLOT
-                    && !canAcceptMatterOutput(rewriteTemplate)) {
-                stopRewrite(MatterJobState.OUTPUT_FULL);
-            } else {
-                saveChanges();
+        int completed = 0;
+        int parallelOperations = batchLimit(rewriteTarget,
+                rewriteJobProcessed);
+        MatterJobState result = MatterJobState.RUNNING;
+        while (completed < parallelOperations) {
+            result = processOneRewrite();
+            if (result != MatterJobState.RUNNING) {
+                break;
             }
+            completed++;
+        }
+        if (completed > 0) {
+            rewriteJobProcessed = Math.min(
+                    MAX_JOB_TARGET, rewriteJobProcessed + completed);
+            finishMatterOperations();
+        }
+        if (rewriteTarget > 0 && rewriteJobProcessed >= rewriteTarget) {
+            stopRewrite(MatterJobState.TARGET_REACHED);
+        } else if (result == MatterJobState.RUNNING
+                && rewriteOutputMode == RewriteOutputMode.OUTPUT_SLOT
+                && !canAcceptMatterOutput(rewriteTemplate)) {
+            stopRewrite(MatterJobState.OUTPUT_FULL);
+        } else if (result == MatterJobState.RUNNING) {
+            setRewriteJobState(MatterJobState.RUNNING);
         } else if (isRetryableMatterState(result, true)) {
             setRewriteJobState(result);
         } else {
             stopRewrite(result);
         }
+    }
+
+    private int batchLimit(long target, long processed) {
+        int parallelOperations = getMatterParallelOperations();
+        if (target <= 0) {
+            return parallelOperations;
+        }
+        return (int) Math.min(parallelOperations,
+                Math.max(0, target - processed));
     }
 
     private static boolean isRetryableMatterState(MatterJobState state, boolean rewrite) {
@@ -1111,8 +1291,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || capacityFor(organicSequence, value.organic()) < 1) {
             return MatterJobState.SEQUENCE_STORAGE_FULL;
         }
-        long entropyPerItem = Math.max(1, value.total() / 64);
-        if (entropy + entropyPerItem > MAX_ENTROPY) {
+        long entropyPerItem = entropyPerItem(value, 64);
+        long entropyCapacity = getMatterEntropyCapacity();
+        if (entropyPerItem > entropyCapacity) {
+            return MatterJobState.ENTROPY_COST_TOO_HIGH;
+        }
+        if (entropy > entropyCapacity - entropyPerItem) {
             return MatterJobState.COOLING;
         }
         var grid = getMainNode().getGrid();
@@ -1145,7 +1329,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         crystalSequence += value.crystal();
         organicSequence += value.organic();
         entropy += entropyPerItem;
-        finishMatterOperation();
         return MatterJobState.RUNNING;
     }
 
@@ -1169,8 +1352,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (affordableOperations(value) < 1) {
             return MatterJobState.INSUFFICIENT_SEQUENCE;
         }
-        long entropyPerItem = Math.max(1, value.total() / 16);
-        if (entropy + entropyPerItem > MAX_ENTROPY) {
+        long entropyPerItem = entropyPerItem(value, 16);
+        long entropyCapacity = getMatterEntropyCapacity();
+        if (entropyPerItem > entropyCapacity) {
+            return MatterJobState.ENTROPY_COST_TOO_HIGH;
+        }
+        if (entropy > entropyCapacity - entropyPerItem) {
             return MatterJobState.COOLING;
         }
         var grid = getMainNode().getGrid();
@@ -1210,7 +1397,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             entropy -= entropyPerItem;
             return MatterJobState.OUTPUT_FULL;
         }
-        finishMatterOperation();
         return MatterJobState.RUNNING;
     }
 
@@ -1279,11 +1465,19 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return amount == Long.MAX_VALUE ? 0 : amount;
     }
 
-    private static long capacityFor(long stored, long perItem) {
-        return perItem <= 0 ? Long.MAX_VALUE : (MAX_SEQUENCE_CAPACITY - stored) / perItem;
+    private long capacityFor(long stored, long perItem) {
+        if (perItem <= 0) {
+            return Long.MAX_VALUE;
+        }
+        long capacity = getMatterSequenceCapacity();
+        return stored >= capacity ? 0 : (capacity - stored) / perItem;
     }
 
-    private void finishMatterOperation() {
+    private static long entropyPerItem(MatterValue value, long divisor) {
+        return Math.max(1, value.total() / divisor);
+    }
+
+    private void finishMatterOperations() {
         saveChanges();
         markForUpdate();
     }
@@ -1470,7 +1664,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             refreshStructure();
             updateQuantumLink();
             if (entropy > 0) {
-                entropy = Math.max(0, entropy - 25);
+                long coolingPerSecond = getMatterEntropyCoolingPerSecond();
+                entropy = entropy <= coolingPerSecond
+                        ? 0
+                        : entropy - coolingPerSecond;
                 saveChanges();
             }
         }
@@ -2139,11 +2336,17 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         assembling = true;
         try {
-            var reusableContext = MolecularBatchDispatchContext.current(patternDetails, inputs);
-            if (reusableContext != null) {
-                return acceptReusablePattern(patternDetails, pattern, inputs, reusableContext);
+            var batchContext = MolecularBatchDispatchContext.current(patternDetails, inputs);
+            if (batchContext != null && batchContext.reusablePlan() != null) {
+                return acceptReusablePattern(patternDetails, pattern, inputs, batchContext);
             }
-            if (!craftingBatcher.prepare(patternDetails, inputs, level, VIRTUAL_PARALLEL_LIMIT)) {
+            boolean prepared = batchContext != null
+                    ? craftingBatcher.prepareSelected(patternDetails, inputs, level,
+                            VIRTUAL_PARALLEL_LIMIT, batchContext.firstInputs(),
+                            batchContext.craftCount())
+                    : craftingBatcher.prepare(patternDetails, inputs, level,
+                            VIRTUAL_PARALLEL_LIMIT);
+            if (!prepared) {
                 return false;
             }
             var primaryOutputs = craftingBatcher.getPrimaryOutputAmounts();
@@ -2153,11 +2356,25 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             addOutputs(pendingPrimaryOutputs, primaryOutputs);
             addOutputs(pendingByproducts, remainderOutputs);
-            craftingBatcher.consumeInputs(inputs);
-            fireCraftingEventOncePerTick(level, patternDetails, pattern);
+            // The output buffers now own the complete batch. No post-commit
+            // hook may escape and make AE2 schedule the same work again.
+            try {
+                craftingBatcher.consumeInputs(inputs);
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("input holder clear", exception);
+            }
+            try {
+                fireCraftingEventOncePerTick(level, patternDetails, pattern);
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("crafting event", exception);
+            }
             recordPipelineActivity(level.getGameTime(), craftingBatcher.getCraftCount());
             outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
-            markOutputBufferChanged(level.getGameTime());
+            try {
+                markOutputBufferChanged(level.getGameTime());
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("dirty-state update", exception);
+            }
             return true;
         } finally {
             assembling = false;
@@ -2172,27 +2389,42 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
 
         var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
-                context.craftingId(), context.plan());
+                context.craftingId(), context.reusablePlan());
         if (job == null
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),
                         job.projectedFinalRemainders())
                 || !canQueueRefunds(job.cancellationRefunds())) {
             return false;
         }
+        if (!registerReusableBatch(job)) {
+            return false;
+        }
 
         // Commit point: once the holders are cleared, this persisted job owns
         // every extracted input until completion or cancellation refund.
         activeReusableBatch = job;
-        craftingBatcher.consumeInputs(inputs);
-        saveChanges();
+        try {
+            craftingBatcher.consumeInputs(inputs);
+        } catch (RuntimeException exception) {
+            logPostCommitFailure("reusable input holder clear", exception);
+        }
+        try {
+            saveChanges();
+        } catch (RuntimeException exception) {
+            logPostCommitFailure("reusable dirty-state update", exception);
+        }
         try {
             fireCraftingEventOncePerTick(level, patternDetails, pattern);
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.warn(
-                    "Crafting event failed after sequence-array reusable batch commit at {}",
-                    getBlockPos(), exception);
+            logPostCommitFailure("reusable crafting event", exception);
         }
         return true;
+    }
+
+    private void logPostCommitFailure(String stage, RuntimeException exception) {
+        MolecularManipulator.LOGGER.warn(
+                "Molecular sequence array {} failed after batch ownership committed at {}",
+                stage, getBlockPos(), exception);
     }
 
     private void fireCraftingEventOncePerTick(Level level, IPatternDetails details,
@@ -2260,6 +2492,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (level == null || job == null || assembling) {
             return;
         }
+        if (!registerReusableBatch(job)) {
+            return;
+        }
 
         if (MolecularBatchCancellationData.isCanceled(level, job.craftingId())) {
             var refunds = job.cancellationRefunds();
@@ -2268,6 +2503,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             addOutputs(reusableBatchRefunds, refunds);
             activeReusableBatch = null;
+            releaseReusableBatch(job);
             markOutputBufferChanged(gameTime);
             return;
         }
@@ -2276,7 +2512,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
 
-        long step = job.nextStep(MAX_REUSABLE_CRAFTS_PER_TICK);
+        long step = job.nextStep(Long.MAX_VALUE);
         if (step <= 0) {
             return;
         }
@@ -2294,10 +2530,37 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (job.isComplete()) {
             addOutputs(pendingByproducts, job.completedRemainders());
             activeReusableBatch = null;
+            releaseReusableBatch(job);
         }
         recordPipelineActivity(gameTime, step);
         outputReadyTick = Math.max(outputReadyTick, gameTime + 1);
         markOutputBufferChanged(gameTime);
+    }
+
+    private boolean registerReusableBatch(MolecularReusableBatchJob job) {
+        if (level == null || !MolecularBatchCancellationData.register(
+                level, job.batchId(), job.craftingId())) {
+            return false;
+        }
+        if (job.needsBatchIdPersistence()) {
+            try {
+                saveChanges();
+                job.markBatchIdPersisted();
+            } catch (RuntimeException exception) {
+                MolecularManipulator.LOGGER.error(
+                        "Could not persist migrated sequence-array reusable batch ID at {}",
+                        getBlockPos(), exception);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void releaseReusableBatch(MolecularReusableBatchJob job) {
+        if (level != null) {
+            MolecularBatchCancellationData.release(
+                    level, job.batchId(), job.craftingId());
+        }
     }
 
     private static void mergeChecked(Object2LongOpenHashMap<AEKey> totals,
@@ -2506,6 +2769,15 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
+    private static long saturatedMultiply(long first, long second) {
+        if (first <= 0 || second <= 0) {
+            return 0;
+        }
+        return first > Long.MAX_VALUE / second
+                ? Long.MAX_VALUE
+                : first * second;
+    }
+
     public boolean schedulePatternRebuild(Runnable rebuild) {
         if (level != null && !level.isClientSide() && level.getServer() != null) {
             level.getServer().execute(rebuild);
@@ -2561,6 +2833,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         WAITING_NETWORK,
         WAITING_POWER,
         COOLING,
+        ENTROPY_COST_TOO_HIGH,
         TARGET_REACHED,
         INPUT_EMPTY,
         BLUEPRINT_EMPTY,

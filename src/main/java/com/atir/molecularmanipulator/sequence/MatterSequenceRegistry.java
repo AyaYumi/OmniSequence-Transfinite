@@ -21,10 +21,13 @@ import java.util.regex.Pattern;
 
 public final class MatterSequenceRegistry {
     public static final String CONFIG_FILE_NAME = "matter_rewrite_rules.json";
-    private static final long MAX_CONFIGURED_SEQUENCE = 1_000_000_000_000L;
+    private static final long MAX_CONFIGURED_SEQUENCE = Long.MAX_VALUE;
     private static final Pattern MATCHER_PATTERN =
             Pattern.compile("#?[a-z0-9_.-]+:[a-z0-9/._-]+(?:\\*)?");
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder()
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
+            .create();
     private static final Map<String, MatterValue> DEFAULT_VALUES = Map.ofEntries(
             entry("minecraft:iron_nugget", 32, 0, 0, 0),
             entry("minecraft:iron_ingot", 288, 0, 0, 0),
@@ -225,11 +228,14 @@ public final class MatterSequenceRegistry {
 
     private static String createDefaultJson() {
         var root = new JsonObject();
-        root.addProperty("format", 1);
+        root.addProperty("format", 4);
         var comments = new JsonArray();
         comments.add("Keys are item IDs. Keys beginning with # are item tags; a final * matches a tag prefix.");
         comments.add("deconstruct values are the exact sequence amounts produced per item.");
         comments.add("rewrite values are the exact sequence amounts consumed per copied item.");
+        comments.add("Entropy per deconstructed item is max(1, floor(the saturated sum of all four values / 64)).");
+        comments.add("Entropy per rewritten item is max(1, floor(the saturated sum of all four values / 16)).");
+        comments.add("Matter capacity, entropy capacity, cooling and acceleration-card tiers are configurable in omnisequence-transfinite-server.toml.");
         comments.add("Omit deconstruct or rewrite to disable that operation. An exact empty item rule overrides tag rules.");
         comments.add("Changes are loaded when a server or single-player world starts.");
         root.add("_comment", comments);
@@ -301,7 +307,13 @@ public final class MatterSequenceRegistry {
     }
 
     private static long recoveredComponent(long value) {
-        return value <= 0 ? 0 : Math.max(1, value * 85 / 100);
+        if (value <= 0) {
+            return 0;
+        }
+        long wholePercent = value / 100;
+        long remainder = value % 100;
+        return Math.max(1,
+                wholePercent * 85 + remainder * 85 / 100);
     }
 
     private static Map.Entry<String, MatterValue> entry(String id,
@@ -314,7 +326,15 @@ public final class MatterSequenceRegistry {
 
     public record MatterValue(long metal, long mineral, long crystal, long organic) {
         public long total() {
-            return metal + mineral + crystal + organic;
+            return saturatedAdd(
+                    saturatedAdd(metal, mineral),
+                    saturatedAdd(crystal, organic));
+        }
+
+        private static long saturatedAdd(long left, long right) {
+            return left > Long.MAX_VALUE - right
+                    ? Long.MAX_VALUE
+                    : left + right;
         }
     }
 }

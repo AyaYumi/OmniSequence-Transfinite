@@ -18,6 +18,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Enforces exact option schemas for this mod's TOML files.
@@ -102,6 +103,52 @@ public final class ConfigSchemaGuard {
                     "Could not remove retired option {} from {} configuration {}; "
                             + "the existing file was left in place",
                     optionPath, displayName, file, exception);
+            return false;
+        }
+    }
+
+    /**
+     * Rewrites a legacy flat config into the current grouped schema while
+     * preserving every recognized value.
+     */
+    public static boolean migrateOptionPaths(
+            Path file, ForgeConfigSpec spec,
+            Map<String, String> oldToNewPaths, String displayName) {
+        if (!Files.isRegularFile(file)) {
+            return false;
+        }
+
+        try {
+            var legacy = readToml(file);
+            boolean migrationRequired = oldToNewPaths.keySet().stream()
+                    .anyMatch(legacy::contains);
+            if (!migrationRequired) {
+                return false;
+            }
+
+            var grouped = CommentedConfig.of(LinkedHashMap::new,
+                    TomlFormat.instance());
+            spec.correct(grouped);
+            var migratedPaths = new ArrayList<String>();
+            for (var entry : oldToNewPaths.entrySet()) {
+                if (!legacy.contains(entry.getKey())) {
+                    continue;
+                }
+                grouped.set(entry.getValue(), legacy.getRaw(entry.getKey()));
+                migratedPaths.add(entry.getKey() + " -> " + entry.getValue());
+            }
+
+            backUpConfig(file);
+            writeConfig(file, grouped);
+            MolecularManipulator.LOGGER.info(
+                    "Migrated {} configuration {} to grouped paths: {}",
+                    displayName, file, summarize(migratedPaths));
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            MolecularManipulator.LOGGER.error(
+                    "Could not migrate {} configuration {} to grouped paths; "
+                            + "the existing file was left in place",
+                    displayName, file, exception);
             return false;
         }
     }

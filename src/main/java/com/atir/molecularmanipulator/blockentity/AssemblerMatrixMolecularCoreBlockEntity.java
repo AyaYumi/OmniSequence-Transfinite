@@ -12,6 +12,7 @@ import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.CraftingEvent;
 import appeng.me.helpers.MachineSource;
+import appeng.util.SettingsFrom;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
@@ -26,12 +27,16 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+
+import java.util.List;
 
 public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssemblerMatrixFunction implements IGridTickable {
     public static final long VIRTUAL_PARALLEL_LIMIT = Integer.MAX_VALUE;
     private static final int MAX_BUFFERED_TYPES = 256;
-    private static final long MAX_REUSABLE_CRAFTS_PER_TICK = 65_536;
     private static final String OUTPUT_BUFFER_TAG = "output_buffer";
     private static final String OUTPUT_READY_TICK_TAG = "output_ready_tick";
     private static final String ACTIVE_REUSABLE_BATCH_TAG =
@@ -79,6 +84,57 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         return availableThisTick;
     }
 
+    public boolean hasRemovalRecovery() {
+        return activeReusableBatch != null
+                || quarantinedReusableBatchTag != null
+                || !bufferedOutputs.isEmpty();
+    }
+
+    @Override
+    public void addAdditionalDrops(Level level, BlockPos pos, List<ItemStack> drops) {
+        super.addAdditionalDrops(level, pos, drops);
+        if (hasRemovalRecovery()) {
+            drops.add(createRemovalRecovery());
+        }
+    }
+
+    @Override
+    public void clearContent() {
+        super.clearContent();
+        bufferedOutputs.clear();
+        activeReusableBatch = null;
+        quarantinedReusableBatchTag = null;
+        outputReadyTick = Long.MIN_VALUE;
+    }
+
+    private ItemStack createRemovalRecovery() {
+        var recovery = new ItemStack(getBlockState().getBlock());
+        var settings = new CompoundTag();
+        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
+        if (!settings.isEmpty()) {
+            recovery.setTag(settings);
+        }
+
+        var payload = new CompoundTag();
+        var outputList = new ListTag();
+        for (var entry : bufferedOutputs.object2LongEntrySet()) {
+            if (entry.getKey() != null && entry.getLongValue() > 0) {
+                outputList.add(GenericStack.writeTag(
+                        new GenericStack(entry.getKey(), entry.getLongValue())));
+            }
+        }
+        payload.put(OUTPUT_BUFFER_TAG, outputList);
+        if (activeReusableBatch != null) {
+            payload.put(ACTIVE_REUSABLE_BATCH_TAG,
+                    activeReusableBatch.writeToTag());
+        } else if (quarantinedReusableBatchTag != null) {
+            payload.put(ACTIVE_REUSABLE_BATCH_TAG,
+                    quarantinedReusableBatchTag.copy());
+        }
+        BlockItem.setBlockEntityData(recovery, getType(), payload);
+        return recovery;
+    }
+
     public boolean acceptCrafting(IPatternDetails patternDetails, KeyCounter[] inputs) {
         if (!canAcceptCrafting() || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
             return false;
@@ -92,13 +148,23 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
         assembling = true;
         try {
-            var reusableContext = MolecularBatchDispatchContext.current(
+            var batchContext = MolecularBatchDispatchContext.current(
                     patternDetails, inputs);
-            if (reusableContext != null) {
+            if (batchContext != null
+                    && batchContext.reusablePlan() != null) {
                 return acceptReusableCrafting(patternDetails, pattern, inputs,
-                        reusableContext);
+                        batchContext);
             }
-            if (!craftingBatcher.prepare(patternDetails, inputs, level, VIRTUAL_PARALLEL_LIMIT)) {
+            boolean prepared = batchContext != null
+                    ? craftingBatcher.prepareSelected(
+                            patternDetails, inputs, level,
+                            VIRTUAL_PARALLEL_LIMIT,
+                            batchContext.firstInputs(),
+                            batchContext.craftCount())
+                    : craftingBatcher.prepare(
+                            patternDetails, inputs, level,
+                            VIRTUAL_PARALLEL_LIMIT);
+            if (!prepared) {
                 return false;
             }
             var outputAmounts = craftingBatcher.getOutputAmounts();
@@ -112,12 +178,30 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
                         bufferedOutputs.getLong(entry.getKey()) + entry.getLongValue());
             }
 
-            craftingBatcher.consumeInputs(inputs);
-            fireCraftingEventOncePerTick(level, patternDetails, pattern);
+            // The output buffer now owns the complete batch. No post-commit
+            // hook may escape and make AE2 schedule the same work again.
+            try {
+                craftingBatcher.consumeInputs(inputs);
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("input holder clear", exception);
+            }
+            try {
+                fireCraftingEventOncePerTick(level, patternDetails, pattern);
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("crafting event", exception);
+            }
             outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
-            markOutputBufferChanged(level.getGameTime());
+            try {
+                markOutputBufferChanged(level.getGameTime());
+            } catch (RuntimeException exception) {
+                logPostCommitFailure("dirty-state update", exception);
+            }
             if (wakeDevice) {
-                wakeForBufferedOutputs();
+                try {
+                    wakeForBufferedOutputs();
+                } catch (RuntimeException exception) {
+                    logPostCommitFailure("grid wake", exception);
+                }
             }
             return true;
         } finally {
@@ -134,28 +218,48 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         }
 
         var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
-                context.craftingId(), context.plan());
+                context.craftingId(), context.reusablePlan());
         if (job == null
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),
                         job.projectedFinalRemainders())
                 || !canQueueOutputs(job.cancellationRefunds())) {
             return false;
         }
+        if (!registerReusableBatch(job)) {
+            return false;
+        }
 
         // Commit point: after this assignment and holder clear, the machine owns
         // every input. No later event hook may turn acceptance back into rejection.
         activeReusableBatch = job;
-        craftingBatcher.consumeInputs(inputs);
-        saveChanges();
+        try {
+            craftingBatcher.consumeInputs(inputs);
+        } catch (RuntimeException exception) {
+            logPostCommitFailure("reusable input holder clear", exception);
+        }
+        try {
+            saveChanges();
+        } catch (RuntimeException exception) {
+            logPostCommitFailure("reusable dirty-state update", exception);
+        }
         try {
             fireCraftingEventOncePerTick(level, patternDetails, pattern);
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.warn(
-                    "Crafting event failed after assembler-matrix reusable batch commit at {}",
-                    getBlockPos(), exception);
+            logPostCommitFailure("reusable crafting event", exception);
         }
-        wakeForBufferedOutputs();
+        try {
+            wakeForBufferedOutputs();
+        } catch (RuntimeException exception) {
+            logPostCommitFailure("reusable grid wake", exception);
+        }
         return true;
+    }
+
+    private void logPostCommitFailure(String stage,
+            RuntimeException exception) {
+        MolecularManipulator.LOGGER.warn(
+                "Assembler-matrix molecular core {} failed after batch ownership committed at {}",
+                stage, getBlockPos(), exception);
     }
 
     @SafeVarargs
@@ -225,6 +329,9 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     @Override
     public void onReady() {
         super.onReady();
+        if (activeReusableBatch != null) {
+            registerReusableBatch(activeReusableBatch);
+        }
         if (!bufferedOutputs.isEmpty() || activeReusableBatch != null) {
             wakeForBufferedOutputs();
         }
@@ -257,10 +364,18 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         bufferedOutputs.clear();
         var outputList = tag.getList(OUTPUT_BUFFER_TAG, Tag.TAG_COMPOUND);
         for (var entryTag : outputList) {
-            var stack = GenericStack.readTag( (CompoundTag) entryTag);
-            if (stack != null && stack.amount() > 0) {
-                bufferedOutputs.addTo(stack.what(), stack.amount());
+            var stack = GenericStack.readTag((CompoundTag) entryTag);
+            if (stack == null || stack.amount() == 0) {
+                continue;
             }
+            if (stack.amount() < 0) {
+                MolecularManipulator.LOGGER.warn(
+                        "Ignoring negative assembler-matrix buffered output {} x {} at {}",
+                        stack.what(), stack.amount(), getBlockPos());
+                continue;
+            }
+            bufferedOutputs.put(stack.what(), LoadedOutputAmounts.merge(
+                    bufferedOutputs.getLong(stack.what()), stack.amount()));
         }
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
@@ -285,6 +400,9 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         if (level == null || job == null || assembling) {
             return false;
         }
+        if (!registerReusableBatch(job)) {
+            return false;
+        }
 
         if (MolecularBatchCancellationData.isCanceled(
                 level, job.craftingId())) {
@@ -294,6 +412,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             }
             addOutputs(bufferedOutputs, refunds);
             activeReusableBatch = null;
+            releaseReusableBatch(job);
             outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
             saveChanges();
             return true;
@@ -303,7 +422,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             return false;
         }
 
-        long step = job.nextStep(MAX_REUSABLE_CRAFTS_PER_TICK);
+        long step = job.nextStep(Long.MAX_VALUE);
         if (step <= 0) {
             return false;
         }
@@ -321,10 +440,39 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         if (job.isComplete()) {
             addOutputs(bufferedOutputs, job.completedRemainders());
             activeReusableBatch = null;
+            releaseReusableBatch(job);
         }
         outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
         saveChanges();
         return true;
+    }
+
+    private boolean registerReusableBatch(MolecularReusableBatchJob job) {
+        var level = getLevel();
+        if (level == null || !MolecularBatchCancellationData.register(
+                level, job.batchId(), job.craftingId())) {
+            return false;
+        }
+        if (job.needsBatchIdPersistence()) {
+            try {
+                saveChanges();
+                job.markBatchIdPersisted();
+            } catch (RuntimeException exception) {
+                MolecularManipulator.LOGGER.error(
+                        "Could not persist migrated assembler-matrix reusable batch ID at {}",
+                        getBlockPos(), exception);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void releaseReusableBatch(MolecularReusableBatchJob job) {
+        var level = getLevel();
+        if (level != null) {
+            MolecularBatchCancellationData.release(
+                    level, job.batchId(), job.craftingId());
+        }
     }
 
     private static void addOutputs(Object2LongOpenHashMap<AEKey> destination,
@@ -364,6 +512,21 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     private void wakeForBufferedOutputs() {
         getMainNode().ifPresent((grid, node) -> grid.getTickManager().alertDevice(node));
+    }
+
+    static final class LoadedOutputAmounts {
+        private LoadedOutputAmounts() {
+        }
+
+        static long merge(long current, long loaded) {
+            if (current < 0 || loaded < 0) {
+                throw new IllegalArgumentException(
+                        "Buffered output amounts must not be negative");
+            }
+            return current > Long.MAX_VALUE - loaded
+                    ? Long.MAX_VALUE
+                    : current + loaded;
+        }
     }
 
 }

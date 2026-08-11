@@ -63,6 +63,9 @@ jarJar.enable()
 
 tasks.named('jarJar', Jar).configure {
     archiveClassifier = ''
+    from('LICENSE.txt')
+    from('THIRD_PARTY_NOTICES.md')
+    from('CHANGELOG.md')
 }
 
 sourceSets.main.resources {
@@ -115,6 +118,10 @@ dependencies {
 
     compileOnly fg.deobf("mezz.jei:jei-1.20.1-common-api:${jei_version}")
     compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge-api:${jei_version}")
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:${mixinextras_version}"))
     localRuntime "io.github.llamalad7:mixinextras-forge:${mixinextras_version}"
@@ -189,6 +196,10 @@ tasks.withType(JavaCompile).configureEach {
 tasks.withType(ProcessResources).configureEach {
     filteringCharset = 'UTF-8'
     includeEmptyDirs = false
+}
+
+tasks.named('test', Test).configure {
+    useJUnitPlatform()
 }
 
 idea {

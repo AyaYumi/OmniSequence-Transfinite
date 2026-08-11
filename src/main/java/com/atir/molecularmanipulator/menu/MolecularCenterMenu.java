@@ -60,14 +60,14 @@ public final class MolecularCenterMenu extends AEBaseMenu {
     public static final int PLAYER_X = 17;
     public static final int PLAYER_MAIN_Y = 152;
     public static final int PLAYER_HOTBAR_Y = 210;
-    public static final int SEQUENCE_INPUT_X = 222;
-    public static final int SEQUENCE_SAMPLE_X = 294;
-    public static final int SEQUENCE_OUTPUT_X = 366;
-    public static final int SEQUENCE_SLOT_Y = 78;
-    public static final int QUANTUM_SLOT_X = 294;
+    public static final int SEQUENCE_INPUT_X = 236;
+    public static final int SEQUENCE_SAMPLE_X = 304;
+    public static final int SEQUENCE_OUTPUT_X = 372;
+    public static final int SEQUENCE_SLOT_Y = 48;
+    public static final int QUANTUM_SLOT_X = 304;
     public static final int QUANTUM_SLOT_Y = 67;
-    public static final int SPEED_SLOT_X = 337;
-    public static final int SPEED_SLOT_Y = 181;
+    public static final int SPEED_SLOT_X = 347;
+    public static final int SPEED_SLOT_Y = 164;
 
     public static final MenuType<MolecularCenterMenu> TYPE = ForgeMenuTypeFactory.create(
             MolecularManipulator.id("molecular_center"),
@@ -167,6 +167,20 @@ public final class MolecularCenterMenu extends AEBaseMenu {
     public boolean dismantling;
     @GuiSync(52)
     public int patternInventoryRevision;
+    @GuiSync(53)
+    public int matterParallelOperations = 1;
+    @GuiSync(54)
+    public long entropyCapacity = 1_000_000L;
+    @GuiSync(55)
+    public long entropyCoolingPerSecond = 25L;
+    @GuiSync(56)
+    public long deconstructEntropyPerItem;
+    @GuiSync(57)
+    public long rewriteEntropyPerItem;
+    @GuiSync(58)
+    public long deconstructCoolingSeconds = -1;
+    @GuiSync(59)
+    public long rewriteCoolingSeconds = -1;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
@@ -908,6 +922,13 @@ public final class MolecularCenterMenu extends AEBaseMenu {
             rewriteTarget = center.getRewriteTarget();
             speedCards = center.getInstalledSpeedCards();
             matterCycleTicks = center.getMatterCycleTicks();
+            matterParallelOperations = center.getMatterParallelOperations();
+            entropyCapacity = center.getMatterEntropyCapacity();
+            entropyCoolingPerSecond = center.getMatterEntropyCoolingPerSecond();
+            deconstructEntropyPerItem = center.getDeconstructionEntropyPerItem();
+            rewriteEntropyPerItem = center.getRewriteEntropyPerItem();
+            deconstructCoolingSeconds = center.getDeconstructionCoolingSeconds();
+            rewriteCoolingSeconds = center.getRewriteCoolingSeconds();
             rewriteOutputMode = center.getRewriteOutputMode();
             rewriteEnabled = center.isRewriteEnabled();
             rewriteJobState = center.getRewriteJobState();

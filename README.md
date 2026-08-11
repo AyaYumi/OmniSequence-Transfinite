@@ -18,9 +18,9 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | LDLib2 | 2.2.18 or later |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.9-fix`
+Current release: `1.3.9-hotfix`
 
-See the [1.3.9-fix changelog](CHANGELOG.md#139-fix---2026-08-11) for the
+See the [1.3.9-hotfix changelog](CHANGELOG.md#139-hotfix---2026-08-11) for the
 complete change list.
 
 Third-party pattern-holding machines can opt into atomic material batching
@@ -243,7 +243,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.9-fix.jar
+build/libs/omnisequence-transfinite-1.3.9-hotfix.jar
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history. This project is licensed under the [MIT License](LICENSE).

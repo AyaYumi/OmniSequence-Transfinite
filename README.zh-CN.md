@@ -18,9 +18,9 @@
 | LDLib2 | 2.2.18 或更高 |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.9-fix`
+当前版本：`1.3.9-hotfix`
 
-完整改动见 [1.3.9-fix 更新日志](CHANGELOG.md#139-fix---2026-08-11)。
+完整改动见 [1.3.9-hotfix 更新日志](CHANGELOG.md#139-hotfix---2026-08-11)。
 
 第三方持样板机器可通过
 [万物演算批量样板供应器 API v1](docs/omni-batch-provider-api.md)，
@@ -230,7 +230,7 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.9-fix.jar
+build/libs/omnisequence-transfinite-1.3.9-hotfix.jar
 ```
 
 版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。

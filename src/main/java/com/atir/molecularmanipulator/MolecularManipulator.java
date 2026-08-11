@@ -26,7 +26,7 @@ public final class MolecularManipulator {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MolecularManipulator(IEventBus modEventBus, ModContainer modContainer) {
-        LOGGER.info("OmniSequence Transfinite 1.3.9-fix AGGRESSIVE-NO-SELECTIVE-FALLBACK build loaded");
+        LOGGER.info("OmniSequence Transfinite 1.3.9-hotfix AGGRESSIVE-NO-SELECTIVE-FALLBACK build loaded");
         ModConfig.register(modContainer);
         ModContent.register(modEventBus);
         modEventBus.addListener(this::commonSetup);

@@ -10,6 +10,7 @@ import java.util.Set;
 
 public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin {
     private static final String ADVANCED_AE_MIXIN = AdvancedAECraftingCpuLogicMixin.class.getName();
+    private static final String LABELED_PATTERNS_MIXIN = LabeledPatternCheckProviderMixin.class.getName();
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -22,11 +23,14 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        if (!ADVANCED_AE_MIXIN.equals(mixinClassName)) {
-            return true;
-        }
         var loadingModList = FMLLoader.getLoadingModList();
-        return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
+        if (ADVANCED_AE_MIXIN.equals(mixinClassName)) {
+            return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
+        }
+        if (LABELED_PATTERNS_MIXIN.equals(mixinClassName)) {
+            return loadingModList != null && loadingModList.getModFileById("ae2labeledpatterns") != null;
+        }
+        return true;
     }
 
     @Override

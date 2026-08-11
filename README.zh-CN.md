@@ -18,10 +18,10 @@
 | LDLib2 | 2.2.18 或更高 |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.9`
+当前版本：`1.3.9-fix`
 
-完整改动见 [1.3.9 更新日志](CHANGELOG.md#139---2026-08-04)；从更早版本升级时，
-仍可参考 [1.3.8 双语发布说明](RELEASE_NOTES_1.3.8.md)。
+完整改动见 [1.3.9-fix 更新日志](CHANGELOG.md#139-fix---2026-08-11)与
+[1.3.9-fix 双语发布说明](RELEASE_NOTES_1.3.9-fix.md)。
 
 第三方持样板机器可通过
 [万物演算批量样板供应器 API v1](docs/omni-batch-provider-api.md)，
@@ -35,13 +35,14 @@
 ## 主要功能
 
 - 将 AE2 单次自动合成下单量扩展至可配置的 `long` 范围。
-- 兼容 AE2 创造存储元件和 ExtendedAE 无限存储元件，并将无限数量显示为 `∞`。
+- 在 AE2 网络存储边界检测无限存储元件，不绑定具体供应模组，并确保其 `Long.MAX_VALUE` 数量不受挂载顺序影响而始终可见。
 - 修复无线终端自动补货覆盖层在超大或无限库存下的整数溢出崩溃。
+- 将大型样板库存拆分为多个逻辑样板访问终端容器，同时覆盖单方块分子机器与构序阵列多方块。
 - 提供分子构序重写阵列、装配矩阵构序重写核心、万物演算核心，以及由构序阵列控制器管理的构序阵列多方块。
 - 支持大型结构投影、一键搭建、一键拆卸、跨区块暂停恢复和动态视觉效果。
 - 两套固定多方块均兼容旧版与新版布局；控制器会为完整旧结构提供由玩家确认的可选更新。
 - 支持有线 ME 接入及跨维度缠绕态量子链路。
-- 提供可由整合包配置的物质分解、序列储存和蓝图复制系统。
+- 提供可由整合包配置的物质分解、`Long.MAX_VALUE` 构序存储、熵散热、加速卡档位和蓝图复制系统。
 - 为四个主要方块提供 AE2 GuideME 游戏内文档，可在物品提示中按 `G` 打开。
 
 ## 自动合成与材料发配
@@ -52,10 +53,16 @@
 模拟阶段则在一次遍历中聚合完整缺失清单，不再重新进入 AE2 的逐份配方遍历。
 只要推测性快速路径被拒绝、失败或中断，期间暂存的缺失物品条目及候选可用状态变化都会回滚，然后才由 AE2 重试或结束本次计算。
 
-物品替代样板仍会从该规划器中保守回退；仅流体替代保持确定性，可继续使用快速路径。
-规划回退不会阻止兼容的运行时批量发配：物品替代样板仍可进入批量路径，实际输入继续由
-AE2 原生逻辑选择。随机或依赖上下文的返还、换键容器、循环和未知样板行为继续使用
-AE2 原生计算，避免为了速度牺牲正确性。
+AdvancedAE 1.6.11 的处理样板也可进入同一条受验证的配方图路径。规划器只精确放行
+`AdvProcessingPattern` 本身，并继续检查确定性输入、输出、返还行为、数值溢出和运行时模板；
+未知实现仍交给 AE2 原版处理。多候选配方的实际尝试如果需要 AE2 测试后续配方，最终的
+缺失材料模拟仍可聚合已经验证的第一候选，不再重复一次 AE2 逐份遍历。
+
+物品替代样板仍会从该规划器中保守回退；唯一例外是 AE2 已经选中替代工具，并且该工具的
+确定性每次 `+1` 耐久变化通过完整可复用边界验证。流体替代同样保持确定性，可继续使用
+快速路径。规划回退不会阻止兼容的运行时批量发配：其他物品替代样板仍可进入批量路径，
+实际输入继续由 AE2 原生逻辑选择。随机或依赖上下文的返还、换键容器、循环和未知样板行为
+继续使用 AE2 原生计算，避免为了速度牺牲正确性。
 
 材料发配采用三种执行模式：
 
@@ -80,6 +87,7 @@ AE2 原生计算，避免为了速度牺牲正确性。
 ### 分子构序重写阵列
 
 - 固定提供 360 个样板槽（10 页×36 槽）。
+- 在样板访问终端中将样板库存显示为多个逻辑容器，不再合并成一个过大的条目。
 - 支持虚拟高并行和最快 1 Tick 配方处理。
 - 持久保存确定性可复用工具池，并在取消 AE2 订单时精确退回每把工具的当前状态。
 - 中间产物及容器返还通过持久化缓冲安全返回 ME 网络。
@@ -104,6 +112,7 @@ AE2 原生计算，避免为了速度牺牲正确性。
 - 样板槽接受 AE2 编码合成、锻造及切石样板；处理、空白和失效样板会被拒绝。
 - 支持确定性可复用输入与多工具耐久池批次，并持久保存取消与退款状态。
 - Shift 快捷放入会优先填充当前样板页，当前页满后继续写入后续页面。
+- 将已配置的样板页暴露为多个逻辑样板访问终端容器，同时保留同一个物理控制器库存。
 - 一键拆卸采用限时二次确认，快速双击、点击其他控件或等待超时都不会误触拆卸。
 - 支持独立 RGB 能量场、内核和星环效果；合成时只会加快动画，视觉设置不会改变处理速度。
 - 不强制加载区块，结构范围未完整加载时会暂停并在恢复后重新校验。
@@ -140,7 +149,29 @@ AE2 原生计算，避免为了速度牺牲正确性。
 config/molecularmanipulator/matter_rewrite_rules.json
 ```
 
-精确物品规则优先于标签规则；携带附魔、命名、耐久、容器内容等自定义数据的物品不会被分解或复制。安装 0～4 张 AE2 加速卡时，每件物品处理周期依次为 20、10、5、2、1 Tick。
+精确物品规则优先于标签规则；携带附魔、命名、耐久、容器内容等自定义数据的物品不会被分解或复制。四类构序储量分别支持配置到 `Long.MAX_VALUE`，默认值也均为 `Long.MAX_VALUE`。
+
+熵值采用饱和 `long` 运算：
+
+```text
+分解单件熵值 = max(1, 四类产出饱和求和 / 64)
+重写单件熵值 = max(1, 四类消耗饱和求和 / 16)
+实际每秒散热 = 基础散热速度 × 当前加速卡档位散热倍率
+```
+
+熵上限默认 `1000000`，基础散热速度默认每秒 `25` 熵。控制器界面会显示单次产生熵值、实际散热速度及操作恢复前的预计剩余冷却时间。若单件物品的熵值已超过配置上限，界面会提示配置上限不足，而不是永久停留在冷却状态。
+
+默认加速卡档位均可配置：
+
+| 加速卡数量 | 并行数 | 批次处理时间 | 散热倍率 |
+| ---: | ---: | ---: | ---: |
+| 0 | 1 | 20 Tick | 1× |
+| 1 | 2 | 10 Tick | 2× |
+| 2 | 4 | 5 Tick | 4× |
+| 3 | 16 | 2 Tick | 16× |
+| 4 | 64 | 1 Tick | 64× |
+
+JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已有规则文件会升级到说明格式 4，不会覆盖整合包已配置的规则。
 
 符合规则的物品默认只显示一行按住 Shift 展开的紧凑提示。客户端配置 `matter_sequence_tooltip_mode` 可选择 `DISABLED`（永久关闭）、`HOLD_SHIFT`（按住 Shift 展开）或 `ALWAYS_VISIBLE`（永久显示）。
 
@@ -148,26 +179,44 @@ config/molecularmanipulator/matter_rewrite_rules.json
 
 服务端配置文件为 `omnisequence-transfinite-server.toml`，客户端配置文件为 `omnisequence-transfinite-client.toml`。旧版 `molecularmanipulator-*.toml` 会在新文件不存在时自动复制迁移。
 
+服务端配置按子系统分类：
+
+| 分类 | 内容 |
+| --- | --- |
+| `sequence_array` | 样板页、施工速度和待机功耗 |
+| `sequence_array.matter_rewrite` | 构序容量、熵上限和基础散热速度 |
+| `sequence_array.matter_rewrite.speed_cards` | 0～4 张加速卡各档的并行数、处理时间和散热倍率 |
+| `ae2_crafting` | AE2 自动合成下单上限 |
+| `omni_computation.optimizer` | 优化器模式、图限制、编译预算和诊断 |
+| `omni_computation.cache` | 已编译图缓存开关、容量和过期时间 |
+| `omni_computation.execution` | 并行执行、候选选择和预编译 |
+| `omni_computation.dispatch` | 批量发配及主线程工作预算 |
+
+客户端配置分为 `tooltips` 和 `visual`。
+
 | 配置项 | 默认值 | 作用 |
 | --- | ---: | --- |
-| `pattern_pages` | 20 | 构序阵列控制器样板页数，每页 36 槽 |
-| `build_blocks_per_tick` | 32 | 自动搭建或拆卸每 Tick 处理方块数 |
-| `idle_power` | 128 | 构序阵列控制器待机功耗，单位 AE/t |
-| `max_crafting_order_amount` | 1,000,000,000,000 | 单次 AE2 自动合成下单上限 |
-| `omni_max_fast_mode` | `SAFE` | 万物演算核心配方树聚合模式 |
-| `omni_max_fast_max_nodes` | 8192 | 单次聚合可编译的唯一配方节点上限 |
-| `omni_max_fast_compile_budget_ms` | 100 | 聚合图编译超时，超时后回退 AE2 |
-| `omni_max_fast_diagnostics` | `false` | 记录聚合耗时和回退原因 |
-| `omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |
-| `omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 每个核心每 Tick 对普通供应器执行完整 `1×` 调用的紧急硬上限 |
-| `omni_compat_dispatch_max_time_us` | 20000 | 所有活跃万物演算核心共享的服务器级兼容派发预算；接近 45 MSPT 时自动收缩 |
-| `omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大调度工作单元 |
-| `matter_sequence_tooltip_mode` | `HOLD_SHIFT` | 仅客户端物质构序提示显示模式 |
-| `dynamic_effect_level` | 2 | 仅客户端视觉效果：0 关闭、1 精简、2 完整 |
+| `sequence_array.pattern_pages` | 20 | 构序阵列控制器样板页数，每页 36 槽 |
+| `sequence_array.build_blocks_per_tick` | 32 | 自动搭建或拆卸每 Tick 处理方块数 |
+| `sequence_array.idle_power` | 128 | 构序阵列控制器待机功耗，单位 AE/t |
+| `sequence_array.matter_rewrite.matter_sequence_capacity` | `Long.MAX_VALUE` | 每一类物质构序的独立存储上限 |
+| `sequence_array.matter_rewrite.matter_entropy_capacity` | 1,000,000 | 熵值存储上限 |
+| `sequence_array.matter_rewrite.matter_entropy_cooling_per_second` | 25 | 乘以加速卡档位倍率前的每秒基础散热量 |
+| `ae2_crafting.max_crafting_order_amount` | 1,000,000,000,000 | 单次 AE2 自动合成下单上限 |
+| `omni_computation.optimizer.omni_max_fast_mode` | `SAFE` | 万物演算核心配方树聚合模式 |
+| `omni_computation.optimizer.omni_max_fast_max_nodes` | 8192 | 单次聚合可编译的唯一配方节点上限 |
+| `omni_computation.optimizer.omni_max_fast_compile_budget_ms` | 100 | 聚合图编译超时，超时后回退 AE2 |
+| `omni_computation.optimizer.omni_max_fast_diagnostics` | `false` | 记录聚合耗时和回退原因 |
+| `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |
+| `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 每核心完整 `1×` 供应器调用的紧急硬上限 |
+| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 20000 | 服务器级自适应兼容派发预算 |
+| `omni_computation.dispatch.omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大调度工作单元 |
+| `tooltips.matter_sequence_tooltip_mode` | `HOLD_SHIFT` | 仅客户端物质构序提示显示模式 |
+| `visual.dynamic_effect_level` | 2 | 仅客户端视觉效果：0 关闭、1 精简、2 完整 |
 
 普通或未知供应器只会在安全单原料配方上收到自适应运行时缩放样板；多原料及其他不可缩放路径始终按原始样板逐份发送完整配方，保留供应器自己的机器轮转和背压语义。固定 32 次限制已由服务器级负载自适应时间片替代：服务器有余量时高速重放，平均 MSPT 接近 45 时自动降速；多核心、多 CPU 和多样板不会各自重复领取完整时间片。只有显式声明原子批量能力的供应器才会接收完整倍增的多原料输入。
 
-已停用的 `omni_batch_allow_substitution_patterns` 键会从现有服务端 TOML 中移除，其他自定义值不会被重置。配置文件加载或热重载时，如果检测到其他当前版本未定义的配置项，模组会先保留最多五份 `.toml.bak`，再将整份配置原子重建为当前默认值。仅缺少新选项或某个已知值越界时，仍由 NeoForge 定向补齐或修正，不会重置其他有效设置。
+已有扁平配置项和旧 `matter_speed_cards` 分区会迁移到新的分类路径，并尽量保留已配置值。迁移或配置修复前会保留 `.toml.bak` 备份；已停用的 `omni_batch_allow_substitution_patterns` 键会被移除，不会重置其他有效设置。
 
 ## 安装与构建
 
@@ -182,8 +231,8 @@ config/molecularmanipulator/matter_rewrite_rules.json
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.9.jar
+build/libs/omnisequence-transfinite-1.3.9-fix.jar
 ```
 
-版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与升级说明见
-[RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md)。本项目使用 [MIT License](LICENSE)。
+版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与测试说明见
+[RELEASE_NOTES_1.3.9-fix.md](RELEASE_NOTES_1.3.9-fix.md)。本项目使用 [MIT License](LICENSE)。

@@ -168,6 +168,20 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public int patternSearchResultCount;
     @GuiSync(55)
     public boolean patternSearchActive;
+    @GuiSync(56)
+    public int matterParallelOperations = 1;
+    @GuiSync(57)
+    public long entropyCapacity = 1_000_000L;
+    @GuiSync(58)
+    public long entropyCoolingPerSecond = 25L;
+    @GuiSync(59)
+    public long deconstructEntropyPerItem;
+    @GuiSync(60)
+    public long rewriteEntropyPerItem;
+    @GuiSync(61)
+    public long deconstructCoolingSeconds = -1;
+    @GuiSync(62)
+    public long rewriteCoolingSeconds = -1;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
@@ -711,6 +725,13 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             rewriteTarget = center.getRewriteTarget();
             speedCards = center.getInstalledSpeedCards();
             matterCycleTicks = center.getMatterCycleTicks();
+            matterParallelOperations = center.getMatterParallelOperations();
+            entropyCapacity = center.getMatterEntropyCapacity();
+            entropyCoolingPerSecond = center.getMatterEntropyCoolingPerSecond();
+            deconstructEntropyPerItem = center.getDeconstructionEntropyPerItem();
+            rewriteEntropyPerItem = center.getRewriteEntropyPerItem();
+            deconstructCoolingSeconds = center.getDeconstructionCoolingSeconds();
+            rewriteCoolingSeconds = center.getRewriteCoolingSeconds();
             rewriteOutputMode = center.getRewriteOutputMode();
             rewriteEnabled = center.isRewriteEnabled();
             rewriteJobState = center.getRewriteJobState();

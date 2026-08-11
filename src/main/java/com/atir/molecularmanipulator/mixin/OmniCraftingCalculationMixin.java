@@ -4,6 +4,7 @@ import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.CalculationStrategy;
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingSimulationRequester;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftBranchFailure;
@@ -30,6 +31,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ArrayDeque;
 import java.util.IdentityHashMap;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 
 @Mixin(value = CraftingCalculation.class, remap = false)
@@ -85,28 +87,52 @@ public abstract class OmniCraftingCalculationMixin {
 
         boolean backgroundSlot = false;
         boolean interactiveSlot = false;
+        if (Thread.currentThread().isInterrupted()) {
+            throw new CancellationException("Crafting calculation was cancelled before execution");
+        }
         if (molecularmanipulator$interactiveRequest) {
             backgroundSlot = MOLECULARMANIPULATOR_CALCULATION_SLOTS.tryAcquire();
             if (!backgroundSlot) {
-                MOLECULARMANIPULATOR_INTERACTIVE_SLOT.acquireUninterruptibly();
+                molecularmanipulator$acquireCalculationSlot(
+                        MOLECULARMANIPULATOR_INTERACTIVE_SLOT);
                 interactiveSlot = true;
             }
         } else {
-            MOLECULARMANIPULATOR_CALCULATION_SLOTS.acquireUninterruptibly();
+            molecularmanipulator$acquireCalculationSlot(
+                    MOLECULARMANIPULATOR_CALCULATION_SLOTS);
             backgroundSlot = true;
         }
         long startedAt = System.nanoTime();
-        controller.beginMaterialCalculation();
+        boolean controllerStarted = false;
         try {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new CancellationException(
+                        "Crafting calculation was cancelled before execution");
+            }
+            controller.beginMaterialCalculation();
+            controllerStarted = true;
             return original.call();
         } finally {
-            controller.finishMaterialCalculation(System.nanoTime() - startedAt);
+            if (controllerStarted) {
+                controller.finishMaterialCalculation(System.nanoTime() - startedAt);
+            }
             if (backgroundSlot) {
                 MOLECULARMANIPULATOR_CALCULATION_SLOTS.release();
             }
             if (interactiveSlot) {
                 MOLECULARMANIPULATOR_INTERACTIVE_SLOT.release();
             }
+        }
+    }
+
+    @Unique
+    private static void molecularmanipulator$acquireCalculationSlot(Semaphore semaphore) {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException(
+                    "Crafting calculation was cancelled while waiting for an execution slot");
         }
     }
 
@@ -118,8 +144,10 @@ public abstract class OmniCraftingCalculationMixin {
             Operation<Void> original) throws CraftBranchFailure, InterruptedException {
         molecularmanipulator$maxFastNodeCount = -1;
         var controller = molecularmanipulator$omniController;
+        OmniMaxFastMode mode = ModConfig.OMNI_MAX_FAST_MODE.get();
+
         if (controller == null || !controller.isMaterialCalculationEnabled()
-                || containerItems != null || ModConfig.OMNI_MAX_FAST_MODE.get() != OmniMaxFastMode.SAFE) {
+                || containerItems != null || mode == OmniMaxFastMode.OFF) {
             original.call(tree, inventory, requestedAmount, containerItems);
             return;
         }
@@ -129,11 +157,14 @@ public abstract class OmniCraftingCalculationMixin {
             session = new OmniMaxFastPlanner.Session(
                     ModConfig.OMNI_MAX_FAST_MAX_NODES.get(),
                     ModConfig.OMNI_MAX_FAST_COMPILE_BUDGET_MS.get(),
-                    this::handlePausing);
+                    this::handlePausing,
+                    mode);
             molecularmanipulator$maxFastSession = session;
         }
 
         KeyCounter missingItems = getMissingItems();
+        AEKey requestedKey = ((OmniCraftingTreeNodeBridge) tree)
+                .molecularmanipulator$getWhat();
         var missingSnapshot = new KeyCounter();
         missingSnapshot.addAll(missingItems);
         var possibleSnapshot = molecularmanipulator$snapshotPossibleStates(tree);
@@ -161,8 +192,9 @@ public abstract class OmniCraftingCalculationMixin {
             }
             if (ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
                 com.atir.molecularmanipulator.MolecularManipulator.LOGGER.info(
-                        "Omni MAX_FAST applied: amount={}, uniqueNodes={}, mergedOccurrences={}, barriers={}, logicalNodes={}, compileMs={}, executeMs={}",
-                        requestedAmount, result.uniqueNodes(), result.mergedOccurrences(),
+                        "Omni MAX_FAST applied: key={}, amount={}, simulation={}, uniqueNodes={}, mergedOccurrences={}, barriers={}, logicalNodes={}, compileMs={}, executeMs={}",
+                        requestedKey, requestedAmount, isSimulation(),
+                        result.uniqueNodes(), result.mergedOccurrences(),
                         result.barrierCount(), result.logicalNodeCount(),
                         result.compileNanos() / 1_000_000.0,
                         result.executionNanos() / 1_000_000.0);
@@ -176,8 +208,9 @@ public abstract class OmniCraftingCalculationMixin {
                     result.error());
         } else if (ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
             com.atir.molecularmanipulator.MolecularManipulator.LOGGER.info(
-                    "Omni MAX_FAST fallback: amount={}, reason={}, uniqueNodes={}, mergedOccurrences={}, barriers={}, compileMs={}, executeMs={}",
-                    requestedAmount, result.fallbackReason(), result.uniqueNodes(),
+                    "Omni MAX_FAST fallback: key={}, amount={}, simulation={}, reason={}, uniqueNodes={}, mergedOccurrences={}, barriers={}, compileMs={}, executeMs={}",
+                    requestedKey, requestedAmount, isSimulation(),
+                    result.fallbackReason(), result.uniqueNodes(),
                     result.mergedOccurrences(), result.barrierCount(),
                     result.compileNanos() / 1_000_000.0,
                     result.executionNanos() / 1_000_000.0);

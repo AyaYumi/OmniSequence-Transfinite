@@ -195,6 +195,7 @@ final class OmniComputationLdUi {
                 ? 0
                 : Math.max(0, Math.min(1, menu.correctParts / (float) menu.totalParts));
         structureProgressTexture.color = menu.formed ? GREEN : PURPLE;
+        structureProgress.setDisplay(!menu.formed);
         structureProgress.setProgress(structureRatio);
         telemetryStructureProgress.setProgress(structureRatio);
         telemetryStructureProgress.label.setValue(Component.translatable(

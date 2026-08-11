@@ -52,7 +52,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     public MolecularCenterScreen(MolecularCenterMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         imageWidth = 430;
-        imageHeight = 262;
+        imageHeight = 286;
     }
 
     @Override
@@ -374,7 +374,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         var state = menu.formed ? Component.translatable("gui.molecularmanipulator.formed")
                 : Component.translatable("gui.molecularmanipulator.incomplete");
         graphics.drawString(font, state, 8, 125, menu.formed ? 0xFF70F2A2 : 0xFFFFB75E, false);
-        if (menu.buildTotal > 0 && menu.buildProgress < menu.buildTotal) {
+        if (!menu.formed && menu.buildTotal > 0 && menu.buildProgress < menu.buildTotal) {
             graphics.drawString(font, Component.translatable("gui.molecularmanipulator.progress",
                     menu.buildProgress, menu.buildTotal), 90, 125, 0xFFD8DDE8, false);
         }
@@ -423,7 +423,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         drawCenteredFittedString(graphics, rewriteCount, 371, 138, 96, 0xFFC8B8D8);
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.matter_speed",
-                        menu.speedCards, menu.matterCycleTicks),
+                        menu.speedCards, menu.matterParallelOperations, menu.matterCycleTicks),
                 DETAIL_CONTENT_LEFT, 185,
                 MolecularCenterMenu.SPEED_SLOT_X - DETAIL_CONTENT_LEFT - 6,
                 0xFFD9C8F5);
@@ -440,11 +440,24 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         drawSequenceAmount(graphics, "organic", menu.organicSequence,
                 rightColumnX, 220, columnWidth, 0xFF73D590);
         if (!menu.legacyStructure) {
+            drawFittedString(graphics,
+                    Component.translatable("gui.molecularmanipulator.matter_entropy_per_item",
+                            formatOptionalAmount(menu.deconstructEntropyPerItem),
+                            formatOptionalAmount(menu.rewriteEntropyPerItem)),
+                    DETAIL_CONTENT_LEFT, 237,
+                    DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT, 0xFFFFC4E9);
+            drawFittedString(graphics,
+                    Component.translatable("gui.molecularmanipulator.matter_cooling_estimate",
+                            formatCoolingTime(menu.deconstructCoolingSeconds),
+                            formatCoolingTime(menu.rewriteCoolingSeconds),
+                            formatAmount(menu.entropyCoolingPerSecond)),
+                    DETAIL_CONTENT_LEFT, 250,
+                    DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT, 0xFFB7C3D7);
             drawKeyValueRow(graphics,
                     Component.translatable("gui.molecularmanipulator.sequence_entropy"),
                     Component.literal(formatAmount(menu.entropy) + " / "
-                            + formatAmount(MolecularCenterBlockEntity.MAX_ENTROPY)),
-                    DETAIL_CONTENT_LEFT, DETAIL_CONTENT_RIGHT, 239, 6,
+                            + formatAmount(menu.entropyCapacity)),
+                    DETAIL_CONTENT_LEFT, DETAIL_CONTENT_RIGHT, 267, 6,
                     0xFFFFA4D8, 0xFFC8B8D8);
         }
     }
@@ -652,6 +665,29 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
             return String.format(Locale.ROOT, "%.1fK", amount / 1_000.0);
         }
         return Long.toString(amount);
+    }
+
+    private static String formatOptionalAmount(long amount) {
+        return amount <= 0 ? "\u2014" : formatAmount(amount);
+    }
+
+    private static Component formatCoolingTime(long seconds) {
+        if (seconds < 0) {
+            return Component.literal("\u2014");
+        }
+        if (seconds == Long.MAX_VALUE) {
+            return Component.translatable("gui.molecularmanipulator.matter_cooling_impossible");
+        }
+        if (seconds < 60) {
+            return Component.translatable(
+                    "gui.molecularmanipulator.matter_cooling_seconds", seconds);
+        }
+        if (seconds < 3600) {
+            return Component.literal(String.format(Locale.ROOT, "%d:%02d",
+                    seconds / 60, seconds % 60));
+        }
+        return Component.literal(String.format(Locale.ROOT, "%d:%02d:%02d",
+                seconds / 3600, seconds / 60 % 60, seconds % 60));
     }
 
     private static String formatFrequency(long frequency) {

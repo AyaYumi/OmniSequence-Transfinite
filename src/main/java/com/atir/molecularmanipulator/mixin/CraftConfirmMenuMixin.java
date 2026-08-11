@@ -12,6 +12,7 @@ import appeng.me.helpers.PlayerSource;
 import appeng.menu.MenuOpener;
 import appeng.menu.me.crafting.CraftAmountMenu;
 import appeng.menu.me.crafting.CraftConfirmMenu;
+import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.integration.ae2.LongCraftingAmountMenuBridge;
 import com.atir.molecularmanipulator.integration.ae2.LongCraftingConfirmMenuBridge;
 import net.minecraft.server.level.ServerPlayer;
@@ -70,6 +71,15 @@ public abstract class CraftConfirmMenuMixin implements LongCraftingConfirmMenuBr
         }
 
         ICraftingSimulationRequester requester = () -> new PlayerSource(menu.getPlayer(), actionHost);
+
+        // 调试日志：记录请求的合成数量
+        MolecularManipulator.LOGGER.info(
+                "[OmniSequence] Player {} requested crafting: {} x {} (long: {})",
+                menu.getPlayer().getName().getString(),
+                what,
+                this.amount,
+                amount);
+
         this.job = node.getGrid().getCraftingService().beginCraftingCalculation(
                 menu.getPlayer().level(),
                 requester,

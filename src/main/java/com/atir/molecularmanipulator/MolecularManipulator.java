@@ -26,6 +26,7 @@ public final class MolecularManipulator {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public MolecularManipulator(IEventBus modEventBus, ModContainer modContainer) {
+        LOGGER.info("OmniSequence Transfinite 1.3.9-fix AGGRESSIVE-NO-SELECTIVE-FALLBACK build loaded");
         ModConfig.register(modContainer);
         ModContent.register(modEventBus);
         modEventBus.addListener(this::commonSetup);
@@ -46,7 +47,6 @@ public final class MolecularManipulator {
     }
 
     private void serverAboutToStart(ServerAboutToStartEvent event) {
-        ConfigFileMigration.migrateServerConfig(event.getServer());
         MatterSequenceRegistry.loadOrCreate();
     }
 
@@ -67,7 +67,7 @@ public final class MolecularManipulator {
             validateMixinTarget("appeng.me.service.CraftingService", classLoader);
             validateMixinTarget("appeng.menu.me.crafting.CraftAmountMenu", classLoader);
             validateMixinTarget("appeng.menu.me.crafting.CraftConfirmMenu", classLoader);
-            validateMixinTarget("appeng.me.cells.CreativeCellInventory", classLoader);
+            validateMixinTarget("appeng.me.storage.NetworkStorage", classLoader);
             validateMixinTarget("appeng.helpers.patternprovider.PatternProviderLogic", classLoader);
             validateMixinTarget("com.glodblock.github.extendedae.common.me.matrix.CalculatorAssemblerMatrix",
                     classLoader);

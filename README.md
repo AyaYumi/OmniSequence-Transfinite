@@ -18,11 +18,11 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | LDLib2 | 2.2.18 or later |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `1.3.9`
+Current release: `1.3.9-fix`
 
-See the [1.3.9 changelog](CHANGELOG.md#139---2026-08-04) for the complete
-change list. The [bilingual 1.3.8 release notes](RELEASE_NOTES_1.3.8.md)
-remain available for upgrades from older installations.
+See the [1.3.9-fix changelog](CHANGELOG.md#139-fix---2026-08-11) and the
+[bilingual 1.3.9-fix release notes](RELEASE_NOTES_1.3.9-fix.md) for the
+complete change list and testing instructions.
 
 Third-party pattern-holding machines can opt into atomic material batching
 through the [Omni Batch Provider API v1](docs/omni-batch-provider-api.md).
@@ -35,13 +35,14 @@ through the [Omni Batch Provider API v1](docs/omni-batch-provider-api.md).
 ## Highlights
 
 - Extends AE2's maximum amount for a single autocrafting order into a configurable `long` range.
-- Supports AE2 Creative Storage Cells and ExtendedAE Infinite Storage Cells, displaying unlimited amounts as `∞`.
+- Detects infinite storage cells at the AE2 network boundary without hard-coding a specific provider, and keeps their `Long.MAX_VALUE` amounts visible regardless of mount order.
 - Prevents integer-overflow crashes in wireless-terminal auto-stock overlays with extremely large or unlimited inventories.
+- Splits large pattern inventories into multiple logical Pattern Access Terminal containers for both single-block molecular machines and the multiblock Sequence Array.
 - Adds the Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, and the Sequence Array multiblock managed by the Sequence Array Controller.
 - Provides structure projection, automatic construction and dismantling, chunk-aware pause and resume, and dynamic visual effects.
 - Keeps both fixed multiblocks compatible with their legacy and current layouts; controllers offer an optional, player-confirmed update for complete legacy structures.
 - Supports wired ME access and cross-dimensional entangled quantum links.
-- Provides modpack-configurable matter deconstruction, sequence storage, and blueprint reproduction.
+- Provides modpack-configurable matter deconstruction, `Long.MAX_VALUE` sequence storage, entropy cooling, speed-card tiers, and blueprint reproduction.
 - Adds AE2 GuideME pages for all four primary blocks; hover an item and press `G` to open its guide.
 
 ## Autocrafting and Material Dispatch
@@ -57,8 +58,18 @@ attempt is rejected, fails, or is interrupted, its staged missing-item entries
 and candidate-availability changes are rolled back before AE2 retries or the
 calculation exits.
 
+AdvancedAE 1.6.11 processing patterns can use the same verified graph path.
+Only the exact `AdvProcessingPattern` implementation is admitted, and it still
+has to pass every deterministic input, output, remainder, overflow, and runtime
+template check; unknown implementations continue through native AE2. If a real
+multi-candidate attempt needs AE2 to try a later recipe, the final simulated
+missing-material pass can still aggregate the verified first candidate instead
+of repeating AE2's per-craft traversal.
+
 Item-substitution patterns still conservatively fall back from this planner,
-while fluid-only substitution remains deterministic and may stay on the fast
+except when AE2 has already selected a substitute whose deterministic `+1`
+durability transition passes the complete reusable-boundary verification.
+Fluid-only substitution also remains deterministic and may stay on the fast
 path. This planning fallback does not block compatible runtime batch dispatch:
 item-substitution patterns remain eligible there, and AE2 still chooses the
 actual substituted input. Random or context-dependent remainders, key-changing
@@ -92,6 +103,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 ### Molecular Sequence Rewrite Array
 
 - Provides a fixed 360 pattern slots: 10 pages with 36 slots each.
+- Exposes its pattern inventory as logical containers in the Pattern Access Terminal instead of one oversized entry.
 - Supports virtual high parallelism and recipe processing in as little as one tick.
 - Persists deterministic reusable-tool pools and returns their exact current states when an AE2 job is canceled.
 - Returns intermediate results and container remainders to the ME Network through a persistent safety buffer.
@@ -116,6 +128,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 - Pattern slots accept encoded AE2 crafting, smithing-table, and stonecutting patterns. Processing, blank, and invalid patterns are rejected.
 - Supports deterministic reusable-input and multi-tool durability-pool batches with persistent cancellation and refund state.
 - Shift-moving a supported pattern fills the current pattern page first, then continues into later pages.
+- Exposes configured pattern pages as multiple logical Pattern Access Terminal containers while preserving one physical controller inventory.
 - One-click dismantling uses a timed two-step confirmation. Rapid double-clicks, clicking another control, or waiting for the timeout will not trigger accidental removal.
 - Provides independent RGB effects for the energy field, core, rings, and lattice. Crafting accelerates the animation only; visual settings do not change processing speed.
 - Does not force-load chunks. Work pauses while any structure chunk is unavailable and resumes after validation.
@@ -151,7 +164,29 @@ Rules are loaded from:
 config/molecularmanipulator/matter_rewrite_rules.json
 ```
 
-Exact item rules take priority over tag rules. Items with custom data such as enchantments, custom names, durability, or container contents are not deconstructed or reproduced. With 0–4 AE2 Acceleration Cards installed, the processing time per item is 20, 10, 5, 2, or 1 tick respectively.
+Exact item rules take priority over tag rules. Items with custom data such as enchantments, custom names, durability, or container contents are not deconstructed or reproduced. Each of the four sequence types has a configurable capacity up to `Long.MAX_VALUE`, with `Long.MAX_VALUE` as the default.
+
+Entropy uses saturating `long` arithmetic:
+
+```text
+deconstruction entropy/item = max(1, saturated sum of four outputs / 64)
+rewrite entropy/item        = max(1, saturated sum of four costs / 16)
+effective cooling/second    = base cooling × current speed-card cooling multiplier
+```
+
+The entropy capacity defaults to `1000000`; base cooling defaults to `25` per second. The controller shows entropy per item, effective cooling, and the estimated wait before each operation can resume. An item whose entropy cost alone exceeds the configured capacity reports a configuration-limit error instead of cooling forever.
+
+The default speed-card tiers are fully configurable:
+
+| Installed cards | Parallel operations | Batch time | Cooling multiplier |
+| ---: | ---: | ---: | ---: |
+| 0 | 1 | 20 ticks | 1× |
+| 1 | 2 | 10 ticks | 2× |
+| 2 | 4 | 5 ticks | 4× |
+| 3 | 16 | 2 ticks | 16× |
+| 4 | 64 | 1 tick | 64× |
+
+The JSON file documents these formulas and the corresponding categorized TOML paths. Existing rule files are upgraded to documentation format 4 without replacing configured rules.
 
 Eligible item tooltips default to a compact Shift-expand prompt. The client option `matter_sequence_tooltip_mode` supports `DISABLED`, `HOLD_SHIFT`, and `ALWAYS_VISIBLE`.
 
@@ -159,26 +194,44 @@ Eligible item tooltips default to a compact Shift-expand prompt. The client opti
 
 The server configuration is `omnisequence-transfinite-server.toml`; the client configuration is `omnisequence-transfinite-client.toml`. Legacy `molecularmanipulator-*.toml` files are copied forward automatically when the new file does not yet exist.
 
+Server options are grouped by subsystem:
+
+| Category | Contents |
+| --- | --- |
+| `sequence_array` | Pattern pages, construction speed, and idle power |
+| `sequence_array.matter_rewrite` | Sequence capacity, entropy capacity, and base cooling |
+| `sequence_array.matter_rewrite.speed_cards` | Parallel operations, batch ticks, and cooling multiplier for each 0–4 card tier |
+| `ae2_crafting` | General AE2 crafting-order limit |
+| `omni_computation.optimizer` | Optimizer mode, graph limits, compile budget, and diagnostics |
+| `omni_computation.cache` | Compiled graph cache enablement, size, and expiry |
+| `omni_computation.execution` | Parallel execution, candidate selection, and precompilation |
+| `omni_computation.dispatch` | Batch dispatch and main-thread work budgets |
+
+Client options are grouped under `tooltips` and `visual`.
+
 | Option | Default | Purpose |
 | --- | ---: | --- |
-| `pattern_pages` | 20 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
-| `build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
-| `idle_power` | 128 | Sequence Array Controller idle power in AE/t |
-| `max_crafting_order_amount` | 1,000,000,000,000 | Maximum amount in one AE2 autocrafting order |
-| `omni_max_fast_mode` | `SAFE` | Omni-Computation Core recipe-tree aggregation mode |
-| `omni_max_fast_max_nodes` | 8192 | Maximum unique recipe nodes compiled in one aggregation |
-| `omni_max_fast_compile_budget_ms` | 100 | Aggregation compile budget before falling back to AE2 |
-| `omni_max_fast_diagnostics` | `false` | Logs aggregation timing and fallback reasons |
-| `omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
-| `omni_compat_dispatch_max_calls_per_tick` | 2147483647 | Per-core, per-tick emergency ceiling for complete `1×` calls to ordinary providers |
-| `omni_compat_dispatch_max_time_us` | 20000 | Server-wide budget shared by all active Omni-Computation Cores; contracts as average MSPT approaches 45 |
-| `omni_dispatch_max_work_units` | 2147483647 | Maximum scheduler work units per core and tick |
-| `matter_sequence_tooltip_mode` | `HOLD_SHIFT` | Client-only Matter Sequence tooltip mode |
-| `dynamic_effect_level` | 2 | Client-only visual effects: 0 off, 1 reduced, 2 full |
+| `sequence_array.pattern_pages` | 20 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
+| `sequence_array.build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
+| `sequence_array.idle_power` | 128 | Sequence Array Controller idle power in AE/t |
+| `sequence_array.matter_rewrite.matter_sequence_capacity` | `Long.MAX_VALUE` | Independent capacity of each Matter Sequence type |
+| `sequence_array.matter_rewrite.matter_entropy_capacity` | 1,000,000 | Maximum stored entropy |
+| `sequence_array.matter_rewrite.matter_entropy_cooling_per_second` | 25 | Base entropy removed per second before the card-tier multiplier |
+| `ae2_crafting.max_crafting_order_amount` | 1,000,000,000,000 | Maximum amount in one AE2 autocrafting order |
+| `omni_computation.optimizer.omni_max_fast_mode` | `SAFE` | Omni-Computation Core recipe-tree aggregation mode |
+| `omni_computation.optimizer.omni_max_fast_max_nodes` | 8192 | Maximum unique recipe nodes compiled in one aggregation |
+| `omni_computation.optimizer.omni_max_fast_compile_budget_ms` | 100 | Aggregation compile budget before falling back to AE2 |
+| `omni_computation.optimizer.omni_max_fast_diagnostics` | `false` | Logs aggregation timing and fallback reasons |
+| `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
+| `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | Per-core emergency ceiling for complete `1×` provider calls |
+| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 20000 | Server-wide adaptive compatibility-dispatch budget |
+| `omni_computation.dispatch.omni_dispatch_max_work_units` | 2147483647 | Maximum scheduler work units per core and tick |
+| `tooltips.matter_sequence_tooltip_mode` | `HOLD_SHIFT` | Client-only Matter Sequence tooltip mode |
+| `visual.dynamic_effect_level` | 2 | Client-only visual effects: 0 off, 1 reduced, 2 full |
 
 Ordinary and unknown providers receive adaptive runtime-scaled patterns only for safe single-ingredient recipes. Multi-ingredient and other non-scalable paths send complete original recipes one at a time, preserving machine rotation and back-pressure behavior. A server-wide adaptive time slice replaces the old fixed 32-call limit: dispatch accelerates while the server has headroom and contracts as average MSPT approaches 45. Multiple cores, CPUs, and patterns do not each claim a separate full time budget. Only providers that explicitly declare atomic batch support receive complete multiplied multi-ingredient inputs.
 
-The retired `omni_batch_allow_substitution_patterns` key is removed from existing server TOML files without resetting other custom values. When configuration loading or hot reload detects another option that the current version no longer defines, the mod keeps up to five `.toml.bak` files and atomically rebuilds the configuration with current defaults. If only a new option is missing or a known value is out of range, NeoForge repairs that value without resetting other valid settings.
+Existing flat options and the previous `matter_speed_cards` section are moved into the categorized paths while preserving their values. The mod creates a `.toml.bak` backup before migration. The retired `omni_batch_allow_substitution_patterns` key is removed without resetting other custom values. If another unsupported option is found, the mod keeps up to five backups and atomically rebuilds the file from the current schema; missing or out-of-range known values are repaired without resetting other valid settings.
 
 ## Installation and Build
 
@@ -191,7 +244,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-1.3.9.jar
+build/libs/omnisequence-transfinite-1.3.9-fix.jar
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).
+See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.9-fix.md](RELEASE_NOTES_1.3.9-fix.md) for installation and testing notes. This project is licensed under the [MIT License](LICENSE).

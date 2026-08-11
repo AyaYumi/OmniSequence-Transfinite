@@ -10,6 +10,7 @@ import appeng.api.util.AECableType;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.blockentity.crafting.PatternProviderBlockEntity;
 import appeng.crafting.CraftingEvent;
+import appeng.helpers.patternprovider.PatternContainer;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.me.helpers.MachineSource;
 import appeng.menu.ISubMenu;
@@ -20,6 +21,8 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
+import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -40,7 +43,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 
-public final class MolecularManipulatorBlockEntity extends PatternProviderBlockEntity {
+public final class MolecularManipulatorBlockEntity extends PatternProviderBlockEntity
+        implements SegmentedPatternContainerHost {
     public static final int PATTERN_SLOTS = 360;
     public static final int PATTERNS_PER_PAGE = 36;
     public static final long VIRTUAL_PARALLEL_LIMIT = Integer.MAX_VALUE;
@@ -51,6 +55,8 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             "active_reusable_batch";
 
     private final MachineSource actionSource = new MachineSource(this);
+    private final SegmentedPatternContainers terminalPatternContainers =
+            new SegmentedPatternContainers(this);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
     private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
@@ -74,6 +80,11 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
 
     public int getPatternRevision() {
         return ((MolecularManipulatorLogic) getLogic()).getPatternRevision();
+    }
+
+    @Override
+    public List<PatternContainer> molecularmanipulator$getTerminalPatternContainers() {
+        return terminalPatternContainers.getContainers();
     }
 
     boolean hasActiveReusableBatch() {

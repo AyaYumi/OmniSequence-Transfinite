@@ -1,5 +1,70 @@
 # Changelog
 
+## 1.3.9-fix - 2026-08-11
+
+### Added
+
+- Large pattern inventories in both Molecular Manipulator single-block
+  machines and the Sequence Array multiblock are exposed as multiple logical
+  containers in the AE2 Pattern Access Terminal.
+- Matter Sequence capacity, rewrite entropy capacity, base cooling, and every
+  0–4 Acceleration Card tier's parallelism, batch time, and cooling multiplier
+  are configurable. The controller displays per-item entropy, effective cooling,
+  and estimated cooldown time.
+- Matter rewrite JSON documentation now records the entropy formulas and exact
+  categorized TOML paths without replacing configured item and tag rules.
+
+### Changed
+
+- Matter Sequence storage defaults to `Long.MAX_VALUE`; rewrite entropy defaults
+  to 1,000,000 and uses saturating `long` arithmetic throughout.
+- Server and client options are grouped by subsystem. Existing flat paths are
+  migrated with their values preserved and a `.toml.bak` backup.
+- Removed the crafting-confirmation path label and its dedicated planning-progress
+  network synchronization.
+
+### Fixed
+
+- Completed Molecular Center and Omni Computation structures no longer keep
+  showing their construction-progress indicator. The indicator remains visible
+  while the structure is incomplete, being built, or being dismantled.
+- Infinite storage cells are now detected by simulated over-extraction at the
+  AE2 network-storage boundary instead of hard-coding ExtendedAE and AE2
+  inventory implementations. Detection is cached per mounted cell and key,
+  periodically rechecked, and saturates network and tooltip amounts without
+  changing the cell's own advertised contents.
+- Bulk `KeyCounter` merges now use the same saturating addition as individual
+  updates. Combining an infinite cell with an existing finite stack can no
+  longer wrap `Long.MAX_VALUE` into a negative amount and disappear from the
+  terminal, regardless of storage mount order.
+- Deterministic AdvancedAE `AdvProcessingPattern` recipes now pass through the
+  same exact-input, exact-output, remainder, overflow, and runtime-template
+  verification as native AE2 processing patterns. This removes the full native
+  fallback that made large AdvancedAE processing requests expand one craft at a
+  time, while unknown AdvancedAE implementations and subclasses remain on AE2.
+- When the real attempt for a deterministic multi-candidate graph cannot use
+  its first candidate, AE2 still receives that attempt to preserve later-choice
+  priority. If every choice fails, the following missing-material simulation
+  now reuses the verified transactional graph and aggregates the first
+  candidate's shortages instead of traversing it natively a second time.
+- Background and interactive calculations waiting for an Omni execution slot
+  now honor `Future.cancel(true)`. Cancelled requester/menu jobs leave the queue
+  immediately instead of eventually acquiring a slot and performing obsolete
+  work.
+- MAX_FAST now recognizes the `fuzzy_crafted_input` state produced when AE2 has
+  already selected a valid substitute damage state for a container-returning
+  pattern. Deterministic `+1` durability recipes such as platinum dust with a
+  substitutable ore hammer can therefore use the verified bulk tool-capacity
+  path instead of returning the complete request to AE2's per-craft recursion.
+- The selected substitute is revalidated with the original pattern input before
+  aggregation. The fast boundary still requires one exact-output pattern,
+  deterministic and mutually compatible remainder behavior, a unit tool slot,
+  and no self-reference; every unproven case continues through AE2 unchanged.
+- Diagnostic mode now records successful reusable-boundary aggregation with the
+  request count, calculated pattern count, barrier type, and pattern identity.
+  General MAX_FAST decisions also include the requested key and whether the
+  attempt was a real craft or the final missing-material simulation.
+
 ## 1.3.9 - 2026-08-04
 
 ### Added

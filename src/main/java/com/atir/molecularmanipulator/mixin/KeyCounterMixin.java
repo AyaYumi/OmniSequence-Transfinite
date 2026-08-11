@@ -9,8 +9,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = KeyCounter.class, remap = false)
 public abstract class KeyCounterMixin {
+    @Inject(method = "addAll", at = @At("HEAD"), cancellable = true)
+    private void molecularmanipulator$saturateBulkOverflow(
+            KeyCounter other, CallbackInfo callback) {
+        var counter = (KeyCounter) (Object) this;
+        for (var entry : other) {
+            counter.add(entry.getKey(), entry.getLongValue());
+        }
+        callback.cancel();
+    }
+
     @Inject(method = "add", at = @At("HEAD"), cancellable = true)
-    private void molecularmanipulator$saturateOverflow(AEKey key, long amount, CallbackInfo callback) {
+    private void molecularmanipulator$saturateOverflow(
+            AEKey key, long amount, CallbackInfo callback) {
         var counter = (KeyCounter) (Object) this;
         long currentAmount = counter.get(key);
         if (amount > 0 && currentAmount > Long.MAX_VALUE - amount) {

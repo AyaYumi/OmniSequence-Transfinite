@@ -247,7 +247,7 @@ final class MolecularCenterLdUi {
         deconstructProgress.setProgress(clampRatio(menu.deconstructJobProgress, 1000));
         rewriteProgress.setProgress(clampRatio(menu.rewriteJobProgress, 1000));
         entropyProgress.setProgress(clampRatio(
-                menu.entropy, MolecularCenterBlockEntity.MAX_ENTROPY));
+                menu.entropy, menu.entropyCapacity));
 
         if (previousTab != tab) {
             animateTab(tab);

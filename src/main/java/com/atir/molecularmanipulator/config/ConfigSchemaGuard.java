@@ -17,6 +17,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Enforces exact option schemas for this mod's TOML files.
@@ -106,6 +107,63 @@ public final class ConfigSchemaGuard {
                             + "the existing file was left in place",
                     optionPath, displayName, file, exception);
             return false;
+        }
+    }
+
+    /**
+     * Moves existing option values into a categorized schema without resetting
+     * user-selected values. New-path values win when both paths are present.
+     */
+    public static boolean relocateOptions(
+            Path file, Map<String, String> relocations, String displayName) {
+        if (!Files.isRegularFile(file) || relocations.isEmpty()) {
+            return false;
+        }
+
+        try {
+            var config = readToml(file);
+            var movedPaths = new ArrayList<String>();
+            config.bulkCommentedUpdate(view -> {
+                for (var relocation : relocations.entrySet()) {
+                    String oldPath = relocation.getKey();
+                    String newPath = relocation.getValue();
+                    if (!view.contains(oldPath)) {
+                        continue;
+                    }
+                    if (!view.contains(newPath)) {
+                        view.set(newPath, view.getRaw(oldPath));
+                    }
+                    view.remove(oldPath);
+                    view.removeComment(oldPath);
+                    movedPaths.add(oldPath + " -> " + newPath);
+                }
+                removeEmptySection(view, "matter_speed_cards");
+                return null;
+            });
+            if (movedPaths.isEmpty()) {
+                return false;
+            }
+
+            backUpConfig(file);
+            new TomlWriter().write(config, file, WritingMode.REPLACE_ATOMIC);
+            MolecularManipulator.LOGGER.info(
+                    "Categorized {} configuration {} while preserving values: {}",
+                    displayName, file, summarize(movedPaths));
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            MolecularManipulator.LOGGER.warn(
+                    "Could not categorize {} configuration {}; the existing file was left in place",
+                    displayName, file, exception);
+            return false;
+        }
+    }
+
+    private static void removeEmptySection(
+            com.electronwill.nightconfig.core.CommentedConfig config, String path) {
+        Object value = config.getRaw(path);
+        if (value instanceof UnmodifiableConfig section && section.entrySet().isEmpty()) {
+            config.remove(path);
+            config.removeComment(path);
         }
     }
 

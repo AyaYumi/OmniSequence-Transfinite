@@ -20,8 +20,7 @@
 
 当前版本：`1.3.9-fix`
 
-完整改动见 [1.3.9-fix 更新日志](CHANGELOG.md#139-fix---2026-08-11)与
-[1.3.9-fix 双语发布说明](RELEASE_NOTES_1.3.9-fix.md)。
+完整改动见 [1.3.9-fix 更新日志](CHANGELOG.md#139-fix---2026-08-11)。
 
 第三方持样板机器可通过
 [万物演算批量样板供应器 API v1](docs/omni-batch-provider-api.md)，
@@ -234,5 +233,4 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 build/libs/omnisequence-transfinite-1.3.9-fix.jar
 ```
 
-版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与测试说明见
-[RELEASE_NOTES_1.3.9-fix.md](RELEASE_NOTES_1.3.9-fix.md)。本项目使用 [MIT License](LICENSE)。
+版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。

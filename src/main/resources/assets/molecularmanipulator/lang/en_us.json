@@ -197,7 +197,7 @@
   "molecularmanipulator.configuration.category.display": "Display",
   "molecularmanipulator.configuration.category.display.tooltip": "Client-only tooltip and dynamic visual-effect settings.",
   "molecularmanipulator.configuration.pattern_pages": "Pattern Pages",
-  "molecularmanipulator.configuration.pattern_pages.tooltip": "Sets the number of pattern pages available to each Sequence Array. Each page contains 36 pattern slots. Range: 1-1000; default: 20.",
+  "molecularmanipulator.configuration.pattern_pages.tooltip": "Sets the number of pattern pages available to each Sequence Array. Each page contains 36 pattern slots. Range: 1-1000; default: 200.",
   "molecularmanipulator.configuration.build_blocks_per_tick": "Build / Dismantle Blocks per Tick",
   "molecularmanipulator.configuration.build_blocks_per_tick.tooltip": "Maximum structure blocks placed or removed per tick. Higher values finish faster but increase instantaneous server load. Range: 1-256; default: 32.",
   "molecularmanipulator.configuration.idle_power": "Idle Power (AE/t)",

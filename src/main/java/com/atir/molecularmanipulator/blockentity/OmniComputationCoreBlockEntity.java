@@ -493,9 +493,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         if (!structureFormed || getCluster() == null) {
             return;
         }
-        int idleCount = getCluster().isBusy() ? 0 : 1;
+        int idleCount = isCpuReadyForSubmission(getCluster()) ? 1 : 0;
         for (var cpu : virtualCpus) {
-            if (!cpu.isBusy() && !cpu.isDestroyed()) {
+            if (isCpuReadyForSubmission(cpu)) {
                 idleCount++;
             }
         }
@@ -511,7 +511,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             Iterator<CraftingCPUCluster> iterator = virtualCpus.iterator();
             while (iterator.hasNext() && idleCount > 1) {
                 var cpu = iterator.next();
-                if (!cpu.isBusy()) {
+                // A lane with residual items is not idle. Keep it registered so
+                // AE2 can continue returning those items to network storage.
+                if (isCpuReadyForSubmission(cpu)) {
                     iterator.remove();
                     if (bridge != null) {
                         bridge.molecularmanipulator$unregisterOmniCpu(cpu);
@@ -527,7 +529,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return null;
         }
         for (var cpu : allCpus()) {
-            if (!cpu.isBusy() && !cpu.isDestroyed()) {
+            if (isCpuReadyForSubmission(cpu)) {
                 CPU_OWNERS.put(cpu, this);
                 bridge.molecularmanipulator$registerOmniCpu(cpu);
                 return cpu;
@@ -536,6 +538,18 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         var cpu = createVirtualCpu();
         bridge.molecularmanipulator$registerOmniCpu(cpu);
         return cpu;
+    }
+
+    public static boolean isCpuReadyForSubmission(CraftingCPUCluster cpu) {
+        return cpu != null && isCpuReadyForSubmission(
+                cpu.isDestroyed(),
+                cpu.isBusy(),
+                cpu.craftingLogic.getInventory().list.isEmpty());
+    }
+
+    static boolean isCpuReadyForSubmission(
+            boolean destroyed, boolean busy, boolean inventoryEmpty) {
+        return !destroyed && !busy && inventoryEmpty;
     }
 
     public void ensureSpareAndRegister(OmniCraftingServiceBridge bridge) {

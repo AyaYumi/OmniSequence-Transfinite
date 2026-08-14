@@ -127,7 +127,7 @@ config/molecularmanipulator/matter_rewrite_rules.json
 
 | 配置项 | 默认值 | 作用 |
 | --- | ---: | --- |
-| `pattern_pages` | 20 | 构序阵列控制器样板页数，每页 36 槽 |
+| `pattern_pages` | 200 | 构序阵列控制器样板页数，每页 36 槽 |
 | `build_blocks_per_tick` | 32 | 自动搭建或拆卸每 Tick 处理方块数 |
 | `idle_power` | 128 | 构序阵列控制器待机功耗，单位 AE/t |
 | `max_crafting_order_amount` | 1,000,000,000,000 | 单次 AE2 自动合成下单上限 |

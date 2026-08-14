@@ -22,6 +22,7 @@
     "CraftingPlanSummaryAccessor",
     "CraftingPlanSummaryMixin",
     "CraftingSimulationStateOverflowMixin",
+    "CraftingTreeNodeOutputGuardMixin",
     "KeyCounterMixin",
     "NbtTearPatternContextMixin",
     "NbtTearPatternMatchHelperMixin",

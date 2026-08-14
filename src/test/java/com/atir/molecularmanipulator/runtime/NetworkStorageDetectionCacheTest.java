@@ -36,20 +36,84 @@ class NetworkStorageDetectionCacheTest {
     }
 
     @Test
-    void amountChangesAndUnknownResultsInvalidateEntries() {
+    void finiteResultsSurviveAmountChangesUntilPeriodicRecheck() {
+        var cache = new NetworkStorageDetectionCache<String>(3);
+        var calls = new AtomicInteger();
+
+        cache.beginRefresh();
+        assertFalse(cache.resolve("item", 64, () -> {
+            calls.incrementAndGet();
+            return Optional.of(false);
+        }));
+        cache.endRefresh();
+
+        cache.beginRefresh();
+        assertFalse(cache.resolve("item", 65, () -> {
+            calls.incrementAndGet();
+            return Optional.of(true);
+        }));
+        cache.endRefresh();
+
+        cache.beginRefresh();
+        assertFalse(cache.resolve("item", 66, () -> {
+            calls.incrementAndGet();
+            return Optional.of(true);
+        }));
+        cache.endRefresh();
+        assertEquals(1, calls.get());
+
+        cache.beginRefresh();
+        assertTrue(cache.resolve("item", 67, () -> {
+            calls.incrementAndGet();
+            return Optional.of(true);
+        }));
+        cache.endRefresh();
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void infiniteResultsRecheckImmediatelyWhenAmountChanges() {
         var cache = new NetworkStorageDetectionCache<String>(20);
+        var calls = new AtomicInteger();
 
         cache.beginRefresh();
-        assertTrue(cache.resolve("item", 64, () -> Optional.of(true)));
+        assertTrue(cache.resolve("item", 64, () -> {
+            calls.incrementAndGet();
+            return Optional.of(true);
+        }));
         cache.endRefresh();
 
         cache.beginRefresh();
-        assertFalse(cache.resolve("item", 65, Optional::empty));
+        assertFalse(cache.resolve("item", 65, () -> {
+            calls.incrementAndGet();
+            return Optional.of(false);
+        }));
         cache.endRefresh();
+        assertEquals(2, calls.get());
+    }
+
+    @Test
+    void unknownProbeResultsBackOffUntilPeriodicRecheck() {
+        var cache = new NetworkStorageDetectionCache<String>(3);
+        var calls = new AtomicInteger();
+
+        for (int refresh = 0; refresh < 3; refresh++) {
+            cache.beginRefresh();
+            assertFalse(cache.resolve("item", 64 + refresh, () -> {
+                calls.incrementAndGet();
+                return Optional.empty();
+            }));
+            cache.endRefresh();
+        }
+        assertEquals(1, calls.get());
 
         cache.beginRefresh();
-        assertFalse(cache.resolve("item", 65, () -> Optional.of(false)));
+        assertTrue(cache.resolve("item", 67, () -> {
+            calls.incrementAndGet();
+            return Optional.of(true);
+        }));
         cache.endRefresh();
+        assertEquals(2, calls.get());
     }
 
     @Test

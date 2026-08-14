@@ -197,7 +197,7 @@
   "molecularmanipulator.configuration.category.display": "显示设置",
   "molecularmanipulator.configuration.category.display.tooltip": "仅客户端使用的提示信息与动态视觉效果设置。",
   "molecularmanipulator.configuration.pattern_pages": "\u6837\u677f\u9875\u6570",
-  "molecularmanipulator.configuration.pattern_pages.tooltip": "\u8bbe\u7f6e\u6784\u5e8f\u9635\u5217\u53ef\u4f7f\u7528\u7684\u6837\u677f\u9875\u6570\u3002\u6bcf\u9875\u5305\u542b 36 \u4e2a\u6837\u677f\u69fd\u4f4d\uff0c\u53ef\u8bbe\u7f6e 1\uff5e1000 \u9875\uff1b\u9ed8\u8ba4 20 \u9875\u3002",
+  "molecularmanipulator.configuration.pattern_pages.tooltip": "\u8bbe\u7f6e\u6784\u5e8f\u9635\u5217\u53ef\u4f7f\u7528\u7684\u6837\u677f\u9875\u6570\u3002\u6bcf\u9875\u5305\u542b 36 \u4e2a\u6837\u677f\u69fd\u4f4d\uff0c\u53ef\u8bbe\u7f6e 1\uff5e1000 \u9875\uff1b\u9ed8\u8ba4 200 \u9875\u3002",
   "molecularmanipulator.configuration.build_blocks_per_tick": "\u6bcf Tick \u642d\u5efa/\u62c6\u5378\u65b9\u5757\u6570",
   "molecularmanipulator.configuration.build_blocks_per_tick.tooltip": "\u8bbe\u7f6e\u4e00\u952e\u5b89\u653e\u6216\u4e00\u952e\u62c6\u5378\u65f6\u6bcf Tick \u6700\u591a\u5904\u7406\u7684\u7ed3\u6784\u65b9\u5757\u6570\u91cf\u3002\u6570\u503c\u8d8a\u9ad8\u5b8c\u6210\u8d8a\u5feb\uff0c\u4f46\u77ac\u65f6\u670d\u52a1\u5668\u8d1f\u8f7d\u4e5f\u8d8a\u9ad8\uff1b\u8303\u56f4 1\uff5e256\uff0c\u9ed8\u8ba4 32\u3002",
   "molecularmanipulator.configuration.idle_power": "\u5f85\u673a\u8017\u7535\uff08AE/t\uff09",

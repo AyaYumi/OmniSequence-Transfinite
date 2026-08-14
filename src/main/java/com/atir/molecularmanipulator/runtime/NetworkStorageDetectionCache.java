@@ -59,8 +59,9 @@ public final class NetworkStorageDetectionCache<K> {
         seenKeys.add(key);
         Entry previous = entries.get(key);
         if (previous != null
-                && previous.advertisedAmount == advertisedAmount
-                && refreshNumber - previous.checkedRefresh < recheckInterval) {
+                && refreshNumber - previous.checkedRefresh < recheckInterval
+                && (!previous.infinite
+                        || previous.advertisedAmount == advertisedAmount)) {
             return previous.infinite;
         }
 
@@ -72,7 +73,10 @@ public final class NetworkStorageDetectionCache<K> {
         }
 
         if (result.isEmpty()) {
-            entries.remove(key);
+            // A provider that cannot answer the unbounded-extraction probe is
+            // treated as finite for one recheck interval. Retrying every
+            // network refresh made incompatible third-party cells a hot loop.
+            entries.put(key, new Entry(advertisedAmount, false, refreshNumber));
             return false;
         }
 

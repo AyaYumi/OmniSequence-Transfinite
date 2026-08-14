@@ -30,7 +30,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 
@@ -167,24 +169,26 @@ public abstract class OmniCraftingCalculationMixin {
                 .molecularmanipulator$getWhat();
         var missingSnapshot = new KeyCounter();
         missingSnapshot.addAll(missingItems);
-        var possibleSnapshot = molecularmanipulator$snapshotPossibleStates(tree);
+        var treeSnapshot = molecularmanipulator$snapshotTreeState(tree);
 
         OmniMaxFastPlanner.Result result;
         try {
             result = session.tryExecute(
                     tree, inventory, requestedAmount, isSimulation(), missingItems);
         } catch (InterruptedException failure) {
+            molecularmanipulator$maxFastSession = null;
             try {
                 molecularmanipulator$restoreAttemptState(
-                        tree, missingItems, missingSnapshot, possibleSnapshot);
+                        tree, missingItems, missingSnapshot, treeSnapshot, true);
             } catch (InterruptedException restoreFailure) {
                 failure.addSuppressed(restoreFailure);
             }
             throw failure;
         } catch (RuntimeException | Error failure) {
+            molecularmanipulator$maxFastSession = null;
             try {
                 molecularmanipulator$restoreAttemptState(
-                        tree, missingItems, missingSnapshot, possibleSnapshot);
+                        tree, missingItems, missingSnapshot, treeSnapshot, true);
             } catch (InterruptedException restoreFailure) {
                 Thread.currentThread().interrupt();
                 failure.addSuppressed(restoreFailure);
@@ -192,8 +196,15 @@ public abstract class OmniCraftingCalculationMixin {
             throw failure;
         }
         if (!result.applied()) {
+            boolean restoreStructure = result.branchFailure() == null;
+            if (restoreStructure) {
+                // A native fallback must not reuse a graph whose speculative
+                // nodes are about to be detached from the AE2 tree.
+                molecularmanipulator$maxFastSession = null;
+            }
             molecularmanipulator$restoreAttemptState(
-                    tree, missingItems, missingSnapshot, possibleSnapshot);
+                    tree, missingItems, missingSnapshot, treeSnapshot,
+                    restoreStructure);
         }
         if (result.branchFailure() != null) {
             throw result.branchFailure();
@@ -232,29 +243,74 @@ public abstract class OmniCraftingCalculationMixin {
     }
 
     @Unique
-    private IdentityHashMap<CraftingTreeProcess, Boolean>
-            molecularmanipulator$snapshotPossibleStates(CraftingTreeNode root)
+    private Map.Entry<IdentityHashMap<CraftingTreeNode, ArrayList<CraftingTreeProcess>>,
+            IdentityHashMap<CraftingTreeProcess, Boolean>>
+            molecularmanipulator$snapshotTreeState(
+            CraftingTreeNode root)
                     throws InterruptedException {
-        var result = new IdentityHashMap<CraftingTreeProcess, Boolean>();
-        molecularmanipulator$visitBuiltProcesses(root, process -> result.put(
-                process,
-                ((OmniCraftingTreeProcessBridge) process).molecularmanipulator$isPossible()),
-                false);
-        return result;
+        var nodeProcesses =
+                new IdentityHashMap<CraftingTreeNode, ArrayList<CraftingTreeProcess>>();
+        var possibleStates = new IdentityHashMap<CraftingTreeProcess, Boolean>();
+        var pending = new ArrayDeque<CraftingTreeNode>();
+        var visited = new IdentityHashMap<CraftingTreeNode, Boolean>();
+        pending.addLast(root);
+        while (!pending.isEmpty()) {
+            molecularmanipulator$treeTraversalCheckpoint(null, false);
+            CraftingTreeNode node = pending.removeFirst();
+            if (visited.put(node, Boolean.TRUE) != null) {
+                continue;
+            }
+            var processes = ((OmniCraftingTreeNodeBridge) node)
+                    .molecularmanipulator$getProcesses();
+            nodeProcesses.put(node, processes);
+            if (processes == null) {
+                continue;
+            }
+            for (CraftingTreeProcess process : processes) {
+                molecularmanipulator$treeTraversalCheckpoint(null, false);
+                var processBridge = (OmniCraftingTreeProcessBridge) process;
+                possibleStates.put(
+                        process, processBridge.molecularmanipulator$isPossible());
+                var children = processBridge.molecularmanipulator$getChildNodes();
+                if (children != null) {
+                    pending.addAll(children.keySet());
+                }
+            }
+        }
+        return Map.entry(nodeProcesses, possibleStates);
     }
 
     @Unique
     private void molecularmanipulator$restoreAttemptState(
             CraftingTreeNode root, KeyCounter missingItems, KeyCounter missingSnapshot,
-            IdentityHashMap<CraftingTreeProcess, Boolean> possibleSnapshot)
+            Map.Entry<IdentityHashMap<CraftingTreeNode, ArrayList<CraftingTreeProcess>>,
+                    IdentityHashMap<CraftingTreeProcess, Boolean>> treeSnapshot,
+            boolean restoreStructure)
                     throws InterruptedException {
         missingItems.clear();
         missingItems.addAll(missingSnapshot);
-        molecularmanipulator$visitBuiltProcesses(root, process -> {
-            Boolean previous = possibleSnapshot.get(process);
-            ((OmniCraftingTreeProcessBridge) process).molecularmanipulator$setPossible(
-                    previous == null || previous);
-        }, true);
+        InterruptedException deferredInterruption = null;
+        try {
+            molecularmanipulator$visitBuiltProcesses(root, process -> {
+                Boolean previous = treeSnapshot.getValue().get(process);
+                ((OmniCraftingTreeProcessBridge) process)
+                        .molecularmanipulator$setPossible(previous == null || previous);
+            }, true);
+        } catch (InterruptedException interruption) {
+            deferredInterruption = interruption;
+        }
+
+        if (restoreStructure) {
+            for (var entry : treeSnapshot.getKey().entrySet()) {
+                deferredInterruption = molecularmanipulator$treeTraversalCheckpoint(
+                        deferredInterruption, true);
+                ((OmniCraftingTreeNodeBridge) entry.getKey())
+                        .molecularmanipulator$setProcesses(entry.getValue());
+            }
+        }
+        if (deferredInterruption != null) {
+            throw deferredInterruption;
+        }
     }
 
     @Unique

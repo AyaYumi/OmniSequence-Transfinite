@@ -1374,21 +1374,26 @@ public final class OmniMaxFastPlanner {
 
             IPatternDetails details = process.molecularmanipulator$getDetails();
             node.details = details;
-            String patternBarrierReason = getPatternBarrierReason(details);
-            if (patternBarrierReason != null) {
-                throw new Barrier(patternBarrierReason);
+            if (details == null) {
+                throw new Barrier("missing_pattern_details");
             }
 
             long outputPerPattern = 0;
-            for (var output : details.getOutputs()) {
+            boolean hasSecondaryOutput = false;
+            GenericStack[] outputs = details.getOutputs();
+            if (outputs == null) {
+                throw new Barrier("invalid_pattern_output");
+            }
+            for (var output : outputs) {
                 if (output == null || output.what() == null || output.amount() <= 0) {
                     throw new Barrier("invalid_pattern_output");
                 }
-                if (!node.key.equals(output.what())) {
-                    throw new Barrier("secondary_or_fuzzy_output");
+                if (node.key.equals(output.what())) {
+                    outputPerPattern = checkedAdd(
+                            outputPerPattern, output.amount(), "output_count_overflow");
+                } else {
+                    hasSecondaryOutput = true;
                 }
-                outputPerPattern = checkedAdd(
-                        outputPerPattern, output.amount(), "output_count_overflow");
             }
             if (outputPerPattern <= 0) {
                 throw new Barrier("missing_primary_output");
@@ -1398,6 +1403,14 @@ public final class OmniMaxFastPlanner {
             // barrier checks. This ensures barrier nodes have valid outputPerPattern
             // for execution-time integrity checks.
             node.outputPerPattern = outputPerPattern;
+            if (hasSecondaryOutput) {
+                throw new Barrier("secondary_or_fuzzy_output");
+            }
+
+            String patternBarrierReason = getPatternBarrierReason(details);
+            if (patternBarrierReason != null) {
+                throw new Barrier(patternBarrierReason);
+            }
 
             IPatternDetails.IInput[] inputs = details.getInputs();
             Map<CraftingTreeNode, Long> childNodes = process.molecularmanipulator$getChildNodes();
@@ -1947,6 +1960,7 @@ public final class OmniMaxFastPlanner {
     private static boolean requiresImmediateFallback(String barrierReason) {
         return "missing_pattern_details".equals(barrierReason)
                 || "missing_primary_output".equals(barrierReason)
+                || "invalid_pattern_output".equals(barrierReason)
                 || barrierReason.startsWith("unsupported_pattern_type:");
     }
 

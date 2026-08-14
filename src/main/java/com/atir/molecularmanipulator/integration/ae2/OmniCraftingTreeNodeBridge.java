@@ -25,6 +25,8 @@ public interface OmniCraftingTreeNodeBridge {
 
     ArrayList<CraftingTreeProcess> molecularmanipulator$getProcesses();
 
+    void molecularmanipulator$setProcesses(ArrayList<CraftingTreeProcess> processes);
+
     void molecularmanipulator$buildChildPatterns();
 
     Iterable<InputTemplate> molecularmanipulator$getValidItemTemplates(ICraftingInventory inventory);

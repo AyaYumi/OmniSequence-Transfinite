@@ -131,7 +131,7 @@ The server configuration is `omnisequence-transfinite-server.toml`; the client c
 
 | Option | Default | Purpose |
 | --- | ---: | --- |
-| `pattern_pages` | 20 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
+| `pattern_pages` | 200 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
 | `build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
 | `idle_power` | 128 | Sequence Array Controller idle power in AE/t |
 | `max_crafting_order_amount` | 1,000,000,000,000 | Maximum amount in one AE2 autocrafting order |

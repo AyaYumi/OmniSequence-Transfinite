@@ -42,7 +42,7 @@ public final class ModConfig {
                 .push("general");
         PATTERN_PAGES = common.comment("Number of pattern pages for Molecular Centers.")
                 .translation("molecularmanipulator.configuration.pattern_pages")
-                .defineInRange("pattern_pages", 20, 1, 1000);
+                .defineInRange("pattern_pages", 200, 1, 1000);
         BUILD_BLOCKS_PER_TICK = common.comment("Maximum structure blocks placed or removed per tick.")
                 .translation("molecularmanipulator.configuration.build_blocks_per_tick")
                 .defineInRange("build_blocks_per_tick", 32, 1, 256);

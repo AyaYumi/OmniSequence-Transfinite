@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.8-fix-forge - 2026-08-13
+
+### Changed
+
+- Increased the default Sequence Array pattern capacity from 20 pages (720
+  slots) to 200 pages (7,200 slots). Existing explicit configurations are left
+  unchanged.
+- Reduced network-listing overhead by bypassing finite AE2 cells, suppressing
+  duplicate nested storage probes, and backing off unsupported probes.
+
+### Fixed
+
+- Prevented malformed third-party pattern candidates with no matching output
+  from dividing by zero in AE2's crafting tree, including MAX_FAST native
+  compatibility boundaries and full native fallback.
+- Restored speculative MAX_FAST tree structure before native fallback so a
+  failed optimized attempt cannot leak mutable process state into AE2.
+- Prevented Omni crafting lanes with residual inventory from being selected,
+  reused, or removed until AE2 has returned their items to network storage.
+- Fixed Forge startup failures under Mixin 0.8.5 by moving runtime helper
+  types and static utility methods out of transformed Mixin classes.
+
 ## 1.3.8-forge - 2026-08-11
 
 ### Added

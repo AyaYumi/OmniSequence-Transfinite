@@ -44,6 +44,10 @@ public interface OmniCraftingTreeNodeAccessor extends OmniCraftingTreeNodeBridge
     ArrayList<CraftingTreeProcess> molecularmanipulator$getProcesses();
 
     @Override
+    @Accessor("nodes")
+    void molecularmanipulator$setProcesses(ArrayList<CraftingTreeProcess> processes);
+
+    @Override
     @Invoker("buildChildPatterns")
     void molecularmanipulator$buildChildPatterns();
 

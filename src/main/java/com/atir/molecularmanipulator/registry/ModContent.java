@@ -58,7 +58,7 @@ public final class ModContent {
             "molecular_center_casing", () -> new MolecularCenterPartBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> 7), true));
+                            .lightLevel(state -> 7)));
     public static final RegistryObject<BlockItem> MOLECULAR_CENTER_CASING_ITEM = ITEMS.register(
             "molecular_center_casing", () -> new BlockItem(MOLECULAR_CENTER_CASING.get(), new Item.Properties()));
     public static final RegistryObject<MolecularCenterGlassBlock> MOLECULAR_CENTER_GLASS = BLOCKS.register(

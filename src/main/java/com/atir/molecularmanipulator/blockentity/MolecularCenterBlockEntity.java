@@ -307,7 +307,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         refreshStructure();
         restoreBuildQueue();
-        syncShellConnections(formed);
         IStorageProvider.requestUpdate(getMainNode());
         invalidatePipelineStorageCache();
         updateQuantumLink();
@@ -1628,7 +1627,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             level.setBlock(worldPosition, getBlockState().setValue(
                     net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, formed), 3);
             onGridConnectableSidesChanged();
-            syncShellConnections(newFormed);
             invalidatePipelineStorageCache();
             IStorageProvider.requestUpdate(getMainNode());
             getLogic().updatePatterns();
@@ -1919,7 +1917,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         level.setBlock(worldPosition, getBlockState().setValue(
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
         onGridConnectableSidesChanged();
-        syncShellConnections(false);
         IStorageProvider.requestUpdate(getMainNode());
         updateQuantumLink();
         workCursor = MolecularCenterStructure.workParts().size() - 1;
@@ -2085,27 +2082,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
         }
         setChanged();
-    }
-
-    private void syncShellConnections(boolean connected) {
-        if (level == null) {
-            return;
-        }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        for (var part : MolecularCenterStructure.parts()) {
-            if (part.partType() != MolecularCenterStructure.PartType.CASING
-                    || MolecularCenterStructure.isController(part)) {
-                continue;
-            }
-            var partPos = MolecularCenterStructure.worldPos(worldPosition, facing, part);
-            if (!level.hasChunkAt(partPos)) {
-                continue;
-            }
-            var shell = level.getBlockEntity(partPos);
-            if (shell instanceof MolecularCenterShellBlockEntity shellBlockEntity) {
-                shellBlockEntity.setControllerPos(connected ? worldPosition : null);
-            }
-        }
     }
 
     private void processBuildPart(ServerPlayer player, MolecularCenterStructure.Part part, BlockPos pos,

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.8-fix-forge - 2026-08-13
+## 1.3.8-hotfix-forge - 2026-08-14
 
 ### Changed
 
@@ -21,6 +21,9 @@
   reused, or removed until AE2 has returned their items to network storage.
 - Fixed Forge startup failures under Mixin 0.8.5 by moving runtime helper
   types and static utility methods out of transformed Mixin classes.
+- Restricted both Molecular Center and Omni-Computation AE2 connectivity to
+  their controllers. Structure casings and outer parts no longer expose grid
+  nodes, preventing persistent self-connection crashes after controller reloads.
 
 ## 1.3.8-forge - 2026-08-11
 

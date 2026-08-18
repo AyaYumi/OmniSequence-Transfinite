@@ -57,6 +57,9 @@ public final class MolecularManipulator {
             validateMixinTarget("appeng.menu.me.crafting.CraftAmountMenu", classLoader);
             validateMixinTarget("appeng.menu.me.crafting.CraftConfirmMenu", classLoader);
             validateMixinTarget("appeng.me.cells.CreativeCellInventory", classLoader);
+            validateMixinTarget(
+                    "com.glodblock.github.extendedae.common.inventory.InfinityCellInventory",
+                    classLoader);
             validateMixinTarget("appeng.helpers.patternprovider.PatternProviderLogic", classLoader);
             validateMixinTarget("com.glodblock.github.extendedae.common.me.matrix.CalculatorAssemblerMatrix",
                     classLoader);

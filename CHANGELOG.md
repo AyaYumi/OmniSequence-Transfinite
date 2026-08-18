@@ -1,14 +1,15 @@
 # Changelog
 
-## 1.3.8-hotfix-forge - 2026-08-14
+## 1.3.9-forge - 2026-08-18
 
 ### Changed
 
 - Increased the default Sequence Array pattern capacity from 20 pages (720
   slots) to 200 pages (7,200 slots). Existing explicit configurations are left
   unchanged.
-- Reduced network-listing overhead by bypassing finite AE2 cells, suppressing
-  duplicate nested storage probes, and backing off unsupported probes.
+- Removed global network-storage probing and refresh caches. Only AE2 creative
+  cells and ExtendedAE infinity cells now expose `Long.MAX_VALUE` (`9.2E`);
+  every other storage source keeps its original advertised amount.
 
 ### Fixed
 

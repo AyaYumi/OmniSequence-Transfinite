@@ -6,19 +6,26 @@ import java.util.Optional;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import appeng.api.stacks.GenericStack;
-import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.StorageCells;
+import appeng.api.storage.cells.StorageCell;
 import appeng.items.storage.StorageCellTooltipComponent;
 import com.atir.molecularmanipulator.storage.InfiniteStorageAmounts;
-import com.atir.molecularmanipulator.storage.InfiniteStorageDetector;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Rewrites infinite storage-cell content previews to Long.MAX_VALUE. */
+/** Rewrites only AE2 creative and ExtendedAE infinity-cell previews. */
 @Mixin(ItemStack.class)
 public abstract class ItemStackStorageCellTooltipMixin {
+    @Unique
+    private static final String molecularmanipulator$AE2_CREATIVE_CELL_INVENTORY =
+            "appeng.me.cells.CreativeCellInventory";
+    @Unique
+    private static final String molecularmanipulator$EXTENDED_AE_INFINITY_CELL_INVENTORY =
+            "com.glodblock.github.extendedae.common.inventory.InfinityCellInventory";
+
     @Inject(method = "getTooltipImage", at = @At("RETURN"), cancellable = true)
     private void molecularmanipulator$markInfiniteCellContents(
             CallbackInfoReturnable<Optional<TooltipComponent>> callback) {
@@ -31,24 +38,14 @@ public abstract class ItemStackStorageCellTooltipMixin {
         var stack = (ItemStack) (Object) this;
         try {
             var storage = StorageCells.getCellInventory(stack, null);
-            if (storage == null) {
+            if (!molecularmanipulator$usesLongMaximumDisplay(storage)) {
                 return;
             }
-
-            var available = new KeyCounter();
-            storage.getAvailableStacks(available);
 
             boolean changed = false;
             var content = new ArrayList<GenericStack>(component.content().size());
             for (var entry : component.content()) {
-                long advertisedAmount = available.get(entry.what());
-                if (advertisedAmount == 0) {
-                    advertisedAmount = entry.amount();
-                }
-
-                if (advertisedAmount < 0
-                        || InfiniteStorageDetector.isUnbounded(
-                        storage, entry.what(), advertisedAmount)) {
+                if (entry.amount() != InfiniteStorageAmounts.DISPLAY_AMOUNT) {
                     content.add(new GenericStack(
                             entry.what(), InfiniteStorageAmounts.DISPLAY_AMOUNT));
                     changed = true;
@@ -65,7 +62,17 @@ public abstract class ItemStackStorageCellTooltipMixin {
                         true)));
             }
         } catch (RuntimeException ignored) {
-            // Third-party cell tooltips remain usable if their client inventory cannot be probed.
+            // A malformed cell tooltip must not break the client tooltip pipeline.
         }
+    }
+
+    @Unique
+    private static boolean molecularmanipulator$usesLongMaximumDisplay(StorageCell storage) {
+        if (storage == null) {
+            return false;
+        }
+        String className = storage.getClass().getName();
+        return molecularmanipulator$AE2_CREATIVE_CELL_INVENTORY.equals(className)
+                || molecularmanipulator$EXTENDED_AE_INFINITY_CELL_INVENTORY.equals(className);
     }
 }

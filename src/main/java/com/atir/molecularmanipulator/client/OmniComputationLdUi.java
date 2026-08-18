@@ -238,7 +238,9 @@ final class OmniComputationLdUi {
         buildButton.setActive(menu.legacyStructure
                 ? !busy
                 : !menu.formed && !busy && menu.conflictParts == 0);
-        dismantleButton.setActive(!busy && menu.correctParts > 1);
+        // An intact pre-redesign structure can score only the controller against
+        // the current blueprint, so use the layout-independent removable count.
+        dismantleButton.setActive(!busy && menu.dismantlableBlocks > 0);
         confirmStructureUpdateButton.setActive(!busy);
         keepLegacyStructureButton.setActive(!busy);
 

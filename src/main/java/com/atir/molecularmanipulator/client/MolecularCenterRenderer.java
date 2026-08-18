@@ -2,36 +2,39 @@ package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
+import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
+import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-public final class MolecularCenterRenderer implements BlockEntityRenderer<MolecularCenterBlockEntity> {
-    private static final net.minecraft.resources.ResourceLocation FIELD_TEXTURE =
-            net.minecraft.resources.ResourceLocation.withDefaultNamespace("textures/misc/white.png");
-    private static final net.minecraft.resources.ResourceLocation RING_TEXTURE =
-            net.minecraft.resources.ResourceLocation.withDefaultNamespace("textures/entity/beacon_beam.png");
-    private static final int TORUS_SEGMENTS = 96;
-    private static final int TORUS_SIDES = 8;
+/**
+ * Physical, vertex-built visual field for the molecular centre.
+ *
+ * <p>The renderer deliberately uses the same geometry twice: a depth-writing
+ * pass makes the rings and crystals read as real machine parts, while a small
+ * additive pass supplies the NOVALITH-style glow. No particles or billboards
+ * are involved.</p>
+ */
+public final class MolecularCenterRenderer
+        implements BlockEntityRenderer<MolecularCenterBlockEntity> {
 
     public MolecularCenterRenderer(BlockEntityRendererProvider.Context context) {
     }
 
     @Override
-    public void render(MolecularCenterBlockEntity center, float partialTick, PoseStack poseStack,
-            MultiBufferSource buffers, int packedLight, int packedOverlay) {
+    public void render(MolecularCenterBlockEntity center, float partialTick,
+            PoseStack poseStack, MultiBufferSource buffers,
+            int packedLight, int packedOverlay) {
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || center.getLevel() == null
                 || !center.getBlockState().getValue(BlockStateProperties.POWERED)) {
@@ -39,198 +42,113 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
         }
 
         Direction facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        var visualCenter = MolecularCenterStructure.worldPoint(center.getBlockPos(), facing,
-                MolecularCenterStructure.VISUAL_CENTER_X, MolecularCenterStructure.CORE_Y,
+        Vec3 visualCenter = MolecularCenterStructure.worldPoint(
+                center.getBlockPos(), facing,
+                MolecularCenterStructure.VISUAL_CENTER_X,
+                MolecularCenterStructure.CORE_Y,
                 MolecularCenterStructure.VISUAL_CENTER_Z);
-        int visualMode = center.getClientVisualMode();
         float angle = center.sampleClientVisualAngle(partialTick);
-        float pulseStrength = switch (visualMode) {
-            case 1 -> 0.055F;
-            case 2 -> 0.045F;
-            case 3 -> 0.08F;
-            default -> 0.035F;
-        };
-        float pulse = 1.0F + (float) Math.sin(angle * 0.085F) * pulseStrength;
+        int mode = center.getClientVisualMode();
+        double distanceSquared = visualCenter.distanceToSqr(
+                Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
+        int segments = distanceSquared > 144.0D * 144.0D
+                ? 24 : distanceSquared > 80.0D * 80.0D ? 40 : 64;
+        float pulse = 1.0F + (float) Math.sin(angle * 0.085F)
+                * (mode == 3 ? 0.075F : 0.045F);
 
         poseStack.pushPose();
         poseStack.translate(visualCenter.x - center.getBlockPos().getX(),
                 visualCenter.y - center.getBlockPos().getY(),
                 visualCenter.z - center.getBlockPos().getZ());
 
-        var field = buffers.getBuffer(RenderType.entityTranslucentEmissive(FIELD_TEXTURE));
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(angle * 0.7F));
-        renderSphere(poseStack, field, 6.35F * pulse, 36, 18, center.getFieldColor(), 68);
-        poseStack.popPose();
+        VertexConsumer solid = buffers.getBuffer(OmniRenderLayers.solidEmissiveColor());
+        drawField(poseStack, solid, angle, mode, pulse, effectLevel, segments,
+                center.getFieldColor(), center.getCoreColor(),
+                center.getPrimaryRingColor(), center.getSecondaryRingColor(),
+                center.getLatticeColor(), false);
 
         poseStack.pushPose();
-        float coreSpin = switch (visualMode) {
-            case 1 -> 1.1F;
-            case 3 -> -2.2F;
-            default -> -1.6F;
-        };
-        poseStack.mulPose(Axis.YP.rotationDegrees(angle * coreSpin));
-        renderSphere(poseStack, field, 1.82F, 24, 12, center.getCoreColor(), 205);
+        poseStack.scale(1.035F, 1.035F, 1.035F);
+        VertexConsumer glow = buffers.getBuffer(OmniRenderLayers.additiveColor());
+        drawField(poseStack, glow, angle, mode, pulse, effectLevel, segments,
+                center.getFieldColor(), center.getCoreColor(),
+                center.getPrimaryRingColor(), center.getSecondaryRingColor(),
+                center.getLatticeColor(), true);
         poseStack.popPose();
-
-        float textureDirection = visualMode == 1 ? -1.0F : 1.0F;
-        float textureOffset = angle * 0.0035F * textureDirection;
-        var rings = buffers.getBuffer(RenderType.energySwirl(RING_TEXTURE, textureOffset, -textureOffset * 0.65F));
-        renderPrimaryRing(poseStack, rings, angle, visualMode, center.getPrimaryRingColor());
-        if (effectLevel > 1) {
-            renderSecondaryRings(poseStack, rings, angle, visualMode, center.getSecondaryRingColor());
-            renderCoreLattice(poseStack, rings, angle, visualMode, center.getLatticeColor());
-        }
         poseStack.popPose();
     }
 
-    private static void renderPrimaryRing(PoseStack poseStack, VertexConsumer consumer,
-            float angle, int visualMode, int color) {
-        poseStack.pushPose();
-        float spin = switch (visualMode) {
-            case 1 -> -0.42F;
-            case 2 -> 0.38F;
-            case 3 -> 0.58F;
-            default -> 0.32F;
-        };
-        poseStack.mulPose(Axis.YP.rotationDegrees(angle * spin));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(5.0F));
-        renderTorus(poseStack, consumer, 14.25F, 0.2F, color, 220);
-        poseStack.popPose();
-    }
+    private static void drawField(PoseStack poseStack, VertexConsumer consumer,
+            float angle, int mode, float pulse, int effectLevel, int segments,
+            int fieldRgb, int coreRgb, int primaryRgb, int secondaryRgb,
+            int latticeRgb, boolean glow) {
+        int outerAlpha = glow ? 48 : 232;
+        int ringAlpha = glow ? 64 : 246;
+        int coreAlpha = glow ? 78 : 255;
+        int detailAlpha = glow ? 42 : 220;
+        float modeScale = mode == 3 ? 1.08F : mode == 4 ? 1.04F : 1.0F;
+        float spin = angle * (mode == 1 ? -0.38F : mode == 2 ? 0.46F : 0.31F);
 
-    private static void renderSecondaryRings(PoseStack poseStack, VertexConsumer consumer,
-            float angle, int visualMode, int color) {
-        float firstSpin = switch (visualMode) {
-            case 1 -> -0.34F;
-            case 3 -> 0.74F;
-            default -> 0.54F;
-        };
-        float secondSpin = switch (visualMode) {
-            case 1 -> 0.27F;
-            case 3 -> -0.68F;
-            default -> -0.41F;
-        };
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(24.0F + angle * firstSpin));
-        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(13.0F));
-        renderTorus(poseStack, consumer, 12.25F, 0.17F, color, 200);
-        poseStack.popPose();
+        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, 0.0F, 0.0F,
+                16.0F * modeScale, 1.15F, segments,
+                0.0F, 0.0F, spin, argb(primaryRgb, ringAlpha));
+        OmniRenderGeometry.segmentedRing(poseStack, consumer, 0.0F, 1.15F,
+                0.0F, 13.35F * modeScale, 0.82F, 0.62F,
+                12, 0.78F, 0.0F, 0.0F, -spin * 0.72F,
+                argb(secondaryRgb, outerAlpha));
+        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, -1.20F, 0.0F,
+                10.2F * modeScale, 0.72F, segments,
+                7.0F, 0.0F, spin * 0.45F, argb(fieldRgb, detailAlpha));
 
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(118.0F + angle * secondSpin));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
-        poseStack.mulPose(Axis.XP.rotationDegrees(-17.0F));
-        renderTorus(poseStack, consumer, 11.65F, 0.15F, color, 180);
-        poseStack.popPose();
-    }
+        // Three orthogonal accelerator hoops make the centre read as a solid
+        // machine rather than a flat circle viewed from one direction.
+        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, 0.0F, 0.0F,
+                7.35F * pulse, 0.62F, segments,
+                90.0F, 0.0F, spin * 0.64F, argb(latticeRgb, ringAlpha));
+        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, 0.0F, 0.0F,
+                7.35F * pulse, 0.62F, segments,
+                0.0F, 90.0F, -spin * 0.48F, argb(secondaryRgb, detailAlpha));
 
-    private static void renderCoreLattice(PoseStack poseStack, VertexConsumer consumer,
-            float angle, int visualMode, int color) {
-        poseStack.pushPose();
-        float spin = switch (visualMode) {
-            case 1 -> 0.55F;
-            case 3 -> -1.5F;
-            default -> -0.9F;
-        };
-        poseStack.mulPose(Axis.YP.rotationDegrees(angle * spin));
-        renderTorus(poseStack, consumer, 4.4F, 0.055F, color, 170);
-        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-        renderTorus(poseStack, consumer, 4.4F, 0.055F, color, 170);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
-        renderTorus(poseStack, consumer, 4.4F, 0.055F, color, 170);
-        poseStack.popPose();
-    }
+        PoseStack.Pose pose = poseStack.last();
+        OmniRenderGeometry.octahedron(pose, consumer,
+                new Vec3(0.0D, (pulse - 1.0F) * 2.4D, 0.0D),
+                2.35F * pulse, 3.15F * pulse, 2.35F * pulse,
+                spin * 1.6F, argb(coreRgb, coreAlpha));
+        OmniRenderGeometry.octahedron(pose, consumer,
+                new Vec3(0.0D, 0.0D, 0.0D),
+                1.15F * pulse, 1.85F * pulse, 1.15F * pulse,
+                -spin * 2.2F, argb(fieldRgb, glow ? 92 : 245));
 
-    private static void renderSphere(PoseStack poseStack, VertexConsumer consumer, float radius,
-            int segments, int stacks, int color, int alpha) {
-        var pose = poseStack.last();
-        for (int stack = 0; stack < stacks; stack++) {
-            double latitude0 = -Math.PI / 2.0 + Math.PI * stack / stacks;
-            double latitude1 = -Math.PI / 2.0 + Math.PI * (stack + 1) / stacks;
-            float v0 = (float) stack / stacks;
-            float v1 = (float) (stack + 1) / stacks;
-            for (int segment = 0; segment < segments; segment++) {
-                double longitude0 = Math.PI * 2.0 * segment / segments;
-                double longitude1 = Math.PI * 2.0 * (segment + 1) / segments;
-                float u0 = (float) segment / segments;
-                float u1 = (float) (segment + 1) / segments;
-                emitSphereVertex(pose, consumer, radius, latitude0, longitude0,
-                        u0, v0, color, alpha);
-                emitSphereVertex(pose, consumer, radius, latitude1, longitude0,
-                        u0, v1, color, alpha);
-                emitSphereVertex(pose, consumer, radius, latitude1, longitude1,
-                        u1, v1, color, alpha);
-                emitSphereVertex(pose, consumer, radius, latitude0, longitude1,
-                        u1, v0, color, alpha);
+        // Eight thick radial members visually connect the core to the outer
+        // ring. The mode changes the rotation and the accent colour, while
+        // the geometry itself remains stable and readable.
+        int spokes = effectLevel > 1 ? 8 : 4;
+        for (int index = 0; index < spokes; index++) {
+            double a = Math.PI * 2.0D * index / spokes + Math.toRadians(spin);
+            Vec3 inner = new Vec3(Math.cos(a) * 3.5D, 0.0D,
+                    Math.sin(a) * 3.5D);
+            Vec3 outer = new Vec3(Math.cos(a) * 14.6D,
+                    Math.sin(a * 2.0D + angle * 0.02D) * 0.72D,
+                    Math.sin(a) * 14.6D);
+            OmniRenderGeometry.beam(pose, consumer, inner, outer,
+                    0.18F, 0.13F,
+                    argb(index % 2 == 0 ? primaryRgb : latticeRgb, detailAlpha));
+            if (effectLevel > 1) {
+                OmniRenderGeometry.rune(pose, consumer, outer, 0.55F,
+                        0.10F, (float) Math.toDegrees(a) + 90.0F,
+                        argb(index % 2 == 0 ? secondaryRgb : coreRgb, detailAlpha));
             }
         }
+
+        OmniRenderGeometry.beam(pose, consumer,
+                new Vec3(0.0D, -8.0D, 0.0D),
+                new Vec3(0.0D, 8.0D, 0.0D),
+                0.16F, 0.16F, argb(latticeRgb, detailAlpha));
     }
 
-    private static void emitSphereVertex(PoseStack.Pose pose, VertexConsumer consumer, float radius,
-            double latitude, double longitude, float u, float v,
-            int color, int alpha) {
-        float horizontal = (float) Math.cos(latitude);
-        float normalX = horizontal * (float) Math.cos(longitude);
-        float normalY = (float) Math.sin(latitude);
-        float normalZ = horizontal * (float) Math.sin(longitude);
-        emitVertex(pose, consumer, normalX * radius, normalY * radius, normalZ * radius,
-                normalX, normalY, normalZ, u, v, color, alpha);
-    }
-
-    private static void renderTorus(PoseStack poseStack, VertexConsumer consumer, float radius,
-            float tubeRadius, int color, int alpha) {
-        var pose = poseStack.last();
-        for (int segment = 0; segment < TORUS_SEGMENTS; segment++) {
-            double major0 = Math.PI * 2.0 * segment / TORUS_SEGMENTS;
-            double major1 = Math.PI * 2.0 * (segment + 1) / TORUS_SEGMENTS;
-            float u0 = (float) segment / TORUS_SEGMENTS * 4.0F;
-            float u1 = (float) (segment + 1) / TORUS_SEGMENTS * 4.0F;
-            for (int side = 0; side < TORUS_SIDES; side++) {
-                double minor0 = Math.PI * 2.0 * side / TORUS_SIDES;
-                double minor1 = Math.PI * 2.0 * (side + 1) / TORUS_SIDES;
-                float v0 = (float) side / TORUS_SIDES;
-                float v1 = (float) (side + 1) / TORUS_SIDES;
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major0, minor0,
-                        u0, v0, color, alpha);
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major1, minor0,
-                        u1, v0, color, alpha);
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major1, minor1,
-                        u1, v1, color, alpha);
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major0, minor1,
-                        u0, v1, color, alpha);
-            }
-        }
-    }
-
-    private static void emitTorusVertex(PoseStack.Pose pose, VertexConsumer consumer,
-            float radius, float tubeRadius, double major, double minor,
-            float u, float v, int color, int alpha) {
-        float majorCos = (float) Math.cos(major);
-        float majorSin = (float) Math.sin(major);
-        float minorCos = (float) Math.cos(minor);
-        float minorSin = (float) Math.sin(minor);
-        float ringRadius = radius + tubeRadius * minorCos;
-        float x = ringRadius * majorCos;
-        float y = tubeRadius * minorSin;
-        float z = ringRadius * majorSin;
-        float normalX = minorCos * majorCos;
-        float normalY = minorSin;
-        float normalZ = minorCos * majorSin;
-        emitVertex(pose, consumer, x, y, z, normalX, normalY, normalZ,
-                u, v, color, alpha);
-    }
-
-    private static void emitVertex(PoseStack.Pose pose, VertexConsumer consumer,
-            float x, float y, float z, float normalX, float normalY, float normalZ,
-            float u, float v, int color, int alpha) {
-        consumer.addVertex(pose, x, y, z)
-                .setColor(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, alpha)
-                .setUv(u, v)
-                .setOverlay(OverlayTexture.NO_OVERLAY)
-                .setLight(LightTexture.FULL_BRIGHT)
-                .setNormal(pose, normalX, normalY, normalZ);
+    private static int argb(int rgb, int alpha) {
+        int clamped = Math.max(0, Math.min(255, alpha));
+        return (clamped << 24) | (rgb & 0xFFFFFF);
     }
 
     @Override
@@ -250,6 +168,12 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
 
     @Override
     public AABB getRenderBoundingBox(MolecularCenterBlockEntity center) {
-        return new AABB(center.getBlockPos()).inflate(34.0, 48.0, 34.0);
+        Direction facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        Vec3 origin = MolecularCenterStructure.worldPoint(center.getBlockPos(), facing,
+                MolecularCenterStructure.VISUAL_CENTER_X,
+                MolecularCenterStructure.CORE_Y,
+                MolecularCenterStructure.VISUAL_CENTER_Z);
+        return new AABB(origin.x - 38.0D, origin.y - 18.0D, origin.z - 38.0D,
+                origin.x + 38.0D, origin.y + 18.0D, origin.z + 38.0D);
     }
 }

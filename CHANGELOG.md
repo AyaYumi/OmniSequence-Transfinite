@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Reworked the Omni Computation Core into a three-tier silhouette with two
+  primary orbital rings, eight vertical ribs, a tapered computation crown,
+  and slimmer alternating-height pylons. One-click construction and
+  dismantling now safely recover obsolete decorative blocks from the previous
+  geometry, allowing existing structures to migrate without leaving remnants.
+- Reworked the Sequence Array into a twisted matrix containment array with a
+  solid clipped-octagonal foundation, four pairs of stepped wing pylons,
+  offset stabilizer emitters, local broken bridges, and a supported open
+  diamond roof. Full calibration and dismantling safely recover the previous
+  square four-tower reactor as well as the older circular palace, orbital
+  arches, spires, ground anchor, and inverted crystal geometry.
+
 ## 1.3.9 - 2026-08-04
 
 ### Added

@@ -44,6 +44,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -67,6 +68,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private static final long COMPAT_DISPATCH_MIN_GLOBAL_NANOS = 250_000L;
     private static final String VIRTUAL_CPUS_TAG = "omni_virtual_cpus";
     private static final String SUSPENDED_CPUS_TAG = "omni_suspended_cpus";
+    private static final String VIRTUAL_CPU_LANE_ID_TAG = "omni_lane_id";
+    private static final String VIRTUAL_CPU_STATE_TAG = "omni_cpu_state";
+    private static final String NEXT_VIRTUAL_CPU_LANE_ID_TAG = "omni_next_lane_id";
+    private static final long PRIMARY_CPU_LANE_ID = 0L;
     private static final String QUANTUM_INVENTORY_TAG = "omni_quantum_inventory";
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "omni_legacy_structure_update_dismissed";
@@ -78,8 +83,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                     Collections.synchronizedMap(new WeakHashMap<>());
 
     private final List<CraftingCPUCluster> virtualCpus = new ArrayList<>();
-    private final List<CompoundTag> pendingVirtualCpuStates = new ArrayList<>();
-    private final List<CompoundTag> suspendedCpuStates = new ArrayList<>();
+    private final Map<CraftingCPUCluster, Long> cpuLaneIds = new IdentityHashMap<>();
+    private final List<PersistedCpuState> pendingVirtualCpuStates = new ArrayList<>();
+    private final List<PersistedCpuState> suspendedCpuStates = new ArrayList<>();
     private final AtomicInteger activeMaterialCalculations = new AtomicInteger();
     private final AtomicLong completedMaterialCalculations = new AtomicLong();
     private final AtomicLong lastMaterialCalculationNanos = new AtomicLong();
@@ -91,6 +97,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private boolean structureFormed;
     private boolean legacyStructureUpdateDismissed;
     private boolean restoredCpuState;
+    private long nextVirtualCpuLaneId = 1L;
     private long nextStructureCheck;
     private long dispatchBudgetTick = Long.MIN_VALUE;
     private long dispatchWorkUnitsRemaining;
@@ -110,6 +117,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean building;
     private boolean dismantling;
+    private boolean rebuildingLegacyStructure;
+    private int dismantlableBlocks;
     private List<OmniComputationStructure.Part> buildQueue = List.of();
     private int buildCursor;
     private int buildTotal;
@@ -251,6 +260,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             syncVisualActivity(activeMaterialCalculations.get());
             return;
         }
+        cpuLaneIds.putIfAbsent(primary, PRIMARY_CPU_LANE_ID);
         CPU_OWNERS.put(primary, this);
         restoreAdditionalCpus(primary);
         ensureOneIdleCpu();
@@ -285,6 +295,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         boolean wasFormed = structureFormed;
         inspection = nextInspection;
         structureFormed = nextInspection.formed();
+        dismantlableBlocks = OmniComputationStructure.countDismantlableBlocks(
+                level, worldPosition, facing);
         if (nextInspection.layout() == OmniComputationStructure.StructureLayout.CURRENT) {
             legacyStructureUpdateDismissed = false;
         }
@@ -473,10 +485,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         restoredCpuState = true;
 
         if (!suspendedCpuStates.isEmpty()) {
-            primary.readFromNBT(suspendedCpuStates.getFirst(), level.registryAccess());
+            var primaryState = suspendedCpuStates.getFirst();
+            primary.readFromNBT(primaryState.state(), level.registryAccess());
+            cpuLaneIds.put(primary, PRIMARY_CPU_LANE_ID);
             for (int index = 1; index < suspendedCpuStates.size(); index++) {
-                var cpu = createVirtualCpu();
-                cpu.readFromNBT(suspendedCpuStates.get(index), level.registryAccess());
+                var state = suspendedCpuStates.get(index);
+                var cpu = createVirtualCpu(state.laneId());
+                cpu.readFromNBT(state.state(), level.registryAccess());
             }
             suspendedCpuStates.clear();
             pendingVirtualCpuStates.clear();
@@ -484,20 +499,51 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
 
         for (var state : pendingVirtualCpuStates) {
-            var cpu = createVirtualCpu();
-            cpu.readFromNBT(state, level.registryAccess());
+            var cpu = createVirtualCpu(state.laneId());
+            cpu.readFromNBT(state.state(), level.registryAccess());
         }
         pendingVirtualCpuStates.clear();
     }
 
     private CraftingCPUCluster createVirtualCpu() {
+        return createVirtualCpu(allocateVirtualCpuLaneId());
+    }
+
+    private CraftingCPUCluster createVirtualCpu(long requestedLaneId) {
+        long laneId = claimVirtualCpuLaneId(requestedLaneId);
         var cpu = new CraftingCPUCluster(worldPosition, worldPosition);
         var accessor = (CraftingCPUClusterAccessor) (Object) cpu;
         accessor.molecularmanipulator$addBlockEntity(this);
         accessor.molecularmanipulator$finishCluster();
         virtualCpus.add(cpu);
+        cpuLaneIds.put(cpu, laneId);
         CPU_OWNERS.put(cpu, this);
+        setChanged();
         return cpu;
+    }
+
+    private long allocateVirtualCpuLaneId() {
+        long candidate = Math.max(1L, nextVirtualCpuLaneId);
+        while (cpuLaneIds.containsValue(candidate) && candidate < Long.MAX_VALUE) {
+            candidate++;
+        }
+        if (cpuLaneIds.containsValue(candidate)) {
+            throw new IllegalStateException("OmniSequence virtual CPU lane id space exhausted");
+        }
+        nextVirtualCpuLaneId = candidate == Long.MAX_VALUE ? Long.MAX_VALUE : candidate + 1L;
+        return candidate;
+    }
+
+    private long claimVirtualCpuLaneId(long requestedLaneId) {
+        if (requestedLaneId <= PRIMARY_CPU_LANE_ID
+                || cpuLaneIds.containsValue(requestedLaneId)) {
+            return allocateVirtualCpuLaneId();
+        }
+        if (requestedLaneId >= nextVirtualCpuLaneId) {
+            nextVirtualCpuLaneId = requestedLaneId == Long.MAX_VALUE
+                    ? Long.MAX_VALUE : requestedLaneId + 1L;
+        }
+        return requestedLaneId;
     }
 
     public void ensureOneIdleCpu() {
@@ -524,10 +570,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 var cpu = iterator.next();
                 if (!cpu.isBusy()) {
                     iterator.remove();
+                    cpuLaneIds.remove(cpu);
+                    CPU_OWNERS.remove(cpu, this);
                     if (bridge != null) {
                         bridge.molecularmanipulator$unregisterOmniCpu(cpu);
                     }
                     idleCount--;
+                    setChanged();
                 }
             }
         }
@@ -571,12 +620,28 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         var result = new ArrayList<CraftingCPUCluster>(virtualCpus.size() + 1);
         var primary = getCluster();
         if (primary != null && !primary.isDestroyed()) {
+            cpuLaneIds.putIfAbsent(primary, PRIMARY_CPU_LANE_ID);
             result.add(primary);
         }
-        for (var cpu : virtualCpus) {
-            if (!cpu.isDestroyed()) {
-                result.add(cpu);
+        boolean changed = false;
+        Iterator<CraftingCPUCluster> iterator = virtualCpus.iterator();
+        while (iterator.hasNext()) {
+            var cpu = iterator.next();
+            if (cpu.isDestroyed()) {
+                iterator.remove();
+                cpuLaneIds.remove(cpu);
+                CPU_OWNERS.remove(cpu, this);
+                changed = true;
+                continue;
             }
+            if (!cpuLaneIds.containsKey(cpu)) {
+                cpuLaneIds.put(cpu, allocateVirtualCpuLaneId());
+                changed = true;
+            }
+            result.add(cpu);
+        }
+        if (changed) {
+            setChanged();
         }
         return result;
     }
@@ -936,6 +1001,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return dismantling;
     }
 
+    public int getDismantlableBlocks() {
+        return dismantlableBlocks;
+    }
+
     public int getBuildProgress() {
         return buildCursor;
     }
@@ -972,7 +1041,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                     "message.molecularmanipulator.omni.conflicts", currentInspection.conflicts()), false);
             return;
         }
-        buildQueue = new ArrayList<>(OmniComputationStructure.parts(currentInspection.layout()));
+        buildQueue = new ArrayList<>(OmniComputationStructure.buildParts(currentInspection.layout()));
         buildCursor = 0;
         buildTotal = buildQueue.size();
         buildOwner = player.getUUID();
@@ -1034,8 +1103,24 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
         legacyStructureUpdateDismissed = false;
         refreshStructureNow();
+        // The old implementation only moved the center entangler, leaving the
+        // entire legacy shell in place.  Queue a complete migration: the build
+        // plan first clears every known legacy coordinate, then places the
+        // current reference-inspired square layout.
+        startBuild(player);
+        if (!building) {
+            // A foreign block may occupy a coordinate needed by the new plan.
+            // Restore the legacy marker move so a failed update never leaves a
+            // half-migrated structure behind.
+            level.setBlock(sourcePos, sourceState, 3);
+            level.setBlock(targetPos, Blocks.AIR.defaultBlockState(), 3);
+            refreshStructureNow();
+            return;
+        }
+        rebuildingLegacyStructure = true;
         player.displayClientMessage(Component.translatable(
-                "message.molecularmanipulator.structure_update_complete"), false);
+                "message.molecularmanipulator.structure_update_started"), false);
+        setChanged();
     }
 
     public void keepLegacyStructure(ServerPlayer player) {
@@ -1067,7 +1152,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return;
         }
         refreshStructureNow();
-        if (inspection.correct() <= 1) {
+        // The inspection score is against the current blueprint.  An intact
+        // pre-redesign structure may therefore score only the controller even
+        // though all of its blocks are still removable through the union of
+        // known layout coordinates.
+        int removableBlocks = OmniComputationStructure.countDismantlableBlocks(
+                level, worldPosition, facing);
+        if (removableBlocks <= 0) {
             player.displayClientMessage(
                     Component.translatable("message.molecularmanipulator.omni.nothing_to_dismantle"), false);
             return;
@@ -1117,16 +1208,25 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                     buildCursor++;
                     continue;
                 }
-                player.displayClientMessage(Component.translatable(
-                        "message.molecularmanipulator.omni.build_conflict",
-                        targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
-                stopBuild();
-                return;
+                if (!recoverBuildReplacement(player, targetPos, current)) {
+                    stopBuild();
+                    return;
+                }
+                buildCursor++;
+                placed++;
+                continue;
             }
             var requiredBlock = OmniComputationStructure.block(part.type());
             if (current.is(requiredBlock)) {
                 buildCursor++;
                 continue;
+            }
+            if (OmniComputationStructure.isStructurePart(current)) {
+                if (!recoverBuildReplacement(player, targetPos, current)) {
+                    stopBuild();
+                    return;
+                }
+                current = level.getBlockState(targetPos);
             }
             if (!current.isAir() && !current.canBeReplaced()) {
                 player.displayClientMessage(Component.translatable(
@@ -1160,10 +1260,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
         setChanged();
         if (buildCursor >= buildQueue.size()) {
+            boolean updatedLegacyStructure = rebuildingLegacyStructure;
             stopBuild();
             refreshStructureNow();
             player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.omni.build_complete"), false);
+                    Component.translatable(updatedLegacyStructure
+                            ? "message.molecularmanipulator.structure_update_complete"
+                            : "message.molecularmanipulator.omni.build_complete"), false);
         }
     }
 
@@ -1197,13 +1300,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 buildCursor++;
                 continue;
             }
-            var requiredBlock = OmniComputationStructure.block(part.type());
             var currentState = level.getBlockState(targetPos);
-            if (!currentState.is(requiredBlock)) {
+            if (!OmniComputationStructure.isStructurePart(currentState)
+                    || currentState.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
                 buildCursor++;
                 continue;
             }
-            var recovered = new ItemStack(requiredBlock);
+            var recovered = new ItemStack(currentState.getBlock());
             if (!canStoreDismantledBlock(player, recovered)) {
                 player.displayClientMessage(
                         Component.translatable("message.molecularmanipulator.omni.dismantle_storage_full"), false);
@@ -1228,6 +1331,30 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             player.displayClientMessage(
                     Component.translatable("message.molecularmanipulator.omni.dismantle_complete"), false);
         }
+    }
+
+    private boolean recoverBuildReplacement(ServerPlayer player, BlockPos targetPos, BlockState currentState) {
+        if (!OmniComputationStructure.isStructurePart(currentState)
+                || currentState.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.omni.build_conflict",
+                    targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
+            return false;
+        }
+        var recovered = new ItemStack(currentState.getBlock());
+        if (recovered.isEmpty() || !canStoreDismantledBlock(player, recovered)) {
+            player.displayClientMessage(
+                    Component.translatable("message.molecularmanipulator.omni.dismantle_storage_full"), false);
+            return false;
+        }
+        if (!level.removeBlock(targetPos, false)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.omni.build_conflict",
+                    targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
+            return false;
+        }
+        storeDismantledBlock(player, recovered);
+        return true;
     }
 
     private boolean takeBuildItem(ServerPlayer player, Item required) {
@@ -1293,6 +1420,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     private void stopBuild() {
         building = false;
+        rebuildingLegacyStructure = false;
         buildQueue = List.of();
         buildOwner = null;
         setChanged();
@@ -1315,19 +1443,34 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
         tag.putBoolean(STRUCTURE_FORMED_TAG, structureFormed);
+        tag.putLong(NEXT_VIRTUAL_CPU_LANE_ID_TAG, nextVirtualCpuLaneId);
+        boolean wroteVirtualCpu = false;
         if (!virtualCpus.isEmpty()) {
             var list = new ListTag();
             for (var cpu : virtualCpus) {
+                if (cpu.isDestroyed()) {
+                    continue;
+                }
                 var cpuTag = new CompoundTag();
                 cpu.writeToNBT(cpuTag, registries);
-                list.add(cpuTag);
+                list.add(wrapCpuState(laneId(cpu), cpuTag));
+            }
+            if (!list.isEmpty()) {
+                tag.put(VIRTUAL_CPUS_TAG, list);
+                wroteVirtualCpu = true;
+            }
+        }
+        if (!wroteVirtualCpu && !pendingVirtualCpuStates.isEmpty()) {
+            var list = new ListTag();
+            for (var state : pendingVirtualCpuStates) {
+                list.add(wrapCpuState(state.laneId(), state.state()));
             }
             tag.put(VIRTUAL_CPUS_TAG, list);
         }
         if (!suspendedCpuStates.isEmpty()) {
             var list = new ListTag();
-            for (var cpuTag : suspendedCpuStates) {
-                list.add(cpuTag.copy());
+            for (var state : suspendedCpuStates) {
+                list.add(wrapCpuState(state.laneId(), state.state()));
             }
             tag.put(SUSPENDED_CPUS_TAG, list);
         }
@@ -1340,8 +1483,22 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         legacyStructureUpdateDismissed = tag.getBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG);
         pendingVirtualCpuStates.clear();
         suspendedCpuStates.clear();
-        readCpuTags(tag.getList(VIRTUAL_CPUS_TAG, CompoundTag.TAG_COMPOUND), pendingVirtualCpuStates);
-        readCpuTags(tag.getList(SUSPENDED_CPUS_TAG, CompoundTag.TAG_COMPOUND), suspendedCpuStates);
+        cpuLaneIds.clear();
+        long persistedNextLaneId = tag.contains(NEXT_VIRTUAL_CPU_LANE_ID_TAG, CompoundTag.TAG_LONG)
+                ? tag.getLong(NEXT_VIRTUAL_CPU_LANE_ID_TAG) : 1L;
+        nextVirtualCpuLaneId = Math.max(1L, persistedNextLaneId);
+        var usedLaneIds = new HashSet<Long>();
+        long nextFallbackLaneId = 1L;
+        nextFallbackLaneId = readCpuTags(
+                tag.getList(VIRTUAL_CPUS_TAG, CompoundTag.TAG_COMPOUND),
+                pendingVirtualCpuStates, usedLaneIds, nextFallbackLaneId, false);
+        nextFallbackLaneId = readCpuTags(tag.getList(SUSPENDED_CPUS_TAG, CompoundTag.TAG_COMPOUND),
+                suspendedCpuStates, usedLaneIds, nextFallbackLaneId, true);
+        for (long candidate = nextVirtualCpuLaneId;
+                usedLaneIds.contains(candidate) && candidate < Long.MAX_VALUE; candidate++) {
+            nextVirtualCpuLaneId = candidate + 1L;
+        }
+        nextVirtualCpuLaneId = Math.max(nextVirtualCpuLaneId, nextFallbackLaneId);
         restoredCpuState = false;
         // Restore the last validated structure state optimistically so AE2's early
         // subtype callbacks do not turn off a persisted active model before the first
@@ -1355,20 +1512,105 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         quantumLinkState = MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
     }
 
-    private static void readCpuTags(ListTag list, List<CompoundTag> output) {
+    private static CompoundTag wrapCpuState(long laneId, CompoundTag state) {
+        var entry = new CompoundTag();
+        entry.putLong(VIRTUAL_CPU_LANE_ID_TAG, laneId);
+        entry.put(VIRTUAL_CPU_STATE_TAG, state.copy());
+        return entry;
+    }
+
+    private static long readCpuTags(ListTag list, List<PersistedCpuState> output,
+            Set<Long> usedLaneIds, long nextFallbackLaneId, boolean firstEntryIsPrimary) {
         for (int index = 0; index < list.size(); index++) {
-            output.add(list.getCompound(index).copy());
+            var entry = list.getCompound(index);
+            boolean wrapped = entry.contains(VIRTUAL_CPU_STATE_TAG, CompoundTag.TAG_COMPOUND);
+            var state = wrapped ? entry.getCompound(VIRTUAL_CPU_STATE_TAG).copy() : entry.copy();
+            long laneId;
+            if (firstEntryIsPrimary && index == 0) {
+                // The suspended list's first entry is the physical controller CPU.
+                // Keep the primary lane invariant even if an older/corrupt tag
+                // contains a non-zero lane id for that entry.
+                laneId = PRIMARY_CPU_LANE_ID;
+            } else if (wrapped && entry.contains(VIRTUAL_CPU_LANE_ID_TAG, CompoundTag.TAG_LONG)) {
+                laneId = entry.getLong(VIRTUAL_CPU_LANE_ID_TAG);
+            } else {
+                laneId = nextUnusedLaneId(usedLaneIds, nextFallbackLaneId);
+            }
+
+            boolean primarySlot = firstEntryIsPrimary && index == 0;
+            if (laneId < PRIMARY_CPU_LANE_ID || (!primarySlot && laneId == PRIMARY_CPU_LANE_ID)
+                    || usedLaneIds.contains(laneId)) {
+                laneId = nextUnusedLaneId(usedLaneIds, nextFallbackLaneId);
+            }
+            usedLaneIds.add(laneId);
+            output.add(new PersistedCpuState(laneId, state));
+            if (laneId >= nextFallbackLaneId && laneId < Long.MAX_VALUE) {
+                nextFallbackLaneId = laneId + 1L;
+            }
         }
+        return nextFallbackLaneId;
+    }
+
+    private static long nextUnusedLaneId(Set<Long> usedLaneIds, long candidate) {
+        long next = Math.max(1L, candidate);
+        while (usedLaneIds.contains(next) && next < Long.MAX_VALUE) {
+            next++;
+        }
+        return next;
     }
 
     public static OmniComputationCoreBlockEntity ownerOf(CraftingCPUCluster cpu) {
         return CPU_OWNERS.get(cpu);
     }
 
+    /**
+     * Returns the controller-local persistent lane number. The physical CPU is
+     * always lane 0; virtual lanes use monotonically allocated positive IDs.
+     */
+    public long laneId(CraftingCPUCluster cpu) {
+        if (cpu == null) {
+            return -1L;
+        }
+        var known = cpuLaneIds.get(cpu);
+        if (known != null) {
+            return known;
+        }
+        if (cpu == getCluster()) {
+            cpuLaneIds.put(cpu, PRIMARY_CPU_LANE_ID);
+            return PRIMARY_CPU_LANE_ID;
+        }
+        int index = virtualCpus.indexOf(cpu);
+        if (index < 0) {
+            return -1L;
+        }
+        long assigned = allocateVirtualCpuLaneId();
+        cpuLaneIds.put(cpu, assigned);
+        setChanged();
+        return assigned;
+    }
+
+    /**
+     * Stable, local-only identity for diagnostics and future integrations.
+     * This mod does not register a Data Energistics integration.
+     */
+    public String laneStableId(CraftingCPUCluster cpu) {
+        long id = laneId(cpu);
+        if (id < 0L) {
+            return "omnisequence:unknown";
+        }
+        String dimension = level == null ? "unknown" : level.dimension().location().toString();
+        return "omnisequence:" + dimension + ":" + worldPosition.asLong() + ":" + id;
+    }
+
     public String laneName(CraftingCPUCluster cpu) {
-        var all = allCpus();
-        int index = all.indexOf(cpu);
-        return index < 0 ? "?" : Integer.toString(index + 1);
+        long id = laneId(cpu);
+        if (id < 0L) {
+            return "?";
+        }
+        return Long.toString(id == Long.MAX_VALUE ? Long.MAX_VALUE : id + 1L);
+    }
+
+    private record PersistedCpuState(long laneId, CompoundTag state) {
     }
 
     private static int saturatedInt(long value) {

@@ -62,6 +62,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
     public boolean legacyStructure;
     @GuiSync(19)
     public boolean legacyStructureUpdateDismissed;
+    @GuiSync(20)
+    public int dismantlableBlocks;
 
     private final OmniComputationCoreBlockEntity core;
 
@@ -169,6 +171,7 @@ public final class OmniComputationMenu extends AEBaseMenu {
             quantumLinkState = core.getQuantumLinkState();
             legacyStructure = core.hasLegacyStructure();
             legacyStructureUpdateDismissed = core.isLegacyStructureUpdateDismissed();
+            dismantlableBlocks = core.getDismantlableBlocks();
         }
         super.broadcastChanges();
     }

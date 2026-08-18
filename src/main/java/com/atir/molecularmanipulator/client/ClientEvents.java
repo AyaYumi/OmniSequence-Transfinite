@@ -4,6 +4,7 @@ import appeng.init.client.InitScreens;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
+import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -26,6 +27,7 @@ public final class ClientEvents {
                 "/screens/molecular_manipulator.json");
         event.register(ModContent.MOLECULAR_CENTER_MENU.get(), MolecularCenterScreen::new);
         event.register(ModContent.OMNI_COMPUTATION_MENU.get(), OmniComputationScreen::new);
+        event.register(ModContent.MATTER_FABRICATION_MENU.get(), MatterFabricationScreen::new);
     }
 
     @SubscribeEvent
@@ -34,6 +36,8 @@ public final class ClientEvents {
                 MolecularCenterRenderer::new);
         event.registerBlockEntityRenderer(ModContent.OMNI_COMPUTATION_CONTROLLER_BE.get(),
                 OmniComputationRenderer::new);
+        event.registerBlockEntityRenderer(ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(),
+                MatterFabricationRenderer::new);
     }
 
     @SubscribeEvent
@@ -41,6 +45,7 @@ public final class ClientEvents {
         event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
             MolecularCenterGhostPreview.onResourceReload();
             OmniComputationGhostPreview.onResourceReload();
+            MatterFabricationGhostPreview.onResourceReload();
         });
     }
 }

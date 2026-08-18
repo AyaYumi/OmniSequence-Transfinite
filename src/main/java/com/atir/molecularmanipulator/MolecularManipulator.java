@@ -16,6 +16,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import org.slf4j.Logger;
@@ -43,6 +44,11 @@ public final class MolecularManipulator {
                 ModContent.MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.OMNI_COMPUTATION_CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
+                ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(),
+                (blockEntity, side) -> blockEntity.getExposedItemHandler(side));
     }
 
     private void serverAboutToStart(ServerAboutToStartEvent event) {

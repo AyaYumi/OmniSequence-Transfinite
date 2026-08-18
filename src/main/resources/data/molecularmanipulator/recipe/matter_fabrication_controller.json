@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {"item": "molecularmanipulator:matter_fabrication_casing"},
+    "K": {"item": "molecularmanipulator:matter_fabrication_core"},
+    "S": {"item": "molecularmanipulator:matter_fabrication_stabilizer"},
+    "U": {"item": "ae2:crafting_unit"}
+  },
+  "pattern": [
+    "CSC",
+    "UKU",
+    "CSC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "molecularmanipulator:matter_fabrication_controller"
+  }
+}

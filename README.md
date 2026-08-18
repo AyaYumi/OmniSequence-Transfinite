@@ -20,9 +20,8 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 
 Current release: `1.3.9`
 
-See the [1.3.9 changelog](CHANGELOG.md#139---2026-08-04) for the complete
-change list. The [bilingual 1.3.8 release notes](RELEASE_NOTES_1.3.8.md)
-remain available for upgrades from older installations.
+See [CHANGELOG.md](CHANGELOG.md) for the complete change list and upgrade
+history.
 
 Third-party pattern-holding machines can opt into atomic material batching
 through the [Omni Batch Provider API v1](docs/omni-batch-provider-api.md).
@@ -194,4 +193,5 @@ Build artifact:
 build/libs/omnisequence-transfinite-1.3.9.jar
 ```
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and [RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md) for installation and upgrade notes. This project is licensed under the [MIT License](LICENSE).
+See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade
+notes. This project is licensed under the [MIT License](LICENSE).

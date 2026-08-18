@@ -128,9 +128,6 @@
 - Blocking AE2 and ExtendedAE pattern providers now retain serial dispatch
   semantics when connected to OmniSequence batch-crafting providers.
 
-See [RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md) for the complete bilingual
-release and upgrade notes.
-
 ## 1.3.7 - 2026-07-30
 
 ### Changed
@@ -191,9 +188,6 @@ release and upgrade notes.
 - The AE2 crafting CPU selector now renders a compact localized Omni lane name
   inside its narrow row while retaining the complete name in the tooltip.
 
-See [RELEASE_NOTES_1.3.7.md](RELEASE_NOTES_1.3.7.md) for the complete bilingual
-release and upgrade notes.
-
 ## 1.3.6 - 2026-07-29
 
 ### Added
@@ -215,9 +209,6 @@ release and upgrade notes.
   stonecutting patterns.
 - Marked only Expanded AE 2.1.1 as incompatible in NeoForge metadata. AppliedFlux,
   ExtendedAE, and later NeoForge 21.1 patch releases are not conflict entries.
-
-See [RELEASE_NOTES_1.3.6.md](RELEASE_NOTES_1.3.6.md) for the complete bilingual
-release and upgrade notes.
 
 ## 1.3.5-fix - 2026-07-28
 
@@ -249,9 +240,6 @@ release and upgrade notes.
 - Removed production-unsafe Mixin helper class loading and routed the AE2 long
   amount widget through an application bridge, fixing startup and crafting
   amount screen class-loading crashes.
-
-See `RELEASE_NOTES_1.3.5-fix.md` for installation notes, dispatch behavior and
-compatibility limits.
 
 ## 1.3.5 - 2026-07-27
 

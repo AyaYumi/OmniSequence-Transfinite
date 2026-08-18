@@ -20,8 +20,7 @@
 
 当前版本：`1.3.9`
 
-完整改动见 [1.3.9 更新日志](CHANGELOG.md#139---2026-08-04)；从更早版本升级时，
-仍可参考 [1.3.8 双语发布说明](RELEASE_NOTES_1.3.8.md)。
+完整改动与升级历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 第三方持样板机器可通过
 [万物演算批量样板供应器 API v1](docs/omni-batch-provider-api.md)，
@@ -185,5 +184,5 @@ config/molecularmanipulator/matter_rewrite_rules.json
 build/libs/omnisequence-transfinite-1.3.9.jar
 ```
 
-版本变化见 [CHANGELOG.md](CHANGELOG.md)，安装与升级说明见
-[RELEASE_NOTES_1.3.8.md](RELEASE_NOTES_1.3.8.md)。本项目使用 [MIT License](LICENSE)。
+版本变化、安装与升级说明见 [CHANGELOG.md](CHANGELOG.md)。本项目使用
+[MIT License](LICENSE)。

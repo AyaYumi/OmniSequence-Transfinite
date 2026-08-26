@@ -9,10 +9,10 @@ branches. The default `main` branch intentionally contains only this index.
 
 ## Source branches
 
-| Minecraft | Loader | Release | Branch |
-| --- | --- | --- | --- |
-| 1.21.1 | NeoForge | 1.3.9 | [`1.21.1-neoforge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.21.1-neoforge) |
-| 1.20.1 | Forge | 1.3.7-forge-fix | [`1.20.1-forge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.20.1-forge) |
+| Minecraft | Loader | Branch |
+| --- | --- | --- |
+| 1.21.1 | NeoForge | [`1.21.1-neoforge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.21.1-neoforge) |
+| 1.20.1 | Forge | [`1.20.1-forge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.20.1-forge) |
 
 ---
 
@@ -23,7 +23,7 @@ ExtendedAE 扩展模组，提供大规模自动合成、材料调度、量子跨
 
 ## 源码分支
 
-| Minecraft | 加载器 | 版本 | 分支 |
-| --- | --- | --- | --- |
-| 1.21.1 | NeoForge | 1.3.9 | [`1.21.1-neoforge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.21.1-neoforge) |
-| 1.20.1 | Forge | 1.3.7-forge-fix | [`1.20.1-forge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.20.1-forge) |
+| Minecraft | 加载器 | 分支 |
+| --- | --- | --- |
+| 1.21.1 | NeoForge | [`1.21.1-neoforge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.21.1-neoforge) |
+| 1.20.1 | Forge | [`1.20.1-forge`](https://github.com/AyaYumi/OmniSequence-Transfinite/tree/1.20.1-forge) |

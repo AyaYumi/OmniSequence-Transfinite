@@ -1,6 +1,8 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.networking.IGrid;
+import appeng.api.networking.crafting.ICraftingService;
+import com.appliedenhancements.api.AelisCraftingPlanner;
 import appeng.api.networking.crafting.CalculationStrategy;
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingSimulationRequester;
@@ -9,14 +11,8 @@ import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftBranchFailure;
 import appeng.crafting.CraftingCalculation;
 import appeng.crafting.CraftingTreeNode;
-import appeng.crafting.CraftingTreeProcess;
 import appeng.crafting.inv.CraftingSimulationState;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
-import com.atir.molecularmanipulator.config.ModConfig;
-import com.atir.molecularmanipulator.crafting.maxfast.OmniMaxFastMode;
-import com.atir.molecularmanipulator.crafting.maxfast.OmniMaxFastPlanner;
-import com.atir.molecularmanipulator.integration.ae2.OmniCraftingTreeNodeBridge;
-import com.atir.molecularmanipulator.integration.ae2.OmniCraftingTreeProcessBridge;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -28,20 +24,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.ArrayDeque;
-import java.util.IdentityHashMap;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 
-@Mixin(value = CraftingCalculation.class, remap = false)
+@Mixin(value = CraftingCalculation.class, priority = 1100, remap = false)
 public abstract class OmniCraftingCalculationMixin {
     @Unique
-    private static final int MOLECULARMANIPULATOR_MAX_BACKGROUND_CALCULATIONS =
+    private static final int OMNISEQUENCE_MAX_BACKGROUND_CALCULATIONS =
             Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors() / 2));
     @Unique
-    private static final Semaphore MOLECULARMANIPULATOR_CALCULATION_SLOTS =
-            new Semaphore(MOLECULARMANIPULATOR_MAX_BACKGROUND_CALCULATIONS, true);
+    private static final Semaphore OMNISEQUENCE_CALCULATION_SLOTS =
+            new Semaphore(OMNISEQUENCE_MAX_BACKGROUND_CALCULATIONS, true);
     @Unique
-    private static final Semaphore MOLECULARMANIPULATOR_INTERACTIVE_SLOT = new Semaphore(1, true);
+    private static final Semaphore OMNISEQUENCE_INTERACTIVE_SLOT = new Semaphore(1, true);
 
     @Shadow
     abstract void handlePausing() throws InterruptedException;
@@ -53,197 +48,138 @@ public abstract class OmniCraftingCalculationMixin {
     public abstract boolean isSimulation();
 
     @Unique
-    private OmniComputationCoreBlockEntity molecularmanipulator$omniController;
+    private OmniComputationCoreBlockEntity omnisequence$omniController;
     @Unique
-    private boolean molecularmanipulator$interactiveRequest;
+    private boolean omnisequence$interactiveRequest;
     @Unique
-    private OmniMaxFastPlanner.Session molecularmanipulator$maxFastSession;
+    private AelisCraftingPlanner omnisequence$aelisSession;
     @Unique
-    private long molecularmanipulator$maxFastNodeCount = -1;
+    private ICraftingService omnisequence$craftingService;
+    @Unique
+    private boolean omnisequence$automaticAelis;
+    @Unique
+    private long omnisequence$aelisNodeCount = -1;
 
     @Inject(method = "<init>", at = @At("RETURN"))
-    private void molecularmanipulator$findOmniController(Level level, IGrid grid,
+    private void omnisequence$findOmniController(Level level, IGrid grid,
             ICraftingSimulationRequester requester, GenericStack output,
             CalculationStrategy strategy, CallbackInfo callback) {
+        omnisequence$craftingService = grid.getCraftingService();
+        // Match the prerequisite's per-calculation snapshot. If its automatic
+        // integration owns this calculation, do not invoke the API a second time.
+        omnisequence$automaticAelis = com.appliedenhancements.Config.ENABLE_AUTOMATIC_AELIS_PLANNER.get();
         for (var controller : grid.getMachines(OmniComputationCoreBlockEntity.class)) {
             if (controller.isMaterialCalculationEnabled()) {
-                molecularmanipulator$omniController = controller;
+                omnisequence$omniController = controller;
                 break;
             }
         }
         var source = requester.getActionSource();
-        molecularmanipulator$interactiveRequest = source != null && source.player().isPresent();
+        omnisequence$interactiveRequest = source != null && source.player().isPresent();
     }
 
     @WrapMethod(method = "run")
-    private ICraftingPlan molecularmanipulator$trackOmniCalculation(
+    private ICraftingPlan omnisequence$trackOmniCalculation(
             Operation<ICraftingPlan> original) {
-        var controller = molecularmanipulator$omniController;
+        var controller = omnisequence$omniController;
         if (controller == null) {
             return original.call();
         }
 
         boolean backgroundSlot = false;
         boolean interactiveSlot = false;
-        if (molecularmanipulator$interactiveRequest) {
-            backgroundSlot = MOLECULARMANIPULATOR_CALCULATION_SLOTS.tryAcquire();
-            if (!backgroundSlot) {
-                MOLECULARMANIPULATOR_INTERACTIVE_SLOT.acquireUninterruptibly();
-                interactiveSlot = true;
+        if (Thread.currentThread().isInterrupted()) {
+            throw new CancellationException("Crafting calculation was cancelled before execution");
+        }
+        if (!omnisequence$automaticAelis) {
+            if (omnisequence$interactiveRequest) {
+                backgroundSlot = OMNISEQUENCE_CALCULATION_SLOTS.tryAcquire();
+                if (!backgroundSlot) {
+                    omnisequence$acquireCalculationSlot(
+                            OMNISEQUENCE_INTERACTIVE_SLOT);
+                    interactiveSlot = true;
+                }
+            } else {
+                omnisequence$acquireCalculationSlot(
+                        OMNISEQUENCE_CALCULATION_SLOTS);
+                backgroundSlot = true;
             }
-        } else {
-            MOLECULARMANIPULATOR_CALCULATION_SLOTS.acquireUninterruptibly();
-            backgroundSlot = true;
         }
         long startedAt = System.nanoTime();
-        controller.beginMaterialCalculation();
+        boolean controllerStarted = false;
         try {
+            if (Thread.currentThread().isInterrupted()) {
+                throw new CancellationException(
+                        "Crafting calculation was cancelled before execution");
+            }
+            controller.beginMaterialCalculation();
+            controllerStarted = true;
             return original.call();
         } finally {
-            controller.finishMaterialCalculation(System.nanoTime() - startedAt);
+            if (controllerStarted) {
+                controller.finishMaterialCalculation(System.nanoTime() - startedAt);
+            }
             if (backgroundSlot) {
-                MOLECULARMANIPULATOR_CALCULATION_SLOTS.release();
+                OMNISEQUENCE_CALCULATION_SLOTS.release();
             }
             if (interactiveSlot) {
-                MOLECULARMANIPULATOR_INTERACTIVE_SLOT.release();
+                OMNISEQUENCE_INTERACTIVE_SLOT.release();
             }
+        }
+    }
+
+    @Unique
+    private static void omnisequence$acquireCalculationSlot(Semaphore semaphore) {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException(
+                    "Crafting calculation was cancelled while waiting for an execution slot");
         }
     }
 
 
     @WrapOperation(method = "runCraftAttempt", at = @At(value = "INVOKE",
             target = "Lappeng/crafting/CraftingTreeNode;request(Lappeng/crafting/inv/CraftingSimulationState;JLappeng/api/stacks/KeyCounter;)V"))
-    private void molecularmanipulator$aggregateSafeRecipeTree(CraftingTreeNode tree,
+    private void omnisequence$aggregateSafeRecipeTree(CraftingTreeNode tree,
             CraftingSimulationState inventory, long requestedAmount, KeyCounter containerItems,
             Operation<Void> original) throws CraftBranchFailure, InterruptedException {
-        molecularmanipulator$maxFastNodeCount = -1;
-        var controller = molecularmanipulator$omniController;
-        if (controller == null || !controller.isMaterialCalculationEnabled()
-                || containerItems != null || ModConfig.OMNI_MAX_FAST_MODE.get() != OmniMaxFastMode.SAFE) {
+        omnisequence$aelisNodeCount = -1;
+        var controller = omnisequence$omniController;
+        if (omnisequence$automaticAelis || controller == null
+                || !controller.isMaterialCalculationEnabled() || containerItems != null) {
             original.call(tree, inventory, requestedAmount, containerItems);
             return;
         }
-
-        var session = molecularmanipulator$maxFastSession;
-        if (session == null) {
-            session = new OmniMaxFastPlanner.Session(
-                    ModConfig.OMNI_MAX_FAST_MAX_NODES.get(),
-                    ModConfig.OMNI_MAX_FAST_COMPILE_BUDGET_MS.get(),
-                    this::handlePausing);
-            molecularmanipulator$maxFastSession = session;
+        var planner = omnisequence$aelisSession;
+        if (planner == null) {
+            planner = AelisCraftingPlanner.createConfigured(this::handlePausing,
+                    AelisCraftingPlanner.ProgressListener.NONE, omnisequence$craftingService);
+            omnisequence$aelisSession = planner;
         }
-
-        KeyCounter missingItems = getMissingItems();
-        var missingSnapshot = new KeyCounter();
-        missingSnapshot.addAll(missingItems);
-        var possibleSnapshot = molecularmanipulator$snapshotPossibleStates(tree);
-
-        OmniMaxFastPlanner.Result result;
-        try {
-            result = session.tryExecute(
-                    tree, inventory, requestedAmount, isSimulation(), missingItems);
-        } catch (InterruptedException | RuntimeException | Error failure) {
-            molecularmanipulator$restoreAttemptState(
-                    tree, missingItems, missingSnapshot, possibleSnapshot);
-            throw failure;
-        }
-        if (!result.applied()) {
-            molecularmanipulator$restoreAttemptState(
-                    tree, missingItems, missingSnapshot, possibleSnapshot);
-        }
-        if (result.branchFailure() != null) {
-            throw result.branchFailure();
-        }
+        var result = planner.tryExecute(tree, inventory, requestedAmount, isSimulation(), getMissingItems());
+        if (result.branchFailure() != null) throw result.branchFailure();
         if (result.applied()) {
             if (!result.nativeNodeCount()) {
-                molecularmanipulator$maxFastNodeCount = Math.min(
-                        result.logicalNodeCount(), Long.MAX_VALUE / 8);
-            }
-            if (ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
-                com.atir.molecularmanipulator.MolecularManipulator.LOGGER.info(
-                        "Omni MAX_FAST applied: amount={}, uniqueNodes={}, mergedOccurrences={}, barriers={}, logicalNodes={}, compileMs={}, executeMs={}",
-                        requestedAmount, result.uniqueNodes(), result.mergedOccurrences(),
-                        result.barrierCount(), result.logicalNodeCount(),
-                        result.compileNanos() / 1_000_000.0,
-                        result.executionNanos() / 1_000_000.0);
+                omnisequence$aelisNodeCount = Math.min(result.logicalNodeCount(), Long.MAX_VALUE / 8);
             }
             return;
         }
-
         if (result.error() != null) {
             com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
-                    "Omni MAX_FAST encountered an internal compatibility error and fell back to AE2",
-                    result.error());
-        } else if (ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.info(
-                    "Omni MAX_FAST fallback: amount={}, reason={}, uniqueNodes={}, mergedOccurrences={}, barriers={}, compileMs={}, executeMs={}",
-                    requestedAmount, result.fallbackReason(), result.uniqueNodes(),
-                    result.mergedOccurrences(), result.barrierCount(),
-                    result.compileNanos() / 1_000_000.0,
-                    result.executionNanos() / 1_000_000.0);
+                    "Omni AELIS API request fell back to AE2", result.error());
         }
+        // The public API restores candidate and missing-item state on fallback.
         original.call(tree, inventory, requestedAmount, containerItems);
-    }
-
-    @Unique
-    private static IdentityHashMap<CraftingTreeProcess, Boolean>
-            molecularmanipulator$snapshotPossibleStates(CraftingTreeNode root) {
-        var result = new IdentityHashMap<CraftingTreeProcess, Boolean>();
-        molecularmanipulator$visitBuiltProcesses(root, process -> result.put(
-                process,
-                ((OmniCraftingTreeProcessBridge) process).molecularmanipulator$isPossible()));
-        return result;
-    }
-
-    @Unique
-    private static void molecularmanipulator$restoreAttemptState(
-            CraftingTreeNode root, KeyCounter missingItems, KeyCounter missingSnapshot,
-            IdentityHashMap<CraftingTreeProcess, Boolean> possibleSnapshot) {
-        missingItems.clear();
-        missingItems.addAll(missingSnapshot);
-        molecularmanipulator$visitBuiltProcesses(root, process -> {
-            Boolean previous = possibleSnapshot.get(process);
-            ((OmniCraftingTreeProcessBridge) process).molecularmanipulator$setPossible(
-                    previous == null || previous);
-        });
-    }
-
-    @Unique
-    private static void molecularmanipulator$visitBuiltProcesses(
-            CraftingTreeNode root,
-            java.util.function.Consumer<CraftingTreeProcess> visitor) {
-        var pending = new ArrayDeque<CraftingTreeNode>();
-        var visited = new IdentityHashMap<CraftingTreeNode, Boolean>();
-        pending.addLast(root);
-        while (!pending.isEmpty()) {
-            CraftingTreeNode node = pending.removeFirst();
-            if (visited.put(node, Boolean.TRUE) != null) {
-                continue;
-            }
-            var bridge = (OmniCraftingTreeNodeBridge) node;
-            var processes = bridge.molecularmanipulator$getProcesses();
-            if (processes == null) {
-                continue;
-            }
-            for (CraftingTreeProcess process : processes) {
-                visitor.accept(process);
-                var processBridge = (OmniCraftingTreeProcessBridge) process;
-                var children = processBridge.molecularmanipulator$getChildNodes();
-                if (children != null) {
-                    for (CraftingTreeNode child : children.keySet()) {
-                        pending.addLast(child);
-                    }
-                }
-            }
-        }
     }
 
     @WrapOperation(method = "runCraftAttempt", at = @At(value = "INVOKE",
             target = "Lappeng/crafting/CraftingTreeNode;getNodeCount()J"))
-    private long molecularmanipulator$useAggregatedNodeCount(CraftingTreeNode tree,
+    private long omnisequence$useAggregatedNodeCount(CraftingTreeNode tree,
             Operation<Long> original) {
-        return molecularmanipulator$maxFastNodeCount >= 0
-                ? molecularmanipulator$maxFastNodeCount
+        return omnisequence$aelisNodeCount >= 0
+                ? omnisequence$aelisNodeCount
                 : original.call(tree);
     }
 }

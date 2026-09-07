@@ -10,16 +10,18 @@ import appeng.api.util.AECableType;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.blockentity.crafting.PatternProviderBlockEntity;
 import appeng.crafting.CraftingEvent;
+import appeng.helpers.patternprovider.PatternContainer;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.me.helpers.MachineSource;
 import appeng.menu.ISubMenu;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuHostLocator;
-import appeng.util.SettingsFrom;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
+import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -27,12 +29,10 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -40,7 +40,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 
-public final class MolecularManipulatorBlockEntity extends PatternProviderBlockEntity {
+public final class MolecularManipulatorBlockEntity extends PatternProviderBlockEntity
+        implements SegmentedPatternContainerHost {
     public static final int PATTERN_SLOTS = 360;
     public static final int PATTERNS_PER_PAGE = 36;
     public static final long VIRTUAL_PARALLEL_LIMIT = Integer.MAX_VALUE;
@@ -51,6 +52,8 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             "active_reusable_batch";
 
     private final MachineSource actionSource = new MachineSource(this);
+    private final SegmentedPatternContainers terminalPatternContainers =
+            new SegmentedPatternContainers(this);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
     private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
@@ -76,19 +79,24 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         return ((MolecularManipulatorLogic) getLogic()).getPatternRevision();
     }
 
+    @Override
+    public List<PatternContainer> molecularmanipulator$getTerminalPatternContainers() {
+        return terminalPatternContainers.getContainers();
+    }
+
     boolean hasActiveReusableBatch() {
         return activeReusableBatch != null
                 || quarantinedReusableBatchTag != null;
     }
 
     public boolean hasRemovalRecovery() {
-        return hasActiveReusableBatch() || !bufferedOutputs.isEmpty();
+        return hasActiveReusableBatch() || !bufferedOutputs.isEmpty()
+                || RetainedBlockContents.hasPatternContents(this);
     }
 
     @Override
     public void addAdditionalDrops(Level level, BlockPos pos,
             List<ItemStack> drops) {
-        super.addAdditionalDrops(level, pos, drops);
         if (hasRemovalRecovery()) {
             drops.add(createRemovalRecovery(level.registryAccess()));
         }
@@ -105,12 +113,8 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
 
     private ItemStack createRemovalRecovery(
             HolderLookup.Provider registries) {
-        var recovery = new ItemStack(getBlockState().getBlock());
-        var settings = DataComponentMap.builder();
-        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
-        recovery.applyComponents(settings.build());
-
         var payload = new CompoundTag();
+        getLogic().writeToNBT(payload, registries);
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
             if (entry.getKey() != null && entry.getLongValue() > 0) {
@@ -121,8 +125,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         }
         payload.put(OUTPUT_BUFFER_TAG, outputList);
         writeReusableBatchRecovery(payload, registries);
-        BlockItem.setBlockEntityData(recovery, getType(), payload);
-        return recovery;
+        return RetainedBlockContents.createDrop(this, payload);
     }
 
     private void writeReusableBatchRecovery(CompoundTag tag,
@@ -316,6 +319,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
 
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
+        tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
         bufferedOutputs.clear();
         var outputList = tag.getList(OUTPUT_BUFFER_TAG, Tag.TAG_COMPOUND);

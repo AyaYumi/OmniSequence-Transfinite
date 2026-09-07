@@ -542,6 +542,7 @@ public abstract class PatternProviderLogicMixin
 
     @Inject(method = "clearContent", at = @At("TAIL"))
     private void molecularmanipulator$clearBalancedBatchState(CallbackInfo callback) {
+        molecularmanipulator$legacyBatchRefund.clear();
         molecularmanipulator$initialBatchAmounts.clear();
         molecularmanipulator$queuedBatchAmounts.clear();
         molecularmanipulator$balancingBatch = false;

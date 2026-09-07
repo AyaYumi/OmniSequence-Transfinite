@@ -1,14 +1,14 @@
 package com.atir.molecularmanipulator.client;
 
+import appeng.client.gui.style.ScreenStyle;
+import appeng.menu.AEBaseMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 
 import java.util.List;
 
@@ -16,15 +16,21 @@ import java.util.List;
  * Keeps oversized controller screens usable at high GUI scales without moving
  * their slots away from the matching server-side menu coordinates.
  */
-abstract class ResponsiveContainerScreen<T extends AbstractContainerMenu>
-        extends AbstractContainerScreen<T> {
+abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
+        extends RestorableContainerScreen<T> {
     private static final int SCREEN_MARGIN = 4;
     private boolean renderingScaledContent;
     private int rawMouseX;
     private int rawMouseY;
 
-    protected ResponsiveContainerScreen(T menu, Inventory playerInventory, Component title) {
-        super(menu, playerInventory, title);
+    protected ResponsiveContainerScreen(T menu, Inventory playerInventory, Component title,
+            ScreenStyle style) {
+        super(menu, playerInventory, title, style);
+    }
+
+    @Override
+    protected boolean shouldAddToolbar() {
+        return false;
     }
 
     @Override
@@ -34,7 +40,6 @@ abstract class ResponsiveContainerScreen<T extends AbstractContainerMenu>
         float scale = responsiveScale();
         if (scale >= 1.0F) {
             super.render(graphics, mouseX, mouseY, partialTick);
-            renderTooltip(graphics, mouseX, mouseY);
             return;
         }
 
@@ -50,13 +55,12 @@ abstract class ResponsiveContainerScreen<T extends AbstractContainerMenu>
             graphics.pose().popPose();
             renderingScaledContent = false;
         }
-        renderTooltip(graphics, mouseX, mouseY);
     }
 
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         if (renderingScaledContent) {
-            renderBg(graphics, partialTick, mouseX, mouseY);
+            super.renderBg(graphics, partialTick, mouseX, mouseY);
         } else {
             super.renderBackground(graphics, mouseX, mouseY, partialTick);
         }
@@ -117,8 +121,7 @@ abstract class ResponsiveContainerScreen<T extends AbstractContainerMenu>
      * its GUI context then applies the inverse responsive pose exactly once.</p>
      */
     protected final void addResponsiveModularWidget(ModularUI.ModularUIWidget widget) {
-        addWidget(widget);
-        addRenderableOnly((graphics, ignoredMouseX, ignoredMouseY, partialTick) ->
+        addScreenWidget(widget, (graphics, ignoredMouseX, ignoredMouseY, partialTick) ->
                 widget.render(graphics, rawMouseX, rawMouseY, partialTick));
     }
 

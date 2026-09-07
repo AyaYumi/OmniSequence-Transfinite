@@ -1,0 +1,20 @@
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def regression = sourceSets.create('multiblockRegression') {
+            java.srcDir file('tools/gametest/java')
+            resources.srcDir file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        server.gameDirectory = file('build/multiblock-regression-run')
+        server.systemProperty('blueprint.verification.output', file('build/reports/multiblock-regression').absolutePath)
+        tasks.named('compileMultiblockRegressionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

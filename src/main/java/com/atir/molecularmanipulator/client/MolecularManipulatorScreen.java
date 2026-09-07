@@ -1,18 +1,16 @@
 package com.atir.molecularmanipulator.client;
 
-import appeng.client.gui.AEBaseScreen;
 import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.util.List;
 
-public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularManipulatorMenu> {
+public final class MolecularManipulatorScreen extends RestorableContainerScreen<MolecularManipulatorMenu> {
     private static final int HIDDEN_SLOT_POSITION = -10_000;
     private static final int SEARCH_DEBOUNCE_TICKS = 5;
 
@@ -43,22 +41,20 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
         }
         super.init();
         menu.setPatternSearchIndexListener(this::acceptPatternSearchIndexChunk);
-        patternSearch = new EditBox(font, leftPos + 62, topPos + 36, 116, 14,
-                Component.translatable("gui.molecularmanipulator.pattern_search"));
+        patternSearch = AeUiTheme.textField(style, font, leftPos + 62, topPos + 36, 116, 12,
+                Component.translatable("gui.molecularmanipulator.pattern_search"),
+                Component.translatable("gui.molecularmanipulator.pattern_search_tooltip"));
         patternSearch.setMaxLength(64);
-        patternSearch.setHint(Component.translatable("gui.molecularmanipulator.pattern_search"));
-        patternSearch.setTooltip(Tooltip.create(Component.translatable(
-                "gui.molecularmanipulator.pattern_search_tooltip")));
         patternSearch.setValue(patternSearchQuery);
         patternSearch.setResponder(this::patternSearchChanged);
-        addRenderableWidget(patternSearch);
+        addScreenWidget(patternSearch);
         if (!patternSearchQuery.isBlank()) {
             patternSearchDebounce = 1;
         }
         layoutPatternPage();
         modularView = new MolecularManipulatorLdUi(this, menu);
         modularView.attach(this);
-        addRenderableWidget(modularView.widget());
+        addScreenWidget(modularView.widget());
     }
 
     @Override
@@ -92,20 +88,13 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
     public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
             float partialTicks) {
         super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
-        guiGraphics.fillGradient(offsetX, offsetY, offsetX + imageWidth, offsetY + imageHeight,
-                0xFF171424, 0xFF0C1320);
-        guiGraphics.fill(offsetX + 1, offsetY + 1, offsetX + imageWidth - 1, offsetY + 3,
-                0xFFB77BFF);
-        panel(guiGraphics, offsetX + 8, offsetY + 35, offsetX + 186, offsetY + 130,
-                0xE6192233, 0xFF8D6AA8);
-        panel(guiGraphics, offsetX + 8, offsetY + 134, offsetX + 186, offsetY + 170,
-                0xE6152130, 0xFF6388A5);
-        panel(guiGraphics, offsetX + 8, offsetY + 176, offsetX + 186, offsetY + 267,
-                0xE6151C2B, 0xFF54536A);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 51, 9, 4, 0xFF72558C);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 1, 0xFF426E87);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 189, 9, 3, 0xFF48485B);
-        drawSlotGrid(guiGraphics, offsetX + 15, offsetY + 247, 9, 1, 0xFF48485B);
+        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 35, offsetX + 186, offsetY + 130);
+        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 134, offsetX + 186, offsetY + 170);
+        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 176, offsetX + 186, offsetY + 267);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 51, 9, 4);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 1);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 189, 9, 3);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 247, 9, 1);
     }
 
     void changePage(int offset) {
@@ -227,24 +216,4 @@ public final class MolecularManipulatorScreen extends AEBaseScreen<MolecularMani
         layoutPatternPage();
     }
 
-    private static void panel(GuiGraphics guiGraphics, int left, int top, int right, int bottom,
-            int fill, int border) {
-        guiGraphics.fill(left, top, right, bottom, fill);
-        guiGraphics.fill(left, top, right, top + 1, border);
-        guiGraphics.fill(left, bottom - 1, right, bottom, border);
-        guiGraphics.fill(left, top, left + 1, bottom, border);
-        guiGraphics.fill(right - 1, top, right, bottom, border);
-    }
-
-    private static void drawSlotGrid(GuiGraphics guiGraphics, int left, int top, int columns, int rows,
-            int border) {
-        for (int row = 0; row < rows; row++) {
-            for (int column = 0; column < columns; column++) {
-                int x = left + column * 18;
-                int y = top + row * 18;
-                guiGraphics.fill(x, y, x + 18, y + 18, border);
-                guiGraphics.fill(x + 1, y + 1, x + 17, y + 17, 0xFF15151B);
-            }
-        }
-    }
 }

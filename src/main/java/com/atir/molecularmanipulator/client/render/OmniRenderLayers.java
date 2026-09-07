@@ -27,7 +27,38 @@ public final class OmniRenderLayers extends RenderType {
     private static final Map<ResourceLocation, RenderType> ADDITIVE_TEXTURE_CACHE =
             new ConcurrentHashMap<>();
     private static final RenderType SOLID_EMISSIVE_COLOR = createSolidEmissiveColor();
+    private static final RenderType TRANSLUCENT_EMISSIVE_COLOR =
+            createTranslucentEmissiveColor();
+    private static final RenderType ADDITIVE_DEPTH_COLOR = createAdditiveDepthColor();
     private static final RenderType ADDITIVE_COLOR = createAdditiveColor();
+    private static final RenderType PLACEMENT_LINES = RenderType.create(
+            "omni_placement_lines", DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 1536,
+            CompositeState.builder()
+                    .setShaderState(RENDERTYPE_LINES_SHADER)
+                    .setLineState(new LineStateShard(java.util.OptionalDouble.of(2.0)))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setDepthTestState(NO_DEPTH_TEST)
+                    .setCullState(NO_CULL)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .createCompositeState(false));
+    private static final ShaderStateShard MOLECULAR_SPECTRAL_SHADER =
+            new ShaderStateShard(OmniShaders::molecularSpectral);
+    private static final ShaderStateShard MATTER_CONDENSATION_SHADER =
+            new ShaderStateShard(OmniShaders::matterCondensation);
+    private static final ShaderStateShard SINGULARITY_COMPUTE_SHADER =
+            new ShaderStateShard(OmniShaders::singularityCompute);
+    private static final RenderType MOLECULAR_SPECTRAL_DEPTH = createEffectColor(
+            "omni_molecular_spectral_depth", MOLECULAR_SPECTRAL_SHADER, true);
+    private static final RenderType MOLECULAR_SPECTRAL_GLOW = createEffectColor(
+            "omni_molecular_spectral_glow", MOLECULAR_SPECTRAL_SHADER, false);
+    private static final RenderType MATTER_CONDENSATION_DEPTH = createEffectColor(
+            "omni_matter_condensation_depth", MATTER_CONDENSATION_SHADER, true, false);
+    private static final RenderType MATTER_CONDENSATION_GLOW = createEffectColor(
+            "omni_matter_condensation_glow", MATTER_CONDENSATION_SHADER, false);
+    private static final RenderType SINGULARITY_COMPUTE_DEPTH = createEffectColor(
+            "omni_singularity_compute_depth", SINGULARITY_COMPUTE_SHADER, true);
+    private static final RenderType SINGULARITY_COMPUTE_GLOW = createEffectColor(
+            "omni_singularity_compute_glow", SINGULARITY_COMPUTE_SHADER, false);
 
     private OmniRenderLayers(String name, VertexFormat vertexFormat,
             List<RenderStateShard> states) {
@@ -57,9 +88,52 @@ public final class OmniRenderLayers extends RenderType {
         return SOLID_EMISSIVE_COLOR;
     }
 
+    /**
+     * Source-alpha emissive core with depth writes. This keeps curves properly
+     * occluded by the structure while allowing their authored alpha to soften
+     * the hard opaque center of the additive halo.
+     */
+    public static RenderType translucentEmissiveColor() {
+        return TRANSLUCENT_EMISSIVE_COLOR;
+    }
+
+    /** Additive emissive core that still writes depth for correct occlusion. */
+    public static RenderType additiveDepthColor() {
+        return ADDITIVE_DEPTH_COLOR;
+    }
+
     /** The no-depth-write additive geometry pass. */
     public static RenderType additiveColor() {
         return ADDITIVE_COLOR;
+    }
+
+    /** Service sockets remain visible through the well without changing scene depth. */
+    public static RenderType placementLines() {
+        return PLACEMENT_LINES;
+    }
+
+    public static RenderType molecularSpectralDepth() {
+        return MOLECULAR_SPECTRAL_DEPTH;
+    }
+
+    public static RenderType molecularSpectralGlow() {
+        return MOLECULAR_SPECTRAL_GLOW;
+    }
+
+    public static RenderType matterCondensationDepth() {
+        return MATTER_CONDENSATION_DEPTH;
+    }
+
+    public static RenderType matterCondensationGlow() {
+        return MATTER_CONDENSATION_GLOW;
+    }
+
+    public static RenderType singularityComputeDepth() {
+        return SINGULARITY_COMPUTE_DEPTH;
+    }
+
+    public static RenderType singularityComputeGlow() {
+        return SINGULARITY_COMPUTE_GLOW;
     }
 
     private static RenderType createSolidEmissiveColor() {
@@ -99,6 +173,72 @@ public final class OmniRenderLayers extends RenderType {
                 NO_COLOR_LOGIC
         );
         return new OmniRenderLayers("omni_additive_color",
+                DefaultVertexFormat.POSITION_COLOR, states);
+    }
+
+    private static RenderType createTranslucentEmissiveColor() {
+        List<RenderStateShard> states = List.of(
+                NO_TEXTURE,
+                POSITION_COLOR_SHADER,
+                TRANSLUCENT_TRANSPARENCY,
+                LEQUAL_DEPTH_TEST,
+                CULL,
+                NO_LIGHTMAP,
+                NO_OVERLAY,
+                NO_LAYERING,
+                MAIN_TARGET,
+                DEFAULT_TEXTURING,
+                COLOR_DEPTH_WRITE,
+                DEFAULT_LINE,
+                NO_COLOR_LOGIC
+        );
+        return new OmniRenderLayers("omni_translucent_emissive_color",
+                DefaultVertexFormat.POSITION_COLOR, states);
+    }
+
+    private static RenderType createAdditiveDepthColor() {
+        List<RenderStateShard> states = List.of(
+                NO_TEXTURE,
+                POSITION_COLOR_SHADER,
+                LIGHTNING_TRANSPARENCY,
+                LEQUAL_DEPTH_TEST,
+                CULL,
+                NO_LIGHTMAP,
+                NO_OVERLAY,
+                NO_LAYERING,
+                MAIN_TARGET,
+                DEFAULT_TEXTURING,
+                COLOR_DEPTH_WRITE,
+                DEFAULT_LINE,
+                NO_COLOR_LOGIC
+        );
+        return new OmniRenderLayers("omni_additive_depth_color",
+                DefaultVertexFormat.POSITION_COLOR, states);
+    }
+
+    private static RenderType createEffectColor(String name,
+            ShaderStateShard shader, boolean writeDepth) {
+        return createEffectColor(name, shader, writeDepth, true);
+    }
+
+    private static RenderType createEffectColor(String name,
+            ShaderStateShard shader, boolean writeDepth, boolean additive) {
+        List<RenderStateShard> states = List.of(
+                NO_TEXTURE,
+                shader,
+                additive ? LIGHTNING_TRANSPARENCY : TRANSLUCENT_TRANSPARENCY,
+                LEQUAL_DEPTH_TEST,
+                CULL,
+                NO_LIGHTMAP,
+                NO_OVERLAY,
+                NO_LAYERING,
+                MAIN_TARGET,
+                DEFAULT_TEXTURING,
+                writeDepth ? COLOR_DEPTH_WRITE : COLOR_WRITE,
+                DEFAULT_LINE,
+                NO_COLOR_LOGIC
+        );
+        return new OmniRenderLayers(name,
                 DefaultVertexFormat.POSITION_COLOR, states);
     }
 

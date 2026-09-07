@@ -4,22 +4,36 @@ import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.Part;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType;
+import com.atir.molecularmanipulator.blockentity.MatterPearlGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
+import com.atir.molecularmanipulator.client.render.MatterRasterEffects;
+import com.atir.molecularmanipulator.client.render.MatterStellarEffects;
+import com.atir.molecularmanipulator.config.ModConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider.Context;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import java.util.Map;
+import java.util.WeakHashMap;
 
-/** Renders the original octagonal fabrication well with real vertex geometry. */
+/** Renders a vacuum-condensation and additive-manufacturing cell. */
 public final class MatterFabricationRenderer
         implements BlockEntityRenderer<MatterFabricationBlockEntity> {
+
+    private final Map<MatterFabricationBlockEntity, MatterRasterEffects.Animation> fabricationAnimations = new WeakHashMap<>();
+    private final Map<MatterFabricationBlockEntity, MatterStellarEffects.Animation> stellarAnimations = new WeakHashMap<>();
 
     public MatterFabricationRenderer(Context context) {
     }
@@ -27,100 +41,118 @@ public final class MatterFabricationRenderer
     @Override
     public void render(MatterFabricationBlockEntity machine, float partialTick,
             PoseStack poseStack, MultiBufferSource buffers, int packedLight, int packedOverlay) {
-        if (machine.getLevel() == null || !machine.isClientStructureFormed()) {
+        MatterFabricationPlacementPreview.render(machine, poseStack, buffers);
+        int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        if (effectLevel <= 0 || machine.getLevel() == null
+                || !machine.isClientStructureFormed()) {
             return;
         }
         Direction facing = machine.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        Part centerPart = new Part(0, 7, 0, PartType.CORE);
+        Part centerPart = new Part(0, MatterFabricationStructure.EFFECT_CENTER_Y,
+                0, PartType.CORE);
         BlockPos center = MatterFabricationStructure.worldPos(machine.getBlockPos(), facing,
                 centerPart);
         float time = machine.getLevel().getGameTime() + partialTick;
-        float speed = machine.isClientRunning() ? 2.4F : 0.65F;
-        float pulse = 1.0F + (float) Math.sin(time * 0.12F * speed) * 0.075F;
+        boolean running = machine.isClientRunning();
+        var animation = fabricationAnimations.computeIfAbsent(machine, ignored -> new MatterRasterEffects.Animation())
+                .sample(time, true, running, machine.sampleClientRecipeProgress(partialTick),
+                        machine.sampleClientCompletionPulse(partialTick));
+        double distanceSquared = Vec3.atCenterOf(center).distanceToSqr(
+                Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
+        boolean detailed = effectLevel > 1 && distanceSquared < 112.0D * 112.0D;
+        var stellar = stellarAnimations.computeIfAbsent(machine, ignored -> new MatterStellarEffects.Animation())
+                .sample(time, running, animation.completion(), machine.getClientResearchVisualState(),
+                        machine.sampleClientResearchElapsed(partialTick), machine.sampleClientResearchCompletionPulse(partialTick));
 
         poseStack.pushPose();
         poseStack.translate(center.getX() - machine.getBlockPos().getX() + 0.5D,
                 center.getY() - machine.getBlockPos().getY() + 0.5D,
                 center.getZ() - machine.getBlockPos().getZ() + 0.5D);
-        int segments = machine.isClientRunning() ? 64 : 40;
-        VertexConsumer solid = buffers.getBuffer(OmniRenderLayers.solidEmissiveColor());
-        drawWell(poseStack, solid, time, speed, pulse, segments, false);
+        for (var pass : FoundryPass.values()) {
+            // The clipped workpiece and light raster share the same per-frame progress snapshot.
+            var layer = pass.glow() ? OmniRenderLayers.additiveColor() : OmniRenderLayers.translucentEmissiveColor();
+            renderFabricationPass(poseStack, buffers.getBuffer(layer), time, detailed,
+                    machine.isClientStructureFormed(), facing, pass, animation, stellar);
+        }
+        poseStack.popPose();
+    }
+
+    enum FoundryPass {
+        FRAME_DEPTH(false, false), FRAME_GLOW(false, true), CRYSTAL_DEPTH(true, false), CRYSTAL_GLOW(true, true);
+
+        private final boolean crystal;
+        private final boolean glow;
+
+        FoundryPass(boolean crystal, boolean glow) {
+            this.crystal = crystal;
+            this.glow = glow;
+        }
+
+        boolean crystal() { return crystal; }
+        boolean glow() { return glow; }
+    }
+
+    /** Live rendering and GPU verification share formed/running gating, orientation and pass selection. */
+    static void renderFoundryPass(PoseStack poseStack, VertexConsumer consumer, float time,
+            float completionPulse, boolean detailed, boolean formed, boolean running, Direction facing, FoundryPass pass) {
+        renderFoundryPass(poseStack, consumer, time, completionPulse, detailed, formed, running, facing, pass, running ? 0.5F : 0);
+    }
+
+    static void renderFoundryPass(PoseStack poseStack, VertexConsumer consumer, float time,
+            float completionPulse, boolean detailed, boolean formed, boolean running, Direction facing,
+            FoundryPass pass, float progress) {
+        var frame = new MatterRasterEffects.Animation().sample(time, formed, running, progress, completionPulse);
+        renderFabricationPass(poseStack, consumer, time, detailed, formed, facing, pass, frame);
+    }
+
+    static void renderFabricationPass(PoseStack poseStack, VertexConsumer consumer, float time,
+            boolean detailed, boolean formed, Direction facing, FoundryPass pass, MatterRasterEffects.Frame frame) {
+        renderFabricationPass(poseStack, consumer, time, detailed, formed, facing, pass, frame,
+                new MatterStellarEffects.Frame(frame.running() ? 1 : 0, time,
+                        com.atir.molecularmanipulator.research.ResearchVisualState.EMPTY, 0, 0));
+    }
+
+    static void renderFabricationPass(PoseStack poseStack, VertexConsumer consumer, float time,
+            boolean detailed, boolean formed, Direction facing, FoundryPass pass, MatterRasterEffects.Frame frame,
+            MatterStellarEffects.Frame stellar) {
+        if (!formed) return;
         poseStack.pushPose();
-        poseStack.scale(1.045F, 1.045F, 1.045F);
-        VertexConsumer glow = buffers.getBuffer(OmniRenderLayers.additiveColor());
-        drawWell(poseStack, glow, time, speed, pulse, segments, true);
-        poseStack.popPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - facing.toYRot()));
+        if (pass.crystal()) {
+            MatterRasterEffects.renderObject(poseStack, consumer, time, frame, pass.glow());
+        } else {
+            MatterRasterEffects.renderField(poseStack, consumer, time, frame, detailed, pass.glow());
+            MatterStellarEffects.render(poseStack, consumer, stellar, detailed, pass.glow());
+            drawPearlAccents(poseStack.last(), consumer, detailed, pass.glow());
+        }
         poseStack.popPose();
     }
 
-    private static void drawWell(PoseStack poseStack, VertexConsumer consumer, float time,
-            float speed, float pulse, int segments, boolean glow) {
-        int shell = 0xEAD9FF;
-        int coil = 0xA95BFF;
-        int glass = 0x71E6FF;
-        int core = 0xFFF0FF;
-        int shellAlpha = glow ? 42 : 228;
-        int coilAlpha = glow ? 76 : 250;
-        int glassAlpha = glow ? 58 : 238;
-        int coreAlpha = glow ? 98 : 255;
-        float spin = time * speed * 0.62F;
-
-        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, -0.1F, 0.0F,
-                16.4F * pulse, 1.25F, segments, 0.0F, 0.0F, spin,
-                argb(coil, coilAlpha));
-        OmniRenderGeometry.segmentedRing(poseStack, consumer, 0.0F, 1.1F, 0.0F,
-                14.3F * pulse, 0.9F, 0.66F, 16, 0.78F, 0.0F, 0.0F,
-                -spin * 0.72F, argb(shell, shellAlpha));
-        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, 2.1F, 0.0F,
-                11.2F * pulse, 0.78F, segments, 0.0F, 0.0F, spin * 0.43F,
-                argb(glass, glassAlpha));
-        OmniRenderGeometry.segmentedRing(poseStack, consumer, 0.0F, 3.05F, 0.0F,
-                7.75F * pulse, 0.62F, 0.52F, 12, 0.75F, 0.0F, 0.0F,
-                spin * 1.1F, argb(coil, coilAlpha));
-
-        PoseStack.Pose pose = poseStack.last();
-        OmniRenderGeometry.octahedron(pose, consumer,
-                new Vec3(0.0, 3.3 + (pulse - 1.0F) * 2.0, 0.0),
-                2.15F * pulse, 2.85F * pulse, 2.15F * pulse, spin * 1.7F,
-                argb(core, coreAlpha));
-        OmniRenderGeometry.octahedron(pose, consumer, new Vec3(0.0, 1.1, 0.0),
-                0.95F * pulse, 1.65F * pulse, 0.95F * pulse, -spin * 2.1F,
-                argb(glass, glow ? 108 : 250));
-
-        int[][] stations = {{0, -11}, {0, 11}, {-11, 0}, {11, 0}};
-        for (int index = 0; index < stations.length; index++) {
-            int x = stations[index][0];
-            int z = stations[index][1];
-            Vec3 station = new Vec3(x, -3.7, z);
-            Vec3 focus = new Vec3(x * 0.25, 1.0, z * 0.25);
-            OmniRenderGeometry.beam(pose, consumer, station, focus, 0.24F, 0.18F,
-                    argb(index % 2 == 0 ? shell : coil, glow ? 48 : 230));
-            OmniRenderGeometry.rune(pose, consumer, station, 0.72F, 0.12F,
-                    index * 90.0F + spin,
-                    argb(index % 2 == 0 ? glass : core, glow ? 58 : 238));
+    private static void drawPearlAccents(PoseStack.Pose pose, VertexConsumer consumer,
+            boolean detailed, boolean glow) {
+        if (!detailed) return;
+        var perimeter = MatterPearlGeometry.platformOutline();
+        for (int index = 0; index < perimeter.size(); index++) {
+            OmniRenderGeometry.beam(pose, consumer, pearlSurface(perimeter.get(index)),
+                    pearlSurface(perimeter.get((index + 1) % perimeter.size())),
+                    glow ? 0.026F : 0.011F, glow ? 0.018F : 0.007F,
+                    argb(0xE3D2A1, glow ? 5 : 70));
         }
-
-        for (int index = 0; index < 4; index++) {
-            double a = Math.PI / 4.0 + index * Math.PI * 0.5;
-            Vec3 start = new Vec3(Math.cos(a) * 8.1, -2.8, Math.sin(a) * 8.1);
-            Vec3 end = new Vec3(Math.cos(a) * 3.1, 1.4, Math.sin(a) * 3.1);
-            OmniRenderGeometry.beam(pose, consumer, start, end, 0.16F, 0.12F,
-                    argb(glass, glow ? 42 : 218));
-        }
-
-        OmniRenderGeometry.beam(pose, consumer, new Vec3(0.0, -6.0, 0.0),
-                new Vec3(0.0, 6.0, 0.0), 0.18F, 0.18F,
-                argb(coil, glow ? 72 : 242));
-        int runeCount = 8;
-        for (int index = 0; index < runeCount; index++) {
-            double a = Math.PI * 2 * index / runeCount + Math.toRadians(spin * 0.35F);
-            Vec3 point = new Vec3(Math.cos(a) * 14.9,
-                    0.9 + Math.sin(a * 3.0) * 0.28, Math.sin(a) * 14.9);
-            OmniRenderGeometry.rune(pose, consumer, point, 0.58F, 0.1F,
-                    (float) Math.toDegrees(a) + 90.0F,
-                    argb(index % 2 == 0 ? glass : shell, glow ? 46 : 222));
+        for (int side : new int[] {-1, 1}) {
+            var conduits = MatterPearlGeometry.crownConduits(side);
+            for (int index = 1; index < conduits.size(); index++) {
+                OmniRenderGeometry.beam(pose, consumer, pearlSurface(conduits.get(index - 1)),
+                        pearlSurface(conduits.get(index)), glow ? 0.024F : 0.010F,
+                        glow ? 0.016F : 0.006F, argb(0xEAD9AB, glow ? 5 : 80));
+            }
         }
     }
+
+    private static Vec3 pearlSurface(BlockPos pos) {
+        return new Vec3(pos.getX(), pos.getY() - MatterPearlGeometry.CENTER_Y + 0.56, pos.getZ());
+    }
+
+    /** Emit one outward winding so a closed transparent crystal does not double its back-face glow. */
 
     private static int argb(int rgb, int alpha) {
         int clamped = Math.max(0, Math.min(255, alpha));
@@ -134,23 +166,24 @@ public final class MatterFabricationRenderer
 
     @Override
     public int getViewDistance() {
-        return 512;
+        return 384;
     }
 
     @Override
     public boolean shouldRender(MatterFabricationBlockEntity machine, Vec3 cameraPos) {
-        return cameraPos.distanceToSqr(Vec3.atCenterOf(machine.getBlockPos())) < 512.0D * 512.0D;
+        return cameraPos.distanceToSqr(Vec3.atCenterOf(machine.getBlockPos())) < 384.0D * 384.0D;
     }
 
     @Override
     public AABB getRenderBoundingBox(MatterFabricationBlockEntity machine) {
         Direction facing = machine.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         BlockPos center = MatterFabricationStructure.worldPos(machine.getBlockPos(), facing,
-                new Part(0, 7, 0, PartType.CORE));
+                new Part(0, MatterFabricationStructure.EFFECT_CENTER_Y, 0, PartType.CORE));
         double x = center.getX() + 0.5D;
         double y = center.getY() + 0.5D;
         double z = center.getZ() + 0.5D;
-        return new AABB(x - 25.0D, y - 14.0D, z - 25.0D,
-                x + 25.0D, y + 14.0D, z + 25.0D);
+        double radius = MatterPearlGeometry.RADIUS + 2.0D;
+        return new AABB(x - radius, y + MatterPearlGeometry.MIN_Y - MatterPearlGeometry.CENTER_Y - 1.0D, z - radius,
+                x + radius, y + MatterPearlGeometry.MAX_Y - MatterPearlGeometry.CENTER_Y + 1.0D, z + radius);
     }
 }

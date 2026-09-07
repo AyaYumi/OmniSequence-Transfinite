@@ -181,7 +181,7 @@ public final class MolecularBatchDispatchSafety {
 
     private static void logFallbackOnce(IPatternDetails patternDetails, String reason,
             RuntimeException exception) {
-        if (!ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
+        if (!MolecularManipulator.LOGGER.isDebugEnabled()) {
             return;
         }
 
@@ -195,7 +195,7 @@ public final class MolecularBatchDispatchSafety {
         }
 
         if (exception == null) {
-            MolecularManipulator.LOGGER.info("Molecular batch dispatch fallback: pattern={}, reason={}",
+            MolecularManipulator.LOGGER.debug("Molecular batch dispatch fallback: pattern={}, reason={}",
                     pattern, reason);
             return;
         }

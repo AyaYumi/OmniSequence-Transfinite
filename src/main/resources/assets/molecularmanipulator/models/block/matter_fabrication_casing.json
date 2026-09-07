@@ -1,1 +1,86 @@
-{"parent":"molecularmanipulator:block/molecular_center_casing"}
+{
+  "credit": "OmniSequence Transfinite pearl genesis native 16px material",
+  "parent": "minecraft:block/block",
+  "textures": {
+    "side": "molecularmanipulator:block/matter_fabrication_casing",
+    "top": "molecularmanipulator:block/matter_fabrication_casing_top",
+    "bottom": "molecularmanipulator:block/matter_fabrication_casing_top",
+    "particle": "molecularmanipulator:block/matter_fabrication_casing"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#side",
+          "cullface": "north"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#side",
+          "cullface": "east"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#side",
+          "cullface": "south"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#side",
+          "cullface": "west"
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": "#top",
+          "cullface": "up"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#bottom",
+          "cullface": "down"
+        }
+      }
+    }
+  ]
+}

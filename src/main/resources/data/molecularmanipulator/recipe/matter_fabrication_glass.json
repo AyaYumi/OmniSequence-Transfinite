@@ -1,1 +1,21 @@
-{"type":"minecraft:crafting_shapeless","category":"building","ingredients":[{"item":"molecularmanipulator:molecular_center_glass"}],"result":{"id":"molecularmanipulator:matter_fabrication_glass","count":1}}
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GGG",
+    "GFG",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "ae2:quartz_glass"
+    },
+    "F": {
+      "item": "ae2:fluix_crystal"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:matter_fabrication_glass",
+    "count": 16
+  }
+}

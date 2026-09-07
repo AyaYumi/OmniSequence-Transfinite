@@ -8,36 +8,25 @@
     "minVersion": "0.5.0"
   },
   "mixins": [
-    "AECraftingPatternInputMixin",
     "AdvancedAECraftingCpuLogicMixin",
     "CalculatorAssemblerMatrixMixin",
     "ClusterAssemblerMatrixMixin",
     "CraftingCPUClusterAccessor",
     "CraftingCpuLogicMixin",
-    "CraftAmountMenuMixin",
-    "CraftConfirmMenuMixin",
-    "CraftingPlanSummaryAccessor",
-    "CraftingPlanSummaryMixin",
-    "CreativeCellInventoryMixin",
-    "ExtendedAEInfinityCellInventoryMixin",
+    "GridActiveMachinesMixin",
     "KeyCounterMixin",
+    "LabeledPatternCheckProviderMixin",
     "NbtTearPatternContextMixin",
     "NbtTearPatternMatchHelperMixin",
     "OmniCraftingCpuClusterMixin",
     "OmniCraftingCalculationMixin",
     "OmniCraftingServiceMixin",
-    "OmniCraftingTreeNodeAccessor",
-    "OmniCraftingTreeProcessAccessor",
+    "PatternAccessTermMenuMixin",
     "PatternProviderLogicMixin",
     "TileAssemblerMatrixPatternMixin"
   ],
   "client": [
-    "AE2WTLibCraftingTerminalHandlerMixin",
-    "CPUSelectionListMixin",
-    "CPUSelectionListInfoBarMixin",
-    "CraftAmountScreenMixin",
-    "NumberEntryWidgetAccessor",
-    "ReadableNumberConverterMixin"
+    "CPUSelectionListMixin"
   ],
   "injectors": {
     "defaultRequire": 1

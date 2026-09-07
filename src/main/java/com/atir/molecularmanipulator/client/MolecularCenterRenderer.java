@@ -7,7 +7,7 @@ import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.Minecraft;
+import com.mojang.math.Axis;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -18,23 +18,19 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Physical, vertex-built visual field for the molecular centre.
- *
- * <p>The renderer deliberately uses the same geometry twice: a depth-writing
- * pass makes the rings and crystals read as real machine parts, while a small
- * additive pass supplies the NOVALITH-style glow. No particles or billboards
- * are involved.</p>
+ * Layout-aware fields rendered through the built-in molecular spectral pipeline.
+ * The outer field never writes depth, so the transparent sphere cannot mask its core.
  */
-public final class MolecularCenterRenderer
-        implements BlockEntityRenderer<MolecularCenterBlockEntity> {
+public final class MolecularCenterRenderer implements BlockEntityRenderer<MolecularCenterBlockEntity> {
+    private static final float FIELD_RADIUS = 6.35F;
+    private static final float CORE_RADIUS = 1.82F;
 
     public MolecularCenterRenderer(BlockEntityRendererProvider.Context context) {
     }
 
     @Override
-    public void render(MolecularCenterBlockEntity center, float partialTick,
-            PoseStack poseStack, MultiBufferSource buffers,
-            int packedLight, int packedOverlay) {
+    public void render(MolecularCenterBlockEntity center, float partialTick, PoseStack poseStack,
+            MultiBufferSource buffers, int packedLight, int packedOverlay) {
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || center.getLevel() == null
                 || !center.getBlockState().getValue(BlockStateProperties.POWERED)) {
@@ -42,113 +38,195 @@ public final class MolecularCenterRenderer
         }
 
         Direction facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        Vec3 visualCenter = MolecularCenterStructure.worldPoint(
-                center.getBlockPos(), facing,
-                MolecularCenterStructure.VISUAL_CENTER_X,
-                MolecularCenterStructure.CORE_Y,
-                MolecularCenterStructure.VISUAL_CENTER_Z);
+        var layout = center.getStructureLayout();
+        var visualCenter = MolecularCenterStructure.worldPoint(center.getBlockPos(), facing,
+                MolecularCenterStructure.VISUAL_CENTER_X, MolecularCenterStructure.visualCoreY(layout),
+                MolecularCenterStructure.VISUAL_CENTER_Z, center.getControllerAnchorLayout());
+        int visualMode = center.getClientVisualMode();
         float angle = center.sampleClientVisualAngle(partialTick);
-        int mode = center.getClientVisualMode();
-        double distanceSquared = visualCenter.distanceToSqr(
-                Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
-        int segments = distanceSquared > 144.0D * 144.0D
-                ? 24 : distanceSquared > 80.0D * 80.0D ? 40 : 64;
-        float pulse = 1.0F + (float) Math.sin(angle * 0.085F)
-                * (mode == 3 ? 0.075F : 0.045F);
+        var crown = center.sampleCrownAnimation(partialTick);
+        boolean crystalFeathers = layout == MolecularCenterStructure.StructureLayout.CURRENT;
+        if (crystalFeathers) angle = crown.angle();
+        float completion = crown.completion(center.getLevel().getGameTime() + (double) partialTick);
 
         poseStack.pushPose();
         poseStack.translate(visualCenter.x - center.getBlockPos().getX(),
                 visualCenter.y - center.getBlockPos().getY(),
                 visualCenter.z - center.getBlockPos().getZ());
-
-        VertexConsumer solid = buffers.getBuffer(OmniRenderLayers.solidEmissiveColor());
-        drawField(poseStack, solid, angle, mode, pulse, effectLevel, segments,
-                center.getFieldColor(), center.getCoreColor(),
-                center.getPrimaryRingColor(), center.getSecondaryRingColor(),
-                center.getLatticeColor(), false);
-
-        poseStack.pushPose();
-        poseStack.scale(1.035F, 1.035F, 1.035F);
-        VertexConsumer glow = buffers.getBuffer(OmniRenderLayers.additiveColor());
-        drawField(poseStack, glow, angle, mode, pulse, effectLevel, segments,
-                center.getFieldColor(), center.getCoreColor(),
-                center.getPrimaryRingColor(), center.getSecondaryRingColor(),
-                center.getLatticeColor(), true);
-        poseStack.popPose();
-        poseStack.popPose();
-    }
-
-    private static void drawField(PoseStack poseStack, VertexConsumer consumer,
-            float angle, int mode, float pulse, int effectLevel, int segments,
-            int fieldRgb, int coreRgb, int primaryRgb, int secondaryRgb,
-            int latticeRgb, boolean glow) {
-        int outerAlpha = glow ? 48 : 232;
-        int ringAlpha = glow ? 64 : 246;
-        int coreAlpha = glow ? 78 : 255;
-        int detailAlpha = glow ? 42 : 220;
-        float modeScale = mode == 3 ? 1.08F : mode == 4 ? 1.04F : 1.0F;
-        float spin = angle * (mode == 1 ? -0.38F : mode == 2 ? 0.46F : 0.31F);
-
-        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, 0.0F, 0.0F,
-                16.0F * modeScale, 1.15F, segments,
-                0.0F, 0.0F, spin, argb(primaryRgb, ringAlpha));
-        OmniRenderGeometry.segmentedRing(poseStack, consumer, 0.0F, 1.15F,
-                0.0F, 13.35F * modeScale, 0.82F, 0.62F,
-                12, 0.78F, 0.0F, 0.0F, -spin * 0.72F,
-                argb(secondaryRgb, outerAlpha));
-        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, -1.20F, 0.0F,
-                10.2F * modeScale, 0.72F, segments,
-                7.0F, 0.0F, spin * 0.45F, argb(fieldRgb, detailAlpha));
-
-        // Three orthogonal accelerator hoops make the centre read as a solid
-        // machine rather than a flat circle viewed from one direction.
-        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, 0.0F, 0.0F,
-                7.35F * pulse, 0.62F, segments,
-                90.0F, 0.0F, spin * 0.64F, argb(latticeRgb, ringAlpha));
-        OmniRenderGeometry.ring(poseStack, consumer, 0.0F, 0.0F, 0.0F,
-                7.35F * pulse, 0.62F, segments,
-                0.0F, 90.0F, -spin * 0.48F, argb(secondaryRgb, detailAlpha));
-
-        PoseStack.Pose pose = poseStack.last();
-        OmniRenderGeometry.octahedron(pose, consumer,
-                new Vec3(0.0D, (pulse - 1.0F) * 2.4D, 0.0D),
-                2.35F * pulse, 3.15F * pulse, 2.35F * pulse,
-                spin * 1.6F, argb(coreRgb, coreAlpha));
-        OmniRenderGeometry.octahedron(pose, consumer,
-                new Vec3(0.0D, 0.0D, 0.0D),
-                1.15F * pulse, 1.85F * pulse, 1.15F * pulse,
-                -spin * 2.2F, argb(fieldRgb, glow ? 92 : 245));
-
-        // Eight thick radial members visually connect the core to the outer
-        // ring. The mode changes the rotation and the accent colour, while
-        // the geometry itself remains stable and readable.
-        int spokes = effectLevel > 1 ? 8 : 4;
-        for (int index = 0; index < spokes; index++) {
-            double a = Math.PI * 2.0D * index / spokes + Math.toRadians(spin);
-            Vec3 inner = new Vec3(Math.cos(a) * 3.5D, 0.0D,
-                    Math.sin(a) * 3.5D);
-            Vec3 outer = new Vec3(Math.cos(a) * 14.6D,
-                    Math.sin(a * 2.0D + angle * 0.02D) * 0.72D,
-                    Math.sin(a) * 14.6D);
-            OmniRenderGeometry.beam(pose, consumer, inner, outer,
-                    0.18F, 0.13F,
-                    argb(index % 2 == 0 ? primaryRgb : latticeRgb, detailAlpha));
-            if (effectLevel > 1) {
-                OmniRenderGeometry.rune(pose, consumer, outer, 0.55F,
-                        0.10F, (float) Math.toDegrees(a) + 90.0F,
-                        argb(index % 2 == 0 ? secondaryRgb : coreRgb, detailAlpha));
-            }
+        boolean fixedOrbits = crystalFeathers;
+        if (fixedOrbits) {
+            // Match worldPoint's right/back axes so fixed trails follow the blocks
+            // for every controller facing, including asymmetric tilted orbits.
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - facing.toYRot()));
         }
 
-        OmniRenderGeometry.beam(pose, consumer,
-                new Vec3(0.0D, -8.0D, 0.0D),
-                new Vec3(0.0D, 8.0D, 0.0D),
-                0.16F, 0.16F, argb(latticeRgb, detailAlpha));
+        // Finish emitting each pass before obtaining the next buffer: switching an
+        // unfixed RenderType can flush the previous consumer in MultiBufferSource.
+        renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralDepth()),
+                angle, visualMode, effectLevel, false, center.getFieldColor(), center.getCoreColor(),
+                center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
+                crown.activity(), completion);
+        if (crystalFeathers) {
+            FeatherResonanceEffects.renderCoreSurface(poseStack,
+                    buffers.getBuffer(OmniRenderLayers.translucentEmissiveColor()), angle,
+                    center.getCoreColor(), center.getSecondaryRingColor());
+        }
+        renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralGlow()),
+                angle, visualMode, effectLevel, true, center.getFieldColor(), center.getCoreColor(),
+                center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
+                crown.activity(), completion);
+        poseStack.popPose();
     }
 
-    private static int argb(int rgb, int alpha) {
-        int clamped = Math.max(0, Math.min(255, alpha));
-        return (clamped << 24) | (rgb & 0xFFFFFF);
+    static void renderLayoutPass(MolecularCenterStructure.StructureLayout layout,
+            PoseStack poseStack, VertexConsumer consumer,
+            float angle, int visualMode, int effectLevel, boolean glow,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor) {
+        renderLayoutPass(layout, poseStack, consumer, angle, visualMode, effectLevel, glow,
+                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, visualMode == 0 ? 0 : 1, 0);
+    }
+
+    private static void renderLayoutPass(MolecularCenterStructure.StructureLayout layout,
+            PoseStack poseStack, VertexConsumer consumer, float angle, int visualMode, int effectLevel, boolean glow,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor,
+            float activity, float completion) {
+        if (layout == MolecularCenterStructure.StructureLayout.CURRENT) {
+            renderFeatherPass(poseStack, consumer, angle, activity, completion, effectLevel, glow,
+                    fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+        } else if (layout == MolecularCenterStructure.StructureLayout.LEGACY_1_3_9) {
+            renderPass(poseStack, consumer, angle, visualMode, effectLevel, glow,
+                    fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+        }
+    }
+
+    // A faceted seed and exposed feather highlights keep the open crystal silhouette.
+    static void renderFeatherPass(PoseStack poseStack, VertexConsumer consumer,
+            float angle, int visualMode, int effectLevel, boolean glow,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor) {
+        renderFeatherPass(poseStack, consumer, angle, visualMode == 0 ? 0 : 1, 0,
+                effectLevel, glow, fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+    }
+
+    static void renderFeatherPass(PoseStack poseStack, VertexConsumer consumer,
+            float angle, float activity, float completion, int effectLevel, boolean glow,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor) {
+        if (effectLevel <= 0) return;
+        FeatherResonanceEffects.render(poseStack, consumer, angle, activity, completion, effectLevel > 1, glow,
+                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+    }
+
+    // The solid amethyst tracks supply the silhouette; light only traces their
+    // exposed inner edges. The planes stay fixed while sparse nodes circulate.
+
+    // Package-private for vertex-format, occlusion-role and shape regression tests.
+    static void renderPass(PoseStack poseStack, VertexConsumer consumer,
+            float angle, int visualMode, int effectLevel, boolean glow,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor) {
+        if (effectLevel <= 0) {
+            return;
+        }
+        boolean detailed = effectLevel > 1;
+        poseStack.pushPose();
+        float coreSpin = switch (visualMode) {
+            case 1 -> 1.1F;
+            case 3 -> -2.2F;
+            default -> -1.6F;
+        };
+        poseStack.mulPose(Axis.YP.rotationDegrees(angle * coreSpin));
+        OmniRenderGeometry.sphere(poseStack.last(), consumer, Vec3.ZERO,
+                glow ? CORE_RADIUS * 1.12F : CORE_RADIUS,
+                detailed ? 12 : 8, detailed ? 24 : 16,
+                OmniRenderGeometry.argb(coreColor, glow ? 32 : 205));
+        poseStack.popPose();
+
+        renderPrimaryRing(poseStack, consumer, angle, visualMode, detailed, glow, primaryColor);
+        if (detailed) {
+            renderSecondaryRings(poseStack, consumer, angle, visualMode, glow, secondaryColor);
+            renderCoreLattice(poseStack, consumer, angle, visualMode, glow, latticeColor);
+        }
+
+        if (glow) {
+            float pulseStrength = switch (visualMode) {
+                case 1 -> 0.055F;
+                case 2 -> 0.045F;
+                case 3 -> 0.08F;
+                default -> 0.035F;
+            };
+            float pulse = 1.0F + (float) Math.sin(angle * 0.085F) * pulseStrength;
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(angle * 0.7F));
+            OmniRenderGeometry.sphere(poseStack.last(), consumer, Vec3.ZERO,
+                    FIELD_RADIUS * pulse, detailed ? 18 : 12, detailed ? 36 : 24,
+                    OmniRenderGeometry.argb(fieldColor, 42));
+            poseStack.popPose();
+        }
+    }
+
+    private static void renderPrimaryRing(PoseStack poseStack, VertexConsumer consumer,
+            float angle, int visualMode, boolean detailed, boolean glow, int color) {
+        poseStack.pushPose();
+        float spin = switch (visualMode) {
+            case 1 -> -0.42F;
+            case 2 -> 0.38F;
+            case 3 -> 0.58F;
+            default -> 0.32F;
+        };
+        poseStack.mulPose(Axis.YP.rotationDegrees(angle * spin));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(5.0F));
+        ring(poseStack, consumer, 14.25F, 0.2F, detailed, glow, color, glow ? 42 : 220);
+        poseStack.popPose();
+    }
+
+    private static void renderSecondaryRings(PoseStack poseStack, VertexConsumer consumer,
+            float angle, int visualMode, boolean glow, int color) {
+        float firstSpin = switch (visualMode) {
+            case 1 -> -0.34F;
+            case 3 -> 0.74F;
+            default -> 0.54F;
+        };
+        float secondSpin = switch (visualMode) {
+            case 1 -> 0.27F;
+            case 3 -> -0.68F;
+            default -> -0.41F;
+        };
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(24.0F + angle * firstSpin));
+        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(13.0F));
+        ring(poseStack, consumer, 12.25F, 0.17F, true, glow, color, glow ? 36 : 200);
+        poseStack.popPose();
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(118.0F + angle * secondSpin));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-17.0F));
+        ring(poseStack, consumer, 11.65F, 0.15F, true, glow, color, glow ? 32 : 180);
+        poseStack.popPose();
+    }
+
+    private static void renderCoreLattice(PoseStack poseStack, VertexConsumer consumer,
+            float angle, int visualMode, boolean glow, int color) {
+        poseStack.pushPose();
+        float spin = switch (visualMode) {
+            case 1 -> 0.55F;
+            case 3 -> -1.5F;
+            default -> -0.9F;
+        };
+        poseStack.mulPose(Axis.YP.rotationDegrees(angle * spin));
+        ring(poseStack, consumer, 4.4F, 0.055F, true, glow, color, glow ? 26 : 170);
+        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+        ring(poseStack, consumer, 4.4F, 0.055F, true, glow, color, glow ? 26 : 170);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
+        ring(poseStack, consumer, 4.4F, 0.055F, true, glow, color, glow ? 26 : 170);
+        poseStack.popPose();
+    }
+
+    private static void ring(PoseStack poseStack, VertexConsumer consumer,
+            float radius, float tubeRadius, boolean detailed, boolean glow, int color, int alpha) {
+        OmniRenderGeometry.torus(poseStack.last(), consumer, Vec3.ZERO,
+                radius, glow ? tubeRadius * 1.8F : tubeRadius,
+                detailed ? glow ? 64 : 96 : 48, glow ? 6 : 8,
+                OmniRenderGeometry.argb(color, alpha));
     }
 
     @Override
@@ -168,12 +246,17 @@ public final class MolecularCenterRenderer
 
     @Override
     public AABB getRenderBoundingBox(MolecularCenterBlockEntity center) {
-        Direction facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        Vec3 origin = MolecularCenterStructure.worldPoint(center.getBlockPos(), facing,
-                MolecularCenterStructure.VISUAL_CENTER_X,
-                MolecularCenterStructure.CORE_Y,
-                MolecularCenterStructure.VISUAL_CENTER_Z);
-        return new AABB(origin.x - 38.0D, origin.y - 18.0D, origin.z - 38.0D,
-                origin.x + 38.0D, origin.y + 18.0D, origin.z + 38.0D);
+        var facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var anchor = center.getControllerAnchorLayout();
+        var minimum = MolecularCenterStructure.worldPos(center.getBlockPos(), facing,
+                new MolecularCenterStructure.Part(MolecularCenterStructure.MIN_X,
+                        0, MolecularCenterStructure.MIN_Z,
+                        MolecularCenterStructure.PartType.AIR), anchor);
+        var maximum = MolecularCenterStructure.worldPos(center.getBlockPos(), facing,
+                new MolecularCenterStructure.Part(MolecularCenterStructure.MAX_X,
+                        Math.max(MolecularCenterStructure.CURRENT_MAX_Y, 45),
+                        MolecularCenterStructure.MAX_Z,
+                        MolecularCenterStructure.PartType.AIR), anchor);
+        return new AABB(minimum).minmax(new AABB(maximum)).inflate(2.0);
     }
 }

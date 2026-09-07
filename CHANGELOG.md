@@ -1,20 +1,72 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 - 2026-09-08
 
-### Changed
+Release date: 2026-09-08
 
-- Reworked the Omni Computation Core into a three-tier silhouette with two
-  primary orbital rings, eight vertical ribs, a tapered computation crown,
-  and slimmer alternating-height pylons. One-click construction and
-  dismantling now safely recover obsolete decorative blocks from the previous
-  geometry, allowing existing structures to migrate without leaving remnants.
-- Reworked the Sequence Array into a twisted matrix containment array with a
-  solid clipped-octagonal foundation, four pairs of stepped wing pylons,
-  offset stabilizer emitters, local broken bridges, and a supported open
-  diamond roof. Full calibration and dismantling safely recover the previous
-  square four-tower reactor as well as the older circular palace, orbital
-  arches, spires, ground anchor, and inverted crystal geometry.
+## English
+
+### Requirements
+
+Minecraft 1.21.1, Java 21, NeoForge 21.1.220+, AE2 19.2.17+, ExtendedAE 1.21-2.2.32-neoforge+, Glodium 1.21-2.2-neoforge, and LDLib2 2.2.18+.
+**AppliedEnhancements 1.0.6 or later is required on both the client and server.** Install it as a separate mod; it is not bundled inside OmniSequence.
+
+### Changes
+
+| Area | Update |
+| --- | --- |
+| Matter Fabrication Well | Added the 41×41×27 Pearl Genesis Chamber with item/fluid processing, research progression, native 16×16 textures and production/research effects. |
+| Research | Added AE material, Sequence Array and Omni-Computation branches, repeatable deep research and branch-specific production bonuses. All three built-in stages take 30 seconds per round; data packs and KubeJS can customize research. The Omni branch requires AdvancedAE. |
+| Service modules | Added item/fluid input and output ports, dedicated port interfaces, and held-item placement previews for valid well positions. |
+| Pattern assemblies | Added 36 processing-pattern slots per assembly, rename support, item/fluid input and output buffers, queued-ingredient refunds and persistent tasks. Contents survive saves and normal block removal. |
+| Current structures | The Sequence Array uses the 61×61×29 Frost Feather Crown; the Omni-Computation Core uses a 65×65×35 floating crown. Projection, JEI views, animated effects and controller interfaces follow the current layouts. |
+| Legacy structures | Retained only the official 1.3.9 Sequence Array and Omni-Computation blueprints, labeled Legacy 1.3.9. Removed other historical and experimental layouts. The well retains only its current blueprint. |
+| Structure updates | Both supported legacy machines show a projection warning. Click Update Structure, wait at least 0.5 seconds, then click again within 5 seconds to confirm. Rapid double-clicks do not trigger an update. Fixed legacy version/size labels and saved-operation compatibility. |
+| Dismantling and storage | Dismantling follows actual matching blocks from top to bottom in serpentine rows. Pauses and reloads retain progress; capacity limits pause recovery. Machine/module contents, fluids, patterns and pending returns remain persistent. |
+| Sequence Array automation | Added nine independent passive crafting slots with per-input ME reserves and primary-output stock limits. Outputs and remainders return to ME; reusable inputs and deterministic tool pools retain cancellation/refund state. |
+| AE2 integration | Shared ordering, pattern caching, material summaries, infinite-cell handling and general terminal enhancements now use AppliedEnhancements. An active formed Omni core invokes its public AELIS planner API; existing prerequisite configuration is respected. |
+| Guides and recipes | Added English/Chinese GuideME pages for the well, research, ports and assemblies. Fixed embedded well recipes and updated ingredient quantities, fluids, time, power, research unlocks and machine behavior descriptions. |
+| World operation and APIs | Required multiblock chunks stay loaded while the structures or their operations need them. Retained the batch-provider API and added documented matter-research integration. |
+
+### Upgrade notes
+
+- Install both new JARs on the client and server, replacing the corresponding older enabled files.
+- Back up your world before structural upgrades. Open the current projection to check the footprint, materials and controller destination.
+- Official 1.3.9 upgrades preserve controller contents and support save/reload. The Sequence Array controller moves 3 blocks down and 15 behind its old position; the Omni controller moves 15 blocks up and 5 behind. New materials and recovery space are required.
+- Other historical or experimental structures are no longer automatically recognized or migrated. Saved work targeting removed layouts stops instead of continuing against a different blueprint.
+- The technical Mod ID remains `molecularmanipulator`. Shared AE2 enhancement settings belong to `appliedenhancements-common.toml`.
+
+## 中文
+
+### 运行要求
+
+Minecraft 1.21.1、Java 21、NeoForge 21.1.220+、AE2 19.2.17+、ExtendedAE 1.21-2.2.32-neoforge+、Glodium 1.21-2.2-neoforge、LDLib2 2.2.18+。
+**客户端和服务端均必须安装 AppliedEnhancements 1.0.6 或更高版本。** 前置以独立模组安装，不嵌入本模组安装包。
+
+### 更新内容
+
+| 项目 | 更新说明 |
+| --- | --- |
+| 物质构筑井 | 新增 41×41×27 白金创生舱，支持物品和流体加工、研究进度，配套原生 16×16 材质及生产、研究动态效果。 |
+| 研究系统 | 新增 AE 材料、构序阵列和万物演算三个研究分支，支持重复深度研究及分支生产加成。三个内置阶段每轮均为 30 秒；支持数据包和 KubeJS 自定义。万物演算分支需要 AdvancedAE。 |
+| 输入输出口 | 新增物品、流体输入输出口及独立界面；手持对应模块时显示构筑井的合法安装位置。 |
+| 样板总成 | 每个总成提供 36 个处理样板槽，支持重命名、物品和流体输入输出缓存、待处理原料退回及任务持久化；保存和正常拆装保留内容。 |
+| 当前建筑 | 构序阵列采用 61×61×29 霜晶羽冠，万物演算核心采用 65×65×35 悬浮星冠；投影、JEI、动态效果和控制器界面适配当前布局。 |
+| 旧版蓝图 | 仅保留正式 1.3.9 的构序阵列、万物演算核心蓝图，明确标记“旧版 1.3.9”；删除其他历史和试验版布局。物质构筑井只保留当前蓝图。 |
+| 结构更新 | 两台受支持的旧版机器均提示“当前版本建筑变化较大，请打开建筑投影确认”。首次点击更新后，至少等待 0.5 秒，再于 5 秒内点击确认；快速双击不会直接执行。修正旧版标记、尺寸和施工存档兼容。 |
+| 拆除与内容保存 | 只拆除实际匹配的结构方块，按从上到下、同层蛇形顺序进行；暂停或重载保留进度，回收空间不足时暂停。机器、接口中的物品、流体、样板及待返还内容持久保存。 |
+| 构序阵列自动合成 | 新增九个独立被动合成槽，可设置 ME 原料保护量和主产物库存上限；产物及余料返回 ME，可复用材料与确定性工具池支持取消退款。 |
+| AE2 前置接入 | 通用下单、样板缓存、材料汇总、无限磁盘及终端增强交由 AppliedEnhancements；在线成型的万物演算核心通过公开 API 调用 AELIS，并遵从前置已有配置。 |
+| 指南与配方 | 新增构筑井、研究、接口和样板总成的中英文 GuideME；修复内嵌构筑井配方报错，更新材料数量、流体、耗时、功耗、研究解锁及机器说明。 |
+| 世界运行与 API | 多方块及其施工需要时保持相关区块加载；保留批量投料 API，提供已文档化的物质研究扩展接口。 |
+
+### 升级说明
+
+- 客户端和服务端都安装本次两个 JAR，并替换对应的旧版启用文件。
+- 更新结构前备份世界，打开当前建筑投影确认占地、材料和控制器目标位置。
+- 正式 1.3.9 更新保留控制器内容并支持保存重载。构序阵列控制器移至原位置下方 3 格、背后 15 格；万物演算核心控制器移至上方 15 格、背后 5 格。需要新版材料和回收空间。
+- 其他历史或试验版不再自动识别、迁移；指向已删除蓝图的存档施工会停止，避免按照另一套蓝图继续执行。
+- 技术 Mod ID 保持 `molecularmanipulator`；通用 AE2 增强配置位于 `appliedenhancements-common.toml`。
 
 ## 1.3.9 - 2026-08-04
 

@@ -10,6 +10,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -35,6 +36,11 @@ public final class OmniComputationGhostPreview {
     public static boolean toggle(OmniComputationCoreBlockEntity core) {
         var minecraft = Minecraft.getInstance();
         if (minecraft.level == null) {
+            return false;
+        }
+        if (core.getBlockState().hasProperty(BlockStateProperties.POWERED)
+                && core.getBlockState().getValue(BlockStateProperties.POWERED)) {
+            clear();
             return false;
         }
         var selectedController = core.getBlockPos().immutable();
@@ -86,7 +92,14 @@ public final class OmniComputationGhostPreview {
 
     private static void refresh(Level level) {
         if (controller == null || !level.hasChunkAt(controller)
-                || !(level.getBlockEntity(controller) instanceof OmniComputationCoreBlockEntity)) {
+                || !(level.getBlockEntity(controller)
+                        instanceof OmniComputationCoreBlockEntity core)) {
+            clear();
+            return;
+        }
+        if (core.getInspection().formed()
+                || core.getBlockState().hasProperty(BlockStateProperties.POWERED)
+                && core.getBlockState().getValue(BlockStateProperties.POWERED)) {
             clear();
             return;
         }
@@ -116,12 +129,17 @@ public final class OmniComputationGhostPreview {
     }
 
     private static boolean isFullyEnclosed(OmniComputationStructure.Part part) {
-        return OmniComputationStructure.partAt(part.x() - 1, part.y(), part.z()) != null
-                && OmniComputationStructure.partAt(part.x() + 1, part.y(), part.z()) != null
-                && OmniComputationStructure.partAt(part.x(), part.y() - 1, part.z()) != null
-                && OmniComputationStructure.partAt(part.x(), part.y() + 1, part.z()) != null
-                && OmniComputationStructure.partAt(part.x(), part.y(), part.z() - 1) != null
-                && OmniComputationStructure.partAt(part.x(), part.y(), part.z() + 1) != null;
+        return occupied(part.x() - 1, part.y(), part.z())
+                && occupied(part.x() + 1, part.y(), part.z())
+                && occupied(part.x(), part.y() - 1, part.z())
+                && occupied(part.x(), part.y() + 1, part.z())
+                && occupied(part.x(), part.y(), part.z() - 1)
+                && occupied(part.x(), part.y(), part.z() + 1);
+    }
+
+    private static boolean occupied(int x, int y, int z) {
+        var part = OmniComputationStructure.partAt(x, y, z);
+        return part != null && part.type() != OmniComputationStructure.PartType.AIR;
     }
 
     static void onResourceReload() {

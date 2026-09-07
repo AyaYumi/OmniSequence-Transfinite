@@ -24,6 +24,11 @@
     "molecularmanipulator:matter_fabrication_glass",
     "molecularmanipulator:matter_fabrication_coil",
     "molecularmanipulator:matter_fabrication_stabilizer",
-    "molecularmanipulator:matter_fabrication_core"
+    "molecularmanipulator:matter_fabrication_core",
+    "molecularmanipulator:matter_fabrication_item_input",
+    "molecularmanipulator:matter_fabrication_item_output",
+    "molecularmanipulator:matter_fabrication_fluid_input",
+    "molecularmanipulator:matter_fabrication_fluid_output",
+    "molecularmanipulator:matter_fabrication_pattern_assembly"
   ]
 }

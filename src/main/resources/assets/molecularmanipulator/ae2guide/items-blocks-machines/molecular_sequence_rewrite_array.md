@@ -18,6 +18,9 @@ molecular-assembler-compatible recipe inside the block instead of sending ingred
 
 ## Setup
 
+Complete **Stage II: Sequence Array** once in the [Matter Fabrication Well](matter_fabrication_well.md), then produce this
+machine there. Deep research improves its well manufacturing recipe, not the performance of the placed array.
+
 1. Connect the array to a powered [ME Network](ae2:ae2-mechanics/me-network-connections.md) with an available channel.
 2. Right-click it and insert encoded crafting, smithing, or stonecutting patterns.
 3. Use the page buttons to move through the fixed pattern inventory: 10 pages with 36 slots each, for a total of
@@ -35,6 +38,8 @@ Recipe results, intermediate products, and container remainders are aggregated b
 If the network cannot accept them immediately, the array keeps them in a persistent output buffer and retries later,
 including after a world reload.
 
+Normal block drops retain patterns, inventory and pending returns. Replace the array and restore its ME connection to continue.
+
 ## Recipe
 
-<RecipeFor id="molecularmanipulator:molecular_manipulator" />
+<RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="This modpack has no available recipe for this item. Check JEI or the research configuration." />

@@ -1,1 +1,24 @@
-{"type":"minecraft:crafting_shapeless","category":"building","ingredients":[{"item":"molecularmanipulator:molecular_center_stabilizer"}],"result":{"id":"molecularmanipulator:matter_fabrication_stabilizer","count":1}}
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "FGF",
+    "GPG",
+    "FGF"
+  ],
+  "key": {
+    "F": {
+      "item": "ae2:fluix_block"
+    },
+    "G": {
+      "item": "ae2:quartz_glass"
+    },
+    "P": {
+      "item": "ae2:engineering_processor"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:matter_fabrication_stabilizer",
+    "count": 4
+  }
+}

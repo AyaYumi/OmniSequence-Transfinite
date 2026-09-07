@@ -23,7 +23,9 @@ import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import com.atir.molecularmanipulator.mixin.CraftingCPUClusterAccessor;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.world.MolecularCenterSpawnProtection;
+import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -36,7 +38,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -76,6 +80,16 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "omni_legacy_structure_update_dismissed";
     private static final String STRUCTURE_FORMED_TAG = "omni_structure_formed";
+    private static final String KNOWN_LAYOUT_TAG = "omni_known_structure_layout";
+    private static final String CURRENT_BLUEPRINT_VERSION_TAG = "omni_current_blueprint_version";
+    private static final String UPGRADE_ACTIVE_TAG = "omni_upgrade_active";
+    private static final String UPGRADE_SOURCE_TAG = "omni_upgrade_source_layout";
+    private static final String UPGRADE_QUEUE_TAG = "omni_upgrade_queue";
+    private static final String UPGRADE_CURSOR_TAG = "omni_upgrade_cursor";
+    private static final String UPGRADE_OWNER_TAG = "omni_upgrade_owner";
+    private static final String DISMANTLE_PLAN_TAG = "omni_dismantle_plan";
+    private static final String DISMANTLE_ACTIVE_TAG = "omni_dismantle_active";
+    private static final String DISMANTLE_OWNER_TAG = "omni_dismantle_owner";
     private static final Map<CraftingCPUCluster, OmniComputationCoreBlockEntity> CPU_OWNERS =
             Collections.synchronizedMap(new WeakHashMap<>());
     private static final Map<MinecraftServer, SharedCompatDispatchState>
@@ -85,6 +99,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private final List<CraftingCPUCluster> virtualCpus = new ArrayList<>();
     private final Map<CraftingCPUCluster, Long> cpuLaneIds = new IdentityHashMap<>();
     private final List<PersistedCpuState> pendingVirtualCpuStates = new ArrayList<>();
+    private boolean retiringStoredCpus;
     private final List<PersistedCpuState> suspendedCpuStates = new ArrayList<>();
     private final AtomicInteger activeMaterialCalculations = new AtomicInteger();
     private final AtomicLong completedMaterialCalculations = new AtomicLong();
@@ -118,6 +133,12 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private boolean building;
     private boolean dismantling;
     private boolean rebuildingLegacyStructure;
+    private OmniComputationStructure.StructureLayout upgradeSourceLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+    private Map<BlockPos, Block> upgradeSourceBlocks = Map.of();
+    private boolean upgradeBlockedNotified;
+    private OmniComputationStructure.StructureLayout knownLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+    private DismantlePlan dismantlePlan;
+    private boolean dismantleBlockedNotified;
     private int dismantlableBlocks;
     private List<OmniComputationStructure.Part> buildQueue = List.of();
     private int buildCursor;
@@ -131,7 +152,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
     private int syncedVisualActivity;
     private int clientVisualActivity;
+    private OmniComputationStructure.StructureLayout visualLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+    private boolean visualFormed;
     private float clientVisualAngle;
+    private double clientOrreryAngle;
     private float clientCompletionPulse;
     private double clientVisualSample = Double.NaN;
 
@@ -177,6 +201,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         super.onReady();
         scheduleStructureCheck();
         updateQuantumLink();
+        if (level != null && !level.isClientSide()) {
+            refreshStructureNow();
+            markForClientUpdate();
+        }
     }
 
     @Override
@@ -184,6 +212,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         unregisterSpawnProtection();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
+        retireStoredCpus(true);
         super.onChunkUnloaded();
     }
 
@@ -192,7 +221,92 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         unregisterSpawnProtection();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
+        retireStoredCpus(true);
         super.setRemoved();
+    }
+
+    public boolean hasRemovalRecovery() {
+        return !quantumInventory.isEmpty() || hasStoredCpuContents();
+    }
+
+    private boolean hasStoredCpuContents() {
+        if (!pendingVirtualCpuStates.isEmpty() || !suspendedCpuStates.isEmpty() || getPreviousState() != null) return true;
+        return allCpus().stream().anyMatch(cpu -> cpu.isBusy() || !cpu.craftingLogic.getInventory().list.isEmpty());
+    }
+
+    @Override
+    public void addAdditionalDrops(Level level, BlockPos pos, List<ItemStack> drops) {
+        if (!hasRemovalRecovery()) return;
+        var contents = new CompoundTag();
+        quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG, level.registryAccess());
+        if (hasStoredCpuContents()) {
+            var cpus = new ListTag();
+            for (var state : snapshotStoredCpus()) cpus.add(wrapCpuState(state.laneId(), state.state()));
+            contents.put(SUSPENDED_CPUS_TAG, cpus);
+            contents.putLong(NEXT_VIRTUAL_CPU_LANE_ID_TAG, nextVirtualCpuLaneId);
+        }
+        drops.add(RetainedBlockContents.createDrop(this, contents));
+    }
+
+    private List<PersistedCpuState> snapshotStoredCpus() {
+        if (!suspendedCpuStates.isEmpty()) return List.copyOf(suspendedCpuStates);
+        var result = new ArrayList<PersistedCpuState>();
+        var primary = getCluster();
+        var primaryTag = new CompoundTag();
+        if (primary != null && !primary.isDestroyed()) primary.writeToNBT(primaryTag, level.registryAccess());
+        else if (getPreviousState() != null) primaryTag = getPreviousState().copy();
+        // The suspended format's first record always represents the physical CPU.
+        result.add(new PersistedCpuState(PRIMARY_CPU_LANE_ID, primaryTag));
+        if (!virtualCpus.isEmpty()) {
+            for (var cpu : virtualCpus) {
+                if (cpu.isDestroyed()) continue;
+                var tag = new CompoundTag();
+                cpu.writeToNBT(tag, level.registryAccess());
+                result.add(new PersistedCpuState(laneId(cpu), tag));
+            }
+        } else result.addAll(pendingVirtualCpuStates);
+        return result;
+    }
+
+    private void retireStoredCpus(boolean retain) {
+        if (level == null || level.isClientSide() || retiringStoredCpus) return;
+        var snapshots = retain && hasStoredCpuContents() ? snapshotStoredCpus() : List.<PersistedCpuState>of();
+        var cpus = allCpus();
+        var grid = getMainNode().getGrid();
+        var bridge = grid != null && grid.getCraftingService() instanceof OmniCraftingServiceBridge service ? service : null;
+        retiringStoredCpus = true;
+        try {
+            for (var cpu : cpus) {
+                if (bridge != null) bridge.molecularmanipulator$unregisterOmniCpu(cpu);
+                CPU_OWNERS.remove(cpu, this);
+                cpu.destroy();
+                cpu.craftingLogic.getInventory().clear();
+            }
+        } finally {
+            retiringStoredCpus = false;
+        }
+        virtualCpus.clear();
+        cpuLaneIds.clear();
+        pendingVirtualCpuStates.clear();
+        suspendedCpuStates.clear();
+        suspendedCpuStates.addAll(snapshots);
+        setPreviousState(null);
+        setCoreBlock(false);
+        restoredCpuState = false;
+    }
+
+    @Override
+    public void breakCluster() {
+        // destroy() calls updateStatus(null), which would normally cancel and drop
+        // the CPU inventory. Those assets are already in the portable snapshot.
+        if (!retiringStoredCpus) super.breakCluster();
+    }
+
+    @Override
+    public void clearContent() {
+        super.clearContent();
+        quantumInventory.clear();
+        retireStoredCpus(false);
     }
 
     @Override
@@ -210,6 +324,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void updateSubType(boolean updateFormed) {
+        syncVisualStructure();
         if (level == null || notLoaded() || isRemoved()) {
             return;
         }
@@ -226,10 +341,26 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
     }
 
+    public Set<ChunkPos> getChunkLoadingChunks() {
+        var result = new HashSet<ChunkPos>();
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        if (structureFormed) result.addAll(OmniComputationStructure.chunkFootprint(worldPosition, facing, inspection.layout()));
+        if (building || dismantling || rebuildingLegacyStructure) {
+            result.addAll(OmniComputationStructure.chunkFootprint(worldPosition, facing, knownLayout));
+            if (building || rebuildingLegacyStructure) result.addAll(OmniComputationStructure.chunkFootprint(
+                    worldPosition, facing, OmniComputationStructure.StructureLayout.CURRENT));
+            if (rebuildingLegacyStructure) result.addAll(OmniComputationStructure.chunkFootprint(worldPosition, facing,
+                    upgradeSourceLayout, OmniComputationStructure.StructureLayout.CURRENT));
+            if (dismantlePlan != null) result.addAll(dismantlePlan.remainingChunks());
+        }
+        return result;
+    }
+
     public void serverTick() {
         if (level == null || level.isClientSide()) {
             return;
         }
+        if (building || dismantling || rebuildingLegacyStructure) MultiblockChunkLoading.maintain(this);
         long gameTime = level.getGameTime();
         if (building) {
             processBuild();
@@ -278,6 +409,17 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
     }
 
+    private void syncVisualStructure() {
+        if (level == null || level.isClientSide() || isRemoved()) return;
+        boolean nextFormed = structureFormed && inspection.formed();
+        var nextLayout = nextFormed ? inspection.layout() : OmniComputationStructure.StructureLayout.INCOMPLETE;
+        if (visualFormed != nextFormed || visualLayout != nextLayout) {
+            visualFormed = nextFormed;
+            visualLayout = nextLayout;
+            markForClientUpdate();
+        }
+    }
+
     public void scheduleStructureCheck() {
         if (level != null) {
             nextStructureCheck = Math.min(nextStructureCheck, level.getGameTime() + 1);
@@ -295,8 +437,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         boolean wasFormed = structureFormed;
         inspection = nextInspection;
         structureFormed = nextInspection.formed();
-        dismantlableBlocks = OmniComputationStructure.countDismantlableBlocks(
-                level, worldPosition, facing);
+        if (nextInspection.formed()) {
+            knownLayout = nextInspection.layout();
+        }
+        dismantlableBlocks = dismantlePlan != null ? dismantlePlan.remaining()
+                : OmniComputationStructure.countDismantlableBlocks(level, worldPosition, facing, knownLayout);
         if (nextInspection.layout() == OmniComputationStructure.StructureLayout.CURRENT) {
             legacyStructureUpdateDismissed = false;
         }
@@ -321,11 +466,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         updateQuantumLink();
         updateSpawnProtection();
         setChanged();
+        MultiblockChunkLoading.maintain(this);
     }
 
     private void updateSpawnProtection() {
         if (level instanceof ServerLevel serverLevel) {
-            MolecularCenterSpawnProtection.updateOmni(serverLevel, worldPosition, structureFormed);
+            MolecularCenterSpawnProtection.updateOmni(serverLevel, worldPosition, structureFormed,
+                    inspection.layout());
         }
     }
 
@@ -905,7 +1052,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         if (level == null) {
             return clientVisualAngle;
         }
-        double sample = level.getGameTime() + partialTick;
+        double sample = level.getGameTime() + (double) partialTick;
         if (Double.isNaN(clientVisualSample)) {
             clientVisualSample = sample;
             return clientVisualAngle;
@@ -913,7 +1060,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         double elapsed = sample - clientVisualSample;
         if (elapsed >= 0.0 && elapsed <= 5.0) {
             float activityScale = (float) (Math.log1p(clientVisualActivity) / Math.log(17.0));
-            clientVisualAngle += (float) elapsed * (0.55F + Math.min(1.8F, activityScale) * 2.65F);
+            double advance = elapsed * (0.55F + Math.min(1.8F, activityScale) * 2.65F);
+            clientVisualAngle += (float) advance;
+            clientOrreryAngle += advance;
             clientCompletionPulse = Math.max(0.0F,
                     clientCompletionPulse - (float) elapsed * 0.045F);
             if (clientVisualAngle >= 3600.0F) {
@@ -928,10 +1077,22 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return clientCompletionPulse;
     }
 
+    /** New orbital projections use an unwrapped phase; older renderers retain their legacy angle. */
+    public double getClientOrreryAngle() {
+        return clientOrreryAngle;
+    }
+
+    /** Render state comes from the server's validated layout, never a saved recovery hint. */
+    public OmniComputationStructure.StructureLayout getVisualLayout() {
+        return visualFormed ? visualLayout : OmniComputationStructure.StructureLayout.INCOMPLETE;
+    }
+
     @Override
     protected void writeToStream(RegistryFriendlyByteBuf data) {
         super.writeToStream(data);
         data.writeVarInt(syncedVisualActivity);
+        data.writeBoolean(visualFormed);
+        data.writeVarInt(getVisualLayout().ordinal());
     }
 
     @Override
@@ -943,6 +1104,17 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
         changed |= clientVisualActivity != nextActivity;
         clientVisualActivity = nextActivity;
+        boolean nextFormed = data.readBoolean();
+        int layoutId = data.readVarInt();
+        var layouts = OmniComputationStructure.StructureLayout.values();
+        var nextLayout = layoutId >= 0 && layoutId < layouts.length ? layouts[layoutId]
+                : OmniComputationStructure.StructureLayout.INCOMPLETE;
+        nextFormed &= nextLayout != OmniComputationStructure.StructureLayout.INCOMPLETE;
+        if (!nextFormed) nextLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+        changed |= structureFormed != nextFormed || visualFormed != nextFormed || visualLayout != nextLayout;
+        visualFormed = nextFormed;
+        visualLayout = nextLayout;
+        structureFormed = nextFormed;
         return changed;
     }
 
@@ -986,7 +1158,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     public boolean hasLegacyStructure() {
         return structureFormed
-                && inspection.layout() == OmniComputationStructure.StructureLayout.LEGACY;
+                && inspection.layout().requiresUpdate();
     }
 
     public boolean isLegacyStructureUpdateDismissed() {
@@ -1017,6 +1189,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
+        if (rebuildingLegacyStructure) {
+            startStructureUpdate(player);
+            return;
+        }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         if (!OmniComputationStructure.isWithinBuildHeight(level, worldPosition)) {
             player.displayClientMessage(
@@ -1031,7 +1207,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         var currentInspection = OmniComputationStructure.inspect(level, worldPosition, facing);
         if (currentInspection.formed()) {
             player.displayClientMessage(Component.translatable(
-                    currentInspection.layout() == OmniComputationStructure.StructureLayout.LEGACY
+                    currentInspection.layout().requiresUpdate()
                             ? "message.molecularmanipulator.structure_update_requires_confirmation"
                             : "message.molecularmanipulator.omni.already_formed"), false);
             return;
@@ -1042,6 +1218,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return;
         }
         buildQueue = new ArrayList<>(OmniComputationStructure.buildParts(currentInspection.layout()));
+        dismantlePlan = null;
+        knownLayout = OmniComputationStructure.StructureLayout.CURRENT;
         buildCursor = 0;
         buildTotal = buildQueue.size();
         buildOwner = player.getUUID();
@@ -1053,74 +1231,135 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (!OmniComputationStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.omni.chunks_unloaded"), false);
+        if (rebuildingLegacyStructure && !buildQueue.isEmpty()) {
+            buildOwner = player.getUUID();
+            building = true;
+            upgradeBlockedNotified = false;
+            setChanged();
             return;
         }
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var detected = OmniComputationStructure.inspect(level, worldPosition, facing);
         if (!detected.formed()
-                || detected.layout() != OmniComputationStructure.StructureLayout.LEGACY) {
+                || !detected.layout().requiresUpdate()) {
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_unavailable"), false);
             return;
         }
 
-        var legacyCenter = new OmniComputationStructure.Part(
-                OmniComputationStructure.EFFECT_X,
-                OmniComputationStructure.EFFECT_Y,
-                OmniComputationStructure.EFFECT_Z,
-                OmniComputationStructure.PartType.DATA_ENTANGLER);
-        var relocatedEntangler = new OmniComputationStructure.Part(
-                OmniComputationStructure.RELOCATED_ENTANGLER_X,
-                OmniComputationStructure.RELOCATED_ENTANGLER_Y,
-                OmniComputationStructure.RELOCATED_ENTANGLER_Z,
-                OmniComputationStructure.PartType.DATA_ENTANGLER);
-        var sourcePos = OmniComputationStructure.worldPos(worldPosition, facing, legacyCenter);
-        var targetPos = OmniComputationStructure.worldPos(worldPosition, facing, relocatedEntangler);
-        var sourceState = level.getBlockState(sourcePos);
-        if (!sourceState.is(ModContent.COMPUTATION_DATA_ENTANGLER.get())
-                || !level.getBlockState(targetPos).isAir()
-                || !player.mayUseItemAt(sourcePos, Direction.UP, ItemStack.EMPTY)
+        relocateControllerAndStartUpdate(player, facing, detected.layout());
+    }
+
+    private void relocateControllerAndStartUpdate(ServerPlayer player,
+            Direction facing, OmniComputationStructure.StructureLayout sourceLayout) {
+        var currentController = new OmniComputationStructure.Part(
+                OmniComputationStructure.CURRENT_CONTROLLER_X,
+                OmniComputationStructure.CURRENT_CONTROLLER_Y,
+                OmniComputationStructure.CURRENT_CONTROLLER_Z,
+                OmniComputationStructure.PartType.CONTROLLER);
+        BlockPos targetPos = OmniComputationStructure.worldPos(
+                worldPosition, facing, currentController, sourceLayout);
+        if (!OmniComputationStructure.isWithinBuildHeight(
+                level, targetPos, OmniComputationStructure.StructureLayout.CURRENT)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.omni.invalid_height"), false);
+            return;
+        }
+        if (!OmniComputationStructure.areRequiredChunksLoaded(
+                level, targetPos, facing,
+                OmniComputationStructure.StructureLayout.CURRENT)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.omni.chunks_unloaded"), false);
+            return;
+        }
+        if (!player.mayUseItemAt(worldPosition, Direction.UP, ItemStack.EMPTY)
                 || !player.mayUseItemAt(targetPos, Direction.UP, ItemStack.EMPTY)) {
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_unavailable"), false);
             return;
         }
+        if (targetPos.equals(worldPosition)) {
+            dismantlePlan = null;
+            knownLayout = OmniComputationStructure.StructureLayout.CURRENT;
+            legacyStructureUpdateDismissed = false;
+            buildQueue = new ArrayList<>(
+                    OmniComputationStructure.migrationParts(sourceLayout));
+            buildCursor = 0;
+            buildTotal = buildQueue.size();
+            buildOwner = player.getUUID();
+            building = true;
+            configureUpgradeSource(sourceLayout);
+            structureFormed = false;
+            unregisterSpawnProtection();
+            updateSubType(true);
+            updateQuantumLink();
+            setChanged();
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.structure_update_started"), false);
+            return;
+        }
 
-        if (!level.setBlock(targetPos, sourceState, 3)) {
+        BlockState displacedState = level.getBlockState(targetPos);
+        ItemStack displaced = ItemStack.EMPTY;
+        if (!displacedState.isAir() && !displacedState.canBeReplaced()) {
+            if (!OmniComputationStructure.isStructurePart(displacedState)
+                    || displacedState.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
+                player.displayClientMessage(Component.translatable(
+                        "message.molecularmanipulator.structure_update_unavailable"), false);
+                return;
+            }
+            displaced = new ItemStack(displacedState.getBlock());
+            if (!canStoreDismantledBlock(player, displaced)) {
+                player.displayClientMessage(Component.translatable(
+                        "message.molecularmanipulator.omni.dismantle_storage_full"), false);
+                return;
+            }
+        }
+
+        var registries = level.registryAccess();
+        var payload = new CompoundTag();
+        saveAdditional(payload, registries);
+        BlockState sourceState = getBlockState();
+        BlockState centeredState = sourceState.hasProperty(BlockStateProperties.POWERED)
+                ? sourceState.setValue(BlockStateProperties.POWERED, false)
+                : sourceState;
+        if (!level.setBlock(targetPos, centeredState, 3)
+                || !(level.getBlockEntity(targetPos)
+                        instanceof OmniComputationCoreBlockEntity centeredCore)) {
+            level.setBlock(targetPos, displacedState, 3);
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_unavailable"), false);
             return;
         }
-        if (!level.setBlock(sourcePos, Blocks.AIR.defaultBlockState(), 3)) {
-            level.setBlock(targetPos, Blocks.AIR.defaultBlockState(), 3);
+        centeredCore.loadTag(payload, registries);
+        if (!level.removeBlock(worldPosition, false)) {
+            level.setBlock(targetPos, displacedState, 3);
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_unavailable"), false);
             return;
         }
-
-        legacyStructureUpdateDismissed = false;
-        refreshStructureNow();
-        // The old implementation only moved the center entangler, leaving the
-        // entire legacy shell in place.  Queue a complete migration: the build
-        // plan first clears every known legacy coordinate, then places the
-        // current reference-inspired square layout.
-        startBuild(player);
-        if (!building) {
-            // A foreign block may occupy a coordinate needed by the new plan.
-            // Restore the legacy marker move so a failed update never leaves a
-            // half-migrated structure behind.
-            level.setBlock(sourcePos, sourceState, 3);
-            level.setBlock(targetPos, Blocks.AIR.defaultBlockState(), 3);
-            refreshStructureNow();
-            return;
+        if (!displaced.isEmpty()) {
+            centeredCore.storeDismantledBlock(player, displaced);
         }
-        rebuildingLegacyStructure = true;
+
+        centeredCore.legacyStructureUpdateDismissed = false;
+        centeredCore.dismantlePlan = null;
+        centeredCore.knownLayout = OmniComputationStructure.StructureLayout.CURRENT;
+        centeredCore.buildQueue = new ArrayList<>(
+                OmniComputationStructure.migrationParts(sourceLayout));
+        centeredCore.buildCursor = 0;
+        centeredCore.buildTotal = centeredCore.buildQueue.size();
+        centeredCore.buildOwner = player.getUUID();
+        centeredCore.building = true;
+        centeredCore.configureUpgradeSource(sourceLayout);
+        centeredCore.structureFormed = false;
+        centeredCore.unregisterSpawnProtection();
+        centeredCore.updateSubType(true);
+        centeredCore.updateQuantumLink();
+        centeredCore.setChanged();
+        player.closeContainer();
         player.displayClientMessage(Component.translatable(
                 "message.molecularmanipulator.structure_update_started"), false);
-        setChanged();
     }
 
     public void keepLegacyStructure(ServerPlayer player) {
@@ -1130,7 +1369,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var detected = OmniComputationStructure.inspect(level, worldPosition, facing);
         if (!detected.formed()
-                || detected.layout() != OmniComputationStructure.StructureLayout.LEGACY) {
+                || !detected.layout().requiresUpdate()) {
             return;
         }
         inspection = detected;
@@ -1146,29 +1385,41 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return;
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (!OmniComputationStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
+        if (dismantlePlan == null || dismantlePlan.isComplete()) {
+            refreshStructureNow();
+            if (knownLayout == OmniComputationStructure.StructureLayout.INCOMPLETE) {
+                player.displayClientMessage(Component.translatable(
+                        "message.molecularmanipulator.dismantle_layout_unknown"), false);
+                return;
+            }
+            if (!OmniComputationStructure.areRequiredChunksLoaded(level, worldPosition, facing, knownLayout)) {
+                player.displayClientMessage(Component.translatable(
+                        "message.molecularmanipulator.omni.chunks_unloaded"), false);
+                return;
+            }
+            dismantlePlan = DismantlePlan.create(OmniComputationStructure.dismantleEntries(
+                    level, worldPosition, facing, knownLayout));
+        }
+        if (!dismantlePlan.remainingChunksLoaded(level)) {
             player.displayClientMessage(
                     Component.translatable("message.molecularmanipulator.omni.chunks_unloaded"), false);
             return;
         }
-        refreshStructureNow();
-        // The inspection score is against the current blueprint.  An intact
-        // pre-redesign structure may therefore score only the controller even
-        // though all of its blocks are still removable through the union of
-        // known layout coordinates.
-        int removableBlocks = OmniComputationStructure.countDismantlableBlocks(
-                level, worldPosition, facing);
-        if (removableBlocks <= 0) {
+        if (dismantlePlan.isComplete()) {
+            dismantlePlan = null;
+            knownLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+            dismantlableBlocks = 0;
+            setChanged();
             player.displayClientMessage(
                     Component.translatable("message.molecularmanipulator.omni.nothing_to_dismantle"), false);
             return;
         }
-        buildQueue = new ArrayList<>(OmniComputationStructure.dismantleParts());
-        Collections.reverse(buildQueue);
-        buildCursor = 0;
-        buildTotal = buildQueue.size();
+        buildQueue = List.of();
+        buildCursor = dismantlePlan.completed();
+        buildTotal = dismantlePlan.total();
         buildOwner = player.getUUID();
         dismantling = true;
+        dismantleBlockedNotified = false;
         structureFormed = false;
         unregisterSpawnProtection();
         updateSubType(true);
@@ -1178,68 +1429,71 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     private void processBuild() {
         if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel) || buildOwner == null) {
-            stopBuild();
+            pauseUpgradeOrStopBuild();
             return;
         }
         var player = serverLevel.getServer().getPlayerList().getPlayer(buildOwner);
         if (player == null) {
-            stopBuild();
+            pauseUpgradeOrStopBuild();
             return;
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        if (rebuildingLegacyStructure && !OmniComputationStructure.areRequiredChunksLoaded(level, worldPosition, facing)) return;
         int placed = 0;
         while (buildCursor < buildQueue.size() && placed < BUILD_BLOCKS_PER_TICK) {
             var part = buildQueue.get(buildCursor);
             if (part.type() == OmniComputationStructure.PartType.CONTROLLER) {
-                buildCursor++;
+                advanceBuildCursor();
                 continue;
             }
             var targetPos = OmniComputationStructure.worldPos(worldPosition, facing, part);
             if (!player.mayUseItemAt(targetPos, Direction.UP, ItemStack.EMPTY)) {
-                player.displayClientMessage(Component.translatable(
+                reportBuildBlocked(player, Component.translatable(
                         "message.molecularmanipulator.omni.build_conflict",
-                        targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
-                stopBuild();
+                        targetPos.getX(), targetPos.getY(), targetPos.getZ()));
+                pauseUpgradeOrStopBuild();
                 return;
             }
             var current = level.getBlockState(targetPos);
             if (part.type() == OmniComputationStructure.PartType.AIR) {
                 if (current.isAir()) {
-                    buildCursor++;
+                    advanceBuildCursor();
                     continue;
                 }
-                if (!recoverBuildReplacement(player, targetPos, current)) {
-                    stopBuild();
+                if (!canReplaceUpgradeSource(player, part, targetPos, current)
+                        || !recoverBuildReplacement(player, targetPos, current)) {
+                    pauseUpgradeOrStopBuild();
                     return;
                 }
-                buildCursor++;
+                advanceBuildCursor();
                 placed++;
                 continue;
             }
             var requiredBlock = OmniComputationStructure.block(part.type());
             if (current.is(requiredBlock)) {
-                buildCursor++;
+                advanceBuildCursor();
                 continue;
             }
             if (OmniComputationStructure.isStructurePart(current)) {
-                if (!recoverBuildReplacement(player, targetPos, current)) {
-                    stopBuild();
+                if (!canReplaceUpgradeSource(player, part, targetPos, current)
+                        || !recoverBuildReplacement(player, targetPos, current)) {
+                    pauseUpgradeOrStopBuild();
                     return;
                 }
                 current = level.getBlockState(targetPos);
             }
             if (!current.isAir() && !current.canBeReplaced()) {
-                player.displayClientMessage(Component.translatable(
+                reportBuildBlocked(player, Component.translatable(
                         "message.molecularmanipulator.omni.build_conflict",
-                        targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
-                stopBuild();
+                        targetPos.getX(), targetPos.getY(), targetPos.getZ()));
+                pauseUpgradeOrStopBuild();
                 return;
             }
             if (!takeBuildItem(player, requiredBlock.asItem())) {
-                player.displayClientMessage(Component.translatable(
+                reportBuildBlocked(player, Component.translatable(
                         "message.molecularmanipulator.omni.missing_material",
-                        requiredBlock.getName()), false);
-                stopBuild();
+                        requiredBlock.getName()));
+                pauseUpgradeOrStopBuild();
                 return;
             }
             var placedState = requiredBlock.defaultBlockState();
@@ -1249,13 +1503,13 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             boolean placementSucceeded = level.setBlock(targetPos, placedState, 3);
             if (!placementSucceeded || !level.getBlockState(targetPos).is(requiredBlock)) {
                 refundBuildItem(player, requiredBlock.asItem());
-                player.displayClientMessage(Component.translatable(
+                reportBuildBlocked(player, Component.translatable(
                         "message.molecularmanipulator.omni.build_conflict",
-                        targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
-                stopBuild();
+                        targetPos.getX(), targetPos.getY(), targetPos.getZ()));
+                pauseUpgradeOrStopBuild();
                 return;
             }
-            buildCursor++;
+            advanceBuildCursor();
             placed++;
         }
         setChanged();
@@ -1270,62 +1524,86 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
     }
 
+    private void configureUpgradeSource(OmniComputationStructure.StructureLayout source) {
+        upgradeSourceLayout = source;
+        var blocks = new java.util.HashMap<BlockPos, Block>();
+        for (var part : OmniComputationStructure.parts(source)) {
+            if (part.type() != OmniComputationStructure.PartType.AIR
+                    && part.type() != OmniComputationStructure.PartType.CONTROLLER) {
+                blocks.put(new BlockPos(part.x(), part.y(), part.z()), OmniComputationStructure.block(part.type()));
+            }
+        }
+        upgradeSourceBlocks = Map.copyOf(blocks);
+        rebuildingLegacyStructure = true;
+        upgradeBlockedNotified = false;
+    }
+
+    private boolean canReplaceUpgradeSource(ServerPlayer player, OmniComputationStructure.Part part,
+            BlockPos target, BlockState state) {
+        if (!rebuildingLegacyStructure) return true;
+        var expected = upgradeSourceBlocks.get(new BlockPos(part.x(), part.y(), part.z()));
+        if (expected != null && state.is(expected)) return true;
+        reportBuildBlocked(player, Component.translatable("message.molecularmanipulator.omni.build_conflict",
+                target.getX(), target.getY(), target.getZ()));
+        return false;
+    }
+
+    private void advanceBuildCursor() {
+        buildCursor++;
+        upgradeBlockedNotified = false;
+    }
+
+    private void pauseUpgradeOrStopBuild() {
+        if (rebuildingLegacyStructure) setChanged();
+        else stopBuild();
+    }
+
+    private void reportBuildBlocked(ServerPlayer player, Component message) {
+        if (!rebuildingLegacyStructure || !upgradeBlockedNotified) player.displayClientMessage(message, false);
+        upgradeBlockedNotified = rebuildingLegacyStructure;
+        setChanged();
+    }
+
     private void processDismantle() {
-        if (!(level instanceof ServerLevel serverLevel) || buildOwner == null) {
-            stopDismantle();
+        if (!(level instanceof ServerLevel serverLevel) || buildOwner == null || dismantlePlan == null) {
             return;
         }
         var player = serverLevel.getServer().getPlayerList().getPlayer(buildOwner);
-        if (player == null) {
-            stopDismantle();
+        if (player == null || !dismantlePlan.remainingChunksLoaded(level)) {
             return;
         }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         int removed = 0;
-        while (buildCursor < buildQueue.size() && removed < BUILD_BLOCKS_PER_TICK) {
-            var part = buildQueue.get(buildCursor);
-            if (part.type() == OmniComputationStructure.PartType.CONTROLLER) {
-                buildCursor++;
+        while (!dismantlePlan.isComplete() && removed < BUILD_BLOCKS_PER_TICK) {
+            var entry = dismantlePlan.current();
+            var targetPos = entry.pos();
+            if (!entry.matches(level.getBlockState(targetPos))) {
+                advanceDismantle();
                 continue;
             }
-            var targetPos = OmniComputationStructure.worldPos(worldPosition, facing, part);
             if (!player.mayUseItemAt(targetPos, Direction.UP, ItemStack.EMPTY)) {
-                player.displayClientMessage(Component.translatable(
+                notifyDismantleBlocked(player, Component.translatable(
                         "message.molecularmanipulator.omni.build_conflict",
-                        targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
-                stopDismantle();
+                        targetPos.getX(), targetPos.getY(), targetPos.getZ()));
                 return;
             }
-            if (part.type() == OmniComputationStructure.PartType.AIR) {
-                buildCursor++;
-                continue;
-            }
-            var currentState = level.getBlockState(targetPos);
-            if (!OmniComputationStructure.isStructurePart(currentState)
-                    || currentState.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
-                buildCursor++;
-                continue;
-            }
-            var recovered = new ItemStack(currentState.getBlock());
+            var recovered = new ItemStack(entry.block());
             if (!canStoreDismantledBlock(player, recovered)) {
-                player.displayClientMessage(
-                        Component.translatable("message.molecularmanipulator.omni.dismantle_storage_full"), false);
-                stopDismantle();
+                notifyDismantleBlocked(player, Component.translatable(
+                        "message.molecularmanipulator.omni.dismantle_storage_full"));
                 return;
             }
-            if (!level.removeBlock(targetPos, false)) {
-                player.displayClientMessage(Component.translatable(
+            if (!level.removeBlock(targetPos, false) || entry.matches(level.getBlockState(targetPos))) {
+                notifyDismantleBlocked(player, Component.translatable(
                         "message.molecularmanipulator.omni.build_conflict",
-                        targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
-                stopDismantle();
+                        targetPos.getX(), targetPos.getY(), targetPos.getZ()));
                 return;
             }
             storeDismantledBlock(player, recovered);
-            buildCursor++;
+            advanceDismantle();
             removed++;
         }
         setChanged();
-        if (buildCursor >= buildQueue.size()) {
+        if (dismantlePlan.isComplete()) {
             stopDismantle();
             refreshStructureNow();
             player.displayClientMessage(
@@ -1333,24 +1611,40 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
     }
 
+    private void advanceDismantle() {
+        dismantlePlan.advance();
+        buildCursor = dismantlePlan.completed();
+        dismantlableBlocks = dismantlePlan.remaining();
+        dismantleBlockedNotified = false;
+    }
+
+    private void notifyDismantleBlocked(ServerPlayer player, Component message) {
+        if (!dismantleBlockedNotified) {
+            player.displayClientMessage(message, false);
+            dismantleBlockedNotified = true;
+        }
+        // Keep the exact current entry, so freeing space or restoring permission
+        // resumes this row instead of jumping to a lower layer or rebuilding a queue.
+        setChanged();
+    }
+
     private boolean recoverBuildReplacement(ServerPlayer player, BlockPos targetPos, BlockState currentState) {
         if (!OmniComputationStructure.isStructurePart(currentState)
                 || currentState.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
-            player.displayClientMessage(Component.translatable(
+            reportBuildBlocked(player, Component.translatable(
                     "message.molecularmanipulator.omni.build_conflict",
-                    targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
+                    targetPos.getX(), targetPos.getY(), targetPos.getZ()));
             return false;
         }
         var recovered = new ItemStack(currentState.getBlock());
         if (recovered.isEmpty() || !canStoreDismantledBlock(player, recovered)) {
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.omni.dismantle_storage_full"), false);
+            reportBuildBlocked(player, Component.translatable("message.molecularmanipulator.omni.dismantle_storage_full"));
             return false;
         }
         if (!level.removeBlock(targetPos, false)) {
-            player.displayClientMessage(Component.translatable(
+            reportBuildBlocked(player, Component.translatable(
                     "message.molecularmanipulator.omni.build_conflict",
-                    targetPos.getX(), targetPos.getY(), targetPos.getZ()), false);
+                    targetPos.getX(), targetPos.getY(), targetPos.getZ()));
             return false;
         }
         storeDismantledBlock(player, recovered);
@@ -1421,6 +1715,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private void stopBuild() {
         building = false;
         rebuildingLegacyStructure = false;
+        upgradeSourceLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+        upgradeSourceBlocks = Map.of();
+        upgradeBlockedNotified = false;
         buildQueue = List.of();
         buildOwner = null;
         setChanged();
@@ -1428,6 +1725,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     private void stopDismantle() {
         dismantling = false;
+        dismantlePlan = null;
+        knownLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+        dismantlableBlocks = 0;
         buildQueue = List.of();
         buildOwner = null;
         setChanged();
@@ -1443,6 +1743,34 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
         tag.putBoolean(STRUCTURE_FORMED_TAG, structureFormed);
+        tag.putString(KNOWN_LAYOUT_TAG, knownLayout.name());
+        tag.putInt(CURRENT_BLUEPRINT_VERSION_TAG, 2);
+        tag.putBoolean(UPGRADE_ACTIVE_TAG, rebuildingLegacyStructure);
+        if (rebuildingLegacyStructure) {
+            tag.putString(UPGRADE_SOURCE_TAG, upgradeSourceLayout.name());
+            tag.putInt(UPGRADE_CURSOR_TAG, buildCursor);
+            if (buildOwner != null) tag.putUUID(UPGRADE_OWNER_TAG, buildOwner);
+            var queue = new ListTag();
+            for (var part : buildQueue) {
+                var entry = new CompoundTag();
+                entry.putInt("x", part.x());
+                entry.putInt("y", part.y());
+                entry.putInt("z", part.z());
+                entry.putString("type", part.type().name());
+                queue.add(entry);
+            }
+            tag.put(UPGRADE_QUEUE_TAG, queue);
+        }
+        if (dismantlePlan != null) {
+            tag.put(DISMANTLE_PLAN_TAG, dismantlePlan.save());
+            tag.putBoolean(DISMANTLE_ACTIVE_TAG, dismantling);
+            if (buildOwner != null) tag.putUUID(DISMANTLE_OWNER_TAG, buildOwner);
+            else tag.remove(DISMANTLE_OWNER_TAG);
+        } else {
+            tag.remove(DISMANTLE_PLAN_TAG);
+            tag.remove(DISMANTLE_ACTIVE_TAG);
+            tag.remove(DISMANTLE_OWNER_TAG);
+        }
         tag.putLong(NEXT_VIRTUAL_CPU_LANE_ID_TAG, nextVirtualCpuLaneId);
         boolean wroteVirtualCpu = false;
         if (!virtualCpus.isEmpty()) {
@@ -1478,9 +1806,36 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
+        tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         legacyStructureUpdateDismissed = tag.getBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG);
+        try {
+            knownLayout = OmniComputationStructure.StructureLayout.fromSavedName(tag.getString(KNOWN_LAYOUT_TAG));
+        } catch (IllegalArgumentException ignored) {
+            // Old saves never stored a dismantle queue or a reliable partial-layout
+            // anchor. Inspect a complete structure again; never reuse an old index.
+            knownLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+        }
+        if (tag.getInt(CURRENT_BLUEPRINT_VERSION_TAG) < 2
+                && knownLayout == OmniComputationStructure.StructureLayout.CURRENT) {
+            knownLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+        }
+        dismantlePlan = tag.contains(DISMANTLE_PLAN_TAG, CompoundTag.TAG_COMPOUND)
+                ? DismantlePlan.load(tag.getCompound(DISMANTLE_PLAN_TAG)) : null;
+        dismantling = dismantlePlan != null && !dismantlePlan.isComplete()
+                && tag.getBoolean(DISMANTLE_ACTIVE_TAG) && tag.hasUUID(DISMANTLE_OWNER_TAG);
+        dismantleBlockedNotified = false;
+        if (dismantlePlan != null) {
+            building = false;
+            rebuildingLegacyStructure = false;
+            buildQueue = List.of();
+            buildCursor = dismantlePlan.completed();
+            buildTotal = dismantlePlan.total();
+            dismantlableBlocks = dismantlePlan.remaining();
+            buildOwner = tag.hasUUID(DISMANTLE_OWNER_TAG) ? tag.getUUID(DISMANTLE_OWNER_TAG) : null;
+        }
+        if (!dismantling) restoreUpgradeQueue(tag);
         pendingVirtualCpuStates.clear();
         suspendedCpuStates.clear();
         cpuLaneIds.clear();
@@ -1507,9 +1862,43 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         structureFormed = tag.contains(STRUCTURE_FORMED_TAG)
                 ? tag.getBoolean(STRUCTURE_FORMED_TAG)
                 : getBlockState().getValue(BlockStateProperties.POWERED);
+        if (dismantling || rebuildingLegacyStructure) structureFormed = false;
+        visualLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
+        visualFormed = false;
         nextStructureCheck = 0;
         claimedQuantumFrequency = 0;
         quantumLinkState = MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
+    }
+
+    private void restoreUpgradeQueue(CompoundTag tag) {
+        if (!tag.getBoolean(UPGRADE_ACTIVE_TAG)) return;
+        // Removed experimental layouts must never resume against the current blueprint.
+        building = false;
+        rebuildingLegacyStructure = false;
+        buildQueue = List.of();
+        final OmniComputationStructure.StructureLayout source;
+        var queue = new ArrayList<OmniComputationStructure.Part>();
+        try {
+            source = OmniComputationStructure.StructureLayout.fromSavedName(tag.getString(UPGRADE_SOURCE_TAG));
+            if (!source.requiresUpdate()) return;
+            var saved = tag.getList(UPGRADE_QUEUE_TAG, CompoundTag.TAG_COMPOUND);
+            for (int index = 0; index < saved.size(); index++) {
+                var entry = saved.getCompound(index);
+                var type = OmniComputationStructure.PartType.valueOf(entry.getString("type"));
+                queue.add(new OmniComputationStructure.Part(entry.getInt("x"), entry.getInt("y"), entry.getInt("z"), type));
+            }
+        } catch (IllegalArgumentException invalidSavedQueue) {
+            return;
+        }
+        if (queue.isEmpty()) return;
+        configureUpgradeSource(source);
+        dismantlePlan = null;
+        knownLayout = OmniComputationStructure.StructureLayout.CURRENT;
+        buildQueue = List.copyOf(queue);
+        buildCursor = Math.max(0, Math.min(tag.getInt(UPGRADE_CURSOR_TAG), queue.size()));
+        buildTotal = queue.size();
+        buildOwner = tag.hasUUID(UPGRADE_OWNER_TAG) ? tag.getUUID(UPGRADE_OWNER_TAG) : null;
+        building = buildOwner != null;
     }
 
     private static CompoundTag wrapCpuState(long laneId, CompoundTag state) {

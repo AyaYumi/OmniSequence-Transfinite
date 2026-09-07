@@ -1,19 +1,27 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "key": {
-    "C": {"item": "molecularmanipulator:matter_fabrication_casing"},
-    "K": {"item": "molecularmanipulator:matter_fabrication_core"},
-    "S": {"item": "molecularmanipulator:matter_fabrication_stabilizer"},
-    "U": {"item": "ae2:crafting_unit"}
-  },
   "pattern": [
-    "CSC",
-    "UKU",
-    "CSC"
+    "UPU",
+    "CEC",
+    "UPU"
   ],
+  "key": {
+    "U": {
+      "item": "ae2:crafting_unit"
+    },
+    "P": {
+      "item": "ae2:engineering_processor"
+    },
+    "C": {
+      "item": "ae2:calculation_processor"
+    },
+    "E": {
+      "item": "ae2:energy_cell"
+    }
+  },
   "result": {
-    "count": 1,
-    "id": "molecularmanipulator:matter_fabrication_controller"
+    "id": "molecularmanipulator:matter_fabrication_controller",
+    "count": 1
   }
 }

@@ -1,12 +1,15 @@
 package com.atir.molecularmanipulator.blockentity;
 
+import appeng.core.definitions.AEBlocks;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
+import java.util.Set;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -15,33 +18,38 @@ import java.util.List;
 import java.util.Map;
 
 public final class OmniComputationStructure {
-    public static final int WIDTH = 31;
-    public static final int HEIGHT = 39;
-    public static final int MIN_X = -15;
-    public static final int MAX_X = 15;
-    public static final int MIN_Z = -15;
-    public static final int MAX_Z = 15;
+    public static final int WIDTH = OmniCrownGeometry.RADIUS * 2 + 1;
+    public static final int MIN_Y = OmniCrownGeometry.MIN_Y;
+    public static final int MAX_Y = OmniCrownGeometry.MAX_Y;
+    public static final int HEIGHT = MAX_Y - MIN_Y + 1;
+    public static final int MIN_X = -OmniCrownGeometry.RADIUS;
+    public static final int MAX_X = OmniCrownGeometry.RADIUS;
+    public static final int MIN_Z = MIN_X;
+    public static final int MAX_Z = MAX_X;
+
     public static final int CONTROLLER_X = 0;
     public static final int CONTROLLER_Y = 2;
-    public static final int CONTROLLER_Z = MIN_Z;
+    public static final int CONTROLLER_Z = -15;
     public static final int EFFECT_X = 0;
     public static final int EFFECT_Y = 17;
     public static final int EFFECT_Z = 0;
-    /** Center of the visible reactor chamber in the current, reference-inspired layout. */
+    public static final int CURRENT_CONTROLLER_X = EFFECT_X;
+    public static final int CURRENT_CONTROLLER_Y = EFFECT_Y;
+    public static final int CURRENT_CONTROLLER_Z = -10;
+
     public static final int VISUAL_CENTER_X = 0;
-    public static final int VISUAL_CENTER_Y = 12;
+    public static final int VISUAL_CENTER_Y = EFFECT_Y;
     public static final int VISUAL_CENTER_Z = 0;
     public static final int RELOCATED_ENTANGLER_X = 0;
     public static final int RELOCATED_ENTANGLER_Y = 9;
     public static final int RELOCATED_ENTANGLER_Z = -12;
 
-    private static final List<Part> PARTS = createParts(StructureLayout.CURRENT);
-    private static final List<Part> LEGACY_PARTS = createParts(StructureLayout.LEGACY);
-    private static final List<Part> PREVIOUS_DECORATIVE_PARTS = createPreviousDecorativeParts();
-    private static final List<Part> BUILD_PARTS = createBuildParts(PARTS);
-    private static final List<Part> LEGACY_BUILD_PARTS = createBuildParts(LEGACY_PARTS);
-    private static final List<Part> DISMANTLE_PARTS = createDismantleParts();
+    private static final List<Part> PARTS = OmniCrownGeometry.createParts();
+    private static final List<Part> LEGACY_PARTS = Legacy139Blueprints.load("omni_computation",
+            (x, y, z, type) -> new Part(x, y, z, PartType.valueOf(type)));
+    private static final List<Part> LEGACY_MIGRATION_PARTS = createMigrationParts(LEGACY_PARTS);
     private static final Map<LocalPos, Part> PART_LOOKUP = createLookup(PARTS);
+    private static final Map<StructureLayout, LayoutBounds> LAYOUT_BOUNDS = createLayoutBounds();
 
     private OmniComputationStructure() {
     }
@@ -51,72 +59,111 @@ public final class OmniComputationStructure {
     }
 
     public static List<Part> parts(StructureLayout layout) {
-        return layout == StructureLayout.LEGACY ? LEGACY_PARTS : PARTS;
-    }
-
-    public static List<Part> buildParts(StructureLayout layout) {
-        return layout == StructureLayout.LEGACY ? LEGACY_BUILD_PARTS : BUILD_PARTS;
+        return layout == StructureLayout.LEGACY_1_3_9 ? LEGACY_PARTS : PARTS;
     }
 
     public static List<Part> dismantleParts() {
-        return DISMANTLE_PARTS;
+        return dismantleParts(StructureLayout.CURRENT);
     }
 
-    /**
-     * Counts removable blocks at every coordinate used by the current, legacy,
-     * and pre-redesign layouts.  This deliberately does not rely on the current
-     * inspection score: after a layout redesign an intact old structure can
-     * legitimately score only one (the controller) against the new blueprint.
-     */
-    public static int countDismantlableBlocks(Level level, BlockPos controller,
-            Direction facing) {
-        int removable = 0;
-        for (var part : DISMANTLE_PARTS) {
-            if (part.type() == PartType.AIR || part.type() == PartType.CONTROLLER) {
-                continue;
-            }
-            var state = level.getBlockState(worldPos(controller, facing, part));
-            if (isStructurePart(state)) {
-                removable++;
-            }
+    public static List<Part> dismantleParts(StructureLayout layout) {
+        if (layout == StructureLayout.INCOMPLETE) {
+            return List.of();
         }
-        return removable;
+        return parts(layout).stream()
+                .filter(part -> part.type() != PartType.AIR && part.type() != PartType.CONTROLLER)
+                .toList();
     }
+
+    public static List<Part> buildParts(StructureLayout layout) {
+        return layout.requiresUpdate() ? migrationParts(layout) : PARTS;
+    }
+
+    public static List<Part> migrationParts(StructureLayout fromLayout) {
+        return fromLayout.requiresUpdate() ? LEGACY_MIGRATION_PARTS : List.of();
+    }
+
+    public static int visualCenterY(StructureLayout layout) { return EFFECT_Y; }
 
     public static Part partAt(int x, int y, int z) {
         return PART_LOOKUP.get(new LocalPos(x, y, z));
     }
 
     public static BlockPos worldPos(BlockPos controller, Direction facing, Part part) {
+        return worldPos(controller, facing, part, StructureLayout.CURRENT);
+    }
+
+    public static BlockPos worldPos(BlockPos controller, Direction facing,
+            Part part, StructureLayout layout) {
         var right = facing.getClockWise();
         var back = facing.getOpposite();
-        return controller.relative(right, part.x() - CONTROLLER_X)
-                .relative(Direction.UP, part.y() - CONTROLLER_Y)
-                .relative(back, part.z() - CONTROLLER_Z);
+        return controller.relative(right, part.x() - controllerX(layout))
+                .relative(Direction.UP, part.y() - controllerY(layout))
+                .relative(back, part.z() - controllerZ(layout));
     }
 
     public static Vec3 worldPoint(BlockPos controller, Direction facing,
             double localX, double localY, double localZ) {
+        return worldPoint(controller, facing, localX, localY, localZ,
+                StructureLayout.CURRENT);
+    }
+
+    public static Vec3 worldPoint(BlockPos controller, Direction facing,
+            double localX, double localY, double localZ, StructureLayout layout) {
         var right = facing.getClockWise();
         var back = facing.getOpposite();
         return Vec3.atCenterOf(controller).add(
-                right.getStepX() * (localX - CONTROLLER_X) + back.getStepX() * (localZ - CONTROLLER_Z),
-                localY - CONTROLLER_Y,
-                right.getStepZ() * (localX - CONTROLLER_X) + back.getStepZ() * (localZ - CONTROLLER_Z));
+                right.getStepX() * (localX - controllerX(layout))
+                        + back.getStepX() * (localZ - controllerZ(layout)),
+                localY - controllerY(layout),
+                right.getStepZ() * (localX - controllerX(layout))
+                        + back.getStepZ() * (localZ - controllerZ(layout)));
     }
 
     public static boolean isWithinBuildHeight(Level level, BlockPos controller) {
-        int bottom = controller.getY() - CONTROLLER_Y;
-        return bottom >= level.getMinBuildHeight()
-                && bottom + HEIGHT - 1 < level.getMaxBuildHeight();
+        return isWithinBuildHeight(level, controller, StructureLayout.CURRENT);
+    }
+
+    public static boolean isWithinBuildHeight(Level level, BlockPos controller,
+            StructureLayout layout) {
+        var bounds = LAYOUT_BOUNDS.get(layout);
+        int worldMinY = controller.getY() + bounds.minY() - controllerY(layout);
+        int worldMaxY = controller.getY() + bounds.maxY() - controllerY(layout);
+        return worldMinY >= level.getMinBuildHeight()
+                && worldMaxY < level.getMaxBuildHeight();
+    }
+
+    public static Set<ChunkPos> chunkFootprint(
+            BlockPos controller, Direction facing, StructureLayout layout) {
+        return chunkFootprint(controller, facing, layout, layout);
+    }
+
+    public static Set<ChunkPos> chunkFootprint(
+            BlockPos controller, Direction facing, StructureLayout layout, StructureLayout anchor) {
+        var bounds = LAYOUT_BOUNDS.get(layout);
+        if (bounds == null) return java.util.Set.of();
+        return MultiblockChunkLoading.rectangle(
+                worldPos(controller, facing, new Part(bounds.minX(), 0, bounds.minZ(), PartType.CASING), anchor),
+                worldPos(controller, facing, new Part(bounds.maxX(), 0, bounds.maxZ(), PartType.CASING), anchor));
     }
 
     public static boolean areRequiredChunksLoaded(Level level, BlockPos controller, Direction facing) {
+        return areRequiredChunksLoaded(level, controller, facing,
+                StructureLayout.CURRENT);
+    }
+
+    public static boolean areRequiredChunksLoaded(Level level, BlockPos controller,
+            Direction facing, StructureLayout layout) {
+        var bounds = LAYOUT_BOUNDS.get(layout);
         var corners = List.of(
-                worldPos(controller, facing, new Part(MIN_X, 0, MIN_Z, PartType.CASING)),
-                worldPos(controller, facing, new Part(MAX_X, 0, MIN_Z, PartType.CASING)),
-                worldPos(controller, facing, new Part(MIN_X, 0, MAX_Z, PartType.CASING)),
-                worldPos(controller, facing, new Part(MAX_X, 0, MAX_Z, PartType.CASING)));
+                worldPos(controller, facing,
+                        new Part(bounds.minX(), 0, bounds.minZ(), PartType.CASING), layout),
+                worldPos(controller, facing,
+                        new Part(bounds.maxX(), 0, bounds.minZ(), PartType.CASING), layout),
+                worldPos(controller, facing,
+                        new Part(bounds.minX(), 0, bounds.maxZ(), PartType.CASING), layout),
+                worldPos(controller, facing,
+                        new Part(bounds.maxX(), 0, bounds.maxZ(), PartType.CASING), layout));
         int minX = corners.stream().mapToInt(BlockPos::getX).min().orElse(controller.getX());
         int maxX = corners.stream().mapToInt(BlockPos::getX).max().orElse(controller.getX());
         int minZ = corners.stream().mapToInt(BlockPos::getZ).min().orElse(controller.getZ());
@@ -132,29 +179,24 @@ public final class OmniComputationStructure {
     }
 
     public static Inspection inspect(Level level, BlockPos controller, Direction facing) {
-        if (!isWithinBuildHeight(level, controller)
-                || !areRequiredChunksLoaded(level, controller, facing)) {
-            return new Inspection(PARTS.size(), 0, PARTS.size(), 0, false,
-                    StructureLayout.INCOMPLETE);
-        }
-        var effectPart = new Part(EFFECT_X, EFFECT_Y, EFFECT_Z, PartType.AIR);
-        var effectState = level.getBlockState(worldPos(controller, facing, effectPart));
-        if (effectState.isAir()) {
-            return inspectLayout(level, controller, facing, PARTS, StructureLayout.CURRENT);
-        }
-        if (effectState.is(ModContent.COMPUTATION_DATA_ENTANGLER.get())) {
-            return inspectLayout(level, controller, facing, LEGACY_PARTS, StructureLayout.LEGACY);
-        }
-        return inspectLayout(level, controller, facing, PARTS, StructureLayout.INCOMPLETE);
+        var current = inspectLayout(level, controller, facing, PARTS, StructureLayout.CURRENT);
+        if (current.formed()) return current;
+        var legacy = inspectLayout(level, controller, facing, LEGACY_PARTS, StructureLayout.LEGACY_1_3_9);
+        if (legacy.formed()) return legacy;
+        return new Inspection(current.total(), current.correct(), current.missing(), current.conflicts(), false, StructureLayout.INCOMPLETE);
     }
 
     private static Inspection inspectLayout(Level level, BlockPos controller, Direction facing,
             List<Part> parts, StructureLayout layout) {
+        if (!isWithinBuildHeight(level, controller, layout)
+                || !areRequiredChunksLoaded(level, controller, facing, layout)) {
+            return new Inspection(parts.size(), 0, parts.size(), 0, false, layout);
+        }
         int correct = 0;
         int missing = 0;
         int conflicts = 0;
         for (var part : parts) {
-            var state = level.getBlockState(worldPos(controller, facing, part));
+            var state = level.getBlockState(worldPos(controller, facing, part, layout));
             if (part.type() == PartType.CONTROLLER) {
                 if (state.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
                     correct++;
@@ -173,7 +215,7 @@ public final class OmniComputationStructure {
             }
             if (state.is(block(part.type()))) {
                 correct++;
-            } else if (state.isAir() || state.canBeReplaced() || isStructurePart(state)) {
+            } else if (state.isAir() || state.canBeReplaced()) {
                 missing++;
             } else {
                 conflicts++;
@@ -195,83 +237,72 @@ public final class OmniComputationStructure {
             case ENERGY_STABILIZER -> ModContent.COMPUTATION_ENERGY_STABILIZER.get();
             case OUTPUT_NODE -> ModContent.COMPUTATION_OUTPUT_NODE.get();
             case CRYSTAL_PYLON -> ModContent.COMPUTATION_CRYSTAL_PYLON.get();
+            case AE_FLUIX -> AEBlocks.FLUIX_BLOCK.block();
+            case CYAN_STAINED_GLASS -> Blocks.CYAN_STAINED_GLASS;
+            case BLUE_STAINED_GLASS -> Blocks.BLUE_STAINED_GLASS;
             case AIR -> Blocks.AIR;
         };
     }
 
-    public static boolean isStructurePart(BlockState state) {
-        return state.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())
-                || state.is(ModContent.OMNI_COMPUTATION_CASING.get())
-                || state.is(ModContent.OMNI_COMPUTATION_GLASS.get())
-                || state.is(ModContent.INFINITE_PARALLEL_MATRIX.get())
-                || state.is(ModContent.INFINITE_CRAFTING_STORAGE.get())
-                || state.is(ModContent.UNIVERSAL_PATTERN_MATRIX.get())
-                || state.is(ModContent.COMPUTATION_DATA_ENTANGLER.get())
-                || state.is(ModContent.COMPUTATION_ENERGY_STABILIZER.get())
-                || state.is(ModContent.COMPUTATION_OUTPUT_NODE.get())
-                || state.is(ModContent.COMPUTATION_CRYSTAL_PYLON.get());
-    }
-
-    private static List<Part> createParts(StructureLayout layout) {
-        var builder = new Builder();
-        if (layout == StructureLayout.CURRENT) {
-            addReferenceBase(builder);
-            addReferenceTowers(builder);
-            addReferenceChamber(builder);
-            addReferenceBraces(builder);
-            addReferenceCrown(builder);
-            // Keep the original air marker so existing inspection/update code can
-            // distinguish the new layout from the legacy center-entangler layout.
-            builder.put(EFFECT_X, EFFECT_Y, EFFECT_Z, PartType.AIR);
-            builder.put(RELOCATED_ENTANGLER_X, RELOCATED_ENTANGLER_Y,
-                    RELOCATED_ENTANGLER_Z, PartType.DATA_ENTANGLER);
-        } else {
-            addBase(builder);
-            addCentralChamber(builder);
-            addLowerPylons(builder);
-            builder.put(EFFECT_X, EFFECT_Y, EFFECT_Z, PartType.DATA_ENTANGLER);
-            builder.put(RELOCATED_ENTANGLER_X, RELOCATED_ENTANGLER_Y,
-                    RELOCATED_ENTANGLER_Z, PartType.AIR);
-            addPreviousOrbitalAssembly(builder);
-            addPreviousUpperCrown(builder);
-        }
-        builder.put(CONTROLLER_X, CONTROLLER_Y, CONTROLLER_Z, PartType.CONTROLLER);
-        return List.copyOf(builder.build());
-    }
-
-    private static List<Part> createDismantleParts() {
-        var result = new LinkedHashMap<LocalPos, Part>();
-        for (var part : PARTS) {
-            if (part.type() != PartType.AIR) {
-                result.put(new LocalPos(part.x(), part.y(), part.z()), part);
+    public static boolean isStructurePart(net.minecraft.world.level.block.state.BlockState state) {
+        for (var type : PartType.values()) {
+            if (type != PartType.AIR && state.is(block(type))) {
+                return true;
             }
         }
-        for (var part : LEGACY_PARTS) {
-            if (part.type() != PartType.AIR) {
-                result.putIfAbsent(new LocalPos(part.x(), part.y(), part.z()), part);
-            }
-        }
-        for (var part : PREVIOUS_DECORATIVE_PARTS) {
-            if (part.type() != PartType.AIR) {
-                result.putIfAbsent(new LocalPos(part.x(), part.y(), part.z()), part);
-            }
-        }
-        return List.copyOf(result.values());
+        return false;
     }
 
-    private static List<Part> createBuildParts(List<Part> targetParts) {
-        var result = new LinkedHashMap<LocalPos, Part>();
-        for (var previous : PREVIOUS_DECORATIVE_PARTS) {
-            if (previous.type() == PartType.AIR) {
+    public static int countDismantlableBlocks(Level level, BlockPos controller,
+            Direction facing, StructureLayout layout) {
+        return dismantleEntries(level, controller, facing, layout).size();
+    }
+
+    public static List<DismantlePlan.Entry> dismantleEntries(Level level, BlockPos controller,
+            Direction facing, StructureLayout layout) {
+        var entries = new ArrayList<DismantlePlan.Entry>();
+        for (var part : dismantleParts(layout)) {
+            var pos = worldPos(controller, facing, part, layout);
+            if (pos.equals(controller) || !level.hasChunkAt(pos)) {
                 continue;
             }
-            var cleanup = new Part(previous.x(), previous.y(), previous.z(), PartType.AIR);
-            result.put(new LocalPos(cleanup.x(), cleanup.y(), cleanup.z()), cleanup);
+            var expected = block(part.type());
+            if (level.getBlockState(pos).is(expected)) {
+                entries.add(new DismantlePlan.Entry(pos, expected));
+            }
         }
-        for (var part : targetParts) {
+        return List.copyOf(entries);
+    }
+
+    private static List<Part> createMigrationParts(List<Part> sourceParts) {
+        var result = new LinkedHashMap<LocalPos, Part>();
+        for (var part : sourceParts) {
+            if (part.type() != PartType.AIR && part.type() != PartType.CONTROLLER) {
+                result.put(new LocalPos(part.x(), part.y(), part.z()),
+                        new Part(part.x(), part.y(), part.z(), PartType.AIR));
+            }
+        }
+        for (var part : PARTS) {
             result.put(new LocalPos(part.x(), part.y(), part.z()), part);
         }
         return List.copyOf(result.values());
+    }
+
+    private static Map<StructureLayout, LayoutBounds> createLayoutBounds() {
+        var result = new java.util.EnumMap<StructureLayout, LayoutBounds>(StructureLayout.class);
+        for (var layout : StructureLayout.values()) {
+            var blueprint = parts(layout);
+            // Explicit AIR belongs to its own blueprint; old cleanup envelopes
+            // must never expand the new crown's height or chunk requirements.
+            result.put(layout, new LayoutBounds(
+                    blueprint.stream().mapToInt(Part::x).min().orElseThrow(),
+                    blueprint.stream().mapToInt(Part::y).min().orElseThrow(),
+                    blueprint.stream().mapToInt(Part::z).min().orElseThrow(),
+                    blueprint.stream().mapToInt(Part::x).max().orElseThrow(),
+                    blueprint.stream().mapToInt(Part::y).max().orElseThrow(),
+                    blueprint.stream().mapToInt(Part::z).max().orElseThrow()));
+        }
+        return Map.copyOf(result);
     }
 
     private static Map<LocalPos, Part> createLookup(List<Part> parts) {
@@ -280,360 +311,6 @@ public final class OmniComputationStructure {
             result.put(new LocalPos(part.x(), part.y(), part.z()), part);
         }
         return Map.copyOf(result);
-    }
-
-    /**
-     * Reference-layout foundation: a stepped square plinth with a dark patterned
-     * floor and four clean approach lanes.  The rectangular silhouette is
-     * intentional; it is the visual anchor that the old circular layout lacked.
-     */
-    private static void addReferenceBase(Builder builder) {
-        builder.fillRect(0, -15, 15, -15, 15, PartType.CASING);
-        builder.rectFrame(1, -14, 14, -14, 14, 1, PartType.PATTERN_MATRIX);
-        builder.fillRect(1, -12, 12, -12, 12, PartType.CASING);
-        builder.rectFrame(2, -14, 14, -14, 14, 1, PartType.CASING);
-        builder.rectFrame(3, -11, 11, -11, 11, 1, PartType.PATTERN_MATRIX);
-
-        // Inlaid cross-shaped data lanes mimic the luminous floor channels.
-        builder.lineX(2, 0, -13, 13, PartType.DATA_ENTANGLER);
-        builder.lineZ(2, 0, -13, 13, PartType.DATA_ENTANGLER);
-        builder.lineX(3, 0, -10, 10, PartType.ENERGY_STABILIZER);
-        builder.lineZ(3, 0, -10, 10, PartType.ENERGY_STABILIZER);
-
-        int[][] pads = {
-                {-10, -8}, {10, -8}, {-10, 8}, {10, 8}
-        };
-        for (int index = 0; index < pads.length; index++) {
-            int[] pad = pads[index];
-            builder.fillSquare(pad[0], pad[1], 3, 3, PartType.CASING);
-            builder.rectFrame(4, pad[0] - 2, pad[0] + 2,
-                    pad[1] - 2, pad[1] + 2, 1, PartType.ENERGY_STABILIZER);
-            builder.put(pad[0], 4, pad[1],
-                    index % 2 == 0 ? PartType.STORAGE_MATRIX : PartType.PARALLEL_MATRIX);
-        }
-        // Front-facing output nodes give the base the same framed, machine-like
-        // focal point as the reference image.
-        builder.put(0, 2, -14, PartType.OUTPUT_NODE);
-        builder.put(0, 2, 14, PartType.OUTPUT_NODE);
-        builder.put(-14, 2, 0, PartType.OUTPUT_NODE);
-        builder.put(14, 2, 0, PartType.OUTPUT_NODE);
-    }
-
-    private static void addReferenceTowers(Builder builder) {
-        int[][] towers = {
-                {-10, -8, 30}, {10, -8, 30},
-                {-10, 8, 30}, {10, 8, 30}
-        };
-        for (int[] tower : towers) {
-            addReferenceTower(builder, tower[0], tower[1], tower[2], 2, true);
-        }
-
-        // Two pairs of inset pylons create the smaller middle towers visible
-        // between the outer columns without closing the central chamber.
-        int[][] innerTowers = {
-                {-6, -4, 22}, {6, -4, 22},
-                {-6, 4, 22}, {6, 4, 22}
-        };
-        for (int[] tower : innerTowers) {
-            addReferenceTower(builder, tower[0], tower[1], tower[2], 1, false);
-        }
-    }
-
-    private static void addReferenceTower(Builder builder, int centerX, int centerZ,
-            int topY, int radius, boolean exterior) {
-        builder.fillSquare(centerX, centerZ, 3, radius + 1, PartType.CASING);
-        builder.fillSquare(centerX, centerZ, 4, radius + 1, PartType.PATTERN_MATRIX);
-        for (int y = 5; y <= topY; y++) {
-            PartType shell = y % 6 == 0 || y % 6 == 1
-                    ? PartType.ENERGY_STABILIZER : PartType.CASING;
-            builder.squareFrame(centerX, centerZ, y, radius, shell);
-            builder.put(centerX, y, centerZ, PartType.GLASS);
-            // A full-height cyan inset faces the controller, just like the
-            // vertical glass shafts in the supplied build reference.
-            int panelZ = centerZ - radius;
-            builder.put(centerX, y, panelZ, PartType.GLASS);
-            if (exterior && (y == 9 || y == 17 || y == 25)) {
-                builder.put(centerX - 1, y, panelZ, PartType.ENERGY_STABILIZER);
-                builder.put(centerX + 1, y, panelZ, PartType.ENERGY_STABILIZER);
-            }
-            if (y % 5 == 2) {
-                builder.put(centerX - radius, y, centerZ, PartType.PATTERN_MATRIX);
-                builder.put(centerX + radius, y, centerZ, PartType.PATTERN_MATRIX);
-            }
-            if (y % 7 == 4) {
-                builder.put(centerX - radius, y, centerZ - radius,
-                        PartType.PARALLEL_MATRIX);
-                builder.put(centerX + radius, y, centerZ + radius,
-                        PartType.STORAGE_MATRIX);
-            }
-        }
-        builder.fillSquare(centerX, centerZ, topY + 1, radius + 1, PartType.CASING);
-        builder.squareFrame(centerX, centerZ, topY + 2, radius + 1,
-                PartType.PATTERN_MATRIX);
-        builder.put(centerX, topY + 3, centerZ, PartType.CRYSTAL_PYLON);
-    }
-
-    private static void addReferenceChamber(Builder builder) {
-        // Lower and upper decks suspend a seven-block-wide central cube.
-        builder.rectFrame(8, -7, 7, -7, 7, 1, PartType.CASING);
-        builder.rectFrame(16, -7, 7, -7, 7, 1, PartType.CASING);
-        builder.rectFrame(20, -8, 8, -8, 8, 1, PartType.PATTERN_MATRIX);
-        builder.put(-7, 20, -7, PartType.PARALLEL_MATRIX);
-        builder.put(7, 20, 7, PartType.STORAGE_MATRIX);
-
-        builder.cubeShell(-3, 3, 9, 15, -3, 3, PartType.PATTERN_MATRIX);
-        builder.cubeShell(-2, 2, 10, 14, -2, 2, PartType.CASING);
-        // Front plate and inner aperture are deliberately different blocks so
-        // the center reads as a cyan reactor core instead of a solid purple cube.
-        builder.put(0, 12, -4, PartType.GLASS);
-        builder.put(0, 12, -3, PartType.OUTPUT_NODE);
-        builder.put(0, 12, 0, PartType.DATA_ENTANGLER);
-
-        // Four transparent suspension rails leave the chamber readable from all
-        // sides while giving the platforms a physical connection.
-        for (int y = 9; y <= 19; y++) {
-            builder.put(-5, y, -5, PartType.GLASS);
-            builder.put(-5, y, 5, PartType.GLASS);
-            builder.put(5, y, -5, PartType.GLASS);
-            builder.put(5, y, 5, PartType.GLASS);
-        }
-        builder.lineX(18, 0, -8, 8, PartType.DATA_ENTANGLER);
-        builder.lineZ(18, 0, -8, 8, PartType.DATA_ENTANGLER);
-    }
-
-    private static void addReferenceBraces(Builder builder) {
-        // Long crossbars connect the four towers at the lower and upper deck
-        // levels, echoing the purple conduits crossing the reference build.
-        for (int y : new int[] { 11, 18, 24 }) {
-            builder.lineX(y, -9, -4, 4, PartType.DATA_ENTANGLER);
-            builder.lineX(y, 4, 9, 4, PartType.DATA_ENTANGLER);
-            builder.lineX(y, -9, -4, -4, PartType.DATA_ENTANGLER);
-            builder.lineX(y, 4, 9, -4, PartType.DATA_ENTANGLER);
-            builder.lineZ(y, -4, -7, -4, PartType.ENERGY_STABILIZER);
-            builder.lineZ(y, 4, -7, -4, PartType.ENERGY_STABILIZER);
-            builder.lineZ(y, -4, 4, 7, PartType.ENERGY_STABILIZER);
-            builder.lineZ(y, 4, 4, 7, PartType.ENERGY_STABILIZER);
-        }
-        for (int y = 17; y <= 23; y++) {
-            builder.put(-8, y, -8, PartType.GLASS);
-            builder.put(8, y, -8, PartType.GLASS);
-            builder.put(-8, y, 8, PartType.GLASS);
-            builder.put(8, y, 8, PartType.GLASS);
-        }
-    }
-
-    private static void addReferenceCrown(Builder builder) {
-        builder.rectFrame(26, -8, 8, -8, 8, 1, PartType.CASING);
-        builder.rectFrame(27, -7, 7, -7, 7, 1, PartType.PATTERN_MATRIX);
-        builder.put(-7, 27, -7, PartType.PARALLEL_MATRIX);
-        builder.put(7, 27, 7, PartType.STORAGE_MATRIX);
-        builder.rectFrame(30, -11, 11, -11, 11, 1, PartType.CASING);
-        builder.rectFrame(31, -9, 9, -9, 9, 1, PartType.ENERGY_STABILIZER);
-        builder.lineX(32, 0, -7, 7, PartType.DATA_ENTANGLER);
-        builder.lineZ(32, 0, -7, 7, PartType.DATA_ENTANGLER);
-        builder.put(0, 34, 0, PartType.PATTERN_MATRIX);
-        builder.put(0, 35, 0, PartType.DATA_ENTANGLER);
-        builder.put(0, 36, 0, PartType.CRYSTAL_PYLON);
-        builder.put(0, 37, 0, PartType.CRYSTAL_PYLON);
-    }
-
-    private static void addBase(Builder builder) {
-        builder.squareRing(0, 15, 2, PartType.CASING);
-        builder.circleRing(1, 11.0, 15.6, PartType.CASING);
-        builder.circleRing(2, 8.5, 14.8, PartType.CASING);
-        builder.circleDisk(3, 11.2, PartType.CASING);
-        builder.circleRing(3, 13.2, 15.6, PartType.CASING);
-        builder.circleRing(4, 8.7, 14.8, PartType.CASING);
-        builder.spokes(4, 3, 14, PartType.DATA_ENTANGLER);
-
-        for (int angle = 0; angle < 16; angle++) {
-            double radians = angle * Math.PI / 8.0;
-            builder.putPolar(1, 13.0, radians,
-                    angle % 2 == 0 ? PartType.STORAGE_MATRIX : PartType.ENERGY_STABILIZER);
-        }
-        builder.put(0, 2, -14, PartType.OUTPUT_NODE);
-        builder.put(0, 2, 14, PartType.OUTPUT_NODE);
-        builder.put(-14, 2, 0, PartType.OUTPUT_NODE);
-        builder.put(14, 2, 0, PartType.OUTPUT_NODE);
-    }
-
-    private static void addCentralChamber(Builder builder) {
-        builder.circleRing(5, 3.1, 4.6, PartType.PATTERN_MATRIX);
-        for (int y = 6; y <= 18; y++) {
-            builder.circleRing(y, 3.4, 4.6, PartType.GLASS);
-            if (y % 4 == 2) {
-                builder.circleRing(y, 4.0, 5.2, PartType.ENERGY_STABILIZER);
-            }
-        }
-        builder.circleDisk(19, 4.8, PartType.PATTERN_MATRIX);
-        for (int y = 7; y <= 17; y += 2) {
-            builder.put(0, y, 0, PartType.DATA_ENTANGLER);
-        }
-        for (int y = 6; y <= 18; y += 4) {
-            builder.put(-4, y, -4, PartType.ENERGY_STABILIZER);
-            builder.put(4, y, -4, PartType.ENERGY_STABILIZER);
-            builder.put(-4, y, 4, PartType.ENERGY_STABILIZER);
-            builder.put(4, y, 4, PartType.ENERGY_STABILIZER);
-        }
-    }
-
-    private static void addLowerPylons(Builder builder) {
-        int[][] centers = {
-                {-11, -11}, {0, -12}, {11, -11}, {12, 0},
-                {11, 11}, {0, 12}, {-11, 11}, {-12, 0}
-        };
-        for (int index = 0; index < centers.length; index++) {
-            int cx = centers[index][0];
-            int cz = centers[index][1];
-            for (int y = 5; y <= 13; y++) {
-                builder.smallTowerRing(cx, cz, y,
-                        y == 7 || y == 11 ? PartType.ENERGY_STABILIZER : PartType.CASING);
-            }
-            builder.smallTowerCap(cx, cz, 14, PartType.PATTERN_MATRIX);
-            builder.put(cx, 15, cz, PartType.CRYSTAL_PYLON);
-            if (index % 2 == 0) {
-                builder.put(cx, 10, cz, PartType.PARALLEL_MATRIX);
-            } else {
-                builder.put(cx, 10, cz, PartType.STORAGE_MATRIX);
-            }
-        }
-    }
-
-    private static void addOrbitalAssembly(Builder builder) {
-        // One broad foundation ring and one smaller data ring frame the gate
-        // without stacking several visually identical horizontal decks.
-        builder.circleRing(16, 13.1, 15.6, PartType.CASING);
-        builder.circleRing(20, 10.4, 12.2, PartType.CASING);
-
-        for (int angle = 0; angle < 16; angle++) {
-            double radians = angle * Math.PI / 8.0;
-            builder.putPolar(16, 14.3, radians, PartType.ENERGY_STABILIZER);
-            builder.putPolar(20, 11.3, radians,
-                    angle % 2 == 0 ? PartType.PARALLEL_MATRIX : PartType.STORAGE_MATRIX);
-        }
-
-        // Eight vertical ribs create a clear upward flow and leave the
-        // singularity's radius unobstructed.
-        for (int angle = 0; angle < 8; angle++) {
-            double radians = angle * Math.PI / 4.0;
-            int x = (int) Math.round(Math.cos(radians) * 10.0);
-            int z = (int) Math.round(Math.sin(radians) * 10.0);
-            for (int y = 17; y <= 24; y++) {
-                builder.put(x, y, z,
-                        y == 20 || y == 23 ? PartType.DATA_ENTANGLER : PartType.CASING);
-            }
-        }
-    }
-
-    private static void addUpperCrown(Builder builder) {
-        builder.circleRing(24, 7.8, 10.2, PartType.CASING);
-        builder.circleRing(27, 5.7, 7.6, PartType.CASING);
-        builder.circleRing(30, 3.8, 5.4, PartType.CASING);
-
-        for (int angle = 0; angle < 8; angle++) {
-            double radians = angle * Math.PI / 4.0;
-            builder.putPolar(24, 9.1, radians, PartType.PATTERN_MATRIX);
-            builder.putPolar(27, 6.6, radians,
-                    angle % 2 == 0 ? PartType.PARALLEL_MATRIX : PartType.STORAGE_MATRIX);
-            builder.putPolar(30, 4.6, radians, PartType.ENERGY_STABILIZER);
-        }
-
-        for (int angle = 0; angle < 8; angle++) {
-            double radians = angle * Math.PI / 4.0;
-            int cx = (int) Math.round(Math.cos(radians) * 9.0);
-            int cz = (int) Math.round(Math.sin(radians) * 9.0);
-            int topY = angle % 2 == 0 ? 34 : 32;
-            builder.smallTowerCross(cx, cz, 24, PartType.CASING);
-            builder.smallTowerCross(cx, cz, 25,
-                    angle % 2 == 0 ? PartType.PARALLEL_MATRIX : PartType.STORAGE_MATRIX);
-            for (int y = 26; y < topY - 1; y++) {
-                builder.put(cx, y, cz,
-                        y == 29 ? PartType.DATA_ENTANGLER : PartType.CASING);
-            }
-            builder.put(cx, topY - 1, cz, PartType.PATTERN_MATRIX);
-            builder.put(cx, topY, cz, PartType.CRYSTAL_PYLON);
-        }
-
-        for (int y = 24; y <= 34; y++) {
-            double radius = y <= 26 ? 4.5
-                    : y <= 29 ? 3.6
-                    : y <= 32 ? 2.7 : 1.8;
-            builder.circleRing(y, Math.max(0.5, radius - 0.9), radius,
-                    y % 3 == 0 ? PartType.PATTERN_MATRIX : PartType.CASING);
-        }
-        builder.put(0, 35, 0, PartType.PATTERN_MATRIX);
-        builder.put(0, 36, 0, PartType.DATA_ENTANGLER);
-        builder.put(0, 37, 0, PartType.CRYSTAL_PYLON);
-        builder.put(0, 38, 0, PartType.CRYSTAL_PYLON);
-    }
-
-    private static List<Part> createPreviousDecorativeParts() {
-        var builder = new Builder();
-        // Clear every non-controller block from both the original circular array
-        // and the intermediate orbital revision before placing the new frame.
-        addBase(builder);
-        addCentralChamber(builder);
-        addLowerPylons(builder);
-        builder.put(EFFECT_X, EFFECT_Y, EFFECT_Z, PartType.DATA_ENTANGLER);
-        builder.put(RELOCATED_ENTANGLER_X, RELOCATED_ENTANGLER_Y,
-                RELOCATED_ENTANGLER_Z, PartType.DATA_ENTANGLER);
-        addOrbitalAssembly(builder);
-        addUpperCrown(builder);
-        addPreviousOrbitalAssembly(builder);
-        addPreviousUpperCrown(builder);
-        return List.copyOf(builder.build());
-    }
-
-    private static void addPreviousOrbitalAssembly(Builder builder) {
-        builder.circleRing(16, 11.0, 15.6, PartType.CASING);
-        builder.circleRing(17, 12.2, 15.6, PartType.PARALLEL_MATRIX);
-        builder.circleRing(18, 10.5, 14.6, PartType.CASING);
-        builder.circleRing(20, 8.0, 12.8, PartType.DATA_ENTANGLER);
-        builder.circleRing(21, 8.8, 13.8, PartType.CASING);
-
-        for (int angle = 0; angle < 16; angle++) {
-            double radians = angle * Math.PI / 8.0;
-            builder.putPolar(16, 13.7, radians, PartType.ENERGY_STABILIZER);
-            builder.putPolar(18, 12.5, radians,
-                    angle % 2 == 0 ? PartType.PARALLEL_MATRIX : PartType.STORAGE_MATRIX);
-        }
-
-        for (int angle = 0; angle < 8; angle++) {
-            double radians = angle * Math.PI / 4.0;
-            int x = (int) Math.round(Math.cos(radians) * 10.0);
-            int z = (int) Math.round(Math.sin(radians) * 10.0);
-            for (int y = 19; y <= 25; y++) {
-                builder.put(x, y, z,
-                        y % 3 == 0 ? PartType.DATA_ENTANGLER : PartType.CASING);
-            }
-        }
-    }
-
-    private static void addPreviousUpperCrown(Builder builder) {
-        builder.circleRing(24, 7.0, 12.8, PartType.CASING);
-        builder.circleRing(25, 8.0, 13.8, PartType.PARALLEL_MATRIX);
-        builder.circleRing(26, 7.0, 12.8, PartType.CASING);
-
-        for (int angle = 0; angle < 8; angle++) {
-            double radians = angle * Math.PI / 4.0;
-            int cx = (int) Math.round(Math.cos(radians) * 10.0);
-            int cz = (int) Math.round(Math.sin(radians) * 10.0);
-            for (int y = 27; y <= 32; y++) {
-                builder.smallTowerRing(cx, cz, y,
-                        y == 29 ? PartType.STORAGE_MATRIX : PartType.CASING);
-            }
-            builder.put(cx, 33, cz, PartType.CRYSTAL_PYLON);
-        }
-
-        for (int y = 20; y <= 34; y++) {
-            double radius = Math.max(2.0, 5.4 - Math.abs(27 - y) * 0.35);
-            builder.circleRing(y, Math.max(1.0, radius - 1.1), radius, PartType.PATTERN_MATRIX);
-        }
-        builder.circleRing(34, 1.2, 3.2, PartType.ENERGY_STABILIZER);
-        builder.put(0, 35, 0, PartType.PATTERN_MATRIX);
-        builder.put(0, 36, 0, PartType.DATA_ENTANGLER);
-        builder.put(0, 37, 0, PartType.CRYSTAL_PYLON);
-        builder.put(0, 38, 0, PartType.CRYSTAL_PYLON);
     }
 
     public enum PartType {
@@ -647,13 +324,34 @@ public final class OmniComputationStructure {
         ENERGY_STABILIZER,
         OUTPUT_NODE,
         CRYSTAL_PYLON,
+        AE_FLUIX,
+        CYAN_STAINED_GLASS,
+        BLUE_STAINED_GLASS,
         AIR
     }
 
     public enum StructureLayout {
-        CURRENT,
-        LEGACY,
-        INCOMPLETE
+        CURRENT, LEGACY_1_3_9, INCOMPLETE;
+
+        public boolean isFormed() { return this != INCOMPLETE; }
+        public boolean requiresUpdate() { return this == LEGACY_1_3_9; }
+
+        public static StructureLayout fromSavedName(String name) {
+            if (name.equals("PREVIOUS_RADIAL")) return LEGACY_1_3_9;
+            try { return valueOf(name); } catch (IllegalArgumentException error) { return INCOMPLETE; }
+        }
+    }
+
+    private static int controllerX(StructureLayout layout) {
+        return layout == StructureLayout.LEGACY_1_3_9 ? CONTROLLER_X : CURRENT_CONTROLLER_X;
+    }
+
+    private static int controllerY(StructureLayout layout) {
+        return layout == StructureLayout.LEGACY_1_3_9 ? CONTROLLER_Y : CURRENT_CONTROLLER_Y;
+    }
+
+    private static int controllerZ(StructureLayout layout) {
+        return layout == StructureLayout.LEGACY_1_3_9 ? CONTROLLER_Z : CURRENT_CONTROLLER_Z;
     }
 
     public record Part(int x, int y, int z, PartType type) {
@@ -666,163 +364,7 @@ public final class OmniComputationStructure {
     private record LocalPos(int x, int y, int z) {
     }
 
-    private static final class Builder {
-        private final Map<LocalPos, PartType> parts = new LinkedHashMap<>();
-
-        void put(int x, int y, int z, PartType type) {
-            if (x < MIN_X || x > MAX_X || z < MIN_Z || z > MAX_Z || y < 0 || y >= HEIGHT) {
-                throw new IllegalArgumentException("Part outside 31x31x39 bounds: " + x + "," + y + "," + z);
-            }
-            parts.put(new LocalPos(x, y, z), type);
-        }
-
-        void putPolar(int y, double radius, double angle, PartType type) {
-            put((int) Math.round(Math.cos(angle) * radius), y,
-                    (int) Math.round(Math.sin(angle) * radius), type);
-        }
-
-        void fillRect(int y, int minX, int maxX, int minZ, int maxZ, PartType type) {
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    put(x, y, z, type);
-                }
-            }
-        }
-
-        void fillSquare(int centerX, int centerZ, int y, int radius, PartType type) {
-            fillRect(y, centerX - radius, centerX + radius,
-                    centerZ - radius, centerZ + radius, type);
-        }
-
-        void rectFrame(int y, int minX, int maxX, int minZ, int maxZ,
-                int thickness, PartType type) {
-            int safeThickness = Math.max(1, thickness);
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    int edgeDistance = Math.min(Math.min(x - minX, maxX - x),
-                            Math.min(z - minZ, maxZ - z));
-                    if (edgeDistance < safeThickness) {
-                        put(x, y, z, type);
-                    }
-                }
-            }
-        }
-
-        void squareFrame(int centerX, int centerZ, int y, int radius, PartType type) {
-            rectFrame(y, centerX - radius, centerX + radius,
-                    centerZ - radius, centerZ + radius, 1, type);
-        }
-
-        void cubeShell(int minX, int maxX, int minY, int maxY,
-                int minZ, int maxZ, PartType type) {
-            for (int x = minX; x <= maxX; x++) {
-                for (int y = minY; y <= maxY; y++) {
-                    for (int z = minZ; z <= maxZ; z++) {
-                        if (x == minX || x == maxX || y == minY || y == maxY
-                                || z == minZ || z == maxZ) {
-                            put(x, y, z, type);
-                        }
-                    }
-                }
-            }
-        }
-
-        void lineX(int y, int z, int minX, int maxX, PartType type) {
-            for (int x = minX; x <= maxX; x++) {
-                put(x, y, z, type);
-            }
-        }
-
-        void lineZ(int y, int x, int minZ, int maxZ, PartType type) {
-            for (int z = minZ; z <= maxZ; z++) {
-                put(x, y, z, type);
-            }
-        }
-
-        void circleDisk(int y, double radius, PartType type) {
-            double max = radius * radius;
-            int bound = (int) Math.ceil(radius);
-            for (int x = -bound; x <= bound; x++) {
-                for (int z = -bound; z <= bound; z++) {
-                    if (x * x + z * z <= max) {
-                        put(x, y, z, type);
-                    }
-                }
-            }
-        }
-
-        void circleRing(int y, double inner, double outer, PartType type) {
-            double min = inner * inner;
-            double max = outer * outer;
-            int bound = Math.min(15, (int) Math.ceil(outer));
-            for (int x = -bound; x <= bound; x++) {
-                for (int z = -bound; z <= bound; z++) {
-                    double distance = x * x + z * z;
-                    if (distance >= min && distance <= max) {
-                        put(x, y, z, type);
-                    }
-                }
-            }
-        }
-
-        void squareRing(int y, int radius, int thickness, PartType type) {
-            int inner = radius - thickness + 1;
-            for (int x = -radius; x <= radius; x++) {
-                for (int z = -radius; z <= radius; z++) {
-                    if (Math.max(Math.abs(x), Math.abs(z)) >= inner) {
-                        put(x, y, z, type);
-                    }
-                }
-            }
-        }
-
-        void spokes(int y, int inner, int outer, PartType type) {
-            for (int distance = inner; distance <= outer; distance++) {
-                put(distance, y, 0, type);
-                put(-distance, y, 0, type);
-                put(0, y, distance, type);
-                put(0, y, -distance, type);
-                int diagonal = (int) Math.round(distance / Math.sqrt(2.0));
-                put(diagonal, y, diagonal, type);
-                put(diagonal, y, -diagonal, type);
-                put(-diagonal, y, diagonal, type);
-                put(-diagonal, y, -diagonal, type);
-            }
-        }
-
-        void smallTowerRing(int cx, int cz, int y, PartType type) {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    if (Math.abs(dx) == 1 || Math.abs(dz) == 1) {
-                        put(cx + dx, y, cz + dz, type);
-                    }
-                }
-            }
-        }
-
-        void smallTowerCap(int cx, int cz, int y, PartType type) {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    put(cx + dx, y, cz + dz, type);
-                }
-            }
-        }
-
-        void smallTowerCross(int cx, int cz, int y, PartType type) {
-            put(cx, y, cz, type);
-            put(cx + 1, y, cz, type);
-            put(cx - 1, y, cz, type);
-            put(cx, y, cz + 1, type);
-            put(cx, y, cz - 1, type);
-        }
-
-        List<Part> build() {
-            var result = new ArrayList<Part>(parts.size());
-            for (var entry : parts.entrySet()) {
-                var pos = entry.getKey();
-                result.add(new Part(pos.x(), pos.y(), pos.z(), entry.getValue()));
-            }
-            return result;
-        }
+    private record LayoutBounds(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
     }
+
 }

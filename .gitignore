@@ -42,3 +42,10 @@ repo/
 ### Local Codex workspaces ###
 .codex-tmp/
 .worktrees/
+.codex-geometry-probe/
+
+### Local verification output and separate mod dependencies ###
+logs/
+__pycache__/
+*.py[cod]
+libs/*.jar

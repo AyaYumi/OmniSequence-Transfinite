@@ -1,24 +1,32 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "key": {
-    "F": {
-      "item": "extendedae:assembler_matrix_frame"
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "extendedae:assembler_matrix_frame"
+      },
+      "count": 1
     },
-    "N": {
-      "item": "minecraft:netherite_block"
+    {
+      "ingredient": {
+        "item": "minecraft:netherite_block"
+      },
+      "count": 4
     },
-    "W": {
-      "item": "extendedae:assembler_matrix_wall"
+    {
+      "ingredient": {
+        "item": "extendedae:assembler_matrix_wall"
+      },
+      "count": 4
     }
-  },
-  "pattern": [
-    "NWN",
-    "WFW",
-    "NWN"
   ],
-  "result": {
-    "count": 4,
-    "id": "molecularmanipulator:molecular_center_casing"
-  }
+  "results": [
+    {
+      "id": "molecularmanipulator:molecular_center_casing",
+      "count": 4
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 512,
+  "requires_research": true
 }

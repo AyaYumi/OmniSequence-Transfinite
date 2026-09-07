@@ -17,6 +17,7 @@ import mezz.jei.api.runtime.IJeiRuntime;
 import com.atir.molecularmanipulator.client.MolecularCenterScreen;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.EnumMap;
 import java.util.List;
@@ -142,7 +143,16 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                 stack(ModContent.COMPUTATION_OUTPUT_NODE_ITEM.get(), counts,
                         OmniComputationStructure.PartType.OUTPUT_NODE),
                 stack(ModContent.COMPUTATION_CRYSTAL_PYLON_ITEM.get(), counts,
-                        OmniComputationStructure.PartType.CRYSTAL_PYLON));
+                        OmniComputationStructure.PartType.CRYSTAL_PYLON),
+                stack(AEBlocks.FLUIX_BLOCK.asItem(), counts,
+                        OmniComputationStructure.PartType.AE_FLUIX),
+                stack(Blocks.CYAN_STAINED_GLASS.asItem(), counts,
+                        OmniComputationStructure.PartType.CYAN_STAINED_GLASS),
+                stack(Blocks.BLUE_STAINED_GLASS.asItem(), counts,
+                        OmniComputationStructure.PartType.BLUE_STAINED_GLASS))
+                .stream()
+                .filter(stack -> !stack.isEmpty())
+                .toList();
     }
 
     private static List<ItemStack> createMatterFabricationStructureMaterials() {
@@ -163,7 +173,25 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                 new ItemStack(ModContent.MATTER_FABRICATION_STABILIZER_ITEM.get(),
                         counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.STABILIZER, 0)),
                 new ItemStack(ModContent.MATTER_FABRICATION_CORE_ITEM.get(),
-                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.CORE, 0)));
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.CORE, 0)),
+                new ItemStack(AEBlocks.QUARTZ_BLOCK.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.AE_QUARTZ, 0)),
+                new ItemStack(AEBlocks.FLUIX_BLOCK.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.AE_FLUIX, 0)),
+                new ItemStack(AEBlocks.QUARTZ_VIBRANT_GLASS.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.AE_VIBRANT_GLASS, 0)),
+                new ItemStack(Blocks.QUARTZ_BLOCK.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.VANILLA_QUARTZ, 0)),
+                new ItemStack(Blocks.SMOOTH_QUARTZ.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.SMOOTH_QUARTZ, 0)),
+                new ItemStack(Blocks.QUARTZ_PILLAR.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.QUARTZ_PILLAR, 0)),
+                new ItemStack(Blocks.QUARTZ_BRICKS.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.QUARTZ_BRICKS, 0)),
+                new ItemStack(Blocks.POLISHED_BLACKSTONE.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.DARK_FRAME, 0)),
+                new ItemStack(Blocks.CYAN_CONCRETE.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.CYAN_CONDUIT, 0)));
     }
 
     private static List<ItemStack> omniItems() {

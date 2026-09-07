@@ -514,6 +514,38 @@ final class MolecularCraftingBatcher {
         return remainderOutputAmounts;
     }
 
+    /**
+     * Finalizes an already validated reusable batch for passive auto-crafting.
+     * The normal AE crafting-provider path persists the reusable job and advances
+     * it separately; the auto-crafter owns the complete extracted batch and can
+     * commit its aggregate outputs immediately.
+     */
+    boolean prepareReusableOutputsForAuto(MolecularReusableBatchJob job,
+            Object2LongOpenHashMap<AEKey> primary,
+            Object2LongOpenHashMap<AEKey> remainders) {
+        if (job == null || primary == null || primary.isEmpty()
+                || remainders == null) {
+            return false;
+        }
+        try {
+            primaryOutputAmounts.clear();
+            primaryOutputAmounts.putAll(primary);
+            remainderOutputAmounts.clear();
+            remainderOutputAmounts.putAll(remainders);
+            outputAmounts.clear();
+            mergeOutputs(primaryOutputAmounts, outputAmounts);
+            mergeOutputs(remainderOutputAmounts, outputAmounts);
+            craftCount = job.totalCrafts();
+            return !outputAmounts.isEmpty();
+        } catch (RuntimeException exception) {
+            outputAmounts.clear();
+            primaryOutputAmounts.clear();
+            remainderOutputAmounts.clear();
+            craftCount = 0;
+            return false;
+        }
+    }
+
     ItemStack getCraftedOutput() {
         return craftedOutput;
     }

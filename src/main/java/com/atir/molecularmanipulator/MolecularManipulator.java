@@ -1,8 +1,7 @@
 package com.atir.molecularmanipulator;
 
-import com.atir.molecularmanipulator.config.ConfigFileMigration;
+import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.config.ModConfig;
-import com.atir.molecularmanipulator.network.LongCraftingRequestPayload;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
@@ -29,9 +28,9 @@ public final class MolecularManipulator {
     public MolecularManipulator(IEventBus modEventBus, ModContainer modContainer) {
         ModConfig.register(modContainer);
         ModContent.register(modEventBus);
+        modEventBus.addListener(MultiblockChunkLoading::register);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
-        modEventBus.addListener(LongCraftingRequestPayload::register);
         modEventBus.addListener(PatternSearchIndexPayload::register);
         MatterSequenceRegistry.loadOrCreate();
         NeoForge.EVENT_BUS.addListener(this::serverAboutToStart);
@@ -46,13 +45,21 @@ public final class MolecularManipulator {
                 ModContent.OMNI_COMPUTATION_CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY_BE.get(),
+                (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
                 ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(),
                 (blockEntity, side) -> blockEntity.getExposedItemHandler(side));
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
+                ModContent.MATTER_FABRICATION_PORT_BE.get(),
+                (blockEntity, side) -> blockEntity.getExternalItemHandler());
+        event.registerBlockEntity(Capabilities.FluidHandler.BLOCK,
+                ModContent.MATTER_FABRICATION_PORT_BE.get(),
+                (blockEntity, side) -> blockEntity.getExternalFluidHandler());
     }
 
     private void serverAboutToStart(ServerAboutToStartEvent event) {
-        ConfigFileMigration.migrateServerConfig(event.getServer());
         MatterSequenceRegistry.loadOrCreate();
     }
 
@@ -67,13 +74,9 @@ public final class MolecularManipulator {
     private static void validateMixins() {
         var classLoader = MolecularManipulator.class.getClassLoader();
         try {
-            validateMixinTarget("appeng.crafting.pattern.AECraftingPattern$Input", classLoader);
             validateMixinTarget("appeng.crafting.execution.CraftingCpuLogic", classLoader);
             validateMixinTarget("appeng.crafting.CraftingCalculation", classLoader);
             validateMixinTarget("appeng.me.service.CraftingService", classLoader);
-            validateMixinTarget("appeng.menu.me.crafting.CraftAmountMenu", classLoader);
-            validateMixinTarget("appeng.menu.me.crafting.CraftConfirmMenu", classLoader);
-            validateMixinTarget("appeng.me.cells.CreativeCellInventory", classLoader);
             validateMixinTarget("appeng.helpers.patternprovider.PatternProviderLogic", classLoader);
             validateMixinTarget("com.glodblock.github.extendedae.common.me.matrix.CalculatorAssemblerMatrix",
                     classLoader);

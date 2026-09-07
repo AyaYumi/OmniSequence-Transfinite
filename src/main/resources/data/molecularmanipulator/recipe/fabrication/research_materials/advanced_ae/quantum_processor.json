@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_alloy"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:silicon"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:redstone"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "advanced_ae:quantum_processor",
+      "count": 4
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

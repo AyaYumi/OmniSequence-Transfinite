@@ -17,6 +17,8 @@ item_ids:
 
 ## 使用方法
 
+先在[物质构筑井](matter_fabrication_well.md)完成“二阶：构序阵列”首次研究，再由构筑井加工制作本核心。
+
 搭建有效的 ExtendedAE 装配矩阵，并将本方块作为功能核心装入结构。它不能脱离装配矩阵单独工作：
 样板、网络连接和结构校验均由完整装配矩阵提供。
 
@@ -45,6 +47,8 @@ item_ids:
 
 批量执行会对实际合并后的输入调用 AE2 原生样板能耗计算，保持 AE2 原版合成能耗行为。
 
+正常拆下核心时，内部保存的材料、产物与执行状态随掉落方块保留；重新安装后仍需要有效装配矩阵与网络才能工作。
+
 ## 配方
 
-<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" />
+<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" fallbackText="当前整合包未提供此配方，请查看 JEI 或研究配置。" />

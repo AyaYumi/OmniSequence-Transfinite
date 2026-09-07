@@ -30,19 +30,20 @@ import java.util.Locale;
  * container slots retain their full interaction behavior.</p>
  */
 final class OmniComputationLdUi {
-    private static final int PURPLE = 0xFFB56CFF;
-    private static final int CYAN = 0xFF69DBFF;
-    private static final int GREEN = 0xFF72F2A5;
-    private static final int ORANGE = 0xFFFFB766;
-    private static final int RED = 0xFFFF6D78;
-    private static final int PRIMARY_TEXT = 0xFFD9D4E3;
-    private static final int SECONDARY_TEXT = 0xFFBDB5CC;
+    private static final int PURPLE = AeUiTheme.ACCENT;
+    private static final int CYAN = AeUiTheme.CYAN;
+    private static final int GREEN = AeUiTheme.SUCCESS;
+    private static final int ORANGE = AeUiTheme.WARNING;
+    private static final int RED = AeUiTheme.ERROR;
+    private static final int PRIMARY_TEXT = AeUiTheme.PRIMARY_TEXT;
+    private static final int SECONDARY_TEXT = AeUiTheme.MUTED_TEXT;
 
     private final OmniComputationMenu menu;
     private final ModularUI modularUI;
     private final UIElement normalButtonRow;
     private final UIElement structureUpdateButtonRow;
     private final Label structureState;
+    private final Label structureSize;
     private final Label structureParts;
     private final Label structureDetail;
     private final Label networkValue;
@@ -53,24 +54,18 @@ final class OmniComputationLdUi {
     private final Label quantumStateValue;
     private final Label quantumFrequency;
     private final ProgressBar structureProgress;
-    private final UIElement telemetryPanel;
-    private final Label telemetryNetworkBadge;
-    private final Label telemetryUiTick;
-    private final ProgressBar telemetryStructureProgress;
-    private final ProgressBar telemetryJobProgress;
     private final ColorRectTexture structureProgressTexture =
             new ColorRectTexture(PURPLE);
-    private final ColorRectTexture telemetryNetworkTexture =
-            new ColorRectTexture(0x88493622);
     private final Button buildButton;
     private final Button dismantleButton;
     private final Button projectionButton;
+    private final Button legacyProjectionButton;
     private final Button confirmStructureUpdateButton;
+    private final StructureUpdateConfirmation updateConfirmation = new StructureUpdateConfirmation();
+    private final Label fixedModel;
     private final Button keepLegacyStructureButton;
     private boolean confirmingLegacyUpdate;
     private boolean showingStructureUpdateChoice;
-    private boolean telemetryOpen;
-    private boolean telemetryAnimating;
     private Boolean previousNetworkOnline;
     private Boolean previousFormed;
 
@@ -79,11 +74,7 @@ final class OmniComputationLdUi {
 
         var ui = LdUiXml.load("ui/omni_computation.xml");
         structureState = label(ui, "structure-state");
-        label(ui, "structure-size").setValue(Component.translatable(
-                "gui.molecularmanipulator.omni.size",
-                OmniComputationStructure.WIDTH,
-                OmniComputationStructure.WIDTH,
-                OmniComputationStructure.HEIGHT));
+        structureSize = label(ui, "structure-size");
         structureParts = label(ui, "structure-parts");
         structureProgress = progress(ui, "structure-progress", structureProgressTexture, false);
         structureDetail = label(ui, "structure-detail");
@@ -94,6 +85,7 @@ final class OmniComputationLdUi {
         calculationStats = label(ui, "calculation-stats");
         quantumStateValue = label(ui, "quantum-state-value");
         quantumFrequency = label(ui, "quantum-frequency");
+        fixedModel = label(ui, "fixed-model");
 
         normalButtonRow = LdUiXml.require(ui, "normal-button-row", UIElement.class);
         structureUpdateButtonRow = LdUiXml.require(
@@ -114,7 +106,10 @@ final class OmniComputationLdUi {
                 event -> menu.requestDismantle());
         projectionButton = button(ui, "projection", projectionLabel(),
                 Component.translatable("gui.molecularmanipulator.omni.projection_tooltip"),
-                event -> OmniComputationGhostPreview.toggle(menu.getCore()));
+                event -> { updateConfirmation.cancel(); OmniComputationGhostPreview.toggle(menu.getCore()); });
+        legacyProjectionButton = button(ui, "structure-preview", projectionLabel(),
+                Component.translatable("gui.molecularmanipulator.structure_update_projection_warning"),
+                event -> { updateConfirmation.cancel(); OmniComputationGhostPreview.toggle(menu.getCore()); });
         button(ui, "refresh",
                 Component.translatable("gui.molecularmanipulator.omni.refresh"),
                 Component.translatable("gui.molecularmanipulator.omni.refresh_tooltip"),
@@ -123,46 +118,21 @@ final class OmniComputationLdUi {
                 Component.translatable("gui.molecularmanipulator.structure_update_confirm"),
                 Component.translatable("gui.molecularmanipulator.structure_update_confirm_tooltip"),
                 event -> {
-                    confirmingLegacyUpdate = false;
-                    menu.requestStructureUpdate();
+                    if (updateConfirmation.click()) {
+                        confirmingLegacyUpdate = false;
+                        menu.requestStructureUpdate();
+                    }
+                    refresh();
                 });
         keepLegacyStructureButton = button(ui, "structure-keep-legacy",
                 Component.translatable("gui.molecularmanipulator.structure_update_keep_legacy"),
                 Component.translatable(
                         "gui.molecularmanipulator.structure_update_keep_legacy_tooltip"),
                 event -> {
+                    updateConfirmation.cancel();
                     confirmingLegacyUpdate = false;
                     menu.requestKeepLegacyStructure();
                 });
-
-        telemetryPanel = LdUiXml.require(ui, "telemetry-panel", UIElement.class);
-        telemetryPanel.setOverflowVisible(false);
-        telemetryPanel.style(style -> style.backgroundTexture(new GuiTextureGroup(
-                new ColorRectTexture(0xFA101522),
-                new ColorBorderTexture(-1, 0xFF69DBFF))));
-        telemetryNetworkBadge = label(ui, "telemetry-network");
-        telemetryNetworkBadge.style(style -> style.backgroundTexture(new GuiTextureGroup(
-                telemetryNetworkTexture,
-                new ColorBorderTexture(-1, 0xFF6E7B91))));
-        telemetryUiTick = label(ui, "telemetry-ui-tick");
-        telemetryStructureProgress = progress(ui, "telemetry-structure-progress",
-                new ColorRectTexture(PURPLE), true);
-        telemetryJobProgress = progress(ui, "telemetry-job-progress",
-                new ColorRectTexture(CYAN), true);
-        label(ui, "telemetry-framework").setValue(Component.translatable(
-                "gui.molecularmanipulator.omni.telemetry_framework", "LDLib2 2.2.18+"));
-        label(ui, "telemetry-sync").setValue(Component.translatable(
-                "gui.molecularmanipulator.omni.telemetry_sync", "AE2 @GuiSync"));
-        button(ui, "telemetry-close", Component.literal("\u00d7"),
-                Component.translatable("gui.molecularmanipulator.omni.telemetry_close_tooltip"),
-                event -> toggleTelemetry()).textStyle(style -> style.fontSize(10));
-        button(ui, "telemetry-toggle", Component.literal("\u2261"),
-                Component.translatable("gui.molecularmanipulator.omni.telemetry_tooltip"),
-                event -> toggleTelemetry()).textStyle(style -> style.fontSize(10));
-        telemetryPanel.setVisible(false);
-        telemetryPanel.style(style -> style
-                .opacity(0)
-                .transform2D(new Transform2D().translate(14, 0)));
 
         modularUI = ModularUI.of(ui);
         refresh();
@@ -177,11 +147,13 @@ final class OmniComputationLdUi {
     }
 
     void tick() {
+        updateConfirmation.tick(menu.legacyStructure && !menu.building && !menu.dismantling);
         refresh();
         modularUI.tick();
     }
 
     void close() {
+        updateConfirmation.cancel();
         modularUI.onRemoved();
     }
 
@@ -191,40 +163,20 @@ final class OmniComputationLdUi {
         }
 
         boolean busy = menu.building || menu.dismantling;
+        legacyProjectionButton.setText(projectionLabel());
+        fixedModel.setValue(Component.translatable(menu.legacyStructure
+                ? "gui.molecularmanipulator.structure_update_projection_warning"
+                : "gui.molecularmanipulator.omni.fixed"));
+        fixedModel.getTextStyle().textColor(menu.legacyStructure ? ORANGE : SECONDARY_TEXT);
+        confirmStructureUpdateButton.setText(Component.translatable(updateConfirmation.isArmed()
+                ? "gui.molecularmanipulator.structure_update_second_confirm"
+                : "gui.molecularmanipulator.structure_update_confirm"));
         float structureRatio = menu.totalParts <= 0
                 ? 0
                 : Math.max(0, Math.min(1, menu.correctParts / (float) menu.totalParts));
         structureProgressTexture.color = menu.formed ? GREEN : PURPLE;
+        structureProgress.setDisplay(!menu.formed);
         structureProgress.setProgress(structureRatio);
-        telemetryStructureProgress.setProgress(structureRatio);
-        telemetryStructureProgress.label.setValue(Component.translatable(
-                "gui.molecularmanipulator.omni.telemetry_structure",
-                Math.round(structureRatio * 100)));
-
-        float jobRatio = busy && menu.buildTotal > 0
-                ? Math.max(0, Math.min(1, menu.buildProgress / (float) menu.buildTotal))
-                : 0;
-        telemetryJobProgress.setProgress(jobRatio);
-        telemetryJobProgress.label.setValue(busy && menu.buildTotal > 0
-                ? Component.translatable(
-                        menu.dismantling
-                                ? "gui.molecularmanipulator.omni.telemetry_dismantle"
-                                : "gui.molecularmanipulator.omni.telemetry_build",
-                        menu.buildProgress,
-                        menu.buildTotal)
-                : Component.translatable(
-                        "gui.molecularmanipulator.omni.telemetry_jobs",
-                        menu.activeJobs));
-        telemetryNetworkTexture.color = menu.networkOnline ? 0x8840805C : 0x88493622;
-        telemetryNetworkBadge.setValue(Component.translatable(
-                "gui.molecularmanipulator.omni.telemetry_network",
-                Component.translatable(menu.networkOnline
-                        ? "gui.molecularmanipulator.omni.online"
-                        : "gui.molecularmanipulator.omni.offline")));
-        telemetryNetworkBadge.getTextStyle().textColor(menu.networkOnline ? GREEN : ORANGE);
-        telemetryUiTick.setValue(Component.translatable(
-                "gui.molecularmanipulator.omni.telemetry_ui_tick",
-                modularUI.getTickCounter()));
 
         boolean showUpdateChoice = menu.legacyStructure
                 && (!menu.legacyStructureUpdateDismissed || confirmingLegacyUpdate);
@@ -258,6 +210,10 @@ final class OmniComputationLdUi {
                 : "gui.molecularmanipulator.omni.dismantle"));
         projectionButton.setText(projectionLabel());
 
+        structureSize.setValue(Component.translatable("gui.molecularmanipulator.omni.size",
+                menu.legacyStructure ? 31 : OmniComputationStructure.WIDTH,
+                menu.legacyStructure ? 31 : OmniComputationStructure.WIDTH,
+                menu.legacyStructure ? 39 : OmniComputationStructure.HEIGHT));
         setLabel(structureState,
                 Component.translatable(menu.formed
                         ? "gui.molecularmanipulator.omni.formed"
@@ -282,7 +238,7 @@ final class OmniComputationLdUi {
                                     : "gui.molecularmanipulator.omni.build_progress",
                             menu.buildProgress,
                             menu.buildTotal),
-                    0xFFF1E8FF);
+                    PRIMARY_TEXT);
         } else if (menu.conflictParts > 0) {
             setLabel(structureDetail,
                     Component.translatable("gui.molecularmanipulator.omni.conflicts",
@@ -338,7 +294,6 @@ final class OmniComputationLdUi {
         if (previousNetworkOnline != null
                 && previousNetworkOnline != menu.networkOnline) {
             pulse(networkValue);
-            pulse(telemetryNetworkBadge);
         }
         if (previousFormed != null && previousFormed != menu.formed) {
             pulse(structureState);
@@ -352,39 +307,6 @@ final class OmniComputationLdUi {
         return Component.translatable(OmniComputationGhostPreview.isShowing(menu.getCore())
                 ? "gui.molecularmanipulator.omni.projection_hide"
                 : "gui.molecularmanipulator.omni.projection");
-    }
-
-    private void toggleTelemetry() {
-        if (telemetryAnimating) {
-            return;
-        }
-        telemetryAnimating = true;
-        telemetryOpen = !telemetryOpen;
-        if (telemetryOpen) {
-            telemetryPanel.setVisible(true);
-            telemetryPanel.style(style -> style
-                    .opacity(0)
-                    .transform2D(new Transform2D().translate(14, 0)));
-            telemetryPanel.animation()
-                    .duration(0.24f)
-                    .ease(Eases.QUAD_OUT)
-                    .style(PropertyRegistry.OPACITY, 1f)
-                    .style(PropertyRegistry.TRANSFORM_2D, new Transform2D())
-                    .onFinished(element -> telemetryAnimating = false)
-                    .start();
-        } else {
-            telemetryPanel.animation()
-                    .duration(0.18f)
-                    .ease(Eases.QUAD_IN)
-                    .style(PropertyRegistry.OPACITY, 0f)
-                    .style(PropertyRegistry.TRANSFORM_2D,
-                            new Transform2D().translate(14, 0))
-                    .onFinished(element -> {
-                        telemetryPanel.setVisible(false);
-                        telemetryAnimating = false;
-                    })
-                    .start();
-        }
     }
 
     private static void pulse(UIElement element) {
@@ -412,11 +334,11 @@ final class OmniComputationLdUi {
         progress.barContainer(container -> {
             container.layout(layout -> layout.paddingAll(1));
             container.style(style -> style.backgroundTexture(new GuiTextureGroup(
-                    new ColorRectTexture(0xFF080D17),
-                    new ColorBorderTexture(-1, 0xFF526079))));
+                    new ColorRectTexture(AeUiTheme.TRACK),
+                    new ColorBorderTexture(-1, AeUiTheme.SHADOW))));
         });
         progress.barBackground.style(style ->
-                style.backgroundTexture(new ColorRectTexture(0xFF171D2A)));
+                style.backgroundTexture(new ColorRectTexture(AeUiTheme.PANEL_INSET)));
         progress.bar.style(style -> style.backgroundTexture(fillTexture));
         progress.label.textStyle(style -> style
                 .fontSize(7)
@@ -448,6 +370,7 @@ final class OmniComputationLdUi {
                 .textWrap(TextWrap.HOVER_ROLL)
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER));
+        AeUiTheme.styleLdButton(button);
         button.style(style -> style.tooltips(tooltip));
         return button;
     }

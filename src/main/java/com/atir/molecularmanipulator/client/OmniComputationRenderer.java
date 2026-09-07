@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
+import com.atir.molecularmanipulator.blockentity.OmniCrownGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
 import com.atir.molecularmanipulator.config.ModConfig;
@@ -17,14 +18,16 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import java.util.List;
+import java.util.function.DoubleFunction;
+import java.util.function.DoublePredicate;
 
 /**
- * Vertex-built suspended reactor for the omni computation array.
+ * Vertex-built singularity computer for the omni computation array.
  *
- * <p>The current layout uses rectangular deck frames, tower-fed conduits and
- * a faceted cyan focus so the effect follows the physical reference build.
- * All visible motifs are real quads; the second pass is only a controlled
- * additive glow, with no particle or billboard dependency.</p>
+ * <p>A Kerr computation singularity consumes encoded data through its accretion
+ * plane and emits synchronized bipolar results into the foundation and crown
+ * routers. The remaining geometry reads as an engineered compute chassis.</p>
  */
 public final class OmniComputationRenderer
         implements BlockEntityRenderer<OmniComputationCoreBlockEntity> {
@@ -34,197 +37,309 @@ public final class OmniComputationRenderer
     private static final int DEEP_PURPLE = 0x572DCC;
     private static final int GOLD = 0xFFD98A;
     private static final int WHITE = 0xF2FCFF;
-    private static final int[][] REFERENCE_TOWERS = {
-            {-10, -8}, {10, -8}, {-10, 8}, {10, 8}
-    };
-    private static final int[][] REFERENCE_INNER_TOWERS = {
-            {-6, -4}, {6, -4}, {-6, 4}, {6, 4}
-    };
 
     public OmniComputationRenderer(BlockEntityRendererProvider.Context context) {
     }
 
     @Override
     public void render(OmniComputationCoreBlockEntity core, float partialTick,
-            PoseStack poseStack, MultiBufferSource buffers,
-            int packedLight, int packedOverlay) {
+            PoseStack poseStack, MultiBufferSource buffers, int packedLight, int packedOverlay) {
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || core.getLevel() == null
-                || !core.getBlockState().getValue(BlockStateProperties.POWERED)) {
-            return;
-        }
-
-        Direction facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        boolean legacy = core.getInspection().layout()
-                == OmniComputationStructure.StructureLayout.LEGACY;
-        int visualY = legacy ? OmniComputationStructure.EFFECT_Y
-                : OmniComputationStructure.VISUAL_CENTER_Y;
-        Vec3 visualCenter = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
-                OmniComputationStructure.VISUAL_CENTER_X, visualY,
-                OmniComputationStructure.VISUAL_CENTER_Z);
+                || !core.getBlockState().getValue(BlockStateProperties.POWERED)) return;
+        var layout = core.getVisualLayout();
+        if (!layout.isFormed()) return;
+        var facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var visualCenter = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
+                OmniComputationStructure.VISUAL_CENTER_X, OmniComputationStructure.visualCenterY(layout),
+                OmniComputationStructure.VISUAL_CENTER_Z, layout);
         int activity = core.getClientVisualActivity();
-        float activityStrength = activity <= 0 ? 0.0F
-                : Math.min(1.0F, (float) (Math.log1p(activity) / Math.log(9.0)));
+        float strength = activity <= 0 ? 0 : Math.min(1F, (float) (Math.log1p(activity) / Math.log(9.0)));
         float angle = core.sampleClientVisualAngle(partialTick);
-        float pulse = 1.0F + (float) Math.sin(angle * 0.075F)
-                * (0.035F + activityStrength * 0.055F);
-        float completionPulse = core.getClientCompletionPulse();
-        double distanceSquared = visualCenter.distanceToSqr(
-                Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
-        boolean detailed = effectLevel > 1 && distanceSquared < 160.0D * 160.0D;
-        int segments = distanceSquared > 144.0D * 144.0D
-                ? 20 : distanceSquared > 82.0D * 82.0D ? 36 : detailed ? 64 : 44;
-
+        float pulse = 1F + (float) Math.sin(angle * 0.075F) * (0.035F + strength * 0.055F);
+        float completion = core.getClientCompletionPulse();
+        double distance = visualCenter.distanceToSqr(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
+        boolean detailed = effectLevel > 1 && distance < 128.0 * 128.0;
+        int segments = distance > 144.0 * 144.0 ? 32 : distance > 82.0 * 82.0 ? 56 : detailed ? 96 : 68;
         poseStack.pushPose();
-        poseStack.translate(visualCenter.x - core.getBlockPos().getX(),
-                visualCenter.y - core.getBlockPos().getY(),
+        poseStack.translate(visualCenter.x - core.getBlockPos().getX(), visualCenter.y - core.getBlockPos().getY(),
                 visualCenter.z - core.getBlockPos().getZ());
         poseStack.mulPose(Axis.YP.rotationDegrees(facingRotation(facing)));
+        if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
+            renderCrownLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeDepth()),
+                    core.getClientOrreryAngle(), strength, completion, detailed, false);
+            renderCrownLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeGlow()),
+                    core.getClientOrreryAngle(), strength, completion, detailed, true);
+        } else {
+            drawComputationAnomalyOccluder(poseStack.last(), buffers.getBuffer(OmniRenderLayers.solidEmissiveColor()), detailed);
+            drawGate(poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeDepth()), angle, pulse, strength,
+                    activity, completion, segments, detailed, true, false);
+            drawGate(poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeGlow()), angle, pulse, strength,
+                    activity, completion, segments, detailed, true, true);
+        }
+        poseStack.popPose();
+    }
 
-        VertexConsumer solid = buffers.getBuffer(OmniRenderLayers.solidEmissiveColor());
-        drawGate(poseStack, solid, angle, pulse, activityStrength, activity,
-                completionPulse, segments, detailed, false);
-        poseStack.pushPose();
-        poseStack.scale(1.04F, 1.04F, 1.04F);
-        VertexConsumer glow = buffers.getBuffer(OmniRenderLayers.additiveColor());
-        drawGate(poseStack, glow, angle, pulse, activityStrength, activity,
-                completionPulse, segments, detailed, true);
-        poseStack.popPose();
-        poseStack.popPose();
+    /** The live renderer and isolated GPU preview share these exact POSITION_COLOR vertices. */
+    static void renderCrownPass(PoseStack poseStack, VertexConsumer consumer, float angle,
+            float activityStrength, float completionPulse, boolean detailed, boolean glow) {
+        renderCrownLayoutPass(OmniComputationStructure.StructureLayout.CURRENT, poseStack, consumer,
+                angle, activityStrength, completionPulse, detailed, glow);
+    }
+
+    /** Shared dispatch: an unknown client layout never enters a historical wireframe renderer. */
+    static void renderCrownLayoutPass(OmniComputationStructure.StructureLayout layout,
+            PoseStack poseStack, VertexConsumer consumer, double angle,
+            float activityStrength, float completionPulse, boolean detailed, boolean glow) {
+        if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
+            OmniOrbitalEffects.render(poseStack, consumer, angle, activityStrength, completionPulse, detailed, glow);
+        }
     }
 
     private static void drawGate(PoseStack poseStack, VertexConsumer consumer,
             float angle, float pulse, float activityStrength, int activity,
-            float completionPulse, int segments, boolean detailed, boolean glow) {
-        int frameAlpha = glow ? 42 : 228;
-        int accentAlpha = glow ? 58 : 246;
-        int coreAlpha = glow ? 82 : 255;
-        int beamAlpha = glow ? 36 : Math.round(118.0F + activityStrength * 110.0F);
-        float speed = 1.0F + activityStrength * 1.55F;
-        float spin = angle * 0.52F * speed;
-        float scale = 1.0F + activityStrength * 0.045F;
-
-        // Layered rectangular frames are the effect counterpart of the three
-        // physical decks surrounding the suspended center cube.
-        drawRectFrame(poseStack, consumer, 7.2F * scale, -4.0F,
-                7.2F * scale, 0.15F, 0.12F, argb(PURPLE, frameAlpha));
-        drawRectFrame(poseStack, consumer, 6.3F * scale, 4.0F,
-                6.3F * scale, 0.13F, 0.10F, argb(CYAN, frameAlpha));
-        drawRectFrame(poseStack, consumer, 8.1F * scale, 8.0F,
-                8.1F * scale, 0.13F, 0.10F, argb(PURPLE, frameAlpha));
-        drawRectFrame(poseStack, consumer, 10.2F * scale, 14.0F,
-                10.2F * scale, 0.11F, 0.09F, argb(BLUE, frameAlpha));
-
+            float completionPulse, int segments, boolean detailed,
+            boolean renderDataHalos, boolean glow) {
         PoseStack.Pose pose = poseStack.last();
-        drawCubeFrame(poseStack, consumer, 3.35F * pulse,
-                3.1F * pulse, argb(DEEP_PURPLE, accentAlpha));
-        OmniRenderGeometry.octahedron(pose, consumer,
-                new Vec3(0.0D, 0.0D, 0.0D),
-                2.45F * pulse, 2.65F * pulse, 2.45F * pulse,
-                -spin * 1.1F, argb(DEEP_PURPLE, coreAlpha));
-        OmniRenderGeometry.octahedron(pose, consumer,
-                new Vec3(0.0D, 0.0D, 0.0D),
-                1.18F * pulse, 1.45F * pulse, 1.18F * pulse,
-                spin * 1.8F, argb(CYAN, glow ? 105 : 255));
-        OmniRenderGeometry.octahedron(pose, consumer,
-                new Vec3(0.0D, 0.0D, 0.0D),
-                0.48F * pulse, 0.62F * pulse, 0.48F * pulse,
-                -spin * 2.4F, argb(WHITE, glow ? 132 : 255));
-
-        // Four tower pairs feed the focus through stepped purple/cyan conduits.
-        for (int index = 0; index < REFERENCE_TOWERS.length; index++) {
-            int[] tower = REFERENCE_TOWERS[index];
-            float signX = Math.signum(tower[0]);
-            float signZ = Math.signum(tower[1]);
-            Vec3 lower = new Vec3(tower[0] * 0.82D, -7.0D, tower[1] * 0.82D);
-            Vec3 lowerInner = new Vec3(signX * 4.2D, -3.6D, signZ * 4.2D);
-            Vec3 upper = new Vec3(tower[0] * 0.82D, 11.0D, tower[1] * 0.82D);
-            Vec3 upperInner = new Vec3(signX * 4.2D, 3.8D, signZ * 4.2D);
-            OmniRenderGeometry.beam(pose, consumer, lower, lowerInner,
-                    0.14F, 0.11F, argb(index % 2 == 0 ? PURPLE : CYAN, beamAlpha));
-            OmniRenderGeometry.beam(pose, consumer, upper, upperInner,
-                    0.12F, 0.10F, argb(index % 2 == 0 ? CYAN : PURPLE, beamAlpha));
-            if (detailed) {
-                OmniRenderGeometry.rune(pose, consumer, lower, 0.62F,
-                        0.10F, index * 90.0F + spin,
-                        argb(index % 2 == 0 ? GOLD : WHITE, beamAlpha));
-            }
-        }
-        for (int index = 0; index < REFERENCE_INNER_TOWERS.length; index++) {
-            int[] tower = REFERENCE_INNER_TOWERS[index];
-            Vec3 start = new Vec3(tower[0], -5.0D, tower[1]);
-            Vec3 end = new Vec3(Math.signum(tower[0]) * 3.4D, -1.5D,
-                    Math.signum(tower[1]) * 3.4D);
-            OmniRenderGeometry.beam(pose, consumer, start, end,
-                    0.095F, 0.075F, argb(PURPLE, beamAlpha));
-        }
-
-        // Transparent-looking corner cables and a central vertical power shaft.
-        for (int x : new int[] {-5, 5}) {
-            for (int z : new int[] {-5, 5}) {
-                OmniRenderGeometry.beam(pose, consumer,
-                        new Vec3(x, -3.0D, z), new Vec3(x, 8.0D, z),
-                        0.055F, 0.045F, argb(CYAN, Math.round(beamAlpha * 0.72F)));
-            }
-        }
-        OmniRenderGeometry.beam(pose, consumer,
-                new Vec3(0.0D, -10.5D, 0.0D), new Vec3(0.0D, 18.0D, 0.0D),
-                0.11F + activityStrength * 0.05F,
-                0.09F + activityStrength * 0.04F, argb(BLUE, beamAlpha));
-
-        int runeCount = detailed ? 8 : 4;
-        for (int index = 0; index < runeCount; index++) {
-            double a = Math.PI * 2.0D * index / runeCount - Math.toRadians(spin * 0.24F);
-            float x = (float) Math.cos(a) * 9.4F;
-            float z = (float) Math.sin(a) * 9.4F;
-            OmniRenderGeometry.rune(pose, consumer, new Vec3(x, 8.15D, z),
-                    0.48F, 0.085F, (float) Math.toDegrees(a),
-                    argb(index % 2 == 0 ? PURPLE : CYAN, frameAlpha));
-        }
-
+        drawRecursionRingField(poseStack, pose, consumer,
+                angle, pulse, activityStrength, segments, detailed, glow);
+        drawRecursiveSingularity(pose, consumer,
+                angle, pulse, activityStrength, detailed, glow);
+        drawCardinalDataBeams(pose, consumer,
+                angle, activityStrength, detailed, glow);
+        drawInstructionMatrix(poseStack, pose, consumer,
+                angle, activityStrength, segments, detailed, glow);
+        drawDiagnosticPlane(pose, consumer,
+                angle, activityStrength, detailed, glow);
         if (completionPulse > 0.001F) {
-            float progress = 1.0F - completionPulse;
-            float extent = 3.4F + progress * 10.0F;
-            drawRectFrame(poseStack, consumer, extent,
-                    -3.2F + progress * 6.5F, extent, 0.18F,
-                    0.13F, argb(GOLD, glow ? Math.round(completionPulse * 84.0F)
-                            : Math.round(completionPulse * 225.0F)));
+            drawRecursionCommitSweep(poseStack, consumer,
+                    1.0F - completionPulse, completionPulse, glow);
         }
     }
 
-    private static void drawRectFrame(PoseStack poseStack, VertexConsumer consumer,
-            float halfX, float y, float halfZ, float halfWidth, float halfDepth,
-            int color) {
-        PoseStack.Pose pose = poseStack.last();
-        OmniRenderGeometry.beam(pose, consumer,
-                new Vec3(-halfX, y, -halfZ), new Vec3(halfX, y, -halfZ),
-                halfWidth, halfDepth, color);
-        OmniRenderGeometry.beam(pose, consumer,
-                new Vec3(halfX, y, -halfZ), new Vec3(halfX, y, halfZ),
-                halfWidth, halfDepth, color);
-        OmniRenderGeometry.beam(pose, consumer,
-                new Vec3(halfX, y, halfZ), new Vec3(-halfX, y, halfZ),
-                halfWidth, halfDepth, color);
-        OmniRenderGeometry.beam(pose, consumer,
-                new Vec3(-halfX, y, halfZ), new Vec3(-halfX, y, -halfZ),
-                halfWidth, halfDepth, color);
+    private static void drawRecursionRingField(PoseStack poseStack,
+            PoseStack.Pose pose, VertexConsumer consumer,
+            float angle, float pulse, float activityStrength,
+            int segments, boolean detailed, boolean glow) {
+        float drive = 0.42F + activityStrength * 0.58F;
+        int ringSegments = Math.max(40, segments);
+        float[] radii = {9.78F, 10.18F, 10.58F};
+        for (int layer = 0; layer < radii.length; layer++) {
+            int rgb = layer == 0 ? CYAN : layer == 1 ? PURPLE : BLUE;
+            float width = glow ? 0.18F - layer * 0.025F
+                    : 0.066F - layer * 0.008F;
+            OmniRenderGeometry.segmentedRing(poseStack, consumer,
+                    0.0F, 0.0F, -0.38F - layer * 0.035F,
+                    radii[layer] * (1.0F + (pulse - 1.0F) * 0.22F),
+                    width, width * 0.52F,
+                    ringSegments, 1.0F,
+                    90.0F, 0.0F,
+                    angle * (0.30F + layer * 0.13F)
+                            * (layer % 2 == 0 ? 1.0F : -1.0F),
+                    argb(rgb, glow
+                            ? Math.round((52.0F - layer * 7.0F) * drive)
+                            : Math.round((236.0F - layer * 26.0F) * drive)));
+        }
+
+        int packets = detailed ? 14 : 8;
+        for (int packet = 0; packet < packets; packet++) {
+            double phase = Math.PI * 2.0D * packet / packets
+                    + angle * (packet % 2 == 0 ? 0.006D : -0.0045D);
+            double radius = 10.22D + (packet % 3 - 1) * 0.22D;
+            Vec3 point = new Vec3(Math.cos(phase) * radius,
+                    Math.sin(phase) * radius, -0.52D);
+            float half = glow ? 0.18F : 0.10F;
+            OmniRenderGeometry.orientedBox(pose, consumer, point,
+                    new Vec3(half, 0.0D, 0.0D),
+                    new Vec3(0.0D, half, 0.0D),
+                    new Vec3(0.0D, 0.0D, half * 0.48D),
+                    argb(packet % 3 == 0 ? WHITE
+                                    : packet % 3 == 1 ? CYAN : PURPLE,
+                            glow ? Math.round(58.0F * drive)
+                                    : Math.round(230.0F * drive)));
+        }
     }
 
-    private static void drawCubeFrame(PoseStack poseStack, VertexConsumer consumer,
-            float half, float halfHeight, int color) {
-        PoseStack.Pose pose = poseStack.last();
-        drawRectFrame(poseStack, consumer, half, -halfHeight, half,
-                0.13F, 0.10F, color);
-        drawRectFrame(poseStack, consumer, half, halfHeight, half,
-                0.13F, 0.10F, color);
-        for (int x : new int[] {-1, 1}) {
-            for (int z : new int[] {-1, 1}) {
-                OmniRenderGeometry.beam(pose, consumer,
-                        new Vec3(x * half, -halfHeight, z * half),
-                        new Vec3(x * half, halfHeight, z * half),
-                        0.13F, 0.10F, color);
+    private static void drawRecursiveSingularity(PoseStack.Pose pose,
+            VertexConsumer consumer, float angle, float pulse,
+            float activityStrength, boolean detailed, boolean glow) {
+        float drive = 0.48F + activityStrength * 0.52F;
+        float outer = glow ? 2.38F : 2.05F;
+        OmniRenderGeometry.wireframeOctahedron(pose, consumer, Vec3.ZERO,
+                outer * pulse, outer * pulse, outer * pulse,
+                angle * 0.52F,
+                glow ? 0.105F : 0.038F,
+                argb(PURPLE, glow ? Math.round(56.0F * drive)
+                        : Math.round(238.0F * drive)));
+
+        double rotation = Math.toRadians(angle * 0.74F);
+        Vec3 xAxis = new Vec3(Math.cos(rotation) * 1.48D, 0.0D,
+                Math.sin(rotation) * 1.48D);
+        Vec3 zAxis = new Vec3(-Math.sin(rotation) * 1.48D, 0.0D,
+                Math.cos(rotation) * 1.48D);
+        OmniRenderGeometry.wireframeBox(pose, consumer, Vec3.ZERO,
+                xAxis, new Vec3(0.0D, 1.48D, 0.0D), zAxis,
+                glow ? 0.090F : 0.032F,
+                argb(CYAN, glow ? Math.round(48.0F * drive)
+                        : Math.round(218.0F * drive)));
+        OmniRenderGeometry.octahedron(pose, consumer, Vec3.ZERO,
+                glow ? 0.82F : 0.62F,
+                glow ? 1.02F : 0.78F,
+                glow ? 0.82F : 0.62F,
+                -angle * 0.88F,
+                argb(DEEP_PURPLE, glow ? Math.round(28.0F * drive)
+                        : Math.round(224.0F * drive)));
+
+        int satellites = detailed ? 10 : 6;
+        for (int satellite = 0; satellite < satellites; satellite++) {
+            double phase = Math.PI * 2.0D * satellite / satellites
+                    - angle * 0.009D;
+            Vec3 point = new Vec3(Math.cos(phase) * 2.75D,
+                    Math.sin(phase * 1.6D) * 0.65D,
+                    Math.sin(phase) * 0.72D);
+            float half = glow ? 0.15F : 0.085F;
+            OmniRenderGeometry.orientedBox(pose, consumer, point,
+                    new Vec3(half, 0.0D, 0.0D),
+                    new Vec3(0.0D, half, 0.0D),
+                    new Vec3(0.0D, 0.0D, half),
+                    argb(satellite % 2 == 0 ? CYAN : PURPLE,
+                            glow ? 44 : 216));
+        }
+    }
+
+    private static void drawCardinalDataBeams(PoseStack.Pose pose,
+            VertexConsumer consumer, float angle,
+            float activityStrength, boolean detailed, boolean glow) {
+        Vec3[] endpoints = {
+                new Vec3(-10.38D, 0.0D, -0.42D),
+                new Vec3(10.38D, 0.0D, -0.42D),
+                new Vec3(0.0D, -10.38D, -0.42D),
+                new Vec3(0.0D, 10.38D, -0.42D)
+        };
+        float drive = 0.45F + activityStrength * 0.55F;
+        for (int index = 0; index < endpoints.length; index++) {
+            Vec3 outer = endpoints[index];
+            Vec3 inner = outer.scale(0.22D).add(0.0D, 0.0D, -0.08D);
+            float width = glow ? 0.075F : 0.025F;
+            OmniRenderGeometry.taperedBeam(pose, consumer, outer, inner,
+                    width, width * 0.58F,
+                    width * 0.58F, width * 0.34F,
+                    argb(index % 2 == 0 ? BLUE : PURPLE,
+                            glow ? Math.round(28.0F * drive)
+                                    : Math.round(154.0F * drive)),
+                    argb(CYAN, glow ? Math.round(56.0F * drive)
+                            : Math.round(232.0F * drive)));
+
+            int packets = detailed ? 2 : 1;
+            for (int packet = 0; packet < packets; packet++) {
+                float progress = fract(angle * (0.006F + activityStrength * 0.004F)
+                        + index * 0.25F + packet * 0.5F);
+                Vec3 point = outer.lerp(inner, progress);
+                float half = glow ? 0.17F : 0.095F;
+                OmniRenderGeometry.orientedBox(pose, consumer, point,
+                        new Vec3(half, 0.0D, 0.0D),
+                        new Vec3(0.0D, half, 0.0D),
+                        new Vec3(0.0D, 0.0D, half * 0.52D),
+                        argb(index % 2 == 0 ? WHITE : CYAN,
+                                glow ? 62 : 242));
             }
         }
+    }
+
+    private static void drawInstructionMatrix(PoseStack poseStack,
+            PoseStack.Pose pose, VertexConsumer consumer,
+            float angle, float activityStrength, int segments,
+            boolean detailed, boolean glow) {
+        float y = -15.18F;
+        float drive = 0.40F + activityStrength * 0.60F;
+        float[] radii = {3.2F, 6.2F, 9.4F, 12.5F};
+        for (int layer = 0; layer < radii.length; layer++) {
+            float width = glow ? 0.095F : 0.033F;
+            int rgb = layer % 2 == 0 ? CYAN : PURPLE;
+            OmniRenderGeometry.segmentedRing(poseStack, consumer,
+                    0.0F, y + layer * 0.018F, 0.0F, radii[layer],
+                    width, width * 0.55F,
+                    Math.max(32, segments), 1.0F,
+                    0.0F, 0.0F,
+                    angle * (layer % 2 == 0 ? 0.20F : -0.16F),
+                    argb(rgb, glow ? Math.round(26.0F * drive)
+                            : Math.round(142.0F * drive)));
+        }
+        for (int spoke = 0; spoke < 8; spoke++) {
+            double phase = Math.PI * 2.0D * spoke / 8.0D;
+            Vec3 inner = new Vec3(Math.cos(phase) * 2.2D, y,
+                    Math.sin(phase) * 2.2D);
+            Vec3 outer = new Vec3(Math.cos(phase) * 12.1D, y,
+                    Math.sin(phase) * 12.1D);
+            float width = glow ? 0.055F : 0.018F;
+            OmniRenderGeometry.taperedBeam(pose, consumer, inner, outer,
+                    width, width, width * 0.45F, width * 0.45F,
+                    argb(CYAN, glow ? 24 : 132),
+                    argb(spoke % 2 == 0 ? BLUE : PURPLE,
+                            glow ? 16 : 88));
+        }
+        float uplinkWidth = glow ? 0.090F : 0.030F;
+        OmniRenderGeometry.taperedBeam(pose, consumer,
+                new Vec3(0.0D, y + 0.08D, 0.0D),
+                new Vec3(0.0D, -10.55D, 0.0D),
+                uplinkWidth, uplinkWidth * 0.55F,
+                uplinkWidth, uplinkWidth * 0.55F,
+                argb(BLUE, glow ? 26 : 144),
+                argb(CYAN, glow ? 58 : 238));
+    }
+
+    private static void drawDiagnosticPlane(PoseStack.Pose pose,
+            VertexConsumer consumer, float angle, float activityStrength,
+            boolean detailed, boolean glow) {
+        float response = 0.34F + activityStrength * 0.66F;
+        OmniRenderGeometry.gridPlane(pose, consumer,
+                new Vec3(0.0D, 0.0D, 0.58D),
+                new Vec3(6.4D, 0.0D, 0.0D),
+                new Vec3(0.0D, 6.4D, 0.0D),
+                detailed ? 10 : 6,
+                glow ? 0.025F : 0.009F,
+                argb(BLUE, glow ? Math.round(9.0F * response)
+                        : Math.round(42.0F * response)));
+        float scanX = -5.8F + fract(angle * (0.003F + activityStrength * 0.003F)) * 11.6F;
+        float width = glow ? 0.060F : 0.020F;
+        OmniRenderGeometry.taperedBeam(pose, consumer,
+                new Vec3(scanX, -5.8D, 0.54D),
+                new Vec3(scanX, 5.8D, 0.54D),
+                width, width, width * 0.42F, width * 0.42F,
+                argb(PURPLE, glow ? 24 : 128),
+                argb(CYAN, glow ? 46 : 214));
+    }
+
+    private static void drawRecursionCommitSweep(PoseStack poseStack,
+            VertexConsumer consumer, float progress,
+            float completionPulse, boolean glow) {
+        float radius = 2.0F + progress * 10.8F;
+        float width = glow ? 0.22F : 0.074F;
+        OmniRenderGeometry.segmentedRing(poseStack, consumer,
+                0.0F, 0.0F, -0.72F, radius,
+                width, width * 0.58F,
+                72, 1.0F, 90.0F, 0.0F,
+                progress * 180.0F,
+                argb(GOLD, glow ? Math.round(completionPulse * 72.0F)
+                        : Math.round(completionPulse * 244.0F)));
+    }
+
+    private static void drawComputationAnomalyOccluder(PoseStack.Pose pose,
+            VertexConsumer consumer, boolean detailed) {
+        OmniRenderGeometry.sphere(pose, consumer,
+                Vec3.ZERO, 1.46F,
+                detailed ? 11 : 8, detailed ? 20 : 14,
+                0xFF000107);
+    }
+
+    /**
+     * Reconstructs the former cyan/blue stained-glass accents as animated,
+     * non-colliding data halos. Coordinates are relative to the singularity at
+     * local Y=17, matching the air channels reserved by the structure layout.
+     */
+
+    private static float fract(float value) {
+        return value - (float) Math.floor(value);
     }
 
     private static int argb(int rgb, int alpha) {
@@ -248,25 +363,32 @@ public final class OmniComputationRenderer
 
     @Override
     public int getViewDistance() {
-        return 512;
+        return 384;
     }
 
     @Override
     public boolean shouldRender(OmniComputationCoreBlockEntity core, Vec3 cameraPos) {
-        return true;
+        Direction facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var layout = core.getVisualLayout();
+        if (layout == OmniComputationStructure.StructureLayout.INCOMPLETE) return false;
+        int visualY = OmniComputationStructure.visualCenterY(layout);
+        Vec3 origin = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
+                OmniComputationStructure.VISUAL_CENTER_X, visualY,
+                OmniComputationStructure.VISUAL_CENTER_Z, layout);
+        return origin.distanceToSqr(cameraPos) <= 384.0D * 384.0D;
     }
 
     @Override
     public AABB getRenderBoundingBox(OmniComputationCoreBlockEntity core) {
         Direction facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        boolean legacy = core.getInspection().layout()
-                == OmniComputationStructure.StructureLayout.LEGACY;
-        int visualY = legacy ? OmniComputationStructure.EFFECT_Y
-                : OmniComputationStructure.VISUAL_CENTER_Y;
+        var layout = core.getVisualLayout();
+        if (layout == OmniComputationStructure.StructureLayout.INCOMPLETE) return new AABB(core.getBlockPos());
+        int visualY = OmniComputationStructure.visualCenterY(layout);
         Vec3 origin = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
                 OmniComputationStructure.VISUAL_CENTER_X, visualY,
-                OmniComputationStructure.VISUAL_CENTER_Z);
-        return new AABB(origin.x - 28.0D, origin.y - 22.0D, origin.z - 28.0D,
-                origin.x + 28.0D, origin.y + 22.0D, origin.z + 28.0D);
+                OmniComputationStructure.VISUAL_CENTER_Z, layout);
+        double horizontalRadius = Math.max(28.0D, OmniCrownGeometry.RADIUS + 2.0D);
+        return new AABB(origin.x - horizontalRadius, origin.y - 22.0D, origin.z - horizontalRadius,
+                origin.x + horizontalRadius, origin.y + 22.0D, origin.z + horizontalRadius);
     }
 }

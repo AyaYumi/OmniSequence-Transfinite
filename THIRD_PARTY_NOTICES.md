@@ -5,6 +5,7 @@ Minecraft mods. Their binaries, source files, models and textures are not
 bundled in the produced mod JAR:
 
 - Applied Energistics 2, version 19.2.17 or later.
+- AppliedEnhancements, version 1.0.6 or later.
 - ExtendedAE, version 1.21-2.2.32-neoforge or later.
 - Glodium, version 1.21-2.2-neoforge or later.
 - LowDragLib2, version 2.2.18 or later.

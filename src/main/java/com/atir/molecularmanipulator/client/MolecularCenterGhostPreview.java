@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.client;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
+import com.atir.molecularmanipulator.registry.ModContent;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -26,6 +27,7 @@ public final class MolecularCenterGhostPreview {
             new SectionedGhostPreviewRenderer(PROJECTION_ALPHA);
     private static BlockPos controller;
     private static Direction facing;
+    private static MolecularCenterStructure.Part projectedAnchor;
     private static ResourceKey<Level> dimension;
     private static long lastRefresh = Long.MIN_VALUE;
 
@@ -43,6 +45,10 @@ public final class MolecularCenterGhostPreview {
             clear();
             return false;
         }
+        // A different controller is a different projection, even if both occupy
+        // the same chunk sections. Do not keep its old meshes while rebuilding.
+        CACHE.close();
+        projectedAnchor = null;
         controller = selectedController;
         facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         dimension = selectedDimension;
@@ -74,7 +80,14 @@ public final class MolecularCenterGhostPreview {
         if (camera.distanceToSqr(controller.getCenter()) > MAX_RENDER_DISTANCE_SQUARED) {
             return;
         }
-        if (level.getGameTime() - lastRefresh >= REFRESH_INTERVAL) {
+        if (!(level.getBlockEntity(controller) instanceof MolecularCenterBlockEntity center)) {
+            clear();
+            return;
+        }
+        var currentFacing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var currentAnchor = MolecularCenterStructure.controllerPart(center.getConstructionOriginLayout());
+        if (lastRefresh == Long.MIN_VALUE || level.getGameTime() - lastRefresh >= REFRESH_INTERVAL
+                || currentFacing != facing || !currentAnchor.equals(projectedAnchor)) {
             refresh(level);
         }
         if (controller == null || CACHE.isEmpty()) {
@@ -85,27 +98,39 @@ public final class MolecularCenterGhostPreview {
 
     private static void refresh(Level level) {
         if (controller == null || !level.hasChunkAt(controller)
-                || !(level.getBlockEntity(controller) instanceof MolecularCenterBlockEntity)) {
+                || !(level.getBlockEntity(controller) instanceof MolecularCenterBlockEntity center)) {
             clear();
             return;
         }
-        facing = level.getBlockState(controller).getValue(HorizontalDirectionalBlock.FACING);
+        var currentFacing = level.getBlockState(controller).getValue(HorizontalDirectionalBlock.FACING);
+        var originLayout = center.getConstructionOriginLayout();
+        var currentAnchor = MolecularCenterStructure.controllerPart(originLayout);
+        if (currentFacing != facing || !currentAnchor.equals(projectedAnchor)) {
+            // Anchor synchronization can move every ghost. Clear atomically so
+            // incremental section builds never mix the old and new origins.
+            CACHE.close();
+        }
+        facing = currentFacing;
+        projectedAnchor = currentAnchor;
         var blocks = new ArrayList<SectionedGhostPreviewRenderer.GhostBlock>();
         for (var part : MolecularCenterStructure.parts()) {
-            if (MolecularCenterStructure.isController(part)
-                    || part.partType() == MolecularCenterStructure.PartType.AIR) {
+            if (part.partType() == MolecularCenterStructure.PartType.AIR) {
                 continue;
             }
-            var pos = MolecularCenterStructure.worldPos(controller, facing, part);
-            if (!level.hasChunkAt(pos)) {
+            var pos = MolecularCenterStructure.worldPos(controller, facing, part, originLayout);
+            if (pos.equals(controller) || !level.hasChunkAt(pos)) {
                 continue;
             }
             var currentState = level.getBlockState(pos);
-            var expectedState = MolecularCenterStructure.partState(part.partType());
+            var expectedState = MolecularCenterStructure.isController(part)
+                    ? ModContent.MOLECULAR_CENTER_CONTROLLER.get().defaultBlockState()
+                            .setValue(HorizontalDirectionalBlock.FACING, facing)
+                    : MolecularCenterStructure.partState(part.partType());
             if (currentState.is(expectedState.getBlock())) {
                 continue;
             }
-            boolean conflict = !currentState.canBeReplaced();
+            boolean conflict = !currentState.canBeReplaced()
+                    && !MolecularCenterStructure.matchesSourcePart(originLayout, part, currentState);
             blocks.add(new SectionedGhostPreviewRenderer.GhostBlock(
                     pos, expectedState, conflict));
         }
@@ -129,6 +154,7 @@ public final class MolecularCenterGhostPreview {
         controller = null;
         facing = null;
         dimension = null;
+        projectedAnchor = null;
         CACHE.close();
         lastRefresh = Long.MIN_VALUE;
     }

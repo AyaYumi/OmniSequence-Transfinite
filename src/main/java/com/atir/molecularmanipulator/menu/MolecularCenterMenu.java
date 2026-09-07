@@ -6,6 +6,7 @@ import appeng.client.gui.Icon;
 import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.menu.AEBaseMenu;
+import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
@@ -15,6 +16,7 @@ import appeng.menu.slot.OutputSlot;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.util.inv.AppEngInternalInventory;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterLogic;
 import com.atir.molecularmanipulator.network.PatternSearchIndexBuilder;
@@ -37,9 +39,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     private static final String ACTION_PREVIEW = "preview";
     private static final String ACTION_BUILD = "build";
     private static final String ACTION_DISMANTLE = "dismantle";
-    private static final String ACTION_CYCLE_PRIMARY_ROUTE = "cycle_primary_route";
-    private static final String ACTION_CYCLE_BYPRODUCT_ROUTE = "cycle_byproduct_route";
-    private static final String ACTION_CYCLE_OUTPUT_PORT = "cycle_output_port";
     private static final String ACTION_ADJUST_VISUAL_COLOR = "adjust_visual_color";
     private static final String ACTION_RESET_VISUAL_COLORS = "reset_visual_colors";
     private static final String ACTION_DECONSTRUCT_MATTER = "deconstruct_matter";
@@ -51,19 +50,27 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     private static final String ACTION_KEEP_LEGACY_STRUCTURE = "keep_legacy_structure";
     private static final String ACTION_REQUEST_PATTERN_SEARCH_INDEX = "request_pattern_search_index";
     private static final String ACTION_SET_PATTERN_SEARCH_PAGE = "set_pattern_search_page";
+    private static final String ACTION_SELECT_AUTO_CRAFT_SLOT = "select_auto_craft_slot";
+    private static final String ACTION_TOGGLE_AUTO_CRAFT = "toggle_auto_craft";
+    private static final String ACTION_SET_AUTO_CRAFT_RESERVE = "set_auto_craft_reserve";
+    private static final String ACTION_SET_AUTO_CRAFT_OUTPUT_LIMIT = "set_auto_craft_output_limit";
     public static final int PATTERN_X = 17;
-    public static final int PATTERN_Y = 46;
+    public static final int PATTERN_Y = 52;
     public static final int PLAYER_X = 17;
-    public static final int PLAYER_MAIN_Y = 152;
-    public static final int PLAYER_HOTBAR_Y = 210;
-    public static final int SEQUENCE_INPUT_X = 222;
-    public static final int SEQUENCE_SAMPLE_X = 294;
-    public static final int SEQUENCE_OUTPUT_X = 366;
-    public static final int SEQUENCE_SLOT_Y = 78;
-    public static final int QUANTUM_SLOT_X = 294;
-    public static final int QUANTUM_SLOT_Y = 67;
+    public static final int PLAYER_MAIN_Y = 188;
+    public static final int PLAYER_HOTBAR_Y = 246;
+    public static final int SEQUENCE_INPUT_X = 232;
+    public static final int SEQUENCE_SAMPLE_X = 304;
+    public static final int SEQUENCE_OUTPUT_X = 376;
+    public static final int SEQUENCE_SLOT_Y = 66;
+    public static final int QUANTUM_SLOT_X = 304;
+    public static final int QUANTUM_SLOT_Y = 61;
     public static final int SPEED_SLOT_X = 337;
-    public static final int SPEED_SLOT_Y = 181;
+    public static final int SPEED_SLOT_Y = 169;
+    public static final int AUTO_CRAFT_PATTERN_X = 233;
+    public static final int AUTO_CRAFT_PATTERN_Y = 50;
+    public static final SlotSemantic AUTO_CRAFT_PATTERN_SEMANTIC = SlotSemantics.register(
+            "molecularmanipulator:AUTO_CRAFT_PATTERN", false, -100);
 
     public static final MenuType<MolecularCenterMenu> TYPE = MenuTypeBuilder
             .create(MolecularCenterMenu::new, PatternProviderLogicHost.class)
@@ -75,29 +82,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public int buildProgress;
     @GuiSync(12)
     public int buildTotal;
-    @GuiSync(13)
-    public MolecularCenterBlockEntity.PipelineRoute primaryRoute =
-            MolecularCenterBlockEntity.PipelineRoute.NETWORK;
-    @GuiSync(14)
-    public MolecularCenterBlockEntity.PipelineRoute byproductRoute =
-            MolecularCenterBlockEntity.PipelineRoute.NETWORK;
-    @GuiSync(15)
-    public long pipelineCacheAmount;
-    @GuiSync(16)
-    public int pipelineCacheTypes;
-    @GuiSync(17)
-    public long pendingOutputAmount;
-    @GuiSync(18)
-    public boolean pipelineBlocked;
-    @GuiSync(19)
-    public int activePipelineRecipes;
-    @GuiSync(20)
-    public long activePipelineCrafts;
-    @GuiSync(21)
-    public long lastPipelineTransfer;
-    @GuiSync(22)
-    public MolecularCenterBlockEntity.PipelinePort outputPort =
-            MolecularCenterBlockEntity.PipelinePort.FRONT;
     @GuiSync(23)
     public int fieldColor = MolecularCenterBlockEntity.DEFAULT_FIELD_COLOR;
     @GuiSync(24)
@@ -182,6 +166,41 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public long deconstructCoolingSeconds = -1;
     @GuiSync(62)
     public long rewriteCoolingSeconds = -1;
+    @GuiSync(63)
+    public int autoCraftSelectedSlot = -1;
+    @GuiSync(64)
+    public boolean autoCraftEnabled;
+    @GuiSync(65)
+    public MolecularAutoCrafter.AutoCraftState autoCraftState =
+            MolecularAutoCrafter.AutoCraftState.EMPTY;
+    @GuiSync(66)
+    public long autoCraftOutputLimit;
+    @GuiSync(68)
+    public int autoCraftInputCount;
+    @GuiSync(69)
+    public long autoCraftInputReserve0;
+    @GuiSync(70)
+    public long autoCraftLastCrafts;
+    @GuiSync(71)
+    public long autoCraftCumulativeCrafts;
+    @GuiSync(72)
+    public int autoCraftEnabledMask;
+    @GuiSync(73)
+    public long autoCraftInputReserve1;
+    @GuiSync(74)
+    public long autoCraftInputReserve2;
+    @GuiSync(75)
+    public long autoCraftInputReserve3;
+    @GuiSync(76)
+    public long autoCraftInputReserve4;
+    @GuiSync(77)
+    public long autoCraftInputReserve5;
+    @GuiSync(78)
+    public long autoCraftInputReserve6;
+    @GuiSync(79)
+    public long autoCraftInputReserve7;
+    @GuiSync(80)
+    public long autoCraftInputReserve8;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
@@ -189,6 +208,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     private final List<AppEngSlot> sequenceSlots;
     private final AppEngSlot quantumSlot;
     private final List<AppEngSlot> speedSlots;
+    private final List<AppEngSlot> autoCraftPatternSlots;
     private long patternSearchIndexGeneration;
     private Consumer<PatternSearchIndexChunk> patternSearchIndexListener;
 
@@ -200,6 +220,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         addSequenceSlots();
         this.quantumSlot = addQuantumSlot();
         this.speedSlots = addSpeedSlots();
+        this.autoCraftPatternSlots = addAutoCraftPatternSlots();
         this.pageInventory = isClientSide()
                 ? PagedInventory.clientView()
                 : PagedInventory.serverView(center.getLogic().getFullPatternInventory());
@@ -214,9 +235,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         registerClientAction(ACTION_PREVIEW, this::preview);
         registerClientAction(ACTION_BUILD, this::build);
         registerClientAction(ACTION_DISMANTLE, this::dismantle);
-        registerClientAction(ACTION_CYCLE_PRIMARY_ROUTE, this::cyclePrimaryRoute);
-        registerClientAction(ACTION_CYCLE_BYPRODUCT_ROUTE, this::cycleByproductRoute);
-        registerClientAction(ACTION_CYCLE_OUTPUT_PORT, this::cycleOutputPort);
         registerClientAction(ACTION_ADJUST_VISUAL_COLOR, Integer.class, this::adjustVisualColor);
         registerClientAction(ACTION_RESET_VISUAL_COLORS, this::resetVisualColors);
         registerClientAction(ACTION_DECONSTRUCT_MATTER, this::deconstructMatter);
@@ -229,6 +247,12 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         registerClientAction(ACTION_REQUEST_PATTERN_SEARCH_INDEX, this::sendPatternSearchIndex);
         registerClientAction(ACTION_SET_PATTERN_SEARCH_PAGE, PatternSearchPageRequest.class,
                 this::applyPatternSearchPage);
+        registerClientAction(ACTION_SELECT_AUTO_CRAFT_SLOT, Integer.class, this::selectAutoCraftSlot);
+        registerClientAction(ACTION_TOGGLE_AUTO_CRAFT, Integer.class, this::toggleAutoCraft);
+        registerClientAction(ACTION_SET_AUTO_CRAFT_RESERVE, AutoCraftValueRequest.class,
+                this::setAutoCraftReserve);
+        registerClientAction(ACTION_SET_AUTO_CRAFT_OUTPUT_LIMIT, AutoCraftValueRequest.class,
+                this::setAutoCraftOutputLimit);
         applyPage(0);
     }
 
@@ -302,6 +326,19 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         return result;
     }
 
+    private List<AppEngSlot> addAutoCraftPatternSlots() {
+        var result = new java.util.ArrayList<AppEngSlot>(MolecularAutoCrafter.PATTERN_SLOTS);
+        var inventory = center.getAutoCrafter().getPatternInventory();
+        for (int index = 0; index < MolecularAutoCrafter.PATTERN_SLOTS; index++) {
+            var slot = new SupportedPatternSlot(inventory, index);
+            addSlot(slot, AUTO_CRAFT_PATTERN_SEMANTIC);
+            slot.x = AUTO_CRAFT_PATTERN_X + index * 18;
+            slot.y = AUTO_CRAFT_PATTERN_Y;
+            result.add(slot);
+        }
+        return result;
+    }
+
     public MolecularCenterBlockEntity getCenter() {
         return center;
     }
@@ -331,6 +368,16 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
 
     public List<AppEngSlot> getSpeedSlots() {
         return speedSlots;
+    }
+
+    public List<AppEngSlot> getAutoCraftPatternSlots() {
+        return autoCraftPatternSlots;
+    }
+
+    public ItemStack getSelectedAutoCraftPatternStack() {
+        return autoCraftSelectedSlot < 0 || autoCraftSelectedSlot >= autoCraftPatternSlots.size()
+                ? ItemStack.EMPTY
+                : autoCraftPatternSlots.get(autoCraftSelectedSlot).getItem();
     }
 
     public int getPage() {
@@ -374,6 +421,54 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         }
     }
 
+    public void requestSelectAutoCraftSlot(int slot) {
+        if (slot < 0 || slot >= MolecularAutoCrafter.PATTERN_SLOTS) {
+            return;
+        }
+        if (isClientSide()) {
+            sendClientAction(ACTION_SELECT_AUTO_CRAFT_SLOT, slot);
+        } else {
+            selectAutoCraftSlot(slot);
+        }
+    }
+
+    public void requestToggleAutoCraft(int slot) {
+        if (isClientSide() && slot >= 0 && slot < MolecularAutoCrafter.PATTERN_SLOTS) {
+            sendClientAction(ACTION_TOGGLE_AUTO_CRAFT, slot);
+        }
+    }
+
+    public void requestSetAutoCraftInputReserve(int inputIndex, long amount) {
+        if (isClientSide() && autoCraftSelectedSlot >= 0 && inputIndex >= 0
+                && inputIndex < autoCraftInputCount) {
+            sendClientAction(ACTION_SET_AUTO_CRAFT_RESERVE,
+                    new AutoCraftValueRequest(autoCraftSelectedSlot, inputIndex,
+                            Math.max(0, amount)));
+        }
+    }
+
+    public long getAutoCraftInputReserve(int inputIndex) {
+        return switch (inputIndex) {
+            case 0 -> autoCraftInputReserve0;
+            case 1 -> autoCraftInputReserve1;
+            case 2 -> autoCraftInputReserve2;
+            case 3 -> autoCraftInputReserve3;
+            case 4 -> autoCraftInputReserve4;
+            case 5 -> autoCraftInputReserve5;
+            case 6 -> autoCraftInputReserve6;
+            case 7 -> autoCraftInputReserve7;
+            case 8 -> autoCraftInputReserve8;
+            default -> 0;
+        };
+    }
+
+    public void requestSetAutoCraftOutputLimit(long amount) {
+        if (isClientSide() && autoCraftSelectedSlot >= 0) {
+            sendClientAction(ACTION_SET_AUTO_CRAFT_OUTPUT_LIMIT,
+                    new AutoCraftValueRequest(autoCraftSelectedSlot, -1, Math.max(0, amount)));
+        }
+    }
+
     public void clearPatternSearch() {
         applyPage(0);
         if (isClientSide()) {
@@ -391,18 +486,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
 
     public void requestDismantle() {
         if (isClientSide()) sendClientAction(ACTION_DISMANTLE);
-    }
-
-    public void requestCyclePrimaryRoute() {
-        if (isClientSide()) sendClientAction(ACTION_CYCLE_PRIMARY_ROUTE);
-    }
-
-    public void requestCycleByproductRoute() {
-        if (isClientSide()) sendClientAction(ACTION_CYCLE_BYPRODUCT_ROUTE);
-    }
-
-    public void requestCycleOutputPort() {
-        if (isClientSide()) sendClientAction(ACTION_CYCLE_OUTPUT_PORT);
     }
 
     public void requestAdjustVisualColor(int target, int channel, int delta) {
@@ -613,21 +696,116 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         }
     }
 
-    private void cyclePrimaryRoute() {
-        if (!isClientSide()) {
-            center.cyclePrimaryRoute();
+    private void selectAutoCraftSlot(int slot) {
+        if (isClientSide()) {
+            return;
         }
+        if (slot < 0 || slot >= MolecularAutoCrafter.PATTERN_SLOTS) {
+            autoCraftSelectedSlot = -1;
+            resetAutoCraftSnapshot();
+            sendAllDataToRemote();
+            return;
+        }
+        autoCraftSelectedSlot = slot;
+        refreshAutoCraftView();
+        sendAllDataToRemote();
     }
 
-    private void cycleByproductRoute() {
-        if (!isClientSide()) {
-            center.cycleByproductRoute();
+    private void resetAutoCraftSnapshot() {
+        autoCraftEnabled = false;
+        autoCraftState = MolecularAutoCrafter.AutoCraftState.EMPTY;
+        autoCraftOutputLimit = 0;
+        autoCraftInputCount = 0;
+        for (int input = 0; input < MolecularAutoCrafter.MAX_INPUTS; input++) {
+            setAutoCraftInputReserve(input, 0);
         }
+        autoCraftLastCrafts = 0;
+        autoCraftCumulativeCrafts = 0;
     }
 
-    private void cycleOutputPort() {
-        if (!isClientSide()) {
-            center.cycleOutputPort();
+    private void toggleAutoCraft(int slot) {
+        if (isClientSide() || slot < 0 || slot >= MolecularAutoCrafter.PATTERN_SLOTS) {
+            return;
+        }
+        var autoCrafter = center.getAutoCrafter();
+        var view = autoCrafter.getView(slot);
+        if (view.state() == MolecularAutoCrafter.AutoCraftState.EMPTY
+                || view.state() == MolecularAutoCrafter.AutoCraftState.INVALID_PATTERN) {
+            return;
+        }
+        autoCraftSelectedSlot = slot;
+        autoCrafter.setEnabled(slot, !view.enabled());
+        refreshAutoCraftView();
+        sendAllDataToRemote();
+    }
+
+    private void setAutoCraftReserve(AutoCraftValueRequest request) {
+        if (isClientSide() || !validAutoCraftRequest(request)
+                || request.inputIndex() < 0
+                || request.inputIndex() >= MolecularAutoCrafter.MAX_INPUTS
+                || request.inputIndex() >= center.getAutoCrafter().getView(request.slot()).inputCount()) {
+            return;
+        }
+        center.getAutoCrafter().setProtection(request.slot(), request.inputIndex(), request.value());
+        refreshAutoCraftView();
+    }
+
+    private void setAutoCraftOutputLimit(AutoCraftValueRequest request) {
+        if (isClientSide() || !validAutoCraftRequest(request)) {
+            return;
+        }
+        center.getAutoCrafter().setOutputLimit(request.slot(), request.value());
+        refreshAutoCraftView();
+    }
+
+    private boolean validAutoCraftRequest(AutoCraftValueRequest request) {
+        return request != null && request.slot() == autoCraftSelectedSlot
+                && autoCraftSelectedSlot >= 0 && request.value() >= 0;
+    }
+
+    private void refreshAutoCraftView() {
+        if (isClientSide()) {
+            return;
+        }
+        int enabledMask = 0;
+        for (int slot = 0; slot < MolecularAutoCrafter.PATTERN_SLOTS; slot++) {
+            if (center.getAutoCrafter().getView(slot).enabled()) {
+                enabledMask |= 1 << slot;
+            }
+        }
+        autoCraftEnabledMask = enabledMask;
+        if (autoCraftSelectedSlot < 0) {
+            return;
+        }
+        var view = center.getAutoCrafter().getView(autoCraftSelectedSlot);
+        autoCraftEnabled = view.enabled();
+        autoCraftState = view.state();
+        autoCraftOutputLimit = view.outputLimit();
+        autoCraftInputCount = Math.max(0,
+                Math.min(MolecularAutoCrafter.MAX_INPUTS, view.inputCount()));
+        long[] protections = view.protections();
+        for (int input = 0; input < MolecularAutoCrafter.MAX_INPUTS; input++) {
+            setAutoCraftInputReserve(input,
+                    input < protections.length ? protections[input] : 0);
+        }
+        autoCraftLastCrafts = view.lastBatch();
+        autoCraftCumulativeCrafts = view.totalCrafts();
+    }
+
+    private void setAutoCraftInputReserve(int inputIndex, long value) {
+        long reserve = Math.max(0, value);
+        switch (inputIndex) {
+            case 0 -> autoCraftInputReserve0 = reserve;
+            case 1 -> autoCraftInputReserve1 = reserve;
+            case 2 -> autoCraftInputReserve2 = reserve;
+            case 3 -> autoCraftInputReserve3 = reserve;
+            case 4 -> autoCraftInputReserve4 = reserve;
+            case 5 -> autoCraftInputReserve5 = reserve;
+            case 6 -> autoCraftInputReserve6 = reserve;
+            case 7 -> autoCraftInputReserve7 = reserve;
+            case 8 -> autoCraftInputReserve8 = reserve;
+            default -> {
+            }
         }
     }
 
@@ -695,16 +873,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             formed = center.isFormed();
             buildProgress = center.getBuildProgress();
             buildTotal = center.getBuildTotal();
-            primaryRoute = center.getPrimaryRoute();
-            byproductRoute = center.getByproductRoute();
-            pipelineCacheAmount = center.getPipelineCacheAmount();
-            pipelineCacheTypes = center.getPipelineCacheTypes();
-            pendingOutputAmount = center.getPendingOutputAmount();
-            pipelineBlocked = center.isPipelineBlocked();
-            activePipelineRecipes = center.getActivePipelineRecipes();
-            activePipelineCrafts = center.getActivePipelineCrafts();
-            lastPipelineTransfer = center.getLastPipelineTransfer();
-            outputPort = center.getOutputPort();
             fieldColor = center.getFieldColor();
             coreColor = center.getCoreColor();
             primaryRingColor = center.getPrimaryRingColor();
@@ -742,6 +910,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             building = center.isBuilding();
             dismantling = center.isDismantling();
             patternRevision = center.getLogic().getPatternRevision();
+            refreshAutoCraftView();
         }
         super.broadcastChanges();
     }
@@ -793,10 +962,20 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         }
 
         void setMappedSlots(int[] sourceSlots) {
-            this.mappedSlots = clientView ? null : sourceSlots.clone();
+            this.mappedSlots = sourceSlots.clone();
             if (clientView) {
                 clearClientView();
             }
+        }
+
+        int absoluteSlot(int visibleSlot) {
+            if (visibleSlot < 0 || visibleSlot >= MolecularCenterBlockEntity.PATTERNS_PER_PAGE) {
+                return -1;
+            }
+            if (mappedSlots != null) {
+                return visibleSlot < mappedSlots.length ? mappedSlots[visibleSlot] : -1;
+            }
+            return page * MolecularCenterBlockEntity.PATTERNS_PER_PAGE + visibleSlot;
         }
 
         private void clearClientView() {
@@ -809,10 +988,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             if (clientView) {
                 return slot;
             }
-            if (mappedSlots != null) {
-                return slot >= 0 && slot < mappedSlots.length ? mappedSlots[slot] : -1;
-            }
-            return page * MolecularCenterBlockEntity.PATTERNS_PER_PAGE + slot;
+            return absoluteSlot(slot);
         }
 
         @Override
@@ -855,6 +1031,12 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public record PatternSearchPageRequest(int page, int resultCount, int[] sourceSlots) {
         public PatternSearchPageRequest {
             sourceSlots = sourceSlots == null ? new int[0] : Arrays.copyOf(sourceSlots, sourceSlots.length);
+        }
+    }
+
+    public record AutoCraftValueRequest(int slot, int inputIndex, long value) {
+        public AutoCraftValueRequest {
+            value = Math.max(0, value);
         }
     }
 }

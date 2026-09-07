@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "UPU",
+    "CEC",
+    "UPU"
+  ],
+  "key": {
+    "U": {
+      "item": "ae2:crafting_unit"
+    },
+    "P": {
+      "item": "ae2:engineering_processor"
+    },
+    "C": {
+      "item": "ae2:calculation_processor"
+    },
+    "E": {
+      "item": "ae2:energy_cell"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:matter_fabrication_controller",
+    "count": 1
+  }
+}

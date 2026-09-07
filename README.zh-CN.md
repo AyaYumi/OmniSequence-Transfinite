@@ -13,14 +13,18 @@
 | Minecraft | 1.21.1 |
 | NeoForge | 21.1 系列的 21.1.220 或更高版本 |
 | Applied Energistics 2 | 19.2.17 或更高 |
+| AppliedEnhancements | 1.0.6 或更高，客户端和服务端必需 |
 | ExtendedAE | 1.21-2.2.32-neoforge 或更高 |
 | Glodium | 1.21-2.2-neoforge |
 | LDLib2 | 2.2.18 或更高 |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`1.3.9-hotfix`
+当前版本：`2.0.0`，后续源码维护分支为 `1.21.1-neoforge`。
 
-完整改动见 [1.3.9-hotfix 更新日志](CHANGELOG.md#139-hotfix---2026-08-11)。
+开发接入见 [API 索引](docs/README.md)、[批量供应器 API v1](docs/omni-batch-provider-api.md)
+和 [物质研究／KubeJS API](docs/matter-research-api.md)。AELIS 规划接口由独立前置提供。
+
+完整改动与升级历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 第三方持样板机器可通过
 [万物演算批量样板供应器 API v1](docs/omni-batch-provider-api.md)，
@@ -33,35 +37,19 @@
 
 ## 主要功能
 
-- 将 AE2 单次自动合成下单量扩展至可配置的 `long` 范围。
-- 在 AE2 网络存储边界检测无限存储元件，不绑定具体供应模组，并确保其 `Long.MAX_VALUE` 数量不受挂载顺序影响而始终可见。
-- 修复无线终端自动补货覆盖层在超大或无限库存下的整数溢出崩溃。
-- 将大型样板库存拆分为多个逻辑样板访问终端容器，同时覆盖单方块分子机器与构序阵列多方块。
+- AE2 通用下单、样板缓存、材料汇总、无限磁盘和终端增强统一由必需前置 AppliedEnhancements 提供，并遵从其配置。
 - 提供分子构序重写阵列、装配矩阵构序重写核心、万物演算核心，以及由构序阵列控制器管理的构序阵列多方块。
 - 支持大型结构投影、一键搭建、一键拆卸、跨区块暂停恢复和动态视觉效果。
-- 两套固定多方块均兼容旧版与新版布局；控制器会为完整旧结构提供由玩家确认的可选更新。
+- 物质构筑井采用 41×41×27 的白金创生舱，配套原生 16×16 珍珠白、浅银灰与香槟金材质；控制器及九个服务位保留原位置。
+- 三种多方块的一键拆卸只处理对应结构实际存在的方块，按世界高度从上到下、同层逐行蛇形进行；进度不计空气，暂停或重载后接着原队列，控制器保留。
+- 保留当前建筑，以及正式 1.3.9 的构序阵列、万物演算核心旧版布局；更新前显示投影提醒，并需要限时二次点击确认。
 - 支持有线 ME 接入及跨维度缠绕态量子链路。
-- 提供可由整合包配置的物质分解、`Long.MAX_VALUE` 构序存储、熵散热、加速卡档位和蓝图复制系统。
-- 为四个主要方块提供 AE2 GuideME 游戏内文档，可在物品提示中按 `G` 打开。
+- 提供可由整合包配置的物质分解、序列储存和蓝图复制系统。
+- 提供主要机器、物质构筑井、研究、输入输出口和样板总成的中英文 GuideME 指南，支持实时构筑井配方与研究解锁标注。
 
 ## 自动合成与材料发配
 
-万物演算核心使用 `SAFE` 聚合模式编译确定性 AE2 配方图，并合并重复子树需求。
-多候选配方会按 AE2 优先顺序进行事务化计算；稳定同键催化剂和确定性 `+1`
-耐久工具即使嵌套在目标产物下方也能继续批量规划。精确终端材料不足时，实际尝试会立即失败，
-模拟阶段则在一次遍历中聚合完整缺失清单，不再重新进入 AE2 的逐份配方遍历。
-只要推测性快速路径被拒绝、失败或中断，期间暂存的缺失物品条目及候选可用状态变化都会回滚，然后才由 AE2 重试或结束本次计算。
-
-AdvancedAE 1.6.11 的处理样板也可进入同一条受验证的配方图路径。规划器只精确放行
-`AdvProcessingPattern` 本身，并继续检查确定性输入、输出、返还行为、数值溢出和运行时模板；
-未知实现仍交给 AE2 原版处理。多候选配方的实际尝试如果需要 AE2 测试后续配方，最终的
-缺失材料模拟仍可聚合已经验证的第一候选，不再重复一次 AE2 逐份遍历。
-
-物品替代样板仍会从该规划器中保守回退；唯一例外是 AE2 已经选中替代工具，并且该工具的
-确定性每次 `+1` 耐久变化通过完整可复用边界验证。流体替代同样保持确定性，可继续使用
-快速路径。规划回退不会阻止兼容的运行时批量发配：其他物品替代样板仍可进入批量路径，
-实际输入继续由 AE2 原生逻辑选择。随机或依赖上下文的返还、换键容器、循环和未知样板行为
-继续使用 AE2 原生计算，避免为了速度牺牲正确性。
+万物演算核心成型并接入在线 AE 网络后，通过 AppliedEnhancements 的公开 `AelisCraftingPlanner` API 启用该网络的规划加速，使用前置配置的节点和时间预算。缺少可用核心时保留原生路径；若前置全局自动 AELIS 已开启，则由前置接管，避免重复规划。循环计划的求解、执行顺序和保种由前置处理，本模组继续负责自己的机器批量发配和虚拟 CPU 管理。
 
 材料发配采用三种执行模式：
 
@@ -100,21 +88,25 @@ AdvancedAE 1.6.11 的处理样板也可进入同一条受验证的配方图路�
 
 ### 万物演算核心
 
-- 固定 31×31×39 结构，提供 `Long.MAX_VALUE` 级逻辑合成存储与并行能力。
+- 65×65×35 的悬浮星冕结构，提供 `Long.MAX_VALUE` 级逻辑合成存储与并行能力。
 - 根据运行中的合成请求动态维护虚拟 CPU 通道，并保留空闲通道接收新任务。
 - 结构损坏或区块未加载时保存任务、内部材料和进度，恢复后继续运行。
 - 支持投影、自动施工、自动拆卸及周边敌对生物自然生成抑制。
 
 ### 构序阵列控制器（构序阵列多方块）
 
-- 固定 31×46×31 结构，逻辑自动合成并行上限为 `Long.MAX_VALUE`。
+- 采用最大占地 61×61、高 29 格的无底座「霜晶羽冠」：一道水平主环、四组错层晶羽、中央控制器及短四爪紫晶托饰，逻辑自动合成并行上限为 `Long.MAX_VALUE`。
+- 主环设有八段相位玻璃饰窗和八个晶体纹章节点，内侧四组聚能晶座与连接肋呼应；中央控制器和正前外壳留有操作、接线空间。
+- 旧版仅保留正式 1.3.9 宫殿式阵列。更新会回收旧结构并搭建当前布局，将控制器移至原位置下方 3 格、背后 15 格，保留控制器内容；确认前请查看投影并准备材料与回收空间。
 - 样板槽接受 AE2 编码合成、锻造及切石样板；处理、空白和失效样板会被拒绝。
+- “自动合成”页拥有独立于左侧 AE 样板库的 9 个专用样板槽；可为每个槽独立启停，并为每个逻辑输入设置 ME 原料保护量、为主产物设置库存上限；成品限制为 `0` 时持续生产到原料不足。
+- 自动合成直接从所在 ME 网络批量取料，主产物、副产物、容器和可复用材料只会安全写回 ME；不提供相邻容器输出，也不需要加速卡。
 - 支持确定性可复用输入与多工具耐久池批次，并持久保存取消与退款状态。
 - Shift 快捷放入会优先填充当前样板页，当前页满后继续写入后续页面。
 - 将已配置的样板页暴露为多个逻辑样板访问终端容器，同时保留同一个物理控制器库存。
 - 一键拆卸采用限时二次确认，快速双击、点击其他控件或等待超时都不会误触拆卸。
 - 支持独立 RGB 能量场、内核和星环效果；合成时只会加快动画，视觉设置不会改变处理速度。
-- 不强制加载区块，结构范围未完整加载时会暂停并在恢复后重新校验。
+- 成型及搭建、拆除、结构更新期间自动强加载所需区块；结构损坏时暂停并保留进度。
 
 结构的完整材料清单和朝向以游戏内投影及 JEI 信息为准。
 
@@ -127,6 +119,12 @@ AdvancedAE 1.6.11 的处理样板也可进入同一条受验证的配方图路�
 - 装配矩阵构序重写核心
 - 万物演算核心
 - 构序阵列控制器
+- 物质构筑井及其结构件
+- 构筑井物品、流体输入输出口
+- 物质构筑井样板总成
+
+构筑井指南说明每轮 30 秒的研究路线、按分支生效的深度研究，以及 KubeJS 自定义研究时间。
+GuideME 可直接显示构筑井加工配方，包含材料数量、流体、基础耗时与功耗和研究解锁阶段。
 
 ## 缠绕态量子链路
 
@@ -185,10 +183,6 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 | `sequence_array` | 样板页、施工速度和待机功耗 |
 | `sequence_array.matter_rewrite` | 构序容量、熵上限和基础散热速度 |
 | `sequence_array.matter_rewrite.speed_cards` | 0～4 张加速卡各档的并行数、处理时间和散热倍率 |
-| `ae2_crafting` | AE2 自动合成下单上限 |
-| `omni_computation.optimizer` | 优化器模式、图限制、编译预算和诊断 |
-| `omni_computation.cache` | 已编译图缓存开关、容量和过期时间 |
-| `omni_computation.execution` | 并行执行、候选选择和预编译 |
 | `omni_computation.dispatch` | 批量发配及主线程工作预算 |
 
 客户端配置分为 `tooltips` 和 `visual`。
@@ -198,17 +192,9 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 | `sequence_array.pattern_pages` | 20 | 构序阵列控制器样板页数，每页 36 槽 |
 | `sequence_array.build_blocks_per_tick` | 32 | 自动搭建或拆卸每 Tick 处理方块数 |
 | `sequence_array.idle_power` | 128 | 构序阵列控制器待机功耗，单位 AE/t |
-| `sequence_array.matter_rewrite.matter_sequence_capacity` | `Long.MAX_VALUE` | 每一类物质构序的独立存储上限 |
-| `sequence_array.matter_rewrite.matter_entropy_capacity` | 1,000,000 | 熵值存储上限 |
-| `sequence_array.matter_rewrite.matter_entropy_cooling_per_second` | 25 | 乘以加速卡档位倍率前的每秒基础散热量 |
-| `ae2_crafting.max_crafting_order_amount` | 1,000,000,000,000 | 单次 AE2 自动合成下单上限 |
-| `omni_computation.optimizer.omni_max_fast_mode` | `SAFE` | 万物演算核心配方树聚合模式 |
-| `omni_computation.optimizer.omni_max_fast_max_nodes` | 8192 | 单次聚合可编译的唯一配方节点上限 |
-| `omni_computation.optimizer.omni_max_fast_compile_budget_ms` | 100 | 聚合图编译超时，超时后回退 AE2 |
-| `omni_computation.optimizer.omni_max_fast_diagnostics` | `false` | 记录聚合耗时和回退原因 |
 | `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |
-| `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 每核心完整 `1×` 供应器调用的紧急硬上限 |
-| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 20000 | 服务器级自适应兼容派发预算 |
+| `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 每个核心每 Tick 对普通供应器执行完整 `1×` 调用的紧急硬上限 |
+| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 20000 | 所有活跃万物演算核心共享的服务器级兼容派发预算；接近 45 MSPT 时自动收缩 |
 | `omni_computation.dispatch.omni_dispatch_max_work_units` | 2147483647 | 每核心每 Tick 的最大调度工作单元 |
 | `tooltips.matter_sequence_tooltip_mode` | `HOLD_SHIFT` | 仅客户端物质构序提示显示模式 |
 | `visual.dynamic_effect_level` | 2 | 仅客户端视觉效果：0 关闭、1 精简、2 完整 |
@@ -223,6 +209,10 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 并确保客户端与服务端使用相同版本，且各自的 `mods` 目录中只存在一个启用中的
 `omnisequence-transfinite-*.jar`，避免重复 Mod ID。
 
+源码构建前，按 [前置准备说明](libs/README.md) 将独立构建的
+`appliedenhancements-1.0.6.jar` 放入 `libs/`。前置 JAR 不提交到本仓库，
+也不嵌入本模组；远程 CI 从前置固定的 1.0.6 提交构建后再编译本项目。
+
 ```powershell
 ./gradlew.bat clean build --no-configuration-cache
 ```
@@ -230,7 +220,14 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-1.3.9-hotfix.jar
+build/libs/omnisequence-transfinite-2.0.0.jar
 ```
 
-版本变化见 [CHANGELOG.md](CHANGELOG.md)。本项目使用 [MIT License](LICENSE)。
+版本变化、安装与升级说明见 [CHANGELOG.md](CHANGELOG.md)。本项目使用
+[MIT License](LICENSE)。
+
+`build` 会运行单元测试；隔离世界中的升级、存档与拆除检查见
+[回归测试说明](tools/gametest/README.md)。正式材质、着色器、GuideME 和两份
+1.3.9 蓝图位于 `src/main/resources`，设计草稿及生成截图不参与源码构建。
+
+通用功能配置位于 `appliedenhancements-common.toml`，包括下单上限、增强材料统计、无限磁盘处理与 AELIS 预算。本模组不覆盖前置已有设置，也不额外接管其样板终端筛选或剪切粘贴。旧的本地规划器、缓存、预编译和下单上限选项会定向移除，现有机器参数保留。批量合成 API v1、研究 API 与旧批量兼容接口保持不变。

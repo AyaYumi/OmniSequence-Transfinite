@@ -12,7 +12,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.CraftingEvent;
 import appeng.me.helpers.MachineSource;
-import appeng.util.SettingsFrom;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
@@ -25,11 +24,9 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -112,11 +109,6 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     private ItemStack createRemovalRecovery(
             HolderLookup.Provider registries) {
-        var recovery = new ItemStack(getBlockState().getBlock());
-        var settings = DataComponentMap.builder();
-        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
-        recovery.applyComponents(settings.build());
-
         var payload = new CompoundTag();
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
@@ -134,8 +126,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             payload.put(ACTIVE_REUSABLE_BATCH_TAG,
                     quarantinedReusableBatchTag.copy());
         }
-        BlockItem.setBlockEntityData(recovery, getType(), payload);
-        return recovery;
+        return RetainedBlockContents.createDrop(this, payload);
     }
 
     public boolean acceptCrafting(IPatternDetails patternDetails, KeyCounter[] inputs) {
@@ -357,6 +348,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
+        tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
         bufferedOutputs.clear();
         var outputList = tag.getList(OUTPUT_BUFFER_TAG, Tag.TAG_COMPOUND);

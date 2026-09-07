@@ -1,0 +1,26 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "extendedae:entro_crystal"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "extendedae:entro_dust",
+      "count": 4
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

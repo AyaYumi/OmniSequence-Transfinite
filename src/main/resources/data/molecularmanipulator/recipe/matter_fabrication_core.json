@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PFP",
+    "FEF",
+    "PFP"
+  ],
+  "key": {
+    "P": {
+      "item": "ae2:engineering_processor"
+    },
+    "F": {
+      "item": "ae2:fluix_block"
+    },
+    "E": {
+      "item": "ae2:energy_cell"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:matter_fabrication_core",
+    "count": 1
+  }
+}

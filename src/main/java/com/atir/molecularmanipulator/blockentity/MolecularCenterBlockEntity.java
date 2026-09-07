@@ -15,8 +15,6 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
-import appeng.api.storage.IStorageMounts;
-import appeng.api.storage.IStorageProvider;
 import appeng.api.storage.MEStorage;
 import appeng.api.upgrades.IUpgradeInventory;
 import appeng.api.upgrades.UpgradeInventories;
@@ -29,7 +27,6 @@ import appeng.helpers.patternprovider.PatternContainer;
 import appeng.items.tools.powered.WirelessTerminalItem;
 import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
-import appeng.util.SettingsFrom;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.MolecularManipulator;
@@ -47,10 +44,13 @@ import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry.MatterValue
 import com.atir.molecularmanipulator.world.MolecularCenterSpawnProtection;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
+import java.util.Set;
+import java.util.HashSet;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -67,9 +67,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -83,20 +80,26 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
     public static final long VIRTUAL_PARALLEL_LIMIT = Long.MAX_VALUE;
     private static final int MAX_BUFFERED_TYPES = 256;
-    private static final int PIPELINE_STORAGE_PRIORITY = 1_000;
-    private static final int MAX_PORT_ITEMS_PER_TICK = 4_096;
     private static final String LEGACY_OUTPUT_BUFFER_TAG = "molecular_center_output_buffer";
     private static final String PENDING_PRIMARY_TAG = "pipeline_pending_primary";
     private static final String PENDING_BYPRODUCT_TAG = "pipeline_pending_byproduct";
     private static final String CACHED_PRIMARY_TAG = "pipeline_cached_primary";
     private static final String CACHED_BYPRODUCT_TAG = "pipeline_cached_byproduct";
-    private static final String PRIMARY_ROUTE_TAG = "pipeline_primary_route";
-    private static final String BYPRODUCT_ROUTE_TAG = "pipeline_byproduct_route";
-    private static final String OUTPUT_PORT_TAG = "pipeline_output_port";
+    private static final String AUTO_CRAFT_PRIMARY_ESCROW_TAG = "auto_craft_primary_escrow";
+    private static final String AUTO_CRAFT_REMAINDER_ESCROW_TAG = "auto_craft_remainder_escrow";
     private static final String OUTPUT_READY_TICK_TAG = "molecular_center_output_ready_tick";
     private static final String ACTIVE_REUSABLE_BATCH_TAG = "active_reusable_batch";
     private static final String REUSABLE_BATCH_REFUNDS_TAG = "reusable_batch_refunds";
     private static final String REPAIR_ONLY_BUILD_TAG = "molecular_center_repair_only_build";
+    private static final String STRUCTURE_UPDATING_TAG = "molecular_center_structure_updating";
+    private static final String STRUCTURE_UPDATE_SOURCE_TAG = "molecular_center_structure_update_source";
+    private static final String CENTERED_CONTROLLER_TAG = "molecular_center_centered_controller";
+    private static final String CONTROLLER_ANCHOR_TAG = "molecular_center_controller_anchor";
+    private static final String DISMANTLE_LAYOUT_TAG = "molecular_center_dismantle_layout";
+    private static final String DISMANTLE_PLAN_TAG = "molecular_center_dismantle_plan";
+    private static final String DISMANTLE_UPGRADE_TAG = "molecular_center_dismantle_upgrade";
+    private static final String LAST_KNOWN_LAYOUT_TAG = "molecular_center_last_known_layout";
+    private static final String CONTROLLER_MOVE_RECOVERY_TAG = "molecular_center_controller_move_recovery";
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "molecular_center_legacy_structure_update_dismissed";
     private static final String MATTER_INVENTORY_TAG = "matter_sequence_inventory";
@@ -132,14 +135,15 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final String SECONDARY_RING_COLOR_TAG = "visual_secondary_ring_color";
     private static final String LATTICE_COLOR_TAG = "visual_lattice_color";
     private static final int VISUAL_ACTIVITY_EVENT = 91;
+    private static final int CROWN_ACTIVITY_EVENT = 92;
     public static final double QUANTUM_LINK_POWER = 512.0;
     public static final long MAX_JOB_TARGET = 1_000_000_000_000L;
     public static final int MAX_SPEED_CARDS = 4;
-    public static final int DEFAULT_FIELD_COLOR = 0xC98CFF;
-    public static final int DEFAULT_CORE_COLOR = 0xFFE4FF;
-    public static final int DEFAULT_PRIMARY_RING_COLOR = 0xE0B0FF;
-    public static final int DEFAULT_SECONDARY_RING_COLOR = 0xBC88FF;
-    public static final int DEFAULT_LATTICE_COLOR = 0x8C60FF;
+    public static final int DEFAULT_FIELD_COLOR = 0xB6AEFF;
+    public static final int DEFAULT_CORE_COLOR = 0xDFFFFF;
+    public static final int DEFAULT_PRIMARY_RING_COLOR = 0x90EAFF;
+    public static final int DEFAULT_SECONDARY_RING_COLOR = 0xC0ABFF;
+    public static final int DEFAULT_LATTICE_COLOR = 0xBA8DFF;
 
     private final MachineSource actionSource = new MachineSource(this);
     private final SegmentedPatternContainers terminalPatternContainers =
@@ -150,19 +154,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final Object2LongOpenHashMap<AEKey> pendingPrimaryOutputs = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> pendingByproducts = new Object2LongOpenHashMap<>();
-    private final Object2LongOpenHashMap<AEKey> cachedPrimaryOutputs = new Object2LongOpenHashMap<>();
-    private final Object2LongOpenHashMap<AEKey> cachedByproducts = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> reusableBatchRefunds = new Object2LongOpenHashMap<>();
     private final AEKeyTransferScheduler pendingPrimaryTransferScheduler = new AEKeyTransferScheduler();
     private final AEKeyTransferScheduler pendingByproductTransferScheduler = new AEKeyTransferScheduler();
-    private final AEKeyTransferScheduler cachedPrimaryTransferScheduler = new AEKeyTransferScheduler();
-    private final AEKeyTransferScheduler cachedByproductTransferScheduler = new AEKeyTransferScheduler();
     private final AEKeyTransferScheduler reusableBatchRefundTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
-    private final PipelineStorageProvider pipelineStorageProvider = new PipelineStorageProvider();
-    private PipelineRoute primaryRoute = PipelineRoute.NETWORK;
-    private PipelineRoute byproductRoute = PipelineRoute.NETWORK;
-    private PipelinePort outputPort = PipelinePort.FRONT;
+    private final MolecularAutoCrafter autoCrafter = new MolecularAutoCrafter(this);
     private boolean assembling;
     private boolean formed;
     private MolecularCenterStructure.StructureLayout structureLayout =
@@ -211,9 +208,23 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private int clientVisualMode;
     private float clientVisualAngle;
     private double clientVisualSample = Double.NaN;
+    private final SequenceCrownAnimation crownAnimation = new SequenceCrownAnimation();
+    private int crownWorkingAnnounced = -1;
+    private long visualSuccessTick = Long.MIN_VALUE;
+    private long visualPulseTick = Long.MIN_VALUE;
     private boolean building;
     private boolean dismantling;
     private boolean repairOnlyBuild;
+    private boolean structureUpdating;
+    private ControllerAnchor controllerAnchor = ControllerAnchor.LOWERED;
+    private MolecularCenterStructure.StructureLayout dismantleLayout =
+            MolecularCenterStructure.StructureLayout.CURRENT;
+    private MolecularCenterStructure.StructureLayout lastKnownStructureLayout =
+            MolecularCenterStructure.StructureLayout.INCOMPLETE;
+    private DismantlePlan dismantlePlan;
+    private boolean dismantleIncludesUpgrade;
+    private MolecularCenterStructure.StructureLayout structureUpdateSourceLayout =
+            MolecularCenterStructure.StructureLayout.INCOMPLETE;
     private boolean buildQueueInitialized;
     private List<MolecularCenterStructure.Part> buildWorkParts = List.of();
     private int workCursor;
@@ -228,8 +239,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         matterInventory.setMaxStackSize(3, 1);
         getMainNode()
                 .setFlags(GridFlags.REQUIRE_CHANNEL)
-                .setIdlePowerUsage(ModConfig.IDLE_POWER.get())
-                .addService(IStorageProvider.class, pipelineStorageProvider);
+                .setIdlePowerUsage(ModConfig.IDLE_POWER.get());
     }
 
     @Override
@@ -264,6 +274,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     public IUpgradeInventory getMatterUpgrades() {
         return matterUpgrades;
+    }
+
+    public MolecularAutoCrafter getAutoCrafter() {
+        return autoCrafter;
     }
 
     private void onMatterUpgradesChanged() {
@@ -304,10 +318,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public void onReady() {
         super.onReady();
         refreshStructure();
+        normalizeIsolatedControllerAnchor();
         restoreBuildQueue();
         syncShellConnections(formed);
-        IStorageProvider.requestUpdate(getMainNode());
-        invalidatePipelineStorageCache();
         updateQuantumLink();
     }
 
@@ -332,25 +345,17 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || quarantinedReusableBatchTag != null
                 || !pendingPrimaryOutputs.isEmpty()
                 || !pendingByproducts.isEmpty()
-                || !cachedPrimaryOutputs.isEmpty()
-                || !cachedByproducts.isEmpty()
-                || !reusableBatchRefunds.isEmpty();
+                || !reusableBatchRefunds.isEmpty()
+                || RetainedBlockContents.hasPatternContents(this)
+                || !matterInventory.isEmpty() || !matterUpgrades.isEmpty()
+                || !autoCrafter.getPatternInventory().isEmpty()
+                || !legacyDeconstructRefund.isEmpty()
+                || metalSequence > 0 || mineralSequence > 0 || crystalSequence > 0 || organicSequence > 0;
     }
 
     @Override
     public void addAdditionalDrops(Level level, BlockPos pos,
             List<ItemStack> drops) {
-        super.addAdditionalDrops(level, pos, drops);
-        for (var stack : matterInventory) {
-            if (!stack.isEmpty()) {
-                drops.add(stack.copy());
-            }
-        }
-        for (var stack : matterUpgrades) {
-            if (!stack.isEmpty()) {
-                drops.add(stack.copy());
-            }
-        }
         if (hasRemovalRecovery()) {
             drops.add(createRemovalRecovery(level.registryAccess()));
         }
@@ -361,58 +366,49 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         super.clearContent();
         matterInventory.clear();
         matterUpgrades.clear();
+        metalSequence = mineralSequence = crystalSequence = organicSequence = entropy = 0;
+        legacyDeconstructRefund = ItemStack.EMPTY;
         pendingPrimaryOutputs.clear();
         pendingByproducts.clear();
-        cachedPrimaryOutputs.clear();
-        cachedByproducts.clear();
         reusableBatchRefunds.clear();
+        autoCrafter.clear();
         activeReusableBatch = null;
         quarantinedReusableBatchTag = null;
         outputReadyTick = Long.MIN_VALUE;
     }
 
-    private ItemStack createRemovalRecovery(
-            HolderLookup.Provider registries) {
-        var recovery = new ItemStack(getBlockState().getBlock());
-        var settings = DataComponentMap.builder();
-        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
-        recovery.applyComponents(settings.build());
-
+    private ItemStack createRemovalRecovery(HolderLookup.Provider registries) {
         var payload = new CompoundTag();
-        writeStacks(payload, PENDING_PRIMARY_TAG,
-                pendingPrimaryOutputs, registries);
-        writeStacks(payload, PENDING_BYPRODUCT_TAG,
-                pendingByproducts, registries);
-        writeStacks(payload, CACHED_PRIMARY_TAG,
-                cachedPrimaryOutputs, registries);
-        writeStacks(payload, CACHED_BYPRODUCT_TAG,
-                cachedByproducts, registries);
-        writeStacks(payload, REUSABLE_BATCH_REFUNDS_TAG,
-                reusableBatchRefunds, registries);
-        if (activeReusableBatch != null) {
-            payload.put(ACTIVE_REUSABLE_BATCH_TAG,
-                    activeReusableBatch.writeToTag(registries));
-        } else if (quarantinedReusableBatchTag != null) {
-            payload.put(ACTIVE_REUSABLE_BATCH_TAG,
-                    quarantinedReusableBatchTag.copy());
-        }
-        payload.putString(PRIMARY_ROUTE_TAG,
-                primaryRoute.getSerializedName());
-        payload.putString(BYPRODUCT_ROUTE_TAG,
-                byproductRoute.getSerializedName());
-        payload.putString(OUTPUT_PORT_TAG,
-                outputPort.getSerializedName());
-        BlockItem.setBlockEntityData(recovery, getType(), payload);
-        return recovery;
+        getLogic().writeToNBT(payload, registries);
+        saveStoredContents(payload, registries);
+        payload.putString(CONTROLLER_ANCHOR_TAG, controllerAnchor.name());
+        return RetainedBlockContents.createDrop(this, payload);
     }
 
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        tag.putInt("molecular_center_work_revision", 1);
         tag.putBoolean("molecular_center_formed", formed);
         tag.putBoolean("molecular_center_building", building);
         tag.putBoolean("molecular_center_dismantling", dismantling);
         tag.putBoolean(REPAIR_ONLY_BUILD_TAG, repairOnlyBuild);
+        tag.putBoolean(STRUCTURE_UPDATING_TAG, structureUpdating);
+        tag.putBoolean(CENTERED_CONTROLLER_TAG, controllerAnchor != ControllerAnchor.RIM);
+        tag.putString(CONTROLLER_ANCHOR_TAG, controllerAnchor.name());
+        if (dismantling) {
+            tag.putString(DISMANTLE_LAYOUT_TAG, dismantleLayout.name());
+            tag.putBoolean(DISMANTLE_UPGRADE_TAG, dismantleIncludesUpgrade);
+            if (dismantlePlan != null) {
+                tag.put(DISMANTLE_PLAN_TAG, dismantlePlan.save());
+            }
+        }
+        if (lastKnownStructureLayout.isFormed()) {
+            tag.putString(LAST_KNOWN_LAYOUT_TAG, lastKnownStructureLayout.name());
+        }
+        if (structureUpdating) {
+            tag.putString(STRUCTURE_UPDATE_SOURCE_TAG, structureUpdateSourceLayout.name());
+        }
         tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
         tag.putInt("molecular_center_work_cursor", workCursor);
         tag.putInt("molecular_center_work_total", workTotal);
@@ -420,20 +416,20 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (workOwner != null) {
             tag.putUUID("molecular_center_work_owner", workOwner);
         }
-        writeStacks(tag, PENDING_PRIMARY_TAG, pendingPrimaryOutputs, registries);
-        writeStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts, registries);
-        writeStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs, registries);
-        writeStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts, registries);
+        saveStoredContents(tag, registries);
+    }
+
+    private void saveStoredContents(CompoundTag tag, HolderLookup.Provider registries) {
+        writeStacks(tag, AUTO_CRAFT_PRIMARY_ESCROW_TAG, pendingPrimaryOutputs, registries);
+        writeStacks(tag, AUTO_CRAFT_REMAINDER_ESCROW_TAG, pendingByproducts, registries);
         writeStacks(tag, REUSABLE_BATCH_REFUNDS_TAG, reusableBatchRefunds, registries);
         if (activeReusableBatch != null) {
             tag.put(ACTIVE_REUSABLE_BATCH_TAG, activeReusableBatch.writeToTag(registries));
         } else if (quarantinedReusableBatchTag != null) {
             tag.put(ACTIVE_REUSABLE_BATCH_TAG, quarantinedReusableBatchTag.copy());
         }
-        tag.putString(PRIMARY_ROUTE_TAG, primaryRoute.getSerializedName());
-        tag.putString(BYPRODUCT_ROUTE_TAG, byproductRoute.getSerializedName());
-        tag.putString(OUTPUT_PORT_TAG, outputPort.getSerializedName());
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
+        autoCrafter.save(tag, registries);
         matterInventory.writeToNBT(tag, MATTER_INVENTORY_TAG, registries);
         matterUpgrades.writeToNBT(tag, MATTER_UPGRADES_TAG, registries);
         tag.putLong(METAL_SEQUENCE_TAG, metalSequence);
@@ -467,39 +463,81 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
+        tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
         formed = tag.getBoolean("molecular_center_formed");
         building = tag.getBoolean("molecular_center_building");
         dismantling = tag.getBoolean("molecular_center_dismantling");
-        repairOnlyBuild = building && tag.getBoolean(REPAIR_ONLY_BUILD_TAG);
+        lastKnownStructureLayout = MolecularCenterStructure.StructureLayout.fromSavedName(tag.getString(LAST_KNOWN_LAYOUT_TAG));
+        dismantleIncludesUpgrade = tag.getBoolean(DISMANTLE_UPGRADE_TAG);
+        dismantlePlan = dismantling && tag.contains(DISMANTLE_PLAN_TAG, Tag.TAG_COMPOUND)
+                ? DismantlePlan.load(tag.getCompound(DISMANTLE_PLAN_TAG)) : null;
+        // A failed final relocation pauses while retaining its source blueprint.
+        structureUpdating = !dismantling && tag.getBoolean(STRUCTURE_UPDATING_TAG);
+        controllerAnchor = readEnum(tag.getString(CONTROLLER_ANCHOR_TAG), ControllerAnchor.RIM);
+        dismantleLayout = MolecularCenterStructure.StructureLayout.fromSavedName(tag.getString(DISMANTLE_LAYOUT_TAG));
+        structureUpdateSourceLayout = structureUpdating
+                ? MolecularCenterStructure.StructureLayout.fromSavedName(tag.getString(STRUCTURE_UPDATE_SOURCE_TAG))
+                : MolecularCenterStructure.StructureLayout.INCOMPLETE;
+        if (structureUpdateSourceLayout == MolecularCenterStructure.StructureLayout.CURRENT
+                || structureUpdateSourceLayout == MolecularCenterStructure.StructureLayout.INCOMPLETE) {
+            if (structureUpdating) building = false;
+            structureUpdating = false;
+            structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
+        }
+        repairOnlyBuild = building && !structureUpdating && tag.getBoolean(REPAIR_ONLY_BUILD_TAG);
+        if (building && !structureUpdating && controllerAnchor != ControllerAnchor.LOWERED) {
+            // Pre-anchor-change saves may contain an unfinished generic build.
+            // Its numeric cursor must not resume against a different blueprint.
+            building = false;
+            repairOnlyBuild = false;
+        }
         legacyStructureUpdateDismissed = tag.getBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG);
         buildQueueInitialized = false;
         buildWorkParts = List.of();
         workCursor = tag.getInt("molecular_center_work_cursor");
+        // Earlier generic build cursors indexed a union of experimental blueprints.
+        // Re-check completed placements safely instead of applying that index to the smaller work list.
+        if (building && !structureUpdating && tag.getInt("molecular_center_work_revision") < 1) workCursor = 0;
         workTotal = repairOnlyBuild
                 ? Math.max(0, tag.getInt("molecular_center_work_total"))
-                : MolecularCenterStructure.workParts().size();
+                : structureUpdating
+                        ? MolecularCenterStructure.updateWorkParts(structureUpdateSourceLayout).size()
+                        : MolecularCenterStructure.workParts().size();
         if (building) {
             dismantling = false;
             workCursor = Math.max(0, Math.min(workCursor, workTotal));
         } else if (dismantling) {
-            workCursor = Math.min(workCursor, workTotal - 1);
+            // The former counter walked a historical AIR union backwards. It
+            // cannot address the new actual-block snapshot and is never reused.
+            workCursor = dismantlePlan == null ? 0 : dismantlePlan.completed();
+            workTotal = dismantlePlan == null ? 0 : dismantlePlan.total();
         }
         workConflicts = tag.getInt("molecular_center_work_conflicts");
         workOwner = tag.hasUUID("molecular_center_work_owner") ? tag.getUUID("molecular_center_work_owner") : null;
         pendingPrimaryOutputs.clear();
         pendingByproducts.clear();
-        cachedPrimaryOutputs.clear();
-        cachedByproducts.clear();
         reusableBatchRefunds.clear();
-        if (tag.contains(PENDING_PRIMARY_TAG, Tag.TAG_LIST)) {
+        var legacyCachedPrimary = new Object2LongOpenHashMap<AEKey>();
+        var legacyCachedRemainders = new Object2LongOpenHashMap<AEKey>();
+        boolean hasAutoCraftEscrow = tag.contains(AUTO_CRAFT_PRIMARY_ESCROW_TAG, Tag.TAG_LIST)
+                || tag.contains(AUTO_CRAFT_REMAINDER_ESCROW_TAG, Tag.TAG_LIST);
+        if (hasAutoCraftEscrow) {
+            readStacks(tag, AUTO_CRAFT_PRIMARY_ESCROW_TAG, pendingPrimaryOutputs, registries);
+            readStacks(tag, AUTO_CRAFT_REMAINDER_ESCROW_TAG, pendingByproducts, registries);
+        } else if (tag.contains(PENDING_PRIMARY_TAG, Tag.TAG_LIST)) {
             readStacks(tag, PENDING_PRIMARY_TAG, pendingPrimaryOutputs, registries);
+            readStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts, registries);
         } else {
             readStacks(tag, LEGACY_OUTPUT_BUFFER_TAG, pendingPrimaryOutputs, registries);
+            readStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts, registries);
         }
-        readStacks(tag, PENDING_BYPRODUCT_TAG, pendingByproducts, registries);
-        readStacks(tag, CACHED_PRIMARY_TAG, cachedPrimaryOutputs, registries);
-        readStacks(tag, CACHED_BYPRODUCT_TAG, cachedByproducts, registries);
+        if (!hasAutoCraftEscrow) {
+            readStacks(tag, CACHED_PRIMARY_TAG, legacyCachedPrimary, registries);
+            readStacks(tag, CACHED_BYPRODUCT_TAG, legacyCachedRemainders, registries);
+        }
+        MolecularAutoCraftMath.mergeSaturated(pendingPrimaryOutputs, legacyCachedPrimary);
+        MolecularAutoCraftMath.mergeSaturated(pendingByproducts, legacyCachedRemainders);
         readStacks(tag, REUSABLE_BATCH_REFUNDS_TAG, reusableBatchRefunds, registries);
         activeReusableBatch = null;
         quarantinedReusableBatchTag = null;
@@ -513,9 +551,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                         getBlockPos());
             }
         }
-        primaryRoute = PipelineRoute.fromSerializedName(tag.getString(PRIMARY_ROUTE_TAG));
-        byproductRoute = PipelineRoute.fromSerializedName(tag.getString(BYPRODUCT_ROUTE_TAG));
-        outputPort = PipelinePort.fromSerializedName(tag.getString(OUTPUT_PORT_TAG));
+        // Legacy pipeline routes are intentionally not restored. Every output now
+        // returns to the controller's ME network.
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
@@ -577,7 +614,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         primaryRingColor = readColor(tag, PRIMARY_RING_COLOR_TAG, DEFAULT_PRIMARY_RING_COLOR);
         secondaryRingColor = readColor(tag, SECONDARY_RING_COLOR_TAG, DEFAULT_SECONDARY_RING_COLOR);
         latticeColor = readColor(tag, LATTICE_COLOR_TAG, DEFAULT_LATTICE_COLOR);
-        invalidatePipelineStorageCache();
+        autoCrafter.load(tag, registries);
     }
 
     private void writeVisualColors(CompoundTag tag) {
@@ -621,6 +658,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         data.writeInt(primaryRingColor);
         data.writeInt(secondaryRingColor);
         data.writeInt(latticeColor);
+        data.writeEnum(structureLayout);
+        data.writeEnum(controllerAnchor);
     }
 
     @Override
@@ -631,16 +670,22 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         int newPrimaryRingColor = data.readInt() & 0xFFFFFF;
         int newSecondaryRingColor = data.readInt() & 0xFFFFFF;
         int newLatticeColor = data.readInt() & 0xFFFFFF;
+        var newLayout = data.readEnum(MolecularCenterStructure.StructureLayout.class);
+        var newControllerAnchor = data.readEnum(ControllerAnchor.class);
         changed |= fieldColor != newFieldColor
                 || coreColor != newCoreColor
                 || primaryRingColor != newPrimaryRingColor
                 || secondaryRingColor != newSecondaryRingColor
-                || latticeColor != newLatticeColor;
+                || latticeColor != newLatticeColor
+                || structureLayout != newLayout
+                || controllerAnchor != newControllerAnchor;
         fieldColor = newFieldColor;
         coreColor = newCoreColor;
         primaryRingColor = newPrimaryRingColor;
         secondaryRingColor = newSecondaryRingColor;
         latticeColor = newLatticeColor;
+        structureLayout = newLayout;
+        controllerAnchor = newControllerAnchor;
         return changed;
     }
 
@@ -684,56 +729,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || quarantinedReusableBatchTag != null;
     }
 
-    public PipelineRoute getPrimaryRoute() {
-        return primaryRoute;
-    }
-
-    public PipelineRoute getByproductRoute() {
-        return byproductRoute;
-    }
-
-    public PipelinePort getOutputPort() {
-        return outputPort;
-    }
-
-    public void cyclePrimaryRoute() {
-        setPrimaryRoute(primaryRoute.next());
-    }
-
-    public void cycleByproductRoute() {
-        setByproductRoute(byproductRoute.next());
-    }
-
-    public void cycleOutputPort() {
-        outputPort = outputPort.next();
-        onPipelineConfigurationChanged();
-    }
-
-    public void setPrimaryRoute(PipelineRoute route) {
-        if (route != null && primaryRoute != route) {
-            primaryRoute = route;
-            onPipelineConfigurationChanged();
-        }
-    }
-
-    public void setByproductRoute(PipelineRoute route) {
-        if (route != null && byproductRoute != route) {
-            byproductRoute = route;
-            onPipelineConfigurationChanged();
-        }
-    }
-
-    public long getPipelineCacheAmount() {
-        return saturatedSum(cachedPrimaryOutputs, cachedByproducts);
-    }
-
-    public int getPipelineCacheTypes() {
-        var types = new java.util.HashSet<AEKey>();
-        types.addAll(cachedPrimaryOutputs.keySet());
-        types.addAll(cachedByproducts.keySet());
-        return types.size();
-    }
-
     public long getPendingOutputAmount() {
         return saturatedAdd(saturatedSum(pendingPrimaryOutputs, pendingByproducts),
                 sumAmounts(reusableBatchRefunds));
@@ -753,6 +748,88 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     public long getLastPipelineTransfer() {
         return lastPipelineTransfer;
+    }
+
+    boolean canRunAutoCrafting() {
+        return !assembling && !pipelineBlocked && !hasActiveReusableBatch() && isOperational()
+                && getLogic().getReturnInv().isEmpty();
+    }
+
+    MachineSource autoCraftActionSource() {
+        return actionSource;
+    }
+
+    boolean canQueueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
+            Object2LongOpenHashMap<AEKey> remainders) {
+        return canQueueOutputs(primary, remainders);
+    }
+
+    void queueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
+            Object2LongOpenHashMap<AEKey> remainders, long gameTime,
+            long craftCount) {
+        addOutputs(pendingPrimaryOutputs, primary);
+        addOutputs(pendingByproducts, remainders);
+        recordPipelineActivity(gameTime, craftCount);
+        outputReadyTick = Math.max(outputReadyTick, gameTime + 1);
+        markOutputBufferChanged(gameTime);
+        returnAutoCraftRemaindersImmediately(remainders, gameTime);
+    }
+
+    private void returnAutoCraftRemaindersImmediately(
+            Object2LongOpenHashMap<AEKey> remainders, long gameTime) {
+        if (remainders.isEmpty()) {
+            return;
+        }
+        var grid = getMainNode().getGrid();
+        if (grid == null) {
+            return;
+        }
+        var storage = grid.getStorageService().getInventory();
+        boolean changed = false;
+        for (var entry : remainders.object2LongEntrySet()) {
+            long pending = pendingByproducts.getLong(entry.getKey());
+            long requested = Math.min(pending, entry.getLongValue());
+            if (requested <= 0) {
+                continue;
+            }
+            long inserted = storage.insert(entry.getKey(), requested,
+                    Actionable.MODULATE, actionSource);
+            if (inserted <= 0) {
+                continue;
+            }
+            long remaining = pending - inserted;
+            if (remaining == 0) {
+                pendingByproducts.removeLong(entry.getKey());
+            } else {
+                pendingByproducts.put(entry.getKey(), remaining);
+            }
+            changed = true;
+        }
+        if (changed) {
+            markOutputBufferChanged(gameTime);
+        }
+    }
+
+    void queueAutoCraftRefund(AEKey key, long amount) {
+        if (key == null || amount <= 0) {
+            return;
+        }
+        reusableBatchRefunds.put(key, saturatedAdd(
+                reusableBatchRefunds.getLong(key), amount));
+        if (level != null) {
+            markOutputBufferChanged(level.getGameTime());
+        } else {
+            saveChanges();
+        }
+    }
+
+    long getBufferedAutoCraftAmount(AEKey key) {
+        if (key == null) {
+            return 0;
+        }
+        long amount = saturatedAdd(pendingPrimaryOutputs.getLong(key),
+                pendingByproducts.getLong(key));
+        return saturatedAdd(amount, reusableBatchRefunds.getLong(key));
     }
 
     public long getMetalSequence() {
@@ -1467,6 +1544,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void finishMatterOperations() {
+        visualSuccessTick = level.getGameTime();
         saveChanges();
         markForUpdate();
     }
@@ -1575,6 +1653,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public boolean triggerEvent(int id, int type) {
+        if (id == CROWN_ACTIVITY_EVENT) {
+            if (level != null && level.isClientSide()) {
+                crownAnimation.receive((type & 1) != 0, (type & 2) != 0, level.getGameTime());
+            }
+            return true;
+        }
         if (id == VISUAL_ACTIVITY_EVENT) {
             clientVisualMode = Math.max(0, Math.min(4, type));
             return true;
@@ -1586,11 +1670,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return clientVisualMode;
     }
 
-    private void onPipelineConfigurationChanged() {
-        pipelineBlocked = false;
-        outputReadyTick = level == null ? outputReadyTick : Math.min(outputReadyTick, level.getGameTime());
-        invalidatePipelineStorageCache();
-        saveChanges();
+    public SequenceCrownAnimation sampleCrownAnimation(float partialTick) {
+        if (level != null) crownAnimation.sample(level.getGameTime() + (double) partialTick);
+        return crownAnimation;
     }
 
     @Override
@@ -1605,8 +1687,22 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var newLayout = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
         boolean newFormed = newLayout.isFormed();
+        boolean knownLayoutChanged = newFormed && lastKnownStructureLayout != newLayout;
+        if (newFormed) {
+            lastKnownStructureLayout = newLayout;
+        }
+        boolean anchorChanged = false;
+        if (newFormed) {
+            var newAnchor = controllerAnchorFor(newLayout);
+            anchorChanged = controllerAnchor != newAnchor;
+            controllerAnchor = newAnchor;
+        }
+        boolean layoutChanged = structureLayout != newLayout;
+        if (layoutChanged && formed) {
+            syncShellConnections(false);
+        }
         structureLayout = newLayout;
-        boolean stateChanged = false;
+        boolean stateChanged = anchorChanged || knownLayoutChanged;
         if (newLayout == MolecularCenterStructure.StructureLayout.CURRENT
                 && legacyStructureUpdateDismissed) {
             legacyStructureUpdateDismissed = false;
@@ -1618,17 +1714,22 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                     net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, formed), 3);
             onGridConnectableSidesChanged();
             syncShellConnections(newFormed);
-            invalidatePipelineStorageCache();
-            IStorageProvider.requestUpdate(getMainNode());
             getLogic().updatePatterns();
             stateChanged = true;
         }
         if (stateChanged) {
             saveChanges();
         }
+        if (layoutChanged || anchorChanged) {
+            if (newFormed) {
+                syncShellConnections(true);
+            }
+            markForUpdate();
+        }
         if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             MolecularCenterSpawnProtection.update(serverLevel, worldPosition, formed);
         }
+        MultiblockChunkLoading.maintain(this);
     }
 
     private void unregisterSpawnProtection() {
@@ -1637,14 +1738,35 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
+    public Set<ChunkPos> getChunkLoadingChunks() {
+        var result = new HashSet<ChunkPos>();
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        if (formed) result.addAll(MolecularCenterStructure.chunkFootprint(worldPosition, facing, structureLayout, structureLayout));
+        if (building || dismantling || structureUpdating) {
+            var origin = getConstructionOriginLayout();
+            result.addAll(MolecularCenterStructure.chunkFootprint(worldPosition, facing, origin, origin));
+            if (building || structureUpdating || dismantleIncludesUpgrade) {
+                result.addAll(MolecularCenterStructure.chunkFootprint(worldPosition, facing,
+                        MolecularCenterStructure.StructureLayout.CURRENT, origin));
+            }
+            if (dismantlePlan != null) result.addAll(dismantlePlan.remainingChunks());
+        }
+        return result;
+    }
+
     public void serverTick() {
         if (level == null || level.isClientSide()) {
             return;
         }
+        if (building || dismantling || structureUpdating) MultiblockChunkLoading.maintain(this);
         long gameTime = level.getGameTime();
         processWorkQueue();
+        if (isRemoved()) {
+            return;
+        }
         processReusableBatch(gameTime);
         flushBufferedOutputs(gameTime);
+        autoCrafter.tick(gameTime);
         flushLegacyDeconstructRefund();
         processMatterJobs();
         syncVisualActivity(gameTime, false);
@@ -1681,6 +1803,17 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void syncVisualActivity(long gameTime, boolean force) {
+        boolean working = (deconstructEnabled && deconstructJobState == MatterJobState.RUNNING)
+                || (rewriteEnabled && rewriteJobState == MatterJobState.RUNNING) || isRecentPipelineActivity();
+        boolean completed = visualSuccessTick != Long.MIN_VALUE && gameTime - visualSuccessTick <= 1
+                && (visualPulseTick == Long.MIN_VALUE || gameTime - visualPulseTick >= 40);
+        int work = working ? 1 : 0;
+        if (force || work != crownWorkingAnnounced || completed || working && gameTime % 20 == 0) {
+            crownWorkingAnnounced = work;
+            if (completed) visualPulseTick = gameTime;
+            level.blockEvent(worldPosition, getBlockState().getBlock(),
+                    CROWN_ACTIVITY_EVENT, work | (completed ? 2 : 0));
+        }
         int mode = (deconstructEnabled ? 1 : 0) | (rewriteEnabled ? 2 : 0);
         if (mode == 0 && isRecentPipelineActivity()) {
             mode = 4;
@@ -1709,7 +1842,56 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     public boolean hasLegacyStructure() {
-        return formed && structureLayout == MolecularCenterStructure.StructureLayout.LEGACY;
+        return structureUpdating
+                || formed && structureLayout != MolecularCenterStructure.StructureLayout.CURRENT;
+    }
+
+    public MolecularCenterStructure.StructureLayout getStructureLayout() {
+        return structureLayout;
+    }
+
+    public MolecularCenterStructure.StructureLayout getControllerAnchorLayout() {
+        return controllerAnchor == ControllerAnchor.LOWERED ? MolecularCenterStructure.StructureLayout.CURRENT
+                : MolecularCenterStructure.StructureLayout.LEGACY_1_3_9;
+    }
+
+    private static ControllerAnchor controllerAnchorFor(MolecularCenterStructure.StructureLayout layout) {
+        return layout == MolecularCenterStructure.StructureLayout.LEGACY_1_3_9 ? ControllerAnchor.RIM : ControllerAnchor.LOWERED;
+    }
+
+    private enum ControllerAnchor {
+        RIM,
+        LOWERED
+    }
+
+    public MolecularCenterStructure.StructureLayout getConstructionOriginLayout() {
+        if (structureUpdating) {
+            return structureUpdateSourceLayout;
+        }
+        if (dismantling) {
+            return dismantleLayout;
+        }
+        return structureLayout.isFormed() ? structureLayout : getControllerAnchorLayout();
+    }
+
+    /** Reinterpret an unused pre-migration controller in place; never move world blocks. */
+    public boolean normalizeIsolatedControllerAnchor() {
+        if (level == null || level.isClientSide() || controllerAnchor == ControllerAnchor.LOWERED || formed
+                || building || dismantling || structureUpdating) {
+            return false;
+        }
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        if (MolecularCenterStructure.detectLayout(level, worldPosition, facing).isFormed()
+                || !MolecularCenterStructure.isHistoricalAreaEmpty(level, worldPosition, facing,
+                        getControllerAnchorLayout())) {
+            return false;
+        }
+        controllerAnchor = ControllerAnchor.LOWERED;
+        structureLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
+        lastKnownStructureLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
+        saveChanges();
+        markForUpdate();
+        return true;
     }
 
     public boolean isLegacyStructureUpdateDismissed() {
@@ -1720,17 +1902,31 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (!MolecularCenterStructure.isWithinBuildHeight(level, worldPosition)
-                || !MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.build_area_unavailable"), false);
+        normalizeIsolatedControllerAnchor();
+        if (structureUpdating) {
+            startStructureUpdate(player);
             return;
         }
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         structureLayout = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
-        if (structureLayout == MolecularCenterStructure.StructureLayout.LEGACY) {
+        if (structureLayout.isFormed()
+                && structureLayout != MolecularCenterStructure.StructureLayout.CURRENT) {
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_requires_confirmation"), false);
+            return;
+        }
+        if (controllerAnchor != ControllerAnchor.LOWERED && !structureLayout.isFormed()) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.controller_anchor_unknown"), false);
+            return;
+        }
+        if (!MolecularCenterStructure.isWithinBuildHeight(level, worldPosition)) {
+            showBuildHeightFailure(player);
+            return;
+        }
+        if (!MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
+            player.displayClientMessage(
+                    Component.translatable("message.molecularmanipulator.build_area_unavailable"), false);
             return;
         }
         var missingParts = findMissingOnlyParts(facing);
@@ -1738,6 +1934,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             building = false;
             dismantling = false;
             repairOnlyBuild = false;
+            structureUpdating = false;
+            structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
             buildQueueInitialized = false;
             buildWorkParts = List.of();
             workCursor = 0;
@@ -1753,6 +1951,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         building = true;
         dismantling = false;
         repairOnlyBuild = missingParts != null;
+        lastKnownStructureLayout = MolecularCenterStructure.StructureLayout.CURRENT;
+        structureUpdating = false;
+        structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
         buildQueueInitialized = true;
         buildWorkParts = repairOnlyBuild ? missingParts : MolecularCenterStructure.workParts();
         workCursor = 0;
@@ -1771,82 +1972,42 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
+        normalizeIsolatedControllerAnchor();
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (!MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.structure_update_unavailable"), false);
-            return;
+        var detected = structureUpdating ? structureUpdateSourceLayout
+                : MolecularCenterStructure.detectLayout(level, worldPosition, facing);
+        if (!structureUpdating) {
+            structureLayout = detected;
         }
-        var detected = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
-        structureLayout = detected;
-        if (detected != MolecularCenterStructure.StructureLayout.LEGACY) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.structure_update_unavailable"), false);
-            return;
-        }
-
-        var visualCenterPos = MolecularCenterStructure.visualCenterPos(worldPosition, facing);
-        var upperCorePos = MolecularCenterStructure.upperCorePos(worldPosition, facing);
-        if (!level.hasChunkAt(visualCenterPos)
-                || !level.hasChunkAt(upperCorePos)
-                || !player.mayUseItemAt(visualCenterPos, Direction.UP, ItemStack.EMPTY)
-                || !player.mayUseItemAt(upperCorePos, Direction.UP, ItemStack.EMPTY)) {
+        if (!detected.isFormed()
+                || detected == MolecularCenterStructure.StructureLayout.CURRENT
+                || !MolecularCenterStructure.areUpdateChunksLoaded(level, worldPosition, facing, detected)
+                || !MolecularCenterStructure.isWithinUpdateHeight(level, worldPosition, detected)) {
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_unavailable"), false);
             return;
         }
 
-        var visualCenterState = level.getBlockState(visualCenterPos);
-        var upperCoreState = level.getBlockState(upperCorePos);
-        if (!visualCenterState.is(MolecularCenterStructure.partState(
-                        MolecularCenterStructure.PartType.CORE).getBlock())
-                || !upperCoreState.is(MolecularCenterStructure.partState(
-                        MolecularCenterStructure.PartType.STABILIZER).getBlock())
-                || MolecularCenterStructure.detectLayout(level, worldPosition, facing)
-                        != MolecularCenterStructure.StructureLayout.LEGACY) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.structure_update_unavailable"), false);
+        if (!canRelocateController(player, facing, detected)) {
             return;
         }
-
-        var recoveredStabilizer = new ItemStack(upperCoreState.getBlock().asItem());
-        if (recoveredStabilizer.isEmpty() || !canStoreDismantled(player, recoveredStabilizer)) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.structure_update_storage_full"), false);
-            return;
-        }
-
-        boolean migrated = false;
-        try {
-            if (!level.setBlock(upperCorePos, visualCenterState, 3)
-                    || !level.getBlockState(upperCorePos).equals(visualCenterState)) {
-                throw new IllegalStateException("Could not place the molecular center upper core");
-            }
-            if (!level.setBlock(visualCenterPos,
-                    net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3)
-                    || !level.getBlockState(visualCenterPos).isAir()
-                    || MolecularCenterStructure.detectLayout(level, worldPosition, facing)
-                            != MolecularCenterStructure.StructureLayout.CURRENT) {
-                throw new IllegalStateException("Could not clear the molecular center visual core");
-            }
-            migrated = true;
-        } catch (RuntimeException exception) {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
-                    "Failed to update molecular center structure at {}; restoring the legacy layout",
-                    worldPosition, exception);
-        }
-        if (!migrated) {
-            rollbackStructureUpdate(visualCenterPos, visualCenterState, upperCorePos, upperCoreState);
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.structure_update_unavailable"), false);
-            return;
-        }
-
-        storeDismantled(player, recoveredStabilizer);
+        controllerAnchor = controllerAnchorFor(detected);
+        building = true;
+        dismantling = false;
+        repairOnlyBuild = false;
+        structureUpdating = true;
+        structureUpdateSourceLayout = detected;
+        buildQueueInitialized = true;
+        buildWorkParts = MolecularCenterStructure.updateWorkParts(detected);
+        workCursor = 0;
+        workTotal = buildWorkParts.size();
+        workConflicts = 0;
+        workOwner = player.getUUID();
+        formed = false;
         legacyStructureUpdateDismissed = false;
-        refreshStructure();
+        deactivateStructureForWork();
         player.displayClientMessage(Component.translatable(
-                "message.molecularmanipulator.structure_update_complete"), false);
+                "message.molecularmanipulator.structure_update_started"), false);
         saveChanges();
     }
 
@@ -1883,7 +2044,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         structureLayout = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
-        if (structureLayout != MolecularCenterStructure.StructureLayout.LEGACY) {
+        if (!structureLayout.isFormed()
+                || structureLayout == MolecularCenterStructure.StructureLayout.CURRENT) {
             return;
         }
         legacyStructureUpdateDismissed = true;
@@ -1896,9 +2058,33 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
-        dismantling = true;
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var detected = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
+        var source = structureUpdating ? structureUpdateSourceLayout
+                : detected.isFormed() ? detected : lastKnownStructureLayout;
+        if (!source.isFormed()) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.dismantle_layout_unknown"), false);
+            return;
+        }
+        var plan = MolecularCenterStructure.createDismantlePlan(level, worldPosition, facing, source, structureUpdating);
+        if (plan == null) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.build_area_unavailable"), false);
+            return;
+        }
+        if (detected.isFormed()) {
+            structureLayout = detected;
+            lastKnownStructureLayout = detected;
+        }
+        dismantleLayout = source;
+        dismantleIncludesUpgrade = structureUpdating;
+        dismantlePlan = plan;
+        dismantling = !plan.isComplete();
         building = false;
         repairOnlyBuild = false;
+        structureUpdating = false;
+        structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
         buildQueueInitialized = false;
         buildWorkParts = List.of();
         formed = false;
@@ -1907,14 +2093,24 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
         onGridConnectableSidesChanged();
         syncShellConnections(false);
-        IStorageProvider.requestUpdate(getMainNode());
         updateQuantumLink();
-        workCursor = MolecularCenterStructure.workParts().size() - 1;
-        workTotal = MolecularCenterStructure.workParts().size();
+        workCursor = plan.completed();
+        workTotal = plan.total();
         workConflicts = 0;
         workOwner = player.getUUID();
         getLogic().updatePatterns();
         saveChanges();
+    }
+
+    private void deactivateStructureForWork() {
+        formed = false;
+        unregisterSpawnProtection();
+        level.setBlock(worldPosition, getBlockState().setValue(
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
+        onGridConnectableSidesChanged();
+        syncShellConnections(false);
+        updateQuantumLink();
+        getLogic().updatePatterns();
     }
 
     private List<MolecularCenterStructure.Part> findMissingOnlyParts(Direction facing) {
@@ -1947,22 +2143,26 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (!MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
+        if (!(structureUpdating
+                ? MolecularCenterStructure.areUpdateChunksLoaded(level, worldPosition, facing,
+                        structureUpdateSourceLayout)
+                : MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing,
+                        getConstructionOriginLayout()))) {
             return;
         }
-        if (MolecularCenterStructure.detectLayout(level, worldPosition, facing)
-                == MolecularCenterStructure.StructureLayout.LEGACY) {
-            building = false;
-            repairOnlyBuild = false;
-            buildWorkParts = List.of();
-            workCursor = 0;
-            workTotal = 0;
-            workConflicts = 0;
-            workOwner = null;
-            saveChanges();
-            return;
-        }
-        if (repairOnlyBuild) {
+        if (structureUpdating) {
+            buildWorkParts = MolecularCenterStructure.updateWorkParts(structureUpdateSourceLayout);
+            if (buildWorkParts.isEmpty()) {
+                building = false;
+                structureUpdating = false;
+                structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
+                workCursor = 0;
+                workTotal = 0;
+                saveChanges();
+                return;
+            }
+            workCursor = Math.max(0, Math.min(workCursor, buildWorkParts.size()));
+        } else if (repairOnlyBuild) {
             var remaining = findMissingOnlyParts(facing);
             if (remaining != null) {
                 buildWorkParts = remaining;
@@ -1984,16 +2184,33 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (level == null) {
             return;
         }
+        normalizeIsolatedControllerAnchor();
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         player.displayClientMessage(Component.translatable("message.molecularmanipulator.preview_legend"), false);
-        if (!MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
+        var originLayout = getConstructionOriginLayout();
+        if (!MolecularCenterStructure.areUpdateChunksLoaded(level, worldPosition, facing, originLayout)) {
             player.displayClientMessage(Component.translatable("message.molecularmanipulator.preview_cross_chunk"),
                     false);
         }
-        if (!MolecularCenterStructure.isWithinBuildHeight(level, worldPosition)) {
-            player.displayClientMessage(Component.translatable("message.molecularmanipulator.preview_build_height"),
-                    false);
+        if (!MolecularCenterStructure.isWithinUpdateHeight(level, worldPosition, originLayout)) {
+            showBuildHeightFailure(player);
         }
+    }
+
+    private void showBuildHeightFailure(ServerPlayer player) {
+        var originLayout = getConstructionOriginLayout();
+        var anchor = MolecularCenterStructure.controllerPart(originLayout);
+        var blueprint = MolecularCenterStructure.parts(originLayout);
+        int below = anchor.y() - blueprint.stream().mapToInt(MolecularCenterStructure.Part::y)
+                .min().orElse(MolecularCenterStructure.CURRENT_MIN_Y);
+        int above = blueprint.stream().mapToInt(MolecularCenterStructure.Part::y)
+                .max().orElse(MolecularCenterStructure.CURRENT_MAX_Y) - anchor.y();
+        int controllerY = worldPosition.getY();
+        player.displayClientMessage(Component.translatable("message.molecularmanipulator.preview_build_height",
+                controllerY, below, above, controllerY - below, controllerY + above,
+                level.getMinBuildHeight(), level.getMaxBuildHeight() - 1,
+                MolecularCenterStructure.minimumControllerY(level.getMinBuildHeight(), originLayout),
+                MolecularCenterStructure.maximumControllerY(level.getMaxBuildHeight(), originLayout)), false);
     }
 
     private void processWorkQueue() {
@@ -2004,8 +2221,16 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         if (player == null || !player.mayBuild()) {
             return;
         }
+        if (dismantling) {
+            processDismantleQueue(player);
+            return;
+        }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (!MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing)) {
+        if (!(structureUpdating
+                ? MolecularCenterStructure.areUpdateChunksLoaded(level, worldPosition, facing,
+                        structureUpdateSourceLayout)
+                : MolecularCenterStructure.areRequiredChunksLoaded(level, worldPosition, facing,
+                        getConstructionOriginLayout()))) {
             return;
         }
         restoreBuildQueue();
@@ -2013,58 +2238,305 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
         int budget = ModConfig.BUILD_BLOCKS_PER_TICK.get();
-        var workParts = building ? buildWorkParts : MolecularCenterStructure.workParts();
+        var workParts = buildWorkParts;
         int partCount = workParts.size();
-        var materialSources = building ? findBuildMaterialSources(player) : List.<NetworkMaterialSource>of();
+        var materialSources = findBuildMaterialSources(player);
         workTotal = partCount;
-        while (budget-- > 0 && (building || dismantling)) {
-            if (building && workCursor >= partCount) {
-                building = false;
-                repairOnlyBuild = false;
-                buildQueueInitialized = false;
-                buildWorkParts = List.of();
-                refreshStructure();
-                break;
-            }
-            if (dismantling && workCursor < 0) {
-                dismantling = false;
-                refreshStructure();
+        while (budget-- > 0 && building) {
+            if (workCursor >= partCount) {
+                finishBuilding(player);
                 break;
             }
             if (workCursor < 0 || workCursor >= partCount) {
                 building = false;
                 dismantling = false;
                 repairOnlyBuild = false;
+                structureUpdating = false;
+                structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
                 buildQueueInitialized = false;
                 buildWorkParts = List.of();
                 refreshStructure();
                 break;
             }
             var part = workParts.get(workCursor);
-            var pos = MolecularCenterStructure.worldPos(worldPosition, facing, part);
-            if (MolecularCenterStructure.isController(part)) {
+            var originLayout = structureUpdating ? structureUpdateSourceLayout
+                    : MolecularCenterStructure.StructureLayout.CURRENT;
+            var pos = MolecularCenterStructure.worldPos(worldPosition, facing, part, originLayout);
+            if (MolecularCenterStructure.isController(part, originLayout)
+                    || structureUpdating && MolecularCenterStructure.isController(part)) {
                 advanceWork();
                 continue;
             }
-            if (building) {
-                processBuildPart(player, part, pos, materialSources);
-            } else {
-                processDismantlePart(player, part, pos);
-            }
+            processBuildPart(player, part, pos, materialSources);
             if (building && workCursor >= workTotal) {
-                building = false;
-                repairOnlyBuild = false;
-                buildQueueInitialized = false;
-                buildWorkParts = List.of();
-                refreshStructure();
-                break;
-            } else if (dismantling && workCursor < 0) {
-                dismantling = false;
-                refreshStructure();
+                finishBuilding(player);
                 break;
             }
         }
-        setChanged();
+        if (!isRemoved()) {
+            setChanged();
+        }
+    }
+
+    private void finishBuilding(ServerPlayer player) {
+        boolean completedStructureUpdate = structureUpdating;
+        if (completedStructureUpdate) {
+            var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+            building = false;
+            repairOnlyBuild = false;
+            buildQueueInitialized = false;
+            buildWorkParts = List.of();
+            if (!MolecularCenterStructure.matchesUpdateTarget(level, worldPosition, facing,
+                    structureUpdateSourceLayout)) {
+                player.displayClientMessage(Component.translatable(
+                        "message.molecularmanipulator.structure_update_incomplete", Math.max(1, workConflicts)), false);
+                saveChanges();
+                return;
+            }
+            var destination = MolecularCenterStructure.relocatedControllerPos(worldPosition, facing,
+                    structureUpdateSourceLayout);
+            if (!destination.equals(worldPosition)) {
+                relocateController(player, facing, destination);
+                return;
+            }
+        }
+        building = false;
+        repairOnlyBuild = false;
+        structureUpdating = false;
+        structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
+        buildQueueInitialized = false;
+        buildWorkParts = List.of();
+        refreshStructure();
+        if (completedStructureUpdate) {
+            var message = structureLayout == MolecularCenterStructure.StructureLayout.CURRENT
+                    && workConflicts == 0
+                    ? Component.translatable("message.molecularmanipulator.structure_update_complete")
+                    : Component.translatable("message.molecularmanipulator.structure_update_incomplete",
+                            workConflicts);
+            player.displayClientMessage(message, false);
+        }
+    }
+
+    private boolean canRelocateController(ServerPlayer player, Direction facing,
+            MolecularCenterStructure.StructureLayout sourceLayout) {
+        var destination = MolecularCenterStructure.relocatedControllerPos(worldPosition, facing, sourceLayout);
+        if (destination.equals(worldPosition)) {
+            return true;
+        }
+        var target = MolecularCenterStructure.controllerPart(MolecularCenterStructure.StructureLayout.CURRENT);
+        var state = level.getBlockState(destination);
+        boolean sourceMatches = MolecularCenterStructure.matchesSourcePart(sourceLayout, target, state);
+        var existing = level.getBlockEntity(destination);
+        boolean knownShell = existing instanceof MolecularCenterShellBlockEntity && sourceMatches;
+        boolean unobstructed = level.isUnobstructed(null,
+                net.minecraft.world.phys.shapes.Shapes.block().move(
+                        destination.getX(), destination.getY(), destination.getZ()));
+        if (!level.hasChunkAt(destination) || !sourceMatches && !state.canBeReplaced()
+                || existing != null && !knownShell || !unobstructed
+                || !player.mayUseItemAt(destination, Direction.UP, ItemStack.EMPTY)
+                || !player.mayUseItemAt(worldPosition, Direction.UP, ItemStack.EMPTY)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.controller_move_blocked",
+                    destination.getX(), destination.getY(), destination.getZ()), false);
+            return false;
+        }
+        return true;
+    }
+
+    private void relocateController(ServerPlayer player, Direction facing, BlockPos destination) {
+        if (!canRelocateController(player, facing, structureUpdateSourceLayout)) {
+            saveChanges();
+            return;
+        }
+        var sourceAnchor = MolecularCenterStructure.controllerPart(structureUpdateSourceLayout);
+        var replacement = MolecularCenterStructure.partAt(sourceAnchor.x(), sourceAnchor.y(), sourceAnchor.z());
+        if (replacement == null || replacement.partType() == MolecularCenterStructure.PartType.AIR) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.controller_move_failed"), false);
+            saveChanges();
+            return;
+        }
+        var replacementState = MolecularCenterStructure.partState(replacement.partType());
+        var material = new ItemStack(replacementState.getBlock());
+        var destinationState = level.getBlockState(destination);
+        var recovered = MolecularCenterStructure.matchesSourcePart(structureUpdateSourceLayout,
+                MolecularCenterStructure.controllerPart(MolecularCenterStructure.StructureLayout.CURRENT),
+                destinationState) ? new ItemStack(destinationState.getBlock()) : ItemStack.EMPTY;
+        // Moving down into the existing coil reuses that exact block to decorate
+        // the old socket; no extra coil is charged or returned to the player.
+        boolean reuseRecovered = !recovered.isEmpty()
+                && ItemStack.isSameItemSameComponents(recovered, material);
+        if (!reuseRecovered && !recovered.isEmpty() && !canReceiveRelocationItem(player, recovered)) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.controller_move_materials"), false);
+            saveChanges();
+            return;
+        }
+        var registries = level.registryAccess();
+        var originalState = level.getBlockState(worldPosition);
+        var originalData = saveWithFullMetadata(registries);
+        var destinationEntity = level.getBlockEntity(destination);
+        var destinationData = destinationEntity == null ? null : destinationEntity.saveWithFullMetadata(registries);
+        var transferData = originalData.copy();
+        transferData.putInt("x", destination.getX());
+        transferData.putInt("y", destination.getY());
+        transferData.putInt("z", destination.getZ());
+        transferData.putBoolean(CENTERED_CONTROLLER_TAG, true);
+        transferData.putString(CONTROLLER_ANCHOR_TAG, ControllerAnchor.LOWERED.name());
+        transferData.putBoolean("molecular_center_formed", false);
+        transferData.putBoolean("molecular_center_building", false);
+        transferData.putBoolean("molecular_center_dismantling", false);
+        transferData.putBoolean(STRUCTURE_UPDATING_TAG, false);
+        transferData.remove(STRUCTURE_UPDATE_SOURCE_TAG);
+        transferData.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, false);
+        var controllerState = originalState.setValue(
+                net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false);
+
+        // Decode before touching either world position. The prepared controller's
+        // managed AE node is still uncreated and cannot duplicate an active node.
+        final MolecularCenterBlockEntity relocated;
+        try {
+            relocated = new MolecularCenterBlockEntity(destination, controllerState);
+            relocated.loadWithComponents(transferData, registries);
+        } catch (RuntimeException exception) {
+            MolecularManipulator.LOGGER.error("Unable to prepare molecular controller relocation at {}", worldPosition, exception);
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.controller_move_failed"), false);
+            saveChanges();
+            return;
+        }
+        if (!reuseRecovered && !extractBuildMaterial(player, material, findBuildMaterialSources(player))) {
+            player.displayClientMessage(Component.translatable(
+                    "message.molecularmanipulator.controller_move_materials"), false);
+            saveChanges();
+            return;
+        }
+        var journal = player.getPersistentData().getCompound(CONTROLLER_MOVE_RECOVERY_TAG);
+        String transaction = UUID.randomUUID().toString();
+        var backup = new CompoundTag();
+        backup.putString("dimension", level.dimension().location().toString());
+        backup.putLong("source_pos", worldPosition.asLong());
+        backup.putLong("target_pos", destination.asLong());
+        backup.put("source_state", net.minecraft.nbt.NbtUtils.writeBlockState(originalState));
+        backup.put("target_state", net.minecraft.nbt.NbtUtils.writeBlockState(destinationState));
+        backup.put("source_data", originalData.copy());
+        if (destinationData != null) {
+            backup.put("target_data", destinationData.copy());
+        }
+        journal.put(transaction, backup);
+        player.getPersistentData().put(CONTROLLER_MOVE_RECOVERY_TAG, journal);
+        try {
+            // AEBaseEntityBlock.onRemove drops every internal inventory even for
+            // setBlock. Remove the old BE first so that hook cannot see its data.
+            level.removeBlockEntity(worldPosition);
+            if (destinationEntity != null) {
+                level.removeBlockEntity(destination);
+            }
+            level.setBlock(destination, controllerState, 3);
+            if (!level.getBlockState(destination).equals(controllerState)) {
+                throw new IllegalStateException("Destination refused the controller block");
+            }
+            level.removeBlockEntity(destination); // discard the empty auto-created BE
+            level.setBlockEntity(relocated);
+            level.setBlock(worldPosition, replacementState, 3);
+            if (!level.getBlockState(worldPosition).equals(replacementState)
+                    || level.getBlockEntity(destination) != relocated
+                    || MolecularCenterStructure.detectLayout(level, destination, facing)
+                            != MolecularCenterStructure.StructureLayout.CURRENT) {
+                throw new IllegalStateException("Relocated controller failed final structure validation");
+            }
+        } catch (RuntimeException exception) {
+            MolecularManipulator.LOGGER.error("Molecular controller relocation {} failed; restoring both positions",
+                    transaction, exception);
+            boolean targetRestored = restoreRelocationBlock(destination, destinationState, destinationData);
+            boolean detached = detachRelocatedController(destination, relocated);
+            boolean restored = detached && restoreRelocationBlock(worldPosition, originalState, originalData)
+                    && targetRestored;
+            if (!reuseRecovered && !player.getAbilities().instabuild) {
+                player.getInventory().placeItemBackInInventory(material.copy());
+            }
+            if (restored) {
+                journal.remove(transaction);
+                player.displayClientMessage(Component.translatable(
+                        "message.molecularmanipulator.controller_move_failed"), false);
+            } else {
+                // Keep the full, non-itemized payload in persistent player data;
+                // never spawn a second usable controller during failed recovery.
+                MolecularManipulator.LOGGER.error("Controller recovery retained in player {} tag {} transaction {}",
+                        player.getUUID(), CONTROLLER_MOVE_RECOVERY_TAG, transaction);
+                player.displayClientMessage(Component.translatable(
+                        "message.molecularmanipulator.controller_move_recovery_failed"), false);
+            }
+            return;
+        }
+        journal.remove(transaction);
+        structureUpdating = false;
+        relocated.structureLayout = MolecularCenterStructure.StructureLayout.CURRENT;
+        relocated.lastKnownStructureLayout = MolecularCenterStructure.StructureLayout.CURRENT;
+        relocated.saveChanges();
+        relocated.markForUpdate();
+        if (!reuseRecovered && !recovered.isEmpty()) {
+            player.getInventory().placeItemBackInInventory(recovered);
+        }
+        player.displayClientMessage(Component.translatable(
+                workConflicts == 0 ? "message.molecularmanipulator.structure_update_complete"
+                        : "message.molecularmanipulator.structure_update_incomplete", workConflicts), false);
+        player.closeContainer();
+    }
+
+    private static boolean canReceiveRelocationItem(ServerPlayer player, ItemStack stack) {
+        return player.getInventory().items.stream().anyMatch(slot -> slot.isEmpty()
+                || ItemStack.isSameItemSameComponents(slot, stack)
+                        && slot.getCount() + stack.getCount() <= slot.getMaxStackSize());
+    }
+
+    private boolean detachRelocatedController(BlockPos pos, MolecularCenterBlockEntity relocated) {
+        try {
+            if (level.getBlockEntity(pos) == relocated) {
+                level.removeBlockEntity(pos);
+            }
+            if (!relocated.isRemoved()) {
+                relocated.setRemoved();
+            }
+            return relocated.isRemoved();
+        } catch (RuntimeException exception) {
+            MolecularManipulator.LOGGER.error("Cannot detach the failed relocated controller at {}", pos, exception);
+            // Do not create another controller from the same payload while this
+            // node might still be alive. The persistent recovery journal remains.
+            return false;
+        }
+    }
+
+    private boolean restoreRelocationBlock(BlockPos pos, BlockState state, CompoundTag data) {
+        try {
+            var present = level.getBlockEntity(pos);
+            if (present != null && !(present instanceof MolecularCenterBlockEntity)
+                    && !(present instanceof MolecularCenterShellBlockEntity)) {
+                return false;
+            }
+            level.removeBlockEntity(pos);
+            level.setBlock(pos, state, 3);
+            if (!level.getBlockState(pos).equals(state)) {
+                return false;
+            }
+            if (data != null) {
+                var restored = net.minecraft.world.level.block.entity.BlockEntity.loadStatic(
+                        pos, state, data.copy(), level.registryAccess());
+                if (restored == null) {
+                    return false;
+                }
+                level.removeBlockEntity(pos);
+                level.setBlockEntity(restored);
+                restored.setChanged();
+                if (restored instanceof MolecularCenterBlockEntity center) {
+                    center.markForUpdate();
+                }
+            }
+            return true;
+        } catch (RuntimeException exception) {
+            MolecularManipulator.LOGGER.error("Unable to restore controller relocation position {}", pos, exception);
+            return false;
+        }
     }
 
     private void syncShellConnections(boolean connected) {
@@ -2072,12 +2544,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        for (var part : MolecularCenterStructure.parts()) {
+        for (var part : MolecularCenterStructure.parts(structureLayout)) {
             if (part.partType() != MolecularCenterStructure.PartType.CASING
-                    || MolecularCenterStructure.isController(part)) {
+                    || MolecularCenterStructure.isController(part, structureLayout)) {
                 continue;
             }
-            var partPos = MolecularCenterStructure.worldPos(worldPosition, facing, part);
+            var partPos = MolecularCenterStructure.worldPos(worldPosition, facing, part, structureLayout);
             if (!level.hasChunkAt(partPos)) {
                 continue;
             }
@@ -2091,13 +2563,28 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private void processBuildPart(ServerPlayer player, MolecularCenterStructure.Part part, BlockPos pos,
             List<NetworkMaterialSource> materialSources) {
         if (part.partType() == MolecularCenterStructure.PartType.AIR) {
-            if (MolecularCenterStructure.isVisualCenter(part)) {
+            if (MolecularCenterStructure.isVisualCenter(part) && !structureUpdating) {
                 advanceWork();
                 return;
             }
             var current = level.getBlockState(pos);
             if (current.isAir()) {
                 advanceWork();
+                return;
+            }
+            if (structureUpdating) {
+                if (MolecularCenterStructure.matchesSourcePart(
+                        structureUpdateSourceLayout, part, current)) {
+                    if (removeLegacyStructurePart(player, pos)) {
+                        advanceWork();
+                    }
+                } else {
+                    // The exact old block changed after preflight. Never sweep
+                    // an unrelated player block merely because it is an AE or
+                    // multiblock decoration block.
+                    workConflicts++;
+                    advanceWork();
+                }
                 return;
             }
             if (MolecularCenterStructure.isStructurePart(current)) {
@@ -2122,9 +2609,20 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             advanceWork();
             return;
         }
-        if (MolecularCenterStructure.isStructurePart(current)
-                && !removeLegacyStructurePart(player, pos)) {
-            return;
+        if (structureUpdating) {
+            if (MolecularCenterStructure.matchesSourcePart(
+                    structureUpdateSourceLayout, part, current)) {
+                if (!removeLegacyStructurePart(player, pos)) {
+                    return;
+                }
+            } else if (!current.canBeReplaced()) {
+                workConflicts++;
+                advanceWork();
+                return;
+            }
+        } else if (MolecularCenterStructure.isStructurePart(current)
+                    && !removeLegacyStructurePart(player, pos)) {
+                return;
         }
         current = level.getBlockState(pos);
         if (!current.canBeReplaced() || !player.mayUseItemAt(pos, Direction.UP, ItemStack.EMPTY)) {
@@ -2138,6 +2636,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         if (!placeBlock(player, pos, material, expected)) {
             refundBuildMaterial(player, material, materialSources);
+            workConflicts++;
         }
         advanceWork();
     }
@@ -2163,32 +2662,49 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return true;
     }
 
-    private void processDismantlePart(ServerPlayer player, MolecularCenterStructure.Part part, BlockPos pos) {
-        if (part.partType() == MolecularCenterStructure.PartType.AIR
-                && MolecularCenterStructure.isVisualCenter(part)) {
-            advanceWork();
+    private void processDismantleQueue(ServerPlayer player) {
+        if (dismantlePlan == null) {
+            var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+            dismantlePlan = MolecularCenterStructure.createDismantlePlan(level, worldPosition, facing,
+                    dismantleLayout, dismantleIncludesUpgrade);
+            if (dismantlePlan == null) {
+                return;
+            }
+            workCursor = 0;
+            workTotal = dismantlePlan.total();
+        }
+        if (!dismantlePlan.remainingChunksLoaded(level)) {
             return;
         }
-        var state = level.getBlockState(pos);
-        boolean matches = part.partType() != MolecularCenterStructure.PartType.AIR
-                && state.is(MolecularCenterStructure.partState(part.partType()).getBlock());
-        if (!matches && !MolecularCenterStructure.isStructurePart(state)) {
-            advanceWork();
-            return;
+        int budget = ModConfig.BUILD_BLOCKS_PER_TICK.get();
+        while (budget > 0 && !dismantlePlan.isComplete()) {
+            var entry = dismantlePlan.current();
+            var state = level.getBlockState(entry.pos());
+            var blockEntity = level.getBlockEntity(entry.pos());
+            if (!entry.matches(state) || entry.pos().equals(worldPosition)
+                    || blockEntity != null && !(blockEntity instanceof MolecularCenterShellBlockEntity)) {
+                dismantlePlan.advance();
+                continue;
+            }
+            var item = new ItemStack(entry.block());
+            if (!player.mayUseItemAt(entry.pos(), Direction.UP, ItemStack.EMPTY)
+                    || item.isEmpty() || !canStoreDismantled(player, item)) {
+                break;
+            }
+            if (!level.destroyBlock(entry.pos(), false, player)) {
+                break;
+            }
+            storeDismantled(player, item);
+            dismantlePlan.advance();
+            budget--;
         }
-        if (!player.mayUseItemAt(pos, Direction.UP, ItemStack.EMPTY)) {
-            return;
+        workCursor = dismantlePlan.completed();
+        workTotal = dismantlePlan.total();
+        if (dismantlePlan.isComplete()) {
+            dismantling = false;
+            refreshStructure();
         }
-        var item = new ItemStack(state.getBlock().asItem());
-        if (item.isEmpty() || !canStoreDismantled(player, item)) {
-            return;
-        }
-        if (!level.destroyBlock(pos, false, player)) {
-            workConflicts++;
-            return;
-        }
-        storeDismantled(player, item);
-        advanceWork();
+        setChanged();
     }
 
     private boolean extractBuildMaterial(ServerPlayer player, ItemStack template,
@@ -2311,7 +2827,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void advanceWork() {
-        workCursor += building ? 1 : -1;
+        workCursor++;
     }
 
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
@@ -2434,6 +2950,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void recordPipelineActivity(long gameTime, long craftCount) {
+        if (craftCount > 0) visualSuccessTick = gameTime;
         if (pipelineActivityTick != gameTime) {
             pipelineActivityTick = gameTime;
             pipelineCrafts = 0;
@@ -2459,8 +2976,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         try {
             mergeChecked(totals, pendingPrimaryOutputs);
             mergeChecked(totals, pendingByproducts);
-            mergeChecked(totals, cachedPrimaryOutputs);
-            mergeChecked(totals, cachedByproducts);
             mergeChecked(totals, primaryOutputs);
             mergeChecked(totals, remainderOutputs);
             return totals.size() <= MAX_BUFFERED_TYPES;
@@ -2534,7 +3049,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void markOutputBufferChanged(long gameTime) {
-        invalidatePipelineStorageCache();
         if (bufferDirtyTick != gameTime) {
             bufferDirtyTick = gameTime;
             saveChanges();
@@ -2548,7 +3062,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
         var grid = getMainNode().getGrid();
         if (grid == null) {
-            pipelineBlocked = hasNetworkRoutedOutputs();
+            pipelineBlocked = hasBufferedOutputs();
             return;
         }
 
@@ -2567,27 +3081,15 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             blocked |= refundResult.blocked();
             transferred = saturatedAdd(transferred, refundResult.transferred());
 
-            var primaryCacheResult = flushCached(cachedPrimaryOutputs, primaryRoute, storage,
-                    cachedPrimaryTransferScheduler, transferBudget);
-            changed |= primaryCacheResult.changed();
-            blocked |= primaryCacheResult.blocked();
-            transferred = saturatedAdd(transferred, primaryCacheResult.transferred());
-
-            var byproductCacheResult = flushCached(cachedByproducts, byproductRoute, storage,
-                    cachedByproductTransferScheduler, transferBudget);
-            changed |= byproductCacheResult.changed();
-            blocked |= byproductCacheResult.blocked();
-            transferred = saturatedAdd(transferred, byproductCacheResult.transferred());
-
             if (gameTime >= outputReadyTick) {
-                var primaryResult = flushPending(pendingPrimaryOutputs, cachedPrimaryOutputs,
-                        primaryRoute, storage, craftingService, pendingPrimaryTransferScheduler, transferBudget);
+                var primaryResult = flushPending(pendingPrimaryOutputs,
+                        storage, craftingService, pendingPrimaryTransferScheduler, transferBudget);
                 changed |= primaryResult.changed();
                 blocked |= primaryResult.blocked();
                 transferred = saturatedAdd(transferred, primaryResult.transferred());
 
-                var byproductResult = flushPending(pendingByproducts, cachedByproducts,
-                        byproductRoute, storage, craftingService, pendingByproductTransferScheduler, transferBudget);
+                var byproductResult = flushPending(pendingByproducts,
+                        storage, craftingService, pendingByproductTransferScheduler, transferBudget);
                 changed |= byproductResult.changed();
                 blocked |= byproductResult.blocked();
                 transferred = saturatedAdd(transferred, byproductResult.transferred());
@@ -2601,7 +3103,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                     ? Long.MIN_VALUE
                     : gameTime + 1;
             if (changed) {
-                invalidatePipelineStorageCache();
                 saveChanges();
             }
         } finally {
@@ -2609,19 +3110,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
-    private FlushResult flushCached(Object2LongOpenHashMap<AEKey> cached,
-            PipelineRoute route, MEStorage storage, AEKeyTransferScheduler scheduler,
-            AEKeyTransferScheduler.TransferBudget transferBudget) {
-        if (route == PipelineRoute.INTERNAL || cached.isEmpty()) {
-            return FlushResult.EMPTY;
-        }
-        return route == PipelineRoute.NETWORK
-                ? flushMapToNetwork(cached, storage, scheduler, transferBudget)
-                : flushMapToPort(cached, scheduler, transferBudget);
-    }
-
     private FlushResult flushPending(Object2LongOpenHashMap<AEKey> pending,
-            Object2LongOpenHashMap<AEKey> cache, PipelineRoute route, MEStorage storage,
+            MEStorage storage,
             appeng.api.networking.crafting.ICraftingService craftingService,
             AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
         if (pending.isEmpty()) {
@@ -2636,15 +3126,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 remaining -= delivered;
             }
 
-            if (remaining > 0 && route == PipelineRoute.NETWORK) {
+            if (remaining > 0) {
                 long inserted = storage.insert(key, remaining, Actionable.MODULATE, actionSource);
                 remaining -= inserted;
-            } else if (remaining > 0 && route == PipelineRoute.PORT) {
-                long inserted = insertIntoOutputPort(key, remaining);
-                remaining -= inserted;
-            } else if (remaining > 0) {
-                cache.put(key, Math.addExact(cache.getLong(key), remaining));
-                remaining = 0;
             }
             return amount - remaining;
         });
@@ -2658,52 +3142,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return new FlushResult(result.changed(), result.blocked(), result.transferred());
     }
 
-    private FlushResult flushMapToPort(Object2LongOpenHashMap<AEKey> source,
-            AEKeyTransferScheduler scheduler, AEKeyTransferScheduler.TransferBudget transferBudget) {
-        int[] remainingItemBudget = { MAX_PORT_ITEMS_PER_TICK };
-        var result = scheduler.flush(source, transferBudget, (key, amount) -> {
-            if (remainingItemBudget[0] <= 0) {
-                return 0;
-            }
-            long inserted = insertIntoOutputPort(key, Math.min(amount, remainingItemBudget[0]));
-            remainingItemBudget[0] -= (int) inserted;
-            return inserted;
-        });
-        return new FlushResult(result.changed(), !source.isEmpty() && result.transferred() == 0,
-                result.transferred());
-    }
-
-    private long insertIntoOutputPort(AEKey key, long amount) {
-        if (level == null || amount <= 0 || !(key instanceof AEItemKey itemKey)) {
-            return 0;
-        }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        var target = outputPort.resolve(worldPosition, facing);
-        IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK,
-                target.pos(), target.accessSide());
-        if (handler == null) {
-            return 0;
-        }
-
-        int requested = (int) Math.min(amount, MAX_PORT_ITEMS_PER_TICK);
-        var stack = itemKey.toStack(requested);
-        var remainder = ItemHandlerHelper.insertItemStacked(handler, stack, false);
-        return requested - remainder.getCount();
-    }
-
-    private boolean hasNetworkRoutedOutputs() {
+    private boolean hasBufferedOutputs() {
         return !reusableBatchRefunds.isEmpty()
-                || primaryRoute != PipelineRoute.INTERNAL
-                && (!pendingPrimaryOutputs.isEmpty() || !cachedPrimaryOutputs.isEmpty())
-                || byproductRoute != PipelineRoute.INTERNAL
-                && (!pendingByproducts.isEmpty() || !cachedByproducts.isEmpty());
-    }
-
-    private void invalidatePipelineStorageCache() {
-        var grid = getMainNode().getGrid();
-        if (grid != null) {
-            grid.getStorageService().invalidateCache();
-        }
+                || !pendingPrimaryOutputs.isEmpty()
+                || !pendingByproducts.isEmpty();
     }
 
     private static long saturatedSum(Object2LongOpenHashMap<AEKey> first,
@@ -2800,164 +3242,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         OUTPUT_FULL
     }
 
-    public enum PipelineRoute {
-        NETWORK("network"),
-        INTERNAL("internal"),
-        PORT("port");
-
-        private final String serializedName;
-
-        PipelineRoute(String serializedName) {
-            this.serializedName = serializedName;
-        }
-
-        public String getSerializedName() {
-            return serializedName;
-        }
-
-        public PipelineRoute next() {
-            return switch (this) {
-                case NETWORK -> INTERNAL;
-                case INTERNAL -> PORT;
-                case PORT -> NETWORK;
-            };
-        }
-
-        public static PipelineRoute fromSerializedName(String name) {
-            for (var route : values()) {
-                if (route.serializedName.equals(name)) {
-                    return route;
-                }
-            }
-            return NETWORK;
-        }
-    }
-
-    public enum PipelinePort {
-        FRONT("front"),
-        BACK("back"),
-        LEFT("left"),
-        RIGHT("right"),
-        UP("up"),
-        DOWN("down");
-
-        private final String serializedName;
-
-        PipelinePort(String serializedName) {
-            this.serializedName = serializedName;
-        }
-
-        public String getSerializedName() {
-            return serializedName;
-        }
-
-        public PipelinePort next() {
-            var values = values();
-            return values[(ordinal() + 1) % values.length];
-        }
-
-        private OutputTarget resolve(BlockPos controller, Direction facing) {
-            var portPart = switch (this) {
-                case FRONT -> new MolecularCenterStructure.Part(0, 13, MolecularCenterStructure.MIN_Z,
-                        MolecularCenterStructure.PartType.CASING);
-                case BACK -> new MolecularCenterStructure.Part(0, 13, MolecularCenterStructure.MAX_Z,
-                        MolecularCenterStructure.PartType.CASING);
-                case LEFT -> new MolecularCenterStructure.Part(MolecularCenterStructure.MIN_X, 13,
-                        MolecularCenterStructure.CENTER_Z, MolecularCenterStructure.PartType.CASING);
-                case RIGHT -> new MolecularCenterStructure.Part(MolecularCenterStructure.MAX_X, 13,
-                        MolecularCenterStructure.CENTER_Z, MolecularCenterStructure.PartType.CASING);
-                case UP -> new MolecularCenterStructure.Part(0, MolecularCenterStructure.HEIGHT - 1,
-                        MolecularCenterStructure.CENTER_Z, MolecularCenterStructure.PartType.STABILIZER);
-                case DOWN -> new MolecularCenterStructure.Part(0, 0, MolecularCenterStructure.CENTER_Z,
-                        MolecularCenterStructure.PartType.STABILIZER);
-            };
-            var outward = switch (this) {
-                case FRONT -> facing;
-                case BACK -> facing.getOpposite();
-                case LEFT -> facing.getCounterClockWise();
-                case RIGHT -> facing.getClockWise();
-                case UP -> Direction.UP;
-                case DOWN -> Direction.DOWN;
-            };
-            var shellPos = MolecularCenterStructure.worldPos(controller, facing, portPart);
-            return new OutputTarget(shellPos.relative(outward), outward.getOpposite());
-        }
-
-        public static PipelinePort fromSerializedName(String name) {
-            for (var port : values()) {
-                if (port.serializedName.equals(name)) {
-                    return port;
-                }
-            }
-            return FRONT;
-        }
-    }
-
-    private final class PipelineStorageProvider implements IStorageProvider {
-        private final MEStorage storage = new MEStorage() {
-            @Override
-            public boolean isPreferredStorageFor(AEKey what,
-                    appeng.api.networking.security.IActionSource source) {
-                return cachedPrimaryOutputs.containsKey(what) || cachedByproducts.containsKey(what);
-            }
-
-            @Override
-            public long extract(AEKey what, long amount, Actionable mode,
-                    appeng.api.networking.security.IActionSource source) {
-                if (amount <= 0) {
-                    return 0;
-                }
-                long available = saturatedAdd(cachedPrimaryOutputs.getLong(what),
-                        cachedByproducts.getLong(what));
-                long extracted = Math.min(amount, available);
-                if (mode == Actionable.MODULATE && extracted > 0) {
-                    long remaining = extractFrom(cachedPrimaryOutputs, what, extracted);
-                    extractFrom(cachedByproducts, what, remaining);
-                    long gameTime = level == null ? Long.MIN_VALUE : level.getGameTime();
-                    markOutputBufferChanged(gameTime);
-                }
-                return extracted;
-            }
-
-            @Override
-            public void getAvailableStacks(KeyCounter out) {
-                for (var entry : cachedPrimaryOutputs.object2LongEntrySet()) {
-                    out.add(entry.getKey(), entry.getLongValue());
-                }
-                for (var entry : cachedByproducts.object2LongEntrySet()) {
-                    out.add(entry.getKey(), entry.getLongValue());
-                }
-            }
-
-            @Override
-            public Component getDescription() {
-                return Component.translatable("gui.molecularmanipulator.pipeline_storage");
-            }
-        };
-
-        @Override
-        public void mountInventories(IStorageMounts storageMounts) {
-            if (formed) {
-                storageMounts.mount(storage, PIPELINE_STORAGE_PRIORITY);
-            }
-        }
-    }
-
-    private static long extractFrom(Object2LongOpenHashMap<AEKey> source, AEKey key, long amount) {
-        long available = source.getLong(key);
-        long extracted = Math.min(available, amount);
-        if (extracted >= available) {
-            source.removeLong(key);
-        } else if (extracted > 0) {
-            source.put(key, available - extracted);
-        }
-        return amount - extracted;
-    }
-
     private record FlushResult(boolean changed, boolean blocked, long transferred) {
         private static final FlushResult EMPTY = new FlushResult(false, false, 0);
     }
 
-    private record OutputTarget(BlockPos pos, Direction accessSide) {
-    }
 }

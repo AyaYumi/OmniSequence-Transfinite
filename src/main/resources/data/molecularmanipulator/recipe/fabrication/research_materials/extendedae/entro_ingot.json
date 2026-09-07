@@ -1,0 +1,42 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "extendedae:entro_dust"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:gold_ingot"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:lapis_lazuli"
+      },
+      "count": 32
+    }
+  ],
+  "results": [
+    {
+      "id": "extendedae:entro_ingot",
+      "count": 64
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 2500.0,
+  "requires_research": true,
+  "fluid_input": {
+    "id": "minecraft:water",
+    "amount": 500
+  }
+}

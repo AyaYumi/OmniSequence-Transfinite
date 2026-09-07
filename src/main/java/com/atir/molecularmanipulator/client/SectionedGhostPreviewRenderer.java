@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.client;
 
+import com.atir.molecularmanipulator.client.render.ctm.MatterConnectedModel;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -233,7 +234,7 @@ final class SectionedGhostPreviewRenderer implements AutoCloseable {
             dispatcher.getModelRenderer().renderModel(
                     poseStack.last(), consumer, block.expectedState(), model,
                     1.0F, 1.0F, 1.0F, LightTexture.FULL_BRIGHT,
-                    OverlayTexture.NO_OVERLAY);
+                    OverlayTexture.NO_OVERLAY, MatterConnectedModel.modelData(block.connectedMasks()), null);
             poseStack.popPose();
         }
         return upload(builder.build());
@@ -314,7 +315,11 @@ final class SectionedGhostPreviewRenderer implements AutoCloseable {
         visibleSections.clear();
     }
 
-    record GhostBlock(BlockPos pos, BlockState expectedState, boolean conflict) {
+    record GhostBlock(BlockPos pos, BlockState expectedState, boolean conflict, long connectedMasks) {
+        GhostBlock(BlockPos pos, BlockState expectedState, boolean conflict) {
+            this(pos, expectedState, conflict, 0L);
+        }
+
         GhostBlock {
             pos = pos.immutable();
         }

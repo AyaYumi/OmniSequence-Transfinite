@@ -1,24 +1,32 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "key": {
-    "A": {
-      "item": "extendedae:ex_molecular_assembler"
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "extendedae:ex_pattern_provider"
+      },
+      "count": 4
     },
-    "C": {
-      "item": "extendedae:concurrent_processor"
+    {
+      "ingredient": {
+        "item": "extendedae:concurrent_processor"
+      },
+      "count": 4
     },
-    "P": {
-      "item": "extendedae:ex_pattern_provider"
+    {
+      "ingredient": {
+        "item": "extendedae:ex_molecular_assembler"
+      },
+      "count": 1
     }
-  },
-  "pattern": [
-    "PCP",
-    "CAC",
-    "PCP"
   ],
-  "result": {
-    "count": 1,
-    "id": "molecularmanipulator:molecular_manipulator"
-  }
+  "results": [
+    {
+      "count": 1,
+      "id": "molecularmanipulator:molecular_manipulator"
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 512,
+  "requires_research": true
 }

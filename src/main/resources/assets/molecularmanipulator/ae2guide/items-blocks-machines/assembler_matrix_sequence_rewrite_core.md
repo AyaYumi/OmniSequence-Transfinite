@@ -17,6 +17,8 @@ ordinary crafting and speed cores with a high-throughput internal recipe executo
 
 ## Setup
 
+Complete **Stage II: Sequence Array** once in the [Matter Fabrication Well](matter_fabrication_well.md), then manufacture this core there.
+
 Build a valid ExtendedAE Assembler Matrix and use this block as one of its functional cores. It is not a standalone
 machine: patterns, network access, and structure validation are supplied by the completed Assembler Matrix.
 
@@ -50,6 +52,8 @@ Outputs already completed before cancellation remain valid.
 Batch execution uses AE2's native pattern-power calculation over the actual combined inputs, preserving AE2's original
 crafting-energy behavior.
 
+Normal block drops retain stored materials, outputs and execution state. A replaced core still needs a valid Assembler Matrix and network.
+
 ## Recipe
 
-<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" />
+<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" fallbackText="This modpack has no available recipe for this item. Check JEI or the research configuration." />

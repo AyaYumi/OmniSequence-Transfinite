@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "minecraft:lapis_lazuli"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "extendedae:machine_frame"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "tag": "c:gems/quartz"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "extendedae:assembler_matrix_frame",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

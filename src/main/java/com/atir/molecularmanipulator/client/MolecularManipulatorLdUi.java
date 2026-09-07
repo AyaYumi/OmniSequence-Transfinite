@@ -24,13 +24,13 @@ import net.minecraft.network.chat.Component;
  *
  * <p>AE2 continues to own the container, slots and synchronization. The XML-backed
  * overlay owns navigation, status labels and the animated pattern-capacity meter;
- * the vanilla edit box remains responsible for text input and IME behavior.</p>
+ * the AE2 text field remains responsible for text input and IME behavior.</p>
  */
 final class MolecularManipulatorLdUi {
-    private static final int CYAN = 0xFF69DBFF;
-    private static final int ORANGE = 0xFFFFB766;
-    private static final int RED = 0xFFFF6D78;
-    private static final int SECONDARY_TEXT = 0xFFB7C3D7;
+    private static final int CYAN = AeUiTheme.CYAN;
+    private static final int ORANGE = AeUiTheme.WARNING;
+    private static final int RED = AeUiTheme.ERROR;
+    private static final int SECONDARY_TEXT = AeUiTheme.MUTED_TEXT;
 
     private final MolecularManipulatorScreen screen;
     private final MolecularManipulatorMenu menu;
@@ -135,6 +135,7 @@ final class MolecularManipulatorLdUi {
                 .textWrap(TextWrap.HOVER_ROLL)
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER));
+        AeUiTheme.styleLdButton(button);
         button.style(style -> style.tooltips(tooltip));
         return button;
     }
@@ -154,11 +155,11 @@ final class MolecularManipulatorLdUi {
         progress.barContainer(container -> {
             container.layout(layout -> layout.paddingAll(1));
             container.style(style -> style.backgroundTexture(new GuiTextureGroup(
-                    new ColorRectTexture(0xFF080D17),
-                    new ColorBorderTexture(-1, 0xFF526079))));
+                    new ColorRectTexture(AeUiTheme.TRACK),
+                    new ColorBorderTexture(-1, AeUiTheme.SHADOW))));
         });
         progress.barBackground.style(style ->
-                style.backgroundTexture(new ColorRectTexture(0xFF171D2A)));
+                style.backgroundTexture(new ColorRectTexture(AeUiTheme.PANEL_INSET)));
         progress.bar.style(style ->
                 style.backgroundTexture(new ColorRectTexture(CYAN)));
         progress.label.setDisplay(false);

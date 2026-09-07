@@ -143,3 +143,10 @@ file="META-INF/accesstransformer.cfg"
 # stop your mod loading on the server for example.
 #[features.${mod_id}]
 #openGLVersion="[3.2,)"
+
+[[dependencies.${mod_id}]]
+    modId="appliedenhancements"
+    type="required"
+    versionRange="[${applied_enhancements_version},)"
+    ordering="AFTER"
+    side="BOTH"

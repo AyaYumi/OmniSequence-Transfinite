@@ -5,6 +5,7 @@ import appeng.block.crafting.PatternProviderBlock;
 import appeng.block.crafting.PushDirection;
 import appeng.util.InteractionUtil;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
+import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -47,6 +48,14 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
         return defaultBlockState().setValue(
                 HorizontalDirectionalBlock.FACING,
                 context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
+        if (!state.is(replacement.getBlock()) && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            MultiblockChunkLoading.release(serverLevel, pos);
+        }
+        super.onRemove(state, level, pos, replacement, moved);
     }
 
     @Override

@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "push_direction=all": {"model":"molecularmanipulator:block/matter_fabrication_pattern_assembly"},
+    "push_direction=down": {"model":"molecularmanipulator:block/matter_fabrication_pattern_assembly"},
+    "push_direction=east": {"model":"molecularmanipulator:block/matter_fabrication_pattern_assembly"},
+    "push_direction=north": {"model":"molecularmanipulator:block/matter_fabrication_pattern_assembly"},
+    "push_direction=south": {"model":"molecularmanipulator:block/matter_fabrication_pattern_assembly"},
+    "push_direction=up": {"model":"molecularmanipulator:block/matter_fabrication_pattern_assembly"},
+    "push_direction=west": {"model":"molecularmanipulator:block/matter_fabrication_pattern_assembly"}
+  }
+}

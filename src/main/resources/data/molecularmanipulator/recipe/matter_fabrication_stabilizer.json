@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "FGF",
+    "GPG",
+    "FGF"
+  ],
+  "key": {
+    "F": {
+      "item": "ae2:fluix_block"
+    },
+    "G": {
+      "item": "ae2:quartz_glass"
+    },
+    "P": {
+      "item": "ae2:engineering_processor"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:matter_fabrication_stabilizer",
+    "count": 4
+  }
+}

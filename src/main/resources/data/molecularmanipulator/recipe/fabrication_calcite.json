@@ -1,0 +1,12 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {"ingredient": {"item": "minecraft:quartz"}, "count": 4},
+    {"ingredient": {"item": "minecraft:bone_meal"}, "count": 4}
+  ],
+  "results": [
+    {"id": "minecraft:calcite", "count": 8}
+  ],
+  "processing_time": 100,
+  "ae_per_tick": 48.0
+}

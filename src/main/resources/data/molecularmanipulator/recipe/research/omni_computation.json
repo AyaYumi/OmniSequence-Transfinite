@@ -1,0 +1,130 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.omni_computation",
+  "prerequisites": [
+    "molecularmanipulator:research/ae_foundation"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_processor"
+      },
+      "count": 128
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_alloy"
+      },
+      "count": 256
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_core"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:data_entangler"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_unit"
+      },
+      "count": 16
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_accelerator"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_crafter"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_storage_256"
+      },
+      "count": 4
+    }
+  ],
+  "duration": 600,
+  "ae_per_tick": 1024,
+  "unlocks": [
+    "molecularmanipulator:computation_crystal_pylon",
+    "molecularmanipulator:computation_data_entangler",
+    "molecularmanipulator:computation_energy_stabilizer",
+    "molecularmanipulator:computation_output_node",
+    "molecularmanipulator:infinite_crafting_storage",
+    "molecularmanipulator:infinite_parallel_matrix",
+    "molecularmanipulator:omni_computation_casing",
+    "molecularmanipulator:omni_computation_controller",
+    "molecularmanipulator:omni_computation_glass",
+    "molecularmanipulator:universal_pattern_matrix"
+  ],
+  "required_mods": [
+    "advanced_ae"
+  ],
+  "sort_order": 20,
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "stage": 2,
+  "depths": [
+    {
+      "material_multiplier": "1",
+      "parallel": "1",
+      "speed_multiplier": "1"
+    },
+    {
+      "material_multiplier": "2",
+      "parallel": "256",
+      "speed_multiplier": "2"
+    },
+    {
+      "material_multiplier": "4",
+      "parallel": "65536",
+      "speed_multiplier": "4"
+    },
+    {
+      "material_multiplier": "8",
+      "parallel": "16777216",
+      "speed_multiplier": "8"
+    },
+    {
+      "material_multiplier": "16",
+      "parallel": "4294967296",
+      "speed_multiplier": "16"
+    },
+    {
+      "material_multiplier": "32",
+      "parallel": "1099511627776",
+      "speed_multiplier": "32"
+    },
+    {
+      "material_multiplier": "64",
+      "parallel": "281474976710656",
+      "speed_multiplier": "64"
+    },
+    {
+      "material_multiplier": "128",
+      "parallel": "72057594037927936",
+      "speed_multiplier": "128"
+    },
+    {
+      "material_multiplier": "256",
+      "parallel": "9223372036854775807",
+      "speed_multiplier": "256",
+      "processing_ticks": 1
+    }
+  ]
+}

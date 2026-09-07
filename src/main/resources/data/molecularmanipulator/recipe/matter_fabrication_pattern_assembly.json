@@ -1,0 +1,12 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    { "ingredient": { "item": "ae2:pattern_provider" }, "count": 4 },
+    { "ingredient": { "item": "ae2:blank_pattern" }, "count": 4 },
+    { "ingredient": { "item": "ae2:crafting_unit" }, "count": 1 }
+  ],
+  "results": [{ "id": "molecularmanipulator:matter_fabrication_pattern_assembly", "count": 1 }],
+  "processing_time": 200,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

@@ -139,13 +139,12 @@ public final class ConfigFileMigration {
 
     private static void removeRetiredServerOptions(
             Path directory, String displayName) {
-        ConfigSchemaGuard.removeObsoleteOption(
+        ConfigSchemaGuard.removeObsoleteOptions(
                 directory.resolve(SERVER_FILE),
-                RETIRED_UNSCALED_DISPATCH_LIMIT,
-                displayName);
-        ConfigSchemaGuard.removeObsoleteOption(
-                directory.resolve(SERVER_FILE),
-                RETIRED_BATCH_SUBSTITUTION_OPTION,
+                java.util.List.of(RETIRED_UNSCALED_DISPATCH_LIMIT,
+                        RETIRED_BATCH_SUBSTITUTION_OPTION, "ae2_crafting",
+                        "omni_computation.optimizer", "omni_computation.cache",
+                        "omni_computation.execution"),
                 displayName);
     }
 

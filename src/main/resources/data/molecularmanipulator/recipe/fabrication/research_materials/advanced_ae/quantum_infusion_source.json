@@ -1,0 +1,29 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_infused_dust"
+      },
+      "count": 1
+    }
+  ],
+  "results": [],
+  "processing_time": 200,
+  "ae_per_tick": 100.0,
+  "requires_research": true,
+  "fluid_input": {
+    "id": "minecraft:water",
+    "amount": 4000
+  },
+  "fluid_result": {
+    "id": "advanced_ae:quantum_infusion_source",
+    "amount": 1000
+  }
+}

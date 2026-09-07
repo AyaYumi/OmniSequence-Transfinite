@@ -16,7 +16,6 @@ import appeng.me.helpers.MachineSource;
 import appeng.menu.ISubMenu;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuHostLocator;
-import appeng.util.SettingsFrom;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
@@ -30,12 +29,10 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -93,13 +90,13 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     }
 
     public boolean hasRemovalRecovery() {
-        return hasActiveReusableBatch() || !bufferedOutputs.isEmpty();
+        return hasActiveReusableBatch() || !bufferedOutputs.isEmpty()
+                || RetainedBlockContents.hasPatternContents(this);
     }
 
     @Override
     public void addAdditionalDrops(Level level, BlockPos pos,
             List<ItemStack> drops) {
-        super.addAdditionalDrops(level, pos, drops);
         if (hasRemovalRecovery()) {
             drops.add(createRemovalRecovery(level.registryAccess()));
         }
@@ -116,12 +113,8 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
 
     private ItemStack createRemovalRecovery(
             HolderLookup.Provider registries) {
-        var recovery = new ItemStack(getBlockState().getBlock());
-        var settings = DataComponentMap.builder();
-        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
-        recovery.applyComponents(settings.build());
-
         var payload = new CompoundTag();
+        getLogic().writeToNBT(payload, registries);
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
             if (entry.getKey() != null && entry.getLongValue() > 0) {
@@ -132,8 +125,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         }
         payload.put(OUTPUT_BUFFER_TAG, outputList);
         writeReusableBatchRecovery(payload, registries);
-        BlockItem.setBlockEntityData(recovery, getType(), payload);
-        return recovery;
+        return RetainedBlockContents.createDrop(this, payload);
     }
 
     private void writeReusableBatchRecovery(CompoundTag tag,
@@ -327,6 +319,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
 
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
+        tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
         bufferedOutputs.clear();
         var outputList = tag.getList(OUTPUT_BUFFER_TAG, Tag.TAG_COMPOUND);

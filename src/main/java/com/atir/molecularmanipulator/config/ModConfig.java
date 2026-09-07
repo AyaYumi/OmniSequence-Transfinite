@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.config;
 
-import com.atir.molecularmanipulator.crafting.maxfast.OmniMaxFastMode;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig.Type;
 import net.neoforged.neoforge.common.ModConfigSpec;
@@ -19,19 +18,6 @@ public final class ModConfig {
     public static final List<ModConfigSpec.IntValue> MATTER_SPEED_CARD_PARALLEL;
     public static final List<ModConfigSpec.IntValue> MATTER_SPEED_CARD_CYCLE_TICKS;
     public static final List<ModConfigSpec.LongValue> MATTER_SPEED_CARD_COOLING_MULTIPLIER;
-    public static final ModConfigSpec.LongValue MAX_CRAFTING_ORDER_AMOUNT;
-    public static final ModConfigSpec.EnumValue<OmniMaxFastMode> OMNI_MAX_FAST_MODE;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_MAX_NODES;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_COMPILE_BUDGET_MS;
-    public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_DIAGNOSTICS;
-    public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_GRAPH_CACHE_ENABLED;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_GRAPH_CACHE_SIZE;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_GRAPH_CACHE_TTL_MINUTES;
-    public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_PARALLEL_EXECUTION_ENABLED;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_PARALLEL_THREAD_POOL_SIZE;
-    public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_SMART_CANDIDATE_SELECTION;
-    public static final ModConfigSpec.BooleanValue OMNI_MAX_FAST_PRECOMPILE_ENABLED;
-    public static final ModConfigSpec.IntValue OMNI_MAX_FAST_PRECOMPILE_COMMON_ITEMS;
     public static final ModConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
     public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
     public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
@@ -131,86 +117,9 @@ public final class ModConfig {
         server.pop();
         server.pop();
 
-        server.comment(
-                "General AE2 autocrafting request limits.",
-                "AE2 自动合成请求的通用限制。")
-                .push("ae2_crafting");
-        MAX_CRAFTING_ORDER_AMOUNT = server.comment(
-                "Maximum amount allowed for a single AE2 autocrafting order. Values above Integer.MAX_VALUE use the mod's long-amount request path.")
-                .translation("molecularmanipulator.configuration.max_crafting_order_amount")
-                .defineInRange("max_crafting_order_amount", 1_000_000_000_000L, 1L, Long.MAX_VALUE);
-        server.pop();
-
-        server.comment(
-                "Omni-Computation Core optimizer, cache, execution, and dispatch settings.",
-                "万物演算核心的优化器、缓存、执行与派发设置。")
+        server.comment("Omni-Computation Core machine dispatch settings.",
+                "万物演算核心的机器派发设置。规划器及 AE2 通用增强由 AppliedEnhancements 配置控制。")
                 .push("omni_computation");
-        server.comment(
-                "Recipe graph compilation and optimizer safety limits.",
-                "配方图编译与优化器安全限制。")
-                .push("optimizer");
-        OMNI_MAX_FAST_MODE = server.comment(
-                "Omni-Computation Core crafting-plan optimizer. OFF disables optimization. SAFE (default) uses a whitelist of known-compatible pattern types. AGGRESSIVE attempts all pattern types, letting runtime checks catch incompatibilities (supports future mods without updates).")
-                .translation("molecularmanipulator.configuration.omni_max_fast_mode")
-                .defineEnum("omni_max_fast_mode", OmniMaxFastMode.SAFE);
-        OMNI_MAX_FAST_MAX_NODES = server.comment(
-                "Maximum unique recipe-tree nodes compiled by the Omni-Computation Core optimizer before falling back to AE2.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_max_nodes")
-                .defineInRange("omni_max_fast_max_nodes", 8192, 64, 65536);
-        OMNI_MAX_FAST_COMPILE_BUDGET_MS = server.comment(
-                "Maximum graph compilation time in milliseconds before the Omni-Computation Core optimizer falls back to AE2.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_compile_budget_ms")
-                .defineInRange("omni_max_fast_compile_budget_ms", 100, 1, 5000);
-        OMNI_MAX_FAST_DIAGNOSTICS = server.comment(
-                "Log Omni-Computation Core graph aggregation successes and fallback reasons.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_diagnostics")
-                .define("omni_max_fast_diagnostics", false);
-        server.pop();
-
-        server.comment(
-                "Compiled recipe graph cache settings.",
-                "已编译配方图缓存设置。")
-                .push("cache");
-        OMNI_MAX_FAST_GRAPH_CACHE_ENABLED = server.comment(
-                "Enable compiled recipe graph caching for repeated crafting requests. Reduces compile time by 50-80% for identical crafts.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_graph_cache_enabled")
-                .define("omni_max_fast_graph_cache_enabled", true);
-        OMNI_MAX_FAST_GRAPH_CACHE_SIZE = server.comment(
-                "Maximum cached recipe graphs. LRU eviction after limit. Each entry uses ~50-200KB depending on recipe complexity.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_graph_cache_size")
-                .defineInRange("omni_max_fast_graph_cache_size", 256, 16, 2048);
-        OMNI_MAX_FAST_GRAPH_CACHE_TTL_MINUTES = server.comment(
-                "Maximum age in minutes for cached recipe graphs. Entries older than this are evicted even if cache size is below limit.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_graph_cache_ttl_minutes")
-                .defineInRange("omni_max_fast_graph_cache_ttl_minutes", 5, 1, 60);
-        server.pop();
-
-        server.comment(
-                "Parallel graph execution, candidate selection, and precompilation settings.",
-                "并行配方图执行、候选样板选择与预编译设置。")
-                .push("execution");
-        OMNI_MAX_FAST_PARALLEL_EXECUTION_ENABLED = server.comment(
-                "Enable parallel topological execution for independent recipe graph layers. Can speed up large crafts by 2-4x on multi-core systems.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_parallel_execution_enabled")
-                .define("omni_max_fast_parallel_execution_enabled", true);
-        OMNI_MAX_FAST_PARALLEL_THREAD_POOL_SIZE = server.comment(
-                "Thread pool size for parallel execution. 0 = auto (CPU cores - 2). Higher values may improve large craft throughput.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_parallel_thread_pool_size")
-                .defineInRange("omni_max_fast_parallel_thread_pool_size", 0, 0, 64);
-        OMNI_MAX_FAST_SMART_CANDIDATE_SELECTION = server.comment(
-                "Enable smart candidate pattern selection based on inventory availability. Reduces compilation failures by choosing patterns with available materials.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_smart_candidate_selection")
-                .define("omni_max_fast_smart_candidate_selection", true);
-        OMNI_MAX_FAST_PRECOMPILE_ENABLED = server.comment(
-                "Enable background precompilation of common recipe graphs on world load and recipe reload. Reduces first-craft latency.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_precompile_enabled")
-                .define("omni_max_fast_precompile_enabled", false);
-        OMNI_MAX_FAST_PRECOMPILE_COMMON_ITEMS = server.comment(
-                "Number of most-used items to precompile when precompilation is enabled. Higher values increase startup time but improve responsiveness.")
-                .translation("molecularmanipulator.configuration.omni_max_fast_precompile_common_items")
-                .defineInRange("omni_max_fast_precompile_common_items", 50, 10, 500);
-        server.pop();
-
         server.comment(
                 "Crafting-provider batch dispatch and main-thread work budgets.",
                 "合成供应器批量派发与主线程工作预算。")

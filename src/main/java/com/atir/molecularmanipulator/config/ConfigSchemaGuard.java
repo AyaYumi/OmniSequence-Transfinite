@@ -79,33 +79,42 @@ public final class ConfigSchemaGuard {
      */
     public static boolean removeObsoleteOption(
             Path file, String optionPath, String displayName) {
+        return removeObsoleteOptions(file, List.of(optionPath), displayName);
+    }
+
+    /** Removes a retired feature's options in one backed-up atomic write. */
+    public static boolean removeObsoleteOptions(
+            Path file, List<String> optionPaths, String displayName) {
         if (!Files.isRegularFile(file)) {
             return false;
         }
 
         try {
             var config = readToml(file);
-            if (!config.contains(optionPath)) {
+            var removed = optionPaths.stream().filter(config::contains).toList();
+            if (removed.isEmpty()) {
                 return false;
             }
 
             backUpConfig(file);
             config.bulkCommentedUpdate(view -> {
-                view.remove(optionPath);
-                view.removeComment(optionPath);
+                for (var path : removed) {
+                    view.remove(path);
+                    view.removeComment(path);
+                }
                 return null;
             });
             new TomlWriter().write(
                     config, file, WritingMode.REPLACE_ATOMIC);
             MolecularManipulator.LOGGER.info(
-                    "Removed retired option {} from {} configuration {}",
-                    optionPath, displayName, file);
+                    "Removed retired options {} from {} configuration {}",
+                    removed, displayName, file);
             return true;
         } catch (IOException | RuntimeException exception) {
             MolecularManipulator.LOGGER.warn(
-                    "Could not remove retired option {} from {} configuration {}; "
+                    "Could not remove retired options {} from {} configuration {}; "
                             + "the existing file was left in place",
-                    optionPath, displayName, file, exception);
+                    optionPaths, displayName, file, exception);
             return false;
         }
     }

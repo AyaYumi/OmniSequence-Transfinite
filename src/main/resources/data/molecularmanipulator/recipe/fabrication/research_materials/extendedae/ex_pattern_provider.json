@@ -1,0 +1,50 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "tag": "ae2:pattern_provider"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "ae2:capacity_card"
+      },
+      "count": 3
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:crafting_table"
+      },
+      "count": 3
+    },
+    {
+      "ingredient": {
+        "item": "extendedae:concurrent_processor"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "tag": "ae2:glass_cable"
+      },
+      "count": 6
+    }
+  ],
+  "results": [
+    {
+      "id": "extendedae:ex_pattern_provider",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

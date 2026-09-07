@@ -1,15 +1,16 @@
 package com.atir.molecularmanipulator.client;
 
+import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorBorderTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.ColorRectTexture;
 import com.lowdragmc.lowdraglib2.gui.texture.GuiTextureGroup;
+import com.lowdragmc.lowdraglib2.gui.texture.VanillaSpriteTexture;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Transform2D;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ProgressBar;
@@ -29,39 +30,35 @@ import java.util.List;
  * while vanilla edit boxes retain text input and search semantics.</p>
  */
 final class MolecularCenterLdUi {
-    private static final int PURPLE = 0xFFB77BFF;
-    private static final int CYAN = 0xFF63D8FF;
-    private static final int BLUE = 0xFF8EAEFF;
-    private static final int PINK = 0xFFFF83D1;
-    private static final int RED = 0xFFFF6D78;
-    private static final int[] TAB_COLORS = {PURPLE, CYAN, BLUE, PINK};
-    private static final int[] TAB_OFFSETS = {0, 50, 100, 150};
+    private static final int PURPLE = AeUiTheme.ACCENT;
+    private static final int CYAN = AeUiTheme.CYAN;
+    private static final int PINK = 0xFF8B5E78;
+    private static final int RED = AeUiTheme.ERROR;
 
     private final MolecularCenterScreen screen;
     private final MolecularCenterMenu menu;
     private final ModularUI modularUI;
     private final List<UIElement> matterControls;
-    private final List<UIElement> pipelineControls;
+    private final List<UIElement> autoCraftControls;
     private final List<UIElement> colorsControls;
     private final List<UIElement> legacyControls;
     private final UIElement tabIndicator;
-    private final ColorRectTexture tabIndicatorTexture = new ColorRectTexture(PURPLE);
     private final Button previewButton;
     private final Button previousPageButton;
     private final Button nextPageButton;
     private final Button dismantleButton;
     private final Button matterTabButton;
-    private final Button pipelineTabButton;
+    private final Button autoCraftTabButton;
     private final Button quantumTabButton;
     private final Button colorsTabButton;
     private final Button deconstructButton;
     private final Button rewriteButton;
     private final Button rewriteOutputButton;
-    private final Button primaryRouteButton;
-    private final Button byproductRouteButton;
-    private final Button outputPortButton;
+    private final Button autoCraftApplyLimitButton;
+    private final List<Button> autoCraftReserveButtons;
     private final Button resetColorsButton;
     private final Button structureUpdateButton;
+    private final StructureUpdateConfirmation updateConfirmation = new StructureUpdateConfirmation();
     private final Button keepLegacyStructureButton;
     private final ProgressBar deconstructProgress;
     private final ProgressBar rewriteProgress;
@@ -76,7 +73,7 @@ final class MolecularCenterLdUi {
 
         var ui = LdUiXml.load("ui/molecular_center.xml");
         matterControls = ui.select(".matter-control").toList();
-        pipelineControls = ui.select(".pipeline-control").toList();
+        autoCraftControls = ui.select(".auto-craft-control").toList();
         colorsControls = ui.select(".color-control").toList();
         legacyControls = ui.select(".legacy-control").toList();
 
@@ -104,14 +101,14 @@ final class MolecularCenterLdUi {
 
         matterTabButton = tab(ui, "tab-matter",
                 "gui.molecularmanipulator.tab_matter", MolecularCenterScreen.TAB_MATTER);
-        pipelineTabButton = tab(ui, "tab-pipeline",
-                "gui.molecularmanipulator.tab_pipeline", MolecularCenterScreen.TAB_PIPELINE);
+        autoCraftTabButton = tab(ui, "tab-auto-craft",
+                "gui.molecularmanipulator.tab_auto_craft", MolecularCenterScreen.TAB_AUTO_CRAFT);
         quantumTabButton = tab(ui, "tab-quantum",
                 "gui.molecularmanipulator.tab_quantum", MolecularCenterScreen.TAB_QUANTUM);
         colorsTabButton = tab(ui, "tab-colors",
                 "gui.molecularmanipulator.tab_colors", MolecularCenterScreen.TAB_COLORS);
         tabIndicator = LdUiXml.require(ui, "tab-indicator", UIElement.class);
-        tabIndicator.style(style -> style.backgroundTexture(tabIndicatorTexture));
+        tabIndicator.setDisplay(false);
 
         deconstructButton = button(ui, "matter-deconstruct", screen.deconstructLabel(),
                 Component.translatable("gui.molecularmanipulator.sequence_deconstruct_tooltip"),
@@ -130,21 +127,25 @@ final class MolecularCenterLdUi {
                 Component.translatable("gui.molecularmanipulator.matter_target_apply"),
                 Component.translatable("gui.molecularmanipulator.matter_target_tooltip"),
                 event -> menu.requestSetRewriteTarget(screen.rewriteTargetInput()));
-        deconstructProgress = progress(ui, "matter-deconstruct-progress", 0xFF9B68E8);
-        rewriteProgress = progress(ui, "matter-rewrite-progress", 0xFFFF82D8);
-        entropyProgress = progress(ui, "matter-entropy-progress", 0xFFE75AAE);
+        deconstructProgress = progress(ui, "matter-deconstruct-progress", PURPLE);
+        rewriteProgress = progress(ui, "matter-rewrite-progress", CYAN);
+        entropyProgress = progress(ui, "matter-entropy-progress", PINK);
 
-        primaryRouteButton = button(ui, "pipeline-primary-route", screen.primaryRouteLabel(),
-                Component.translatable("gui.molecularmanipulator.route_primary"),
-                event -> menu.requestCyclePrimaryRoute());
-        byproductRouteButton = button(ui, "pipeline-byproduct-route", screen.byproductRouteLabel(),
-                Component.translatable("gui.molecularmanipulator.route_byproduct"),
-                event -> menu.requestCycleByproductRoute());
-        outputPortButton = button(ui, "pipeline-output-port", screen.outputPortLabel(),
-                Component.translatable("gui.molecularmanipulator.output_port"),
-                event -> menu.requestCycleOutputPort());
+        autoCraftApplyLimitButton = button(ui, "auto-craft-apply-limit",
+                Component.translatable("gui.molecularmanipulator.auto_craft_apply"),
+                Component.translatable("gui.molecularmanipulator.auto_craft_output_limit_tooltip"),
+                event -> menu.requestSetAutoCraftOutputLimit(screen.autoCraftOutputLimitInput()));
+        autoCraftReserveButtons = new java.util.ArrayList<>(MolecularAutoCrafter.MAX_INPUTS);
+        for (int input = 0; input < MolecularAutoCrafter.MAX_INPUTS; input++) {
+            int selectedInput = input;
+            autoCraftReserveButtons.add(button(ui, "auto-craft-apply-reserve-" + input,
+                    Component.translatable("gui.molecularmanipulator.auto_craft_apply"),
+                    Component.translatable("gui.molecularmanipulator.auto_craft_input_reserve_tooltip"),
+                    event -> menu.requestSetAutoCraftInputReserve(selectedInput,
+                            screen.autoCraftInputReserveInput(selectedInput))));
+        }
 
-        int[] channelColors = {0xFFFF6D78, 0xFF70F2A2, 0xFF69DBFF};
+        int[] channelColors = {AeUiTheme.ERROR, AeUiTheme.SUCCESS, AeUiTheme.CYAN};
         String[] channelLabels = {"R", "G", "B"};
         for (int target = 0; target < 5; target++) {
             for (int channel = 0; channel < 3; channel++) {
@@ -172,13 +173,16 @@ final class MolecularCenterLdUi {
                 Component.translatable("gui.molecularmanipulator.structure_update_confirm"),
                 Component.translatable(
                         "gui.molecularmanipulator.structure_update_confirm_tooltip"),
-                event -> menu.requestStructureUpdate());
+                event -> {
+                    if (updateConfirmation.click()) menu.requestStructureUpdate();
+                    refresh();
+                });
         keepLegacyStructureButton = button(ui, "legacy-keep",
                 Component.translatable(
                         "gui.molecularmanipulator.structure_update_keep_legacy"),
                 Component.translatable(
                         "gui.molecularmanipulator.structure_update_keep_legacy_tooltip"),
-                event -> menu.requestKeepLegacyStructure());
+                event -> { updateConfirmation.cancel(); menu.requestKeepLegacyStructure(); });
 
         modularUI = ModularUI.of(ui);
         refresh();
@@ -193,15 +197,18 @@ final class MolecularCenterLdUi {
     }
 
     void tick() {
+        updateConfirmation.tick(menu.legacyStructure && !menu.building && !menu.dismantling);
         refresh();
         modularUI.tick();
     }
 
     void close() {
+        updateConfirmation.cancel();
         modularUI.onRemoved();
     }
 
     private void selectTab(int tab) {
+        updateConfirmation.cancel();
         screen.selectTab(tab);
         refresh();
     }
@@ -209,28 +216,38 @@ final class MolecularCenterLdUi {
     private void refresh() {
         int tab = screen.detailTab();
         boolean matterVisible = tab == MolecularCenterScreen.TAB_MATTER;
-        boolean pipelineVisible = tab == MolecularCenterScreen.TAB_PIPELINE;
+        boolean autoCraftVisible = tab == MolecularCenterScreen.TAB_AUTO_CRAFT;
         boolean colorsVisible = tab == MolecularCenterScreen.TAB_COLORS;
         boolean busy = menu.building || menu.dismantling;
 
         setDisplay(matterControls, matterVisible);
-        setDisplay(pipelineControls, pipelineVisible);
+        setDisplay(autoCraftControls, autoCraftVisible);
         setDisplay(colorsControls, colorsVisible);
-        setDisplay(legacyControls, menu.legacyStructure);
+        setDisplay(legacyControls, menu.legacyStructure && !autoCraftVisible);
         entropyProgress.setDisplay(matterVisible && !menu.legacyStructure);
         resetColorsButton.setDisplay(colorsVisible && !menu.legacyStructure);
         keepLegacyStructureButton.setDisplay(
-                menu.legacyStructure && !menu.legacyStructureUpdateDismissed);
+                menu.legacyStructure && !autoCraftVisible
+                        && !menu.legacyStructureUpdateDismissed);
 
-        matterTabButton.setActive(!matterVisible);
-        pipelineTabButton.setActive(!pipelineVisible);
-        quantumTabButton.setActive(tab != MolecularCenterScreen.TAB_QUANTUM);
-        colorsTabButton.setActive(!colorsVisible);
         previousPageButton.setActive(!screen.patternSearchWaiting() && menu.getPage() > 0);
         nextPageButton.setActive(!screen.patternSearchWaiting()
                 && menu.getPage() + 1 < menu.getPageCount());
         structureUpdateButton.setActive(menu.legacyStructure && !busy);
+        structureUpdateButton.setText(Component.translatable(updateConfirmation.isArmed()
+                ? "gui.molecularmanipulator.structure_update_second_confirm"
+                : "gui.molecularmanipulator.structure_update_confirm"));
         keepLegacyStructureButton.setActive(menu.legacyStructure && !busy);
+        boolean autoCraftSelected = menu.autoCraftSelectedSlot >= 0;
+        boolean autoCraftValid = autoCraftSelected
+                && menu.autoCraftState != MolecularAutoCrafter.AutoCraftState.EMPTY;
+        autoCraftApplyLimitButton.setDisplay(autoCraftVisible && autoCraftValid);
+        autoCraftApplyLimitButton.setActive(autoCraftValid);
+        for (int input = 0; input < autoCraftReserveButtons.size(); input++) {
+            var button = autoCraftReserveButtons.get(input);
+            button.setDisplay(autoCraftVisible && input < menu.autoCraftInputCount);
+            button.setActive(autoCraftValid && input < menu.autoCraftInputCount);
+        }
 
         previewButton.setText(screen.previewLabel());
         dismantleButton.setText(screen.dismantleLabel());
@@ -240,9 +257,6 @@ final class MolecularCenterLdUi {
         deconstructButton.setText(screen.deconstructLabel());
         rewriteButton.setText(screen.rewriteLabel());
         rewriteOutputButton.setText(screen.rewriteOutputLabel());
-        primaryRouteButton.setText(screen.primaryRouteLabel());
-        byproductRouteButton.setText(screen.byproductRouteLabel());
-        outputPortButton.setText(screen.outputPortLabel());
 
         deconstructProgress.setProgress(clampRatio(menu.deconstructJobProgress, 1000));
         rewriteProgress.setProgress(clampRatio(menu.rewriteJobProgress, 1000));
@@ -250,7 +264,10 @@ final class MolecularCenterLdUi {
                 menu.entropy, menu.entropyCapacity));
 
         if (previousTab != tab) {
-            animateTab(tab);
+            setTabSelected(matterTabButton, matterVisible);
+            setTabSelected(autoCraftTabButton, autoCraftVisible);
+            setTabSelected(quantumTabButton, tab == MolecularCenterScreen.TAB_QUANTUM);
+            setTabSelected(colorsTabButton, colorsVisible);
             previousTab = tab;
         }
         if (previousDeconstructState != null
@@ -264,20 +281,15 @@ final class MolecularCenterLdUi {
         previousRewriteState = menu.rewriteJobState;
     }
 
-    private void animateTab(int tab) {
-        int selected = Math.max(0, Math.min(TAB_OFFSETS.length - 1, tab));
-        tabIndicatorTexture.color = TAB_COLORS[selected];
-        var transform = new Transform2D().translate(TAB_OFFSETS[selected], 0);
-        if (previousTab < 0) {
-            tabIndicator.style(style -> style.transform2D(transform));
-            return;
-        }
-        tabIndicator.animation()
-                .duration(0.2f)
-                .ease(Eases.QUAD_OUT)
-                .style(PropertyRegistry.TRANSFORM_2D, transform)
-                .start();
-        pulse(tabIndicator);
+    private static void setTabSelected(Button button, boolean selected) {
+        button.setActive(true);
+        button.buttonStyle(style -> style
+                .baseTexture(VanillaSpriteTexture.of(
+                        selected ? "ae2:button_highlighted" : "ae2:button"))
+                .hoverTexture(VanillaSpriteTexture.of("ae2:button_highlighted"))
+                .pressedTexture(VanillaSpriteTexture.of("ae2:button_highlighted")));
+        button.textStyle(style -> style.textColor(
+                selected ? AeUiTheme.ACCENT : AeUiTheme.HIGHLIGHT));
     }
 
     private static float clampRatio(long value, long maximum) {
@@ -325,6 +337,7 @@ final class MolecularCenterLdUi {
                 .textWrap(TextWrap.HOVER_ROLL)
                 .textAlignHorizontal(Horizontal.CENTER)
                 .textAlignVertical(Vertical.CENTER));
+        AeUiTheme.styleLdButton(button);
         button.style(style -> style.tooltips(tooltip));
         return button;
     }
@@ -341,11 +354,11 @@ final class MolecularCenterLdUi {
         progress.barContainer(container -> {
             container.layout(layout -> layout.paddingAll(1));
             container.style(style -> style.backgroundTexture(new GuiTextureGroup(
-                    new ColorRectTexture(0xFF080D17),
-                    new ColorBorderTexture(-1, 0xFF526079))));
+                    new ColorRectTexture(AeUiTheme.TRACK),
+                    new ColorBorderTexture(-1, AeUiTheme.SHADOW))));
         });
         progress.barBackground.style(style ->
-                style.backgroundTexture(new ColorRectTexture(0xFF171D2A)));
+                style.backgroundTexture(new ColorRectTexture(AeUiTheme.PANEL_INSET)));
         progress.bar.style(style -> style.backgroundTexture(new ColorRectTexture(color)));
         progress.label.setDisplay(false);
         return progress;

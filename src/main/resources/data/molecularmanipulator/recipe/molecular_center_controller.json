@@ -1,27 +1,38 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "key": {
-    "C": {
-      "item": "extendedae:assembler_matrix_crafter"
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "extendedae:assembler_matrix_crafter"
+      },
+      "count": 2
     },
-    "P": {
-      "item": "extendedae:assembler_matrix_pattern"
+    {
+      "ingredient": {
+        "item": "extendedae:assembler_matrix_pattern"
+      },
+      "count": 4
     },
-    "S": {
-      "item": "extendedae:assembler_matrix_speed"
+    {
+      "ingredient": {
+        "item": "extendedae:assembler_matrix_speed"
+      },
+      "count": 2
     },
-    "W": {
-      "item": "extendedae:wireless_hub"
+    {
+      "ingredient": {
+        "item": "extendedae:wireless_hub"
+      },
+      "count": 1
     }
-  },
-  "pattern": [
-    "PSP",
-    "CWC",
-    "PSP"
   ],
-  "result": {
-    "count": 1,
-    "id": "molecularmanipulator:molecular_center_controller"
-  }
+  "results": [
+    {
+      "id": "molecularmanipulator:molecular_center_controller",
+      "count": 1
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 512,
+  "requires_research": true
 }

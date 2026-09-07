@@ -1,24 +1,32 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "key": {
-    "E": {
-      "item": "extendedae:entro_block"
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "extendedae:entro_block"
+      },
+      "count": 1
     },
-    "F": {
-      "item": "ae2:fluix_block"
+    {
+      "ingredient": {
+        "item": "ae2:fluix_block"
+      },
+      "count": 4
     },
-    "G": {
-      "item": "extendedae:assembler_matrix_glass"
+    {
+      "ingredient": {
+        "item": "extendedae:assembler_matrix_glass"
+      },
+      "count": 4
     }
-  },
-  "pattern": [
-    "FGF",
-    "GEG",
-    "FGF"
   ],
-  "result": {
-    "count": 4,
-    "id": "molecularmanipulator:molecular_center_glass"
-  }
+  "results": [
+    {
+      "id": "molecularmanipulator:molecular_center_glass",
+      "count": 4
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 512,
+  "requires_research": true
 }

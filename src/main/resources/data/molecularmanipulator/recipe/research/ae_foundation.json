@@ -1,0 +1,139 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.ae_foundation",
+  "prerequisites": [],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:inscriber"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:charger"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:certus_quartz_crystal"
+      },
+      "count": 256
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_crystal"
+      },
+      "count": 128
+    },
+    {
+      "ingredient": {
+        "item": "ae2:logic_processor"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "ae2:calculation_processor"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 64
+    }
+  ],
+  "duration": 600,
+  "ae_per_tick": 256,
+  "unlocks": [
+    "molecularmanipulator:matter_fabrication_pattern_assembly",
+    "molecularmanipulator:fabrication/ae/charged_certus",
+    "molecularmanipulator:fabrication/ae/fluix",
+    "molecularmanipulator:fabrication/ae/certus_dust",
+    "molecularmanipulator:fabrication/ae/silicon",
+    "molecularmanipulator:fabrication/ae/logic_processor",
+    "molecularmanipulator:fabrication/ae/calculation_processor",
+    "molecularmanipulator:fabrication/ae/engineering_processor",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/data_entangler",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_accelerator",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_alloy",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_core",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_crafter",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_infused_dust",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_infusion_source",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_processor",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_storage_128",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_storage_256",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_storage_component",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_unit",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/shattered_singularity",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_crafter",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_frame",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_pattern",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_speed",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_wall",
+    "molecularmanipulator:fabrication/research_materials/extendedae/concurrent_processor",
+    "molecularmanipulator:fabrication/research_materials/extendedae/entro_crystal",
+    "molecularmanipulator:fabrication/research_materials/extendedae/entro_dust",
+    "molecularmanipulator:fabrication/research_materials/extendedae/entro_ingot",
+    "molecularmanipulator:fabrication/research_materials/extendedae/ex_molecular_assembler",
+    "molecularmanipulator:fabrication/research_materials/extendedae/ex_pattern_provider",
+    "molecularmanipulator:fabrication/research_materials/extendedae/machine_frame",
+    "molecularmanipulator:fabrication/research_materials/extendedae/wireless_connect",
+    "molecularmanipulator:fabrication/research_materials/extendedae/wireless_hub"
+  ],
+  "required_mods": [],
+  "sort_order": 0,
+  "stage": 1,
+  "depths": [
+    {
+      "material_multiplier": "1",
+      "parallel": "1",
+      "speed_multiplier": "1"
+    },
+    {
+      "material_multiplier": "2",
+      "parallel": "256",
+      "speed_multiplier": "2"
+    },
+    {
+      "material_multiplier": "4",
+      "parallel": "65536",
+      "speed_multiplier": "4"
+    },
+    {
+      "material_multiplier": "8",
+      "parallel": "16777216",
+      "speed_multiplier": "8"
+    },
+    {
+      "material_multiplier": "16",
+      "parallel": "4294967296",
+      "speed_multiplier": "16"
+    },
+    {
+      "material_multiplier": "32",
+      "parallel": "1099511627776",
+      "speed_multiplier": "32"
+    },
+    {
+      "material_multiplier": "64",
+      "parallel": "281474976710656",
+      "speed_multiplier": "64"
+    },
+    {
+      "material_multiplier": "128",
+      "parallel": "72057594037927936",
+      "speed_multiplier": "128"
+    },
+    {
+      "material_multiplier": "256",
+      "parallel": "9223372036854775807",
+      "speed_multiplier": "256",
+      "processing_ticks": 1
+    }
+  ]
+}

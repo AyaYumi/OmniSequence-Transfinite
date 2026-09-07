@@ -15,12 +15,12 @@
         .left-label { horizontal-align: LEFT; }
         .center-label { horizontal-align: CENTER; }
         .right-label { horizontal-align: RIGHT; }
-        .section-label { text-color: #CFC5DC; }
+        .section-label { text-color: #413F54; }
         .page-button { width: 16; height: 16; }
         .capacity-progress { position: absolute; }
-        #title { text-color: #F1E8FF; }
-        #page-label { text-color: #B7C3D7; }
-        #capacity-label { text-color: #69DBFF; font-size: 8; }
+        #title { text-color: #413F54; }
+        #page-label { text-color: #878FA5; }
+        #capacity-label { text-color: #517497; font-size: 8; }
     </style>
     <root id="root">
         <label id="title" class="placed ui-label left-label"

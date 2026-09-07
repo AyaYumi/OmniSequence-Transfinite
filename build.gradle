@@ -136,6 +136,8 @@ configurations {
 }
 
 dependencies {
+    compileOnly files("libs/appliedenhancements-${applied_enhancements_version}.jar")
+    localRuntime files("libs/appliedenhancements-${applied_enhancements_version}.jar")
     implementation "org.appliedenergistics:appliedenergistics2:${ae2_version}"
     implementation "io.github.glodblock:Glodium:${glodium_version}"
     implementation "curse.maven:ex-pattern-provider-${extendedae_curse_project}:${extendedae_curse_file}"
@@ -143,11 +145,13 @@ dependencies {
         transitive = false
     }
     compileOnly "org.appliedenergistics.yoga:yoga:1.0.0"
+    compileOnly "org.appliedenergistics:guideme:21.1.1"
     compileOnly "dev.vfyjxf:taffy:1.1.4"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'it.unimi.dsi:fastutil:8.5.12'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
@@ -164,6 +168,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_license            : mod_license,
             mod_version            : mod_version,
             ldlib2_version         : ldlib2_version,
+            applied_enhancements_version: applied_enhancements_version,
     ]
     inputs.properties replaceProperties
     expand replaceProperties
@@ -209,10 +214,23 @@ tasks.named('jar', Jar).configure {
     from('docs/omni-batch-provider-api.md') {
         into 'docs'
     }
+    from('docs/matter-research-api.md') {
+        into 'docs'
+    }
+    from('docs/README.md') {
+        into 'docs'
+    }
+}
+
+tasks.named('compileTestJava', JavaCompile).configure {
+    // Geometry tests use the same Minecraft/JOML vertex API as the main renderer.
+    classpath += sourceSets.main.compileClasspath
 }
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    // Structure regression tests load Minecraft coordinate types without launching the game.
+    classpath += sourceSets.main.compileClasspath
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

@@ -25,6 +25,8 @@ minecraft {
             workingDirectory project.file(findProperty('run_directory') ?: 'run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', project.file('build/createSrgToMcp/output.srg').absolutePath
 
             mods {
                 "${mod_id}" {
@@ -59,13 +61,32 @@ mixin {
     config "${mod_id}.mixins.json"
 }
 
+// MixinGradle writes outside JavaCompile's normal output directories. Keep those
+// outputs tracked and run the processor over all mixins when Java sources change.
+def mixinRefmap = layout.buildDirectory.file("tmp/compileJava/${mod_id}.refmap.json")
+tasks.named('compileJava', JavaCompile).configure {
+    options.incremental = false
+    outputs.files(mixinRefmap,
+            layout.buildDirectory.file('tmp/compileJava/compileJava-refmap.json'),
+            layout.buildDirectory.file('tmp/compileJava/compileJava-mappings.tsrg'))
+}
+tasks.named('processResources', ProcessResources).configure {
+    dependsOn tasks.named('compileJava')
+    from(mixinRefmap)
+}
+tasks.withType(Jar).configureEach {
+    // MixinGradle also contributes the same generated file directly to reobfuscated jars.
+    filesMatching("${mod_id}.refmap.json") { duplicatesStrategy = DuplicatesStrategy.EXCLUDE }
+}
+
 jarJar.enable()
 
 tasks.named('jarJar', Jar).configure {
     archiveClassifier = ''
-    from('LICENSE.txt')
+    from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
+    from('docs') { into 'docs' }
 }
 
 sourceSets.main.resources {
@@ -181,9 +202,10 @@ tasks.named('jar', Jar).configure {
     includeEmptyDirs = false
     preserveFileTimestamps = false
     reproducibleFileOrder = true
-    from('LICENSE.txt')
+    from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
+    from('docs') { into 'docs' }
     finalizedBy 'reobfJar'
 }
 

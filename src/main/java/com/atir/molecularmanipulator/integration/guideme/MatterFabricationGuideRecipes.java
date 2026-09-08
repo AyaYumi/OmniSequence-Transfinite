@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.integration.guideme;
 
+import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -28,14 +29,19 @@ public final class MatterFabricationGuideRecipes implements RecipeTypeMappingSup
         var box = LytStandardRecipeBox.builder()
                 .icon(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get())
                 .title(Component.translatable("gui.molecularmanipulator.fabrication.jei_title").getString());
-        if (!recipe.ingredients().isEmpty()) {
-            int columns = Math.min(3, recipe.ingredients().size());
-            var inputs = new LytSlotGrid(columns, ((recipe.ingredients().size() + columns - 1) / columns));
+        int inputCount = recipe.ingredients().size() + recipe.aeInputs().size();
+        if (inputCount > 0) {
+            int columns = Math.min(3, inputCount);
+            var inputs = new LytSlotGrid(columns, ((inputCount + columns - 1) / columns));
             inputs.setRenderEmptySlots(false);
             for (int i = 0; i < recipe.ingredients().size(); i++) {
                 var counted = recipe.ingredients().get(i);
                 inputs.setIngredient(i % columns, i / columns, Ingredient.of(Arrays.stream(counted.ingredient().getItems())
                         .map(stack -> stack.copyWithCount(counted.count()))));
+            }
+            for (int i = 0; i < recipe.aeInputs().size(); i++) {
+                int index = recipe.ingredients().size() + i;
+                inputs.setItem(index % columns, index / columns, GenericStack.wrapInItemStack(recipe.aeInputs().get(i)));
             }
             box.input(inputs);
         }

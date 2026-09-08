@@ -1,0 +1,13 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [{"ingredient": {"item": "minecraft:diamond"}, "count": 2}],
+  "ae_inputs": [
+    {"#t": "molecularmanipulator:verification_resource", "id": "gas", "variant": "hot", "#": 3000000000},
+    {"#t": "molecularmanipulator:verification_resource", "id": "gas", "variant": "cold", "#": 7},
+    {"#t": "ae2:f", "id": "minecraft:lava", "#": 100}
+  ],
+  "fluid_input": {"id": "minecraft:water", "amount": 250},
+  "results": [{"id": "minecraft:emerald", "count": 1}],
+  "processing_time": 2,
+  "ae_per_tick": 0
+}

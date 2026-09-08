@@ -1,0 +1,29 @@
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def regression = sourceSets.create('forgeRegression') {
+            java.srcDir project.file('tools/gametest/java')
+            resources.srcDir project.file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory project.file('build/forge-regression-run')
+            mods {
+                "${project.mod_id}" { source regression }
+            }
+        }
+        tasks.named('compileForgeRegressionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def report = project.file('build/forge-regression-run/logs/latest.log').text
+                if (!report.contains('All 3 required tests passed')) {
+                    throw new GradleException('Forge GameTests did not complete the required runtime checks; inspect logs/latest.log')
+                }
+            }
+        }
+    }
+}

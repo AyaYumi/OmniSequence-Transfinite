@@ -9,17 +9,17 @@
           "name": "molecularmanipulator:matter_fabrication_controller",
           "functions": [
             {
-              "function": "minecraft:copy_custom_data",
+              "function": "minecraft:copy_nbt",
               "source": "block_entity",
               "ops": [
                 {
                   "source": "fabrication_research",
-                  "target": "fabrication_research",
+                  "target": "BlockEntityTag.fabrication_research",
                   "op": "replace"
                 },
                 {
                   "source": "fabrication_owned_batch",
-                  "target": "fabrication_owned_batch",
+                  "target": "BlockEntityTag.fabrication_owned_batch",
                   "op": "replace"
                 }
               ]

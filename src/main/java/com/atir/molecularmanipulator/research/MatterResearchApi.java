@@ -2,8 +2,7 @@ package com.atir.molecularmanipulator.research;
 
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
-import com.atir.molecularmanipulator.registry.ModContent;
-import java.util.Comparator;
+import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
 import java.util.List;
 import java.util.function.ToIntFunction;
 import net.minecraft.resources.ResourceLocation;
@@ -14,10 +13,7 @@ public final class MatterResearchApi {
     private MatterResearchApi() {}
 
     public static List<MatterResearchRecipe> definitions(Level level) {
-        return level.getRecipeManager().getAllRecipesFor(ModContent.MATTER_RESEARCH_RECIPE_TYPE.get()).stream()
-                .filter(holder -> holder.value().available())
-                .sorted(Comparator.<MatterResearchRecipe>comparingInt(holder -> holder.value().sortOrder())
-                        .thenComparing(holder -> holder.id().toString())).toList();
+        return MatterRecipeIndex.get(level).research();
     }
 
     public static boolean start(MatterFabricationBlockEntity machine, String researchId) {
@@ -36,7 +32,7 @@ public final class MatterResearchApi {
 
     public static boolean isCompleted(MatterFabricationBlockEntity machine, String researchId) {
         var id = ResourceLocation.tryParse(researchId);
-        return id != null && machine.getResearch().completed().contains(id);
+        return id != null && machine.getResearch().completionCount(id) > 0;
     }
 
     public static int completionCount(MatterFabricationBlockEntity machine, String researchId) {
@@ -86,9 +82,9 @@ public final class MatterResearchApi {
 
     public static ProductionProfile productionProfile(MatterFabricationBlockEntity machine, MatterFabricationRecipe recipe) {
         long parallel = 1; int ticks = recipe.value().processingTime(); boolean hasOwner = false;
-        for (var holder : definitions(machine.getLevel())) {
+        for (var holder : MatterRecipeIndex.get(machine.getLevel()).researchFor(recipe.id())) {
             int completed = machine.getResearch().completionCount(holder.id());
-            if (completed > 0 && holder.value().unlocks().contains(recipe.id())) {
+            if (completed > 0) {
                 var depth = holder.value().depths().get(Math.min(completed, holder.value().depths().size()) - 1);
                 parallel = Math.max(parallel, depth.parallel());
                 int target = depth.ticks(recipe.value().processingTime());
@@ -114,11 +110,9 @@ public final class MatterResearchApi {
 
     private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked) {
         if (machine.getLevel() == null) return false;
-        for (var definition : definitions(machine.getLevel())) {
-            if (definition.value().unlocks().contains(id)) {
-                locked = true;
-                if (machine.getResearch().completed().contains(definition.id())) return true;
-            }
+        for (var definition : MatterRecipeIndex.get(machine.getLevel()).researchFor(id)) {
+            locked = true;
+            if (machine.getResearch().completionCount(definition.id()) > 0) return true;
         }
         return !locked;
     }

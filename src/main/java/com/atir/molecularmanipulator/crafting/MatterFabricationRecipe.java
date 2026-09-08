@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.crafting;
 
+import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -22,6 +23,7 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
         List<ItemStack> results,
         FluidStack fluidInput,
         FluidStack fluidResult,
+        List<GenericStack> aeInputs,
         int processingTime,
         double aePerTick,
         boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
@@ -34,13 +36,23 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
     }
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick, boolean requiresResearch) {
-        this(com.atir.molecularmanipulator.MolecularManipulator.id("unregistered"), ingredients, results, fluidInput, fluidResult, processingTime, aePerTick, requiresResearch);
+        this(ingredients, results, fluidInput, fluidResult, List.of(), processingTime, aePerTick, requiresResearch);
+    }
+
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results, FluidStack fluidInput,
+            FluidStack fluidResult, List<GenericStack> aeInputs, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(com.atir.molecularmanipulator.MolecularManipulator.id("unregistered"), ingredients, results, fluidInput, fluidResult, aeInputs, processingTime, aePerTick, requiresResearch);
+    }
+
+    public MatterFabricationRecipe(net.minecraft.resources.ResourceLocation id, List<CountedIngredient> ingredients,
+            List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(id, ingredients, results, fluidInput, fluidResult, List.of(), processingTime, aePerTick, requiresResearch);
     }
 
     @Override public net.minecraft.resources.ResourceLocation getId() { return id; }
     public MatterFabricationRecipe value() { return this; }
     public MatterFabricationRecipe withId(net.minecraft.resources.ResourceLocation recipeId) {
-        return new MatterFabricationRecipe(recipeId, ingredients, results, fluidInput, fluidResult, processingTime, aePerTick, requiresResearch);
+        return new MatterFabricationRecipe(recipeId, ingredients, results, fluidInput, fluidResult, aeInputs, processingTime, aePerTick, requiresResearch);
     }
 
     public MatterFabricationRecipe {
@@ -48,8 +60,12 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
         results = results.stream().map(ItemStack::copy).toList();
         fluidInput = fluidInput.copy();
         fluidResult = fluidResult.copy();
-        if (ingredients.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty()) {
-            throw new IllegalArgumentException("Matter fabrication recipes require at least one item or fluid input");
+        aeInputs = List.copyOf(aeInputs);
+        if (ingredients.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
+            throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 9 item/AE inputs or a fluid input");
+        }
+        if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)) {
+            throw new IllegalArgumentException("AE input amounts must be positive");
         }
         if (results.size() > MAX_OUTPUTS || results.isEmpty() && fluidResult.isEmpty()) {
             throw new IllegalArgumentException("Matter fabrication recipes require at least one item or fluid result");
@@ -68,7 +84,8 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
     }
 
     public int[] consumptionPlan(MatterFabricationRecipeInput input, long crafts) {
-        if (crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
+        // Manual ports have no generic AE storage; these recipes must be supplied by an assembly.
+        if (!aeInputs.isEmpty() || crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
             return null;
         }
         int[] available = new int[input.size()];
@@ -176,6 +193,8 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
                                 .forGetter(MatterFabricationRecipe::fluidInput),
                         com.atir.molecularmanipulator.crafting.ForgeRecipeCodecs.FLUID_STACK.optionalFieldOf("fluid_result", FluidStack.EMPTY)
                                 .forGetter(MatterFabricationRecipe::fluidResult),
+                        ForgeRecipeCodecs.GENERIC_INPUTS
+                                .forGetter(MatterFabricationRecipe::aeInputs),
                         Codec.INT.optionalFieldOf("processing_time", 200)
                                 .forGetter(MatterFabricationRecipe::processingTime),
                         Codec.DOUBLE.optionalFieldOf("ae_per_tick", 64.0)

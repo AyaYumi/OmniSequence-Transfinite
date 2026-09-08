@@ -1,12 +1,13 @@
 # Integration APIs / 接口索引
 
-Target: OmniSequence: Transfinite **2.0.0-forge**, Minecraft **1.20.1**, Forge,
+Target: OmniSequence: Transfinite **2.0.1-forge**, Minecraft **1.20.1**, Forge,
 Java **17**, AE2 **15.4.10 through 15.x**, AppliedEnhancements **1.0.6-forge**.
 The Mod ID remains `molecularmanipulator`.
 
 | Integration | Contract | Documentation |
 | --- | --- | --- |
-| Atomic item/fluid delivery to a pattern provider | `com.atir.molecularmanipulator.api.crafting`, runtime ABI 1 | [Omni Batch Provider API](omni-batch-provider-api.md) |
+| Atomic AEKey delivery to a pattern provider | `com.atir.molecularmanipulator.api.crafting`, runtime ABI 1; supported resource types depend on the provider | [Omni Batch Provider API](omni-batch-provider-api.md) |
+| Generic well inputs and pattern output isolation | `MatterFabricationRecipe.aeInputs`, JSON `ae_inputs`, assembly-owned queues | [Well recipe format and limitations](matter-research-api.md) |
 | Well research, prerequisites, progress administration and production bonuses | `com.atir.molecularmanipulator.research.MatterResearchApi` and data recipes | [Matter Research / KubeJS API](matter-research-api.md) |
 | AELIS planning, cyclic execution and shared AE2 enhancements | Separate AppliedEnhancements mod | [AppliedEnhancements API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/API_INTEGRATION.md) |
 
@@ -25,12 +26,13 @@ UI enabled/highlight state is presentation data, not a new crafting or research 
 
 ## 中文
 
-本文档对应 2.0.0-forge，批量投料 API 保持 v1；研究接口从 2.0.0 提供。模组 ID
+本文档对应 2.0.1-forge，批量投料 API 保持 v1；研究接口从 2.0.0 提供。模组 ID
 仍为 `molecularmanipulator`，客户端和服务端都需要 AppliedEnhancements 1.0.6-forge。
 
 | 需求 | 使用接口 |
 | --- | --- |
-| 第三方样板机器接收完整物品／流体批次 | [批量供应器 API](omni-batch-provider-api.md) |
+| 第三方样板机器接收完整 AEKey 批次，资源类型由供应器决定 | [批量供应器 API](omni-batch-provider-api.md) |
+| 构筑井通用输入、样板产物隔离与当前限制 | [配方格式与已知限制](matter-research-api.md) |
 | 数据包／KubeJS 研究与配方、前置等级、进度管理 | [研究 API](matter-research-api.md) |
 | 调用 AELIS、管理循环合成执行 | [前置独立 API](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/API_INTEGRATION_ZH.md) |
 

@@ -1,3 +1,39 @@
+# OmniSequence: Transfinite 2.0.1-forge
+
+Minecraft 1.20.1 / Forge 47 / Java 17
+
+## English
+
+| Area | Update |
+| --- | --- |
+| Feature parity | Ported the 1.21.1 branch's 2.0.1 update: generic AEKey inputs, indexed output lookup, cached research definitions, queue lookup reuse and JEI/GuideME input display. |
+| AE2 15 compatibility | Added `ForgeRecipeCodecs.GENERIC_STACK` for `ae_inputs`. JSON keeps `#t` and `#`; the bridge translates AE2 15's native NBT and uses `key_nbt` SNBT for lossless key synchronization. Invalid or unavailable generic inputs reject the recipe. |
+| Lookup invalidation | Observe RecipeManager's replaced `byName` snapshot instead of its freshly allocated recipe collection. Research changes remain live per controller; data reload rebuilds the index. |
+| Runtime resources | Corrected the controller loot function to Forge 1.20.1 `copy_nbt` with `BlockEntityTag` destinations. |
+| Documentation and cleanup | Updated bilingual README and Forge API references; consolidated the MIT license while retaining contributor credits. Runtime models, textures and Forge UI remain in place. |
+| Verification | Added Forge runtime regressions for custom AEKeys, exact NBT/long serialization, ordinary and API batching, output isolation, persistence, refunds and recipe/research reloads. |
+
+Requires AE2 15.4.10, ExtendedAE 1.20-1.4.18-forge or newer compatible Forge build, Glodium 1.20-1.5-forge, GuideME 20.1.15 and separately installed AppliedEnhancements 1.0.6-forge. Update both client and server. This JAR is for Minecraft 1.20.1 Forge; the NeoForge 1.21.1 artifact remains separate.
+
+Known upstream limitation retained: overlapping alternatives with identical outputs can change the selected processing recipe after batch splitting. An earlier overlapping recipe introduced by reload can leave an existing queue waiting. Recipes with different outputs remain isolated.
+
+## 中文
+
+| 项目 | 更新说明 |
+| --- | --- |
+| 功能同步 | 移植 1.21.1 分支的 2.0.1 更新：通用 AEKey 输入、产物查询索引、研究定义缓存、队列查询复用，以及 JEI／GuideME 通用输入展示。 |
+| AE2 15 适配 | 新增 `ForgeRecipeCodecs.GENERIC_STACK` 解析 `ae_inputs`。JSON 沿用 `#t` 和 `#`，内部转换为 AE2 15 原生 NBT，并用 `key_nbt` SNBT 无损同步完整 Key。非法或不可用的通用输入会拒绝配方。 |
+| 缓存失效 | 检测 RecipeManager 被替换的 `byName` 快照，避免每次新建配方集合导致缓存失效；各控制器研究进度实时生效，配方重载重建索引。 |
+| 运行资源 | 控制器掉落表改为 1.20.1 支持的 `copy_nbt`，数据写入 `BlockEntityTag`。 |
+| 文档与清理 | 更新中英文 README 和 Forge API 文档；合并重复 MIT 许可并保留贡献者版权，继续保留运行模型、纹理及 Forge 原生界面。 |
+| 验证 | 新增 Forge 游戏回归，覆盖自定义 AEKey、精确 NBT／long 序列化、单份及批量投料、产物隔离、存档、退款与配方／研究重载。 |
+
+前置：AE2 15.4.10、ExtendedAE 1.20-1.4.18-forge 或更新的兼容 Forge 构建、Glodium 1.20-1.5-forge、GuideME 20.1.15，以及单独安装的 AppliedEnhancements 1.0.6-forge。客户端和服务端同时更新。本包用于 Minecraft 1.20.1 Forge，与 1.21.1 NeoForge 安装包分开。
+
+沿用的上游已知限制：产物相同、可替代原料重叠时，批量拆分可能改选加工配方；重载时新增更靠前的重叠配方，也可能让旧队列等待。产物不同的配方保持隔离。
+
+---
+
 # 2.0.0-forge — Minecraft 1.20.1
 
 - Make matter deconstruction/reproduction highlights follow their synchronized enable switches; stopped operations use ordinary buttons.

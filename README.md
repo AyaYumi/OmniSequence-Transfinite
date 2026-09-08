@@ -18,7 +18,7 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on For
 | Glodium | 1.20-1.5-forge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `2.0.0-forge`
+Current release: `2.0.1-forge`
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete change list and upgrade
 history.
@@ -116,6 +116,16 @@ See [UI layout and validation](docs/UI_DESIGN.md) for the screen map and headles
 - One-click dismantling uses a timed two-step confirmation. Rapid double-clicks, clicking another control, or waiting for the timeout will not trigger accidental removal.
 - Provides independent RGB effects for the energy field, core, rings, and lattice. Crafting accelerates the animation only; visual settings do not change processing speed.
 - Automatically force-loads required chunks while formed or during construction, dismantling and structure updates; structural damage pauses work while preserving progress.
+
+### Matter Fabrication Well and Pattern Assembly
+
+- Each assembly holds 36 AE2 processing patterns and receives complete recipe inputs from AE autocrafting.
+- Version 2.0.1 supports all registered AEKey input types through the optional `ae_inputs` field, including compatible addon resources. Existing item/fluid recipes remain valid. Generic-input recipes use the assembly; manual ports retain their item/fluid workflow.
+- Lookup uses the pattern's complete output and quantity before validating materials. Recipes such as `10A + 10B -> C` and `10A + 10B -> D` remain separate; two C crafts also remain `2C` when their combined inputs equal one D recipe. Queues retain their pattern definitions and recipe IDs.
+- Input, output and refund buffers retain exact AE keys and long amounts across saves. Finished products and queued refunds return to ME. Research permissions and production bonuses belong to the connected controller.
+- Output indexes and cached research definitions reduce repeated lookup work. Recipe reloads rebuild the indexes; controller research progress is read live. See the [recipe and research API](docs/matter-research-api.md) for JSON and Java integration.
+
+Known 2.0.1 limitations: when overlapping ingredient alternatives produce the same output, splitting a queue can select a different recipe's time and power. A reload that adds a higher-priority overlapping recipe can also leave an existing queue waiting. These cases are distinct from recipes that produce different outputs and remain unresolved in this release.
 
 Use the in-game projection and JEI structure information as the authoritative material list and orientation reference.
 
@@ -217,7 +227,7 @@ See [Forge port details](docs/FORGE_PORT.md) for API, material and UI difference
 
 Install the required dependencies above and place the built JAR in both the client and server `mods` directories. Before upgrading, fully stop the game, use the same version on both sides, and keep exactly one active `omnisequence-transfinite-*.jar` in each `mods` directory to avoid duplicate Mod IDs.
 
-Source maintenance for 2.0.0 continues on `1.20.1-forge`.
+Source maintenance for 2.0.1 continues on `1.20.1-forge`.
 For a source build, first place the separately built AppliedEnhancements 1.0.6-forge JAR
 in `libs/`, following [the dependency setup](libs/README.md). Its binary is ignored
 by Git and is not embedded in this mod. See the dependency setup for Forge artifacts. All machine screens and JEI pages use the custom light sci-fi console UI while retaining Minecraft / AE2 container behavior. LDLib2 is not required; see [UI design](docs/UI_DESIGN.md).
@@ -229,7 +239,7 @@ by Git and is not embedded in this mod. See the dependency setup for Forge artif
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-2.0.0-forge.jar
+build/libs/omnisequence-transfinite-2.0.1-forge.jar
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade

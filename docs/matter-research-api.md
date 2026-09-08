@@ -1,6 +1,6 @@
 # Matter Fabrication Research / 物质构筑井研究 API
 
-## English integration reference (2.0.0-forge)
+## English integration reference (2.0.1-forge)
 
 Minecraft 1.20.1 / Forge / Java 17. Required prerequisite: AppliedEnhancements
 1.0.6-forge. See the [API index](README.md) and [batch-provider contract](omni-batch-provider-api.md).
@@ -35,16 +35,62 @@ is required for the Omni branch. `unlocks` contains full **recipe IDs**, not ite
 Multiple completed branches grant the highest parallelism and shortest processing
 time rather than multiplying bonuses. Research bonuses affect well production only.
 
-For KubeJS long fields, use decimal strings, especially above `2^53 - 1`;
+For KubeJS research long fields, use decimal strings, especially above `2^53 - 1`;
 `'9223372036854775807'` is valid while floating-point or exponent notation is not.
 Use `conditions` for optional-mod items: `required_mods` alone does not
 prevent missing ingredients from failing during recipe decoding.
 
-Pattern assemblies own persistent item/fluid input, output and refund buffers.
-Accepted work stores its processing snapshot. New or unstarted work uses current
+Pattern assemblies accept all registered AEKey input types through the optional
+`ae_inputs` recipe field. Entries use `ForgeRecipeCodecs.GENERIC_STACK` with `#t`
+for the key type and `#` for the positive long amount. `ingredients` and `ae_inputs`
+share a nine-entry limit. Existing item/fluid recipes remain compatible; recipes
+using `ae_inputs` require assembly delivery. JEI and GuideME display these inputs.
+AE2 15 serializes native key types with `#c`; the bridge translates the recipe
+`#t` field to/from `#c` and keeps `#` as a long. The encoder writes native key data as a `key_nbt` SNBT string to preserve
+numeric tag widths and array types. Simple definitions may use flat native fields
+such as `id`; item/fluid payloads use `tag` NBT rather than 1.21.1 data components. `GenericStack.CODEC` is not available in AE2 15.
+
+| Generic input field | Meaning |
+| --- | --- |
+| `#t` | Registered AEKey type ID; AE2 items use `ae2:i`, fluids use `ae2:f`. Addons define their own IDs. |
+| `#` | Raw amount per craft, an integer from 1 through 9223372036854775807. Item units are items; Forge fluid units are mB. |
+| `key_nbt` | Optional SNBT string containing the complete native key payload, including `id`. Generated JSON uses this form for lossless NBT round trips. |
+| `id`, `tag`, other fields | Decoded by the selected key type. Use that addon's native NBT fields rather than assuming it shares the item/fluid format. |
+
+For example, `{"#t":"ae2:f","id":"minecraft:water","#":1000}` requests 1,000 mB of water.
+Unlike the research fields above, `#` uses the Forge bridge's exact integer parser, not the
+research decimal-string codec. For values beyond JavaScript's exact integer range,
+use an integer literal in a data-pack JSON file or construct the resource with Java
+`new GenericStack(key, longAmount)`. Do not first convert it through a JavaScript number.
+Generic keys match exactly, including NBT; normal `ingredients` retain their
+Ingredient/tag matching. Repeated or overlapping requirements are additive.
+Malformed `ae_inputs` reject the recipe; they never silently become an empty cost list.
+
+Java recipes use `new MatterFabricationRecipe(ingredients, results, fluidInput,
+fluidResult, aeInputs, processingTime, aePerTick, requiresResearch)` with
+`List<GenericStack> aeInputs`. The previous constructors remain available and default
+to no generic inputs. Outputs still use `results` and `fluid_result` (up to two item
+results and one fluid result); this update does not introduce generic output fields.
+
+Recipe lookup indexes complete outputs, including amounts, and caches research
+definitions and recipe ownership. Recipe snapshot replacement rebuilds the index;
+controller completion counts remain live. Assemblies own persistent AEKey input,
+output and refund buffers.
+Started work stores its processing snapshot. New or unstarted work uses current
 recipe permissions and bonuses. Finished products and refunds return to ME;
 blocked transfers stay in the assembly. The controller's manual port workflow
 remains separate. Removing one block does not collect other assemblies' inventories.
+
+Pattern lookup includes the full expected output and quantity. Identical or
+proportional inputs producing different outputs remain separate, including API
+batches and mixed queues after save/reload. Two crafts of `10A + 10B -> C` produce
+`2C` even if `20A + 20B -> D` also exists. The same applies to `10A + 10B -> D`.
+
+Known 2.0.1 limitations: overlapping alternatives with identical outputs can select
+a different recipe during batch splitting, changing time and power. A reload that
+introduces an earlier matching recipe can leave an existing queue waiting even
+while its original recipe still exists. These cases remain unresolved; neither
+output indexing nor API admission should be treated as a fix for them.
 
 OP level 2 commands: `/matter_research unlock_all`, `complete <id> <true|false>`
 and `set <id> <count>`. Append `x y z` for an explicit loaded controller, or aim
@@ -107,9 +153,11 @@ Complete field tables, KubeJS examples and administration details follow below.
 
 手动接口加工与样板总成都使用同一研究加成。手动物品缓存按实际库存、输出空间和供电计算本轮份数；不会把 long 数量塞进普通 ItemStack。
 
-样板总成实现公开 `OmniBatchCraftingProvider` API，支持本模组演算系统的 long 批次。输入与输出以 AE Key + long 持久保存，处理工作量取决于材料种类数，不逐份循环。AE 普通单份投料也使用同一持久批次，可在开始加工前合并同配方投料。
+样板总成实现公开 `OmniBatchCraftingProvider` API，支持本模组演算系统的 long 批次。输入支持所有已注册的 AEKey 类型，配方通过下述 `ae_inputs` 声明额外资源。输入与输出以 AE Key + long 持久保存，处理工作量取决于材料种类数，不逐份循环。AE 普通单份投料也使用同一持久批次，可在开始加工前合并同配方投料。
 
 样板总成自行持有输入、输出和退款缓存，产物与待退回原料自动写回其 ME 网络；网络不接收时保留在总成内，不转存到手动输出口。控制器保留的旧批次兼容路径与手动接口加工使用各自缓存。输出堵塞或保存重载不会丢弃已接收材料，单独拆除控制器不会收走其他总成的库存。
+
+投料时按完整产物及数量查找候选配方，并复用研究定义与配方归属索引；同产物候选仍按配方管理器的顺序匹配，输入逐次完整校验。索引随配方管理器的配方快照替换自动重建，支持数据包重载及 `replaceRecipes`。各控制器的研究完成次数实时读取，解锁、撤销和存档恢复不会沿用其他控制器或旧状态的权限。
 
 并行是上限：实际批次仍受材料、供电、输出接收能力和每种 AE Key 的 long 数量上限限制。例如每份输出 16 个相同物品时，单批份数最多 `Long.MAX_VALUE / 16`。功耗按原配方每 tick 功耗乘本批份数计收。原生测试已通过公开 API 实际接收并在 1 tick 结算 `Long.MAX_VALUE` 份 1 输入 / 1 输出、0 功耗配方；此测试验证数值和结算能力，不代表默认有免费材料或供电。
 
@@ -241,7 +289,37 @@ ServerEvents.recipes(event => {
 
 ## 权限与 Java API
 
-`matter_fabrication` 配方支持最多 9 种计数物品输入（每项 1–64 个）、2 种物品输出、1 种流体输入与输出。`requires_research` 默认 `false`。只要被研究的 `unlocks` 引用，就必须完成该研究；多个研究引用时任意一个完成即可。`requires_research: true` 在无人授予权限、研究被移除或缺少依赖时保持锁定。
+`matter_fabrication` 配方的 `ingredients`（计数物品，每项 1–64 个）与 `ae_inputs`（通用 AEKey）合计最多 9 项，另支持 `fluid_input`、最多 2 种物品输出和 1 种流体输出。`requires_research` 默认 `false`。只要被研究的 `unlocks` 引用，就必须完成该研究；多个研究引用时任意一个完成即可。`requires_research: true` 在无人授予权限、研究被移除或缺少依赖时保持锁定。
+
+`ae_inputs` 默认为空，旧配方无需修改。每项采用 `ForgeRecipeCodecs.GENERIC_STACK` 格式：`#t` 是已注册的 AEKey 类型 ID，`#` 是每份配方所需的原始 long 数量（1–9223372036854775807），其余字段由对应类型的原生 NBT 读取接口决定。以下示例只使用 AE2 自带类型，可直接作为数据包配方：
+
+```json
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ae_inputs": [
+    {"#t": "ae2:i", "id": "minecraft:diamond", "#": 2},
+    {"#t": "ae2:f", "id": "minecraft:water", "#": 1000},
+    {"#t": "ae2:f", "id": "minecraft:lava", "#": 1000}
+  ],
+  "results": [{"id": "minecraft:obsidian", "count": 1}],
+  "processing_time": 200,
+  "ae_per_tick": 64
+}
+```
+
+第三方气体、化学品等资源使用其 AE2 兼容模组注册的类型 ID 与原生 NBT 序列化字段；数量单位也由该类型定义。Java 可用 `new GenericStack(key, amount)` 填充 `MatterFabricationRecipe` 的 `aeInputs`，或用 `ForgeRecipeCodecs.GENERIC_STACK` 导出准确格式。资源按完整 AEKey 精确匹配，重复键与 `ingredients`/`fluid_input` 的重叠需求会累加，不能重复抵扣同一份材料。
+
+`#` 使用 Forge 桥接层的精确整数解析，与研究字段支持的十进制字符串不同，不能直接沿用研究字段的字符串写法。超过 JavaScript 精确整数范围 `2^53 - 1` 时，使用数据包 JSON 中的整数字面量，或通过 Java 的 `new GenericStack(key, longAmount)` 构造，避免先经 JavaScript 浮点数转换。
+
+Java 完整构造器为 `new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult, aeInputs, processingTime, aePerTick, requiresResearch)`，其中 `aeInputs` 为 `List<GenericStack>`。旧构造器保持兼容，通用输入默认为空。产物仍由 `results` 和 `fluid_result` 定义，本次没有增加通用输出字段。
+
+AE2 15 的原生类型字段是 `#c`；桥接层负责与配方 JSON 的 `#t` 双向转换，`#` 始终按 long 数量处理。编码时使用 `key_nbt` SNBT 字符串保存完整 Key 数据（含 `id`），保留 NBT 数值位宽与数组类型；简单配方仍可直接填写 `id` 等原生字段。物品／流体的附加数据位于原生 `tag` 中，不使用 1.21.1 数据组件。AE2 15 没有 `GenericStack.CODEC`。非法通用输入会拒绝整条配方，不会被当成空成本。
+
+包含 `ae_inputs` 的配方通过样板总成投料；普通物品/流体接口不能代替通用 AE 缓存。JEI 与指南显示这些原料，总成仍要求处理样板的完整输入、输出匹配实际构筑井配方。新增输入不会放宽研究、供电或产物校验。
+
+匹配包含样板的完整预期产物及数量。原料相同或成比例、产物不同的配方会分别执行：`10A + 10B -> C` 下单两份仍产出 `2C`，不会因同时存在 `20A + 20B -> D` 或 `10A + 10B -> D` 而改产 D；批量投料、交错排队及存档重载均已验证。
+
+2.0.1 尚存的边界：产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗；重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。这两类问题尚未修复。
 
 权限默认作用于物质构筑井，不全局拦截其他机器；两种高级多方块的部件配方已改为构筑井加工。已经建成的高级机器仍能使用。
 
@@ -279,7 +357,7 @@ boolean eligible = MatterResearchApi.prerequisitesMet(three,
 
 将返回的新定义通过正常配方注册/替换流程安装；方法不会修改旧定义或玩家进度。原有 9 参数和 10 参数构造器继续可用，默认前置为 1 次；新的完整构造器最后一项是 `Map<ResourceLocation, Integer> prerequisiteLevels`。Java 映射允许正数（固定次数）或 0（满级），JSON/KubeJS 则使用正整数或字符串 `"max"`，不接受数值 0 和负数。
 
-数据包及 KubeJS 配方重载更新后续研究费用和当前配方加成。正在处理的 AE 批次保留接收时的产物、耗时和功耗快照，即使配方定义被移除，也会按已经接收的承诺完成，避免丢失 AE 已交付材料；尚未接收的批次使用当前权限与参数。
+数据包及 KubeJS 配方重载更新后续研究费用和当前配方加成。正在处理的 AE 批次保留开工时的产物、耗时和功耗快照，即使配方定义被移除，也会继续完成。尚未开工的排队批次保存原料所有权和配方 ID，按当前配方、权限与参数重新检查，不保留旧加工参数快照；无法继续加工时，原料仍留在总成内，可退回待加工原料。
 
 研究中的世界特效自动支持第三方模组、数据包和 KubeJS 添加的阶段，无须修改配方格式。三个默认阶段分别使用冰青晶格、青金方阵、紫白轨道星图；其他阶段根据阶段 ID、控制器位置、维度和研究轮次，稳定伪随机选择四种星图之一（另含双螺旋）。同一轮在多人客户端、暂停/恢复和重载后保持相同样式，下一轮重新选取，允许再次选中相同样式。
 

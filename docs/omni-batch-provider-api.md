@@ -2,7 +2,7 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Verified for OmniSequence 2.0.0 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
+Verified for OmniSequence 2.0.1 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
 and the required AppliedEnhancements 1.0.6+. The runtime ABI remains **1**.
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -126,16 +126,21 @@ API v1 deliberately batches only purely consumable inputs. Recipes with
 returned containers, reusable tools, or durability transitions keep the safe
 one-craft path unless an existing internal Omni machine handles them.
 
-AE item and fluid keys are supported; `amount` uses that key's native AE unit
-(items for item keys and mB for fluid keys). Amounts are `long`, but the provider
+The public input records carry `AEKey`, including registered addon types; each
+provider decides which types it can actually process. `amount` uses that key's
+native AE unit (items for item keys and mB for fluid keys). Amounts are `long`, but the provider
 must check per-key addition and multiplication before accepting. An advertised
 `Long.MAX_VALUE` limit does not bypass real materials, power, queue capacity, or
 expected-output overflow checks.
 
 The built-in Matter Fabrication Pattern Assembly implements this contract using
-its own persistent input/output buffers. Research permission and production
-bonuses are evaluated before admission; accepted batches retain their recipe
-snapshot across reloads. Its UI buffer size is not an unconditional batch limit.
+its own persistent input/output buffers and supports all registered AEKey inputs
+declared by a well recipe. Research permission is checked before admission and
+before queued work starts. Production limits and bonuses are evaluated when work
+starts; started work retains its processing snapshot across reloads. Queued work
+retains material ownership and recipe IDs while using current definitions. Its
+UI buffer size is not an unconditional batch limit. See the [well API](matter-research-api.md)
+for `ae_inputs`, output isolation and the remaining same-output overlap limitations.
 
 ## Avoiding duplicate CPU batching
 
@@ -170,7 +175,7 @@ class or conditional Mixin that is loaded only when Mod ID
 
 自 OmniSequence: Transfinite 1.3.9 起提供。
 
-当前按 2.0.0 / Minecraft 1.21.1 / Java 21 核对，要求 AE2 19.2.17+ 和
+当前按 2.0.1 / Minecraft 1.21.1 / Java 21 核对，要求 AE2 19.2.17+ 和
 AppliedEnhancements 1.0.6+；运行时 ABI 仍为 **1**。其他接口见 [API 索引](README.md)。
 本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
 不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。
@@ -207,10 +212,14 @@ AppliedEnhancements 1.0.6+；运行时 ABI 仍为 **1**。其他接口见 [API �
 - v1 只开放纯消耗材料的批量交付，返还容器、可复用工具和耐久变化配方继续安全地
   走单份路径。
 
-支持 AE 物品与流体 Key，数量沿用 AE 原生单位（物品个数、流体 mB）。数量为 long，
+公开输入记录使用 AEKey，可表示已注册附属类型；具体可处理类型由供应器决定。
+数量沿用该 Key 的 AE 原生单位（物品个数、流体 mB 等）。数量为 long，
 接收前必须检查每种 Key 的加法和乘法溢出；Long.MAX_VALUE 上限不会绕过实际原料、
 供电、队列容量或产物计数限制。内置物质构筑井样板总成通过自身持久输入输出缓存实现
-本接口，接收前检查研究权限与生产加成，已接收批次跨重载保留配方快照。
+本接口，支持构筑井配方声明的所有已注册 AEKey 输入。接收与排队任务开工前检查
+研究权限，开工时计算生产限制和加成。已开始加工的任务跨重载保留加工参数快照；
+排队任务保存原料所有权与配方 ID，并使用当前配方定义。`ae_inputs`、产物隔离和
+尚存的同产物重叠配方限制见[构筑井 API](matter-research-api.md)。
 
 若第三方模组自己也修改了 AE2 CPU 的材料倍增逻辑，应在其 CPU Mixin 中调用
 `OmniBatchCraftingApi.isOmniManagedCpu(this)`。返回 `true` 时跳过自身倍增，交给

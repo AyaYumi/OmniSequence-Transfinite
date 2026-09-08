@@ -44,17 +44,15 @@ public final class MatterPatternBuffer {
         var recipe = MatterFabricationBatch.match(controller, pattern, unitInputs, 1);
         if (recipe == null) return 0;
         long limit = Long.MAX_VALUE;
-        var activeInputs = active.storedInputs();
         for (var entry : unitInputs.entrySet()) {
-            if (!supported(entry.getKey()) || entry.getValue() <= 0) return 0;
-            long stored = Math.addExact(Math.addExact(inputs.getLong(entry.getKey()), refunds.getLong(entry.getKey())), activeInputs.getOrDefault(entry.getKey(), 0L));
+            if (entry.getKey() == null || entry.getValue() <= 0) return 0;
+            long stored = Math.addExact(Math.addExact(inputs.getLong(entry.getKey()), refunds.getLong(entry.getKey())), active.storedInputAmount(entry.getKey()));
             limit = Math.min(limit, (Long.MAX_VALUE - stored) / entry.getValue());
         }
-        for (var ingredient : recipe.value().ingredients()) limit = Math.min(limit, Long.MAX_VALUE / ingredient.count());
-        if (!recipe.value().fluidInput().isEmpty()) limit = Math.min(limit, Long.MAX_VALUE / recipe.value().fluidInput().getAmount());
+        limit = Math.min(limit, MatterFabricationBatch.inputCapacity(recipe.value()));
         // A single AE delivery must also be representable by GenericStack's long amount.
         for (var entry : MatterFabricationBatch.patternOutputs(pattern).entrySet()) {
-            if (!supported(entry.getKey()) || entry.getValue() <= 0) return 0;
+            if (entry.getKey() == null || entry.getValue() <= 0) return 0;
             limit = Math.min(limit, Long.MAX_VALUE / entry.getValue());
         }
         return limit;
@@ -63,22 +61,22 @@ public final class MatterPatternBuffer {
     boolean enqueue(IPatternDetails pattern, Map<AEKey, Long> supplied, long crafts) {
         try {
             if (crafts <= 0 || isUnavailable() || !assembly.isOperational() || supplied.isEmpty()) return false;
-            var recipe = MatterFabricationBatch.match(assembly.getController(), pattern, supplied, crafts);
+            var controller = assembly.getController();
+            var candidates = MatterFabricationBatch.candidates(controller, pattern);
+            var recipe = MatterFabricationBatch.match(controller, candidates, supplied, crafts);
             if (recipe == null) return false;
-            var activeInputs = active.storedInputs();
             for (var entry : supplied.entrySet()) {
-                if (!supported(entry.getKey()) || entry.getValue() <= 0) return false;
-                long stored = Math.addExact(Math.addExact(inputs.getLong(entry.getKey()), refunds.getLong(entry.getKey())), activeInputs.getOrDefault(entry.getKey(), 0L));
+                if (entry.getKey() == null || entry.getValue() <= 0) return false;
+                long stored = Math.addExact(Math.addExact(inputs.getLong(entry.getKey()), refunds.getLong(entry.getKey())), active.storedInputAmount(entry.getKey()));
                 if (entry.getValue() > Long.MAX_VALUE - stored) return false;
             }
             QueuedWork merge = null;
             for (var work : queued) {
                 if (!work.pattern.equals(pattern.getDefinition()) || !work.recipe.equals(recipe.id()) || crafts > Long.MAX_VALUE - work.crafts) continue;
-                var existing = MatterFabricationBatch.match(assembly.getController(), pattern, work.inputs, work.crafts);
+                var existing = MatterFabricationBatch.match(controller, candidates, work.inputs, work.crafts);
                 if (existing == null || !existing.id().equals(work.recipe)) continue;
                 long total = crafts + work.crafts;
-                if (recipe.value().ingredients().stream().anyMatch(cost -> total > Long.MAX_VALUE / cost.count())
-                        || !recipe.value().fluidInput().isEmpty() && total > Long.MAX_VALUE / recipe.value().fluidInput().getAmount()) continue;
+                if (total > MatterFabricationBatch.inputCapacity(recipe.value())) continue;
                 merge = work; break;
             }
             if (merge == null) queued.add(new QueuedWork(pattern.getDefinition(), recipe.id(), crafts, supplied));
@@ -228,7 +226,6 @@ public final class MatterPatternBuffer {
 
     void clear() { queued.clear(); inputs.clear(); refunds.clear(); outputs.clear(); active.clear(); unavailable = null; reconcilePatterns = true; }
     private void changed() { assembly.saveChanges(); }
-    private static boolean supported(AEKey key) { return key instanceof AEItemKey || key instanceof AEFluidKey; }
     private static void subtract(Object2LongLinkedOpenHashMap<AEKey> map, AEKey key, long amount) {
         long left = map.getLong(key) - amount;
         if (left == 0) map.removeLong(key); else if (left > 0) map.put(key, left); else throw new IllegalStateException("Buffered input underflow");
@@ -244,7 +241,7 @@ public final class MatterPatternBuffer {
         var result = new LinkedHashMap<AEKey, Long>();
         for (var value : values) {
             var stack = GenericStack.readTag(registries, (CompoundTag) value);
-            if (stack == null || !supported(stack.what()) || stack.amount() <= 0) throw new IllegalArgumentException("Invalid buffered resource");
+            if (stack == null || stack.amount() <= 0) throw new IllegalArgumentException("Invalid buffered resource");
             result.merge(stack.what(), stack.amount(), Math::addExact);
         }
         return result;

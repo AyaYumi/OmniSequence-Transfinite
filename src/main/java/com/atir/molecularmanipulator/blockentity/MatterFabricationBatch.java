@@ -9,7 +9,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.me.helpers.MachineSource;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
-import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.ResearchMaterialAllocator;
 import java.util.ArrayList;
@@ -36,14 +36,12 @@ final class MatterFabricationBatch {
     boolean hasWork() { return crafts > 0 || !outputDebt.isEmpty() || unavailable != null; }
     long crafts() { return crafts; }
     Map<AEKey, Long> storedInputs() { return Map.copyOf(inputs); }
+    long storedInputAmount(AEKey key) { return inputs.getOrDefault(key, 0L); }
     Map<AEKey, Long> storedOutputs() { return Map.copyOf(outputDebt); }
     boolean unavailable() { return unavailable != null; }
 
     static Map<AEKey, Long> outputs(MatterFabricationRecipe recipe) {
-        var result = new LinkedHashMap<AEKey, Long>();
-        for (var stack : recipe.results()) result.merge(AEItemKey.of(stack), (long) stack.getCount(), Math::addExact);
-        if (!recipe.fluidResult().isEmpty()) result.merge(AEFluidKey.of(recipe.fluidResult()), (long) recipe.fluidResult().getAmount(), Math::addExact);
-        return result;
+        return MatterRecipeIndex.outputAmounts(recipe);
     }
 
     static Map<AEKey, Long> patternOutputs(IPatternDetails pattern) {
@@ -58,9 +56,18 @@ final class MatterFabricationBatch {
     static RecipeHolder<MatterFabricationRecipe> match(MatterFabricationBlockEntity host, IPatternDetails pattern,
             Map<AEKey, Long> supplied, long count) {
         if (count <= 0) return null;
-        var expected = patternOutputs(pattern);
-        for (var holder : host.getLevel().getRecipeManager().getAllRecipesFor(ModContent.MATTER_FABRICATION_RECIPE_TYPE.get())) {
-            if (MatterResearchApi.canUseRecipe(host, holder) && outputs(holder.value()).equals(expected)
+        return match(host, candidates(host, pattern), supplied, count);
+    }
+
+    static List<RecipeHolder<MatterFabricationRecipe>> candidates(MatterFabricationBlockEntity host, IPatternDetails pattern) {
+        return MatterRecipeIndex.get(host.getLevel()).candidates(patternOutputs(pattern));
+    }
+
+    static RecipeHolder<MatterFabricationRecipe> match(MatterFabricationBlockEntity host,
+            List<RecipeHolder<MatterFabricationRecipe>> candidates, Map<AEKey, Long> supplied, long count) {
+        if (count <= 0) return null;
+        for (var holder : candidates) {
+            if (MatterResearchApi.canUseRecipe(host, holder)
                     && validInputs(holder.value(), supplied, count)) return holder;
         }
         return null;
@@ -68,32 +75,41 @@ final class MatterFabricationBatch {
 
     private static boolean validInputs(MatterFabricationRecipe recipe, Map<AEKey, Long> supplied, long count) {
         try {
-            var items = new LinkedHashMap<AEItemKey, Long>();
-            AEFluidKey fluid = null; long fluidAmount = 0;
             for (var entry : supplied.entrySet()) {
-                if (entry.getValue() <= 0) return false;
-                if (entry.getKey() instanceof AEItemKey item) items.put(item, entry.getValue());
-                else if (entry.getKey() instanceof AEFluidKey key && fluid == null) { fluid = key; fluidAmount = entry.getValue(); }
-                else return false;
+                if (entry.getKey() == null || entry.getValue() <= 0) return false;
             }
-            if (recipe.fluidInput().isEmpty() ? fluid != null
-                    : !AEFluidKey.of(recipe.fluidInput()).equals(fluid) || Math.multiplyExact((long) recipe.fluidInput().getAmount(), count) != fluidAmount) return false;
-            var required = recipe.ingredients().stream().map(cost -> Math.multiplyExact((long) cost.count(), count)).toList();
-            var allocated = ResearchMaterialAllocator.plan(required, items, (index, key) -> recipe.ingredients().get(index).ingredient().test(key.toStack()));
-            return allocated != null && allocated.equals(items);
+            var allocated = ResearchMaterialAllocator.plan(inputAmounts(recipe, count), supplied,
+                    (index, key) -> matchesInput(recipe, index, key));
+            return allocated != null && allocated.equals(supplied);
         } catch (ArithmeticException error) { return false; }
     }
 
     static Map<AEKey, Long> takeInputs(MatterFabricationRecipe recipe, Map<AEKey, Long> supplied, long total, long crafts) {
-        var items = new LinkedHashMap<AEKey, Long>();
-        supplied.forEach((key, amount) -> { if (key instanceof AEItemKey) items.put(key, amount); });
-        var all = recipe.ingredients().stream().map(cost -> Math.multiplyExact((long) cost.count(), total)).toList();
-        var part = recipe.ingredients().stream().map(cost -> Math.multiplyExact((long) cost.count(), crafts)).toList();
-        var selected = ResearchMaterialAllocator.planPortion(all, part, items,
-                (index, key) -> recipe.ingredients().get(index).ingredient().test(((AEItemKey) key).toStack()));
-        if (selected == null) return null;
-        if (!recipe.fluidInput().isEmpty()) selected.put(AEFluidKey.of(recipe.fluidInput()), Math.multiplyExact((long) recipe.fluidInput().getAmount(), crafts));
-        return selected;
+        return ResearchMaterialAllocator.planPortion(inputAmounts(recipe, total), inputAmounts(recipe, crafts), supplied,
+                (index, key) -> matchesInput(recipe, index, key));
+    }
+
+    private static List<Long> inputAmounts(MatterFabricationRecipe recipe, long crafts) {
+        var amounts = new ArrayList<Long>();
+        for (var ingredient : recipe.ingredients()) amounts.add(Math.multiplyExact((long) ingredient.count(), crafts));
+        for (var input : recipe.aeInputs()) amounts.add(Math.multiplyExact(input.amount(), crafts));
+        if (!recipe.fluidInput().isEmpty()) amounts.add(Math.multiplyExact((long) recipe.fluidInput().getAmount(), crafts));
+        return amounts;
+    }
+
+    private static boolean matchesInput(MatterFabricationRecipe recipe, int index, AEKey key) {
+        if (index < recipe.ingredients().size()) {
+            return key instanceof AEItemKey item && recipe.ingredients().get(index).ingredient().test(item.toStack());
+        }
+        index -= recipe.ingredients().size();
+        if (index < recipe.aeInputs().size()) return recipe.aeInputs().get(index).what().equals(key);
+        return AEFluidKey.of(recipe.fluidInput()).equals(key);
+    }
+
+    static long inputCapacity(MatterFabricationRecipe recipe) {
+        long limit = Long.MAX_VALUE;
+        for (long amount : inputAmounts(recipe, 1)) limit = Math.min(limit, Long.MAX_VALUE / amount);
+        return limit;
     }
 
     long capacity(MatterFabricationBlockEntity host, RecipeHolder<MatterFabricationRecipe> holder, Map<AEKey, Long> oneCraft) {
@@ -103,8 +119,7 @@ final class MatterFabricationBatch {
         if (crafts > 0 && (!holder.id().equals(recipeId) || !output.equals(outputsPerCraft)
                 || duration != profile.ticks() || Double.compare(powerPerCraft, recipe.aePerTick()) != 0)) return 0;
         long limit = profile.parallel();
-        for (var ingredient : recipe.ingredients()) limit = Math.min(limit, Long.MAX_VALUE / ingredient.count());
-        if (!recipe.fluidInput().isEmpty()) limit = Math.min(limit, Long.MAX_VALUE / recipe.fluidInput().getAmount());
+        limit = Math.min(limit, inputCapacity(recipe));
         for (long amount : output.values()) limit = Math.min(limit, Long.MAX_VALUE / amount);
         limit = powerCapacity(host, recipe.aePerTick(), limit);
         long remaining = Math.max(0, limit - crafts);

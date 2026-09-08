@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.crafting;
 
+import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
@@ -23,6 +24,7 @@ public record MatterFabricationRecipe(
         List<ItemStack> results,
         FluidStack fluidInput,
         FluidStack fluidResult,
+        List<GenericStack> aeInputs,
         int processingTime,
         double aePerTick,
         boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
@@ -34,13 +36,22 @@ public record MatterFabricationRecipe(
         this(ingredients, results, fluidInput, fluidResult, processingTime, aePerTick, false);
     }
 
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
+            FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(ingredients, results, fluidInput, fluidResult, List.of(), processingTime, aePerTick, requiresResearch);
+    }
+
     public MatterFabricationRecipe {
         ingredients = List.copyOf(ingredients);
         results = results.stream().map(ItemStack::copy).toList();
         fluidInput = fluidInput.copy();
         fluidResult = fluidResult.copy();
-        if (ingredients.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty()) {
-            throw new IllegalArgumentException("Matter fabrication recipes require at least one item or fluid input");
+        aeInputs = List.copyOf(aeInputs);
+        if (ingredients.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
+            throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 9 item/AE inputs or a fluid input");
+        }
+        if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)) {
+            throw new IllegalArgumentException("AE input amounts must be positive");
         }
         if (results.size() > MAX_OUTPUTS || results.isEmpty() && fluidResult.isEmpty()) {
             throw new IllegalArgumentException("Matter fabrication recipes require at least one item or fluid result");
@@ -59,7 +70,8 @@ public record MatterFabricationRecipe(
     }
 
     public int[] consumptionPlan(MatterFabricationRecipeInput input, long crafts) {
-        if (crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
+        // Manual ports have no generic AE storage; these recipes must be supplied by an assembly.
+        if (!aeInputs.isEmpty() || crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
             return null;
         }
         int[] available = new int[input.size()];
@@ -167,6 +179,8 @@ public record MatterFabricationRecipe(
                                 .forGetter(MatterFabricationRecipe::fluidInput),
                         FluidStack.OPTIONAL_CODEC.optionalFieldOf("fluid_result", FluidStack.EMPTY)
                                 .forGetter(MatterFabricationRecipe::fluidResult),
+                        GenericStack.CODEC.listOf(0, MAX_INPUTS).optionalFieldOf("ae_inputs", List.of())
+                                .forGetter(MatterFabricationRecipe::aeInputs),
                         Codec.INT.optionalFieldOf("processing_time", 200)
                                 .forGetter(MatterFabricationRecipe::processingTime),
                         Codec.DOUBLE.optionalFieldOf("ae_per_tick", 64.0)
@@ -192,7 +206,11 @@ public record MatterFabricationRecipe(
                         }
                         var fluidInput = FluidStack.OPTIONAL_STREAM_CODEC.decode(buffer);
                         var fluidResult = FluidStack.OPTIONAL_STREAM_CODEC.decode(buffer);
-                        return new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
+                        int aeInputCount = buffer.readVarInt();
+                        if (aeInputCount < 0 || aeInputCount > MAX_INPUTS) throw new IllegalArgumentException("Invalid AE input count");
+                        var aeInputs = new ArrayList<GenericStack>(aeInputCount);
+                        for (int index = 0; index < aeInputCount; index++) aeInputs.add(GenericStack.STREAM_CODEC.decode(buffer));
+                        return new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult, aeInputs,
                                 buffer.readVarInt(), buffer.readDouble(), buffer.readBoolean());
                     }
 
@@ -209,6 +227,8 @@ public record MatterFabricationRecipe(
                         }
                         FluidStack.OPTIONAL_STREAM_CODEC.encode(buffer, recipe.fluidInput);
                         FluidStack.OPTIONAL_STREAM_CODEC.encode(buffer, recipe.fluidResult);
+                        buffer.writeVarInt(recipe.aeInputs.size());
+                        for (var input : recipe.aeInputs) GenericStack.STREAM_CODEC.encode(buffer, input);
                         buffer.writeVarInt(recipe.processingTime);
                         buffer.writeDouble(recipe.aePerTick);
                         buffer.writeBoolean(recipe.requiresResearch);

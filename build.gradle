@@ -208,7 +208,7 @@ tasks.named('jar', Jar).configure {
     includeEmptyDirs = false
     preserveFileTimestamps = false
     reproducibleFileOrder = true
-    from('LICENSE.txt')
+    from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
     from('docs/omni-batch-provider-api.md') {

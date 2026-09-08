@@ -1,5 +1,65 @@
 # Changelog
 
+## 2.0.1 - 2026-09-08
+
+### English
+
+#### Changes
+
+| Area | Update |
+| --- | --- |
+| AEKey inputs | Matter Fabrication Pattern Assemblies now accept all registered AEKey input types, including resources provided by compatible AE2 addons. Custom well recipes can declare exact resources and positive long amounts through the optional `ae_inputs` field. Existing item/fluid recipes remain compatible. |
+| Recipe lookup | Added an index keyed by complete recipe outputs and quantities. Pattern delivery now searches matching output candidates instead of repeatedly scanning every well recipe. Candidate order and full input validation are preserved. |
+| Research checks | Cached research definitions and recipe ownership. Completion counts remain specific to each controller and are read live, so unlocks, revocations and loaded progress take effect immediately. Recipe snapshot replacement rebuilds the index. |
+| Queue overhead | Reused candidate lists while merging queued deliveries and removed unnecessary active-input snapshot copies from capacity checks. |
+| Interfaces and documentation | Added generic input display to JEI and GuideME recipes. Updated the English/Chinese assembly guides, recipe/API documentation and release references. |
+| Repository cleanup | Consolidated the duplicate MIT license into `LICENSE`, retaining the contributor notice. Runtime textures, models and GuideME pages remain referenced; local diagnostics and build outputs stay outside Git. |
+
+#### Performance and validation
+
+- Local lookup benchmark: 128 well recipes, 32 research definitions, 2,000 warm-up lookups, followed by three rounds of 2,000 lookups. Median time decreased from **493.08 ms to 6.21 ms**, approximately **98.7% less time**. This measures recipe lookup only, not whole-server TPS or tick performance.
+- Validated third-party AEKey delivery, long batches, queued/active/refund persistence, ME refunds, live research changes and recipe reloads.
+- Verified that patterns producing different outputs remain separate even when their inputs are identical or proportional. For `10A + 10B -> C` and `20A + 20B -> D`, ordering two C crafts produces `2C`. `10A + 10B -> C` and `10A + 10B -> D` also follow the ordered pattern's output. Single deliveries, API batches, interleaved queues and save/reload were checked.
+
+#### Upgrade notes
+
+- Update OmniSequence to **2.0.1 on both client and server**. Keep only one enabled OmniSequence JAR in each `mods` directory.
+- Requirements are unchanged from 2.0.0: Minecraft 1.21.1, Java 21, NeoForge 21.1.220+, AE2 19.2.17+, ExtendedAE 1.21-2.2.32-neoforge+, Glodium 1.21-2.2-neoforge, LDLib2 2.2.18+, and **AppliedEnhancements 1.0.6+** installed separately on both sides.
+- The technical Mod ID remains `molecularmanipulator`. Generic inputs must be declared in a well recipe; enabling an AEKey type alone does not add production recipes.
+
+#### Known limitations
+
+- Overlapping ingredient alternatives that produce the **same output** can still select a different recipe when queued work is split into smaller batches, changing processing time and power. Adding a higher-priority overlapping recipe during reload can also leave existing queued work waiting. These previously identified cases are not fixed in 2.0.1.
+
+### 中文
+
+#### 更新内容
+
+| 项目 | 更新说明 |
+| --- | --- |
+| AEKey 输入 | 物质构筑井样板总成现在支持所有已注册的 AEKey 输入类型，包括 AE2 兼容附属提供的资源。自定义构筑井配方可通过可选的 `ae_inputs` 字段声明精确资源和正 long 数量，现有物品、流体配方保持兼容。 |
+| 配方查询 | 按完整产物及数量建立索引，投料时直接查找对应候选，减少反复扫描全部构筑井配方的开销；保留候选顺序与完整输入校验。 |
+| 研究检查 | 缓存研究定义及配方归属；完成次数仍按控制器实时读取，解锁、撤销和存档恢复立即生效。配方快照替换后自动重建索引。 |
+| 队列开销 | 合并待加工投料时复用候选列表，容量检查不再复制整份加工中原料快照。 |
+| 界面与文档 | JEI 和 GuideME 配方显示通用输入；更新中英文样板总成指南、配方与 API 文档及当前版本信息。 |
+| 仓库清理 | 将重复的 MIT 许可文件合并为 `LICENSE`，保留贡献者版权声明；现有运行时纹理、模型与 GuideME 页面均有引用，临时诊断和构建产物不纳入 Git。 |
+
+#### 性能与验证
+
+- 本地配方查询基准：128 个构筑井配方、32 个研究定义，先预热 2,000 次，再测试三轮、每轮 2,000 次。中位耗时从 **493.08ms 降至 6.21ms**，减少约 **98.7%**。此结果只代表配方查询环节，不代表整个服务器的 TPS 或 Tick 提升比例。
+- 验证了第三方 AEKey 投料、long 批次、排队／加工中／退款数据持久化、原料返回 ME、研究状态即时变更及配方重载。
+- 验证了原料相同或数量成比例、但产物不同的配方隔离：`10A + 10B -> C` 与 `20A + 20B -> D` 同时存在时，下单两份 C 仍产出 `2C`；`10A + 10B -> C` 与 `10A + 10B -> D` 也按所下单样板的产物执行。覆盖单份投料、批量 API、交错排队和存档重载。
+
+#### 升级说明
+
+- **客户端和服务端同时更新至 2.0.1**，各自 `mods` 文件夹内仅保留一个启用的 OmniSequence JAR。
+- 运行要求与 2.0.0 相同：Minecraft 1.21.1、Java 21、NeoForge 21.1.220+、AE2 19.2.17+、ExtendedAE 1.21-2.2.32-neoforge+、Glodium 1.21-2.2-neoforge、LDLib2 2.2.18+；两端仍需单独安装 **AppliedEnhancements 1.0.6+**。
+- 技术 Mod ID 保持 `molecularmanipulator`。通用输入需要在构筑井配方中声明，接入 AEKey 类型本身不会自动添加加工配方。
+
+#### 已知限制
+
+- **产物相同**、可替代原料范围重叠的配方，在队列拆分成较小批次时，仍可能改选另一条配方并改变加工耗时和能耗；重载时新增更高优先级的重叠配方，也可能使已有排队任务保持等待。这两类已确认的问题尚未在 2.0.1 中修复。
+
 ## 2.0.0 - 2026-09-08
 
 Release date: 2026-09-08

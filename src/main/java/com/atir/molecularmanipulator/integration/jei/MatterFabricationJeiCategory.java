@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.integration.jei;
 
+import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.client.AeUiTheme;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
@@ -50,13 +51,19 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
 
     @Override public void setRecipe(IRecipeLayoutBuilder builder, MatterFabricationRecipe recipe, IFocusGroup focuses) {
         stages.put(recipe, resolveStage(recipe));
+        int inputCount = recipe.ingredients().size() + recipe.aeInputs().size();
         for (int i = 0; i < recipe.ingredients().size(); i++) {
             var counted = recipe.ingredients().get(i);
-            builder.addInputSlot(inputX(recipe.ingredients().size(), i), inputY(recipe.ingredients().size(), i))
+            builder.addInputSlot(inputX(inputCount, i), inputY(inputCount, i))
                     .setBackground(slot, -1, -1)
                     .addItemStacks(Arrays.stream(counted.ingredient().getItems()).map(s -> s.copyWithCount(counted.count())).toList());
         }
-        if (!recipe.fluidInput().isEmpty()) builder.addInputSlot(recipe.ingredients().isEmpty() ? 35 : 72, 42)
+        for (int i = 0; i < recipe.aeInputs().size(); i++) {
+            int index = recipe.ingredients().size() + i;
+            builder.addInputSlot(inputX(inputCount, index), inputY(inputCount, index))
+                    .setBackground(slot, -1, -1).addItemStack(GenericStack.wrapInItemStack(recipe.aeInputs().get(i)));
+        }
+        if (!recipe.fluidInput().isEmpty()) builder.addInputSlot(inputCount == 0 ? 35 : 72, 42)
                 .setBackground(slot, -1, -1).addFluidStack(recipe.fluidInput().getFluid(), recipe.fluidInput().getAmount())
                 .setFluidRenderer(recipe.fluidInput().getAmount(), false, 16, 16);
         int outputs = recipe.results().size() + (recipe.fluidResult().isEmpty() ? 0 : 1);

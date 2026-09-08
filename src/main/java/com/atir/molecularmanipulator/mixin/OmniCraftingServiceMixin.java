@@ -47,17 +47,15 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
     }
 
     @Inject(method = "submitJob", at = @At("HEAD"), cancellable = true)
-    private void molecularmanipulator$redirectUnavailableOmniCpu(ICraftingPlan job,
+    private void molecularmanipulator$redirectBusyOmniCpu(ICraftingPlan job,
             ICraftingRequester requestingMachine, ICraftingCPU target, boolean prioritizePower,
             IActionSource source, CallbackInfoReturnable<ICraftingSubmitResult> callback) {
-        if (job.simulation() || !(target instanceof CraftingCPUCluster selected)) {
+        if (job.simulation() || !(target instanceof CraftingCPUCluster selected)
+                || OmniComputationCoreBlockEntity.isCpuReadyForSubmission(selected)) {
             return;
         }
         var owner = OmniComputationCoreBlockEntity.ownerOf(selected);
         if (owner == null || !owner.isStructureFormed()) {
-            return;
-        }
-        if (OmniComputationCoreBlockEntity.isCpuReadyForSubmission(selected)) {
             return;
         }
         var replacement = owner.getOrCreateIdleCpu((OmniCraftingServiceBridge) this);

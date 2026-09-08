@@ -50,7 +50,7 @@ public final class AEKeyTransferScheduler {
                 continue;
             }
 
-            long inserted = Math.max(0, Math.min(requested, inserter.insert(key, requested)));
+            long inserted = com.atir.molecularmanipulator.util.MathCompat.clamp(inserter.insert(key, requested), 0, requested);
             if (inserted > 0) {
                 long remaining = requested - inserted;
                 if (remaining == 0) {

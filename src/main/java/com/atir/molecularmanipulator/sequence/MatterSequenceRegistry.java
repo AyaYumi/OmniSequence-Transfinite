@@ -98,6 +98,13 @@ public final class MatterSequenceRegistry {
                 Files.writeString(path, createDefaultJson(), StandardCharsets.UTF_8);
                 MolecularManipulator.LOGGER.info("Created matter rewrite configuration at {}", path);
             }
+            try {
+                ensureDocumentation(path);
+            } catch (IOException exception) {
+                MolecularManipulator.LOGGER.warn(
+                        "Could not add entropy documentation to {}; rules will still be loaded",
+                        path, exception);
+            }
             rules = readRules(path);
             MolecularManipulator.LOGGER.info("Loaded {} matter rewrite rules from {}", rules.size(), path);
         } catch (Exception exception) {
@@ -233,9 +240,11 @@ public final class MatterSequenceRegistry {
         comments.add("Keys are item IDs. Keys beginning with # are item tags; a final * matches a tag prefix.");
         comments.add("deconstruct values are the exact sequence amounts produced per item.");
         comments.add("rewrite values are the exact sequence amounts consumed per copied item.");
-        comments.add("Entropy per deconstructed item is max(1, floor(the saturated sum of all four values / 64)).");
-        comments.add("Entropy per rewritten item is max(1, floor(the saturated sum of all four values / 16)).");
-        comments.add("Matter capacity, entropy capacity, cooling and acceleration-card tiers are configurable in omnisequence-transfinite-server.toml.");
+        comments.add("Entropy per deconstructed item = max(1, floor(saturated sum of its four deconstruct values / 64)).");
+        comments.add("Entropy per rewritten item = max(1, floor(saturated sum of its four rewrite values / 16)).");
+        comments.add("An operation waits until current entropy + entropy per item is no greater than sequence_array.matter_rewrite.matter_entropy_capacity.");
+        comments.add("Change Matter Rewrite limits under sequence_array.matter_rewrite in config/omnisequence-transfinite-server.toml.");
+        comments.add("Installed speed-card rules under sequence_array.matter_rewrite.speed_cards configure parallel operations, batch ticks, and entropy cooling multipliers.");
         comments.add("Omit deconstruct or rewrite to disable that operation. An exact empty item rule overrides tag rules.");
         comments.add("Changes are loaded when a server or single-player world starts.");
         root.add("_comment", comments);
@@ -243,9 +252,15 @@ public final class MatterSequenceRegistry {
         chineseComments.add("普通键为物品ID；以#开头的是物品标签，标签末尾的*表示按前缀匹配。");
         chineseComments.add("deconstruct 是每件物品分解后实际产出的四类序列。");
         chineseComments.add("rewrite 是每复制一件物品实际消耗的四类序列。");
+        chineseComments.add("每分解一件物品产生的熵 = max(1, 四类 deconstruct 数值饱和求和后 / 64 向下取整)。");
+        chineseComments.add("每重写一件物品产生的熵 = max(1, 四类 rewrite 数值饱和求和后 / 16 向下取整)。");
+        chineseComments.add("只有当前熵 + 单件熵不超过 sequence_array.matter_rewrite.matter_entropy_capacity 时，操作才会开始。");
+        chineseComments.add("构序容量、熵上限和每秒散热速度位于 config/omnisequence-transfinite-server.toml 的 sequence_array.matter_rewrite 分类中。");
+        chineseComments.add("服务器 TOML 的 sequence_array.matter_rewrite.speed_cards 分组可分别配置安装 0～4 张加速卡时的并行量、批次 tick 和熵散热倍率。");
         chineseComments.add("省略 deconstruct 或 rewrite 即单独禁用该操作；精确物品空规则可以覆盖标签规则。");
         chineseComments.add("修改后重新进入服务器或单人世界即可加载。");
         root.add("_comment_zh", chineseComments);
+        addEntropyDocumentation(root);
         var jsonRules = new JsonObject();
         for (var entry : defaultRules().entrySet()) {
             var rule = new JsonObject();
@@ -259,6 +274,68 @@ public final class MatterSequenceRegistry {
         }
         root.add("rules", jsonRules);
         return GSON.toJson(root) + System.lineSeparator();
+    }
+
+    private static void ensureDocumentation(Path path) throws IOException {
+        JsonElement document;
+        try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            document = com.google.gson.JsonParser.parseReader(reader);
+        }
+        if (!document.isJsonObject()) {
+            return;
+        }
+        var root = document.getAsJsonObject();
+        if (readFormat(root) >= 4
+                && root.has("_entropy_calculation")
+                && root.has("_entropy_calculation_zh")) {
+            return;
+        }
+        root.addProperty("format", 4);
+        addEntropyDocumentation(root);
+        Files.writeString(path, GSON.toJson(root) + System.lineSeparator(),
+                StandardCharsets.UTF_8);
+        MolecularManipulator.LOGGER.info(
+                "Added entropy calculation and server option documentation to {}", path);
+    }
+
+    private static int readFormat(JsonObject root) {
+        try {
+            return root.has("format") ? root.get("format").getAsInt() : 0;
+        } catch (RuntimeException ignored) {
+            return 0;
+        }
+    }
+
+    private static void addEntropyDocumentation(JsonObject root) {
+        var entropy = new JsonObject();
+        entropy.addProperty("deconstruct_entropy_per_item",
+                "max(1, floor(saturated_sum(deconstruct.metal, mineral, crystal, organic) / 64))");
+        entropy.addProperty("rewrite_entropy_per_item",
+                "max(1, floor(saturated_sum(rewrite.metal, mineral, crystal, organic) / 16))");
+        entropy.addProperty("operation_condition",
+                "current_entropy + entropy_per_item <= sequence_array.matter_rewrite.matter_entropy_capacity");
+        entropy.addProperty("cooling",
+                "Every second, sequence_array.matter_rewrite.matter_entropy_cooling_per_second multiplied by the current speed_cards cooling multiplier is removed from current entropy (saturated at Long.MAX_VALUE).");
+        entropy.addProperty("speed_cards",
+                "sequence_array.matter_rewrite.speed_cards.card_0 through card_4 configure parallel operations, cycle ticks, and entropy cooling multipliers for each installed-card count.");
+        entropy.addProperty("server_config",
+                "config/omnisequence-transfinite-server.toml: sequence_array.matter_rewrite.*");
+        root.add("_entropy_calculation", entropy);
+
+        var entropyZh = new JsonObject();
+        entropyZh.addProperty("分解单件熵值",
+                "max(1, deconstruct 四类数值饱和求和后 / 64 向下取整)");
+        entropyZh.addProperty("重写单件熵值",
+                "max(1, rewrite 四类数值饱和求和后 / 16 向下取整)");
+        entropyZh.addProperty("操作条件",
+                "当前熵值 + 单件熵值 <= sequence_array.matter_rewrite.matter_entropy_capacity");
+        entropyZh.addProperty("自然散热",
+                "每秒从当前熵值中扣除 sequence_array.matter_rewrite.matter_entropy_cooling_per_second × 当前加速卡档位的散热倍率；乘法按 Long.MAX_VALUE 饱和");
+        entropyZh.addProperty("加速卡档位",
+                "sequence_array.matter_rewrite.speed_cards 的 card_0～card_4 分别配置对应加速卡张数的并行量、批次 tick 和熵散热倍率");
+        entropyZh.addProperty("服务器配置",
+                "config/omnisequence-transfinite-server.toml：sequence_array.matter_rewrite.*");
+        root.add("_entropy_calculation_zh", entropyZh);
     }
 
     private static JsonObject writeValue(MatterValue value) {
@@ -312,8 +389,7 @@ public final class MatterSequenceRegistry {
         }
         long wholePercent = value / 100;
         long remainder = value % 100;
-        return Math.max(1,
-                wholePercent * 85 + remainder * 85 / 100);
+        return Math.max(1, wholePercent * 85 + remainder * 85 / 100);
     }
 
     private static Map.Entry<String, MatterValue> entry(String id,
@@ -326,15 +402,11 @@ public final class MatterSequenceRegistry {
 
     public record MatterValue(long metal, long mineral, long crystal, long organic) {
         public long total() {
-            return saturatedAdd(
-                    saturatedAdd(metal, mineral),
-                    saturatedAdd(crystal, organic));
+            return saturatedAdd(saturatedAdd(metal, mineral), saturatedAdd(crystal, organic));
         }
 
         private static long saturatedAdd(long left, long right) {
-            return left > Long.MAX_VALUE - right
-                    ? Long.MAX_VALUE
-                    : left + right;
+            return left > Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right;
         }
     }
 }

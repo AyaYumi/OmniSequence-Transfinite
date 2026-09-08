@@ -5,6 +5,7 @@ import appeng.block.crafting.PatternProviderBlock;
 import appeng.block.crafting.PushDirection;
 import appeng.util.InteractionUtil;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
+import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -49,9 +50,19 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
     }
 
     @Override
-    public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
+        if (!state.is(replacement.getBlock()) && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            MultiblockChunkLoading.release(serverLevel, pos);
+        }
+        super.onRemove(state, level, pos, replacement, moved);
+    }
+
+    @Override
+    public List<ItemStack> getDrops(BlockState state,
+            LootParams.Builder builder) {
         var drops = new ArrayList<>(super.getDrops(state, builder));
-        var blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
+        var blockEntity = builder.getOptionalParameter(
+                LootContextParams.BLOCK_ENTITY);
         if (blockEntity instanceof MolecularCenterBlockEntity center
                 && center.hasRemovalRecovery()) {
             drops.removeIf(stack -> stack.is(asItem()));
@@ -60,8 +71,8 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
-            InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos,
+            Player player, InteractionHand hand, BlockHitResult hit) {
         ItemStack heldItem = player.getItemInHand(hand);
         if (InteractionUtil.canWrenchRotate(heldItem)) {
             if (!level.isClientSide()) {
@@ -74,7 +85,11 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
+        return useWithoutItem(state, level, pos, player, hit);
+    }
 
+    private InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+            BlockHitResult hitResult) {
         var blockEntity = getBlockEntity(level, pos);
         if (blockEntity == null) {
             return InteractionResult.PASS;
@@ -95,7 +110,6 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public <T extends net.minecraft.world.level.block.entity.BlockEntity> net.minecraft.world.level.block.entity.BlockEntityTicker<T>
             getTicker(Level level, BlockState state, net.minecraft.world.level.block.entity.BlockEntityType<T> type) {
         return level.isClientSide() ? null : (net.minecraft.world.level.block.entity.BlockEntityTicker<T>)

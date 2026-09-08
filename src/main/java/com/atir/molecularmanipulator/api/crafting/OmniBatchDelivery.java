@@ -10,7 +10,7 @@ import java.util.Objects;
  * queue. Rejection guarantees that the provider retained no materials and made
  * no irreversible change. Partial acceptance is never permitted.</p>
  *
- * @since 1.3.7-forge-fix (API version 1)
+ * @since 1.3.9 (API version 1)
  */
 public interface OmniBatchDelivery {
     OmniBatchRequest request();

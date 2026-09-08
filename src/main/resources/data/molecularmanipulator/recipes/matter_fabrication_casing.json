@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "QSQ",
+    "SPS",
+    "QSQ"
+  ],
+  "key": {
+    "Q": {
+      "item": "ae2:quartz_block"
+    },
+    "S": {
+      "item": "ae2:sky_stone_block"
+    },
+    "P": {
+      "item": "ae2:logic_processor"
+    }
+  },
+  "result": {
+    "count": 16,
+    "item": "molecularmanipulator:matter_fabrication_casing"
+  }
+}

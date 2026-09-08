@@ -1,0 +1,44 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_frame"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "tag": "ae2:smart_dense_cable"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "item": "ae2:wireless_receiver"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "item": "ae2:wireless_booster"
+      },
+      "count": 3
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:wireless_connect",
+      "count": 2
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

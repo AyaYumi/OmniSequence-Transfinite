@@ -9,6 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.world.level.Level;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -38,7 +40,7 @@ public final class MolecularScaledPattern implements IPatternDetails {
         }
 
         this.inputs = scaleInputs(this.base.getInputs(), this.multiplier);
-        this.outputs = scaleOutputs(this.base.getOutputs(), this.multiplier);
+        this.outputs = scaleOutputs(java.util.Arrays.asList(this.base.getOutputs()), this.multiplier).toArray(GenericStack[]::new);
         this.hashCode = 31 * this.base.hashCode() + Long.hashCode(this.multiplier);
     }
 
@@ -150,19 +152,19 @@ public final class MolecularScaledPattern implements IPatternDetails {
         return scaledInputs;
     }
 
-    private static GenericStack[] scaleOutputs(GenericStack[] baseOutputs, long multiplier) {
+    private static List<GenericStack> scaleOutputs(List<GenericStack> baseOutputs, long multiplier) {
         Objects.requireNonNull(baseOutputs, "base outputs");
-        var scaledOutputs = new GenericStack[baseOutputs.length];
-        for (int index = 0; index < baseOutputs.length; index++) {
-            var output = Objects.requireNonNull(baseOutputs[index], "base output " + index);
+        var scaledOutputs = new ArrayList<GenericStack>(baseOutputs.size());
+        for (int index = 0; index < baseOutputs.size(); index++) {
+            var output = Objects.requireNonNull(baseOutputs.get(index), "base output " + index);
             if (output.amount() <= 0) {
                 throw new IllegalArgumentException(
                         "Pattern output amount must be positive: " + output.amount());
             }
-            scaledOutputs[index] = new GenericStack(output.what(),
-                    Math.multiplyExact(output.amount(), multiplier));
+            scaledOutputs.add(new GenericStack(output.what(),
+                    Math.multiplyExact(output.amount(), multiplier)));
         }
-        return scaledOutputs;
+        return List.copyOf(scaledOutputs);
     }
 
     private static final class ScaledInput implements IInput {

@@ -1,0 +1,44 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "expatternprovider:wireless_connect"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "tag": "ae2:smart_cable"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:quantum_link"
+      },
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:wireless_hub",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

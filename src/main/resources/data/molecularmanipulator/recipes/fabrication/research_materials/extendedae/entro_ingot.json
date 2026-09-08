@@ -1,0 +1,46 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:entro_ingot"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:fluix_dust"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:gold_ingot"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:lapis_lazuli"
+      },
+      "count": 32
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:entro_ingot",
+      "count": 64
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 2500.0,
+  "requires_research": true,
+  "fluid_input": {
+    "id": "minecraft:water",
+    "amount": 500
+  }
+}

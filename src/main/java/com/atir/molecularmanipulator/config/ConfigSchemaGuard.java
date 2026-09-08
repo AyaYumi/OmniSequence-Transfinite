@@ -1,8 +1,8 @@
 package com.atir.molecularmanipulator.config;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
-import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
+import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.io.ParsingMode;
 import com.electronwill.nightconfig.core.io.WritingMode;
 import com.electronwill.nightconfig.toml.TomlFormat;
@@ -11,7 +11,6 @@ import com.electronwill.nightconfig.toml.TomlWriter;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -23,7 +22,7 @@ import java.util.Map;
 /**
  * Enforces exact option schemas for this mod's TOML files.
  *
- * <p>Missing current options and invalid current values retain Forge's normal
+ * <p>Missing current options and invalid current values retain NeoForge's normal
  * correction behavior. Any option that is not present in the current schema is
  * treated as evidence of an outdated config and resets the complete file to the
  * latest defaults.</p>
@@ -80,76 +79,99 @@ public final class ConfigSchemaGuard {
      */
     public static boolean removeObsoleteOption(
             Path file, String optionPath, String displayName) {
+        return removeObsoleteOptions(file, List.of(optionPath), displayName);
+    }
+
+    /** Removes a retired feature's options in one backed-up atomic write. */
+    public static boolean removeObsoleteOptions(
+            Path file, List<String> optionPaths, String displayName) {
         if (!Files.isRegularFile(file)) {
             return false;
         }
 
         try {
             var config = readToml(file);
-            if (!config.contains(optionPath)) {
+            var removed = optionPaths.stream().filter(config::contains).toList();
+            if (removed.isEmpty()) {
                 return false;
             }
 
             backUpConfig(file);
-            config.remove(optionPath);
-            config.removeComment(optionPath);
-            writeConfig(file, config);
+            {
+                var view = config;
+                for (var path : removed) {
+                    view.remove(path);
+                    view.removeComment(path);
+                }
+                }
+            writeAtomically(config, file);
             MolecularManipulator.LOGGER.info(
-                    "Removed retired option {} from {} configuration {}",
-                    optionPath, displayName, file);
+                    "Removed retired options {} from {} configuration {}",
+                    removed, displayName, file);
             return true;
         } catch (IOException | RuntimeException exception) {
             MolecularManipulator.LOGGER.warn(
-                    "Could not remove retired option {} from {} configuration {}; "
+                    "Could not remove retired options {} from {} configuration {}; "
                             + "the existing file was left in place",
-                    optionPath, displayName, file, exception);
+                    optionPaths, displayName, file, exception);
             return false;
         }
     }
 
     /**
-     * Rewrites a legacy flat config into the current grouped schema while
-     * preserving every recognized value.
+     * Moves existing option values into a categorized schema without resetting
+     * user-selected values. New-path values win when both paths are present.
      */
-    public static boolean migrateOptionPaths(
-            Path file, ForgeConfigSpec spec,
-            Map<String, String> oldToNewPaths, String displayName) {
-        if (!Files.isRegularFile(file)) {
+    public static boolean relocateOptions(
+            Path file, Map<String, String> relocations, String displayName) {
+        if (!Files.isRegularFile(file) || relocations.isEmpty()) {
             return false;
         }
 
         try {
-            var legacy = readToml(file);
-            boolean migrationRequired = oldToNewPaths.keySet().stream()
-                    .anyMatch(legacy::contains);
-            if (!migrationRequired) {
+            var config = readToml(file);
+            var movedPaths = new ArrayList<String>();
+            {
+                var view = config;
+                for (var relocation : relocations.entrySet()) {
+                    String oldPath = relocation.getKey();
+                    String newPath = relocation.getValue();
+                    if (!view.contains(oldPath)) {
+                        continue;
+                    }
+                    if (!view.contains(newPath)) {
+                        view.set(newPath, view.getRaw(oldPath));
+                    }
+                    view.remove(oldPath);
+                    view.removeComment(oldPath);
+                    movedPaths.add(oldPath + " -> " + newPath);
+                }
+                removeEmptySection(view, "matter_speed_cards");
+                }
+            if (movedPaths.isEmpty()) {
                 return false;
             }
 
-            var grouped = CommentedConfig.of(LinkedHashMap::new,
-                    TomlFormat.instance());
-            spec.correct(grouped);
-            var migratedPaths = new ArrayList<String>();
-            for (var entry : oldToNewPaths.entrySet()) {
-                if (!legacy.contains(entry.getKey())) {
-                    continue;
-                }
-                grouped.set(entry.getValue(), legacy.getRaw(entry.getKey()));
-                migratedPaths.add(entry.getKey() + " -> " + entry.getValue());
-            }
-
             backUpConfig(file);
-            writeConfig(file, grouped);
+            writeAtomically(config, file);
             MolecularManipulator.LOGGER.info(
-                    "Migrated {} configuration {} to grouped paths: {}",
-                    displayName, file, summarize(migratedPaths));
+                    "Categorized {} configuration {} while preserving values: {}",
+                    displayName, file, summarize(movedPaths));
             return true;
         } catch (IOException | RuntimeException exception) {
-            MolecularManipulator.LOGGER.error(
-                    "Could not migrate {} configuration {} to grouped paths; "
-                            + "the existing file was left in place",
+            MolecularManipulator.LOGGER.warn(
+                    "Could not categorize {} configuration {}; the existing file was left in place",
                     displayName, file, exception);
             return false;
+        }
+    }
+
+    private static void removeEmptySection(
+            com.electronwill.nightconfig.core.CommentedConfig config, String path) {
+        Object value = config.getRaw(path);
+        if (value instanceof UnmodifiableConfig section && section.entrySet().isEmpty()) {
+            config.remove(path);
+            config.removeComment(path);
         }
     }
 
@@ -188,7 +210,7 @@ public final class ConfigSchemaGuard {
     }
 
     private static CommentedConfig readToml(Path file) throws IOException {
-        var config = CommentedConfig.of(LinkedHashMap::new, TomlFormat.instance());
+        var config = CommentedConfig.inMemory();
         try (var reader = Files.newBufferedReader(file)) {
             new TomlParser().parse(reader, config, ParsingMode.REPLACE);
         }
@@ -196,26 +218,9 @@ public final class ConfigSchemaGuard {
     }
 
     private static void writeDefaults(Path file, ForgeConfigSpec spec) throws IOException {
-        var defaults = CommentedConfig.of(LinkedHashMap::new, TomlFormat.instance());
+        var defaults = CommentedConfig.inMemory();
         spec.correct(defaults);
-        writeConfig(file, defaults);
-    }
-
-    private static void writeConfig(Path file, CommentedConfig config) throws IOException {
-        var directory = file.getParent();
-        var temporaryFile = Files.createTempFile(
-                directory, file.getFileName().toString(), ".tmp");
-        try {
-            new TomlWriter().write(config, temporaryFile, WritingMode.REPLACE);
-            try {
-                Files.move(temporaryFile, file, StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException ignored) {
-                Files.move(temporaryFile, file, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } finally {
-            Files.deleteIfExists(temporaryFile);
-        }
+        writeAtomically(defaults, file);
     }
 
     private static void backUpConfig(Path file) throws IOException {
@@ -255,4 +260,17 @@ public final class ConfigSchemaGuard {
         return String.join(", ", paths.subList(0, MAX_LOGGED_PATHS))
                 + " (+" + (paths.size() - MAX_LOGGED_PATHS) + " more)";
     }
+    private static void writeAtomically(CommentedConfig config, Path file) throws IOException {
+        Path temporary = Files.createTempFile(file.toAbsolutePath().getParent(), ".omnisequence-", ".toml.tmp");
+        try {
+            new TomlWriter().write(config, temporary, WritingMode.REPLACE);
+            try {
+                Files.move(temporary, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+                Files.move(temporary, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally { Files.deleteIfExists(temporary); }
+    }
+
 }

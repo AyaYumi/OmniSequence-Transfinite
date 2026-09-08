@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "molecularmanipulator:molecular_manipulator",
     "molecularmanipulator:assembler_matrix_molecular_core",
     "molecularmanipulator:molecular_center_controller",
     "molecularmanipulator:molecular_center_casing",
@@ -17,6 +18,17 @@
     "molecularmanipulator:computation_data_entangler",
     "molecularmanipulator:computation_energy_stabilizer",
     "molecularmanipulator:computation_output_node",
-    "molecularmanipulator:computation_crystal_pylon"
+    "molecularmanipulator:computation_crystal_pylon",
+    "molecularmanipulator:matter_fabrication_controller",
+    "molecularmanipulator:matter_fabrication_casing",
+    "molecularmanipulator:matter_fabrication_glass",
+    "molecularmanipulator:matter_fabrication_coil",
+    "molecularmanipulator:matter_fabrication_stabilizer",
+    "molecularmanipulator:matter_fabrication_core",
+    "molecularmanipulator:matter_fabrication_item_input",
+    "molecularmanipulator:matter_fabrication_item_output",
+    "molecularmanipulator:matter_fabrication_fluid_input",
+    "molecularmanipulator:matter_fabrication_fluid_output",
+    "molecularmanipulator:matter_fabrication_pattern_assembly"
   ]
 }

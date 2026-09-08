@@ -1,0 +1,20 @@
+{
+  "multipart": [
+    {
+      "when": {"facing": "north"},
+      "apply": {"model": "molecularmanipulator:block/molecular_manipulator"}
+    },
+    {
+      "when": {"facing": "south"},
+      "apply": {"model": "molecularmanipulator:block/molecular_manipulator", "y": 180}
+    },
+    {
+      "when": {"facing": "west"},
+      "apply": {"model": "molecularmanipulator:block/molecular_manipulator", "y": 270}
+    },
+    {
+      "when": {"facing": "east"},
+      "apply": {"model": "molecularmanipulator:block/molecular_manipulator", "y": 90}
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:entro_dust"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:fluix_crystal"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:entro_dust",
+      "count": 4
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

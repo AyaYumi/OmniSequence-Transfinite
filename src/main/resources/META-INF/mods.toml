@@ -60,3 +60,9 @@ description='''${mod_description}
     versionRange="[15,16)"
     ordering="AFTER"
     side="CLIENT"
+[[dependencies.${mod_id}]]
+    modId="appliedenhancements"
+    mandatory=true
+    versionRange="[1.0.6-forge,1.1)"
+    ordering="AFTER"
+    side="BOTH"

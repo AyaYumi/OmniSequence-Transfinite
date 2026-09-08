@@ -1,24 +1,32 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "key": {
-    "C": {
-      "item": "expatternprovider:assembler_matrix_crafter"
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_speed"
+      },
+      "count": 4
     },
-    "M": {
-      "item": "ae2:molecular_assembler"
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_crafter"
+      },
+      "count": 4
     },
-    "S": {
-      "item": "expatternprovider:assembler_matrix_speed"
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_manipulator"
+      },
+      "count": 1
     }
-  },
-  "pattern": [
-    "SCS",
-    "CMC",
-    "SCS"
   ],
-  "result": {
-    "count": 1,
-    "item": "molecularmanipulator:assembler_matrix_molecular_core"
-  }
+  "results": [
+    {
+      "count": 1,
+      "id": "molecularmanipulator:assembler_matrix_molecular_core"
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 512,
+  "requires_research": true
 }

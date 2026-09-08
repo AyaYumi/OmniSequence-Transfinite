@@ -1,1 +1,38 @@
-{"type":"forge:conditional","recipes":[{"conditions":[{"type":"forge:mod_loaded","modid":"advanced_ae"}],"recipe":{"type":"minecraft:crafting_shaped","pattern":["MTM","TQT","MTM"],"key":{"M":{"item":"advanced_ae:quantum_multi_threader"},"T":{"item":"advanced_ae:quantum_processor"},"Q":{"item":"ae2:quantum_ring"}},"result":{"item":"molecularmanipulator:infinite_parallel_matrix","count":4}}}]}
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_multi_threader"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_processor"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:quantum_ring"
+      },
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:infinite_parallel_matrix",
+      "count": 4
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 1024,
+  "requires_research": true,
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ]
+}

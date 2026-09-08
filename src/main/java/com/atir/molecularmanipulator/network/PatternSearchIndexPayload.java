@@ -2,229 +2,274 @@ package com.atir.molecularmanipulator.network;
 
 import appeng.api.stacks.AEKey;
 import com.atir.molecularmanipulator.MolecularManipulator;
-import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.DecoderException;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.simple.SimpleChannel;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.Objects;
+import net.minecraft.network.FriendlyByteBuf;
 
 /**
- * A bounded, chunked server-to-client projection of the searchable keys in the
- * molecular center's pattern inventory.
+ * One client-bound chunk of a decoded pattern search index.
  */
 public record PatternSearchIndexPayload(
         int containerId,
+        long generation,
         int revision,
         boolean reset,
         boolean complete,
-        List<Entry> entries) {
-    private static final String PROTOCOL_VERSION = "1";
-    private static final int MAX_ENTRIES_PER_PACKET = 64;
-    private static final int MAX_KEYS_PER_ENTRY_PART = 64;
-    private static final int MAX_KEYS_PER_PACKET = 256;
-    private static final int MAX_ENTRY_PART_BYTES = 64 * 1024;
-    private static final int MAX_PACKET_KEY_BYTES = 256 * 1024;
-    private static final int MAX_SINGLE_KEY_BYTES = 64 * 1024;
-    private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            MolecularManipulator.id("pattern_search"),
-            () -> PROTOCOL_VERSION,
-            PROTOCOL_VERSION::equals,
-            PROTOCOL_VERSION::equals);
+        List<PatternSearchIndexEntry> entries)
+ {
+    public static final int MAX_ENTRIES_PER_CHUNK = 64;
+    public static final int MAX_KEYS_PER_LIST = 256;
+    public static final int MAX_TOTAL_KEYS_PER_CHUNK = 4096;
+    public static final int MAX_SOURCE_SLOT = 1_000_000;
+
+    public static final com.appliedenhancements.network.PacketCodec<FriendlyByteBuf, PatternSearchIndexPayload> STREAM_CODEC =
+            com.appliedenhancements.network.PacketCodec.of(PatternSearchIndexPayload::encode, PatternSearchIndexPayload::decode);
 
     public PatternSearchIndexPayload {
-        entries = List.copyOf(entries);
+        if (containerId < 0) {
+            throw new IllegalArgumentException("containerId must be non-negative");
+        }
+        if (generation < 0) {
+            throw new IllegalArgumentException("generation must be non-negative");
+        }
+        if (revision < 0) {
+            throw new IllegalArgumentException("revision must be non-negative");
+        }
+        entries = List.copyOf(Objects.requireNonNull(entries, "entries"));
+        validateEntries(entries);
     }
 
-    public record Entry(int sourceSlot, List<AEKey> keys) {
-        public Entry {
-            keys = List.copyOf(keys);
-        }
+    public PatternSearchIndexPayload(PatternSearchIndexChunk chunk) {
+        this(
+                chunk.containerId(),
+                chunk.generation(),
+                chunk.revision(),
+                chunk.reset(),
+                chunk.complete(),
+                chunk.entries());
     }
+
+    public PatternSearchIndexChunk toChunk() {
+        return new PatternSearchIndexChunk(
+                containerId,
+                generation,
+                revision,
+                reset,
+                complete,
+                entries);
+    }
+
+    /**
+     * Splits a complete snapshot into bounded payloads. The first payload resets the receiver and the last
+     * payload marks it complete.
+     */
+    public static List<PatternSearchIndexPayload> createChunks(
+            int containerId,
+            long generation,
+            int firstRevision,
+            List<PatternSearchIndexEntry> entries) {
+        Objects.requireNonNull(entries, "entries");
+        if (entries.isEmpty()) {
+            return List.of(new PatternSearchIndexPayload(
+                    containerId, generation, firstRevision, true, true, List.of()));
+        }
+
+        var partitions = new ArrayList<List<PatternSearchIndexEntry>>();
+        var current = new ArrayList<PatternSearchIndexEntry>();
+        int currentKeyCount = 0;
+        for (var entry : entries) {
+            validateEntry(entry);
+            int entryKeyCount = entry.keyCount();
+            if (!current.isEmpty()
+                    && (current.size() >= MAX_ENTRIES_PER_CHUNK
+                            || currentKeyCount + entryKeyCount > MAX_TOTAL_KEYS_PER_CHUNK)) {
+                partitions.add(List.copyOf(current));
+                current.clear();
+                currentKeyCount = 0;
+            }
+            current.add(entry);
+            currentKeyCount += entryKeyCount;
+        }
+        if (!current.isEmpty()) {
+            partitions.add(List.copyOf(current));
+        }
+
+        var payloads = new ArrayList<PatternSearchIndexPayload>(partitions.size());
+        for (int index = 0; index < partitions.size(); index++) {
+            int revision = Math.addExact(firstRevision, index);
+            payloads.add(new PatternSearchIndexPayload(
+                    containerId,
+                    generation,
+                    revision,
+                    index == 0,
+                    index == partitions.size() - 1,
+                    partitions.get(index)));
+        }
+        return List.copyOf(payloads);
+    }
+
+    private static final String PROTOCOL = "2.0.0-forge-1";
+    private static final net.minecraftforge.network.simple.SimpleChannel CHANNEL =
+            net.minecraftforge.network.NetworkRegistry.newSimpleChannel(
+                    MolecularManipulator.id("pattern_search"), () -> PROTOCOL,
+                    PROTOCOL::equals, PROTOCOL::equals);
 
     public static void register() {
-        CHANNEL.registerMessage(
-                0,
-                PatternSearchIndexPayload.class,
-                PatternSearchIndexPayload::encode,
-                PatternSearchIndexPayload::decode,
-                PatternSearchIndexPayload::handle,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.messageBuilder(PatternSearchIndexPayload.class, 0,
+                        net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT)
+                .encoder((payload, buffer) -> encode(buffer, payload))
+                .decoder(PatternSearchIndexPayload::decode)
+                .consumerMainThread((payload, context) -> {
+                    net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                            net.minecraftforge.api.distmarker.Dist.CLIENT,
+                            () -> () -> ClientHandler.accept(payload));
+                    context.get().setPacketHandled(true);
+                }).add();
     }
 
-    public static void sendChunked(ServerPlayer player, int containerId, int revision,
-            List<Entry> index) {
-        var entryParts = new ArrayList<SizedEntry>();
-        for (var entry : index) {
-            if (entry.keys().isEmpty()) {
-                entryParts.add(new SizedEntry(entry, 0));
-                continue;
-            }
-            var partKeys = new ArrayList<AEKey>(MAX_KEYS_PER_ENTRY_PART);
-            int partBytes = 0;
-            for (var originalKey : entry.keys()) {
-                var sizedKey = makeLightweight(originalKey);
-                if (sizedKey == null) {
-                    MolecularManipulator.LOGGER.debug(
-                            "Skipping an oversized AE key in molecular center search slot {}",
-                            entry.sourceSlot());
-                    continue;
-                }
-                if (!partKeys.isEmpty()
-                        && (partKeys.size() >= MAX_KEYS_PER_ENTRY_PART
-                                || partBytes + sizedKey.encodedBytes() > MAX_ENTRY_PART_BYTES)) {
-                    entryParts.add(new SizedEntry(
-                            new Entry(entry.sourceSlot(), partKeys),
-                            partBytes));
-                    partKeys = new ArrayList<>(MAX_KEYS_PER_ENTRY_PART);
-                    partBytes = 0;
-                }
-                partKeys.add(sizedKey.key());
-                partBytes += sizedKey.encodedBytes();
-            }
-            if (!partKeys.isEmpty()) {
-                entryParts.add(new SizedEntry(
-                        new Entry(entry.sourceSlot(), partKeys),
-                        partBytes));
-            }
-        }
+    public static void sendToPlayer(net.minecraft.server.level.ServerPlayer player,
+            PatternSearchIndexPayload payload) {
+        CHANNEL.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), payload);
+    }
 
-        var chunks = new ArrayList<List<Entry>>();
-        var chunk = new ArrayList<Entry>(MAX_ENTRIES_PER_PACKET);
-        int chunkKeys = 0;
-        int chunkBytes = 0;
-        for (var sizedEntry : entryParts) {
-            var entry = sizedEntry.entry();
-            int entryKeys = entry.keys().size();
-            if (!chunk.isEmpty()
-                    && (chunk.size() >= MAX_ENTRIES_PER_PACKET
-                            || chunkKeys + entryKeys > MAX_KEYS_PER_PACKET
-                            || chunkBytes + sizedEntry.encodedBytes() > MAX_PACKET_KEY_BYTES)) {
-                chunks.add(List.copyOf(chunk));
-                chunk.clear();
-                chunkKeys = 0;
-                chunkBytes = 0;
-            }
-            chunk.add(entry);
-            chunkKeys += entryKeys;
-            chunkBytes += sizedEntry.encodedBytes();
-        }
-        if (!chunk.isEmpty()) {
-            chunks.add(List.copyOf(chunk));
-        }
-        if (chunks.isEmpty()) {
-            chunks.add(List.of());
-        }
-
-        for (int indexNumber = 0; indexNumber < chunks.size(); indexNumber++) {
-            var payload = new PatternSearchIndexPayload(
-                    containerId,
-                    revision,
-                    indexNumber == 0,
-                    indexNumber + 1 == chunks.size(),
-                    chunks.get(indexNumber));
-            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), payload);
+    private static final class ClientHandler {
+        static void accept(PatternSearchIndexPayload payload) {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player != null) handle(payload, player);
         }
     }
 
-    private static SizedKey makeLightweight(AEKey originalKey) {
-        if (originalKey == null) {
-            return null;
-        }
-        AEKey key = originalKey.dropSecondary();
-        int encodedBytes = encodedSize(key);
-        if (encodedBytes < 0 || encodedBytes > MAX_SINGLE_KEY_BYTES) {
-            return null;
-        }
-        return new SizedKey(key, encodedBytes);
-    }
-
-    private static int encodedSize(AEKey key) {
-        var buffer = new FriendlyByteBuf(Unpooled.buffer());
-        try {
-            AEKey.writeKey(buffer, key);
-            return buffer.readableBytes();
-        } catch (RuntimeException exception) {
-            return -1;
-        } finally {
-            buffer.release();
-        }
-    }
-
-    private static void encode(PatternSearchIndexPayload payload, FriendlyByteBuf buffer) {
-        buffer.writeVarInt(payload.containerId());
-        buffer.writeInt(payload.revision());
-        buffer.writeBoolean(payload.reset());
-        buffer.writeBoolean(payload.complete());
-        buffer.writeVarInt(payload.entries().size());
-        for (var entry : payload.entries()) {
+    private static void encode(FriendlyByteBuf buffer, PatternSearchIndexPayload payload) {
+        buffer.writeVarInt(payload.containerId);
+        buffer.writeLong(payload.generation);
+        buffer.writeVarInt(payload.revision);
+        buffer.writeBoolean(payload.reset);
+        buffer.writeBoolean(payload.complete);
+        buffer.writeVarInt(payload.entries.size());
+        for (var entry : payload.entries) {
             buffer.writeVarInt(entry.sourceSlot());
-            buffer.writeVarInt(entry.keys().size());
-            for (var key : entry.keys()) {
-                AEKey.writeKey(buffer, key);
-            }
+            writeKeys(buffer, entry.inputs());
+            writeKeys(buffer, entry.outputs());
         }
     }
 
     private static PatternSearchIndexPayload decode(FriendlyByteBuf buffer) {
-        int containerId = buffer.readVarInt();
-        int revision = buffer.readInt();
+        int containerId = readBoundedVarInt(buffer, "containerId", Integer.MAX_VALUE);
+        long generation = buffer.readLong();
+        if (generation < 0) {
+            throw new DecoderException("Pattern search generation must be non-negative");
+        }
+        int revision = readBoundedVarInt(buffer, "revision", Integer.MAX_VALUE);
         boolean reset = buffer.readBoolean();
         boolean complete = buffer.readBoolean();
-        int entryCount = readBoundedCount(buffer, MAX_ENTRIES_PER_PACKET, "entries");
-        var entries = new ArrayList<Entry>(entryCount);
+        int entryCount = readBoundedVarInt(buffer, "entry count", MAX_ENTRIES_PER_CHUNK);
+
+        var entries = new ArrayList<PatternSearchIndexEntry>(entryCount);
+        var budget = new KeyDecodeBudget(MAX_TOTAL_KEYS_PER_CHUNK);
+        for (int index = 0; index < entryCount; index++) {
+            int sourceSlot = readBoundedVarInt(buffer, "source slot", MAX_SOURCE_SLOT);
+            var inputs = readKeys(buffer, budget, "input key count");
+            var outputs = readKeys(buffer, budget, "output key count");
+            entries.add(new PatternSearchIndexEntry(sourceSlot, inputs, outputs));
+        }
+        return new PatternSearchIndexPayload(
+                containerId,
+                generation,
+                revision,
+                reset,
+                complete,
+                entries);
+    }
+
+    private static void writeKeys(FriendlyByteBuf buffer, List<AEKey> keys) {
+        buffer.writeVarInt(keys.size());
+        for (var key : keys) {
+            AEKey.writeKey(buffer, key);
+        }
+    }
+
+    private static List<AEKey> readKeys(
+            FriendlyByteBuf buffer,
+            KeyDecodeBudget budget,
+            String countName) {
+        int count = readBoundedVarInt(buffer, countName, MAX_KEYS_PER_LIST);
+        budget.consume(count);
+        var keys = new ArrayList<AEKey>(count);
+        for (int index = 0; index < count; index++) {
+            var key = AEKey.readKey(buffer);
+            if (key == null) {
+                throw new DecoderException("Unknown AEKey type in pattern search index");
+            }
+            keys.add(key);
+        }
+        return List.copyOf(keys);
+    }
+
+    private static int readBoundedVarInt(
+            FriendlyByteBuf buffer,
+            String name,
+            int maximum) {
+        int value = buffer.readVarInt();
+        if (value < 0 || value > maximum) {
+            throw new DecoderException(
+                    "Invalid pattern search " + name + ": " + value + " (maximum " + maximum + ")");
+        }
+        return value;
+    }
+
+    private static void validateEntries(List<PatternSearchIndexEntry> entries) {
+        if (entries.size() > MAX_ENTRIES_PER_CHUNK) {
+            throw new IllegalArgumentException(
+                    "Too many pattern search entries: " + entries.size());
+        }
         int totalKeys = 0;
-        for (int entryIndex = 0; entryIndex < entryCount; entryIndex++) {
-            int sourceSlot = buffer.readVarInt();
-            int keyCount = readBoundedCount(buffer, MAX_KEYS_PER_ENTRY_PART, "keys");
-            totalKeys += keyCount;
-            if (totalKeys > MAX_KEYS_PER_PACKET) {
-                throw new DecoderException("Pattern search index packet contains too many keys");
+        for (var entry : entries) {
+            validateEntry(entry);
+            totalKeys = Math.addExact(totalKeys, entry.keyCount());
+            if (totalKeys > MAX_TOTAL_KEYS_PER_CHUNK) {
+                throw new IllegalArgumentException(
+                        "Too many AEKeys in pattern search chunk: " + totalKeys);
             }
-            var keys = new ArrayList<AEKey>(keyCount);
-            for (int keyIndex = 0; keyIndex < keyCount; keyIndex++) {
-                AEKey key = AEKey.readKey(buffer);
-                if (key == null) {
-                    throw new DecoderException("Pattern search index contains an unknown AE key");
-                }
-                keys.add(key);
+        }
+    }
+
+    private static void validateEntry(PatternSearchIndexEntry entry) {
+        Objects.requireNonNull(entry, "entry");
+        if (entry.sourceSlot() > MAX_SOURCE_SLOT) {
+            throw new IllegalArgumentException(
+                    "Pattern search source slot exceeds " + MAX_SOURCE_SLOT);
+        }
+        if (entry.inputs().size() > MAX_KEYS_PER_LIST
+                || entry.outputs().size() > MAX_KEYS_PER_LIST) {
+            throw new IllegalArgumentException(
+                    "Pattern search entry exceeds " + MAX_KEYS_PER_LIST + " keys per side");
+        }
+    }
+
+    private static void handle(PatternSearchIndexPayload payload, net.minecraft.world.entity.player.Player player) {
+        var menu = player.containerMenu;
+        if (menu.containerId == payload.containerId
+                && menu instanceof PatternSearchIndexReceiver receiver) {
+            receiver.acceptPatternSearchIndexChunk(payload.toChunk());
+        }
+    }
+
+
+    private static final class KeyDecodeBudget {
+        private int remaining;
+
+        private KeyDecodeBudget(int remaining) {
+            this.remaining = remaining;
+        }
+
+        private void consume(int count) {
+            if (count > remaining) {
+                throw new DecoderException(
+                        "Pattern search chunk exceeds " + MAX_TOTAL_KEYS_PER_CHUNK + " total AEKeys");
             }
-            entries.add(new Entry(sourceSlot, keys));
+            remaining -= count;
         }
-        return new PatternSearchIndexPayload(containerId, revision, reset, complete, entries);
-    }
-
-    private static int readBoundedCount(FriendlyByteBuf buffer, int maximum, String label) {
-        int count = buffer.readVarInt();
-        if (count < 0 || count > maximum) {
-            throw new DecoderException("Invalid pattern search " + label + " count: " + count);
-        }
-        return count;
-    }
-
-    private static void handle(PatternSearchIndexPayload payload,
-            Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(
-                Dist.CLIENT,
-                () -> () -> com.atir.molecularmanipulator.client.PatternSearchIndexClientHandler
-                        .handle(payload)));
-        context.setPacketHandled(true);
-    }
-
-    private record SizedEntry(Entry entry, int encodedBytes) {
-    }
-
-    private record SizedKey(AEKey key, int encodedBytes) {
     }
 }

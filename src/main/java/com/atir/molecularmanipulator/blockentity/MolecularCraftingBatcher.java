@@ -6,8 +6,8 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.menu.AutoCraftingMenu;
-import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.world.inventory.TransientCraftingContainer;
@@ -77,9 +77,11 @@ final class MolecularCraftingBatcher {
     }
 
     /**
-     * Prepares an explicitly expanded batch from the actual keys AE2 selected.
-     * Substitution-enabled inputs may contain several keys in one holder, so
-     * they cannot use the identity plan cache or a simple amount multiplier.
+     * Prepares an explicitly expanded AE2 batch from the actual keys selected
+     * by extraction. Substitution-enabled patterns may spread an aggregate
+     * holder across several keys, so the aggregate cannot be interpreted
+     * through the pattern-identity cache or assumed to be one selection scaled
+     * by {@code selectedCraftCount}.
      */
     boolean prepareSelected(IPatternDetails patternDetails, KeyCounter[] inputs,
             Level level, long maxCrafts, KeyCounter[] firstInputs,
@@ -94,7 +96,8 @@ final class MolecularCraftingBatcher {
         }
 
         var remainingInputs = copyInputs(inputs);
-        var expectedPrimaryPerCraft = expectedPrimaryOutputs(patternDetails);
+        var expectedPrimaryPerCraft =
+                expectedPrimaryOutputs(patternDetails);
         if (expectedPrimaryPerCraft == null) {
             return false;
         }
@@ -127,11 +130,14 @@ final class MolecularCraftingBatcher {
                     return failSelectedPreparation();
                 }
 
-                ItemStack output = pattern.assemble(craftingGrid, level);
+                var craftingInput =
+                        craftingGrid;
+                ItemStack output = pattern.assemble(craftingInput, level);
                 if (output.isEmpty()) {
                     return failSelectedPreparation();
                 }
                 var crafted = output.copy();
+
                 var actualPrimaryPerCraft =
                         new Object2LongOpenHashMap<AEKey>();
                 if (!addOutput(actualPrimaryPerCraft, crafted)
@@ -143,9 +149,10 @@ final class MolecularCraftingBatcher {
                         consumption.repeats())) {
                     return failSelectedPreparation();
                 }
-                for (var remainder : pattern.getRemainingItems(craftingGrid)) {
-                    // Consumable substitution is admitted only when AE2's
-                    // actual-key analysis reported no crafting remainder.
+                for (var remainder : pattern.getRemainingItems(craftingInput)) {
+                    // A non-reusable expanded context is admitted only when AE2's
+                    // actual-key analysis reported no crafting remainder. Do not
+                    // invent untracked byproducts if a contextual recipe disagrees.
                     if (!remainder.isEmpty()) {
                         return failSelectedPreparation();
                     }
@@ -195,6 +202,28 @@ final class MolecularCraftingBatcher {
         return !outputAmounts.isEmpty();
     }
 
+    private static Object2LongOpenHashMap<AEKey> expectedPrimaryOutputs(
+            IPatternDetails patternDetails) {
+        var expected = new Object2LongOpenHashMap<AEKey>();
+        try {
+            var outputs = patternDetails.getOutputs();
+            if (outputs == null || outputs.length == 0) {
+                return null;
+            }
+            for (var output : outputs) {
+                if (output == null || output.what() == null
+                        || output.amount() <= 0) {
+                    return null;
+                }
+                expected.put(output.what(), Math.addExact(
+                        expected.getLong(output.what()), output.amount()));
+            }
+            return expected;
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
     MolecularReusableBatchJob prepareReusable(IPatternDetails patternDetails,
             KeyCounter[] inputs, Level level, UUID craftingId,
             MolecularReusableBatchPlan reusablePlan) {
@@ -210,15 +239,20 @@ final class MolecularCraftingBatcher {
                 return null;
             }
 
-            ItemStack output = pattern.assemble(craftingGrid, level);
+            var firstCraftingInput = craftingGrid;
+            ItemStack output = pattern.assemble(firstCraftingInput, level);
             if (output.isEmpty()) {
                 return null;
             }
+            var crafted = output.copy();
+
             var primaryPerCraft = new Object2LongOpenHashMap<AEKey>();
-            var expectedPrimaryPerCraft = expectedPrimaryOutputs(patternDetails);
-            if (!addOutput(primaryPerCraft, output)
+            var expectedPrimaryPerCraft = expectedPrimaryOutputs(
+                    patternDetails);
+            if (!addOutput(primaryPerCraft, crafted)
                     || expectedPrimaryPerCraft == null
-                    || !mapsEqual(expectedPrimaryPerCraft, primaryPerCraft)) {
+                    || !mapsEqual(expectedPrimaryPerCraft,
+                            primaryPerCraft)) {
                 return null;
             }
             if (!remainingItemsMatch(pattern,
@@ -244,7 +278,7 @@ final class MolecularCraftingBatcher {
             preparedPlan = null;
             craftingGridPrepared = true;
             craftCount = reusablePlan.craftCount();
-            craftedOutput = output.copy();
+            craftedOutput = crafted;
             outputAmounts.clear();
             primaryOutputAmounts.clear();
             remainderOutputAmounts.clear();
@@ -252,28 +286,6 @@ final class MolecularCraftingBatcher {
             return MolecularReusableBatchJob.create(craftingId,
                     patternDetails.getDefinition(), reusablePlan, inputs,
                     primaryPerCraft);
-        } catch (RuntimeException exception) {
-            return null;
-        }
-    }
-
-    private static Object2LongOpenHashMap<AEKey> expectedPrimaryOutputs(
-            IPatternDetails patternDetails) {
-        var expected = new Object2LongOpenHashMap<AEKey>();
-        try {
-            var outputs = patternDetails.getOutputs();
-            if (outputs == null || outputs.length == 0) {
-                return null;
-            }
-            for (var output : outputs) {
-                if (output == null || output.what() == null
-                        || output.amount() <= 0) {
-                    return null;
-                }
-                expected.put(output.what(), Math.addExact(
-                        expected.getLong(output.what()), output.amount()));
-            }
-            return expected;
         } catch (RuntimeException exception) {
             return null;
         }
@@ -502,6 +514,38 @@ final class MolecularCraftingBatcher {
         return remainderOutputAmounts;
     }
 
+    /**
+     * Finalizes an already validated reusable batch for passive auto-crafting.
+     * The normal AE crafting-provider path persists the reusable job and advances
+     * it separately; the auto-crafter owns the complete extracted batch and can
+     * commit its aggregate outputs immediately.
+     */
+    boolean prepareReusableOutputsForAuto(MolecularReusableBatchJob job,
+            Object2LongOpenHashMap<AEKey> primary,
+            Object2LongOpenHashMap<AEKey> remainders) {
+        if (job == null || primary == null || primary.isEmpty()
+                || remainders == null) {
+            return false;
+        }
+        try {
+            primaryOutputAmounts.clear();
+            primaryOutputAmounts.putAll(primary);
+            remainderOutputAmounts.clear();
+            remainderOutputAmounts.putAll(remainders);
+            outputAmounts.clear();
+            mergeOutputs(primaryOutputAmounts, outputAmounts);
+            mergeOutputs(remainderOutputAmounts, outputAmounts);
+            craftCount = job.totalCrafts();
+            return !outputAmounts.isEmpty();
+        } catch (RuntimeException exception) {
+            outputAmounts.clear();
+            primaryOutputAmounts.clear();
+            remainderOutputAmounts.clear();
+            craftCount = 0;
+            return false;
+        }
+    }
+
     ItemStack getCraftedOutput() {
         return craftedOutput;
     }
@@ -560,7 +604,8 @@ final class MolecularCraftingBatcher {
             IMolecularAssemblerSupportedPattern pattern,
             KeyCounter expectedRemainders) {
         var actual = new KeyCounter();
-        for (var remainder : pattern.getRemainingItems(craftingGrid)) {
+        var craftingInput = craftingGrid;
+        for (var remainder : pattern.getRemainingItems(craftingInput)) {
             if (remainder.isEmpty()) {
                 continue;
             }
@@ -585,9 +630,10 @@ final class MolecularCraftingBatcher {
     }
 
     /**
-     * Validates every distinct deterministic tool state once. The budget is
-     * shared by the complete pool, so many identical tools do not multiply the
-     * validation work.
+     * Validates every distinct damage state once, regardless of how many tools
+     * with that same initial key are present in the pool. The validation budget
+     * applies to the complete pool, not to each tool or group. Multiple
+     * transitioning slots are rejected by the plan before reaching this method.
      */
     private boolean validateDamagePool(
             IMolecularAssemblerSupportedPattern pattern,
@@ -615,7 +661,8 @@ final class MolecularCraftingBatcher {
 
         try {
             var validatedStates = new HashSet<AEItemKey>();
-            for (var group : longestGroups.values()) {
+            for (var entry : longestGroups.entrySet()) {
+                var group = entry.getValue();
                 for (long used = 0; used < group.usesPerTool(); used++) {
                     AEItemKey stateKey = group.keyAfter(used);
                     if (!validatedStates.add(stateKey)) {
@@ -625,12 +672,20 @@ final class MolecularCraftingBatcher {
                             > MAX_REUSABLE_VALIDATION_STATES) {
                         return false;
                     }
-                    var stateInputs = createValidationInputs(plan, group, used);
+                    var stateInputs = createValidationInputs(
+                            plan, group, used);
                     if (stateInputs == null
                             || !fillCraftingGrid(pattern, stateInputs)) {
                         return false;
                     }
-                    ItemStack stateOutput = pattern.assemble(craftingGrid, level);
+                    var stateCraftingInput =
+                            craftingGrid;
+                    ItemStack stateOutput =
+                            pattern.assemble(stateCraftingInput, level);
+                    if (!stateOutput.isEmpty()) {
+                        stateOutput = stateOutput.copy();
+
+                    }
                     var statePrimary = new Object2LongOpenHashMap<AEKey>();
                     if (stateOutput.isEmpty()
                             || !addOutput(statePrimary, stateOutput)
@@ -725,6 +780,7 @@ final class MolecularCraftingBatcher {
         }
 
         var crafted = output.copy();
+
 
         var primaryOutputs = new Object2LongOpenHashMap<AEKey>();
         var remainderOutputs = new Object2LongOpenHashMap<AEKey>();

@@ -3,6 +3,8 @@ package com.atir.molecularmanipulator.client;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
+import com.atir.molecularmanipulator.registry.ModContent;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -10,9 +12,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 
 import java.util.ArrayList;
 
@@ -20,11 +22,12 @@ import java.util.ArrayList;
 public final class MolecularCenterGhostPreview {
     private static final int REFRESH_INTERVAL = 40;
     private static final int PROJECTION_ALPHA = 118;
-    private static final double MAX_RENDER_DISTANCE = 192.0;
-    private static final SectionedGhostProjectionRenderer RENDERER =
-            new SectionedGhostProjectionRenderer(PROJECTION_ALPHA, MAX_RENDER_DISTANCE);
+    private static final double MAX_RENDER_DISTANCE_SQUARED = 192.0 * 192.0;
+    private static final SectionedGhostPreviewRenderer CACHE =
+            new SectionedGhostPreviewRenderer(PROJECTION_ALPHA);
     private static BlockPos controller;
     private static Direction facing;
+    private static MolecularCenterStructure.Part projectedAnchor;
     private static ResourceKey<Level> dimension;
     private static long lastRefresh = Long.MIN_VALUE;
 
@@ -42,6 +45,10 @@ public final class MolecularCenterGhostPreview {
             clear();
             return false;
         }
+        // A different controller is a different projection, even if both occupy
+        // the same chunk sections. Do not keep its old meshes while rebuilding.
+        CACHE.close();
+        projectedAnchor = null;
         controller = selectedController;
         facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         dimension = selectedDimension;
@@ -70,53 +77,85 @@ public final class MolecularCenterGhostPreview {
             return;
         }
         var camera = event.getCamera().getPosition();
-        if (!RENDERER.isInRenderRange(camera, controller)) {
+        if (camera.distanceToSqr(controller.getCenter()) > MAX_RENDER_DISTANCE_SQUARED) {
             return;
         }
-        if (level.getGameTime() - lastRefresh >= REFRESH_INTERVAL) {
+        if (!(level.getBlockEntity(controller) instanceof MolecularCenterBlockEntity center)) {
+            clear();
+            return;
+        }
+        var currentFacing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var currentAnchor = MolecularCenterStructure.controllerPart(center.getConstructionOriginLayout());
+        if (lastRefresh == Long.MIN_VALUE || level.getGameTime() - lastRefresh >= REFRESH_INTERVAL
+                || currentFacing != facing || !currentAnchor.equals(projectedAnchor)) {
             refresh(level);
         }
-        if (controller == null || RENDERER.isEmpty()) {
+        if (controller == null || CACHE.isEmpty()) {
             return;
         }
-        RENDERER.render(event);
+        CACHE.render(event);
     }
 
     private static void refresh(Level level) {
         if (controller == null || !level.hasChunkAt(controller)
-                || !(level.getBlockEntity(controller) instanceof MolecularCenterBlockEntity)) {
+                || !(level.getBlockEntity(controller) instanceof MolecularCenterBlockEntity center)) {
             clear();
             return;
         }
-        facing = level.getBlockState(controller).getValue(HorizontalDirectionalBlock.FACING);
-        var blocks = new ArrayList<SectionedGhostProjectionRenderer.ProjectionBlock>();
+        var currentFacing = level.getBlockState(controller).getValue(HorizontalDirectionalBlock.FACING);
+        var originLayout = center.getConstructionOriginLayout();
+        var currentAnchor = MolecularCenterStructure.controllerPart(originLayout);
+        if (currentFacing != facing || !currentAnchor.equals(projectedAnchor)) {
+            // Anchor synchronization can move every ghost. Clear atomically so
+            // incremental section builds never mix the old and new origins.
+            CACHE.close();
+        }
+        facing = currentFacing;
+        projectedAnchor = currentAnchor;
+        var blocks = new ArrayList<SectionedGhostPreviewRenderer.GhostBlock>();
         for (var part : MolecularCenterStructure.parts()) {
-            if (MolecularCenterStructure.isController(part)) {
+            if (part.partType() == MolecularCenterStructure.PartType.AIR) {
                 continue;
             }
-            var pos = MolecularCenterStructure.worldPos(controller, facing, part);
-            if (!level.hasChunkAt(pos)) {
+            var pos = MolecularCenterStructure.worldPos(controller, facing, part, originLayout);
+            if (pos.equals(controller) || !level.hasChunkAt(pos)) {
                 continue;
             }
             var currentState = level.getBlockState(pos);
-            boolean clearance = part.partType() == MolecularCenterStructure.PartType.AIR;
-            var expectedState = MolecularCenterStructure.partState(part.partType());
-            if (clearance ? currentState.isAir() : currentState.is(expectedState.getBlock())) {
+            var expectedState = MolecularCenterStructure.isController(part)
+                    ? ModContent.MOLECULAR_CENTER_CONTROLLER.get().defaultBlockState()
+                            .setValue(HorizontalDirectionalBlock.FACING, facing)
+                    : MolecularCenterStructure.partState(part.partType());
+            if (currentState.is(expectedState.getBlock())) {
                 continue;
             }
-            boolean conflict = clearance || !currentState.canBeReplaced();
-            blocks.add(new SectionedGhostProjectionRenderer.ProjectionBlock(
+            boolean conflict = !currentState.canBeReplaced()
+                    && !MolecularCenterStructure.matchesSourcePart(originLayout, part, currentState);
+            blocks.add(new SectionedGhostPreviewRenderer.GhostBlock(
                     pos, expectedState, conflict));
         }
-        RENDERER.update(blocks);
+        CACHE.update(blocks);
         lastRefresh = level.getGameTime();
+    }
+
+    static void onResourceReload() {
+        Runnable reload = () -> {
+            CACHE.close();
+            lastRefresh = Long.MIN_VALUE;
+        };
+        if (RenderSystem.isOnRenderThread()) {
+            reload.run();
+        } else {
+            RenderSystem.recordRenderCall(reload::run);
+        }
     }
 
     private static void clear() {
         controller = null;
         facing = null;
         dimension = null;
-        RENDERER.clear();
+        projectedAnchor = null;
+        CACHE.close();
         lastRefresh = Long.MIN_VALUE;
     }
 }

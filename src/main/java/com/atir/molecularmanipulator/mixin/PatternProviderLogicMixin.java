@@ -144,8 +144,7 @@ public abstract class PatternProviderLogicMixin
         for (var direction : getActiveSides()) {
             var targetPosition = blockEntity.getBlockPos().relative(direction);
             var targetSide = direction.getOpposite();
-            var craftingMachine = ICraftingMachine.of(
-                    level.getBlockEntity(targetPosition), targetSide);
+            var craftingMachine = ICraftingMachine.of(level, targetPosition, targetSide, level.getBlockEntity(targetPosition));
             if (craftingMachine != null && craftingMachine.acceptsPlans()) {
                 // The base provider prioritizes this path. Its boolean result cannot prove
                 // that an N-fold pattern was accepted atomically, so retain vanilla dispatch.
@@ -384,7 +383,8 @@ public abstract class PatternProviderLogicMixin
     }
 
     @Inject(method = "readFromNBT", at = @At("TAIL"))
-    private void molecularmanipulator$loadAndMigrateLegacyBatch(CompoundTag tag, CallbackInfo callback) {
+    private void molecularmanipulator$loadAndMigrateLegacyBatch(CompoundTag tag,
+            CallbackInfo callback) {
         molecularmanipulator$queuedBatchAmounts.clear();
         molecularmanipulator$legacyBatchRefund.clear();
         int smartQueueVersion = tag.getInt(MOLECULARMANIPULATOR_SMART_QUEUE_VERSION_TAG);
@@ -410,7 +410,7 @@ public abstract class PatternProviderLogicMixin
 
         var savedRefund = tag.getList(MOLECULARMANIPULATOR_LEGACY_REFUND_TAG, Tag.TAG_COMPOUND);
         for (int index = 0; index < savedRefund.size(); index++) {
-            var stack = GenericStack.readTag( savedRefund.getCompound(index));
+            var stack = GenericStack.readTag(savedRefund.getCompound(index));
             if (stack != null && stack.amount() > 0) {
                 molecularmanipulator$legacyBatchRefund.add(stack);
             }
@@ -450,14 +450,14 @@ public abstract class PatternProviderLogicMixin
     }
 
     @Inject(method = "writeToNBT", at = @At("TAIL"))
-    private void molecularmanipulator$saveLegacyBatchRefund(CompoundTag tag, CallbackInfo callback) {
+    private void molecularmanipulator$saveLegacyBatchRefund(CompoundTag tag,
+            CallbackInfo callback) {
         var savedBatchRecipe = new ListTag();
         if (!sendList.isEmpty() && molecularmanipulator$smartQueueOwned) {
             molecularmanipulator$ensureQueuedBatchAmounts();
             for (var entry : molecularmanipulator$queuedBatchAmounts.object2LongEntrySet()) {
                 if (entry.getLongValue() > 0) {
-                    savedBatchRecipe.add(GenericStack.writeTag(
-                            new GenericStack(entry.getKey(), entry.getLongValue())));
+                    savedBatchRecipe.add(GenericStack.writeTag(new GenericStack(entry.getKey(), entry.getLongValue())));
                 }
             }
         }
@@ -471,7 +471,7 @@ public abstract class PatternProviderLogicMixin
 
         var savedRefund = new ListTag();
         for (var stack : molecularmanipulator$legacyBatchRefund) {
-            savedRefund.add(GenericStack.writeTag( stack));
+            savedRefund.add(GenericStack.writeTag(stack));
         }
         tag.put(MOLECULARMANIPULATOR_LEGACY_REFUND_TAG, savedRefund);
     }
@@ -539,6 +539,7 @@ public abstract class PatternProviderLogicMixin
 
     @Inject(method = "clearContent", at = @At("TAIL"))
     private void molecularmanipulator$clearBalancedBatchState(CallbackInfo callback) {
+        molecularmanipulator$legacyBatchRefund.clear();
         molecularmanipulator$initialBatchAmounts.clear();
         molecularmanipulator$queuedBatchAmounts.clear();
         molecularmanipulator$balancingBatch = false;

@@ -17,6 +17,8 @@ ordinary crafting and speed cores with a high-throughput internal recipe executo
 
 ## Setup
 
+Complete **Stage II: Sequence Array** once in the [Matter Fabrication Well](matter_fabrication_well.md), then manufacture this core there.
+
 Build a valid ExtendedAE Assembler Matrix and use this block as one of its functional cores. It is not a standalone
 machine: patterns, network access, and structure validation are supplied by the completed Assembler Matrix.
 
@@ -35,6 +37,23 @@ The core runs the real recipe assembly logic rather than multiplying an output s
 Outputs are aggregated by AE key and returned to the ME Network in batches. A persistent buffer holds blocked outputs
 until the network can accept them.
 
+## Reusable inputs and cancellation
+
+The core can execute same-key crafting remainders as one reusable batch. This includes items treated as unbreakable by
+their item data. A finite-durability tool is batched only when every craft deterministically increases its damage by
+exactly one; Unbreaking-enchanted, random, or context-dependent tools fall back to AE2's original one-craft path.
+Key-changing remainders, such as a water bucket becoming an empty bucket, also stay on that path.
+
+After accepting a reusable batch, the core owns and persists its complete execution state. Saving, unloading, or
+restarting cannot lose or duplicate the remaining work. Canceling the AE2 job writes a persistent cancellation marker,
+stops every unexecuted craft, and refunds the exact unused materials together with the reusable item's current state.
+Outputs already completed before cancellation remain valid.
+
+Batch execution uses AE2's native pattern-power calculation over the actual combined inputs, preserving AE2's original
+crafting-energy behavior.
+
+Normal block drops retain stored materials, outputs and execution state. A replaced core still needs a valid Assembler Matrix and network.
+
 ## Recipe
 
-<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" />
+<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" fallbackText="This modpack has no available recipe for this item. Check JEI or the research configuration." />

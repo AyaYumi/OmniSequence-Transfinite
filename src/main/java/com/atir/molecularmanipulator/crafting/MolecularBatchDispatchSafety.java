@@ -172,7 +172,8 @@ public final class MolecularBatchDispatchSafety {
                 // Remainders are classified from the actual extracted key by
                 // MolecularBatchCraftingExtractor. Only explicit molecular
                 // providers may opt into reusable-input expansion; buckets,
-                // random damage and unknown NBT transitions still fall back.
+                // random damage and unknown data-component transitions still
+                // fall back.
             }
         }
         return null;
@@ -180,7 +181,7 @@ public final class MolecularBatchDispatchSafety {
 
     private static void logFallbackOnce(IPatternDetails patternDetails, String reason,
             RuntimeException exception) {
-        if (!ModConfig.OMNI_MAX_FAST_DIAGNOSTICS.get()) {
+        if (!MolecularManipulator.LOGGER.isDebugEnabled()) {
             return;
         }
 
@@ -194,7 +195,7 @@ public final class MolecularBatchDispatchSafety {
         }
 
         if (exception == null) {
-            MolecularManipulator.LOGGER.info("Molecular batch dispatch fallback: pattern={}, reason={}",
+            MolecularManipulator.LOGGER.debug("Molecular batch dispatch fallback: pattern={}, reason={}",
                     pattern, reason);
             return;
         }

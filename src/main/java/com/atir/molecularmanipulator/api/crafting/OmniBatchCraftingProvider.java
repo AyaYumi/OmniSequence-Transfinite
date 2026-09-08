@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
  * take durable ownership of an entire multi-craft delivery without partial
  * insertion.</p>
  *
- * @since 1.3.7-forge-fix (API version 1)
+ * @since 1.3.9 (API version 1)
  */
 public interface OmniBatchCraftingProvider extends ICraftingProvider {
     /**

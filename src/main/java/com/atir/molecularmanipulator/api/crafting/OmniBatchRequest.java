@@ -13,7 +13,7 @@ import java.util.UUID;
  * Immutable description of the exact materials delivered for an Omni batch.
  * Entries retain their original pattern-input slot, including substitutions.
  *
- * @since 1.3.7-forge-fix (API version 1)
+ * @since 1.3.9 (API version 1)
  */
 public record OmniBatchRequest(
         UUID dispatchId,

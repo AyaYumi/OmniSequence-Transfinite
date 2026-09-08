@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GGG",
+    "GFG",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "ae2:quartz_glass"
+    },
+    "F": {
+      "item": "ae2:fluix_crystal"
+    }
+  },
+  "result": {
+    "count": 16,
+    "item": "molecularmanipulator:matter_fabrication_glass"
+  }
+}

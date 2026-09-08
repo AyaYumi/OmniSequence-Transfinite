@@ -2,49 +2,31 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.atir.molecularmanipulator.mixin",
-  "refmap": "molecularmanipulator.refmap.json",
   "plugin": "com.atir.molecularmanipulator.mixin.MolecularManipulatorMixinPlugin",
   "compatibilityLevel": "JAVA_17",
   "mixinextras": {
-    "minVersion": "0.5.3"
+    "minVersion": "0.5.0"
   },
   "mixins": [
-    "AECraftingPatternInputMixin",
     "AdvancedAECraftingCpuLogicMixin",
     "CalculatorAssemblerMatrixMixin",
     "ClusterAssemblerMatrixMixin",
     "CraftingCPUClusterAccessor",
     "CraftingCpuLogicMixin",
-    "CraftAmountMenuMixin",
-    "CraftConfirmMenuLongMixin",
-    "CraftConfirmMenuMixin",
-    "CraftingPlanOverflowMixin",
-    "CraftingPlanSummaryAccessor",
-    "CraftingPlanSummaryMixin",
-    "CraftingSimulationStateOverflowMixin",
-    "CraftingTreeNodeOutputGuardMixin",
-    "CreativeCellInventoryMixin",
-    "ExtendedAEInfinityCellInventoryMixin",
+    "GridActiveMachinesMixin",
     "KeyCounterMixin",
+    "LabeledPatternCheckProviderMixin",
     "NbtTearPatternContextMixin",
     "NbtTearPatternMatchHelperMixin",
     "OmniCraftingCpuClusterMixin",
     "OmniCraftingCalculationMixin",
     "OmniCraftingServiceMixin",
-    "OmniCraftingTreeNodeAccessor",
-    "OmniCraftingTreeProcessAccessor",
     "PatternAccessTermMenuMixin",
     "PatternProviderLogicMixin",
     "TileAssemblerMatrixPatternMixin"
   ],
   "client": [
-    "AEKeyAmountMixin",
-    "AE2WTLibCraftingTerminalHandlerMixin",
-    "CPUSelectionListMixin",
-    "CPUSelectionListInfoBarMixin",
-    "CraftAmountScreenMixin",
-    "ItemStackStorageCellTooltipMixin",
-    "NumberEntryWidgetAccessor"
+    "CPUSelectionListMixin"
   ],
   "injectors": {
     "defaultRequire": 1

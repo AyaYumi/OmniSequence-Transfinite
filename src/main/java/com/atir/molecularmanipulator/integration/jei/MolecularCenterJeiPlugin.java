@@ -10,12 +10,14 @@ import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
+import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.runtime.IJeiRuntime;
 import com.atir.molecularmanipulator.client.MolecularCenterScreen;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.EnumMap;
 import java.util.List;
@@ -31,6 +33,10 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
     public void registerCategories(IRecipeCategoryRegistration registration) {
         registration.addRecipeCategories(new MolecularCenterJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
+        registration.addRecipeCategories(new MatterFabricationJeiCategory(
+                registration.getJeiHelpers().getGuiHelper()));
+        registration.addRecipeCategories(new MatterFabricationStructureJeiCategory(
+                registration.getJeiHelpers().getGuiHelper()));
         if (AdvancedAEIntegration.isLoaded()) {
             registration.addRecipeCategories(new OmniComputationJeiCategory(
                     registration.getJeiHelpers().getGuiHelper()));
@@ -41,11 +47,29 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
     public void registerRecipes(IRecipeRegistration registration) {
         registration.addRecipes(MolecularCenterJeiCategory.TYPE, List.of(new MolecularCenterJeiRecipe(
                 createStructureMaterials(), new ItemStack(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get()))));
+        var level = net.minecraft.client.Minecraft.getInstance().level;
+        if (level != null) {
+            registration.addRecipes(MatterFabricationJeiCategory.TYPE,
+                    level.getRecipeManager().getAllRecipesFor(ModContent.MATTER_FABRICATION_RECIPE_TYPE.get())
+                            .stream().map(java.util.function.Function.identity()).toList());
+        }
+        registration.addRecipes(MatterFabricationStructureJeiCategory.TYPE,
+                List.of(new MatterFabricationStructureJeiRecipe(
+                        createMatterFabricationStructureMaterials(),
+                        new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()))));
         if (AdvancedAEIntegration.isLoaded()) {
             registration.addRecipes(OmniComputationJeiCategory.TYPE, List.of(new OmniComputationJeiRecipe(
                     createOmniStructureMaterials(),
                     new ItemStack(ModContent.OMNI_COMPUTATION_CONTROLLER_ITEM.get()))));
         }
+    }
+
+    @Override
+    public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
+        registration.addRecipeCatalyst(
+                new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()),
+                MatterFabricationJeiCategory.TYPE,
+                MatterFabricationStructureJeiCategory.TYPE);
     }
 
     @Override
@@ -119,7 +143,55 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                 stack(ModContent.COMPUTATION_OUTPUT_NODE_ITEM.get(), counts,
                         OmniComputationStructure.PartType.OUTPUT_NODE),
                 stack(ModContent.COMPUTATION_CRYSTAL_PYLON_ITEM.get(), counts,
-                        OmniComputationStructure.PartType.CRYSTAL_PYLON));
+                        OmniComputationStructure.PartType.CRYSTAL_PYLON),
+                stack(AEBlocks.FLUIX_BLOCK.asItem(), counts,
+                        OmniComputationStructure.PartType.AE_FLUIX),
+                stack(Blocks.CYAN_STAINED_GLASS.asItem(), counts,
+                        OmniComputationStructure.PartType.CYAN_STAINED_GLASS),
+                stack(Blocks.BLUE_STAINED_GLASS.asItem(), counts,
+                        OmniComputationStructure.PartType.BLUE_STAINED_GLASS))
+                .stream()
+                .filter(stack -> !stack.isEmpty())
+                .toList();
+    }
+
+    private static List<ItemStack> createMatterFabricationStructureMaterials() {
+        var counts = new EnumMap<com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType, Integer>(
+                com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.class);
+        for (var part : com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.parts()) {
+            if (!com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.isController(part)) {
+                counts.merge(part.type(), 1, Integer::sum);
+            }
+        }
+        return List.of(
+                new ItemStack(ModContent.MATTER_FABRICATION_CASING_ITEM.get(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.CASING, 0)),
+                new ItemStack(ModContent.MATTER_FABRICATION_GLASS_ITEM.get(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.GLASS, 0)),
+                new ItemStack(ModContent.MATTER_FABRICATION_COIL_ITEM.get(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.COIL, 0)),
+                new ItemStack(ModContent.MATTER_FABRICATION_STABILIZER_ITEM.get(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.STABILIZER, 0)),
+                new ItemStack(ModContent.MATTER_FABRICATION_CORE_ITEM.get(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.CORE, 0)),
+                new ItemStack(AEBlocks.QUARTZ_BLOCK.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.AE_QUARTZ, 0)),
+                new ItemStack(AEBlocks.FLUIX_BLOCK.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.AE_FLUIX, 0)),
+                new ItemStack(AEBlocks.QUARTZ_VIBRANT_GLASS.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.AE_VIBRANT_GLASS, 0)),
+                new ItemStack(Blocks.QUARTZ_BLOCK.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.VANILLA_QUARTZ, 0)),
+                new ItemStack(Blocks.SMOOTH_QUARTZ.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.SMOOTH_QUARTZ, 0)),
+                new ItemStack(Blocks.QUARTZ_PILLAR.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.QUARTZ_PILLAR, 0)),
+                new ItemStack(Blocks.QUARTZ_BRICKS.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.QUARTZ_BRICKS, 0)),
+                new ItemStack(Blocks.POLISHED_BLACKSTONE.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.DARK_FRAME, 0)),
+                new ItemStack(Blocks.CYAN_CONCRETE.asItem(),
+                        counts.getOrDefault(com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType.CYAN_CONDUIT, 0)));
     }
 
     private static List<ItemStack> omniItems() {

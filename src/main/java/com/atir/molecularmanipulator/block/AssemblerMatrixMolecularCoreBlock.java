@@ -38,9 +38,11 @@ public final class AssemblerMatrixMolecularCoreBlock
     }
 
     @Override
-    public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+    public List<ItemStack> getDrops(BlockState state,
+            LootParams.Builder builder) {
         var drops = new ArrayList<>(super.getDrops(state, builder));
-        var blockEntity = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
+        var blockEntity = builder.getOptionalParameter(
+                LootContextParams.BLOCK_ENTITY);
         if (blockEntity instanceof AssemblerMatrixMolecularCoreBlockEntity core
                 && core.hasRemovalRecovery()) {
             drops.removeIf(stack -> stack.is(getPresentItem()));

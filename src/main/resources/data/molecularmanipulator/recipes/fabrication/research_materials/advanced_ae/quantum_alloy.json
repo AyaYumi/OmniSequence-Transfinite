@@ -1,0 +1,42 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "minecraft:copper_ingot"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:shattered_singularity"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:singularity"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "advanced_ae:quantum_alloy",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 1000.0,
+  "requires_research": true,
+  "fluid_input": {
+    "id": "advanced_ae:quantum_infusion_source",
+    "amount": 1000
+  }
+}

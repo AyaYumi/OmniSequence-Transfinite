@@ -2,417 +2,349 @@ package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
+import com.atir.molecularmanipulator.blockentity.OmniCrownGeometry;
+import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
+import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Quaternionf;
+import java.util.List;
+import java.util.function.DoubleFunction;
+import java.util.function.DoublePredicate;
 
-public final class OmniComputationRenderer implements BlockEntityRenderer<OmniComputationCoreBlockEntity> {
-    private static final ResourceLocation FIELD_TEXTURE =
-            ResourceLocation.withDefaultNamespace("textures/misc/white.png");
-    private static final ResourceLocation RING_TEXTURE =
-            ResourceLocation.withDefaultNamespace("textures/entity/beacon_beam.png");
-    private static final ResourceLocation PORTAL_TEXTURE =
-            ResourceLocation.withDefaultNamespace("textures/entity/end_portal.png");
+/**
+ * Vertex-built singularity computer for the omni computation array.
+ *
+ * <p>A Kerr computation singularity consumes encoded data through its accretion
+ * plane and emits synchronized bipolar results into the foundation and crown
+ * routers. The remaining geometry reads as an engineered compute chassis.</p>
+ */
+public final class OmniComputationRenderer
+        implements BlockEntityRenderer<OmniComputationCoreBlockEntity> {
     private static final int CYAN = 0x55EEFF;
     private static final int BLUE = 0x409CFF;
     private static final int PURPLE = 0x9D61FF;
     private static final int DEEP_PURPLE = 0x572DCC;
     private static final int GOLD = 0xFFD98A;
     private static final int WHITE = 0xF2FCFF;
-    private static final int[][] LOWER_PYLONS = {
-            {-11, -11}, {0, -12}, {11, -11}, {12, 0},
-            {11, 11}, {0, 12}, {-11, 11}, {-12, 0}
-    };
 
     public OmniComputationRenderer(BlockEntityRendererProvider.Context context) {
     }
 
     @Override
-    public void render(OmniComputationCoreBlockEntity core, float partialTick, PoseStack poseStack,
-            MultiBufferSource buffers, int packedLight, int packedOverlay) {
+    public void render(OmniComputationCoreBlockEntity core, float partialTick,
+            PoseStack poseStack, MultiBufferSource buffers, int packedLight, int packedOverlay) {
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || core.getLevel() == null
-                || !core.getBlockState().getValue(BlockStateProperties.POWERED)) {
-            return;
-        }
-
-        Direction facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        Vec3 visualCenter = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
-                OmniComputationStructure.EFFECT_X, OmniComputationStructure.EFFECT_Y,
-                OmniComputationStructure.EFFECT_Z);
-        Vec3 camera = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        double distanceSquared = camera.distanceToSqr(visualCenter);
-        boolean detailed = effectLevel > 1 && distanceSquared < 160.0 * 160.0;
-        boolean distant = distanceSquared > 96.0 * 96.0;
-        int torusSegments = detailed ? 96 : distant ? 32 : 56;
-        int torusSides = detailed ? 8 : 6;
+                || !core.getBlockState().getValue(BlockStateProperties.POWERED)) return;
+        var layout = core.getVisualLayout();
+        if (!layout.isFormed()) return;
+        var facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var visualCenter = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
+                OmniComputationStructure.VISUAL_CENTER_X, OmniComputationStructure.visualCenterY(layout),
+                OmniComputationStructure.VISUAL_CENTER_Z, layout);
         int activity = core.getClientVisualActivity();
-        float activityStrength = activity <= 0
-                ? 0.0F
-                : Math.min(1.0F, (float) (Math.log1p(activity) / Math.log(9.0)));
+        float strength = activity <= 0 ? 0 : Math.min(1F, (float) (Math.log1p(activity) / Math.log(9.0)));
         float angle = core.sampleClientVisualAngle(partialTick);
-        float pulse = 1.0F + (float) Math.sin(angle * 0.075F) * (0.035F + activityStrength * 0.045F);
-
+        float pulse = 1F + (float) Math.sin(angle * 0.075F) * (0.035F + strength * 0.055F);
+        float completion = core.getClientCompletionPulse();
+        double distance = visualCenter.distanceToSqr(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
+        boolean detailed = effectLevel > 1 && distance < 128.0 * 128.0;
+        int segments = distance > 144.0 * 144.0 ? 32 : distance > 82.0 * 82.0 ? 56 : detailed ? 96 : 68;
         poseStack.pushPose();
-        poseStack.translate(visualCenter.x - core.getBlockPos().getX(),
-                visualCenter.y - core.getBlockPos().getY(),
+        poseStack.translate(visualCenter.x - core.getBlockPos().getX(), visualCenter.y - core.getBlockPos().getY(),
                 visualCenter.z - core.getBlockPos().getZ());
         poseStack.mulPose(Axis.YP.rotationDegrees(facingRotation(facing)));
-
-        renderQuantumGate(poseStack, buffers, angle, activityStrength, detailed, torusSegments, torusSides);
-
-        var fieldType = RenderType.entityTranslucentEmissive(FIELD_TEXTURE);
-        var field = buffers.getBuffer(fieldType);
-        renderSingularity(poseStack, field, angle, activityStrength, pulse, detailed);
-
-        var ringType = RenderType.energySwirl(RING_TEXTURE,
-                angle * 0.0032F, -angle * 0.0021F);
-        var rings = buffers.getBuffer(ringType);
-        renderAstralRings(poseStack, rings, angle, activityStrength, detailed, torusSegments, torusSides);
-
-        field = buffers.getBuffer(fieldType);
-        if (detailed) {
-            renderPylonBeams(poseStack, field, angle, activityStrength);
-            renderOrbitalNodes(poseStack, field, angle, activity);
+        if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
+            renderCrownLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeDepth()),
+                    core.getClientOrreryAngle(), strength, completion, detailed, false);
+            renderCrownLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeGlow()),
+                    core.getClientOrreryAngle(), strength, completion, detailed, true);
+        } else {
+            drawComputationAnomalyOccluder(poseStack.last(), buffers.getBuffer(OmniRenderLayers.solidEmissiveColor()), detailed);
+            drawGate(poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeDepth()), angle, pulse, strength,
+                    activity, completion, segments, detailed, true, false);
+            drawGate(poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeGlow()), angle, pulse, strength,
+                    activity, completion, segments, detailed, true, true);
         }
-        renderCrownBeam(poseStack, field, angle, activityStrength, detailed);
-        rings = buffers.getBuffer(ringType);
-        renderCompletionPulse(poseStack, rings, core.getClientCompletionPulse(), torusSegments, torusSides);
         poseStack.popPose();
     }
 
-    private static void renderQuantumGate(PoseStack poseStack, MultiBufferSource buffers, float angle,
-            float activityStrength, boolean detailed, int segments, int sides) {
-        float gatePulse = 1.0F + (float) Math.sin(angle * 0.11F) * 0.018F;
-        int gateAlpha = Math.round(135.0F + activityStrength * 75.0F);
-        var gate = buffers.getBuffer(RenderType.energySwirl(RING_TEXTURE,
-                -angle * 0.0028F, angle * 0.0017F));
-
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-        poseStack.scale(gatePulse, gatePulse, gatePulse * 1.16F);
-        renderTorus(poseStack, gate, 8.25F, 0.22F + activityStrength * 0.06F,
-                PURPLE, gateAlpha, segments, sides);
-        if (detailed) {
-            renderTorus(poseStack, gate, 7.72F, 0.065F, CYAN,
-                    Math.round(95.0F + activityStrength * 90.0F), segments, 5);
-            renderTorus(poseStack, gate, 8.78F, 0.045F, BLUE,
-                    Math.round(65.0F + activityStrength * 75.0F), segments, 5);
-        }
-        poseStack.popPose();
-
-        if (!detailed) {
-            return;
-        }
-
-        var portal = buffers.getBuffer(RenderType.entityTranslucentEmissive(PORTAL_TEXTURE));
-        poseStack.pushPose();
-        poseStack.translate(0.0F, 0.0F, 0.035F);
-        poseStack.scale(1.0F, 1.16F, 1.0F);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(angle * (0.16F + activityStrength * 0.22F)));
-        renderDisc(poseStack, portal, 7.48F, 64, 7, DEEP_PURPLE,
-                Math.round(20.0F + activityStrength * 45.0F));
-        poseStack.translate(0.0F, 0.0F, 0.025F);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(-angle * 0.37F));
-        renderDisc(poseStack, portal, 6.92F, 56, 6, BLUE,
-                Math.round(10.0F + activityStrength * 27.0F));
-        poseStack.popPose();
+    /** The live renderer and isolated GPU preview share these exact POSITION_COLOR vertices. */
+    static void renderCrownPass(PoseStack poseStack, VertexConsumer consumer, float angle,
+            float activityStrength, float completionPulse, boolean detailed, boolean glow) {
+        renderCrownLayoutPass(OmniComputationStructure.StructureLayout.CURRENT, poseStack, consumer,
+                angle, activityStrength, completionPulse, detailed, glow);
     }
 
-    private static void renderSingularity(PoseStack poseStack, VertexConsumer consumer, float angle,
-            float activityStrength, float pulse, boolean detailed) {
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(angle * 0.82F));
-        renderSphere(poseStack, consumer, 3.35F * pulse, detailed ? 28 : 18,
-                detailed ? 14 : 9, PURPLE, Math.round(34.0F + activityStrength * 24.0F));
-        poseStack.mulPose(Axis.XP.rotationDegrees(angle * -0.31F));
-        renderSphere(poseStack, consumer, 1.48F * pulse, detailed ? 24 : 16,
-                detailed ? 12 : 8, CYAN, Math.round(185.0F + activityStrength * 55.0F));
-        renderSphere(poseStack, consumer, 0.72F, detailed ? 20 : 12,
-                detailed ? 10 : 6, WHITE, Math.round(210.0F + activityStrength * 45.0F));
-        poseStack.popPose();
-    }
-
-    private static void renderAstralRings(PoseStack poseStack, VertexConsumer consumer, float angle,
-            float activityStrength, boolean detailed, int segments, int sides) {
-        float speed = 1.0F + activityStrength * 1.75F;
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(angle * 0.52F * speed));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(12.0F));
-        renderTorus(poseStack, consumer, 4.45F, 0.105F, CYAN, 220, segments, sides);
-        poseStack.popPose();
-
-        if (!detailed) {
-            return;
-        }
-
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.ZP.rotationDegrees(64.0F));
-        poseStack.mulPose(Axis.YP.rotationDegrees(-angle * 0.39F * speed));
-        renderTorus(poseStack, consumer, 5.72F, 0.09F, PURPLE, 205, segments, sides);
-        poseStack.popPose();
-
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.XP.rotationDegrees(72.0F));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(angle * 0.31F * speed));
-        renderTorus(poseStack, consumer, 6.88F, 0.072F, BLUE, 180, segments, sides);
-        poseStack.popPose();
-    }
-
-    private static void renderPylonBeams(PoseStack poseStack, VertexConsumer consumer, float angle,
-            float activityStrength) {
-        for (int index = 0; index < LOWER_PYLONS.length; index++) {
-            int[] pylon = LOWER_PYLONS[index];
-            float wave = 0.5F + 0.5F * (float) Math.sin(angle * 0.19F - index * Math.PI / 4.0);
-            float intensity = activityStrength > 0.0F
-                    ? 0.32F + activityStrength * 0.48F + wave * 0.2F
-                    : Math.max(0.0F, (wave - 0.72F) / 0.28F) * 0.42F;
-            if (intensity <= 0.025F) {
-                continue;
-            }
-            Vec3 start = new Vec3(pylon[0], 15.0 - OmniComputationStructure.EFFECT_Y, pylon[1]);
-            renderBeamBetween(poseStack, consumer, start, Vec3.ZERO,
-                    0.035F + activityStrength * 0.035F, CYAN,
-                    Math.round(35.0F + intensity * 150.0F));
+    /** Shared dispatch: an unknown client layout never enters a historical wireframe renderer. */
+    static void renderCrownLayoutPass(OmniComputationStructure.StructureLayout layout,
+            PoseStack poseStack, VertexConsumer consumer, double angle,
+            float activityStrength, float completionPulse, boolean detailed, boolean glow) {
+        if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
+            OmniOrbitalEffects.render(poseStack, consumer, angle, activityStrength, completionPulse, detailed, glow);
         }
     }
 
-    private static void renderOrbitalNodes(PoseStack poseStack, VertexConsumer consumer, float angle,
-            int activity) {
-        int nodes = Math.min(16, 6 + activity * 2);
-        float nodeSpeed = 0.75F + Math.min(2.0F, activity * 0.18F);
-        for (int index = 0; index < nodes; index++) {
-            double phase = Math.PI * 2.0 * index / nodes + Math.toRadians(angle * nodeSpeed);
-            float radius = index % 2 == 0 ? 5.72F : 6.88F;
-            float x = (float) Math.cos(phase) * radius;
-            float z = (float) Math.sin(phase) * radius;
-            float y = (float) Math.sin(phase * 2.0) * (index % 2 == 0 ? 1.25F : 1.8F);
-            poseStack.pushPose();
-            poseStack.translate(x, y, z);
-            renderSphere(poseStack, consumer, index % 3 == 0 ? 0.2F : 0.13F,
-                    10, 5, index % 2 == 0 ? GOLD : WHITE, 235);
-            poseStack.popPose();
+    private static void drawGate(PoseStack poseStack, VertexConsumer consumer,
+            float angle, float pulse, float activityStrength, int activity,
+            float completionPulse, int segments, boolean detailed,
+            boolean renderDataHalos, boolean glow) {
+        PoseStack.Pose pose = poseStack.last();
+        drawRecursionRingField(poseStack, pose, consumer,
+                angle, pulse, activityStrength, segments, detailed, glow);
+        drawRecursiveSingularity(pose, consumer,
+                angle, pulse, activityStrength, detailed, glow);
+        drawCardinalDataBeams(pose, consumer,
+                angle, activityStrength, detailed, glow);
+        drawInstructionMatrix(poseStack, pose, consumer,
+                angle, activityStrength, segments, detailed, glow);
+        drawDiagnosticPlane(pose, consumer,
+                angle, activityStrength, detailed, glow);
+        if (completionPulse > 0.001F) {
+            drawRecursionCommitSweep(poseStack, consumer,
+                    1.0F - completionPulse, completionPulse, glow);
         }
     }
 
-    private static void renderCrownBeam(PoseStack poseStack, VertexConsumer consumer, float angle,
-            float activityStrength, boolean detailed) {
-        float shimmer = 0.72F + 0.28F * (float) Math.sin(angle * 0.13F);
-        float radius = detailed ? 0.075F + activityStrength * 0.055F : 0.055F;
-        int alpha = Math.round((22.0F + activityStrength * 78.0F) * shimmer);
-        renderBeamColumn(poseStack, consumer, radius, 20.6F, BLUE, alpha);
-    }
-
-    private static void renderCompletionPulse(PoseStack poseStack, VertexConsumer consumer, float pulse,
-            int segments, int sides) {
-        if (pulse <= 0.001F) {
-            return;
+    private static void drawRecursionRingField(PoseStack poseStack,
+            PoseStack.Pose pose, VertexConsumer consumer,
+            float angle, float pulse, float activityStrength,
+            int segments, boolean detailed, boolean glow) {
+        float drive = 0.42F + activityStrength * 0.58F;
+        int ringSegments = Math.max(40, segments);
+        float[] radii = {9.78F, 10.18F, 10.58F};
+        for (int layer = 0; layer < radii.length; layer++) {
+            int rgb = layer == 0 ? CYAN : layer == 1 ? PURPLE : BLUE;
+            float width = glow ? 0.18F - layer * 0.025F
+                    : 0.066F - layer * 0.008F;
+            OmniRenderGeometry.segmentedRing(poseStack, consumer,
+                    0.0F, 0.0F, -0.38F - layer * 0.035F,
+                    radii[layer] * (1.0F + (pulse - 1.0F) * 0.22F),
+                    width, width * 0.52F,
+                    ringSegments, 1.0F,
+                    90.0F, 0.0F,
+                    angle * (0.30F + layer * 0.13F)
+                            * (layer % 2 == 0 ? 1.0F : -1.0F),
+                    argb(rgb, glow
+                            ? Math.round((52.0F - layer * 7.0F) * drive)
+                            : Math.round((236.0F - layer * 26.0F) * drive)));
         }
-        float progress = 1.0F - pulse;
-        poseStack.pushPose();
-        poseStack.translate(0.0F, progress * 2.8F, 0.0F);
-        renderTorus(poseStack, consumer, 3.2F + progress * 12.8F,
-                0.08F + pulse * 0.15F, GOLD, Math.round(pulse * 210.0F), segments, sides);
-        poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
-        renderTorus(poseStack, consumer, 2.4F + progress * 9.6F,
-                0.055F + pulse * 0.1F, WHITE, Math.round(pulse * 145.0F), segments, sides);
-        poseStack.popPose();
-    }
 
-    private static void renderBeamBetween(PoseStack poseStack, VertexConsumer consumer, Vec3 start, Vec3 end,
-            float radius, int color, int alpha) {
-        Vec3 delta = end.subtract(start);
-        float length = (float) delta.length();
-        if (length <= 0.0001F) {
-            return;
+        int packets = detailed ? 14 : 8;
+        for (int packet = 0; packet < packets; packet++) {
+            double phase = Math.PI * 2.0D * packet / packets
+                    + angle * (packet % 2 == 0 ? 0.006D : -0.0045D);
+            double radius = 10.22D + (packet % 3 - 1) * 0.22D;
+            Vec3 point = new Vec3(Math.cos(phase) * radius,
+                    Math.sin(phase) * radius, -0.52D);
+            float half = glow ? 0.18F : 0.10F;
+            OmniRenderGeometry.orientedBox(pose, consumer, point,
+                    new Vec3(half, 0.0D, 0.0D),
+                    new Vec3(0.0D, half, 0.0D),
+                    new Vec3(0.0D, 0.0D, half * 0.48D),
+                    argb(packet % 3 == 0 ? WHITE
+                                    : packet % 3 == 1 ? CYAN : PURPLE,
+                            glow ? Math.round(58.0F * drive)
+                                    : Math.round(230.0F * drive)));
         }
-        poseStack.pushPose();
-        poseStack.translate(start.x, start.y, start.z);
-        poseStack.mulPose(new Quaternionf().rotationTo(0.0F, 1.0F, 0.0F,
-                (float) (delta.x / length), (float) (delta.y / length), (float) (delta.z / length)));
-        renderBeamColumn(poseStack, consumer, radius, length, color, alpha);
-        poseStack.popPose();
     }
 
-    private static void renderBeamColumn(PoseStack poseStack, VertexConsumer consumer, float radius,
-            float length, int color, int alpha) {
-        var pose = poseStack.last();
-        emitQuad(pose, consumer,
-                -radius, 0, -radius, radius, 0, -radius,
-                radius, length, -radius, -radius, length, -radius,
-                0, 0, -1, color, alpha);
-        emitQuad(pose, consumer,
-                radius, 0, radius, -radius, 0, radius,
-                -radius, length, radius, radius, length, radius,
-                0, 0, 1, color, alpha);
-        emitQuad(pose, consumer,
-                -radius, 0, radius, -radius, 0, -radius,
-                -radius, length, -radius, -radius, length, radius,
-                -1, 0, 0, color, alpha);
-        emitQuad(pose, consumer,
-                radius, 0, -radius, radius, 0, radius,
-                radius, length, radius, radius, length, -radius,
-                1, 0, 0, color, alpha);
+    private static void drawRecursiveSingularity(PoseStack.Pose pose,
+            VertexConsumer consumer, float angle, float pulse,
+            float activityStrength, boolean detailed, boolean glow) {
+        float drive = 0.48F + activityStrength * 0.52F;
+        float outer = glow ? 2.38F : 2.05F;
+        OmniRenderGeometry.wireframeOctahedron(pose, consumer, Vec3.ZERO,
+                outer * pulse, outer * pulse, outer * pulse,
+                angle * 0.52F,
+                glow ? 0.105F : 0.038F,
+                argb(PURPLE, glow ? Math.round(56.0F * drive)
+                        : Math.round(238.0F * drive)));
+
+        double rotation = Math.toRadians(angle * 0.74F);
+        Vec3 xAxis = new Vec3(Math.cos(rotation) * 1.48D, 0.0D,
+                Math.sin(rotation) * 1.48D);
+        Vec3 zAxis = new Vec3(-Math.sin(rotation) * 1.48D, 0.0D,
+                Math.cos(rotation) * 1.48D);
+        OmniRenderGeometry.wireframeBox(pose, consumer, Vec3.ZERO,
+                xAxis, new Vec3(0.0D, 1.48D, 0.0D), zAxis,
+                glow ? 0.090F : 0.032F,
+                argb(CYAN, glow ? Math.round(48.0F * drive)
+                        : Math.round(218.0F * drive)));
+        OmniRenderGeometry.octahedron(pose, consumer, Vec3.ZERO,
+                glow ? 0.82F : 0.62F,
+                glow ? 1.02F : 0.78F,
+                glow ? 0.82F : 0.62F,
+                -angle * 0.88F,
+                argb(DEEP_PURPLE, glow ? Math.round(28.0F * drive)
+                        : Math.round(224.0F * drive)));
+
+        int satellites = detailed ? 10 : 6;
+        for (int satellite = 0; satellite < satellites; satellite++) {
+            double phase = Math.PI * 2.0D * satellite / satellites
+                    - angle * 0.009D;
+            Vec3 point = new Vec3(Math.cos(phase) * 2.75D,
+                    Math.sin(phase * 1.6D) * 0.65D,
+                    Math.sin(phase) * 0.72D);
+            float half = glow ? 0.15F : 0.085F;
+            OmniRenderGeometry.orientedBox(pose, consumer, point,
+                    new Vec3(half, 0.0D, 0.0D),
+                    new Vec3(0.0D, half, 0.0D),
+                    new Vec3(0.0D, 0.0D, half),
+                    argb(satellite % 2 == 0 ? CYAN : PURPLE,
+                            glow ? 44 : 216));
+        }
     }
 
-    private static void renderDisc(PoseStack poseStack, VertexConsumer consumer, float radius,
-            int segments, int rings, int color, int alpha) {
-        var pose = poseStack.last();
-        for (int ring = 0; ring < rings; ring++) {
-            float inner = radius * ring / rings;
-            float outer = radius * (ring + 1) / rings;
-            for (int segment = 0; segment < segments; segment++) {
-                double angle0 = Math.PI * 2.0 * segment / segments;
-                double angle1 = Math.PI * 2.0 * (segment + 1) / segments;
-                float innerX0 = (float) Math.cos(angle0) * inner;
-                float innerY0 = (float) Math.sin(angle0) * inner;
-                float outerX0 = (float) Math.cos(angle0) * outer;
-                float outerY0 = (float) Math.sin(angle0) * outer;
-                float outerX1 = (float) Math.cos(angle1) * outer;
-                float outerY1 = (float) Math.sin(angle1) * outer;
-                float innerX1 = (float) Math.cos(angle1) * inner;
-                float innerY1 = (float) Math.sin(angle1) * inner;
-                emitDiscQuad(pose, consumer, radius,
-                        innerX0, innerY0, outerX0, outerY0, outerX1, outerY1, innerX1, innerY1,
-                        0.0F, 0.0F, 1.0F, color, alpha, false);
-                emitDiscQuad(pose, consumer, radius,
-                        innerX0, innerY0, innerX1, innerY1, outerX1, outerY1, outerX0, outerY0,
-                        0.0F, 0.0F, -1.0F, color, alpha, true);
+    private static void drawCardinalDataBeams(PoseStack.Pose pose,
+            VertexConsumer consumer, float angle,
+            float activityStrength, boolean detailed, boolean glow) {
+        Vec3[] endpoints = {
+                new Vec3(-10.38D, 0.0D, -0.42D),
+                new Vec3(10.38D, 0.0D, -0.42D),
+                new Vec3(0.0D, -10.38D, -0.42D),
+                new Vec3(0.0D, 10.38D, -0.42D)
+        };
+        float drive = 0.45F + activityStrength * 0.55F;
+        for (int index = 0; index < endpoints.length; index++) {
+            Vec3 outer = endpoints[index];
+            Vec3 inner = outer.scale(0.22D).add(0.0D, 0.0D, -0.08D);
+            float width = glow ? 0.075F : 0.025F;
+            OmniRenderGeometry.taperedBeam(pose, consumer, outer, inner,
+                    width, width * 0.58F,
+                    width * 0.58F, width * 0.34F,
+                    argb(index % 2 == 0 ? BLUE : PURPLE,
+                            glow ? Math.round(28.0F * drive)
+                                    : Math.round(154.0F * drive)),
+                    argb(CYAN, glow ? Math.round(56.0F * drive)
+                            : Math.round(232.0F * drive)));
+
+            int packets = detailed ? 2 : 1;
+            for (int packet = 0; packet < packets; packet++) {
+                float progress = fract(angle * (0.006F + activityStrength * 0.004F)
+                        + index * 0.25F + packet * 0.5F);
+                Vec3 point = outer.lerp(inner, progress);
+                float half = glow ? 0.17F : 0.095F;
+                OmniRenderGeometry.orientedBox(pose, consumer, point,
+                        new Vec3(half, 0.0D, 0.0D),
+                        new Vec3(0.0D, half, 0.0D),
+                        new Vec3(0.0D, 0.0D, half * 0.52D),
+                        argb(index % 2 == 0 ? WHITE : CYAN,
+                                glow ? 62 : 242));
             }
         }
     }
 
-    private static void emitDiscQuad(PoseStack.Pose pose, VertexConsumer consumer, float radius,
-            float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3,
-            float normalX, float normalY, float normalZ, int color, int alpha, boolean reverseUv) {
-        emitVertex(pose, consumer, x0, y0, 0, normalX, normalY, normalZ,
-                discUv(x0, radius, reverseUv), discUv(y0, radius, false), color, alpha);
-        emitVertex(pose, consumer, x1, y1, 0, normalX, normalY, normalZ,
-                discUv(x1, radius, reverseUv), discUv(y1, radius, false), color, alpha);
-        emitVertex(pose, consumer, x2, y2, 0, normalX, normalY, normalZ,
-                discUv(x2, radius, reverseUv), discUv(y2, radius, false), color, alpha);
-        emitVertex(pose, consumer, x3, y3, 0, normalX, normalY, normalZ,
-                discUv(x3, radius, reverseUv), discUv(y3, radius, false), color, alpha);
-    }
-
-    private static float discUv(float value, float radius, boolean reverse) {
-        float uv = value / radius * 0.5F + 0.5F;
-        return reverse ? 1.0F - uv : uv;
-    }
-
-    private static void renderSphere(PoseStack poseStack, VertexConsumer consumer, float radius,
-            int segments, int stacks, int color, int alpha) {
-        var pose = poseStack.last();
-        for (int stack = 0; stack < stacks; stack++) {
-            double latitude0 = -Math.PI / 2.0 + Math.PI * stack / stacks;
-            double latitude1 = -Math.PI / 2.0 + Math.PI * (stack + 1) / stacks;
-            float v0 = (float) stack / stacks;
-            float v1 = (float) (stack + 1) / stacks;
-            for (int segment = 0; segment < segments; segment++) {
-                double longitude0 = Math.PI * 2.0 * segment / segments;
-                double longitude1 = Math.PI * 2.0 * (segment + 1) / segments;
-                float u0 = (float) segment / segments;
-                float u1 = (float) (segment + 1) / segments;
-                emitSphereVertex(pose, consumer, radius, latitude0, longitude0,
-                        u0, v0, color, alpha);
-                emitSphereVertex(pose, consumer, radius, latitude1, longitude0,
-                        u0, v1, color, alpha);
-                emitSphereVertex(pose, consumer, radius, latitude1, longitude1,
-                        u1, v1, color, alpha);
-                emitSphereVertex(pose, consumer, radius, latitude0, longitude1,
-                        u1, v0, color, alpha);
-            }
+    private static void drawInstructionMatrix(PoseStack poseStack,
+            PoseStack.Pose pose, VertexConsumer consumer,
+            float angle, float activityStrength, int segments,
+            boolean detailed, boolean glow) {
+        float y = -15.18F;
+        float drive = 0.40F + activityStrength * 0.60F;
+        float[] radii = {3.2F, 6.2F, 9.4F, 12.5F};
+        for (int layer = 0; layer < radii.length; layer++) {
+            float width = glow ? 0.095F : 0.033F;
+            int rgb = layer % 2 == 0 ? CYAN : PURPLE;
+            OmniRenderGeometry.segmentedRing(poseStack, consumer,
+                    0.0F, y + layer * 0.018F, 0.0F, radii[layer],
+                    width, width * 0.55F,
+                    Math.max(32, segments), 1.0F,
+                    0.0F, 0.0F,
+                    angle * (layer % 2 == 0 ? 0.20F : -0.16F),
+                    argb(rgb, glow ? Math.round(26.0F * drive)
+                            : Math.round(142.0F * drive)));
         }
-    }
-
-    private static void emitSphereVertex(PoseStack.Pose pose, VertexConsumer consumer, float radius,
-            double latitude, double longitude, float u, float v, int color, int alpha) {
-        float horizontal = (float) Math.cos(latitude);
-        float normalX = horizontal * (float) Math.cos(longitude);
-        float normalY = (float) Math.sin(latitude);
-        float normalZ = horizontal * (float) Math.sin(longitude);
-        emitVertex(pose, consumer, normalX * radius, normalY * radius, normalZ * radius,
-                normalX, normalY, normalZ, u, v, color, alpha);
-    }
-
-    private static void renderTorus(PoseStack poseStack, VertexConsumer consumer, float radius,
-            float tubeRadius, int color, int alpha, int segments, int sides) {
-        var pose = poseStack.last();
-        for (int segment = 0; segment < segments; segment++) {
-            double major0 = Math.PI * 2.0 * segment / segments;
-            double major1 = Math.PI * 2.0 * (segment + 1) / segments;
-            float u0 = (float) segment / segments * 4.0F;
-            float u1 = (float) (segment + 1) / segments * 4.0F;
-            for (int side = 0; side < sides; side++) {
-                double minor0 = Math.PI * 2.0 * side / sides;
-                double minor1 = Math.PI * 2.0 * (side + 1) / sides;
-                float v0 = (float) side / sides;
-                float v1 = (float) (side + 1) / sides;
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major0, minor0,
-                        u0, v0, color, alpha);
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major1, minor0,
-                        u1, v0, color, alpha);
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major1, minor1,
-                        u1, v1, color, alpha);
-                emitTorusVertex(pose, consumer, radius, tubeRadius, major0, minor1,
-                        u0, v1, color, alpha);
-            }
+        for (int spoke = 0; spoke < 8; spoke++) {
+            double phase = Math.PI * 2.0D * spoke / 8.0D;
+            Vec3 inner = new Vec3(Math.cos(phase) * 2.2D, y,
+                    Math.sin(phase) * 2.2D);
+            Vec3 outer = new Vec3(Math.cos(phase) * 12.1D, y,
+                    Math.sin(phase) * 12.1D);
+            float width = glow ? 0.055F : 0.018F;
+            OmniRenderGeometry.taperedBeam(pose, consumer, inner, outer,
+                    width, width, width * 0.45F, width * 0.45F,
+                    argb(CYAN, glow ? 24 : 132),
+                    argb(spoke % 2 == 0 ? BLUE : PURPLE,
+                            glow ? 16 : 88));
         }
+        float uplinkWidth = glow ? 0.090F : 0.030F;
+        OmniRenderGeometry.taperedBeam(pose, consumer,
+                new Vec3(0.0D, y + 0.08D, 0.0D),
+                new Vec3(0.0D, -10.55D, 0.0D),
+                uplinkWidth, uplinkWidth * 0.55F,
+                uplinkWidth, uplinkWidth * 0.55F,
+                argb(BLUE, glow ? 26 : 144),
+                argb(CYAN, glow ? 58 : 238));
     }
 
-    private static void emitTorusVertex(PoseStack.Pose pose, VertexConsumer consumer,
-            float radius, float tubeRadius, double major, double minor,
-            float u, float v, int color, int alpha) {
-        float majorCos = (float) Math.cos(major);
-        float majorSin = (float) Math.sin(major);
-        float minorCos = (float) Math.cos(minor);
-        float minorSin = (float) Math.sin(minor);
-        float ringRadius = radius + tubeRadius * minorCos;
-        float x = ringRadius * majorCos;
-        float y = tubeRadius * minorSin;
-        float z = ringRadius * majorSin;
-        float normalX = minorCos * majorCos;
-        float normalY = minorSin;
-        float normalZ = minorCos * majorSin;
-        emitVertex(pose, consumer, x, y, z, normalX, normalY, normalZ,
-                u, v, color, alpha);
+    private static void drawDiagnosticPlane(PoseStack.Pose pose,
+            VertexConsumer consumer, float angle, float activityStrength,
+            boolean detailed, boolean glow) {
+        float response = 0.34F + activityStrength * 0.66F;
+        OmniRenderGeometry.gridPlane(pose, consumer,
+                new Vec3(0.0D, 0.0D, 0.58D),
+                new Vec3(6.4D, 0.0D, 0.0D),
+                new Vec3(0.0D, 6.4D, 0.0D),
+                detailed ? 10 : 6,
+                glow ? 0.025F : 0.009F,
+                argb(BLUE, glow ? Math.round(9.0F * response)
+                        : Math.round(42.0F * response)));
+        float scanX = -5.8F + fract(angle * (0.003F + activityStrength * 0.003F)) * 11.6F;
+        float width = glow ? 0.060F : 0.020F;
+        OmniRenderGeometry.taperedBeam(pose, consumer,
+                new Vec3(scanX, -5.8D, 0.54D),
+                new Vec3(scanX, 5.8D, 0.54D),
+                width, width, width * 0.42F, width * 0.42F,
+                argb(PURPLE, glow ? 24 : 128),
+                argb(CYAN, glow ? 46 : 214));
     }
 
-    private static void emitQuad(PoseStack.Pose pose, VertexConsumer consumer,
-            float x0, float y0, float z0, float x1, float y1, float z1,
-            float x2, float y2, float z2, float x3, float y3, float z3,
-            float normalX, float normalY, float normalZ, int color, int alpha) {
-        emitVertex(pose, consumer, x0, y0, z0, normalX, normalY, normalZ, 0, 0, color, alpha);
-        emitVertex(pose, consumer, x1, y1, z1, normalX, normalY, normalZ, 1, 0, color, alpha);
-        emitVertex(pose, consumer, x2, y2, z2, normalX, normalY, normalZ, 1, 1, color, alpha);
-        emitVertex(pose, consumer, x3, y3, z3, normalX, normalY, normalZ, 0, 1, color, alpha);
+    private static void drawRecursionCommitSweep(PoseStack poseStack,
+            VertexConsumer consumer, float progress,
+            float completionPulse, boolean glow) {
+        float radius = 2.0F + progress * 10.8F;
+        float width = glow ? 0.22F : 0.074F;
+        OmniRenderGeometry.segmentedRing(poseStack, consumer,
+                0.0F, 0.0F, -0.72F, radius,
+                width, width * 0.58F,
+                72, 1.0F, 90.0F, 0.0F,
+                progress * 180.0F,
+                argb(GOLD, glow ? Math.round(completionPulse * 72.0F)
+                        : Math.round(completionPulse * 244.0F)));
     }
 
-    private static void emitVertex(PoseStack.Pose pose, VertexConsumer consumer,
-            float x, float y, float z, float normalX, float normalY, float normalZ,
-            float u, float v, int color, int alpha) {
-        consumer.vertex(pose.pose(), x, y, z)
-                .color(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, alpha)
-                .uv(u, v)
-                .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(LightTexture.FULL_BRIGHT)
-                .normal(pose.normal(), normalX, normalY, normalZ)
-                .endVertex();
+    private static void drawComputationAnomalyOccluder(PoseStack.Pose pose,
+            VertexConsumer consumer, boolean detailed) {
+        OmniRenderGeometry.sphere(pose, consumer,
+                Vec3.ZERO, 1.46F,
+                detailed ? 11 : 8, detailed ? 20 : 14,
+                0xFF000107);
+    }
+
+    /**
+     * Reconstructs the former cyan/blue stained-glass accents as animated,
+     * non-colliding data halos. Coordinates are relative to the singularity at
+     * local Y=17, matching the air channels reserved by the structure layout.
+     */
+
+    private static float fract(float value) {
+        return value - (float) Math.floor(value);
+    }
+
+    private static int argb(int rgb, int alpha) {
+        int clamped = Math.max(0, Math.min(255, alpha));
+        return (clamped << 24) | (rgb & 0xFFFFFF);
     }
 
     private static float facingRotation(Direction facing) {
@@ -426,17 +358,25 @@ public final class OmniComputationRenderer implements BlockEntityRenderer<OmniCo
 
     @Override
     public boolean shouldRenderOffScreen(OmniComputationCoreBlockEntity core) {
-        return true;
+        return false;
     }
 
     @Override
     public int getViewDistance() {
-        return 512;
+        return 384;
     }
 
     @Override
     public boolean shouldRender(OmniComputationCoreBlockEntity core, Vec3 cameraPos) {
-        return true;
+        Direction facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var layout = core.getVisualLayout();
+        if (layout == OmniComputationStructure.StructureLayout.INCOMPLETE) return false;
+        int visualY = OmniComputationStructure.visualCenterY(layout);
+        Vec3 origin = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
+                OmniComputationStructure.VISUAL_CENTER_X, visualY,
+                OmniComputationStructure.VISUAL_CENTER_Z, layout);
+        return origin.distanceToSqr(cameraPos) <= 384.0D * 384.0D;
     }
+
 
 }

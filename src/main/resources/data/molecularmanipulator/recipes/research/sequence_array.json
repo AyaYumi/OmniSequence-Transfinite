@@ -1,0 +1,134 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.sequence_array",
+  "prerequisites": [
+    "molecularmanipulator:research/ae_foundation"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:fluix_crystal"
+      },
+      "count": 256
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 128
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:ex_molecular_assembler"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:ex_pattern_provider"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_frame"
+      },
+      "count": 16
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_crafter"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_speed"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_pattern"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:wireless_hub"
+      },
+      "count": 1
+    }
+  ],
+  "duration": 600,
+  "ae_per_tick": 512,
+  "unlocks": [
+    "molecularmanipulator:molecular_center_casing",
+    "molecularmanipulator:molecular_center_coil",
+    "molecularmanipulator:molecular_center_controller",
+    "molecularmanipulator:molecular_center_core",
+    "molecularmanipulator:molecular_center_glass",
+    "molecularmanipulator:molecular_center_stabilizer",
+    "molecularmanipulator:molecular_manipulator",
+    "molecularmanipulator:assembler_matrix_molecular_core"
+  ],
+  "required_mods": [
+    "expatternprovider"
+  ],
+  "sort_order": 10,
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ],
+  "stage": 2,
+  "depths": [
+    {
+      "material_multiplier": "1",
+      "parallel": "1",
+      "speed_multiplier": "1"
+    },
+    {
+      "material_multiplier": "2",
+      "parallel": "256",
+      "speed_multiplier": "2"
+    },
+    {
+      "material_multiplier": "4",
+      "parallel": "65536",
+      "speed_multiplier": "4"
+    },
+    {
+      "material_multiplier": "8",
+      "parallel": "16777216",
+      "speed_multiplier": "8"
+    },
+    {
+      "material_multiplier": "16",
+      "parallel": "4294967296",
+      "speed_multiplier": "16"
+    },
+    {
+      "material_multiplier": "32",
+      "parallel": "1099511627776",
+      "speed_multiplier": "32"
+    },
+    {
+      "material_multiplier": "64",
+      "parallel": "281474976710656",
+      "speed_multiplier": "64"
+    },
+    {
+      "material_multiplier": "128",
+      "parallel": "72057594037927936",
+      "speed_multiplier": "128"
+    },
+    {
+      "material_multiplier": "256",
+      "parallel": "9223372036854775807",
+      "speed_multiplier": "256",
+      "processing_ticks": 1
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "QBQ",
+    "BIB",
+    "QBQ"
+  ],
+  "key": {
+    "Q": {
+      "item": "ae2:quartz_block"
+    },
+    "B": {
+      "item": "ae2:import_bus"
+    },
+    "I": {
+      "item": "ae2:interface"
+    }
+  },
+  "result": {
+    "count": 1,
+    "item": "molecularmanipulator:matter_fabrication_item_input"
+  }
+}

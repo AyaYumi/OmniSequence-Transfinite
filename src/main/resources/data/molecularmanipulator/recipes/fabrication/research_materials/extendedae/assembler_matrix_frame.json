@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "minecraft:lapis_lazuli"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_frame"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "tag": "forge:gems/quartz"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:assembler_matrix_frame",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

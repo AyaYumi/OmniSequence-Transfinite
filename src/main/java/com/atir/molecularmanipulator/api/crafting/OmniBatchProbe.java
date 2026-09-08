@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * Immutable capacity probe for one provider and one advertised AE2 pattern.
  *
- * @since 1.3.7-forge-fix (API version 1)
+ * @since 1.3.9 (API version 1)
  */
 public record OmniBatchProbe(
         IPatternDetails pattern,

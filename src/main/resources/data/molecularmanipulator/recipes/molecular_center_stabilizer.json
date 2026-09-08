@@ -1,1 +1,38 @@
-{"type":"minecraft:crafting_shaped","pattern":["OEO","ENE","OEO"],"key":{"O":{"item":"minecraft:crying_obsidian"},"E":{"item":"minecraft:ender_eye"},"N":{"item":"minecraft:nether_star"}},"result":{"item":"molecularmanipulator:molecular_center_stabilizer","count":2}}
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:ender_eye"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:nether_star"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:crying_obsidian"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:molecular_center_stabilizer",
+      "count": 2
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 512,
+  "requires_research": true
+}

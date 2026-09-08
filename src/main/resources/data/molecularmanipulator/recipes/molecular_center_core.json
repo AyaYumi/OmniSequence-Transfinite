@@ -1,1 +1,32 @@
-{"type":"minecraft:crafting_shaped","pattern":["QDQ","DND","QDQ"],"key":{"Q":{"item":"ae2:quantum_ring"},"D":{"item":"minecraft:diamond_block"},"N":{"item":"minecraft:nether_star"}},"result":{"item":"molecularmanipulator:molecular_center_core"}}
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_crafter"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:nether_star"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:assembler_matrix_speed"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:molecular_center_core",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 512,
+  "requires_research": true
+}

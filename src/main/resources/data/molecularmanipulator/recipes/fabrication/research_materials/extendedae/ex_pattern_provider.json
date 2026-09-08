@@ -1,0 +1,50 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "tag": "ae2:pattern_provider"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "ae2:capacity_card"
+      },
+      "count": 3
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:crafting_table"
+      },
+      "count": 3
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "tag": "ae2:glass_cable"
+      },
+      "count": 6
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:ex_pattern_provider",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

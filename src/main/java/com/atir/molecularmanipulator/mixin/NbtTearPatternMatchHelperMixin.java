@@ -18,7 +18,7 @@ public abstract class NbtTearPatternMatchHelperMixin {
     @Unique
     private static final AtomicBoolean MOLECULARMANIPULATOR_LOGGED_EMPTY_PROVIDER = new AtomicBoolean();
 
-    @WrapMethod(method = {"matchesCraftingPatternInput", "matchesProcessingPatternInput"},
+    @WrapMethod(method = "matchesCraftingPatternInput",
             require = 0, expect = 0)
     private static boolean molecularmanipulator$handleMissingPatternProvider(AEKey input,
             GenericStack template, Operation<Boolean> original) {

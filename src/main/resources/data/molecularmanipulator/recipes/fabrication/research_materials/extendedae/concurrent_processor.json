@@ -1,0 +1,42 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:concurrent_processor"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "minecraft:netherite_ingot"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:silicon"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:redstone"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:concurrent_processor",
+      "count": 4
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

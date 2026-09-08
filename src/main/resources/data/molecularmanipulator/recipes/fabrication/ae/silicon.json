@@ -1,0 +1,20 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:certus_quartz_dust"
+      },
+      "count": 16
+    }
+  ],
+  "results": [
+    {
+      "id": "ae2:silicon",
+      "count": 16
+    }
+  ],
+  "processing_time": 100,
+  "ae_per_tick": 128,
+  "requires_research": true
+}

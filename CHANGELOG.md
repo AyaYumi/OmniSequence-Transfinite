@@ -1,3 +1,23 @@
+# 2.0.0-forge — Minecraft 1.20.1
+
+- Make matter deconstruction/reproduction highlights follow their synchronized enable switches; stopped operations use ordinary buttons.
+- Port the 2.0.0 feature set to Java 17 / Forge 47 with AppliedEnhancements 1.0.6-forge.
+- Adapt networking, AE2 15 inventories and recipes, Forge capabilities and persistent chunk tickets.
+- Redesign every machine and JEI page as a light sci-fi console with custom frames, buttons, text fields, slots, toggles and clear selected/disabled states; no LDLib2 or XML overlays.
+- Unify JEI recipe cards and interactive structure previews with the light console palette and custom input/output slots.
+- Deepen light-console surfaces and slot borders; move JEI structure quantities to contrasting badges below their models.
+- Use square corners for console frames, panels, buttons, text fields and JEI cards.
+- Match AE2 19.2.17's cool-grey panel materials, white slot borders, dark text fields and cyan highlights using native Forge 1.20.1 drawing; retain readable button text and quantity badges.
+- Remove default text shadows from buttons and fields while preserving vanilla caret spacing, selection and editing; use a contrasting light caret on dark text fields.
+- Synchronize total occupied pattern slots so paging and filtering cannot change the displayed machine-wide usage.
+- Refactor all six machine screens and JEI layouts against the 1.21.1 branch; restore the 332x364 Omni Computation structure/telemetry/quantum layout, horizontal actions and centered inventory.
+- Share fixed machine geometry and validate it against AE2 slot definitions; retain search, tab restoration, confirmation behavior and high-GUI-scale input handling.
+- Show adjacent-block thumbnails beside all six output directions with neighbor/status tooltips; rebuild cached previews only when block states or direction settings change.
+- Adapt vertex submission and render bounds; scale large controllers to fit the display.
+- Preserve the Forge CPU readiness safeguard and cached/bounded scheduling behavior.
+- Adapt ExtendedAE's expatternprovider namespace and gate unavailable dependency-only materials.
+- See docs/FORGE_PORT.md and libs/README.md for compatibility details.
+
 # Changelog
 
 ## 1.3.9-forge - 2026-08-18

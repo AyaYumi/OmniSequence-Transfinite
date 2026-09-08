@@ -1,0 +1,28 @@
+{
+  "$schema": "schema.json",
+  "includes": [
+    "common/common.json"
+  ],
+  "generatedBackground": {
+    "width": 248,
+    "height": 325
+  },
+  "slots": {
+    "ENCODED_PATTERN": {
+      "left": 44,
+      "top": 111,
+      "grid": "BREAK_AFTER_9COLS"
+    },
+    "PLAYER_INVENTORY": {
+      "left": 44,
+      "top": 238,
+      "grid": "BREAK_AFTER_9COLS"
+    },
+    "PLAYER_HOTBAR": {
+      "left": 44,
+      "top": 296,
+      "grid": "HORIZONTAL"
+    }
+  },
+  "text": {}
+}

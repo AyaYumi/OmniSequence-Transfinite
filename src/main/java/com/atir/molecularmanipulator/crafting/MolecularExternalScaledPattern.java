@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -259,19 +260,19 @@ public final class MolecularExternalScaledPattern {
         }
 
         validateOutputs(
-                scaledPattern.getOutputs(), original.getOutputs(), multiplier);
+                java.util.Arrays.asList(scaledPattern.getOutputs()), java.util.Arrays.asList(original.getOutputs()), multiplier);
     }
 
-    private static void validateOutputs(GenericStack[] scaledOutputs,
-            GenericStack[] originalOutputs, long multiplier) {
+    private static void validateOutputs(List<GenericStack> scaledOutputs,
+            List<GenericStack> originalOutputs, long multiplier) {
         if (scaledOutputs == null || originalOutputs == null
-                || scaledOutputs.length != originalOutputs.length) {
+                || scaledOutputs.size() != originalOutputs.size()) {
             throw new IllegalStateException(
                     "ExtendedAE Plus scaled-pattern outputs are inconsistent");
         }
-        for (int index = 0; index < originalOutputs.length; index++) {
-            var scaledOutput = scaledOutputs[index];
-            var originalOutput = originalOutputs[index];
+        for (int index = 0; index < originalOutputs.size(); index++) {
+            var scaledOutput = scaledOutputs.get(index);
+            var originalOutput = originalOutputs.get(index);
             if (scaledOutput == null || originalOutput == null
                     || !Objects.equals(scaledOutput.what(), originalOutput.what())
                     || scaledOutput.amount()

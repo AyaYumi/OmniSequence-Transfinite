@@ -100,7 +100,8 @@ public final class MolecularReusableBatchPlan {
             this(initialKey, amountPerCraft, mode, finalKey, List.of());
         }
 
-        public static InputPlan deterministicDamage(List<DamageGroup> groups) {
+        public static InputPlan deterministicDamage(
+                List<DamageGroup> groups) {
             if (groups == null || groups.isEmpty()) {
                 throw new IllegalArgumentException("Damage pool is empty");
             }

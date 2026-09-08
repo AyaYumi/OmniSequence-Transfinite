@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.menu;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
+import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.RestrictedInputSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
@@ -18,10 +19,7 @@ public final class OmniComputationMenu extends AEBaseMenu {
     private static final String ACTION_UPDATE_STRUCTURE = "omni_update_structure";
     private static final String ACTION_KEEP_LEGACY_STRUCTURE = "omni_keep_legacy_structure";
 
-    public static final MenuType<OmniComputationMenu> TYPE = ForgeMenuTypeFactory.create(
-            MolecularManipulator.id("omni_computation"),
-            OmniComputationMenu::new,
-            OmniComputationCoreBlockEntity.class);
+    public static final MenuType<OmniComputationMenu> TYPE = ForgeMenuTypeFactory.create(MolecularManipulator.id("omni_computation"), OmniComputationMenu::new, OmniComputationCoreBlockEntity.class);
 
     @GuiSync(0)
     public boolean formed;
@@ -62,6 +60,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
     public boolean legacyStructure;
     @GuiSync(19)
     public boolean legacyStructureUpdateDismissed;
+    @GuiSync(20)
+    public int dismantlableBlocks;
 
     private final OmniComputationCoreBlockEntity core;
 
@@ -169,6 +169,7 @@ public final class OmniComputationMenu extends AEBaseMenu {
             quantumLinkState = core.getQuantumLinkState();
             legacyStructure = core.hasLegacyStructure();
             legacyStructureUpdateDismissed = core.isLegacyStructureUpdateDismissed();
+            dismantlableBlocks = core.getDismantlableBlocks();
         }
         super.broadcastChanges();
     }

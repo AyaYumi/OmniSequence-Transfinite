@@ -1,7 +1,6 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.crafting.IPatternDetails;
-import appeng.api.inventories.InternalInventory;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.crafting.ICraftingProvider;
@@ -29,7 +28,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     private final List<IPatternDetails> availablePatterns = new ArrayList<>();
     private final Set<IPatternDetails> availablePatternSet = new HashSet<>();
     private boolean rebuildScheduled;
-    private int patternInventoryRevision;
+    private int patternRevision;
 
     MolecularCenterLogic(MolecularCenterBlockEntity machine) {
         super(machine.getMainNode(), machine, MolecularCenterBlockEntity.MAX_PATTERN_SLOTS);
@@ -49,14 +48,18 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
         return fullPatternInventory;
     }
 
-    public int getPatternInventoryRevision() {
-        return patternInventoryRevision;
+    /**
+     * Monotonically changing client hint used to invalidate the lightweight
+     * pattern-search index. It is intentionally not persisted.
+     */
+    public int getPatternRevision() {
+        return patternRevision;
     }
 
     public static boolean isSupportedPattern(ItemStack stack) {
-        return (AEItems.CRAFTING_PATTERN.isSameAs(stack)
-                || AEItems.SMITHING_TABLE_PATTERN.isSameAs(stack)
-                || AEItems.STONECUTTING_PATTERN.isSameAs(stack))
+        return (stack.is(AEItems.CRAFTING_PATTERN.asItem())
+                || stack.is(AEItems.SMITHING_TABLE_PATTERN.asItem())
+                || stack.is(AEItems.STONECUTTING_PATTERN.asItem()))
                 && PatternDetailsHelper.isEncodedPattern(stack);
     }
 
@@ -123,12 +126,8 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     }
 
     @Override
-    public void onChangeInventory(InternalInventory inventory, int slot) {
-        if (!isClientSide()) {
-            patternInventoryRevision = patternInventoryRevision == Integer.MAX_VALUE
-                    ? 0
-                    : patternInventoryRevision + 1;
-        }
+    public void onChangeInventory(appeng.api.inventories.InternalInventory inventory, int slot) {
+        patternRevision++;
         saveChanges();
         if (isClientSide() || rebuildScheduled) {
             return;

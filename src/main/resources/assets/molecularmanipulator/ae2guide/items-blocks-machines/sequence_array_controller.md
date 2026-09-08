@@ -6,47 +6,83 @@ navigation:
   position: 1030
 item_ids:
 - molecularmanipulator:molecular_center_controller
+- molecularmanipulator:molecular_center_casing
+- molecularmanipulator:molecular_center_glass
+- molecularmanipulator:molecular_center_coil
+- molecularmanipulator:molecular_center_stabilizer
+- molecularmanipulator:molecular_center_core
 ---
 
 # Sequence Array Controller
 
 <BlockImage id="molecularmanipulator:molecular_center_controller" scale="8" />
 
-The Sequence Array Controller forms the fixed 31x46x31 Sequence Array. The completed multiblock combines massively
-parallel autocrafting, an internal production pipeline, matter sequence rewriting, and an optional cross-dimensional
+The Sequence Array Controller forms a Sequence Array within a 61x61 footprint and a 29-block height. Its current layout is the baseless Frost Feather Crown with a central controller. The completed multiblock combines massively
+parallel AE crafting, per-pattern passive auto crafting, matter sequence rewriting, and an optional cross-dimensional
 quantum connection.
 
 ## Building the structure
 
-1. Place the controller facing outward. The structure extends 13 blocks below it, 32 blocks above it, and 15 blocks to
-   either side.
+The controller and dedicated components are produced in the [Matter Fabrication Well](matter_fabrication_well.md) after
+the first completion of **Stage II: Sequence Array** research. That branch also unlocks both sequence rewrite machines.
+Packs may change the research requirements.
+
+1. Place the controller in the central focusing seat, facing the operating side, with a quantum-crystal ornament above it. A single ring connects four crystal-feather fans.
+   A compact five-layer amethyst pendant hangs beneath the center; the old ring socket is an ME-connectable casing.
 2. Right-click the controller and enable the projection. Ghost blocks show missing positions, while red outlines show
    conflicts.
 3. Use the JEI structure category for the complete layer view and material list.
-4. Load every chunk covered by the structure, clear conflicts, and use **Build**. Construction fills missing blocks in
+4. Clear conflicts and use **Build**. Construction force-loads the required chunks and fills missing blocks in
    batches.
 5. Connect the completed structure to a powered ME Network. An AE2 wrench rotates the controller and refreshes the
    structure check.
 
-Both the legacy and current center layouts remain valid. The current layout leaves the exact center of the energy field
-as air and places the physical core at the top of the core sphere. When a complete legacy layout is detected, the
-controller shows an optional structure-update notice. Ignoring it keeps the legacy structure operational; accepting it
-recovers the old center core and relocates it safely.
+The exact field center remains air for the rendered quantum star. Feather ribs are separated by open gaps; there is no continuous floor or circular foundation.
+Eight casing/glass/stabilizer panels and crystal nodes decorate the ring. Four low inner crystal seats preserve central access, and the front casing has an exposed outward-facing side for a cable.
+Allow 6 blocks below and 22 above the central controller; the visual core sits 8 blocks above it. Use the projection to check the area first.
+In dimensions allowing blocks at Y=-64 through 319, the central controller may be placed at Y=-58 through 297.
+Legacy support retains only the official 1.3.9 palace array (31×31×46), labeled **Legacy 1.3.9**. Other historical and experimental layouts are no longer recognized or migrated.
+This version changes the building substantially: open its projection first. The first **Update Structure** click arms confirmation; wait briefly and click again to proceed. Confirmation expires after five seconds.
+Updating recovers the old structure and builds the current one, requiring new materials and recovery space. The controller moves three blocks down and fifteen blocks behind its original position; patterns, contents and settings are retained.
+Unrelated blocks or entities at the destination stop relocation. Clear the destination and confirm again; use the new central controller after completion.
 
-The array does not force-load chunks. It pauses when its full area is not loaded and validates itself again when the
-chunks return.
+The array force-loads required chunks while formed and during construction, dismantling or structure updates. Valid
+loading tasks resume after world reloads. Structural damage pauses work while retaining progress; unnecessary tickets
+are released. Normal controller drops retain patterns, inventory, quantum-slot contents and owned task state.
 
-## Autocrafting and pipeline
+Dismantling keeps the controller and queues only actual matching blocks. It completes each world-height layer from top to bottom, using serpentine rows within the layer. Air is not counted, and targets removed or changed externally are skipped without using the removal budget. Insufficient recovery capacity or denied operations pause the current block; the same queue and progress resume after conditions recover or the world reloads.
+
+## Autocrafting
 
 The completed array supports virtual parallelism up to the signed 64-bit limit. Real throughput is still limited by
 ingredients, energy, output capacity, and server tick time.
 
-The pattern inventory accepts encoded AE2 crafting, smithing, and stonecutting patterns. Shift-moving a pattern fills
-the current page first and continues into later pages when necessary; processing, blank, and invalid patterns are
-rejected.
+The large pattern library accepts encoded AE2 crafting, smithing, and stonecutting patterns for ordinary AE crafting.
+Shift-moving a pattern fills the current page first and continues into later pages when necessary; processing, blank,
+and invalid patterns are rejected.
 
-The pipeline tab shows active recipes, buffered key types, and pending outputs. Main products and byproducts can be
-routed independently to the ME Network, the internal pipeline, or a selected output side.
+The **Auto Crafting** tab has its own row of nine dedicated pattern slots and never selects patterns from the large
+library. Place patterns directly into these slots, then click the numbered selector or right-click the slot to configure
+it. New patterns start disabled. Each logical input has an independent ME reserve: passive crafting never extracts enough
+of that ingredient or any valid substitute to lower its stock below the reserve. The primary output has an ME stock
+limit; `0` disables that limit and continues until protected ingredients or AE power run out. Conditions are checked
+again automatically, so a paused pattern resumes when stock, power, or output capacity returns.
+
+Passive batches extract directly from this controller's ME Network and use the `Long.MAX_VALUE` aggregate execution path
+without acceleration cards. Primary outputs, byproducts, containers, reusable ingredients, and rollback refunds return
+exclusively to ME through persistent escrow. There is no internal-storage or adjacent-inventory output mode.
+
+### Reusable inputs and cancellation
+
+The array can execute same-key remainders, including items marked as unbreakable, as one persistent reusable batch.
+Finite-durability tools are batched only when every craft deterministically adds exactly one damage; Unbreaking-enchanted
+or otherwise random and context-dependent tools fall back to AE2's original one-craft path. Key-changing remainders such
+as water buckets also remain on that path.
+
+Accepted reusable batches survive saves, chunk unloads, and server restarts. Canceling the AE2 crafting job persistently
+stops all remaining executions and refunds the exact unused materials plus the reusable item's current state. Completed
+outputs remain valid, and canceled work cannot resume after reload. Batch energy uses AE2's native pattern-power
+calculation over the actual combined inputs.
 
 ## Matter sequence rewriting
 
@@ -75,8 +111,16 @@ Rewritten items can return directly to the ME Network or enter the controller's 
 continuously. If stored sequence or ME power is temporarily insufficient, the job waits and retries. A changed
 blueprint or blocked output stops it.
 
-Up to four AE2 acceleration cards affect both operations. They reduce the interval per item from 20 ticks with no card
-to 10, 5, 2, or 1 tick with one through four cards.
+Up to four AE2 acceleration cards affect batch size, batch interval and entropy cooling for both operations.
+Packs may configure each value; defaults are:
+
+| Cards | Maximum items per batch | Batch interval | Cooling multiplier |
+| --- | --- | --- | --- |
+| 0 | 1 | 20 ticks | ×1 |
+| 1 | 2 | 10 ticks | ×2 |
+| 2 | 4 | 5 ticks | ×4 |
+| 3 | 16 | 2 ticks | ×16 |
+| 4 | 64 | 1 tick | ×64 |
 
 ### Rewrite entropy
 
@@ -86,11 +130,11 @@ autocrafting. Every successful operation adds entropy based on the total sequenc
 - Deconstruction adds at least 1 entropy, or the total recovered sequence divided by 64.
 - Rewriting adds at least 1 entropy, or the total sequence cost divided by 16.
 
-The array can hold 100,000 entropy and passively dissipates 25 entropy per second while loaded. If the next operation
-would exceed the limit, that job pauses in **Cooling** before consuming anything and resumes automatically as soon as
-enough entropy has dissipated. Cooling continues while the array works, which is why the bar can fill during heavy use
-and fall again when processing slows or stops. Acceleration cards do not change entropy per item, but faster processing
-can make it accumulate more quickly.
+Default entropy capacity is 1,000,000. Base cooling is 25 per second, multiplied by the installed cards' cooling multiplier;
+four cards therefore remove 1,600 per second by default. Capacity, base cooling and multipliers are configurable.
+Insufficient free entropy capacity pauses work in **Cooling** until it can resume. If a single operation costs more entropy
+than total capacity, waiting cannot solve it: change the target or configuration. Cards do not change entropy per item;
+the net accumulation depends on processing throughput and cooling together.
 
 ### Rules and item eligibility
 
@@ -118,4 +162,4 @@ change processing speed.
 
 ## Recipe
 
-<RecipeFor id="molecularmanipulator:molecular_center_controller" />
+<RecipeFor id="molecularmanipulator:molecular_center_controller" fallbackText="This modpack has no available recipe for this item. Check JEI or the research configuration." />

@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.world;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
+import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -37,16 +38,19 @@ public final class MolecularCenterSpawnProtection {
             return;
         }
         var facing = state.getValue(HorizontalDirectionalBlock.FACING);
+        var anchor = level.getBlockEntity(controllerPos) instanceof MolecularCenterBlockEntity center
+                ? center.getControllerAnchorLayout() : MolecularCenterStructure.StructureLayout.CURRENT;
         var visualCenter = MolecularCenterStructure.worldPoint(controllerPos, facing,
                 MolecularCenterStructure.VISUAL_CENTER_X,
                 MolecularCenterStructure.CONTROLLER_Y,
-                MolecularCenterStructure.VISUAL_CENTER_Z);
+                MolecularCenterStructure.VISUAL_CENTER_Z, anchor);
         var centerChunk = new ChunkPos(BlockPos.containing(visualCenter));
         ACTIVE_AREAS.computeIfAbsent(level, ignored -> new HashMap<>())
                 .put(controllerPos.immutable(), new ProtectedArea(centerChunk.x, centerChunk.z));
     }
 
-    public static void updateOmni(ServerLevel level, BlockPos controllerPos, boolean active) {
+    public static void updateOmni(ServerLevel level, BlockPos controllerPos, boolean active,
+            OmniComputationStructure.StructureLayout layout) {
         if (!active) {
             unregister(level, controllerPos);
             return;
@@ -58,7 +62,9 @@ public final class MolecularCenterSpawnProtection {
         }
         var facing = state.getValue(HorizontalDirectionalBlock.FACING);
         var structureCenter = OmniComputationStructure.worldPoint(controllerPos, facing,
-                0, OmniComputationStructure.CONTROLLER_Y, 0);
+                OmniComputationStructure.VISUAL_CENTER_X,
+                OmniComputationStructure.VISUAL_CENTER_Y,
+                OmniComputationStructure.VISUAL_CENTER_Z, layout);
         var centerChunk = new ChunkPos(BlockPos.containing(structureCenter));
         ACTIVE_AREAS.computeIfAbsent(level, ignored -> new HashMap<>())
                 .put(controllerPos.immutable(), new ProtectedArea(centerChunk.x, centerChunk.z));

@@ -12,7 +12,6 @@ import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.CraftingEvent;
 import appeng.me.helpers.MachineSource;
-import appeng.util.SettingsFrom;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
@@ -27,7 +26,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -91,7 +89,8 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     }
 
     @Override
-    public void addAdditionalDrops(Level level, BlockPos pos, List<ItemStack> drops) {
+    public void addAdditionalDrops(Level level, BlockPos pos,
+            List<ItemStack> drops) {
         super.addAdditionalDrops(level, pos, drops);
         if (hasRemovalRecovery()) {
             drops.add(createRemovalRecovery());
@@ -107,20 +106,14 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         outputReadyTick = Long.MIN_VALUE;
     }
 
-    private ItemStack createRemovalRecovery() {
-        var recovery = new ItemStack(getBlockState().getBlock());
-        var settings = new CompoundTag();
-        exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
-        if (!settings.isEmpty()) {
-            recovery.setTag(settings);
-        }
-
+    private ItemStack createRemovalRecovery(
+            ) {
         var payload = new CompoundTag();
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
             if (entry.getKey() != null && entry.getLongValue() > 0) {
-                outputList.add(GenericStack.writeTag(
-                        new GenericStack(entry.getKey(), entry.getLongValue())));
+                outputList.add(GenericStack.writeTag(new GenericStack(entry.getKey(),
+                                entry.getLongValue())));
             }
         }
         payload.put(OUTPUT_BUFFER_TAG, outputList);
@@ -131,8 +124,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             payload.put(ACTIVE_REUSABLE_BATCH_TAG,
                     quarantinedReusableBatchTag.copy());
         }
-        BlockItem.setBlockEntityData(recovery, getType(), payload);
-        return recovery;
+        return RetainedBlockContents.createDrop(this, payload);
     }
 
     public boolean acceptCrafting(IPatternDetails patternDetails, KeyCounter[] inputs) {
@@ -223,9 +215,6 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),
                         job.projectedFinalRemainders())
                 || !canQueueOutputs(job.cancellationRefunds())) {
-            return false;
-        }
-        if (!registerReusableBatch(job)) {
             return false;
         }
 
@@ -329,9 +318,6 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     @Override
     public void onReady() {
         super.onReady();
-        if (activeReusableBatch != null) {
-            registerReusableBatch(activeReusableBatch);
-        }
         if (!bufferedOutputs.isEmpty() || activeReusableBatch != null) {
             wakeForBufferedOutputs();
         }
@@ -343,8 +329,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
             if (entry.getKey() != null && entry.getLongValue() > 0) {
-                outputList.add(GenericStack.writeTag(
-                        new GenericStack(entry.getKey(), entry.getLongValue())));
+                outputList.add(GenericStack.writeTag(new GenericStack(entry.getKey(), entry.getLongValue())));
             }
         }
         tag.put(OUTPUT_BUFFER_TAG, outputList);
@@ -360,22 +345,15 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     @Override
     public void loadTag(CompoundTag tag) {
+        tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag);
         bufferedOutputs.clear();
         var outputList = tag.getList(OUTPUT_BUFFER_TAG, Tag.TAG_COMPOUND);
         for (var entryTag : outputList) {
             var stack = GenericStack.readTag((CompoundTag) entryTag);
-            if (stack == null || stack.amount() == 0) {
-                continue;
+            if (stack != null && stack.amount() > 0) {
+                bufferedOutputs.addTo(stack.what(), stack.amount());
             }
-            if (stack.amount() < 0) {
-                MolecularManipulator.LOGGER.warn(
-                        "Ignoring negative assembler-matrix buffered output {} x {} at {}",
-                        stack.what(), stack.amount(), getBlockPos());
-                continue;
-            }
-            bufferedOutputs.put(stack.what(), LoadedOutputAmounts.merge(
-                    bufferedOutputs.getLong(stack.what()), stack.amount()));
         }
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
@@ -384,7 +362,8 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         quarantinedReusableBatchTag = null;
         if (tag.contains(ACTIVE_REUSABLE_BATCH_TAG, Tag.TAG_COMPOUND)) {
             var jobTag = tag.getCompound(ACTIVE_REUSABLE_BATCH_TAG);
-            activeReusableBatch = MolecularReusableBatchJob.readFromTag(jobTag);
+            activeReusableBatch = MolecularReusableBatchJob.readFromTag(
+                    jobTag);
             if (activeReusableBatch == null) {
                 quarantinedReusableBatchTag = jobTag.copy();
                 MolecularManipulator.LOGGER.error(
@@ -400,9 +379,6 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         if (level == null || job == null || assembling) {
             return false;
         }
-        if (!registerReusableBatch(job)) {
-            return false;
-        }
 
         if (MolecularBatchCancellationData.isCanceled(
                 level, job.craftingId())) {
@@ -412,8 +388,8 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             }
             addOutputs(bufferedOutputs, refunds);
             activeReusableBatch = null;
-            releaseReusableBatch(job);
-            outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
+            outputReadyTick = Math.max(
+                    outputReadyTick, level.getGameTime() + 1);
             saveChanges();
             return true;
         }
@@ -422,12 +398,14 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             return false;
         }
 
+        // The job advances aggregated long counts, never one recipe at a time.
         long step = job.nextStep(Long.MAX_VALUE);
         if (step <= 0) {
             return false;
         }
         var primary = job.primaryOutputsFor(step);
-        boolean completes = step == job.totalCrafts() - job.completedCrafts();
+        boolean completes =
+                step == job.totalCrafts() - job.completedCrafts();
         var remainders = completes
                 ? job.projectedFinalRemainders()
                 : new Object2LongOpenHashMap<AEKey>();
@@ -440,42 +418,15 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         if (job.isComplete()) {
             addOutputs(bufferedOutputs, job.completedRemainders());
             activeReusableBatch = null;
-            releaseReusableBatch(job);
         }
-        outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
+        outputReadyTick = Math.max(
+                outputReadyTick, level.getGameTime() + 1);
         saveChanges();
         return true;
     }
 
-    private boolean registerReusableBatch(MolecularReusableBatchJob job) {
-        var level = getLevel();
-        if (level == null || !MolecularBatchCancellationData.register(
-                level, job.batchId(), job.craftingId())) {
-            return false;
-        }
-        if (job.needsBatchIdPersistence()) {
-            try {
-                saveChanges();
-                job.markBatchIdPersisted();
-            } catch (RuntimeException exception) {
-                MolecularManipulator.LOGGER.error(
-                        "Could not persist migrated assembler-matrix reusable batch ID at {}",
-                        getBlockPos(), exception);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void releaseReusableBatch(MolecularReusableBatchJob job) {
-        var level = getLevel();
-        if (level != null) {
-            MolecularBatchCancellationData.release(
-                    level, job.batchId(), job.craftingId());
-        }
-    }
-
-    private static void addOutputs(Object2LongOpenHashMap<AEKey> destination,
+    private static void addOutputs(
+            Object2LongOpenHashMap<AEKey> destination,
             Object2LongOpenHashMap<AEKey> outputs) {
         for (var entry : outputs.object2LongEntrySet()) {
             destination.put(entry.getKey(), Math.addExact(
@@ -512,21 +463,6 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     private void wakeForBufferedOutputs() {
         getMainNode().ifPresent((grid, node) -> grid.getTickManager().alertDevice(node));
-    }
-
-    static final class LoadedOutputAmounts {
-        private LoadedOutputAmounts() {
-        }
-
-        static long merge(long current, long loaded) {
-            if (current < 0 || loaded < 0) {
-                throw new IllegalArgumentException(
-                        "Buffered output amounts must not be negative");
-            }
-            return current > Long.MAX_VALUE - loaded
-                    ? Long.MAX_VALUE
-                    : current + loaded;
-        }
     }
 
 }

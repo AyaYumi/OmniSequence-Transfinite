@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,powered=false": {"model": "molecularmanipulator:block/matter_fabrication_controller"},
+    "facing=south,powered=false": {"model": "molecularmanipulator:block/matter_fabrication_controller", "y": 180},
+    "facing=west,powered=false": {"model": "molecularmanipulator:block/matter_fabrication_controller", "y": 270},
+    "facing=east,powered=false": {"model": "molecularmanipulator:block/matter_fabrication_controller", "y": 90},
+    "facing=north,powered=true": {"model": "molecularmanipulator:block/matter_fabrication_controller_on"},
+    "facing=south,powered=true": {"model": "molecularmanipulator:block/matter_fabrication_controller_on", "y": 180},
+    "facing=west,powered=true": {"model": "molecularmanipulator:block/matter_fabrication_controller_on", "y": 270},
+    "facing=east,powered=true": {"model": "molecularmanipulator:block/matter_fabrication_controller_on", "y": 90}
+  }
+}

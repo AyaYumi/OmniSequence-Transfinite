@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "FSF",
+    "SPS",
+    "FSF"
+  ],
+  "key": {
+    "F": {
+      "item": "ae2:fluix_crystal"
+    },
+    "S": {
+      "item": "ae2:silicon"
+    },
+    "P": {
+      "item": "ae2:calculation_processor"
+    }
+  },
+  "result": {
+    "count": 8,
+    "item": "molecularmanipulator:matter_fabrication_coil"
+  }
+}

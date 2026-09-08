@@ -1,0 +1,52 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "minecraft:iron_bars"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "tag": "forge:gems/fluix"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "tag": "forge:ingots/netherite"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": [
+        {
+          "item": "minecraft:chiseled_quartz_block"
+        },
+        {
+          "item": "minecraft:quartz_block"
+        },
+        {
+          "item": "minecraft:quartz_pillar"
+        }
+      ],
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:assembler_matrix_wall",
+      "count": 2
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

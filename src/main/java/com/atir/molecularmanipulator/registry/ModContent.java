@@ -2,6 +2,11 @@ package com.atir.molecularmanipulator.registry;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
+import com.atir.molecularmanipulator.block.MolecularManipulatorBlock;
+import com.atir.molecularmanipulator.block.MatterFabricationControllerBlock;
+import com.atir.molecularmanipulator.block.MatterFabricationPatternAssemblyBlock;
+import com.atir.molecularmanipulator.block.MatterFabricationPortBlock;
+import com.atir.molecularmanipulator.block.MatterFabricationPortType;
 import com.atir.molecularmanipulator.block.MolecularCenterControllerBlock;
 import com.atir.molecularmanipulator.block.MolecularCenterPartBlock;
 import com.atir.molecularmanipulator.block.MolecularCenterCoreBlock;
@@ -11,10 +16,20 @@ import com.atir.molecularmanipulator.block.OmniComputationControllerBlock;
 import com.atir.molecularmanipulator.block.OmniComputationGlassBlock;
 import com.atir.molecularmanipulator.block.OmniComputationPartBlock;
 import com.atir.molecularmanipulator.blockentity.AssemblerMatrixMolecularCoreBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternAssemblyBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MatterFabricationPortBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
+import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
+import com.atir.molecularmanipulator.research.MatterResearchRecipe;
+import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
+import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
+import com.atir.molecularmanipulator.menu.MatterFabricationPatternAssemblyMenu;
+import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.core.registries.Registries;
@@ -23,22 +38,33 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import net.minecraft.world.level.block.Block;
 
 public final class ModContent {
-    public static final DeferredRegister<net.minecraft.world.level.block.Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MolecularManipulator.MOD_ID);
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MolecularManipulator.MOD_ID);
+    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, MolecularManipulator.MOD_ID);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, MolecularManipulator.MOD_ID);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
-            DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MolecularManipulator.MOD_ID);
+            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, MolecularManipulator.MOD_ID);
     public static final DeferredRegister<MenuType<?>> MENUS =
-            DeferredRegister.create(ForgeRegistries.MENU_TYPES, MolecularManipulator.MOD_ID);
+            DeferredRegister.create(Registries.MENU, MolecularManipulator.MOD_ID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MolecularManipulator.MOD_ID);
+    public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES =
+            DeferredRegister.create(Registries.RECIPE_TYPE, MolecularManipulator.MOD_ID);
+    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS =
+            DeferredRegister.create(Registries.RECIPE_SERIALIZER, MolecularManipulator.MOD_ID);
 
+    public static final RegistryObject<MolecularManipulatorBlock> MOLECULAR_MANIPULATOR =
+            BLOCKS.register("molecular_manipulator", MolecularManipulatorBlock::new);
+    public static final RegistryObject<BlockItem> MOLECULAR_MANIPULATOR_ITEM =
+            ITEMS.register("molecular_manipulator",
+                    () -> new BlockItem(MOLECULAR_MANIPULATOR.get(), new Item.Properties()));
     public static final RegistryObject<AssemblerMatrixMolecularCoreBlock> ASSEMBLER_MATRIX_MOLECULAR_CORE =
             BLOCKS.register("assembler_matrix_molecular_core", AssemblerMatrixMolecularCoreBlock::new);
     public static final RegistryObject<BlockItem> ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM =
@@ -58,7 +84,7 @@ public final class ModContent {
             "molecular_center_casing", () -> new MolecularCenterPartBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> 7)));
+                            .lightLevel(state -> 7), true));
     public static final RegistryObject<BlockItem> MOLECULAR_CENTER_CASING_ITEM = ITEMS.register(
             "molecular_center_casing", () -> new BlockItem(MOLECULAR_CENTER_CASING.get(), new Item.Properties()));
     public static final RegistryObject<MolecularCenterGlassBlock> MOLECULAR_CENTER_GLASS = BLOCKS.register(
@@ -88,6 +114,72 @@ public final class ModContent {
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops().lightLevel(state -> 15)));
     public static final RegistryObject<BlockItem> MOLECULAR_CENTER_CORE_ITEM = ITEMS.register(
             "molecular_center_core", () -> new BlockItem(MOLECULAR_CENTER_CORE.get(), new Item.Properties()));
+
+    public static final RegistryObject<MatterFabricationControllerBlock> MATTER_FABRICATION_CONTROLLER =
+            BLOCKS.register("matter_fabrication_controller", () -> new MatterFabricationControllerBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> state.getValue(
+                                    net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED)
+                                    ? 15 : 7)));
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_CONTROLLER_ITEM = ITEMS.register(
+            "matter_fabrication_controller",
+            () -> new BlockItem(MATTER_FABRICATION_CONTROLLER.get(), new Item.Properties()));
+    public static final RegistryObject<MolecularCenterPartBlock> MATTER_FABRICATION_CASING = BLOCKS.register(
+            "matter_fabrication_casing", () -> new MolecularCenterPartBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 7), false));
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_CASING_ITEM = registerBlockItem(
+            "matter_fabrication_casing", MATTER_FABRICATION_CASING);
+    public static final RegistryObject<MolecularCenterGlassBlock> MATTER_FABRICATION_GLASS = BLOCKS.register(
+            "matter_fabrication_glass", () -> new MolecularCenterGlassBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(6.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .noOcclusion().lightLevel(state -> 12)));
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_GLASS_ITEM = registerBlockItem(
+            "matter_fabrication_glass", MATTER_FABRICATION_GLASS);
+    public static final RegistryObject<MolecularCenterPartBlock> MATTER_FABRICATION_COIL = BLOCKS.register(
+            "matter_fabrication_coil", () -> new MolecularCenterPartBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .noOcclusion().lightLevel(state -> 15), false));
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_COIL_ITEM = registerBlockItem(
+            "matter_fabrication_coil", MATTER_FABRICATION_COIL);
+    public static final RegistryObject<MolecularCenterPartBlock> MATTER_FABRICATION_STABILIZER = BLOCKS.register(
+            "matter_fabrication_stabilizer", () -> new MolecularCenterPartBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 11), false));
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_STABILIZER_ITEM = registerBlockItem(
+            "matter_fabrication_stabilizer", MATTER_FABRICATION_STABILIZER);
+    public static final RegistryObject<MolecularCenterCoreBlock> MATTER_FABRICATION_CORE = BLOCKS.register(
+            "matter_fabrication_core", () -> new MolecularCenterCoreBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 15)));
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_CORE_ITEM = registerBlockItem(
+            "matter_fabrication_core", MATTER_FABRICATION_CORE);
+    public static final RegistryObject<MatterFabricationPortBlock> MATTER_FABRICATION_ITEM_INPUT =
+            registerMatterPort("matter_fabrication_item_input", MatterFabricationPortType.ITEM_INPUT, 11);
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_ITEM_INPUT_ITEM = registerBlockItem(
+            "matter_fabrication_item_input", MATTER_FABRICATION_ITEM_INPUT);
+    public static final RegistryObject<MatterFabricationPortBlock> MATTER_FABRICATION_ITEM_OUTPUT =
+            registerMatterPort("matter_fabrication_item_output", MatterFabricationPortType.ITEM_OUTPUT, 12);
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_ITEM_OUTPUT_ITEM = registerBlockItem(
+            "matter_fabrication_item_output", MATTER_FABRICATION_ITEM_OUTPUT);
+    public static final RegistryObject<MatterFabricationPortBlock> MATTER_FABRICATION_FLUID_INPUT =
+            registerMatterPort("matter_fabrication_fluid_input", MatterFabricationPortType.FLUID_INPUT, 11);
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_FLUID_INPUT_ITEM = registerBlockItem(
+            "matter_fabrication_fluid_input", MATTER_FABRICATION_FLUID_INPUT);
+    public static final RegistryObject<MatterFabricationPortBlock> MATTER_FABRICATION_FLUID_OUTPUT =
+            registerMatterPort("matter_fabrication_fluid_output", MatterFabricationPortType.FLUID_OUTPUT, 12);
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_FLUID_OUTPUT_ITEM = registerBlockItem(
+            "matter_fabrication_fluid_output", MATTER_FABRICATION_FLUID_OUTPUT);
+    public static final RegistryObject<MatterFabricationPatternAssemblyBlock> MATTER_FABRICATION_PATTERN_ASSEMBLY =
+            BLOCKS.register("matter_fabrication_pattern_assembly", MatterFabricationPatternAssemblyBlock::new);
+    public static final RegistryObject<BlockItem> MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM = registerBlockItem(
+            "matter_fabrication_pattern_assembly", MATTER_FABRICATION_PATTERN_ASSEMBLY);
 
     public static final RegistryObject<OmniComputationControllerBlock> OMNI_COMPUTATION_CONTROLLER =
             BLOCKS.register("omni_computation_controller", () -> new OmniComputationControllerBlock(
@@ -140,6 +232,10 @@ public final class ModContent {
     public static final RegistryObject<BlockItem> COMPUTATION_CRYSTAL_PYLON_ITEM =
             registerBlockItem("computation_crystal_pylon", COMPUTATION_CRYSTAL_PYLON);
 
+    public static final RegistryObject<BlockEntityType<MolecularManipulatorBlockEntity>>
+            MOLECULAR_MANIPULATOR_BLOCK_ENTITY = BLOCK_ENTITIES.register("molecular_manipulator",
+                    () -> BlockEntityType.Builder.of(MolecularManipulatorBlockEntity::new,
+                            MOLECULAR_MANIPULATOR.get()).build(null));
     public static final RegistryObject<BlockEntityType<AssemblerMatrixMolecularCoreBlockEntity>>
             ASSEMBLER_MATRIX_MOLECULAR_CORE_BLOCK_ENTITY = BLOCK_ENTITIES.register("assembler_matrix_molecular_core",
                     () -> BlockEntityType.Builder.of(AssemblerMatrixMolecularCoreBlockEntity::new,
@@ -156,17 +252,54 @@ public final class ModContent {
             OMNI_COMPUTATION_CONTROLLER_BE = BLOCK_ENTITIES.register("omni_computation_controller",
                     () -> BlockEntityType.Builder.of(OmniComputationCoreBlockEntity::new,
                             OMNI_COMPUTATION_CONTROLLER.get()).build(null));
+    public static final RegistryObject<BlockEntityType<MatterFabricationBlockEntity>>
+            MATTER_FABRICATION_CONTROLLER_BE = BLOCK_ENTITIES.register("matter_fabrication_controller",
+                    () -> BlockEntityType.Builder.of(MatterFabricationBlockEntity::new,
+                            MATTER_FABRICATION_CONTROLLER.get()).build(null));
+    public static final RegistryObject<BlockEntityType<MatterFabricationPortBlockEntity>>
+            MATTER_FABRICATION_PORT_BE = BLOCK_ENTITIES.register("matter_fabrication_port",
+                    () -> BlockEntityType.Builder.of(MatterFabricationPortBlockEntity::new,
+                            MATTER_FABRICATION_ITEM_INPUT.get(), MATTER_FABRICATION_ITEM_OUTPUT.get(),
+                            MATTER_FABRICATION_FLUID_INPUT.get(), MATTER_FABRICATION_FLUID_OUTPUT.get()).build(null));
+    public static final RegistryObject<BlockEntityType<MatterFabricationPatternAssemblyBlockEntity>>
+            MATTER_FABRICATION_PATTERN_ASSEMBLY_BE = BLOCK_ENTITIES.register(
+                    "matter_fabrication_pattern_assembly",
+                    () -> BlockEntityType.Builder.of(MatterFabricationPatternAssemblyBlockEntity::new,
+                            MATTER_FABRICATION_PATTERN_ASSEMBLY.get()).build(null));
+    public static final RegistryObject<MenuType<MolecularManipulatorMenu>> MOLECULAR_MANIPULATOR_MENU =
+            MENUS.register("molecular_manipulator", () -> MolecularManipulatorMenu.TYPE);
     public static final RegistryObject<MenuType<MolecularCenterMenu>> MOLECULAR_CENTER_MENU =
             MENUS.register("molecular_center", () -> MolecularCenterMenu.TYPE);
     public static final RegistryObject<MenuType<OmniComputationMenu>> OMNI_COMPUTATION_MENU =
             MENUS.register("omni_computation", () -> OmniComputationMenu.TYPE);
+    public static final RegistryObject<MenuType<MatterFabricationMenu>> MATTER_FABRICATION_MENU =
+            MENUS.register("matter_fabrication", () -> MatterFabricationMenu.TYPE);
+    public static final RegistryObject<MenuType<MatterFabricationPortMenu>>
+            MATTER_FABRICATION_PORT_MENU = MENUS.register(
+                    "matter_fabrication_port", () -> MatterFabricationPortMenu.TYPE);
+    public static final RegistryObject<MenuType<MatterFabricationPatternAssemblyMenu>>
+            MATTER_FABRICATION_PATTERN_ASSEMBLY_MENU = MENUS.register(
+                    "matter_fabrication_pattern_assembly",
+                    () -> MatterFabricationPatternAssemblyMenu.TYPE);
+    public static final RegistryObject<RecipeType<MatterFabricationRecipe>>
+            MATTER_FABRICATION_RECIPE_TYPE = RECIPE_TYPES.register("matter_fabrication",
+                    () -> RecipeType.simple(MolecularManipulator.id("matter_fabrication")));
+    public static final RegistryObject<RecipeSerializer<MatterFabricationRecipe>>
+            MATTER_FABRICATION_RECIPE_SERIALIZER = RECIPE_SERIALIZERS.register("matter_fabrication",
+                    MatterFabricationRecipe.Serializer::new);
+
+    public static final RegistryObject<RecipeType<MatterResearchRecipe>> MATTER_RESEARCH_RECIPE_TYPE =
+            RECIPE_TYPES.register("matter_research", () -> RecipeType.simple(MolecularManipulator.id("matter_research")));
+    public static final RegistryObject<RecipeSerializer<MatterResearchRecipe>> MATTER_RESEARCH_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("matter_research", MatterResearchRecipe.Serializer::new);
 
     public static final RegistryObject<CreativeModeTab> MAIN_TAB = CREATIVE_TABS.register(
             "main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.molecularmanipulator"))
-                    .icon(() -> ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get().getDefaultInstance())
+                    .icon(() -> MOLECULAR_MANIPULATOR_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
+                        output.accept(MOLECULAR_MANIPULATOR_ITEM.get());
                         output.accept(ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get());
                         output.accept(MOLECULAR_CENTER_CONTROLLER_ITEM.get());
                         output.accept(MOLECULAR_CENTER_CASING_ITEM.get());
@@ -174,6 +307,17 @@ public final class ModContent {
                         output.accept(MOLECULAR_CENTER_COIL_ITEM.get());
                         output.accept(MOLECULAR_CENTER_STABILIZER_ITEM.get());
                         output.accept(MOLECULAR_CENTER_CORE_ITEM.get());
+                        output.accept(MATTER_FABRICATION_CONTROLLER_ITEM.get());
+                        output.accept(MATTER_FABRICATION_CASING_ITEM.get());
+                        output.accept(MATTER_FABRICATION_GLASS_ITEM.get());
+                        output.accept(MATTER_FABRICATION_COIL_ITEM.get());
+                        output.accept(MATTER_FABRICATION_STABILIZER_ITEM.get());
+                        output.accept(MATTER_FABRICATION_CORE_ITEM.get());
+                        output.accept(MATTER_FABRICATION_ITEM_INPUT_ITEM.get());
+                        output.accept(MATTER_FABRICATION_ITEM_OUTPUT_ITEM.get());
+                        output.accept(MATTER_FABRICATION_FLUID_INPUT_ITEM.get());
+                        output.accept(MATTER_FABRICATION_FLUID_OUTPUT_ITEM.get());
+                        output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
                         if (AdvancedAEIntegration.isLoaded()) {
                             output.accept(OMNI_COMPUTATION_CONTROLLER_ITEM.get());
                             output.accept(OMNI_COMPUTATION_CASING_ITEM.get());
@@ -206,6 +350,14 @@ public final class ModContent {
                         .noOcclusion().lightLevel(state -> lightLevel)));
     }
 
+    private static RegistryObject<MatterFabricationPortBlock> registerMatterPort(
+            String id, MatterFabricationPortType type, int lightLevel) {
+        return BLOCKS.register(id, () -> new MatterFabricationPortBlock(
+                net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                        .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                        .lightLevel(state -> lightLevel), type));
+    }
+
     private static <T extends net.minecraft.world.level.block.Block> RegistryObject<BlockItem> registerBlockItem(
             String id, RegistryObject<T> block) {
         return ITEMS.register(id, () -> new BlockItem(block.get(), new Item.Properties()));
@@ -217,9 +369,16 @@ public final class ModContent {
         BLOCK_ENTITIES.register(eventBus);
         MENUS.register(eventBus);
         CREATIVE_TABS.register(eventBus);
+        RECIPE_TYPES.register(eventBus);
+        RECIPE_SERIALIZERS.register(eventBus);
     }
 
     public static void bindBlockEntity() {
+        MOLECULAR_MANIPULATOR.get().setBlockEntity(
+                MolecularManipulatorBlockEntity.class,
+                MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(),
+                null,
+                null);
         ASSEMBLER_MATRIX_MOLECULAR_CORE.get().setBlockEntity(
                 AssemblerMatrixMolecularCoreBlockEntity.class,
                 ASSEMBLER_MATRIX_MOLECULAR_CORE_BLOCK_ENTITY.get(),
@@ -235,5 +394,21 @@ public final class ModContent {
                 OMNI_COMPUTATION_CONTROLLER_BE.get(),
                 null,
                 null);
+        MATTER_FABRICATION_CONTROLLER.get().setBlockEntity(
+                MatterFabricationBlockEntity.class,
+                MATTER_FABRICATION_CONTROLLER_BE.get(),
+                null,
+                null);
+        MATTER_FABRICATION_ITEM_INPUT.get().setBlockEntity(
+                MatterFabricationPortBlockEntity.class, MATTER_FABRICATION_PORT_BE.get(), null, null);
+        MATTER_FABRICATION_ITEM_OUTPUT.get().setBlockEntity(
+                MatterFabricationPortBlockEntity.class, MATTER_FABRICATION_PORT_BE.get(), null, null);
+        MATTER_FABRICATION_FLUID_INPUT.get().setBlockEntity(
+                MatterFabricationPortBlockEntity.class, MATTER_FABRICATION_PORT_BE.get(), null, null);
+        MATTER_FABRICATION_FLUID_OUTPUT.get().setBlockEntity(
+                MatterFabricationPortBlockEntity.class, MATTER_FABRICATION_PORT_BE.get(), null, null);
+        MATTER_FABRICATION_PATTERN_ASSEMBLY.get().setBlockEntity(
+                MatterFabricationPatternAssemblyBlockEntity.class,
+                MATTER_FABRICATION_PATTERN_ASSEMBLY_BE.get(), null, null);
     }
 }

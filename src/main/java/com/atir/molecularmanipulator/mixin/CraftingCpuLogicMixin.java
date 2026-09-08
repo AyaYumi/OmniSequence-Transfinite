@@ -2,19 +2,13 @@ package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
-import appeng.api.networking.IGrid;
-import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingProvider;
-import appeng.api.networking.crafting.ICraftingRequester;
-import appeng.api.networking.crafting.ICraftingSubmitResult;
 import appeng.api.networking.energy.IEnergyService;
-import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.execution.CraftingCpuLogic;
-import appeng.crafting.execution.CraftingSubmitResult;
 import appeng.crafting.execution.ExecutingCraftingJob;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.inv.ListCraftingInventory;
@@ -215,19 +209,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
     private final Map<IPatternDetails, Boolean>
             molecularmanipulator$explicitProviderTopologyCache =
                     new IdentityHashMap<>();
-
-    @Inject(method = "trySubmitJob", at = @At("HEAD"), cancellable = true)
-    private void molecularmanipulator$rejectDirtyOmniLane(
-            IGrid grid, ICraftingPlan plan, IActionSource source,
-            ICraftingRequester requester,
-            CallbackInfoReturnable<ICraftingSubmitResult> callback) {
-        if (OmniComputationCoreBlockEntity.ownerOf(cluster) != null
-                && cluster.isActive()
-                && !cluster.isBusy()
-                && !cluster.craftingLogic.getInventory().list.isEmpty()) {
-            callback.setReturnValue(CraftingSubmitResult.CPU_BUSY);
-        }
-    }
 
     @Inject(method = "tickCraftingLogic", at = @At("HEAD"))
     private void molecularmanipulator$beginOmniDispatch(IEnergyService energyService,
@@ -815,7 +796,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
                         ? MolecularScaledPatternFactory.create(
                                 patternDetails, craftCount)
                         : patternDetails;
-            } catch (RuntimeException exception) {
+            } catch (RuntimeException | LinkageError exception) {
                 if (adaptiveExtraction != null) {
                     adaptiveExtraction.rollbackAdditional(inventory,
                             expectedOutputs, expectedContainerItems);
@@ -850,16 +831,19 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
         var extraction = MolecularBatchCraftingExtractor.expandFromFirst(patternDetails, inventory,
                 energyService, level, firstInputs, expectedOutputs,
                 expectedContainerItems, maxCrafts, false);
-        long reusableBatchLimit = molecularmanipulator$getAvailableReusableBatchLimit(
-                craftingService, patternDetails, firstInputs);
-        long reusableMaxCrafts = Math.min(
-                Math.min(taskValue, reusableBatchLimit),
-                waitingForCraftLimit);
-        if (extraction == null && reusableMaxCrafts > 1) {
-            extraction = MolecularBatchCraftingExtractor.expandFromFirst(
-                    patternDetails, inventory, energyService, level,
-                    firstInputs, expectedOutputs, expectedContainerItems,
-                    reusableMaxCrafts, true);
+        if (extraction == null) {
+            long reusableBatchLimit =
+                    molecularmanipulator$getAvailableReusableBatchLimit(
+                            craftingService, patternDetails, firstInputs);
+            long reusableMaxCrafts = Math.min(
+                    Math.min(taskValue, reusableBatchLimit),
+                    waitingForCraftLimit);
+            if (reusableMaxCrafts > 1) {
+                extraction = MolecularBatchCraftingExtractor.expandFromFirst(
+                        patternDetails, inventory, energyService, level,
+                        firstInputs, expectedOutputs, expectedContainerItems,
+                        reusableMaxCrafts, true);
+            }
         }
         if (extraction == null) {
             return firstInputs;
@@ -1116,7 +1100,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
         boolean providerAccepted = false;
         MolecularBatchDispatchContext.Scope batchScope = null;
         try {
-            if (expandedContext && explicitBatchProvider && !apiBatchContext) {
+            if (expandedContext && explicitBatchProvider
+                    && !apiBatchContext) {
                 batchScope = MolecularBatchDispatchContext.open(
                         reusableCraftingId, patternDetails, inputs,
                         firstInputs, craftCount, reusablePlan);
@@ -1236,9 +1221,11 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
                 molecularmanipulator$markSingleOnlyDemand(
                         provider, patternDetails);
             } else if (reusablePlan != null) {
-                // Late provider validation rejected the aggregate. Remember
-                // that result for this crafting job instead of rebuilding the
-                // same expensive reusable plan every tick.
+                // A reusable candidate is only fully validated inside the
+                // molecular provider. If that late validation rejects it,
+                // remember the result for this crafting job so the next AE2
+                // attempt uses the original one-recipe dispatch instead of
+                // rebuilding the same rejected aggregate forever.
                 molecularmanipulator$adaptiveBatchController.forceSingle(
                         provider, patternDetails);
             }
@@ -1435,6 +1422,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
                 && provider != null
                 && patternDetails != null
                 && !(provider instanceof OmniBatchCraftingProvider)
+                && !MolecularBatchCraftingProvider.requiresSerialDispatch(provider)
                 && !MolecularBatchCraftingProvider.supports(provider, patternDetails);
     }
 

@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "advanced_ae:shattered_singularity"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_storage_128"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_unit"
+      },
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "advanced_ae:quantum_storage_256",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

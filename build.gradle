@@ -76,6 +76,8 @@ sourceSets.main.resources {
 }
 
 repositories {
+    flatDir { dirs 'libs' }
+
     maven {
         name = 'MinecraftForgeReleases'
         url = 'https://maven.minecraftforge.net/releases/'
@@ -121,11 +123,13 @@ dependencies {
     implementation fg.deobf("maven.modrinth:glodium:${glodium_version}")
     implementation fg.deobf("maven.modrinth:extended-ae:${extendedae_version}")
     implementation fg.deobf("org.appliedenergistics:guideme:${guideme_version}")
-    localRuntime fg.deobf("curse.maven:advancedae-${advancedae_curse_project}:${advancedae_curse_file}")
-    localRuntime fg.deobf("curse.maven:geckolib-${geckolib_curse_project}:${geckolib_curse_file}")
 
-    compileOnly fg.deobf("mezz.jei:jei-1.20.1-common-api:${jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge-api:${jei_version}")
+    compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}")
+
+    // Separate required mods. Deobfuscate published Forge jars for development.
+    implementation fg.deobf("com.appliedenhancements:appliedenhancements:${applied_enhancements_version}")
+
+    testImplementation fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}")
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -216,3 +220,8 @@ idea {
         downloadJavadoc = true
     }
 }
+
+// Both distributable jars must use Forge runtime names.
+reobf { jarJar {} }
+tasks.named("jarJar").configure { finalizedBy "reobfJarJar" }
+tasks.named("build").configure { dependsOn "jarJar" }

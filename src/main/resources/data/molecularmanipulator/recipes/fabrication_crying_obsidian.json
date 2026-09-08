@@ -1,0 +1,25 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "minecraft:obsidian"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:glowstone_dust"
+      },
+      "count": 4
+    }
+  ],
+  "results": [
+    {
+      "id": "minecraft:crying_obsidian",
+      "count": 8
+    }
+  ],
+  "processing_time": 160,
+  "ae_per_tick": 96.0
+}

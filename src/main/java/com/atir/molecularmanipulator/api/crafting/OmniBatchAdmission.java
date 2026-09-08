@@ -7,7 +7,7 @@ package com.atir.molecularmanipulator.api.crafting;
  * <p>The admission is used at most once and is always closed by Omni. It must
  * not be retained after {@link #commit(OmniBatchDelivery)} returns.</p>
  *
- * @since 1.3.7-forge-fix (API version 1)
+ * @since 1.3.9 (API version 1)
  */
 public interface OmniBatchAdmission extends AutoCloseable {
     /**

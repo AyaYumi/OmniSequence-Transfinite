@@ -4,17 +4,19 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Conservative reusable-input adapters shared by planning, extraction and the
- * two molecular crafting providers.
+ * three molecular crafting providers.
  */
 public final class MolecularReusableInputAdapters {
-    public static final long MAX_DETERMINISTIC_TRANSITIONS = 65_536;
+    // Finite tools are exhaustively validated against the real recipe for every
+    // damage state. Keep one synchronous provider push below a watchdog-risky
+    // amount of recipe work; larger orders continue in subsequent batches.
+    public static final long MAX_DETERMINISTIC_TRANSITIONS = 2_048;
 
     private MolecularReusableInputAdapters() {
     }
@@ -67,9 +69,12 @@ public final class MolecularReusableInputAdapters {
             if (firstRemainder.equals(initialKey)) {
                 // A damageable item can return the same key due to an Unbreaking
                 // roll or another contextual rule. Never cache that random result
-                // as an infinite catalyst.
+                // as an infinite catalyst. Minecraft 1.21 also reports stacks with
+                // MAX_DAMAGE=0 as damageable; reusable recipe items such as the
+                // Master Infusion Crystal intentionally use that representation.
+                // An explicit UNBREAKABLE component is likewise a stable invariant.
                 if (!(initialKey instanceof AEItemKey itemKey)
-                        || itemKey.toStack().isDamageableItem()) {
+                        || hasFiniteMutableDurability(itemKey.toStack())) {
                     return unsupported(initialKey);
                 }
                 return new Analysis(Mode.INVARIANT_REUSABLE, initialKey,
@@ -115,8 +120,7 @@ public final class MolecularReusableInputAdapters {
 
         ItemStack currentStack = currentItem.toStack();
         if (!currentStack.isDamageableItem()
-                || EnchantmentHelper.getItemEnchantmentLevel(
-                        Enchantments.UNBREAKING, currentStack) > 0
+                || hasUnbreaking(currentStack)
                 || currentStack.getDamageValue() == Integer.MAX_VALUE) {
             return false;
         }
@@ -133,10 +137,24 @@ public final class MolecularReusableInputAdapters {
             return false;
         }
         ItemStack stack = itemKey.toStack();
-        return stack.isDamageableItem()
+        return hasFiniteMutableDurability(stack)
                 && stack.hasCraftingRemainingItem()
-                && EnchantmentHelper.getItemEnchantmentLevel(
-                        Enchantments.UNBREAKING, stack) == 0;
+                && !hasUnbreaking(stack);
+    }
+
+    private static boolean hasFiniteMutableDurability(ItemStack stack) {
+        return stack.isDamageableItem()
+                && stack.getMaxDamage() > 0
+                && !(stack.hasTag() && stack.getTag().getBoolean("Unbreakable"));
+    }
+
+    private static boolean hasUnbreaking(ItemStack stack) {
+        for (var enchantment : stack.getAllEnchantments().keySet()) {
+            if (enchantment == Enchantments.UNBREAKING) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Analysis unsupported(@Nullable AEKey initialKey) {

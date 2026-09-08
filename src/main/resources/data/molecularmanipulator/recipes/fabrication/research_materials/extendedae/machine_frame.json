@@ -1,0 +1,48 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:machine_frame"
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "tag": "forge:ingots/copper"
+      },
+      "count": 2
+    },
+    {
+      "ingredient": {
+        "tag": "forge:ingots/netherite"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:quartz_glass"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "tag": "forge:ingots/iron"
+      },
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "id": "expatternprovider:machine_frame",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 128.0,
+  "requires_research": true
+}

@@ -42,7 +42,7 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 1. Install **AppliedEnhancements 1.0.6-forge** separately on both client and server. This JAR does not bundle it. The declared dependency range is `[1.0.6-forge,1.1)`.
 2. Minecraft, Forge and AE2 dependency ranges remain unchanged: Minecraft `[1.20.1,1.21)`, Forge `47.4.10+`, AE2 `[15.4.10,16)`. This build was checked with Forge 47.4.20, AE2 15.4.10, ExtendedAE 1.20-1.4.19-forge, Glodium 1.20-1.5-forge and GuideME 20.1.15.
 3. **Migrate 1.3.9 configuration values explicitly.** The old global file is `config/omnisequence-transfinite-common.toml`; this build reads `config/omnisequence-transfinite-server.toml` as a COMMON config. Its migration code does not directly import the 1.3.9 common filename/grouped schema. Several client-config paths also changed. Simply renaming the file is insufficient.
-4. New configurations default to **20 pattern pages / 720 slots**, versus **200 pages / 7,200 slots** in 1.3.9. To retain the old default, set `sequence_array.pattern_pages = 200` in the new configuration before loading the upgraded world. Set it to the old custom value if different. Planner options now belong to AppliedEnhancements.
+4. Restored the default to **200 pattern pages / 7,200 slots**, matching 1.3.9. Existing explicit values in valid current configurations are preserved: an existing `sequence_array.pattern_pages = 20` remains 20 unless changed manually. Migrate old custom values explicitly. Planner options now belong to AppliedEnhancements.
 5. Back up worlds and configuration before upgrading. Existing supported 1.3.9 structures have a compatibility path; changing their architecture is an explicit operation. New machine crafting progression requires the fabrication/research system.
 
 ### Validation and known limitations
@@ -93,7 +93,7 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 1. 客户端与服务端均需单独安装 **AppliedEnhancements 1.0.6-forge**，本 JAR 不内置该前置；声明兼容范围为 `[1.0.6-forge,1.1)`。
 2. Minecraft、Forge 与 AE2 的声明范围不变：Minecraft `[1.20.1,1.21)`、Forge `47.4.10+`、AE2 `[15.4.10,16)`。本次验证基线为 Forge 47.4.20、AE2 15.4.10、ExtendedAE 1.20-1.4.19-forge、Glodium 1.20-1.5-forge、GuideME 20.1.15。
 3. **请显式迁移 1.3.9 配置。** 旧全局文件为 `config/omnisequence-transfinite-common.toml`，当前版本以 COMMON 类型读取 `config/omnisequence-transfinite-server.toml`。现有迁移代码没有直接导入 1.3.9 的 common 文件名及其分组格式，客户端部分字段路径也已改变，仅重命名文件不足以完成迁移。
-4. 新配置默认 **20 页／720 槽**，1.3.9 默认是 **200 页／7,200 槽**。要保留旧默认容量，应在载入升级存档前，将新配置中的 `sequence_array.pattern_pages` 设为 `200`；旧配置使用其他值时，应沿用原值。规划器选项改由 AppliedEnhancements 管理。
+4. 默认容量恢复为 **200 页／7,200 槽**，与 1.3.9 一致。已存在且有效的新格式配置保留显式值：已经设置 `sequence_array.pattern_pages = 20` 的配置仍为 20，如需增加应手动修改。旧配置中的自定义值仍需显式迁移。规划器选项改由 AppliedEnhancements 管理。
 5. 升级前备份世界和配置。受支持的 1.3.9 旧结构有兼容路径，建筑更新需要显式操作；新造机器需遵循构筑井与研究进度。
 
 ### 验证与已知限制

@@ -207,7 +207,7 @@ Client options are grouped under `tooltips` and `visual`.
 
 | Option | Default | Purpose |
 | --- | ---: | --- |
-| `sequence_array.pattern_pages` | 20 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
+| `sequence_array.pattern_pages` | 200 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
 | `sequence_array.build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
 | `sequence_array.idle_power` | 128 | Sequence Array Controller idle power in AE/t |
 | `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |

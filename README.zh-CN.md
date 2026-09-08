@@ -205,7 +205,7 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 
 | 配置项 | 默认值 | 作用 |
 | --- | ---: | --- |
-| `sequence_array.pattern_pages` | 20 | 构序阵列控制器样板页数，每页 36 槽 |
+| `sequence_array.pattern_pages` | 200 | 构序阵列控制器样板页数，每页 36 槽 |
 | `sequence_array.build_blocks_per_tick` | 32 | 自动搭建或拆卸每 Tick 处理方块数 |
 | `sequence_array.idle_power` | 128 | 构序阵列控制器待机功耗，单位 AE/t |
 | `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | 启用兼容供应器的批量材料发配 |

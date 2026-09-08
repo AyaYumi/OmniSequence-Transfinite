@@ -1,4 +1,9 @@
 {
+    "blend": {
+        "func": "add",
+        "srcrgb": "srcalpha",
+        "dstrgb": "1"
+    },
     "vertex": "molecularmanipulator:omni_effect",
     "fragment": "molecularmanipulator:molecular_spectral",
     "samplers": [],

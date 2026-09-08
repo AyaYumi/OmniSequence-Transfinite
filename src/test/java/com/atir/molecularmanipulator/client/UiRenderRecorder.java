@@ -43,6 +43,7 @@ public final class UiRenderRecorder extends GuiGraphics {
     public final List<Text> text = new ArrayList<>();
     public final List<Rect> rects = new ArrayList<>();
     public final List<Item> items = new ArrayList<>();
+    public final List<net.minecraft.client.renderer.Rect2i> scissors = new ArrayList<>();
     public int clipDepth;
     public int clips;
 
@@ -79,7 +80,10 @@ public final class UiRenderRecorder extends GuiGraphics {
         rects.add(new Rect(left, top, right, bottom, color, true, new Matrix4f(pose().last().pose())));
     }
 
-    @Override public void enableScissor(int left, int top, int right, int bottom) { clipDepth++; clips++; }
+    @Override public void enableScissor(int left, int top, int right, int bottom) {
+        clipDepth++; clips++;
+        scissors.add(new net.minecraft.client.renderer.Rect2i(left, top, right - left, bottom - top));
+    }
     @Override public void disableScissor() { clipDepth--; }
 
     public static String string(FormattedCharSequence sequence) {

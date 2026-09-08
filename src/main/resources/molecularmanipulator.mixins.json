@@ -28,7 +28,8 @@
     "TileAssemblerMatrixPatternMixin"
   ],
   "client": [
-    "CPUSelectionListMixin"
+    "CPUSelectionListMixin",
+    "ResponsiveScreenBackgroundMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -16,6 +16,8 @@ import java.util.List;
 /** Keeps this screen's controls attached when a recipe viewer returns the same screen instance. */
 abstract class RestorableContainerScreen<T extends AEBaseMenu> extends AEBaseScreen<T> {
     private final List<Registration<?>> screenWidgets = new ArrayList<>();
+    protected final ResponsiveScreenWidgets screenContent = new ResponsiveScreenWidgets();
+    private boolean addingNativeWidgets;
     private boolean detached;
     private boolean recoveryAttempted;
 
@@ -26,9 +28,21 @@ abstract class RestorableContainerScreen<T extends AEBaseMenu> extends AEBaseScr
     @Override
     protected void init() {
         screenWidgets.clear();
+        screenContent.clear();
         detached = false;
         recoveryAttempted = false;
-        super.init();
+        addingNativeWidgets = true;
+        try {
+            super.init();
+        } finally {
+            addingNativeWidgets = false;
+        }
+    }
+
+    @Override
+    protected <W extends GuiEventListener & Renderable & NarratableEntry> W addRenderableWidget(W widget) {
+        if (addingNativeWidgets) screenContent.own(widget);
+        return super.addRenderableWidget(widget);
     }
 
     protected final <W extends GuiEventListener & Renderable & NarratableEntry> W addScreenWidget(W widget) {
@@ -38,6 +52,8 @@ abstract class RestorableContainerScreen<T extends AEBaseMenu> extends AEBaseScr
     /** Registers screen-owned controls without replacing recipe viewers' controls. */
     protected final <W extends GuiEventListener & NarratableEntry> W addScreenWidget(W widget, Renderable renderer) {
         screenWidgets.add(new Registration<>(widget, renderer));
+        screenContent.own(widget);
+        screenContent.own(renderer);
         addWidget(widget);
         addRenderableOnly(renderer);
         return widget;
@@ -68,7 +84,7 @@ abstract class RestorableContainerScreen<T extends AEBaseMenu> extends AEBaseScr
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    private void restoreScreenWidgets() {
+    protected final void restoreScreenWidgets() {
         if (minecraft == null || minecraft.screen != this) return;
         if (detached) {
             // Recreate native controls when a recipe viewer resumes a removed screen

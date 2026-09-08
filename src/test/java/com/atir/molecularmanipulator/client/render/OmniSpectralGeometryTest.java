@@ -3,10 +3,12 @@ package com.atir.molecularmanipulator.client.render;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.shaders.BlendMode;
 import com.mojang.blaze3d.vertex.PoseStack;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
@@ -68,6 +70,15 @@ class OmniSpectralGeometryTest {
         assertTrue(fragment.contains("dFdx(viewPosition)"));
         assertTrue(fragment.contains("dFdy(viewPosition)"));
         assertFalse(fragment.contains("sampler2D"));
+    }
+
+    @Test
+    void molecularShaderKeepsTheOriginalSourceAlphaAdditiveBlending() throws Exception {
+        var json = JsonParser.parseString(resource("molecular_spectral.json")).getAsJsonObject();
+        var blend = ShaderInstance.parseBlendNode(json.getAsJsonObject("blend"));
+        assertFalse(blend.isOpaque(), "ShaderInstance.apply must not disable the render layer's blending");
+        assertEquals(new BlendMode(770, 1, 32774), blend,
+                "Both original render passes use source-alpha additive blending");
     }
 
     private String resource(String file) throws Exception {

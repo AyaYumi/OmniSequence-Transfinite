@@ -30,6 +30,27 @@ class ConsoleTextRenderingTest {
         assertFalse(graphics.text.get(0).shadow());
     }
 
+    @Test void longEnglishTabUsesTheVisibleClipAfterResponsiveScaling() {
+        var graphics = new UiRenderRecorder();
+        float scale = 232F / 286F;
+        graphics.pose().translate((567 - 430 * scale) / 2F, 4, 0);
+        graphics.pose().scale(scale, scale, 1);
+        graphics.pose().translate(-68, 23, 0);
+        var before = new org.joml.Matrix4f(graphics.pose().last().pose());
+        OmniButton.renderButtonText(graphics, font, Component.literal("Auto Craft"),
+                337, -19, 379, -1, 0, OmniUiTheme.PRIMARY_TEXT);
+        assertEquals(1, graphics.text.size());
+        assertEquals("Auto Craft", graphics.text.get(0).value());
+        assertEquals(1, graphics.scissors.size());
+        var clip = graphics.scissors.get(0);
+        assertEquals(327, clip.getX());
+        assertEquals(7, clip.getY());
+        assertEquals(35, clip.getWidth());
+        assertEquals(15, clip.getHeight());
+        assertEquals(0, graphics.clipDepth);
+        assertEquals(before, graphics.pose().last().pose());
+    }
+
     @Test void inputAndHintHaveNoShadowOrDuplicateGlyphPass() {
         var field = OmniUiTheme.tallTextField(null, font, 10, 10, 70, 16, Component.literal("搜索样板"), null);
         var graphics = new UiRenderRecorder();

@@ -1,36 +1,106 @@
 # OmniSequence: Transfinite 2.0.1-forge
 
-Minecraft 1.20.1 / Forge 47 / Java 17
+Minecraft 1.20.1 / Forge / Java 17
 
 ## English
 
-| Area | Update |
+This is a cumulative update from **1.3.9-forge**, compared against [CurseForge file 8675216](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite/files/8675216).
+
+### Added
+
+| Feature | Changes |
 | --- | --- |
-| Feature parity | Ported the 1.21.1 branch's 2.0.1 update: generic AEKey inputs, indexed output lookup, cached research definitions, queue lookup reuse and JEI/GuideME input display. |
-| AE2 15 compatibility | Added `ForgeRecipeCodecs.GENERIC_STACK` for `ae_inputs`. JSON keeps `#t` and `#`; the bridge translates AE2 15's native NBT and uses `key_nbt` SNBT for lossless key synchronization. Invalid or unavailable generic inputs reject the recipe. |
-| Lookup invalidation | Observe RecipeManager's replaced `byName` snapshot instead of its freshly allocated recipe collection. Research changes remain live per controller; data reload rebuilds the index. |
-| Runtime resources | Corrected the controller loot function to Forge 1.20.1 `copy_nbt` with `BlockEntityTag` destinations. |
-| Documentation and cleanup | Updated bilingual README and Forge API references; consolidated the MIT license while retaining contributor credits. Runtime models, textures and Forge UI remain in place. |
-| Verification | Added Forge runtime regressions for custom AEKeys, exact NBT/long serialization, ordinary and API batching, output isolation, persistence, refunds and recipe/research reloads. |
+| Molecular Sequence Rewrite Array | Added a standalone machine with its own pattern inventory, paging and search, alongside the existing multiblock controller and assembler-matrix core. |
+| Matter Fabrication Well | Added a 41 × 27 × 41 multiblock, its structural blocks, item/fluid input and output ports, and a Pattern Assembly. Dimensions are X × Y × Z. |
+| Research progression | Added AE Foundation, Sequence Array and Omni Computation research branches. Built-in research takes 600 ticks per round and supports nine completion levels by default. Deeper research improves the production parallelism and processing time of recipes belonging to that branch. Optional-mod branches and recipes remain conditional. |
+| Pattern Assembly | Added 36 processing-pattern slots per assembly, AE2 delivery, persistent input/output/refund buffers and automatic return to ME storage. |
+| Generic AEKey inputs | Fabrication recipes can use `ae_inputs` for registered AEKey types. Inputs preserve exact key identity, NBT and long amounts. Existing item/fluid recipe forms remain supported; generic-input recipes are delivered through the Pattern Assembly. |
+| Independent automatic crafting | Added nine dedicated automatic-crafting pattern slots to the Sequence Array, with individual enable switches, output stock limits and input reserves. |
+| Modpack integration | Added fabrication/research JSON and Java/KubeJS interfaces, research administration commands, and expanded English/Chinese GuideME documentation. |
 
-Requires AE2 15.4.10, ExtendedAE 1.20-1.4.18-forge or newer compatible Forge build, Glodium 1.20-1.5-forge, GuideME 20.1.15 and separately installed AppliedEnhancements 1.0.6-forge. Update both client and server. This JAR is for Minecraft 1.20.1 Forge; the NeoForge 1.21.1 artifact remains separate.
+### Changed
 
-Known upstream limitation retained: overlapping alternatives with identical outputs can change the selected processing recipe after batch splitting. An earlier overlapping recipe introduced by reload can leave an existing queue waiting. Recipes with different outputs remain isolated.
+| Area | Changes |
+| --- | --- |
+| Shared AE2 enhancements | AppliedEnhancements is now a required, separately installed dependency. Shared AE2 crafting, caches, infinite-storage and terminal enhancements are delegated to that mod. Omni computation uses its configured AELIS planning API instead of the former bundled MAX_FAST planner. |
+| Recipe progression | All 17 recipe IDs shipped in the 1.3.9 baseline now use research-gated fabrication recipes. The distributed data now contains 69 recipe JSON files: 56 fabrication, 10 shaped crafting and 3 research definitions. Loaded recipe counts depend on installed optional mods. |
+| Multiblock designs | Added the feather-style Sequence Array layout (61 × 29 × 61) and the new Omni Computation layout (65 × 35 × 65). Recognition and an explicit structure-update flow remain available for the supported 1.3.9 layouts. |
+| Chunk loading and construction | Added persistent controller-owned chunk tickets for formed structures and construction operations. Dismantling follows actual blocks from top to bottom in alternating rows, excludes air from progress, preserves the controller, and resumes saved work. |
+| Recipe lookup | Added complete-output indexing, cached research definitions and queue lookup reuse. Reloading recipes rebuilds the relevant index; research progress remains controller-specific. Recipes with different expected outputs and amounts stay separated during batching. |
+| Interface and visuals | Reworked machine screens, JEI cards and structure previews with a consistent native Forge console style, clearer control states, adjacent-block output previews and dedicated multiblock effects. |
+
+### Fixed
+
+- Fixed high-GUI-scale layout mismatches between machine panels, JEI and injected controls such as FTB sidebar and Dark Mode buttons; synchronized visible bounds, mouse input, item hit areas and ghost-ingredient targets.
+- Prevented the scaled machine pass from drawing a second full-screen background, which previously produced an extra dark rectangle.
+- Fixed long button captions such as **Auto Craft** disappearing because their clipping rectangle did not follow the screen transform.
+- Added the missing spectral shader `blend` definition so authored alpha participates in additive blending. Original effect opacity and crystal-surface values are retained.
+- Corrected Forge 1.20.1 controller loot serialization and added exact AEKey/NBT/long synchronization for fabrication recipes and buffers.
+
+### Upgrade notes
+
+1. Install **AppliedEnhancements 1.0.6-forge** separately on both client and server. This JAR does not bundle it. The declared dependency range is `[1.0.6-forge,1.1)`.
+2. Minecraft, Forge and AE2 dependency ranges remain unchanged: Minecraft `[1.20.1,1.21)`, Forge `47.4.10+`, AE2 `[15.4.10,16)`. This build was checked with Forge 47.4.20, AE2 15.4.10, ExtendedAE 1.20-1.4.19-forge, Glodium 1.20-1.5-forge and GuideME 20.1.15.
+3. **Migrate 1.3.9 configuration values explicitly.** The old global file is `config/omnisequence-transfinite-common.toml`; this build reads `config/omnisequence-transfinite-server.toml` as a COMMON config. Its migration code does not directly import the 1.3.9 common filename/grouped schema. Several client-config paths also changed. Simply renaming the file is insufficient.
+4. New configurations default to **20 pattern pages / 720 slots**, versus **200 pages / 7,200 slots** in 1.3.9. To retain the old default, set `sequence_array.pattern_pages = 200` in the new configuration before loading the upgraded world. Set it to the old custom value if different. Planner options now belong to AppliedEnhancements.
+5. Back up worlds and configuration before upgrading. Existing supported 1.3.9 structures have a compatibility path; changing their architecture is an explicit operation. New machine crafting progression requires the fabrication/research system.
+
+### Validation and known limitations
+
+- Passed all **131 unit tests** and **3 required Forge GameTests** for this source revision. Runtime checks cover registered custom AEKeys, exact serialization, batch delivery, persistence/refunds, output isolation and recipe/research reloads. These checks do not constitute exhaustive testing of every modpack or a whole-server performance benchmark.
+- Fabrication alternatives with identical outputs and overlapping inputs can still change the selected recipe after batch splitting. A reload that introduces an earlier overlapping recipe can leave an existing queue waiting. These limitations remain unresolved.
+- Quantum links, virtual CPU lanes, source-aware dispatch, reusable-input batches and the public Batch Provider API already existed in 1.3.9; they are retained rather than presented as new features here.
+
+---
 
 ## 中文
 
-| 项目 | 更新说明 |
+本日志汇总 **1.3.9-forge → 2.0.1-forge** 的累计变化，基准为 [CurseForge 文件 8675216](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite/files/8675216)。
+
+### 新增
+
+| 功能 | 更新内容 |
 | --- | --- |
-| 功能同步 | 移植 1.21.1 分支的 2.0.1 更新：通用 AEKey 输入、产物查询索引、研究定义缓存、队列查询复用，以及 JEI／GuideME 通用输入展示。 |
-| AE2 15 适配 | 新增 `ForgeRecipeCodecs.GENERIC_STACK` 解析 `ae_inputs`。JSON 沿用 `#t` 和 `#`，内部转换为 AE2 15 原生 NBT，并用 `key_nbt` SNBT 无损同步完整 Key。非法或不可用的通用输入会拒绝配方。 |
-| 缓存失效 | 检测 RecipeManager 被替换的 `byName` 快照，避免每次新建配方集合导致缓存失效；各控制器研究进度实时生效，配方重载重建索引。 |
-| 运行资源 | 控制器掉落表改为 1.20.1 支持的 `copy_nbt`，数据写入 `BlockEntityTag`。 |
-| 文档与清理 | 更新中英文 README 和 Forge API 文档；合并重复 MIT 许可并保留贡献者版权，继续保留运行模型、纹理及 Forge 原生界面。 |
-| 验证 | 新增 Forge 游戏回归，覆盖自定义 AEKey、精确 NBT／long 序列化、单份及批量投料、产物隔离、存档、退款与配方／研究重载。 |
+| 分子构序重写阵列 | 新增独立机器，具有自己的样板库存、分页与搜索，与已有构序阵列多方块及装配矩阵核心共同提供构序能力。 |
+| 物质构筑井 | 新增 41 × 27 × 41 多方块、结构件、物品／流体输入输出口及样板总成。尺寸统一按 X × Y × Z 表示。 |
+| 研究路线 | 新增 AE 基础、构序阵列、万物演算三条研究分支。内置研究每轮 600 tick，默认共九级；深度研究提高所属配方的生产并行和加工速度。可选模组分支及配方按条件加载。 |
+| 样板总成 | 每个总成提供 36 个加工样板槽，支持 AE2 投料、持久化输入／产物／退款缓存，以及自动返还 ME。 |
+| 通用 AEKey 输入 | 构筑井配方可用 `ae_inputs` 声明已注册 AEKey 类型，保留精确资源身份、NBT 和 long 数量。原有物品／流体配方格式继续可用，通用输入配方由样板总成投料。 |
+| 独立自动合成 | 构序阵列新增九个专用自动合成样板槽，每槽独立设置开关、成品库存上限及原料保留量。 |
+| 整合包接入 | 新增构筑／研究 JSON 与 Java/KubeJS 接口、研究管理命令，并扩充中英文 GuideME 指南。 |
 
-前置：AE2 15.4.10、ExtendedAE 1.20-1.4.18-forge 或更新的兼容 Forge 构建、Glodium 1.20-1.5-forge、GuideME 20.1.15，以及单独安装的 AppliedEnhancements 1.0.6-forge。客户端和服务端同时更新。本包用于 Minecraft 1.20.1 Forge，与 1.21.1 NeoForge 安装包分开。
+### 调整
 
-沿用的上游已知限制：产物相同、可替代原料重叠时，批量拆分可能改选加工配方；重载时新增更靠前的重叠配方，也可能让旧队列等待。产物不同的配方保持隔离。
+| 项目 | 更新内容 |
+| --- | --- |
+| AE2 通用增强 | AppliedEnhancements 改为必须单独安装的前置。通用下单、缓存、无限存储和终端增强交由前置负责；万物演算通过前置配置的 AELIS API 规划，不再内置旧 MAX_FAST 规划器。 |
+| 配方进度 | 1.3.9 中的 17 个配方 ID 全部改为需要研究解锁的构筑井配方。当前包内共有 69 份配方 JSON：56 份构筑、10 份有序合成及 3 份研究；实际加载数量受可选模组影响。 |
+| 多方块设计 | 构序阵列采用 61 × 29 × 61 羽翼布局，万物演算采用 65 × 35 × 65 新布局；保留受支持的 1.3.9 结构识别及显式更新流程。 |
+| 区块加载与施工 | 新增由控制器持有的持久区块票据，覆盖成型结构与施工操作。拆卸按实际方块从上到下、同层蛇形逐行推进，不把空气计入进度，保留控制器并支持恢复已保存的工作。 |
+| 配方查询 | 新增完整产物索引、研究定义缓存和队列查询复用。重载配方重建索引，研究进度按控制器实时读取；批量处理时区分不同预期产物及数量。 |
+| 界面与特效 | 重做机器界面、JEI 配方卡和结构预览，统一原生 Forge 控制台风格，补充控件状态、相邻方块输出预览及多方块特效。 |
+
+### 修复
+
+- 修复较大 GUI 缩放下机器面板、JEI、FTB 侧栏及 Dark Mode 等注入按钮的布局错位，同步实际边界、鼠标输入、物品命中区域及幽灵物品拖放目标。
+- 阻止缩放绘制阶段重复绘制全屏背景，消除额外的黑色矩形。
+- 修复 **Auto Craft** 等较长按钮文字因裁剪框未跟随缩放而完全消失的问题。
+- 为光谱着色器补齐 `blend` 配置，让既有 Alpha 正确参与叠加混合；保留原始特效不透明度和晶体表面数值。
+- 修正 Forge 1.20.1 控制器掉落数据，并补齐构筑配方与缓存的精确 AEKey／NBT／long 同步。
+
+### 升级说明
+
+1. 客户端与服务端均需单独安装 **AppliedEnhancements 1.0.6-forge**，本 JAR 不内置该前置；声明兼容范围为 `[1.0.6-forge,1.1)`。
+2. Minecraft、Forge 与 AE2 的声明范围不变：Minecraft `[1.20.1,1.21)`、Forge `47.4.10+`、AE2 `[15.4.10,16)`。本次验证基线为 Forge 47.4.20、AE2 15.4.10、ExtendedAE 1.20-1.4.19-forge、Glodium 1.20-1.5-forge、GuideME 20.1.15。
+3. **请显式迁移 1.3.9 配置。** 旧全局文件为 `config/omnisequence-transfinite-common.toml`，当前版本以 COMMON 类型读取 `config/omnisequence-transfinite-server.toml`。现有迁移代码没有直接导入 1.3.9 的 common 文件名及其分组格式，客户端部分字段路径也已改变，仅重命名文件不足以完成迁移。
+4. 新配置默认 **20 页／720 槽**，1.3.9 默认是 **200 页／7,200 槽**。要保留旧默认容量，应在载入升级存档前，将新配置中的 `sequence_array.pattern_pages` 设为 `200`；旧配置使用其他值时，应沿用原值。规划器选项改由 AppliedEnhancements 管理。
+5. 升级前备份世界和配置。受支持的 1.3.9 旧结构有兼容路径，建筑更新需要显式操作；新造机器需遵循构筑井与研究进度。
+
+### 验证与已知限制
+
+- 当前源码通过全部 **131 项单元测试**及 **3 项必需 Forge GameTest**。运行测试覆盖已注册自定义 AEKey、精确序列化、批量投料、存档／退款、产物隔离及配方／研究重载；不代表所有整合包组合均已验证，也不构成整服性能提升的测量结论。
+- 产物相同且原料范围重叠的构筑配方，批量拆分后仍可能改选配方；重载时新增更靠前的重叠配方，也可能使已有队列等待。这些限制尚未修复。
+- 量子链路、虚拟 CPU、按供应器能力发配、可复用输入批次及 Batch Provider API 在 1.3.9 中已经存在，本日志将其视为延续功能。
 
 ---
 

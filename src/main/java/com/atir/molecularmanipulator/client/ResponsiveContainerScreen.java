@@ -1,24 +1,30 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
+import appeng.client.gui.StackWithBounds;
 import appeng.menu.AEBaseMenu;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 /**
  * Keeps oversized controller screens usable at high GUI scales without moving
  * their slots away from the matching server-side menu coordinates.
  */
-abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
+public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         extends RestorableContainerScreen<T> {
     private static final int SCREEN_MARGIN = 4;
     private boolean renderingScaledContent;
+    private boolean dispatchingLogicalInput;
 
     protected ResponsiveContainerScreen(T menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -40,6 +46,7 @@ abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        restoreScreenWidgets();
         float scale = responsiveScale();
         if (scale >= 1.0F) {
             super.render(graphics, mouseX, mouseY, partialTick);
@@ -49,15 +56,17 @@ abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         int logicalMouseX = (int) Math.floor(toLogicalX(mouseX, scale));
         int logicalMouseY = (int) Math.floor(toLogicalY(mouseY, scale));
         super.renderBackground(graphics);
-        renderingScaledContent = true;
-        graphics.pose().pushPose();
-        try {
-            applyResponsiveTransform(graphics, scale);
-            super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
-        } finally {
-            graphics.pose().popPose();
-            renderingScaledContent = false;
-        }
+        screenContent.render(graphics, renderables, mouseX, mouseY, partialTick, () -> {
+            renderingScaledContent = true;
+            graphics.pose().pushPose();
+            try {
+                applyResponsiveTransform(graphics, scale);
+                super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
+            } finally {
+                graphics.pose().popPose();
+                renderingScaledContent = false;
+            }
+        });
     }
 
     @Override
@@ -67,37 +76,120 @@ abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
+        if (responsiveScale() < 1.0F) {
+            for (var child : externalChildren()) child.mouseMoved(mouseX, mouseY);
+        }
         super.mouseMoved(logicalMouseX(mouseX), logicalMouseY(mouseY));
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return super.mouseClicked(logicalMouseX(mouseX), logicalMouseY(mouseY), button);
+        restoreScreenWidgets();
+        if (responsiveScale() < 1.0F) {
+            for (var child : externalChildren()) {
+                if (child.mouseClicked(mouseX, mouseY, button)) {
+                    setFocused(child);
+                    if (button == 0) setDragging(true);
+                    return true;
+                }
+            }
+        }
+        return withLogicalInput(() -> super.mouseClicked(logicalMouseX(mouseX), logicalMouseY(mouseY), button));
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return super.mouseReleased(logicalMouseX(mouseX), logicalMouseY(mouseY), button);
+        if (hasExternalFocus()) {
+            setDragging(false);
+            return getFocused().mouseReleased(mouseX, mouseY, button);
+        }
+        return withLogicalInput(() -> super.mouseReleased(logicalMouseX(mouseX), logicalMouseY(mouseY), button));
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button,
             double dragX, double dragY) {
         float scale = responsiveScale();
-        return super.mouseDragged(
+        if (hasExternalFocus()) {
+            return isDragging() && button == 0 && getFocused().mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        }
+        return withLogicalInput(() -> super.mouseDragged(
                 logicalMouseX(mouseX),
                 logicalMouseY(mouseY),
                 button,
                 dragX / scale,
-                dragY / scale);
+                dragY / scale));
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
-        return super.mouseScrolled(
+        if (responsiveScale() < 1.0F) {
+            for (var child : externalChildren()) {
+                if (child.isMouseOver(mouseX, mouseY) && child.mouseScrolled(mouseX, mouseY, scrollY)) return true;
+            }
+        }
+        return withLogicalInput(() -> super.mouseScrolled(
                 logicalMouseX(mouseX),
                 logicalMouseY(mouseY),
-                scrollY);
+                scrollY));
+    }
+
+    @Override
+    public List<? extends GuiEventListener> children() {
+        var children = super.children();
+        return dispatchingLogicalInput ? children.stream().filter(screenContent::owns).toList() : children;
+    }
+
+    private List<? extends GuiEventListener> externalChildren() {
+        return super.children().stream().filter(child -> !screenContent.owns(child)).toList();
+    }
+
+    private boolean hasExternalFocus() {
+        return responsiveScale() < 1.0F && getFocused() != null && !screenContent.owns(getFocused());
+    }
+
+    private boolean withLogicalInput(BooleanSupplier action) {
+        dispatchingLogicalInput = responsiveScale() < 1.0F;
+        try {
+            return action.getAsBoolean();
+        } finally {
+            dispatchingLogicalInput = false;
+        }
+    }
+
+    /** Also checked by the Screen mixin: AE2 calls its superclass background directly. */
+    public final boolean isRenderingScaledContent() {
+        return renderingScaledContent;
+    }
+
+    public final Rect2i responsiveBounds() {
+        return responsiveArea(new Rect2i(leftPos, topPos, imageWidth, imageHeight));
+    }
+
+    public final Rect2i responsiveSlotBounds(Slot slot) {
+        return responsiveArea(new Rect2i(leftPos + slot.x, topPos + slot.y, 16, 16));
+    }
+
+    private Rect2i responsiveArea(Rect2i area) {
+        int left = responsiveScreenX(area.getX());
+        int top = responsiveScreenY(area.getY());
+        return new Rect2i(left, top,
+                Math.max(1, responsiveScreenX(area.getX() + area.getWidth()) - left),
+                Math.max(1, responsiveScreenY(area.getY() + area.getHeight()) - top));
+    }
+
+    @Override
+    public List<Rect2i> getExclusionZones() {
+        var areas = super.getExclusionZones();
+        return renderingScaledContent || responsiveScale() >= 1.0F
+                ? areas : areas.stream().map(this::responsiveArea).toList();
+    }
+
+    @Override
+    public StackWithBounds getStackUnderMouse(double mouseX, double mouseY) {
+        var stack = super.getStackUnderMouse(mouseX, mouseY);
+        return stack == null || responsiveScale() >= 1.0F
+                ? stack : new StackWithBounds(stack.stack(), responsiveArea(stack.bounds()));
     }
 
     @Override
@@ -105,7 +197,7 @@ abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
             ClientTooltipPositioner positioner, boolean override) {
         super.setTooltipForNextRenderPass(
                 tooltip,
-                responsiveScale() < 1.0F ? DefaultTooltipPositioner.INSTANCE : positioner,
+                renderingScaledContent ? DefaultTooltipPositioner.INSTANCE : positioner,
                 override);
     }
 

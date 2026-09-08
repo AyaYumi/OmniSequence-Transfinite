@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
+import org.joml.Vector3f;
 
 /** Single-pass console text. Vanilla text helpers normally add a dark shadow. */
 public final class ConsoleTextRenderer {
@@ -27,7 +28,12 @@ public final class ConsoleTextRenderer {
         long period = Math.max(3000L, overflow * 500L);
         double phase = (Util.getMillis() % period) / (double) period;
         int offset = (int) Math.round((0.5 - 0.5 * Math.cos(phase * Math.PI * 2)) * overflow);
-        graphics.enableScissor(left, top, right, bottom);
+        // Forge 1.20.1 scissors use screen coordinates and do not inherit the pose.
+        var matrix = graphics.pose().last().pose();
+        var clipStart = matrix.transformPosition(new Vector3f(left, top, 0));
+        var clipEnd = matrix.transformPosition(new Vector3f(right, bottom, 0));
+        graphics.enableScissor((int) Math.floor(clipStart.x), (int) Math.floor(clipStart.y),
+                (int) Math.ceil(clipEnd.x), (int) Math.ceil(clipEnd.y));
         try {
             graphics.drawString(font, text, left - offset, y, color, false);
         } finally {

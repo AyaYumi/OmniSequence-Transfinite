@@ -311,30 +311,17 @@ public final class MatterFabricationStructure {
                 && Math.abs(part.x()) >= 2 && Math.abs(part.x()) <= 13;
     }
 
-    private static boolean isCurrentOptionalHost(Part part) {
-        if (part.y() != 1) {
-            return false;
-        }
-        int[][] hosts = {
-                {15, -6}, {15, 0}, {15, 6},
-                {6, 15}, {0, 15}, {-6, 15},
-                {-15, 6}, {-15, 0}, {-15, -6}
-        };
-        for (int[] host : hosts) {
-            if (part.x() == host[0] && part.z() == host[1]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static boolean isCurrentServiceBay(Part part) {
-        return isFrontServiceRow(part) || isCurrentOptionalHost(part) || isCentralCollarServiceBay(part);
+        return isFrontServiceRow(part) || isCentralCollarServiceBay(part);
     }
 
     private static boolean isCentralCollarServiceBay(Part part) {
-        return part.type() == PartType.CASING && part.y() == 4
-                && part.z() == -8 && part.x() >= -2 && part.x() <= 2;
+        if (part.type() != PartType.CASING || part.y() != 4) return false;
+        for (int side : new int[] {-1, 1}) for (int tangent = -2; tangent <= 2; tangent++) {
+            if (part.x() == side * 8 && part.z() == tangent
+                    || part.x() == tangent && part.z() == side * 8) return true;
+        }
+        return false;
     }
 
     private static boolean isAnyOptionalBlock(BlockState state) {

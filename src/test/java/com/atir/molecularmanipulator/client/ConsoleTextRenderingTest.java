@@ -7,6 +7,27 @@ import org.junit.jupiter.api.Test;
 class ConsoleTextRenderingTest {
     private final UiRenderRecorder.MetricsFont font = new UiRenderRecorder.MetricsFont();
 
+    @Test void modernUiFlushUsesTheCurrentlyBoundDrawingContext() {
+        var adapter = new ConsoleTextRenderer.FieldGraphics();
+        var first = new UiRenderRecorder();
+        adapter.bind(first);
+        try {
+            assertSame(first.pose(), adapter.pose());
+            adapter.flush();
+            adapter.flush();
+            assertEquals(2, first.flushes);
+        } finally { adapter.clear(); }
+
+        var next = new UiRenderRecorder();
+        adapter.bind(next);
+        try {
+            assertSame(next.pose(), adapter.pose());
+            adapter.flush();
+            assertEquals(2, first.flushes, "A reused input field must not flush its previous frame");
+            assertEquals(1, next.flushes);
+        } finally { adapter.clear(); }
+    }
+
     @Test void buttonsDrawOneShadowlessLabelAtEveryScale() {
         for (float scale : new float[] {1, 2, 3, 0.83F}) {
             for (String label : new String[] {"<", ">", "输出ME", "设置", "开始分解"}) {

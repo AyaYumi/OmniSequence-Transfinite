@@ -46,8 +46,11 @@ public final class UiRenderRecorder extends GuiGraphics {
     public final List<net.minecraft.client.renderer.Rect2i> scissors = new ArrayList<>();
     public int clipDepth;
     public int clips;
+    public int flushes;
 
     public UiRenderRecorder() { super(null, null); }
+
+    @Override public void flush() { flushes++; }
 
     @Override public void renderItem(net.minecraft.world.item.ItemStack stack, int x, int y) {
         items.add(new Item(stack, x, y, new Matrix4f(pose().last().pose())));

@@ -47,7 +47,8 @@ public final class ConsoleTextRenderer {
 
     /**
      * A reused drawing adapter for EditBox, preserving its editing and selection code.
-     * Only EditBox's drawing operations are forwarded; it never owns a buffer or pose.
+     * Drawing and flush operations share the active screen context, including calls
+     * injected into EditBox by Modern UI. This adapter never owns a buffer or pose.
      */
     static final class FieldGraphics extends GuiGraphics {
         private GuiGraphics target;
@@ -58,6 +59,7 @@ public final class ConsoleTextRenderer {
 
         @Override public PoseStack pose() { return target.pose(); }
         @Override public MultiBufferSource.BufferSource bufferSource() { return target.bufferSource(); }
+        @Override public void flush() { target.flush(); }
 
         @Override public int drawString(Font font, String text, int x, int y, int color, boolean shadow) {
             int end = target.drawString(font, text, x, y, color == -8355712 ? OmniUiTheme.FIELD_HINT : color, false);

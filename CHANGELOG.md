@@ -6,6 +6,7 @@ Minecraft 1.20.1 / Forge / Java 17
 
 | Area | Changes |
 | --- | --- |
+| Modern UI compatibility | Fixed a crash while rendering console input fields with Modern UI's text renderer. Flush operations now use the active screen's drawing context, including after an input field is rebound to a later frame. |
 | AdvancedAE CPU | Ported the NeoForge public batch-provider API integration. Matter Fabrication assemblies can receive an entire order batch, with exact task and waiting-output counts, capacity reservations, safe rejection rollback and accepted-input ownership after provider exceptions. |
 | Dispatch budget | AAE dispatch attempts share a 2 ms soft time budget per CPU per game tick. Capacity backpressure survives repeated calls during the same tick and is retried on the next tick. |
 | Recipe matching | Single-material requirements use a direct allocation path instead of rebuilding a flow graph. Full reservations, ordered portions and long-sized quantities preserve their behavior. |
@@ -20,6 +21,7 @@ Install `omnisequence-transfinite-2.0.2-forge.jar` on client and server. Require
 
 | 项目 | 更新 |
 | --- | --- |
+| Modern UI 兼容 | 修复启用 Modern UI 文本渲染器时，控制台输入框渲染崩溃的问题。缓冲区刷新现在转发到当前屏幕的绘制上下文，并正确跟随后续帧重新绑定。 |
 | AAE 量子 CPU | 同步 NeoForge 的公开批量供应器 API 接入，物质构筑井样板总成可整批接单；保持任务与待回产物计数、容量预留、拒收回滚和接收后异常时的材料所有权。 |
 | 派发预算 | 同一 CPU 在每个游戏 Tick 内共享 2 ms 软时间预算；容量背压不会被同 Tick 的重复调用重置，下一 Tick 再重试。 |
 | 配方匹配 | 单材料需求直接分配，避免反复建立流量图，保留完整材料预留、按顺序分批和 long 数量语义。 |

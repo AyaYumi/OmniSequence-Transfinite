@@ -232,10 +232,8 @@ public final class MatterPearlGeometry {
     private static void addPlatformCollar(Builder builder) {
         for (int side : new int[] {-1, 1}) {
             for (int tangent = -2; tangent <= 2; tangent++) {
-                var segmentType = Math.abs(tangent) <= 1 ? PartType.COIL : PartType.CASING;
-                var segmentPriority = segmentType == PartType.COIL ? CONDUIT : FRAME;
-                builder.put(side * 8, 4, tangent, segmentType, segmentPriority);
-                builder.put(tangent, 4, side * 8, segmentType, segmentPriority);
+                builder.put(side * 8, 4, tangent, PartType.CASING, FRAME);
+                builder.put(tangent, 4, side * 8, PartType.CASING, FRAME);
                 if (Math.abs(tangent) <= 1) {
                     builder.put(side * 7, 5, tangent, PartType.CASING, FRAME);
                     builder.put(tangent, 5, side * 7, PartType.CASING, FRAME);

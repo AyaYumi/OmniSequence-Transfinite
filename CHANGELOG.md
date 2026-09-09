@@ -7,7 +7,7 @@ Minecraft 1.20.1 / Forge / Java 17
 | Area | Changes |
 | --- | --- |
 | Animated textures | Added the 20-frame animated texture set for the computation parts, crystal parts, controller faces and Matter Fabrication modules. The Forge build keeps the existing gold and fluid-port blue emissive partition. |
-| Matter Fabrication collars | Added three center coil positions to each of the four directional platform-collar segments around the central field. |
+| Matter Fabrication service positions | Added three service-block positions to the middle of each of the four directional platform-collar segments around the central field. Item/fluid ports and pattern assemblies are accepted there. |
 
 Validation includes the Forge unit suite, animated texture mask checks and the packaged resource metadata.
 
@@ -18,7 +18,7 @@ Install `omnisequence-transfinite-2.0.3-forge.jar` on client and server.
 | 项目 | 更新 |
 | --- | --- |
 | 动画贴图 | 为演算部件、晶体部件、控制器正面和物质构筑井模块加入 20 组动画贴图，并保留 Forge 版本现有的金色与流体接口蓝色自发光分区。 |
-| 物质构筑井平台环 | 中央场四个方位的平台环段各增加三个中间线圈位置。 |
+| 物质构筑井服务位置 | 中央场四个方位的平台环段中间各增加三个服务方块位置，可放置物品、流体端口和样板总成。 |
 
 验证包含 Forge 单元测试、动画贴图自发光掩码检查和打包资源元数据检查。
 

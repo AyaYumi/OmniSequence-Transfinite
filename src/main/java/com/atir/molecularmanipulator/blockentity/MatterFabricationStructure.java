@@ -282,7 +282,7 @@ public final class MatterFabricationStructure {
     }
 
     private static boolean matchesOptionalPart(BlockState state, Part part) {
-        if (!isCurrentOptionalHost(part)) {
+        if (!isCurrentServiceBay(part)) {
             return false;
         }
         for (var optional : OPTIONAL_PARTS) {
@@ -302,7 +302,7 @@ public final class MatterFabricationStructure {
     }
 
     private static boolean isPatternAssemblyBay(Part part, StructureLayout layout) {
-        return layout == StructureLayout.CURRENT && (isFrontServiceRow(part) || isCurrentOptionalHost(part));
+        return layout == StructureLayout.CURRENT && isCurrentServiceBay(part);
     }
 
     /** The front-facing casing row has twelve blocks on each side of the entrance. */
@@ -324,6 +324,19 @@ public final class MatterFabricationStructure {
             if (part.x() == host[0] && part.z() == host[1]) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private static boolean isCurrentServiceBay(Part part) {
+        return isFrontServiceRow(part) || isCurrentOptionalHost(part) || isCentralCollarServiceBay(part);
+    }
+
+    private static boolean isCentralCollarServiceBay(Part part) {
+        if (part.type() != PartType.CASING || part.y() != 4) return false;
+        for (int side : new int[] {-1, 1}) for (int tangent = -1; tangent <= 1; tangent++) {
+            if (part.x() == side * 8 && part.z() == tangent
+                    || part.x() == tangent && part.z() == side * 8) return true;
         }
         return false;
     }

@@ -18,7 +18,7 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on For
 | Glodium | 1.20-1.5-forge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `2.0.1-forge`
+Current release: `2.0.2-forge`
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete change list and upgrade
 history.
@@ -239,7 +239,7 @@ by Git and is not embedded in this mod. See the dependency setup for Forge artif
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-2.0.1-forge.jar
+build/libs/omnisequence-transfinite-2.0.2-forge.jar
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade

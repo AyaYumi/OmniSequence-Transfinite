@@ -19,6 +19,21 @@ public final class ResearchMaterialAllocator {
     /** Allocate the whole reservation first, then take a feasible portion without stranding overlapping demands. */
     public static <K> Map<K, Long> planPortion(List<Long> requirements, List<Long> portion, Map<K, Long> available, BiPredicate<Integer, K> accepts) {
         if (portion.size() != requirements.size()) throw new IllegalArgumentException("Mismatched allocation sizes");
+        if (requirements.size() == 1) {
+            long needed = requirements.get(0), take = portion.get(0);
+            if (needed < 0 || take < 0 || take > needed) throw new IllegalArgumentException("Invalid reservation portion");
+            var result = new LinkedHashMap<K, Long>();
+            for (var entry : available.entrySet()) {
+                if (needed == 0) break;
+                if (entry.getValue() <= 0 || !accepts.test(0, entry.getKey())) continue;
+                long reserved = Math.min(needed, entry.getValue());
+                long selected = Math.min(take, reserved);
+                if (selected > 0) result.put(entry.getKey(), selected);
+                needed -= reserved;
+                take -= selected;
+            }
+            return needed == 0 ? result : null;
+        }
         var keys = available.entrySet().stream().filter(entry -> entry.getValue() > 0)
                 .map(Map.Entry::getKey).filter(key -> {
                     for (int i = 0; i < requirements.size(); i++) if (requirements.get(i) > 0 && accepts.test(i, key)) return true;

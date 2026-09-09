@@ -1,4 +1,36 @@
-# OmniSequence: Transfinite 2.0.1-forge
+# OmniSequence: Transfinite 2.0.2-forge
+
+Minecraft 1.20.1 / Forge / Java 17
+
+## English — 2.0.2
+
+| Area | Changes |
+| --- | --- |
+| AdvancedAE CPU | Ported the NeoForge public batch-provider API integration. Matter Fabrication assemblies can receive an entire order batch, with exact task and waiting-output counts, capacity reservations, safe rejection rollback and accepted-input ownership after provider exceptions. |
+| Dispatch budget | AAE dispatch attempts share a 2 ms soft time budget per CPU per game tick. Capacity backpressure survives repeated calls during the same tick and is retried on the next tick. |
+| Recipe matching | Single-material requirements use a direct allocation path instead of rebuilding a flow graph. Full reservations, ordered portions and long-sized quantities preserve their behavior. |
+| Default capacity | `sequence_array.pattern_pages` is 200, providing 7,200 slots. Existing saved values remain in effect. |
+| Forge GUI parity | Includes the native Forge responsive controls, JEI bounds and scaled text clipping. The platform's console UI does not require LDLib2. |
+
+An optional Forge AAE integration suite now exercises real CPU execution, reservations, rejection/exception handling, cancellation, queue persistence, time slicing and output-overflow protection. See [the test guide](tools/gametest/README.md).
+
+Install `omnisequence-transfinite-2.0.2-forge.jar` on client and server. Required dependencies and the Java 17 / AE2 15 baseline are unchanged.
+
+## 中文 — 2.0.2
+
+| 项目 | 更新 |
+| --- | --- |
+| AAE 量子 CPU | 同步 NeoForge 的公开批量供应器 API 接入，物质构筑井样板总成可整批接单；保持任务与待回产物计数、容量预留、拒收回滚和接收后异常时的材料所有权。 |
+| 派发预算 | 同一 CPU 在每个游戏 Tick 内共享 2 ms 软时间预算；容量背压不会被同 Tick 的重复调用重置，下一 Tick 再重试。 |
+| 配方匹配 | 单材料需求直接分配，避免反复建立流量图，保留完整材料预留、按顺序分批和 long 数量语义。 |
+| 默认页数 | `sequence_array.pattern_pages` 为 200，即 7,200 个样板槽位；已有配置值继续生效。 |
+| Forge 界面 | 包含原生 Forge 的响应式控件、JEI 边界和缩放文字裁剪修复，控制台界面无需 LDLib2。 |
+
+新增可选的 Forge AAE 集成测试，覆盖实际 CPU 派发、预留、拒收与异常、取消、队列存档、时间预算及待回产物溢出边界。客户端与服务端使用 `omnisequence-transfinite-2.0.2-forge.jar`。
+
+---
+
+## OmniSequence: Transfinite 2.0.1-forge
 
 Minecraft 1.20.1 / Forge / Java 17
 

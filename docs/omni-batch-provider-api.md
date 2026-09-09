@@ -2,7 +2,7 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Verified for OmniSequence 2.0.1-forge on Minecraft 1.20.1 / Forge / Java 17, with AE2 15.4.10–15.x
+Verified for OmniSequence 2.0.2-forge on Minecraft 1.20.1 / Forge / Java 17, with AE2 15.4.10–15.x
 and the required AppliedEnhancements 1.0.6-forge. The runtime ABI remains **1**.
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -18,7 +18,7 @@ embedding their classes.
 This SPI is for AE2 machines that store encoded patterns and act as
 `ICraftingProvider` implementations. A normal provider already works with AE2
 one craft at a time. Implement this SPI only when the machine wants an
-Omni-Computation Core to allocate several complete crafts and deliver them as
+Omni-Computation Core or compatible AdvancedAE CPU to allocate several complete crafts and deliver them as
 one atomic transaction.
 
 The API contains no classes, Mod IDs, or reflection paths for a specific
@@ -183,7 +183,7 @@ class or conditional Mixin that is loaded only when Mod ID
 
 自 OmniSequence: Transfinite 1.3.9 起提供。
 
-当前按 2.0.1-forge / Minecraft 1.20.1 / Forge / Java 17 核对，要求 AE2 15.4.10 至 15.x 和
+当前按 2.0.2-forge / Minecraft 1.20.1 / Forge / Java 17 核对，要求 AE2 15.4.10 至 15.x 和
 AppliedEnhancements 1.0.6-forge；运行时 ABI 仍为 **1**。其他接口见 [API 索引](README.md)。
 本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
 不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。

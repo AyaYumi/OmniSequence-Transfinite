@@ -1,6 +1,6 @@
 # Integration APIs / 接口索引
 
-Target: OmniSequence: Transfinite **2.0.1-forge**, Minecraft **1.20.1**, Forge,
+Target: OmniSequence: Transfinite **2.0.2-forge**, Minecraft **1.20.1**, Forge,
 Java **17**, AE2 **15.4.10 through 15.x**, AppliedEnhancements **1.0.6-forge**.
 The Mod ID remains `molecularmanipulator`.
 
@@ -26,7 +26,7 @@ UI enabled/highlight state is presentation data, not a new crafting or research 
 
 ## 中文
 
-本文档对应 2.0.1-forge，批量投料 API 保持 v1；研究接口从 2.0.0 提供。模组 ID
+本文档对应 2.0.2-forge，批量投料 API 保持 v1；研究接口从 2.0.0 提供。模组 ID
 仍为 `molecularmanipulator`，客户端和服务端都需要 AppliedEnhancements 1.0.6-forge。
 
 | 需求 | 使用接口 |

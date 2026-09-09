@@ -1,0 +1,30 @@
+// Load the optional Forge AAE runtime only for this integration suite.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        dependencies.add('implementation', fg.deobf("curse.maven:advancedae-${advancedae_curse_project}:${advancedae_curse_file}"))
+        dependencies.add('localRuntime', fg.deobf("curse.maven:geckolib-${geckolib_curse_project}:${geckolib_curse_file}"))
+        def regression = sourceSets.create('aaeRegression') {
+            java.srcDir project.file('tools/gametest/aae')
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory project.file('build/aae-regression-run')
+            mods { "${project.mod_id}" { source regression } }
+        }
+        tasks.named('compileAaeRegressionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def report = project.file('build/aae-regression-run/logs/latest.log').text
+                if (!report.contains('AAE_BATCH_ALL_PASS') || !report.contains('All 1 required tests passed'))
+                    throw new GradleException('AAE integration checks did not pass; inspect logs/latest.log')
+            }
+        }
+    }
+}

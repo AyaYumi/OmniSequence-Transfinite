@@ -1,9 +1,10 @@
 # Forge 1.20.1 port / 移植说明
 
-The `1.20.1-forge` branch ports OmniSequence 2.0.1 to **2.0.1-forge**, together with AppliedEnhancements **1.0.6-forge**. It targets Java 17 bytecode, Forge 47.4.10 or newer, and AE2 15.4.10. The local integration baseline is Forge 47.4.20.
+The `1.20.1-forge` branch ports OmniSequence 2.0.2 to **2.0.2-forge**, together with AppliedEnhancements **1.0.6-forge**. It targets Java 17 bytecode, Forge 47.4.10 or newer, and AE2 15.4.10. The local integration baseline is Forge 47.4.20.
 
 | Boundary | Forge implementation |
 | --- | --- |
+| 2.0.2 dispatch parity | AAE CPUs use the public batch-provider API with exact ownership and task/output accounting, per-tick backpressure and a 2 ms soft dispatch budget. Single-material allocation avoids a flow graph. The default Sequence Array capacity is 200 pages. |
 | Networking | Direction-bound SimpleChannel messages; server validation, main-thread handling, bounded search-index decoding and generation/revision checks remain in place. |
 | Item/fluid persistence | 1.20.1 NBT APIs replace data components and registry-aware serializers. Portable contents retain their decompression budget. |
 | 2.0.1 input/lookup parity | Generic AEKey recipes use a JSON-to-NBT bridge for AE2 15. A RecipeManager accessor observes the replaced byName snapshot so the output/research index survives repeated lookups and invalidates on data reload. |

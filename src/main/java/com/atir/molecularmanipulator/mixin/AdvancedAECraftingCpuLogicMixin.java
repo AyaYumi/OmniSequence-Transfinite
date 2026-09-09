@@ -5,9 +5,13 @@ import appeng.api.networking.crafting.ICraftingLink;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.energy.IEnergyService;
 import appeng.api.stacks.KeyCounter;
+import appeng.api.stacks.AEKey;
+import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.crafting.AdvancedAEBatchDispatch;
+import com.atir.molecularmanipulator.crafting.AdvancedAEBatchDispatch.TaskAdjustment;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor.BatchExtraction;
@@ -20,6 +24,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -36,6 +41,12 @@ import java.util.Set;
 @Pseudo
 @Mixin(targets = "net.pedroksl.advanced_ae.common.logic.AdvCraftingCPULogic", remap = false)
 public abstract class AdvancedAECraftingCpuLogicMixin {
+    @Unique
+    private final AdvancedAEBatchDispatch molecularmanipulator$apiDispatch = new AdvancedAEBatchDispatch();
+
+    @Shadow
+    public abstract long getWaitingFor(AEKey key);
+
     @Unique
     private static volatile Field molecularmanipulator$jobField;
     @Unique
@@ -78,6 +89,7 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$lastLevel = level;
         molecularmanipulator$refreshReusableSingleOnlyJob();
         molecularmanipulator$clearBatch();
+        molecularmanipulator$apiDispatch.begin(level, molecularmanipulator$getCurrentJob());
     }
 
     @Inject(method = "executeCrafting", at = @At("RETURN"))
@@ -101,12 +113,21 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$reusableSingleOnlyJob = null;
     }
 
+    @Inject(method = {"cancel", "finishJob"}, at = @At("RETURN"))
+    private void molecularmanipulator$releaseCompletedBatchJob(CallbackInfo callback) {
+        molecularmanipulator$clearBatch();
+        molecularmanipulator$apiDispatch.endJob();
+    }
+
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
             target = "Lappeng/crafting/execution/CraftingCpuHelper;extractPatternInputs(Lappeng/api/crafting/IPatternDetails;Lappeng/crafting/inv/ICraftingInventory;Lnet/minecraft/world/level/Level;Lappeng/api/stacks/KeyCounter;Lappeng/api/stacks/KeyCounter;)[Lappeng/api/stacks/KeyCounter;"))
     private KeyCounter[] molecularmanipulator$extractBatch(IPatternDetails patternDetails,
             ICraftingInventory inventory, Level level, KeyCounter expectedOutputs,
             KeyCounter expectedContainerItems, Operation<KeyCounter[]> original) {
         molecularmanipulator$clearBatch();
+        if (!molecularmanipulator$apiDispatch.allowExtraction()) {
+            return null;
+        }
         var firstInputs = original.call(patternDetails, inventory, level, expectedOutputs,
                 expectedContainerItems);
         if (firstInputs == null) {
@@ -120,6 +141,22 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         }
 
         long remainingCrafts = molecularmanipulator$getRemainingCrafts(patternDetails);
+        long waitingLimit = AdvancedAEBatchDispatch.waitingLimit(expectedOutputs, expectedContainerItems, this::getWaitingFor);
+        if (waitingLimit == 0) {
+            CraftingCpuHelper.reinjectPatternInputs(inventory, firstInputs);
+            expectedOutputs.reset();
+            expectedContainerItems.reset();
+            return null;
+        }
+        remainingCrafts = Math.min(remainingCrafts, waitingLimit);
+        var apiExtraction = molecularmanipulator$apiDispatch.prepare(
+                craftingService.getProviders(patternDetails), patternDetails, inventory, energyService,
+                level, firstInputs, expectedOutputs, expectedContainerItems, remainingCrafts);
+        if (apiExtraction != null) {
+            molecularmanipulator$batchPattern = patternDetails;
+            molecularmanipulator$batchExtraction = apiExtraction;
+            return apiExtraction.inputs();
+        }
         long batchLimit = molecularmanipulator$getAvailableBatchLimit(
                 craftingService, patternDetails, firstInputs);
         long maxCrafts = Math.min(remainingCrafts, batchLimit);
@@ -153,18 +190,36 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     }
 
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
+            target = "Lappeng/me/service/CraftingService;getProviders(Lappeng/api/crafting/IPatternDetails;)Ljava/lang/Iterable;"))
+    private Iterable<ICraftingProvider> molecularmanipulator$selectApiProvider(CraftingService service,
+            IPatternDetails pattern, Operation<Iterable<ICraftingProvider>> original) {
+        var provider = molecularmanipulator$apiDispatch.provider();
+        return provider == null ? original.call(service, pattern) : Collections.singletonList(provider);
+    }
+
+    @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
+            target = "Lappeng/api/networking/crafting/ICraftingProvider;isBusy()Z"))
+    private boolean molecularmanipulator$honorApiReservation(ICraftingProvider provider, Operation<Boolean> original) {
+        // Capacity reservations may themselves make a provider busy.
+        return molecularmanipulator$apiDispatch.provider() == provider ? false : original.call(provider);
+    }
+
+    @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
             target = "Lappeng/api/networking/crafting/ICraftingProvider;pushPattern(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;)Z"))
     private boolean molecularmanipulator$pushBatch(ICraftingProvider provider, IPatternDetails patternDetails,
             KeyCounter[] inputs, Operation<Boolean> original) {
         var extraction = molecularmanipulator$batchExtraction;
         if (extraction == null || molecularmanipulator$batchPattern != patternDetails
                 || extraction.inputs() != inputs) {
+            if (molecularmanipulator$apiDispatch.isBackpressured(provider, patternDetails)) return false;
             return original.call(provider, patternDetails, inputs);
         }
 
-        if (!MolecularBatchCraftingProvider.supports(provider, patternDetails)
+        boolean apiBatch = molecularmanipulator$apiDispatch.provider() == provider;
+        if (molecularmanipulator$apiDispatch.provider() != null && !apiBatch) return false;
+        if (!apiBatch && (!MolecularBatchCraftingProvider.supports(provider, patternDetails)
                 || MolecularBatchCraftingProvider.getBatchLimit(
-                        provider, patternDetails, extraction.firstInputs()) < extraction.craftCount()) {
+                        provider, patternDetails, extraction.firstInputs()) < extraction.craftCount())) {
             return false;
         }
 
@@ -192,6 +247,10 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         boolean accepted = false;
         MolecularBatchDispatchContext.Scope batchScope = null;
         try {
+            if (apiBatch) {
+                accepted = molecularmanipulator$apiDispatch.commit(molecularmanipulator$getLastLink());
+                return accepted;
+            }
             batchScope = MolecularBatchDispatchContext.open(
                     reusableCraftingId, patternDetails, inputs,
                     extraction.firstInputs(), extraction.craftCount(),
@@ -437,12 +496,8 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
 
     @Unique
     private void molecularmanipulator$clearBatch() {
+        molecularmanipulator$apiDispatch.close();
         molecularmanipulator$batchPattern = null;
         molecularmanipulator$batchExtraction = null;
-    }
-
-    @Unique
-    private record TaskAdjustment(Object task, Field valueField,
-            long originalValue) {
     }
 }

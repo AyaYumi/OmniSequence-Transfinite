@@ -184,7 +184,7 @@ final class MolecularCenterLdUi {
                         "gui.molecularmanipulator.structure_update_keep_legacy_tooltip"),
                 event -> { updateConfirmation.cancel(); menu.requestKeepLegacyStructure(); });
 
-        modularUI = ModularUI.of(ui);
+        modularUI = new ResponsiveModularUI(ui);
         refresh();
     }
 

@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.client;
 import appeng.api.client.AEKeyRendering;
 import appeng.api.stacks.AEFluidKey;
 import appeng.client.gui.style.ScreenStyle;
-import appeng.client.gui.widgets.AE2Button;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPortBlockEntity;
 import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
@@ -61,7 +60,7 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
     }
 
     /** Keep AE's native face and height; reserve the left half for the adjacent block icon. */
-    private final class OutputSideButton extends AE2Button {
+    private final class OutputSideButton extends ResponsiveAE2Button {
         private final Direction side;
         private ItemStack icon = ItemStack.EMPTY;
         private AEFluidKey fluidIcon;
@@ -114,7 +113,7 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
         }
 
         @Override protected void renderButtonText(GuiGraphics graphics, Font font, int padding, int color, int yOffset) {
-            AE2Button.renderButtonText(graphics, font, getMessage(), getX() + 22, getY(),
+            ResponsiveAE2Button.renderButtonText(graphics, font, getMessage(), getX() + 22, getY(),
                     getX() + getWidth() - 3, getY() + getHeight(), yOffset, color);
         }
     }

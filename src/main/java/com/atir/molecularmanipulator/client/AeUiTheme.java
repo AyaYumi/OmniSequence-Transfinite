@@ -44,7 +44,7 @@ public final class AeUiTheme {
 
     static AE2Button button(int x, int y, int width, int height, Component label,
             Button.OnPress onPress) {
-        return new AE2Button(x, y, width, height, label, onPress);
+        return new ResponsiveAE2Button(x, y, width, height, label, onPress);
     }
 
     static AETextField textField(ScreenStyle style, Font font, int x, int y,

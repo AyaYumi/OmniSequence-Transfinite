@@ -164,7 +164,7 @@
   "molecularmanipulator.configuration.section.omnisequence.transfinite.client.toml": "客户端显示配置",
   "molecularmanipulator.configuration.section.omnisequence.transfinite.client.toml.title": "%s - 客户端显示配置",
   "molecularmanipulator.configuration.pattern_pages": "样板页数",
-  "molecularmanipulator.configuration.pattern_pages.tooltip": "设置构序阵列可使用的样板页数。每页包含 36 个样板槽位，可设置 1～1000 页；默认 20 页。",
+  "molecularmanipulator.configuration.pattern_pages.tooltip": "设置构序阵列可使用的样板页数。每页包含 36 个样板槽位，可设置 1～1000 页；默认 200 页。",
   "molecularmanipulator.configuration.build_blocks_per_tick": "每 Tick 搭建/拆卸方块数",
   "molecularmanipulator.configuration.build_blocks_per_tick.tooltip": "设置一键安放或一键拆卸时每 Tick 最多处理的结构方块数量。数值越高完成越快，但瞬时服务器负载也越高；范围 1～256，默认 32。",
   "molecularmanipulator.configuration.idle_power": "待机耗电（AE/t）",

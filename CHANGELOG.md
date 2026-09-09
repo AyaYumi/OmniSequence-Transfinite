@@ -1,5 +1,71 @@
 # Changelog
 
+## OmniSequence: Transfinite 2.0.2
+
+Minecraft 1.21.1 / NeoForge / Java 21
+
+### English
+
+#### Fixed
+
+| Area | Fix |
+| --- | --- |
+| Default capacity | Increased `sequence_array.pattern_pages` from 20 to 200 (7,200 pattern slots). Existing saved configuration values remain in effect. |
+| AdvancedAE batch dispatch | AAE quantum CPUs now use the public batch-provider API, allowing matter fabrication assemblies to accept complete batches. Reservations, rejection rollback, accepted ownership after exceptions and waiting-output limits remain exact. Dispatch attempts share a 2 ms soft budget per CPU per game tick. |
+| Single-material matching | Single-requirement recipes now allocate materials directly without rebuilding a flow graph; full reservations, ordered portions and long quantities retain the existing semantics. |
+| Third-party controls | Machine panels now apply responsive scaling only to their own content. Injected controls such as the FTB sidebar and Dark Mode button retain their screen positions and size. |
+| Mouse input and focus | Routed clicks, movement, dragging, release and scrolling through the correct coordinate space. External controls keep normal focus and keyboard behavior; machine controls retain logical menu coordinates. |
+| JEI layout | Registered the fitted bounds of responsive machine screens, converted AE2 exclusion zones, and supplied the visible hit areas for normal items. This prevents layout gaps and misplaced ingredient interactions caused by unscaled bounds. |
+| LDLib2 exclusion areas | Converted the molecular-center and Omni-computation overlays' cached exclusion rectangles before JEI reads them. The original LDLib2 layout cache stays unchanged, avoiding repeated scaling on later frames. |
+| Long button captions | Fixed native AE2 button captions being completely clipped at large GUI scales. Their clipping rectangles now follow the text's render transform. The fix also covers output-direction captions beside neighbor icons and retains AE2's existing button appearance and scrolling behavior. |
+| LDLib2 text and pointer handling | Verified that LDLib2's own clipping already follows the pose matrix. Its modular widgets continue receiving raw screen mouse coordinates during rendering, so LDLib2 performs its inverse transform exactly once. |
+
+#### Validation
+
+- Verified actual AAE 1.6.11 CPU execution against a real matter fabrication assembly: 65,536 crafts use one dispatch. Integration checks also cover reservations, rollback, exceptions, cancellation, persistence, backpressure and time slicing.
+- All **122 unit tests** passed, including **14 focused UI regression tests**.
+- Re-ran those 14 UI tests using the target pack's **JEI 19.39.0.368** and **LDLib2 2.2.29** JARs; all passed.
+- Checks cover fitted bounds across machine layouts and viewport sizes, external-control input, long-caption clipping, LDLib2 exclusion areas, and raw-to-local mouse conversion.
+- These automated checks exercise code and coordinate behavior without a full interactive modpack session.
+
+#### Installation
+
+- Update both client and server to `omnisequence-transfinite-2.0.2.jar`, keeping one enabled OmniSequence JAR per instance.
+- This is the **Minecraft 1.21.1 NeoForge** build. Java 21 and the existing 2.0.1 dependencies, including LDLib2, remain required.
+- Build baseline: NeoForge 21.1.220, AE2 19.2.17, JEI API 19.27.0.340 and LDLib2 2.2.18. The target pack currently uses NeoForge 21.1.233.
+
+---
+
+### 中文
+
+#### 修复
+
+| 项目 | 修复内容 |
+| --- | --- |
+| 默认容量 | `sequence_array.pattern_pages` 默认值由 20 调整为 200，即 7,200 个样板槽位；已有配置中的值继续生效。 |
+| AdvancedAE 批量派发 | AAE 量子 CPU 现已接入公开批量供应器 API，物质构筑井样板总成可整批接单；保留容量预留、拒收回滚、接收后异常的材料所有权及待回产物计数边界。每个 CPU 同一游戏 Tick 内的派发尝试共享 2 ms 软时间预算。 |
+| 单材料匹配 | 单需求配方直接分配材料，不再重复建立流量图；保留完整预留、顺序分批和 long 数量语义。 |
+| 第三方控件 | 响应式缩放仅作用于机器自身内容。FTB 侧栏、Dark Mode 等注入控件保持屏幕位置和大小，避免被机器面板一起缩小或移动。 |
+| 鼠标输入与焦点 | 按正确坐标系处理点击、移动、拖动、松开及滚轮；外部控件保留正常焦点和键盘行为，机器控件继续使用菜单逻辑坐标。 |
+| JEI 布局 | 为响应式机器界面注册实际显示边界，转换 AE2 避让区域，并提供普通物品的实际命中区域，修复未缩放边界造成的异常留白和物品交互错位。 |
+| LDLib2 避让区域 | 构序阵列和万物演算界面向 JEI 上报前，转换 LDLib2 缓存的避让矩形；保留原始布局缓存，避免后续帧反复缩放。 |
+| 长按钮文字 | 修复大 GUI 缩放下原生 AE2 按钮长文字被完全裁掉的问题，裁剪框现已跟随文字绘制矩阵。相邻方块图标旁的输出方向文字也一并修复，保留 AE2 原有按钮样式及滚动行为。 |
+| LDLib2 文字与指针 | 已验证 LDLib2 自身裁剪会正确跟随矩阵；模块化控件绘制时继续接收原始屏幕鼠标坐标，由 LDLib2 恰好执行一次逆变换。 |
+
+#### 验证
+
+- 实际加载 AAE 1.6.11 验证 CPU 向真实构筑井样板总成派发：65,536 份配方只需一次操作；另覆盖预留、回滚、异常、取消、存档、背压和时间预算。
+- 全部 **122 项单元测试**通过，其中包含 **14 项界面专项回归测试**。
+- 使用目标整合包的 **JEI 19.39.0.368** 和 **LDLib2 2.2.29** JAR 重新运行这 14 项界面测试，全部通过。
+- 覆盖各机器布局与视口尺寸下的边界、外部控件输入、长文字裁剪、LDLib2 避让区域及鼠标坐标换算。
+- 自动化验证针对代码和坐标行为，未进行完整整合包内的交互式画面验收。
+
+#### 安装
+
+- 客户端与服务端更新为 `omnisequence-transfinite-2.0.2.jar`，每个实例只保留一个启用的万象构序 JAR。
+- 本包用于 **Minecraft 1.21.1 NeoForge**，仍需 Java 21 和 2.0.1 原有前置，包括 LDLib2。
+- 构建基线：NeoForge 21.1.220、AE2 19.2.17、JEI API 19.27.0.340、LDLib2 2.2.18；目标整合包当前使用 NeoForge 21.1.233。
+
 ## 2.0.1 - 2026-09-08
 
 ### English

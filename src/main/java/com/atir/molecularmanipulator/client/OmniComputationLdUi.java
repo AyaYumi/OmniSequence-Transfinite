@@ -134,7 +134,7 @@ final class OmniComputationLdUi {
                     menu.requestKeepLegacyStructure();
                 });
 
-        modularUI = ModularUI.of(ui);
+        modularUI = new ResponsiveModularUI(ui);
         refresh();
     }
 

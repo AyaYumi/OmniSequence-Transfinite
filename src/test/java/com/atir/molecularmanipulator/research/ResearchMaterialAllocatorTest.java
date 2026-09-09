@@ -5,6 +5,26 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ResearchMaterialAllocatorTest {
+    @Test void singleDemandReservesWholeBeforeTakingOrderedPortion() {
+        var stock = new LinkedHashMap<String, Long>();
+        stock.put("ignored", 100L); stock.put("oak", 3L); stock.put("birch", 5L);
+        assertEquals(Map.of("oak", 3L, "birch", 1L), ResearchMaterialAllocator.planPortion(
+                List.of(8L), List.of(4L), stock, (row, key) -> !key.equals("ignored")));
+        assertNull(ResearchMaterialAllocator.planPortion(
+                List.of(9L), List.of(0L), stock, (row, key) -> !key.equals("ignored")));
+        assertEquals(Map.of("ignored", 100L, "oak", 3L, "birch", 5L), stock);
+    }
+
+    @Test void singleDemandHandlesLongMaximumAndZeroWithoutOverflow() {
+        var stock = new LinkedHashMap<String, Long>();
+        stock.put("a", Long.MAX_VALUE - 2); stock.put("b", Long.MAX_VALUE);
+        assertEquals(Map.of("a", Long.MAX_VALUE - 2, "b", 2L), ResearchMaterialAllocator.plan(
+                List.of(Long.MAX_VALUE), stock, (row, key) -> true));
+        assertEquals(Map.of(), ResearchMaterialAllocator.plan(List.of(0L), stock, (row, key) -> false));
+        assertThrows(IllegalArgumentException.class, () -> ResearchMaterialAllocator.plan(
+                List.of(-1L), stock, (row, key) -> true));
+    }
+
     @Test void portionsPreserveMaterialsNeededByLaterCrafts() {
         var stock = new LinkedHashMap<String, Long>(); stock.put("oak", 2L); stock.put("birch", 2L);
         var selected = ResearchMaterialAllocator.planPortion(List.of(2L, 2L), List.of(1L, 1L), stock,

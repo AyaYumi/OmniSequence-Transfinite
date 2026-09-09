@@ -19,7 +19,7 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | LDLib2 | 2.2.18 or later |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `2.0.1`
+Current release: `2.0.2`
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete change list and upgrade
 history.
@@ -201,7 +201,7 @@ Client options are grouped under `tooltips` and `visual`.
 
 | Option | Default | Purpose |
 | --- | ---: | --- |
-| `sequence_array.pattern_pages` | 20 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
+| `sequence_array.pattern_pages` | 200 | Pattern pages available to the Sequence Array Controller; 36 slots per page |
 | `sequence_array.build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
 | `sequence_array.idle_power` | 128 | Sequence Array Controller idle power in AE/t |
 | `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
@@ -219,7 +219,7 @@ Existing flat options and the previous `matter_speed_cards` section are moved in
 
 Install the required dependencies above and place the built JAR in both the client and server `mods` directories. Before upgrading, fully stop the game, use the same version on both sides, and keep exactly one active `omnisequence-transfinite-*.jar` in each `mods` directory to avoid duplicate Mod IDs.
 
-Source maintenance for 2.0.1 continues on `1.21.1-neoforge`.
+Source maintenance for 2.0.2 continues on `1.21.1-neoforge`.
 For a source build, first place the separately built AppliedEnhancements 1.0.6 JAR
 in `libs/`, following [the dependency setup](libs/README.md). Its binary is ignored
 by Git and is not embedded in this mod. CI builds the prerequisite from its fixed
@@ -232,7 +232,7 @@ by Git and is not embedded in this mod. CI builds the prerequisite from its fixe
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-2.0.1.jar
+build/libs/omnisequence-transfinite-2.0.2.jar
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade

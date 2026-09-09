@@ -1,0 +1,25 @@
+// Optional integration suite. Pass -PaaeJar=... -PgeckoJar=... for the tested AAE runtime.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def aae = file(project.property('aaeJar'))
+        def gecko = file(project.property('geckoJar'))
+        if (!aae.isFile() || !gecko.isFile()) throw new GradleException('AAE and GeckoLib JARs are required')
+        dependencies.add('localRuntime', files(aae, gecko))
+        def regression = sourceSets.create('aaeRegression') {
+            java.srcDir file('tools/gametest/aae')
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output + files(aae)
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        server.gameDirectory = file('build/aae-regression-run')
+        tasks.named('compileAaeRegressionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

@@ -15,6 +15,7 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.runtime.IJeiRuntime;
 import com.atir.molecularmanipulator.client.MolecularCenterScreen;
+import com.atir.molecularmanipulator.client.ResponsiveContainerScreen;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
@@ -74,6 +75,8 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
+        registration.addGuiScreenHandler(ResponsiveContainerScreen.class, ResponsiveScreenJeiProperties::of);
+        registration.addGuiContainerHandler(ResponsiveContainerScreen.class, ResponsiveScreenJeiProperties.containerHandler());
         registration.addGhostIngredientHandler(
                 MolecularCenterScreen.class,
                 new MolecularCenterGhostIngredientHandler());

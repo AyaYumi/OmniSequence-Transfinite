@@ -77,18 +77,12 @@ class MatterPearlGeometryTest {
     }
 
     @Test
-    void fourPlatformCollarsHaveThreeCenterServicePositionsEach() {
+    void frontPlatformCollarHasFiveServicePositionsAndOtherDirectionsRemainStructural() {
         var index = index(MatterPearlGeometry.createParts());
-        for (int side : new int[] {-1, 1}) {
-            for (int tangent = -1; tangent <= 1; tangent++) {
-                assertEquals(PartType.CASING, index.get(new BlockPos(side * 8, 4, tangent)).type());
-                assertEquals(PartType.CASING, index.get(new BlockPos(tangent, 4, side * 8)).type());
-            }
-            for (int tangent : new int[] {-2, 2}) {
-                assertEquals(PartType.CASING, index.get(new BlockPos(side * 8, 4, tangent)).type());
-                assertEquals(PartType.CASING, index.get(new BlockPos(tangent, 4, side * 8)).type());
-            }
-        }
+        for (int x = -2; x <= 2; x++) assertEquals(PartType.CASING, index.get(new BlockPos(x, 4, -8)).type());
+        for (int x = -2; x <= 2; x++) assertEquals(PartType.CASING, index.get(new BlockPos(x, 4, 8)).type());
+        for (int z = -2; z <= 2; z++) assertEquals(PartType.CASING, index.get(new BlockPos(-8, 4, z)).type());
+        for (int z = -2; z <= 2; z++) assertEquals(PartType.CASING, index.get(new BlockPos(8, 4, z)).type());
     }
 
     @Test

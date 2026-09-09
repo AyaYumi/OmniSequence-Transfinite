@@ -333,12 +333,8 @@ public final class MatterFabricationStructure {
     }
 
     private static boolean isCentralCollarServiceBay(Part part) {
-        if (part.type() != PartType.CASING || part.y() != 4) return false;
-        for (int side : new int[] {-1, 1}) for (int tangent = -1; tangent <= 1; tangent++) {
-            if (part.x() == side * 8 && part.z() == tangent
-                    || part.x() == tangent && part.z() == side * 8) return true;
-        }
-        return false;
+        return part.type() == PartType.CASING && part.y() == 4
+                && part.z() == -8 && part.x() >= -2 && part.x() <= 2;
     }
 
     private static boolean isAnyOptionalBlock(BlockState state) {

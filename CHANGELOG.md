@@ -12,7 +12,7 @@ Minecraft 1.21.1 / NeoForge / Java 21
 | --- | --- |
 | Texture animation | Added a first animated texture pass for the computation matrices, crystal parts, controller faces and matter-fabrication modules. The effects use distinct grouped pulses, crystal refraction, energy breathing and a retained horizontal coil flow instead of repeating one scan pattern. |
 | Emissive textures | Animated matter-fabrication textures retain their gold and fluid-port blue emissive regions without lighting the neutral shell. |
-| Matter fabrication service positions | Added three service-block positions to the middle of each of the four directional platform-collar segments around the central field. Item/fluid ports and pattern assemblies are accepted there. |
+| Matter fabrication service positions | Added five service-block positions across the front-facing platform-collar segment. The side and rear collar segments remain structural only. |
 
 #### Validation
 
@@ -32,7 +32,7 @@ Minecraft 1.21.1 / NeoForge / Java 21
 | --- | --- |
 | 贴图动画 | 为演算矩阵、晶体部件、控制器正面及物质构筑井模块加入第一版动画。不同方块分别使用分组脉冲、晶内折光、能量呼吸和保留的线圈横向流动，减少重复的循环扫描。 |
 | 自发光贴图 | 动画化的物质构筑井贴图继续保留金色和流体接口蓝色自发光区域，不会点亮中性外壳。 |
-| 物质构筑井服务位置 | 中央场四个方位的平台环段中间各增加三个服务方块位置，可放置物品、流体端口和样板总成。 |
+| 物质构筑井服务位置 | 正面平台环段横向五格现在可放置服务方块；左右侧面和后方平台环段保持纯结构。 |
 
 #### 验证
 

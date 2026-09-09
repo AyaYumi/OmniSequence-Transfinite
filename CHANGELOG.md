@@ -1,5 +1,51 @@
 # Changelog
 
+## OmniSequence: Transfinite 2.0.3
+
+Minecraft 1.21.1 / NeoForge / Java 21
+
+### English
+
+#### Added
+
+| Area | Update |
+| --- | --- |
+| Texture animation | Added a first animated texture pass for the computation matrices, crystal parts, controller faces and matter-fabrication modules. The effects use distinct grouped pulses, crystal refraction, energy breathing and a retained horizontal coil flow instead of repeating one scan pattern. |
+| Emissive textures | Animated matter-fabrication textures retain their gold and fluid-port blue emissive regions without lighting the neutral shell. |
+| Matter fabrication collars | Added three center coil positions to each of the four directional platform-collar segments around the central field. |
+
+#### Validation
+
+- 20 animated texture strips use 24 frames at 2 ticks per frame, with a 2.4-second loop.
+- All 122 unit tests passed.
+- A hidden OpenGL probe verified Minecraft's sprite ticker, interpolation, mipmap upload, loop closure and emissive partition for all 20 animated textures.
+
+#### Installation
+
+- Update both client and server to `omnisequence-transfinite-2.0.3.jar`, keeping one enabled OmniSequence JAR per instance.
+
+### 中文
+
+#### 新增
+
+| 项目 | 更新 |
+| --- | --- |
+| 贴图动画 | 为演算矩阵、晶体部件、控制器正面及物质构筑井模块加入第一版动画。不同方块分别使用分组脉冲、晶内折光、能量呼吸和保留的线圈横向流动，减少重复的循环扫描。 |
+| 自发光贴图 | 动画化的物质构筑井贴图继续保留金色和流体接口蓝色自发光区域，不会点亮中性外壳。 |
+| 物质构筑井平台环 | 中央场四个方位的平台环段各增加三个中间线圈位置。 |
+
+#### 验证
+
+- 20 组动画贴图使用 24 帧、每帧 2 Tick，循环周期为 2.4 秒。
+- 全部 122 项单元测试通过。
+- 使用隐藏 OpenGL 检查 Minecraft 原生贴图播放器、插值、MipMap 上传、循环闭合及 20 组贴图的自发光分区。
+
+#### 安装
+
+- 客户端与服务端更新为 `omnisequence-transfinite-2.0.3.jar`，每个实例只保留一个启用的万象构序 JAR。
+
+---
+
 ## OmniSequence: Transfinite 2.0.2
 
 Minecraft 1.21.1 / NeoForge / Java 21

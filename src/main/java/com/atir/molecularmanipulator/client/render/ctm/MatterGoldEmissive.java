@@ -63,12 +63,24 @@ public final class MatterGoldEmissive {
                 || !contents.name().getPath().startsWith("block/matter_fabrication_")
                 || contents.width() != 16 || contents.height() != 16) return List.of();
         var image = contents.getOriginalImage();
-        // Animated or replacement high-resolution assets retain their own rendering contract.
-        if (image.getWidth() != 16 || image.getHeight() != 16) return List.of();
+        if (image.getWidth() % 16 != 0 || image.getHeight() % 16 != 0) return List.of();
+        int columns = image.getWidth() / 16;
+        int[] frames = image.getWidth() == 16 && image.getHeight() == 16
+                ? new int[]{0} : contents.getUniqueFrames().toArray();
         boolean[][] emissive = new boolean[16][16], used = new boolean[16][16];
         boolean any = false;
         for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) {
-            emissive[y][x] = isEmissivePixel(contents.name(), image.getPixelRGBA(x, y));
+            // Geometry is cached, so only material that stays emissive in every played frame
+            // can be full-bright. This keeps the neutral shell dark while highlights move.
+            boolean stable = frames.length > 0;
+            for (int frame : frames) {
+                if (!isEmissivePixel(contents.name(), image.getPixelRGBA(
+                        x + frame % columns * 16, y + frame / columns * 16))) {
+                    stable = false;
+                    break;
+                }
+            }
+            emissive[y][x] = stable;
             any |= emissive[y][x];
         }
         if (!any) return List.of();

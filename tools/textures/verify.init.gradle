@@ -1,0 +1,26 @@
+// Isolated GPU verification. These sources and native dependencies never enter the mod JAR.
+allprojects {
+    afterEvaluate { project ->
+        def natives = configurations.create('textureProbeNatives')
+        ['lwjgl', 'lwjgl-glfw', 'lwjgl-opengl', 'lwjgl-stb'].each { module ->
+            dependencies.add(natives.name, "org.lwjgl:${module}:3.3.3:natives-windows")
+        }
+        def compileProbe = tasks.register('compileTextureProbe', JavaCompile) {
+            dependsOn tasks.named('classes')
+            source = files('tools/textures/TextureAnimationGpuProbe.java')
+            classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+            destinationDirectory = layout.buildDirectory.dir('classes/java/textureProbe')
+            javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(21) }
+            options.encoding = 'UTF-8'
+            options.compilerArgs.add('-proc:none')
+        }
+        tasks.register('verifyTextureAnimations', JavaExec) {
+            dependsOn compileProbe
+            classpath = files(compileProbe.flatMap { it.destinationDirectory }) + sourceSets.main.output +
+                    sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + natives
+            mainClass = 'TextureAnimationGpuProbe'
+            javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+            workingDir = project.projectDir
+        }
+    }
+}

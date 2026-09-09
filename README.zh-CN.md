@@ -19,7 +19,7 @@
 | LDLib2 | 2.2.18 或更高 |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`2.0.2`，后续源码维护分支为 `1.21.1-neoforge`。
+当前版本：`2.0.3`，后续源码维护分支为 `1.21.1-neoforge`。
 
 开发接入见 [API 索引](docs/README.md)、[批量供应器 API v1](docs/omni-batch-provider-api.md)
 和 [物质研究／KubeJS API](docs/matter-research-api.md)。AELIS 规划接口由独立前置提供。
@@ -230,7 +230,7 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-2.0.2.jar
+build/libs/omnisequence-transfinite-2.0.3.jar
 ```
 
 版本变化、安装与升级说明见 [CHANGELOG.md](CHANGELOG.md)。本项目使用

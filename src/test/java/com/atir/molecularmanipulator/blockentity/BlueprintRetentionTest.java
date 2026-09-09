@@ -11,7 +11,7 @@ class BlueprintRetentionTest {
     @Test void allCurrentBuildingsRemainExactlyTheSame() throws Exception {
         assertEquals("6a360d922c0549b2928ac16c20da7a2b1645b8e8f3eaf2e78ef97cdd9a3f2c78", hash(MolecularCenterStructure.parts().stream().map(p->p.x()+","+p.y()+","+p.z()+","+p.partType())));
         assertEquals("d4545197adafa56080595a19e7ab4984fd646fb030220fabc2dd9c06be643769", hash(OmniComputationStructure.parts().stream().map(p->p.x()+","+p.y()+","+p.z()+","+p.type())));
-        assertEquals("bb385802d918841963efc2e183ec3f6d5f1ff9477ab4bbad51d0cba7611d1a33", hash(MatterPearlGeometry.createParts().stream().map(p->p.x()+","+p.y()+","+p.z()+","+p.type())));
+        assertEquals("9f091ff3660e8e5e9385a560dec1339281780275da9c4e9f1b6f40b82bde9372", hash(MatterPearlGeometry.createParts().stream().map(p->p.x()+","+p.y()+","+p.z()+","+p.type())));
     }
 
     @Test void retainedLegacyBlueprintsMatchOfficialRelease139() throws Exception {

@@ -18,7 +18,7 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on For
 | Glodium | 1.20-1.5-forge |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `2.0.2-forge`
+Current release: `2.0.3-forge`
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete change list and upgrade
 history.
@@ -227,7 +227,7 @@ See [Forge port details](docs/FORGE_PORT.md) for API, material and UI difference
 
 Install the required dependencies above and place the built JAR in both the client and server `mods` directories. Before upgrading, fully stop the game, use the same version on both sides, and keep exactly one active `omnisequence-transfinite-*.jar` in each `mods` directory to avoid duplicate Mod IDs.
 
-Source maintenance for 2.0.1 continues on `1.20.1-forge`.
+Source maintenance for 2.0.3 continues on `1.20.1-forge`.
 For a source build, first place the separately built AppliedEnhancements 1.0.6-forge JAR
 in `libs/`, following [the dependency setup](libs/README.md). Its binary is ignored
 by Git and is not embedded in this mod. See the dependency setup for Forge artifacts. All machine screens and JEI pages use the custom light sci-fi console UI while retaining Minecraft / AE2 container behavior. LDLib2 is not required; see [UI design](docs/UI_DESIGN.md).
@@ -239,7 +239,7 @@ by Git and is not embedded in this mod. See the dependency setup for Forge artif
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-2.0.2-forge.jar
+build/libs/omnisequence-transfinite-2.0.3-forge.jar
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade

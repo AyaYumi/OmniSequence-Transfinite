@@ -30,6 +30,11 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - Corrected Forge 1.20.1 sprite UV conversion: its 0–16 coordinates must be normalized before splitting emissive faces. Gold/blue well details and purple molecular-array lines now generate full-bright faces without an AE connection; ordinary shell pixels keep normal shading.
 - Removed block-light emission from the well's controller, structure parts and service blocks while retaining their local emissive texture details. Controller powered visuals now follow structure/network state and construction operations.
 
+### Multiblock spawn protection
+
+- The Sequence Array, Omni-Computation Core and Matter Fabrication Well now block natural spawning for **all mob categories**, including animals and bats, across the full height of their occupied chunks. The area follows their formed/construction/dismantling/upgrade footprint instead of a fixed radius around two controllers.
+- Includes natural world-generation, patrol and reinforcement spawning. Spawners, spawn eggs, breeding, commands and existing mobs are unaffected. No AE power is needed for the protection itself. Shared chunks remain protected until their last owning multiblock releases them; the standalone nexus adds no protection.
+
 ### JEI and crafting compatibility
 
 - Fixed the responsive-screen case where **JEI's hovered item, highlight and tooltip disagreed with the item under the mouse, while clicks still used the correct position**. JEI 15 container-foreground rendering now uses screen coordinates and restores the machine's render state afterwards. The adapter preserves the origin translation removed by JEI 15 itself; newer entry points are optional.
@@ -49,7 +54,7 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 ### Validation and remaining limits
 
 - **152 Forge unit tests passed**, including JEI 15 entry-point/coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
-- **Four isolated Forge GameTests passed** for resource delivery/lookup and nexus cable, CPU, save, drop and power recovery. The separate **AdvancedAE integration test passed**, including the nexus recipe and research unlock and the existing 65,536-craft batch case.
+- **Six isolated Forge GameTests passed** for resource delivery/lookup, nexus cable/CPU/recovery, and all three multiblocks' natural spawning protection. The separate **AdvancedAE integration test passed**, including the nexus recipe and research unlock and the existing 65,536-craft batch case.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.
 
@@ -83,6 +88,11 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - 修正 Forge 1.20.1 贴图 UV 换算：其 0～16 坐标必须先归一化才能分割发光面。构筑井金／蓝纹路与分子阵列紫色线条无需 AE 连接即可生成全亮面，普通外壳仍保持正常光照。
 - 构筑井控制器、结构件和服务方块不再向环境发出方块光照，保留贴图本身的局部自发光细节。控制器亮起状态跟随结构、网络及施工操作更新。
 
+### 多方块自然生成保护
+
+- 构序阵列、万物演算核心和物质构筑井现在禁止占用区块整个高度内的**所有生物自然生成**，包括动物和蝙蝠。范围跟随成型、施工、拆卸及更新时的真实区块占地，替代原先两类控制器的固定半径。
+- 涵盖自然生成、世界生成、巡逻和增援。刷怪笼、刷怪蛋、繁殖、指令及已有生物保留；禁刷本身无需 AE 供电。重叠区块在最后一台多方块释放后解除保护，单方块超限算枢不产生禁刷区。
+
 ### JEI 与合成兼容
 
 - 修复响应式界面中 **JEI 悬浮物品、高亮和提示框与鼠标指向不一致，但点击位置仍正确** 的问题。JEI 15 容器前景绘制改用屏幕坐标，保留 JEI 自身会移除的原点平移，结束后恢复机器状态；较新入口按可选兼容处理。
@@ -102,7 +112,7 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 ### 验证与现有限制
 
 - **152 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及真实 AE2 15 库存 NBT 跨水晶分片往返恢复。
-- **四项 Forge 隔离 GameTest 通过**，覆盖资源投料／查询和算枢接线、CPU、存档、掉落及供能恢复；独立 **AdvancedAE 集成测试通过**，包含算枢配方及研究解锁和原有 65,536 份批量派发场景。
+- **六项 Forge 隔离 GameTest 通过**，覆盖资源投料／查询、算枢接线与任务恢复，以及三种多方块的自然生成保护；独立 **AdvancedAE 集成测试通过**，包含算枢配方及研究解锁和原有 65,536 份批量派发场景。
 - 上述验证针对代码及坐标行为；最新 JEI 修正尚未进行游戏内交互式画面验收。
 - 构筑井仍存在原有配方限制：同产物、可替代原料重叠时，批次拆分可能使用另一条配方的耗时／能耗；重载时加入优先匹配的配方，可能使已有队列持续等待。
 

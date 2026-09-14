@@ -40,7 +40,6 @@ import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry.MatterValue;
-import com.atir.molecularmanipulator.world.MolecularCenterSpawnProtection;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
@@ -322,7 +321,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void onChunkUnloaded() {
-        unregisterSpawnProtection();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.onChunkUnloaded();
@@ -330,7 +328,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void setRemoved() {
-        unregisterSpawnProtection();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.setRemoved();
@@ -1728,16 +1725,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             markForUpdate();
         }
-        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            MolecularCenterSpawnProtection.update(serverLevel, worldPosition, formed);
-        }
         MultiblockChunkLoading.maintain(this);
-    }
-
-    private void unregisterSpawnProtection() {
-        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            MolecularCenterSpawnProtection.unregister(serverLevel, worldPosition);
-        }
     }
 
     public Set<ChunkPos> getChunkLoadingChunks() {
@@ -2090,7 +2078,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         buildQueueInitialized = false;
         buildWorkParts = List.of();
         formed = false;
-        unregisterSpawnProtection();
         level.setBlock(worldPosition, getBlockState().setValue(
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
         onGridConnectableSidesChanged();
@@ -2106,7 +2093,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     private void deactivateStructureForWork() {
         formed = false;
-        unregisterSpawnProtection();
         level.setBlock(worldPosition, getBlockState().setValue(
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
         onGridConnectableSidesChanged();

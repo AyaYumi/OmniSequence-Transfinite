@@ -17,6 +17,7 @@ The `1.20.1-forge` branch ports OmniSequence 2.0.3 (NeoForge commit `32bc92c`) t
 | UI | All six machine screens and JEI pages follow the 1.21.1 branch's layouts using the native Forge console theme. Minecraft/AE2 retain container events and synchronization. Enabled operations control their button highlights; output directions show cached neighbor thumbnails. XML overlays and LDLib2 are removed; paging, search, research, draft preservation and high-GUI-scale input handling remain available. |
 | Rendering | Vertices are explicitly completed, baked-model data uses Forge builders, and full multiblock bounds are exposed through block entities for frustum culling. Large effects use a 384-block view range. |
 | Capabilities | Item/fluid ports cache LazyOptional capabilities and invalidate/recreate them with the block-entity lifecycle. |
+| Natural spawn protection | All three multiblocks use their persisted owned chunk footprints to block all natural mob categories at any height. Spawners, eggs, breeding, commands and loaded mobs are unaffected. |
 | Chunk tickets | ForgeChunkManager restores controller-owned ticking tickets and releases only that controller's tickets on actual removal. |
 | Virtual CPUs | The earlier Forge readiness safeguard is retained: a CPU must be live, idle and have an empty return inventory before reuse or removal. |
 
@@ -39,7 +40,7 @@ See [dependency setup](../libs/README.md) for local development artifacts. Requi
 
 ## Validation / 验证
 
-The 2.0.3 port passes 152 unit tests, four isolated Forge GameTests and the separate
+The 2.0.3 port passes 152 unit tests, six isolated Forge GameTests and the separate
 AdvancedAE batch/recipe integration test. JEI 15.49.0.188 is the client test baseline.
 The distributable targets Java 17, includes the generated SRG refmap and bundles
 MixinExtras Forge 0.5.3. Client visual validation is still a separate check.

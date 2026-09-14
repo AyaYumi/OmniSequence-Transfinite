@@ -70,6 +70,8 @@ Use in-game projections and JEI's interactive structure previews to inspect laye
 
 The large multiblocks automatically keep their required chunks loaded while formed or performing construction, dismantling or structure updates. Structural damage pauses affected work while preserving its state. The single-block nexus does not load chunks for you.
 
+Those occupied chunks also block natural spawning at every height, including monsters, animals, aquatic mobs and bats. This includes natural world-generation, patrol and reinforcement spawns. Spawners, spawn eggs, commands and existing mobs remain unaffected. Protection follows the chunk footprint and ends when no multiblock owns it; the single-block nexus has no such area.
+
 Large controllers also support **Entangled Quantum Links**. Place matching Entangled Singularities in the controller and a powered remote AE2 Quantum Ring for cross-dimensional ME access. The link costs an additional **512 AE/t and one channel**, and can supply construction materials before the multiblock is complete.
 
 When supported molecular machines hold active batches or large output buffers, their recovery data stays with the dropped machine instead of becoming a large pile of loose items. For the formed Sequence Array's main pattern library, retain its pattern-bearing crystals when moving or rebuilding the structure.
@@ -185,6 +187,8 @@ The Mod ID remains **`molecularmanipulator`** for existing world and script refe
 通过游戏内投影和 JEI 可交互结构预览，查看层级、朝向及完整材料。大型多方块支持自动搭建和拆卸；拆卸按高度从上到下处理匹配方块，进度可以跨存档恢复。
 
 大型多方块在成型及施工、拆卸、结构更新期间自动强加载所需区块。结构损坏会暂停相关工作并保留状态。单方块超限算枢不提供区块加载。
+
+这些占地区块的整个高度同时禁止自然生成生物，包括怪物、动物、水生生物和蝙蝠，涵盖自然生成、世界生成、巡逻和增援生成。刷怪笼、刷怪蛋、指令和已有生物不受影响。禁刷随区块范围生效，最后一台多方块释放范围后解除；单方块超限算枢不提供该保护。
 
 大型控制器还支持**缠绕态量子链路**：将一对缠绕态奇点分别放入控制器与已供电的远端 AE2 量子环，即可跨维度接入 ME。链路额外消耗 **512 AE/t 和一个频道**，多方块尚未完成时也能通过远端网络获取施工材料。
 

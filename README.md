@@ -42,6 +42,7 @@ and the separate AppliedEnhancements planning API.
 - All three multiblocks dismantle actual matching blocks from highest to lowest, with serpentine rows inside each layer. Air does not inflate progress, paused or reloaded work retains its queue, and the controller is kept.
 - Retains the current structures and only the official 1.3.9 Sequence Array/Omni-Computation legacy layouts. Their controllers provide a projection warning and timed two-click update confirmation.
 - Supports wired ME access and cross-dimensional entangled quantum links.
+- All three large multiblocks suppress natural mob spawning throughout the full height of their occupied chunks, including monsters, animals, aquatic mobs and bats. Protection follows formed structures and active construction/dismantling; spawners, spawn eggs and commands are unaffected. It does not remove existing mobs.
 - Provides modpack-configurable matter deconstruction, sequence storage, and blueprint reproduction.
 - Adds bilingual AE2 GuideME pages for the main machines, Matter Fabrication Well, research, ports and pattern assembly, with live well recipe displays and research unlock labels.
 
@@ -104,7 +105,7 @@ See [UI layout and validation](docs/UI_DESIGN.md) for the screen map and headles
 - Uses a floating 65×65×35 celestial crown with `Long.MAX_VALUE`-scale logical crafting storage and parallelism.
 - Creates virtual CPU lanes for active requests while reserving idle capacity for new jobs.
 - Preserves tasks, internal materials, and progress while the structure is damaged or its chunks are unavailable.
-- Supports projection, automatic construction, automatic dismantling, and suppression of natural hostile-mob spawning around the structure.
+- Supports projection, automatic construction, automatic dismantling, and suppression of natural spawning for all mob categories in its occupied chunks.
 
 ### Transfinite Compute Nexus
 

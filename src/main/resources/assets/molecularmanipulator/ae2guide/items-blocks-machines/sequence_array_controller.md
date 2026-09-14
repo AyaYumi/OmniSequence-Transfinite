@@ -21,6 +21,14 @@ The Sequence Array Controller forms a Sequence Array within a 61x61 footprint an
 parallel AE crafting, per-pattern passive auto crafting, matter sequence rewriting, and an optional cross-dimensional
 quantum connection.
 
+## Natural spawning protection
+
+While formed or performing construction, dismantling or a structure update, this multiblock blocks
+natural spawning throughout the full height of its occupied chunks, including monsters, animals,
+aquatic mobs and bats. Patrol and reinforcement spawns are also blocked. Spawners, spawn eggs,
+breeding, commands and existing mobs are unaffected. Protection does not require AE power;
+when no structure or operation owns a chunk, spawning there returns to normal.
+
 ## Building the structure
 
 The controller and dedicated components are produced in the [Matter Fabrication Well](matter_fabrication_well.md) after

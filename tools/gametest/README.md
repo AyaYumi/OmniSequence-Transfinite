@@ -11,14 +11,15 @@ Run from the repository root with Java 17 and the dependencies in [libs/README.m
 | MatterAEKeyGameTests | Registered third-party keys, numeric long JSON, recipe/menu synchronization, complete input matching, batch partitioning, queued/active/refund NBT, ME returns and identical/proportional inputs producing different outputs |
 | MatterRecipeLookupGameTests | Repeated lookup benchmark, candidate order, per-controller research permissions, research load/revoke, bonuses and both recipe reload paths |
 | TransfiniteComputeNexusGameTests | Six real AE cables, adjacent CPU isolation, virtual jobs, long counts, world reload, BlockEntityTag portable recovery and power loss/reconnection |
+| MultiblockSpawnGameTests (2 tests) | All three formed footprints, chunk edges and full height, animals/bats/monsters, spawner/egg/command exclusions, unload/reload, damage/repair/removal, construction/dismantling, overlapping owners and nexus exclusion |
 
-Four GameTests run in `build/forge-regression-run`, an isolated world. Test key types, recipes and classes are not included in the distributable JAR. The existing Java/geometry/UI unit tests run through `gradlew test build`.
+Six GameTests run in `build/forge-regression-run`, an isolated world. Test key types, recipes and classes are not included in the distributable JAR. The existing Java/geometry/UI unit tests run through `gradlew test build`.
 
-四项 GameTest 使用 `build/forge-regression-run` 隔离世界，不读取整合包存档。测试资源和自定义 AEKey 不打包进正式 JAR。原有 Java、几何和界面单元测试通过 `gradlew test build` 运行。
+六项 GameTest 使用 `build/forge-regression-run` 隔离世界，不读取整合包存档。新增两项禁刷测试覆盖真实三种多方块、全部自然生物类别、区块边界／高度、刷怪笼等排除项、施工拆卸、重叠范围及重载释放。测试资源和自定义 AEKey 不打包进正式 JAR。原有 Java、几何和界面单元测试通过 `gradlew test build` 运行。
 
 `MATTER_LOOKUP_BENCH` reports three rounds of 2,000 lookups after 2,000 warm-up calls, with 128 fabrication recipes and 32 research definitions. It measures lookup only, not whole-server TPS. Timing has no pass/fail threshold; functional assertions verify results. Recipe replacements are restored in the same server-thread call.
 
-The Gradle run checks that all four required tests completed, because Forge may otherwise exit successfully after a startup failure. Wait for native AE2 node initialization and for both controller and assembly to become active before exercising the delivery path.
+The Gradle run checks that all six required tests completed, because Forge may otherwise exit successfully after a startup failure. Wait for native AE2 node initialization and for both controller and assembly to become active before exercising the delivery path.
 
 The nexus fixture uses a fresh chunk on each run and waits for the restored network/CPU
 to become ready before continuing. It checks that the nexus recipe is absent without

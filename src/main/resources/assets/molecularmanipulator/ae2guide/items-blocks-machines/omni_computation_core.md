@@ -31,6 +31,14 @@ Its controller and components are produced in the [Matter Fabrication Well](matt
 after the first completion of **Stage II: Omni-Computation** research. Defaults require one stage-one completion and 30 seconds
 per stage-two round.
 
+## Natural spawning protection
+
+While formed or performing construction, dismantling or a structure update, this multiblock blocks
+natural spawning throughout the full height of its occupied chunks, including monsters, animals,
+aquatic mobs and bats. Patrol and reinforcement spawns are also blocked. Spawners, spawn eggs,
+breeding, commands and existing mobs are unaffected. Protection does not require AE power;
+when no structure or operation owns a chunk, spawning there returns to normal.
+
 ## Building the structure
 
 1. Place the controller facing outward. The 65x65x35 structure needs 17 buildable blocks below and 17 above it,

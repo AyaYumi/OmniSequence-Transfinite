@@ -78,6 +78,17 @@ public final class MultiblockChunkLoading {
         return ACTIVE.getOrDefault(level, Map.of()).getOrDefault(owner, Set.of());
     }
 
+    /** Uses the same persisted ownership as chunk loading, including overlapping controllers. */
+    public static boolean isOccupiedChunk(ServerLevel level, BlockPos pos) {
+        var owners = ACTIVE.get(level);
+        if (owners == null) return false;
+        var chunk = new ChunkPos(pos);
+        for (var chunks : owners.values()) {
+            if (chunks.contains(chunk)) return true;
+        }
+        return false;
+    }
+
     /** Only call for actual block removal; chunk unload and server shutdown retain tickets. */
     public static void release(ServerLevel level, BlockPos owner) {
         var chunks = ownedChunks(level, owner);

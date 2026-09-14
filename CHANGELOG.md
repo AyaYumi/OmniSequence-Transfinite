@@ -30,6 +30,11 @@ Changes from **2.0.2**.
 - Preserved gold and fluid-port blue emissive details across animated frames, refined the controller's dark center panel, and added local purple emissive accents to the Molecular Sequence Rewrite Array.
 - Removed block-light emission from the well's controller, structure parts and service blocks while retaining their local emissive texture details. Controller powered visuals now follow structure/network state and construction operations.
 
+#### Multiblock spawn protection
+
+- The Sequence Array, Omni-Computation Core and Matter Fabrication Well now block natural spawning for **all mob categories**, including animals and bats, across the full height of their occupied chunks. The area follows their formed/construction/dismantling/upgrade footprint instead of a fixed radius around two controllers.
+- Includes natural world-generation, patrol and reinforcement spawning. Spawners, spawn eggs, breeding, commands and existing mobs are unaffected. No AE power is needed for the protection itself. Shared chunks remain protected until their last owning multiblock releases them; the standalone nexus adds no protection.
+
 #### JEI and crafting compatibility
 
 - Fixed the responsive-screen case where **JEI's hovered item, highlight and tooltip disagreed with the item under the mouse, while clicks still used the correct position**. JEI foreground/background rendering now uses screen coordinates and restores the machine's render state afterwards.
@@ -49,7 +54,7 @@ Changes from **2.0.2**.
 #### Validation and remaining limits
 
 - **134 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
-- **All nine isolated server GameTests passed**, covering the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
+- **All eleven isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.
 
@@ -81,6 +86,11 @@ Changes from **2.0.2**.
 - 保留动画中的金色、流体接口蓝色局部自发光，细化控制器中央暗色面板，并为分子构序重写阵列加入紫色局部自发光线条。
 - 构筑井控制器、结构件和服务方块不再向环境发出方块光照，保留贴图本身的局部自发光细节。控制器亮起状态跟随结构、网络及施工操作更新。
 
+#### 多方块自然生成保护
+
+- 构序阵列、万物演算核心和物质构筑井现在禁止占用区块整个高度内的**所有生物自然生成**，包括动物和蝙蝠。范围跟随成型、施工、拆卸及更新时的真实区块占地，替代原先两类控制器的固定半径。
+- 涵盖自然生成、世界生成、巡逻和增援。刷怪笼、刷怪蛋、繁殖、指令及已有生物保留；禁刷本身无需 AE 供电。重叠区块在最后一台多方块释放后解除保护，单方块超限算枢不产生禁刷区。
+
 #### JEI 与合成兼容
 
 - 修复响应式界面中 **JEI 悬浮物品、高亮和提示框与鼠标指向不一致，但点击位置仍正确** 的问题。JEI 前景／背景绘制改用屏幕坐标，结束后恢复机器界面的绘制状态。
@@ -100,7 +110,7 @@ Changes from **2.0.2**.
 #### 验证与现有限制
 
 - **134 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
-- **九项隔离服务端 GameTest 全部通过**，覆盖超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
+- **十一项隔离服务端 GameTest 全部通过**，覆盖三种多方块自然生成保护、超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
 - 上述验证针对代码及坐标行为；最新 JEI 修正尚未进行游戏内交互式画面验收。
 - 构筑井仍存在原有配方限制：同产物、可替代原料重叠时，批次拆分可能使用另一条配方的耗时／能耗；重载时加入优先匹配的配方，可能使已有队列持续等待。
 

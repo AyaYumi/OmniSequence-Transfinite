@@ -23,7 +23,6 @@ import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import com.atir.molecularmanipulator.mixin.CraftingCPUClusterAccessor;
 import com.atir.molecularmanipulator.registry.ModContent;
-import com.atir.molecularmanipulator.world.MolecularCenterSpawnProtection;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
@@ -248,7 +247,6 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void onChunkUnloaded() {
-        unregisterSpawnProtection();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         retireStoredCpus(true);
@@ -257,7 +255,6 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void setRemoved() {
-        unregisterSpawnProtection();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         retireStoredCpus(true);
@@ -512,22 +509,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
         updateSubType(true);
         updateQuantumLink();
-        updateSpawnProtection();
         setChanged();
         MultiblockChunkLoading.maintain(this);
-    }
-
-    private void updateSpawnProtection() {
-        if (level instanceof ServerLevel serverLevel) {
-            MolecularCenterSpawnProtection.updateOmni(serverLevel, worldPosition, structureFormed,
-                    inspection.layout());
-        }
-    }
-
-    private void unregisterSpawnProtection() {
-        if (level instanceof ServerLevel serverLevel) {
-            MolecularCenterSpawnProtection.unregister(serverLevel, worldPosition);
-        }
     }
 
     public AppEngInternalInventory getQuantumInventory() {
@@ -1342,7 +1325,6 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             building = true;
             configureUpgradeSource(sourceLayout);
             structureFormed = false;
-            unregisterSpawnProtection();
             updateSubType(true);
             updateQuantumLink();
             setChanged();
@@ -1405,7 +1387,6 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         centeredCore.building = true;
         centeredCore.configureUpgradeSource(sourceLayout);
         centeredCore.structureFormed = false;
-        centeredCore.unregisterSpawnProtection();
         centeredCore.updateSubType(true);
         centeredCore.updateQuantumLink();
         centeredCore.setChanged();
@@ -1475,7 +1456,6 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         dismantling = true;
         dismantleBlockedNotified = false;
         structureFormed = false;
-        unregisterSpawnProtection();
         updateSubType(true);
         updateQuantumLink();
         setChanged();

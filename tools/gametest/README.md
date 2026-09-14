@@ -4,8 +4,8 @@ Run with Java 21 from the repository root after preparing the separate
 AppliedEnhancements dependency described in [libs/README.md](../../libs/README.md).
 No locally installed modpack or personal world is required.
 
-The 2.0.3 isolated server suite contains 9 tests. All nine passed, including the
-new nexus lifecycle test. For the separate client coordinate checks, see
+The 2.0.3 isolated server suite contains 11 tests. All eleven passed, including the
+nexus lifecycle and multiblock natural-spawn protection tests. For the separate client coordinate checks, see
 [UI regression checks](../ui/README.md); those do not launch a Minecraft client.
 
 ```sh
@@ -24,8 +24,9 @@ are generated under `build/`. These extra sources are not packaged in the mod JA
 | MatterRecipeLookupGameTests | Repeated lookup benchmark, ordered output candidates, live research permissions, separate controller progress, depth bonuses and data-pack/replaceRecipes invalidation |
 | Legacy139MigrationGameTests | Four-direction 1.3.9 upgrades and save/reload, retained contents, stopped retired layouts and safe old-cursor handling |
 | TransfiniteComputeNexusGameTests | Six real AE smart cables, adjacent CPU isolation, virtual jobs, long material counts, world reload, retained drops and power recovery |
+| MultiblockSpawnGameTests (2 tests) | All three formed footprints, chunk edges and full height, animals/bats/monsters, spawner/egg/command exclusions, unload/reload, damage/repair/removal, construction/dismantling, overlapping owners and nexus exclusion |
 
-共 9 项游戏测试。新增 AEKey 测试类型与配方只存在于隔离测试环境，不打包进正式 JAR。另有 `src/test` 中的单元测试，随 `./gradlew test build` 运行。
+共 11 项游戏测试。新增两项自然生成保护测试覆盖三种真实结构、区块边界和高度、全部自然生物类别、生成来源排除项及重载／施工／拆卸／重叠范围。测试类型与配方只存在于隔离测试环境，不打包进正式 JAR。另有 `src/test` 中的单元测试，随 `./gradlew test build` 运行。
 先按 [libs/README.md](../../libs/README.md) 准备独立前置，游戏测试使用
 `build/multiblock-regression-run` 隔离世界，不读取玩家整合包存档。
 升级测试每次选取新坐标，避免旧施工状态影响结果；模板资源由本目录提供。

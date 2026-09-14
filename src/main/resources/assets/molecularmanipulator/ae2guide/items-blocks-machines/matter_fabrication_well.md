@@ -21,6 +21,14 @@ The Matter Fabrication Well combines material processing, AE autocrafting and re
 craft its controller, structural blocks and ports with base AE2 materials, then research advanced materials and machines.
 The [Pattern Assembly](matter_fabrication_pattern_assembly.md) is produced in the well after the first research unlock.
 
+## Natural spawning protection
+
+While formed or performing construction, dismantling or a structure update, this multiblock blocks
+natural spawning throughout the full height of its occupied chunks, including monsters, animals,
+aquatic mobs and bats. Patrol and reinforcement spawns are also blocked. Spawners, spawn eggs,
+breeding, commands and existing mobs are unaffected. Protection does not require AE power;
+when no structure or operation owns a chunk, spawning there returns to normal.
+
 ## Construction and connection
 
 1. Reserve a 41×41 footprint and 27 blocks of height for the current pearl-white fabrication chamber. Face the controller toward the operating side.

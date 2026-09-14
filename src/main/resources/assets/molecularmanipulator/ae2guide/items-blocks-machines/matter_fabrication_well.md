@@ -29,6 +29,10 @@ The [Pattern Assembly](matter_fabrication_pattern_assembly.md) is produced in th
 4. Install [ports](matter_fabrication_ports.md) or pattern assemblies in valid service sockets. Holding one highlights permitted positions on nearby wells, including the usable front terrace row.
 5. Connect the formed controller to a powered ME Network. Processing uses ports or pattern assemblies; research draws materials from the controller's network.
 
+In 2.0.3, service blocks fit 24 front terrace positions and 20 central collar positions
+(five on each of four sides). The former nine outer service positions are no longer accepted.
+When upgrading, move those service blocks and restore the vacated positions according to the projection.
+
 The quantum slot accepts one half of a paired entangled singularity; place the other half in a powered AE2 Quantum Ring.
 Before formation, the link can retrieve remote construction materials. After formation, it can connect the working network.
 The link adds 512 AE/t of power use and requires a channel. Resolve conflicting wired and remote networks before using the link.

@@ -12,6 +12,7 @@
     "CalculatorAssemblerMatrixMixin",
     "ClusterAssemblerMatrixMixin",
     "CraftingCPUClusterAccessor",
+    "CraftingCPUCalculatorMixin",
     "CraftingCpuLogicMixin",
     "GridActiveMachinesMixin",
     "KeyCounterMixin",
@@ -26,7 +27,9 @@
     "TileAssemblerMatrixPatternMixin"
   ],
   "client": [
-    "CPUSelectionListMixin"
+    "CPUSelectionListMixin",
+    "JeiResponsiveRenderMixin",
+    "JeiResponsiveSlotMixin"
   ],
   "injectors": {
     "defaultRequire": 1

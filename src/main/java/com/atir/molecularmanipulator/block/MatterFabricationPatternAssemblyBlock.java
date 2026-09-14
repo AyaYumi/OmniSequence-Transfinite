@@ -30,7 +30,7 @@ public final class MatterFabricationPatternAssemblyBlock
         extends AEBaseEntityBlock<MatterFabricationPatternAssemblyBlockEntity> {
     public MatterFabricationPatternAssemblyBlock() {
         super(Properties.of().strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                .lightLevel(state -> 13));
+                .lightLevel(state -> 0));
         registerDefaultState(defaultBlockState().setValue(
                 PatternProviderBlock.PUSH_DIRECTION, PushDirection.ALL));
     }

@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "molecularmanipulator:transfinite_compute_nexus",
     "molecularmanipulator:molecular_manipulator",
     "molecularmanipulator:assembler_matrix_molecular_core",
     "molecularmanipulator:molecular_center_controller",

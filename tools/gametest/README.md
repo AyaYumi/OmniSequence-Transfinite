@@ -4,6 +4,10 @@ Run with Java 21 from the repository root after preparing the separate
 AppliedEnhancements dependency described in [libs/README.md](../../libs/README.md).
 No locally installed modpack or personal world is required.
 
+The 2.0.3 isolated server suite contains 9 tests. All nine passed, including the
+new nexus lifecycle test. For the separate client coordinate checks, see
+[UI regression checks](../ui/README.md); those do not launch a Minecraft client.
+
 ```sh
 ./gradlew --no-configuration-cache -I tools/gametest/gametest.init.gradle runGameTestServer
 ```
@@ -19,8 +23,9 @@ are generated under `build/`. These extra sources are not packaged in the mod JA
 | MatterAEKeyGameTests | Registered third-party AEKey inputs, recipe/menu codecs, exact matching, long batches, queued/active/refund persistence and return to ME |
 | MatterRecipeLookupGameTests | Repeated lookup benchmark, ordered output candidates, live research permissions, separate controller progress, depth bonuses and data-pack/replaceRecipes invalidation |
 | Legacy139MigrationGameTests | Four-direction 1.3.9 upgrades and save/reload, retained contents, stopped retired layouts and safe old-cursor handling |
+| TransfiniteComputeNexusGameTests | Six real AE smart cables, adjacent CPU isolation, virtual jobs, long material counts, world reload, retained drops and power recovery |
 
-共 8 项游戏测试。新增 AEKey 测试类型与配方只存在于隔离测试环境，不打包进正式 JAR。另有 `src/test` 中的单元测试，随 `./gradlew test build` 运行。
+共 9 项游戏测试。新增 AEKey 测试类型与配方只存在于隔离测试环境，不打包进正式 JAR。另有 `src/test` 中的单元测试，随 `./gradlew test build` 运行。
 先按 [libs/README.md](../../libs/README.md) 准备独立前置，游戏测试使用
 `build/multiblock-regression-run` 隔离世界，不读取玩家整合包存档。
 升级测试每次选取新坐标，避免旧施工状态影响结果；模板资源由本目录提供。

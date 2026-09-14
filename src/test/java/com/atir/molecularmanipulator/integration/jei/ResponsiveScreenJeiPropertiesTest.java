@@ -19,6 +19,20 @@ import org.junit.jupiter.api.Test;
 
 class ResponsiveScreenJeiPropertiesTest {
     @Test
+    void openingBeforeInitializationDoesNotPublishInvalidDimensions() throws Exception {
+        var screen = ResponsiveScreenTestFixture.create(0, 0, 332, 368);
+        var handler = ResponsiveScreenJeiProperties.<ResponsiveContainerScreen<?>>screenHandler();
+        assertNull(handler.apply(screen));
+        screen.viewport(854, 300, 332, 368);
+        var properties = handler.apply(screen);
+        assertNotNull(properties);
+        assertEquals(854, properties.screenWidth());
+        assertEquals(300, properties.screenHeight());
+        assertEquals(4, properties.guiTop());
+        assertEquals(292, properties.guiYSize());
+    }
+
+    @Test
     void normalItemsUseVisualHitBoundsAndIgnoreStaleHoveredSlots() throws Exception {
         var screen = ResponsiveScreenTestFixture.create(567, 240, 430, 286);
         var stack = new ItemStack(Items.STONE);
@@ -57,11 +71,10 @@ class ResponsiveScreenJeiPropertiesTest {
                     return null;
                 });
         new MolecularCenterJeiPlugin().registerGuiHandlers(registration);
-        assertTrue(handlers.containsKey(ResponsiveContainerScreen.class));
-        for (var type : new Class<?>[] { MolecularCenterScreen.class,
+        for (var type : new Class<?>[] { ResponsiveContainerScreen.class, MolecularCenterScreen.class,
                 OmniComputationScreen.class, MatterFabricationScreen.class, MatterFabricationPortScreen.class,
                 MatterFabricationPatternAssemblyScreen.class }) {
-            assertTrue(ResponsiveContainerScreen.class.isAssignableFrom(type));
+            assertTrue(handlers.containsKey(type), type.getSimpleName());
         }
         var screen = ResponsiveScreenTestFixture.create(567, 240, 430, 286);
         @SuppressWarnings("unchecked")

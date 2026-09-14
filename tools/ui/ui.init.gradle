@@ -1,0 +1,28 @@
+// Run the UI regression suite with the exact JEI/LDLib2 binaries from a modpack.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        tasks.register('testPackUi', Test) {
+            dependsOn project.tasks.named('testClasses')
+            testClassesDirs = project.sourceSets.test.output.classesDirs
+            def baseTest = project.tasks.named('test', Test).get()
+            javaLauncher = baseTest.javaLauncher
+            def jei = project.findProperty('jeiJar')
+            def ldlib = project.findProperty('ldlibJar')
+            if (!jei || !ldlib) {
+                throw new GradleException('Provide -PjeiJar=<JEI JAR> and -PldlibJar=<LDLib2 JAR>.')
+            }
+            def packJars = project.files(jei, ldlib)
+            packJars.each { if (!it.isFile()) throw new GradleException("Missing modpack dependency: ${it}") }
+            classpath = packJars + baseTest.classpath.filter {
+                !it.name.startsWith('ldlib2-') && !it.name.startsWith('jei-1.21.1-')
+            }
+            useJUnitPlatform()
+            filter {
+                includeTestsMatching '*JeiResponsiveRenderTest'
+                includeTestsMatching '*ResponsiveScreenJeiPropertiesTest'
+                includeTestsMatching '*ResponsiveContainerScreenTest'
+            }
+        }
+    }
+}

@@ -48,7 +48,9 @@ Unrelated blocks or entities at the destination stop relocation. Clear the desti
 
 The array force-loads required chunks while formed and during construction, dismantling or structure updates. Valid
 loading tasks resume after world reloads. Structural damage pauses work while retaining progress; unnecessary tickets
-are released. Normal controller drops retain patterns, inventory, quantum-slot contents and owned task state.
+are released. Normal controller drops retain inventory, quantum-slot contents and owned task state.
+The formed current layout stores its main pattern library in the 14 quantum crystals; retain those crystals
+when moving the array. Legacy and incomplete layouts retain their controller pattern copy for migration.
 
 Dismantling keeps the controller and queues only actual matching blocks. It completes each world-height layer from top to bottom, using serpentine rows within the layer. Air is not counted, and targets removed or changed externally are skipped without using the removal budget. Insufficient recovery capacity or denied operations pause the current block; the same queue and progress resume after conditions recover or the world reloads.
 
@@ -58,8 +60,13 @@ The completed array supports virtual parallelism up to the signed 64-bit limit. 
 ingredients, energy, output capacity, and server tick time.
 
 The large pattern library accepts encoded AE2 crafting, smithing, and stonecutting patterns for ordinary AE crafting.
-Shift-moving a pattern fills the current page first and continues into later pages when necessary; processing, blank,
-and invalid patterns are rejected.
+It defaults to 200 pages of 36 slots and can be configured up to 300 pages (10,800 slots). Once the array is formed,
+the fourteen Sequence Array Quantum Crystals share that library without adding capacity. Dismantling keeps each shard
+inside its crystal; the controller still manages the combined library. Construction prefers patterned crystals from the
+player or ME network before blank crystals.
+Before upgrading from 2.0.2, move patterns out of pages 301 and above; the former 1,000-page inventory range is no longer supported.
+Shift-moving a pattern fills the current page first and continues
+into later pages when necessary; processing, blank, and invalid patterns are rejected.
 
 The **Auto Crafting** tab has its own row of nine dedicated pattern slots and never selects patterns from the large
 library. Place patterns directly into these slots, then click the numbered selector or right-click the slot to configure

@@ -16,10 +16,9 @@ Research belongs to the [well controller](matter_fabrication_well.md). New contr
 | --- | --- | --- | --- | --- |
 | Stage I: AE Material Fabrication | None | Charged Certus Quartz, Fluix Crystals, processors and other AE recipes; materials/intermediates for stage two; pattern assemblies | 30 seconds | 256 AE/t |
 | Stage II: Sequence Array | Stage I completed once | Sequence Array components, Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core recipes | 30 seconds | 512 AE/t |
-| Stage II: Omni-Computation | Stage I completed once | Omni-Computation Core and component recipes | 30 seconds | 1024 AE/t |
+| Stage II: Omni-Computation | Stage I completed once | Omni-Computation Core, Transfinite Compute Nexus and component recipes | 30 seconds | 1024 AE/t |
 
-Both stage-two branches can run simultaneously. Without AdvancedAE, the Omni-Computation branch and its recipes are unavailable.
-These are mod defaults; a pack may change prerequisites, costs, duration and unlocks.
+Both stage-two branches can run simultaneously. These are mod defaults; a pack may change prerequisites, costs, duration and unlocks.
 
 ## Start, pause and resume
 

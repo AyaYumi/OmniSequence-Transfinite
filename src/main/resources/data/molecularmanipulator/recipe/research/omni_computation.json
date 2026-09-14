@@ -57,6 +57,7 @@
   "duration": 600,
   "ae_per_tick": 1024,
   "unlocks": [
+    "molecularmanipulator:transfinite_compute_nexus",
     "molecularmanipulator:computation_crystal_pylon",
     "molecularmanipulator:computation_data_entangler",
     "molecularmanipulator:computation_energy_stabilizer",

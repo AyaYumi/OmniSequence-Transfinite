@@ -62,10 +62,6 @@ import java.util.UUID;
 @Mixin(value = CraftingCpuLogic.class, remap = false)
 public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
     @Unique
-    private static final int MOLECULARMANIPULATOR_UNBOUNDED_COPROCESSOR_THRESHOLD = 256;
-    @Unique
-    private static final int MOLECULARMANIPULATOR_SAFE_COPROCESSOR_LIMIT = 255;
-    @Unique
     private static final long MOLECULARMANIPULATOR_COMPAT_PATTERN_SLICE_NANOS =
             250_000L;
     @Shadow
@@ -478,9 +474,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
             // complete logical scheduling window without overflowing. Expensive work is
             // bounded independently, so one batch push may still represent any craft count.
             return Integer.MAX_VALUE - 1;
-        }
-        if (coProcessors > MOLECULARMANIPULATOR_UNBOUNDED_COPROCESSOR_THRESHOLD) {
-            return MOLECULARMANIPULATOR_SAFE_COPROCESSOR_LIMIT;
         }
         return coProcessors;
     }

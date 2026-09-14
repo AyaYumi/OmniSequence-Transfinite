@@ -26,6 +26,11 @@ public abstract class CPUSelectionListMixin {
             return fullName;
         }
         if (fullName.getContents() instanceof TranslatableContents translation
+                && "gui.molecularmanipulator.nexus.cpu_name".equals(translation.getKey())) {
+            return Component.translatable(
+                    "gui.molecularmanipulator.nexus.cpu_name_short", translation.getArgs());
+        }
+        if (fullName.getContents() instanceof TranslatableContents translation
                 && "gui.molecularmanipulator.omni.cpu_name".equals(translation.getKey())) {
             return Component.translatable(
                     "gui.molecularmanipulator.omni.cpu_name_short",

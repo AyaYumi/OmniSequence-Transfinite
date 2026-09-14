@@ -16,6 +16,7 @@ import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocators;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
+import com.atir.molecularmanipulator.block.TransfiniteComputeNexusBlock;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
@@ -104,7 +105,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private final AtomicInteger activeMaterialCalculations = new AtomicInteger();
     private final AtomicLong completedMaterialCalculations = new AtomicLong();
     private final AtomicLong lastMaterialCalculationNanos = new AtomicLong();
-    private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
+    private final boolean singleBlock;
+    private final AppEngInternalInventory quantumInventory;
     private OmniComputationStructure.Inspection inspection =
             new OmniComputationStructure.Inspection(OmniComputationStructure.parts().size(), 0,
                     OmniComputationStructure.parts().size(), 0, false,
@@ -161,15 +163,52 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     public OmniComputationCoreBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.OMNI_COMPUTATION_CONTROLLER_BE.get(), pos, state);
-        quantumInventory.setMaxStackSize(0, 1);
+        singleBlock = state.getBlock() instanceof TransfiniteComputeNexusBlock;
+        quantumInventory = new AppEngInternalInventory(this, singleBlock ? 0 : 1);
+        if (!singleBlock) quantumInventory.setMaxStackSize(0, 1);
+        structureFormed = singleBlock;
         getMainNode()
                 .setFlags(GridFlags.MULTIBLOCK, GridFlags.REQUIRE_CHANNEL)
-                .setIdlePowerUsage(IDLE_POWER);
+                .setIdlePowerUsage(idlePowerUsage());
+    }
+
+    public boolean isSingleBlock() {
+        return singleBlock;
+    }
+
+    @Override
+    protected EnumSet<Direction> getConnections() {
+        if (!singleBlock || level == null) return EnumSet.noneOf(Direction.class);
+        var connections = EnumSet.noneOf(Direction.class);
+        for (var facing : Direction.values()) {
+            if (level.getBlockState(worldPosition.relative(facing)).getBlock() instanceof TransfiniteComputeNexusBlock) {
+                connections.add(facing);
+            }
+        }
+        return connections;
+    }
+
+    private boolean hasExternalNetworkConnection() {
+        var grid = getMainNode().getGrid();
+        if (grid == null) return false;
+        for (var node : grid.getNodes()) {
+            if (!(node.getOwner() instanceof OmniComputationCoreBlockEntity other) || !other.isSingleBlock()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private double idlePowerUsage() {
+        return singleBlock ? ModConfig.NEXUS_IDLE_POWER.get() : IDLE_POWER;
     }
 
     @Override
     protected Item getItemFromBlockEntity() {
-        return ModContent.OMNI_COMPUTATION_CONTROLLER_ITEM.get();
+        // AE2 requests the item while its superclass initializes the network node.
+        return getBlockState().getBlock() instanceof TransfiniteComputeNexusBlock
+                ? ModContent.TRANSFINITE_COMPUTE_NEXUS_ITEM.get()
+                : ModContent.OMNI_COMPUTATION_CONTROLLER_ITEM.get();
     }
 
     @Override
@@ -329,10 +368,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return;
         }
         var current = level.getBlockState(worldPosition);
-        if (!current.is(ModContent.OMNI_COMPUTATION_CONTROLLER.get())) {
+        if (!current.is(getBlockState().getBlock())) {
             return;
         }
-        boolean powered = structureFormed && getMainNode().isActive();
+        boolean powered = structureFormed && getMainNode().isOnline()
+                && (!singleBlock || hasExternalNetworkConnection());
         if (current.getValue(BlockStateProperties.POWERED) != powered) {
             level.setBlock(worldPosition, current.setValue(BlockStateProperties.POWERED, powered), 3);
         }
@@ -342,6 +382,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public Set<ChunkPos> getChunkLoadingChunks() {
+        if (singleBlock) return Set.of();
         var result = new HashSet<ChunkPos>();
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         if (structureFormed) result.addAll(OmniComputationStructure.chunkFootprint(worldPosition, facing, inspection.layout()));
@@ -360,11 +401,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         if (level == null || level.isClientSide()) {
             return;
         }
-        if (building || dismantling || rebuildingLegacyStructure) MultiblockChunkLoading.maintain(this);
+        if (!singleBlock && (building || dismantling || rebuildingLegacyStructure)) MultiblockChunkLoading.maintain(this);
         long gameTime = level.getGameTime();
-        if (building) {
+        if (!singleBlock && building) {
             processBuild();
-        } else if (dismantling) {
+        } else if (!singleBlock && dismantling) {
             processDismantle();
         }
         if (gameTime >= nextStructureCheck) {
@@ -421,6 +462,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void scheduleStructureCheck() {
+        if (singleBlock) return;
         if (level != null) {
             nextStructureCheck = Math.min(nextStructureCheck, level.getGameTime() + 1);
         } else {
@@ -430,6 +472,12 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     public void refreshStructureNow() {
         if (level == null || level.isClientSide()) {
+            return;
+        }
+        if (singleBlock) {
+            structureFormed = true;
+            getMainNode().setIdlePowerUsage(idlePowerUsage());
+            updateSubType(false);
             return;
         }
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
@@ -487,6 +535,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public long getQuantumFrequency() {
+        if (singleBlock) return 0;
         var stack = quantumInventory.getStackInSlot(0);
         if (!MolecularCenterBlockEntity.isValidQuantumSingularity(stack)) {
             return 0;
@@ -499,6 +548,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     private void updateQuantumLink() {
+        if (singleBlock) return;
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
@@ -1111,10 +1161,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 : OmniComputationStructure.StructureLayout.INCOMPLETE;
         nextFormed &= nextLayout != OmniComputationStructure.StructureLayout.INCOMPLETE;
         if (!nextFormed) nextLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
-        changed |= structureFormed != nextFormed || visualFormed != nextFormed || visualLayout != nextLayout;
+        changed |= structureFormed != (singleBlock || nextFormed) || visualFormed != nextFormed || visualLayout != nextLayout;
         visualFormed = nextFormed;
         visualLayout = nextLayout;
-        structureFormed = nextFormed;
+        structureFormed = singleBlock || nextFormed;
         return changed;
     }
 
@@ -1186,6 +1236,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void startBuild(ServerPlayer player) {
+        if (singleBlock) return;
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
@@ -1228,6 +1279,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void startStructureUpdate(ServerPlayer player) {
+        if (singleBlock) return;
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
@@ -1363,6 +1415,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void keepLegacyStructure(ServerPlayer player) {
+        if (singleBlock) return;
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
         }
@@ -1381,6 +1434,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void startDismantle(ServerPlayer player) {
+        if (singleBlock) return;
         if (level == null || level.isClientSide() || building || dismantling || !player.mayBuild()) {
             return;
         }
@@ -1734,6 +1788,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void openMenu(Player player) {
+        if (singleBlock) return;
         MenuOpener.open(OmniComputationMenu.TYPE, player, MenuLocators.forBlockEntity(this));
     }
 
@@ -1807,6 +1862,14 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         tag = RetainedBlockContents.unpack(tag);
+        if (singleBlock) {
+            // The block defines the machine variant; portable CPU data cannot enable controller features.
+            tag = tag.copy();
+            tag.remove(QUANTUM_INVENTORY_TAG);
+            tag.remove(KNOWN_LAYOUT_TAG);
+            tag.remove(UPGRADE_ACTIVE_TAG);
+            tag.remove(DISMANTLE_PLAN_TAG);
+        }
         super.loadTag(tag, registries);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         legacyStructureUpdateDismissed = tag.getBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG);
@@ -1863,6 +1926,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 ? tag.getBoolean(STRUCTURE_FORMED_TAG)
                 : getBlockState().getValue(BlockStateProperties.POWERED);
         if (dismantling || rebuildingLegacyStructure) structureFormed = false;
+        if (singleBlock) structureFormed = true;
         visualLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
         visualFormed = false;
         nextStructureCheck = 0;
@@ -1997,6 +2061,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return "?";
         }
         return Long.toString(id == Long.MAX_VALUE ? Long.MAX_VALUE : id + 1L);
+    }
+
+    public Component cpuDisplayName(CraftingCPUCluster cpu) {
+        return Component.translatable(singleBlock ? "gui.molecularmanipulator.nexus.cpu_name"
+                : "gui.molecularmanipulator.omni.cpu_name", laneName(cpu));
     }
 
     private record PersistedCpuState(long laneId, CompoundTag state) {

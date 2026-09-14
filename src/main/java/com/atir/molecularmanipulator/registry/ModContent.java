@@ -15,12 +15,14 @@ import com.atir.molecularmanipulator.block.OmniComputationCasingBlock;
 import com.atir.molecularmanipulator.block.OmniComputationControllerBlock;
 import com.atir.molecularmanipulator.block.OmniComputationGlassBlock;
 import com.atir.molecularmanipulator.block.OmniComputationPartBlock;
+import com.atir.molecularmanipulator.block.TransfiniteComputeNexusBlock;
 import com.atir.molecularmanipulator.blockentity.AssemblerMatrixMolecularCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternAssemblyBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPortBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MolecularCenterCrystalBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
@@ -99,7 +101,7 @@ public final class ModContent {
             "molecular_center_coil", () -> new MolecularCenterPartBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
-                            .noOcclusion().lightLevel(state -> 15)));
+                            .noOcclusion().lightLevel(state -> 15), false, true));
     public static final DeferredItem<BlockItem> MOLECULAR_CENTER_COIL_ITEM = ITEMS.register(
             "molecular_center_coil", () -> new BlockItem(MOLECULAR_CENTER_COIL.get(), new Item.Properties()));
     public static final DeferredBlock<MolecularCenterPartBlock> MOLECULAR_CENTER_STABILIZER = BLOCKS.register(
@@ -120,9 +122,7 @@ public final class ModContent {
             BLOCKS.register("matter_fabrication_controller", () -> new MatterFabricationControllerBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> state.getValue(
-                                    net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED)
-                                    ? 15 : 7)));
+                            .lightLevel(state -> 0)));
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_CONTROLLER_ITEM = ITEMS.register(
             "matter_fabrication_controller",
             () -> new BlockItem(MATTER_FABRICATION_CONTROLLER.get(), new Item.Properties()));
@@ -130,57 +130,62 @@ public final class ModContent {
             "matter_fabrication_casing", () -> new MolecularCenterPartBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> 7), false));
+                            .lightLevel(state -> 0), false));
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_CASING_ITEM = registerBlockItem(
             "matter_fabrication_casing", MATTER_FABRICATION_CASING);
     public static final DeferredBlock<MolecularCenterGlassBlock> MATTER_FABRICATION_GLASS = BLOCKS.register(
             "matter_fabrication_glass", () -> new MolecularCenterGlassBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(6.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .noOcclusion().lightLevel(state -> 12)));
+                            .noOcclusion().lightLevel(state -> 0)));
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_GLASS_ITEM = registerBlockItem(
             "matter_fabrication_glass", MATTER_FABRICATION_GLASS);
     public static final DeferredBlock<MolecularCenterPartBlock> MATTER_FABRICATION_COIL = BLOCKS.register(
             "matter_fabrication_coil", () -> new MolecularCenterPartBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .noOcclusion().lightLevel(state -> 15), false));
+                            .noOcclusion().lightLevel(state -> 0), false));
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_COIL_ITEM = registerBlockItem(
             "matter_fabrication_coil", MATTER_FABRICATION_COIL);
     public static final DeferredBlock<MolecularCenterPartBlock> MATTER_FABRICATION_STABILIZER = BLOCKS.register(
             "matter_fabrication_stabilizer", () -> new MolecularCenterPartBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> 11), false));
+                            .lightLevel(state -> 0), false));
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_STABILIZER_ITEM = registerBlockItem(
             "matter_fabrication_stabilizer", MATTER_FABRICATION_STABILIZER);
     public static final DeferredBlock<MolecularCenterCoreBlock> MATTER_FABRICATION_CORE = BLOCKS.register(
             "matter_fabrication_core", () -> new MolecularCenterCoreBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> 15)));
+                            .lightLevel(state -> 0)));
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_CORE_ITEM = registerBlockItem(
             "matter_fabrication_core", MATTER_FABRICATION_CORE);
     public static final DeferredBlock<MatterFabricationPortBlock> MATTER_FABRICATION_ITEM_INPUT =
-            registerMatterPort("matter_fabrication_item_input", MatterFabricationPortType.ITEM_INPUT, 11);
+            registerMatterPort("matter_fabrication_item_input", MatterFabricationPortType.ITEM_INPUT, 0);
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_ITEM_INPUT_ITEM = registerBlockItem(
             "matter_fabrication_item_input", MATTER_FABRICATION_ITEM_INPUT);
     public static final DeferredBlock<MatterFabricationPortBlock> MATTER_FABRICATION_ITEM_OUTPUT =
-            registerMatterPort("matter_fabrication_item_output", MatterFabricationPortType.ITEM_OUTPUT, 12);
+            registerMatterPort("matter_fabrication_item_output", MatterFabricationPortType.ITEM_OUTPUT, 0);
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_ITEM_OUTPUT_ITEM = registerBlockItem(
             "matter_fabrication_item_output", MATTER_FABRICATION_ITEM_OUTPUT);
     public static final DeferredBlock<MatterFabricationPortBlock> MATTER_FABRICATION_FLUID_INPUT =
-            registerMatterPort("matter_fabrication_fluid_input", MatterFabricationPortType.FLUID_INPUT, 11);
+            registerMatterPort("matter_fabrication_fluid_input", MatterFabricationPortType.FLUID_INPUT, 0);
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_FLUID_INPUT_ITEM = registerBlockItem(
             "matter_fabrication_fluid_input", MATTER_FABRICATION_FLUID_INPUT);
     public static final DeferredBlock<MatterFabricationPortBlock> MATTER_FABRICATION_FLUID_OUTPUT =
-            registerMatterPort("matter_fabrication_fluid_output", MatterFabricationPortType.FLUID_OUTPUT, 12);
+            registerMatterPort("matter_fabrication_fluid_output", MatterFabricationPortType.FLUID_OUTPUT, 0);
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_FLUID_OUTPUT_ITEM = registerBlockItem(
             "matter_fabrication_fluid_output", MATTER_FABRICATION_FLUID_OUTPUT);
     public static final DeferredBlock<MatterFabricationPatternAssemblyBlock> MATTER_FABRICATION_PATTERN_ASSEMBLY =
             BLOCKS.register("matter_fabrication_pattern_assembly", MatterFabricationPatternAssemblyBlock::new);
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM = registerBlockItem(
             "matter_fabrication_pattern_assembly", MATTER_FABRICATION_PATTERN_ASSEMBLY);
+
+    public static final DeferredBlock<TransfiniteComputeNexusBlock> TRANSFINITE_COMPUTE_NEXUS =
+            BLOCKS.register("transfinite_compute_nexus", TransfiniteComputeNexusBlock::new);
+    public static final DeferredItem<BlockItem> TRANSFINITE_COMPUTE_NEXUS_ITEM =
+            registerBlockItem("transfinite_compute_nexus", TRANSFINITE_COMPUTE_NEXUS);
 
     public static final DeferredBlock<OmniComputationControllerBlock> OMNI_COMPUTATION_CONTROLLER =
             BLOCKS.register("omni_computation_controller", () -> new OmniComputationControllerBlock(
@@ -249,10 +254,14 @@ public final class ModContent {
             MOLECULAR_CENTER_SHELL_BE = BLOCK_ENTITIES.register("molecular_center_shell",
                     () -> BlockEntityType.Builder.of(MolecularCenterShellBlockEntity::new,
                             MOLECULAR_CENTER_CASING.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MolecularCenterCrystalBlockEntity>>
+            MOLECULAR_CENTER_CRYSTAL_BE = BLOCK_ENTITIES.register("molecular_center_crystal",
+                    () -> BlockEntityType.Builder.of(MolecularCenterCrystalBlockEntity::new,
+                            MOLECULAR_CENTER_COIL.get()).build(null));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OmniComputationCoreBlockEntity>>
             OMNI_COMPUTATION_CONTROLLER_BE = BLOCK_ENTITIES.register("omni_computation_controller",
                     () -> BlockEntityType.Builder.of(OmniComputationCoreBlockEntity::new,
-                            OMNI_COMPUTATION_CONTROLLER.get()).build(null));
+                            OMNI_COMPUTATION_CONTROLLER.get(), TRANSFINITE_COMPUTE_NEXUS.get()).build(null));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MatterFabricationBlockEntity>>
             MATTER_FABRICATION_CONTROLLER_BE = BLOCK_ENTITIES.register("matter_fabrication_controller",
                     () -> BlockEntityType.Builder.of(MatterFabricationBlockEntity::new,
@@ -320,6 +329,7 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_FLUID_OUTPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
                         if (AdvancedAEIntegration.isLoaded()) {
+                            output.accept(TRANSFINITE_COMPUTE_NEXUS_ITEM.get());
                             output.accept(OMNI_COMPUTATION_CONTROLLER_ITEM.get());
                             output.accept(OMNI_COMPUTATION_CASING_ITEM.get());
                             output.accept(OMNI_COMPUTATION_GLASS_ITEM.get());
@@ -375,6 +385,8 @@ public final class ModContent {
     }
 
     public static void bindBlockEntity() {
+        TRANSFINITE_COMPUTE_NEXUS.get().setBlockEntity(
+                OmniComputationCoreBlockEntity.class, OMNI_COMPUTATION_CONTROLLER_BE.get(), null, null);
         MOLECULAR_MANIPULATOR.get().setBlockEntity(
                 MolecularManipulatorBlockEntity.class,
                 MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(),

@@ -24,8 +24,10 @@ item_ids:
 万物演算核心是 65×65×35 的后期[合成 CPU](ae2:items-blocks-machines/crafting_cpu_multiblock.md)。
 结构完整并联机后，它会提供近似无限的逻辑合成存储与并行能力。
 
-本机器需要安装 AdvancedAE。控制器及部件在[物质构筑井](matter_fabrication_well.md)完成“二阶：万物演算”首次研究后，由构筑井加工制作。
-默认前置为一阶研究完成一次，二阶每轮研究耗时 30 秒。未安装 AdvancedAE 时该研究分支及配方不可用。
+这是万物演算分支中的多方块设备；同一分支的单方块 CPU 请参阅[超限算枢](transfinite_compute_nexus.md)。
+
+控制器及部件在[物质构筑井](matter_fabrication_well.md)完成“二阶：万物演算”首次研究后，由构筑井加工制作。
+默认前置为一阶研究完成一次，二阶每轮研究耗时 30 秒。
 
 ## 搭建结构
 
@@ -50,7 +52,7 @@ item_ids:
 
 ## 自动合成
 
-核心会随合成请求动态创建虚拟 CPU 通道，并保留空闲通道。结构成型并接入在线 AE 网络后，本网络的合成请求可以使用 AppliedEnhancements 提供的 AELIS 规划器。
+核心会随合成请求动态创建虚拟 CPU 通道，并保留空闲通道。结构成型并接入在线 AE 网络后，本网络的合成请求可以使用加速规划器。
 循环合成仍需要可启动该循环的种子材料和其余耗材；规划成功并不代表原料或能量可以省略。
 
 材料派发根据机器接收能力与服务器负载调整，实际吞吐量仍受原料、能源、背压与服务器 Tick 时间限制。
@@ -69,4 +71,4 @@ item_ids:
 
 ## 配方
 
-<RecipeFor id="molecularmanipulator:omni_computation_controller" fallbackText="此配方需要 AdvancedAE；未安装前置或整合包移除配方时不可用。" />
+<RecipeFor id="molecularmanipulator:omni_computation_controller" fallbackText="研究或配方被禁用时无法制作此方块。" />

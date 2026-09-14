@@ -5,6 +5,7 @@ import appeng.client.gui.StackWithBounds;
 import appeng.menu.AEBaseMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
@@ -80,7 +81,10 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         if (responsiveScale() < 1.0F) {
             for (var child : externalChildren()) child.mouseMoved(mouseX, mouseY);
         }
-        super.mouseMoved(logicalMouseX(mouseX), logicalMouseY(mouseY));
+        withLogicalInput(() -> {
+            super.mouseMoved(logicalMouseX(mouseX), logicalMouseY(mouseY));
+            return true;
+        });
     }
 
     @Override
@@ -163,8 +167,40 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         return responsiveArea(new Rect2i(leftPos, topPos, imageWidth, imageHeight));
     }
 
+    /** Container render events run inside the fitted panel, but JEI draws in screen space. */
+    public final void renderExternalOverlay(GuiGraphics graphics, int mouseX, int mouseY, Renderable overlay) {
+        if (!renderingScaledContent) {
+            overlay.render(graphics, mouseX, mouseY, 0);
+            return;
+        }
+        float depth = graphics.pose().last().pose().m32();
+        graphics.pose().pushPose();
+        renderingScaledContent = false;
+        try {
+            graphics.pose().setIdentity();
+            graphics.pose().translate(0, 0, depth);
+            overlay.render(graphics, rawMouseX, rawMouseY, 0);
+        } finally {
+            graphics.pose().popPose();
+            renderingScaledContent = true;
+        }
+    }
+
     public final Rect2i responsiveSlotBounds(Slot slot) {
         return responsiveArea(new Rect2i(leftPos + slot.x, topPos + slot.y, 16, 16));
+    }
+
+    /** Finds a menu slot from raw screen coordinates, accounting for the fitted panel scale. */
+    public final Slot responsiveSlotAt(double mouseX, double mouseY) {
+        if (menu == null) return getSlotUnderMouse();
+        int x = (int) mouseX;
+        int y = (int) mouseY;
+        for (var slot : menu.slots) {
+            if (!slot.isActive() || slot.getItem().isEmpty()) continue;
+            var area = responsiveSlotBounds(slot);
+            if (area.contains(x, y)) return slot;
+        }
+        return null;
     }
 
     final Rect2i responsiveArea(Rect2i area) {

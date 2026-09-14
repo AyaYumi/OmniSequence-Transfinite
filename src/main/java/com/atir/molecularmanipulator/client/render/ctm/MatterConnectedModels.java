@@ -33,7 +33,8 @@ public final class MatterConnectedModels {
         Map<BakedModel, MatterConnectedModel> wrappers = new IdentityHashMap<>();
         event.getModels().replaceAll((location, model) -> {
             if (!location.id().getNamespace().equals(MolecularManipulator.MOD_ID)
-                    || !location.id().getPath().startsWith("matter_fabrication_")
+                    || !(location.id().getPath().startsWith("matter_fabrication_")
+                    || location.id().getPath().equals("molecular_manipulator"))
                     || location.variant().equals(ModelResourceLocation.INVENTORY_VARIANT)
                     || location.variant().equals(ModelResourceLocation.STANDALONE_VARIANT)
                     || model instanceof MatterConnectedModel) return model;

@@ -24,9 +24,12 @@ item_ids:
 The Omni-Computation Core is a floating 65x65x35 end-game [crafting CPU](ae2:items-blocks-machines/crafting_cpu_multiblock.md).
 When formed and online, it provides effectively unlimited logical crafting storage and parallelism.
 
-This machine requires AdvancedAE. Its controller and components are produced in the [Matter Fabrication Well](matter_fabrication_well.md)
+This is the multiblock machine in the Omni-Computation branch. For the placeable single-block CPU in the same branch,
+see the [Transfinite Compute Nexus](transfinite_compute_nexus.md).
+
+Its controller and components are produced in the [Matter Fabrication Well](matter_fabrication_well.md)
 after the first completion of **Stage II: Omni-Computation** research. Defaults require one stage-one completion and 30 seconds
-per stage-two round. Without AdvancedAE, that branch and its recipes are unavailable.
+per stage-two round.
 
 ## Building the structure
 
@@ -58,7 +61,7 @@ An AE2 wrench rotates the controller and recalculates the structure.
 ## Autocrafting
 
 The core creates virtual CPU lanes and keeps an idle lane available. Once formed and online, crafting requests on its network
-can use the AELIS planner supplied by AppliedEnhancements. Cyclic crafting still needs a valid starting seed and all other
+can use the accelerated planner when its normal conditions are met. Cyclic crafting still needs a valid starting seed and all other
 ingredients. A successful plan does not remove material or power requirements.
 
 Dispatch adapts to machine acceptance and server load. Ingredients, energy, backpressure and server tick time still limit actual throughput.
@@ -81,4 +84,4 @@ The queue contains only actual matching blocks of the selected layout. It comple
 
 ## Recipe
 
-<RecipeFor id="molecularmanipulator:omni_computation_controller" fallbackText="This recipe requires AdvancedAE and is unavailable if the dependency is absent or the modpack removes it." />
+<RecipeFor id="molecularmanipulator:omni_computation_controller" fallbackText="This recipe is unavailable when the research or recipe is disabled." />

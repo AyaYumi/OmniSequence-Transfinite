@@ -1,0 +1,11 @@
+{
+  "loader": "molecularmanipulator:nexus_formed",
+  "textures": {
+    "particle": "molecularmanipulator:block/nexus_formed/ring_corner",
+    "ring_corner": "molecularmanipulator:block/nexus_formed/ring_corner",
+    "ring_side_hor": "molecularmanipulator:block/nexus_formed/ring_side_hor",
+    "ring_side_ver": "molecularmanipulator:block/nexus_formed/ring_side_ver",
+    "light_base": "molecularmanipulator:block/nexus_formed/light_base",
+    "light": "molecularmanipulator:block/transfinite_compute_nexus_light"
+  }
+}

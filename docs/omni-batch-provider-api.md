@@ -2,7 +2,7 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Verified for OmniSequence 2.0.1 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
+Current for OmniSequence 2.0.3 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
 and the required AppliedEnhancements 1.0.6+. The runtime ABI remains **1**.
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -14,8 +14,11 @@ embedding their classes.
 This SPI is for AE2 machines that store encoded patterns and act as
 `ICraftingProvider` implementations. A normal provider already works with AE2
 one craft at a time. Implement this SPI only when the machine wants an
-Omni-Computation Core to allocate several complete crafts and deliver them as
+Omni-Computation Core or Transfinite Compute Nexus to allocate several complete crafts and deliver them as
 one atomic transaction.
+
+Advanced AE quantum CPUs also use this provider contract through the optional
+integration. The single-block nexus adds no new provider ABI or resource format.
 
 The API contains no classes, Mod IDs, or reflection paths for a specific
 integration. Any pattern-provider assembly can opt in.
@@ -175,14 +178,16 @@ class or conditional Mixin that is loaded only when Mod ID
 
 自 OmniSequence: Transfinite 1.3.9 起提供。
 
-当前按 2.0.1 / Minecraft 1.21.1 / Java 21 核对，要求 AE2 19.2.17+ 和
+本文对应 2.0.3 / Minecraft 1.21.1 / Java 21，要求 AE2 19.2.17+ 和
 AppliedEnhancements 1.0.6+；运行时 ABI 仍为 **1**。其他接口见 [API 索引](README.md)。
 本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
 不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。
 
 此 SPI 面向“机器自身保存编码样板，并作为 AE2 `ICraftingProvider` 接单”的设备。
-普通供应器本来就能按单份配方使用 AE2；只有希望由万物演算核心一次分配多份完整
+普通供应器本来就能按单份配方使用 AE2；只有希望由万物演算核心或超限算枢一次分配多份完整
 材料时，才需要实现 `OmniBatchCraftingProvider`。
+
+Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算枢没有新增供应器 ABI 或资源格式。
 
 接入流程为两阶段：
 

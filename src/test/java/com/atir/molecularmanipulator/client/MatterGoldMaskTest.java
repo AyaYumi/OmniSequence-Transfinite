@@ -63,4 +63,21 @@ class MatterGoldMaskTest {
         }
         assertEquals(16,textures); assertEquals(11,glowingMaterials);
     }
+
+    @Test
+    void molecularManipulatorSelectsPurpleFrameLinesOnly() throws Exception {
+        var texture = ResourceLocation.parse("molecularmanipulator:block/molecular_manipulator");
+        var image = ImageIO.read(Path.of(
+                "src/main/resources/assets/molecularmanipulator/textures/block/molecular_manipulator.png").toFile());
+        int selected = 0;
+        for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) {
+            int argb = image.getRGB(x, y);
+            int abgr = (argb & 0xFF00FF00) | ((argb & 255) << 16) | ((argb >>> 16) & 255);
+            if (MatterGoldEmissive.isEmissivePixel(texture, abgr)) selected++;
+            if ((argb & 0x00FFFFFF) == 0x00F2F2F2) {
+                assertFalse(MatterGoldEmissive.isEmissivePixel(texture, abgr), "Neutral white panel must stay dark");
+            }
+        }
+        assertTrue(selected > 0, "The manipulator frame must expose purple emissive pixels");
+    }
 }

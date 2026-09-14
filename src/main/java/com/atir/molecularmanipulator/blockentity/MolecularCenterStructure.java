@@ -93,7 +93,8 @@ public final class MolecularCenterStructure {
                     continue;
                 }
                 var blockEntity = level.getBlockEntity(pos);
-                if (blockEntity != null && !(blockEntity instanceof MolecularCenterShellBlockEntity)) {
+                if (blockEntity != null && !(blockEntity instanceof MolecularCenterShellBlockEntity)
+                        && !(blockEntity instanceof MolecularCenterCrystalBlockEntity)) {
                     continue;
                 }
                 entries.add(new DismantlePlan.Entry(pos, state.getBlock()));

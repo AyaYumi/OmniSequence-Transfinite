@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "molecularmanipulator:transfinite_compute_nexus",
     "molecularmanipulator:molecular_center_controller",
     "molecularmanipulator:molecular_center_casing",
     "molecularmanipulator:molecular_center_glass",

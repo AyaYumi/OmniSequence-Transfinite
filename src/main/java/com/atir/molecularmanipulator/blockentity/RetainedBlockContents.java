@@ -25,7 +25,7 @@ final class RetainedBlockContents {
         var settings = new CompoundTag();
         blockEntity.exportSettings(SettingsFrom.DISMANTLE_ITEM, settings, null);
         if (!settings.isEmpty()) stack.setTag(settings);
-        // A full 36,000-pattern inventory exceeds the item packet's 2 MiB NBT
+        // Large legacy pattern inventories can exceed the item packet's 2 MiB NBT
         // quota. Compress only the portable contents; world saves stay unchanged.
         var portable = new CompoundTag();
         try {

@@ -14,7 +14,11 @@ import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.runtime.IJeiRuntime;
+import com.atir.molecularmanipulator.client.MatterFabricationPatternAssemblyScreen;
+import com.atir.molecularmanipulator.client.MatterFabricationPortScreen;
+import com.atir.molecularmanipulator.client.MatterFabricationScreen;
 import com.atir.molecularmanipulator.client.MolecularCenterScreen;
+import com.atir.molecularmanipulator.client.OmniComputationScreen;
 import com.atir.molecularmanipulator.client.ResponsiveContainerScreen;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -76,6 +80,12 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
         registration.addGuiScreenHandler(ResponsiveContainerScreen.class, ResponsiveScreenJeiProperties.handler());
+        registration.addGuiScreenHandler(MolecularCenterScreen.class, ResponsiveScreenJeiProperties.handler());
+        registration.addGuiScreenHandler(OmniComputationScreen.class, ResponsiveScreenJeiProperties.handler());
+        registration.addGuiScreenHandler(MatterFabricationScreen.class, ResponsiveScreenJeiProperties.handler());
+        registration.addGuiScreenHandler(MatterFabricationPortScreen.class, ResponsiveScreenJeiProperties.handler());
+        registration.addGuiScreenHandler(MatterFabricationPatternAssemblyScreen.class,
+                ResponsiveScreenJeiProperties.handler());
         registration.addGhostIngredientHandler(
                 MolecularCenterScreen.class,
                 new MolecularCenterGhostIngredientHandler());
@@ -198,6 +208,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     private static List<ItemStack> omniItems() {
         return List.of(
+                new ItemStack(ModContent.TRANSFINITE_COMPUTE_NEXUS_ITEM.get()),
                 new ItemStack(ModContent.OMNI_COMPUTATION_CONTROLLER_ITEM.get()),
                 new ItemStack(ModContent.OMNI_COMPUTATION_CASING_ITEM.get()),
                 new ItemStack(ModContent.OMNI_COMPUTATION_GLASS_ITEM.get()),

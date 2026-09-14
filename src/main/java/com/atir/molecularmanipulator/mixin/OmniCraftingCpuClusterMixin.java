@@ -37,8 +37,7 @@ public abstract class OmniCraftingCpuClusterMixin {
         var cpu = (CraftingCPUCluster) (Object) this;
         var owner = OmniComputationCoreBlockEntity.ownerOf(cpu);
         if (owner != null) {
-            callback.setReturnValue(Component.translatable(
-                    "gui.molecularmanipulator.omni.cpu_name", owner.laneName(cpu)));
+            callback.setReturnValue(owner.cpuDisplayName(cpu));
         }
     }
 }

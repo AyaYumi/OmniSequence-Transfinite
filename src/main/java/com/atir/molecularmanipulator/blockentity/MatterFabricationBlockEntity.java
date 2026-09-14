@@ -475,6 +475,8 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         tickResearch();
         if (batch.hasWork()) processBatch();
         else if (!processPatternBuffers()) processRecipe();
+        updatePoweredState(structureFormed && getMainNode().isActive()
+                && !building && !dismantling && !updatingStructure);
     }
 
     public void scheduleStructureCheck() {

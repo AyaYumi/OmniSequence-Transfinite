@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=east,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=south,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=west,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=north,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=east,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=south,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=west,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"}
+  }
+}

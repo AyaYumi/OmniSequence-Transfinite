@@ -1,0 +1,56 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:omni_computation_controller"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:infinite_parallel_matrix"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:infinite_crafting_storage"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:universal_pattern_matrix"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_energy_stabilizer"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_processor"
+      },
+      "count": 64
+    }
+  ],
+  "results": [
+    {
+      "count": 1,
+      "item": "molecularmanipulator:transfinite_compute_nexus"
+    }
+  ],
+  "processing_time": 1200,
+  "ae_per_tick": 4096,
+  "requires_research": true,
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ]
+}

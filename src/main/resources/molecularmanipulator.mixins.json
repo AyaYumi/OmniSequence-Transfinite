@@ -13,6 +13,7 @@
     "CalculatorAssemblerMatrixMixin",
     "ClusterAssemblerMatrixMixin",
     "CraftingCPUClusterAccessor",
+    "CraftingCPUCalculatorMixin",
     "CraftingCpuLogicMixin",
     "GridActiveMachinesMixin",
     "KeyCounterMixin",
@@ -29,7 +30,9 @@
   ],
   "client": [
     "CPUSelectionListMixin",
-    "ResponsiveScreenBackgroundMixin"
+    "ResponsiveScreenBackgroundMixin",
+    "JeiResponsiveRenderMixin",
+    "JeiResponsiveSlotMixin"
   ],
   "injectors": {
     "defaultRequire": 1

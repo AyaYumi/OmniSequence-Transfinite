@@ -151,6 +151,7 @@ dependencies {
     implementation fg.deobf("com.appliedenhancements:appliedenhancements:${applied_enhancements_version}")
 
     testImplementation fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}")
+    testImplementation "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

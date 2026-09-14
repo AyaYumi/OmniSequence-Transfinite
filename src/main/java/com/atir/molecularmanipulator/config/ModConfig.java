@@ -22,6 +22,7 @@ public final class ModConfig {
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
     public static final ForgeConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
+    public static final ForgeConfigSpec.IntValue NEXUS_IDLE_POWER;
 
     public static final ForgeConfigSpec CLIENT_SPEC;
     public static final ForgeConfigSpec.EnumValue<MatterSequenceTooltipMode>
@@ -36,7 +37,7 @@ public final class ModConfig {
                 .push("sequence_array");
         PATTERN_PAGES = server.comment("Number of pattern pages for Molecular Centers.")
                 .translation("molecularmanipulator.configuration.pattern_pages")
-                .defineInRange("pattern_pages", 200, 1, 1000);
+                .defineInRange("pattern_pages", 200, 1, 300);
         BUILD_BLOCKS_PER_TICK = server.comment("Maximum structure blocks placed or removed per tick.")
                 .translation("molecularmanipulator.configuration.build_blocks_per_tick")
                 .defineInRange("build_blocks_per_tick", 32, 1, 256);
@@ -145,6 +146,13 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
                 .defineInRange("omni_dispatch_max_work_units", 2_147_483_647L, 64L, Long.MAX_VALUE);
         server.pop();
+        server.pop();
+        server.comment("Transfinite Compute Nexus power settings.", "超限算枢耗电设置。")
+                .push("transfinite_compute_nexus");
+        NEXUS_IDLE_POWER = server.comment("Idle power usage in AE/t. Requires a powered ME network and one channel.",
+                "待机耗电（AE/t），需要已供电的 ME 网络和一个频道。")
+                .translation("molecularmanipulator.configuration.nexus_idle_power")
+                .defineInRange("idle_power", 16_384, 1, Integer.MAX_VALUE);
         server.pop();
         SERVER_SPEC = server.build();
 

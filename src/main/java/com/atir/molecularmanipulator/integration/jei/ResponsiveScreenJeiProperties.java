@@ -8,11 +8,15 @@ import mezz.jei.api.runtime.IClickableIngredient;
 import java.util.Optional;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
+import org.jetbrains.annotations.Nullable;
 
 /** JEI lays out its overlays in screen coordinates, outside the console's pose. */
 record ResponsiveScreenJeiProperties(Class<? extends Screen> screenClass, Rect2i bounds,
         int screenWidth, int screenHeight) implements IGuiProperties {
+    @Nullable
     static IGuiProperties of(ResponsiveContainerScreen<?> screen) {
+        // ScreenEvent.Opening precedes init. JEI queries again after initialization.
+        if (screen.width <= 1 || screen.height <= 1) return null;
         return new ResponsiveScreenJeiProperties(screen.getClass(), screen.responsiveBounds(), screen.width, screen.height);
     }
 
@@ -23,7 +27,7 @@ record ResponsiveScreenJeiProperties(Class<? extends Screen> screenClass, Rect2i
             @Override
             public Optional<? extends IClickableIngredient<?>> getClickableIngredientUnderMouse(
                     IClickableIngredientFactory factory, T screen, double mouseX, double mouseY) {
-                var slot = screen.getSlotUnderMouse();
+                var slot = screen.responsiveSlotAt(mouseX, mouseY);
                 if (slot == null || !slot.isActive() || slot.getItem().isEmpty()) return Optional.empty();
                 var area = screen.responsiveSlotBounds(slot);
                 if (!area.contains((int) mouseX, (int) mouseY)) return Optional.empty();

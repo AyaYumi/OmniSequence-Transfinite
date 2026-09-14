@@ -1,6 +1,6 @@
 # Matter Fabrication Research / 物质构筑井研究 API
 
-## English integration reference (2.0.1-forge)
+## English integration reference (2.0.3-forge)
 
 Minecraft 1.20.1 / Forge / Java 17. Required prerequisite: AppliedEnhancements
 1.0.6-forge. See the [API index](README.md) and [batch-provider contract](omni-batch-provider-api.md).
@@ -32,6 +32,8 @@ Built-in research takes **600 ticks / 30 seconds per round**, with nine rounds b
 default. Custom definitions keep their own `duration`; omission means **1200 ticks**.
 The two stage-two branches require one foundation completion by default. AdvancedAE
 is required for the Omni branch. `unlocks` contains full **recipe IDs**, not item IDs.
+In 2.0.3 this branch also unlocks `molecularmanipulator:transfinite_compute_nexus`.
+Its default well recipe takes 1200 ticks at 4096 AE/t before research production bonuses.
 Multiple completed branches grant the highest parallelism and shortest processing
 time rather than multiplying bonuses. Research bonuses affect well production only.
 
@@ -86,7 +88,7 @@ proportional inputs producing different outputs remain separate, including API
 batches and mixed queues after save/reload. Two crafts of `10A + 10B -> C` produce
 `2C` even if `20A + 20B -> D` also exists. The same applies to `10A + 10B -> D`.
 
-Known 2.0.1 limitations: overlapping alternatives with identical outputs can select
+Current 2.0.3 limitations: overlapping alternatives with identical outputs can select
 a different recipe during batch splitting, changing time and power. A reload that
 introduces an earlier matching recipe can leave an existing queue waiting even
 while its original recipe still exists. These cases remain unresolved; neither
@@ -109,7 +111,7 @@ Complete field tables, KubeJS examples and administration details follow below.
 | --- | --- | --- | --- |
 | `research/ae_foundation` | 600 tick / 30 秒 | 256 AE/t | 7 条 AE 材料配方，以及 27 条二阶研究材料和中间材料配方 |
 | `research/sequence_array` | 600 tick / 30 秒 | 512 AE/t | 构序阵列 6 类部件，以及分子构序重写阵列、装配矩阵构序重写核心 |
-| `research/omni_computation` | 600 tick / 30 秒 | 1024 AE/t | 万物演算 10 类部件 |
+| `research/omni_computation` | 600 tick / 30 秒 | 1024 AE/t | 万物演算 10 类部件与超限算枢 |
 
 上述 30 秒适用于内置研究的首次解锁及后续每轮深度研究。KubeJS/数据包的 `duration` 仍按 tick 自由配置，省略时仍默认 1200 tick；已开始的研究保留开工时的耗时快照，新开始的轮次使用更新后的定义。
 
@@ -118,6 +120,13 @@ Complete field tables, KubeJS examples and administration details follow below.
 无 AdvancedAE 时，万物演算分支及 AdvancedAE 材料配方不加载，界面也不列出缺失配方。默认一阶完成 **1 次**即可开始二阶；之后可继续深度研究提高一阶配方的生产能力。前置完成次数可按研究逐项配置，支持固定次数和要求满级。构筑井控制器、5 类结构件和 4 类输入输出口使用 AE 原版材料制作，不受研究门槛影响；样板总成需要一阶首次完成后在构筑井内加工制作。
 
 分子构序重写阵列（`molecular_manipulator`）和装配矩阵构序重写核心（`assembler_matrix_molecular_core`）已移入二阶构序阵列分支：工作台配方改为构筑井加工，原材料种类与数量保持不变，基础加工均为 400 tick、512 AE/t。该分支首次完成后解锁这两条配方，后续深度研究为它们提供同分支的速度与并行加成。
+
+2.0.3 新增超限算枢配方，由万物演算分支解锁，配方 ID 为
+`molecularmanipulator:transfinite_compute_nexus`，基础耗时 1200 tick、功耗 4096 AE/t。
+它继承该分支的构筑井生产加成；算枢放置后的待机功耗单独配置，默认 16384 AE/t。
+
+当前服务方块可安装在构筑井正前方 24 格及中央四段平台各五格（共 20 格）；
+原外围九个位置已停用。样板总成与四种物品／流体接口使用相同的合法安装区域。
 
 ## 默认九次进度
 
@@ -319,7 +328,7 @@ AE2 15 的原生类型字段是 `#c`；桥接层负责与配方 JSON 的 `#t` �
 
 匹配包含样板的完整预期产物及数量。原料相同或成比例、产物不同的配方会分别执行：`10A + 10B -> C` 下单两份仍产出 `2C`，不会因同时存在 `20A + 20B -> D` 或 `10A + 10B -> D` 而改产 D；批量投料、交错排队及存档重载均已验证。
 
-2.0.1 尚存的边界：产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗；重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。这两类问题尚未修复。
+2.0.3 尚存的边界：产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗；重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。这两类问题尚未修复。
 
 权限默认作用于物质构筑井，不全局拦截其他机器；两种高级多方块的部件配方已改为构筑井加工。已经建成的高级机器仍能使用。
 

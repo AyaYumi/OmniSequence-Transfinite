@@ -11,6 +11,8 @@ import java.util.Set;
 public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin {
     private static final String ADVANCED_AE_MIXIN = AdvancedAECraftingCpuLogicMixin.class.getName();
     private static final String LABELED_PATTERNS_MIXIN = LabeledPatternCheckProviderMixin.class.getName();
+    private static final String JEI_RESPONSIVE_SLOT_MIXIN = JeiResponsiveSlotMixin.class.getName();
+    private static final String JEI_RESPONSIVE_RENDER_MIXIN = JeiResponsiveRenderMixin.class.getName();
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -29,6 +31,9 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         }
         if (LABELED_PATTERNS_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("ae2labeledpatterns") != null;
+        }
+        if (JEI_RESPONSIVE_SLOT_MIXIN.equals(mixinClassName) || JEI_RESPONSIVE_RENDER_MIXIN.equals(mixinClassName)) {
+            return loadingModList != null && loadingModList.getModFileById("jei") != null;
         }
         return true;
     }

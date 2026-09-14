@@ -32,7 +32,8 @@ public final class MatterConnectedModels {
         Map<BakedModel, MatterConnectedModel> wrappers = new IdentityHashMap<>();
         event.getModels().replaceAll((location, model) -> {
             if (!(location instanceof ModelResourceLocation modelLocation) || !location.getNamespace().equals(MolecularManipulator.MOD_ID)
-                    || !location.getPath().startsWith("matter_fabrication_")
+                    || !(location.getPath().startsWith("matter_fabrication_")
+                    || location.getPath().equals("molecular_manipulator"))
                     || modelLocation.getVariant().equals("inventory")
                     || model instanceof MatterConnectedModel) return model;
             return wrappers.computeIfAbsent(model, original -> new MatterConnectedModel(original, context));

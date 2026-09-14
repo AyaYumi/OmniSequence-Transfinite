@@ -1,4 +1,4 @@
-# 方块贴图动画第一版
+# 方块贴图维护（2.0.3）
 
 `static/` 保存这批动画的原始静态贴图；模组资源目录保存生成的 PNG 帧条及 `.png.mcmeta`。
 修改动画时以原图重新生成，避免在上一次输出上叠加处理。
@@ -15,6 +15,14 @@ python tools/textures/generate_animation.py
 - 所有帧保留原始透明度与非能量区域；构筑井的发光材质位置在所有帧中一致，继续使用局部自发光。
 - 这是循环外观动画，不表示实际物品或流体吞吐。万物演算核心沿用原有 powered 模型切换。
 - 原生图集动画不受模组的大型动态特效等级开关控制。
+
+超限算枢的正式贴图直接维护在 `src/main/resources/assets/molecularmanipulator/textures/block/`
+下的 `transfinite_compute_nexus.png`、`transfinite_compute_nexus_light.png` 和 `nexus_formed/`。
+激活模型由 `NexusFormedGeometry` / `NexusFormedBakedModel` 组合绘制；这些资源参与运行，
+不是临时预览。正式贴图不依赖个人 Downloads 路径或一次性复制脚本。
+
+`static/` 中的 20 张静态原图用于重新生成动画，不能按“未被游戏引用”当作废弃资源删除。
+模组 JAR 只包含正式资源；生成预览位于已忽略的 `build/` 中。
 
 GIF 展示平面贴图帧，不等同于游戏内立体模型、连接纹理和光照效果。
 

@@ -44,6 +44,7 @@ public final class OmniComputationRenderer
     @Override
     public void render(OmniComputationCoreBlockEntity core, float partialTick,
             PoseStack poseStack, MultiBufferSource buffers, int packedLight, int packedOverlay) {
+        if (core.isSingleBlock()) return;
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || core.getLevel() == null
                 || !core.getBlockState().getValue(BlockStateProperties.POWERED)) return;
@@ -368,6 +369,7 @@ public final class OmniComputationRenderer
 
     @Override
     public boolean shouldRender(OmniComputationCoreBlockEntity core, Vec3 cameraPos) {
+        if (core.isSingleBlock()) return false;
         Direction facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var layout = core.getVisualLayout();
         if (layout == OmniComputationStructure.StructureLayout.INCOMPLETE) return false;

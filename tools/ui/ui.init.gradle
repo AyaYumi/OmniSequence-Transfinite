@@ -1,0 +1,19 @@
+// ForgeGradle deobfuscates the configured JEI dependency for these client tests.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        tasks.register('testForgeUi', Test) {
+            dependsOn project.tasks.named('testClasses')
+            testClassesDirs = project.sourceSets.test.output.classesDirs
+            def baseTest = project.tasks.named('test', Test).get()
+            javaLauncher = baseTest.javaLauncher
+            classpath = baseTest.classpath
+            useJUnitPlatform()
+            filter {
+                includeTestsMatching '*JeiResponsiveRenderTest'
+                includeTestsMatching '*ResponsiveScreenJeiPropertiesTest'
+                includeTestsMatching '*ResponsiveContainerScreenTest'
+            }
+        }
+    }
+}

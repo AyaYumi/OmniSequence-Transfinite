@@ -12,14 +12,14 @@ item_ids:
 
 <BlockImage id="molecularmanipulator:assembler_matrix_molecular_core" scale="8" />
 
-The Assembler Matrix Sequence Rewrite Core is an upgrade component for the ExtendedAE Assembler Matrix. It replaces
+The Assembler Matrix Sequence Rewrite Core is an upgrade component for an Assembler Matrix. It replaces
 ordinary crafting and speed cores with a high-throughput internal recipe executor.
 
 ## Setup
 
 Complete **Stage II: Sequence Array** once in the [Matter Fabrication Well](matter_fabrication_well.md), then manufacture this core there.
 
-Build a valid ExtendedAE Assembler Matrix and use this block as one of its functional cores. It is not a standalone
+Build a valid Assembler Matrix and use this block as one of its functional cores. It is not a standalone
 machine: patterns, network access, and structure validation are supplied by the completed Assembler Matrix.
 
 Once the matrix is formed and online, molecular-assembler-compatible patterns in the matrix can be assigned to this

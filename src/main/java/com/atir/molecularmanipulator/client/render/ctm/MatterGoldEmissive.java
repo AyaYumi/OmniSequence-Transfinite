@@ -42,11 +42,33 @@ public final class MatterGoldEmissive {
                 && blue - green >= 12 && green - red >= 12;
     }
 
+    /** Purple line accents used by the single-block Molecular Manipulator. */
+    public static boolean isPurplePixel(int abgr) {
+        int alpha = abgr >>> 24, red = abgr & 255, green = abgr >>> 8 & 255, blue = abgr >>> 16 & 255;
+        return alpha >= 128 && red >= 120 && blue >= 120
+                && red - green >= 20 && blue - green >= 20;
+    }
+
     public static boolean isEmissivePixel(ResourceLocation texture, int abgr) {
-        if (!texture.getNamespace().equals("molecularmanipulator") || !texture.getPath().startsWith("block/matter_fabrication_")) return false;
+        if (!texture.getNamespace().equals("molecularmanipulator")) return false;
+        if (texture.getPath().equals("block/molecular_manipulator")) return isPurplePixel(abgr);
+        if (!texture.getPath().startsWith("block/matter_fabrication_")) return false;
         boolean fluidPort = texture.getPath().equals("block/matter_fabrication_fluid_input")
                 || texture.getPath().equals("block/matter_fabrication_fluid_output");
         return isGoldPixel(abgr) || fluidPort && isBluePixel(abgr);
+    }
+
+    private static boolean isEmissivePixel(ResourceLocation texture, int abgr, int x, int y) {
+        if (texture.getPath().equals("block/matter_fabrication_controller")
+                || texture.getPath().equals("block/matter_fabrication_controller_on")) {
+            // The center panel has a dark bronze base that is intentionally not emissive.
+            // Keep only the brighter glyph/highlight pixels inside that panel.
+            if (x >= 3 && x <= 12 && y >= 3 && y <= 11) {
+                int red = abgr & 255, green = abgr >>> 8 & 255;
+                return isGoldPixel(abgr) && red >= 180 && green >= 145;
+            }
+        }
+        return isEmissivePixel(texture, abgr);
     }
 
     public static boolean isEmissive(BakedQuad quad) {
@@ -60,7 +82,8 @@ public final class MatterGoldEmissive {
     private List<Region> mask(TextureAtlasSprite sprite) {
         var contents = sprite.contents();
         if (!contents.name().getNamespace().equals("molecularmanipulator")
-                || !contents.name().getPath().startsWith("block/matter_fabrication_")
+                || !(contents.name().getPath().startsWith("block/matter_fabrication_")
+                || contents.name().getPath().equals("block/molecular_manipulator"))
                 || contents.width() != 16 || contents.height() != 16) return List.of();
         var image = contents.getOriginalImage();
         if (image.getWidth() % 16 != 0 || image.getHeight() % 16 != 0) return List.of();
@@ -75,7 +98,7 @@ public final class MatterGoldEmissive {
             boolean stable = frames.length > 0;
             for (int frame : frames) {
                 if (!isEmissivePixel(contents.name(), image.getPixelRGBA(
-                        x + frame % columns * 16, y + frame / columns * 16))) {
+                        x + frame % columns * 16, y + frame / columns * 16), x, y)) {
                     stable = false;
                     break;
                 }

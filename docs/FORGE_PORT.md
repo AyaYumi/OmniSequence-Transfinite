@@ -1,9 +1,11 @@
 # Forge 1.20.1 port / 移植说明
 
-The `1.20.1-forge` branch ports OmniSequence 2.0.2 to **2.0.2-forge**, together with AppliedEnhancements **1.0.6-forge**. It targets Java 17 bytecode, Forge 47.4.10 or newer, and AE2 15.4.10. The local integration baseline is Forge 47.4.20.
+The `1.20.1-forge` branch ports OmniSequence 2.0.3 (NeoForge commit `32bc92c`) to **2.0.3-forge**, together with AppliedEnhancements **1.0.6-forge**. It targets Java 17 bytecode, Forge 47.4.10 or newer, and AE2 15.4.10. The local integration baseline is Forge 47.4.20.
 
 | Boundary | Forge implementation |
 | --- | --- |
+| 2.0.3 nexus and crystal storage | Six-sided standalone Omni CPU, independent clusters and portable jobs; 14 quantum crystals hold the formed array library. Forge uses BlockEntityTag and Java 17 APIs. Maximum pages are now 300; default remains 200. |
+| JEI 15 | The legacy onDrawForeground hook restores screen-space hover coordinates while retaining the container translation JEI removes internally. Newer rendering entry points are optional. Invalid pre-init dimensions are not published. |
 | 2.0.2 dispatch parity | AAE CPUs use the public batch-provider API with exact ownership and task/output accounting, per-tick backpressure and a 2 ms soft dispatch budget. Single-material allocation avoids a flow graph. The default Sequence Array capacity is 200 pages. |
 | Networking | Direction-bound SimpleChannel messages; server validation, main-thread handling, bounded search-index decoding and generation/revision checks remain in place. |
 | Item/fluid persistence | 1.20.1 NBT APIs replace data components and registry-aware serializers. Portable contents retain their decompression budget. |
@@ -36,6 +38,11 @@ Fabrication recipes whose output is itself a missing ExtendedAE-only item stay c
 See [dependency setup](../libs/README.md) for local development artifacts. Required mods are installed separately. LDLib2 is not used by the console UI. See [UI design](UI_DESIGN.md).
 
 ## Validation / 验证
+
+The 2.0.3 port passes 149 unit tests, four isolated Forge GameTests and the separate
+AdvancedAE batch/recipe integration test. JEI 15.49.0.188 is the client test baseline.
+The distributable targets Java 17, includes the generated SRG refmap and bundles
+MixinExtras Forge 0.5.3. Client visual validation is still a separate check.
 
 Run `gradlew test build` with Java 17. Before upgrading a pack, back up its old JARs and configuration, then keep one enabled version of each mod.
 

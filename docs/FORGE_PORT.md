@@ -39,7 +39,7 @@ See [dependency setup](../libs/README.md) for local development artifacts. Requi
 
 ## Validation / 验证
 
-The 2.0.3 port passes 149 unit tests, four isolated Forge GameTests and the separate
+The 2.0.3 port passes 152 unit tests, four isolated Forge GameTests and the separate
 AdvancedAE batch/recipe integration test. JEI 15.49.0.188 is the client test baseline.
 The distributable targets Java 17, includes the generated SRG refmap and bundles
 MixinExtras Forge 0.5.3. Client visual validation is still a separate check.

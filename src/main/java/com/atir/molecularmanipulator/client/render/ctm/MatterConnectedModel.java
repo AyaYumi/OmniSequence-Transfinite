@@ -149,9 +149,9 @@ public final class MatterConnectedModel extends BakedModelWrapper<BakedModel> {
                 float sourceU = info.minU() + u * (info.maxU() - info.minU());
                 float sourceV = info.minV() + v * (info.maxV() - info.minV());
                 output[offset + IQuadTransformer.UV0] = Float.floatToRawIntBits(sprite == quad.getSprite() ? sourceU
-                        : sprite.getU(com.atir.molecularmanipulator.util.MathCompat.clamp(quad.getSprite().getUOffset(sourceU), 2.5F / 16, 13.5F / 16)));
+                        : sprite.getU(com.atir.molecularmanipulator.util.MathCompat.clamp(quad.getSprite().getUOffset(sourceU), 2.5F, 13.5F)));
                 output[offset + IQuadTransformer.UV0 + 1] = Float.floatToRawIntBits(sprite == quad.getSprite() ? sourceV
-                        : sprite.getV(com.atir.molecularmanipulator.util.MathCompat.clamp(quad.getSprite().getVOffset(sourceV), 2.5F / 16, 13.5F / 16)));
+                        : sprite.getV(com.atir.molecularmanipulator.util.MathCompat.clamp(quad.getSprite().getVOffset(sourceV), 2.5F, 13.5F)));
             }
             result.add(new BakedQuad(output, quad.getTintIndex(), quad.getDirection(), sprite,
                     quad.isShade(), quad.hasAmbientOcclusion()));

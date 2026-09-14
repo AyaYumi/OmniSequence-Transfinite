@@ -26,11 +26,14 @@ python tools/textures/generate_animation.py
 
 GIF 展示平面贴图帧，不等同于游戏内立体模型、连接纹理和光照效果。
 
-Windows 下可用 Java 21 运行隔离 GPU 检查：
+Forge 1.20.1 使用 Java 17，可运行实际贴图和方块面的回归检查：
 
 ```powershell
-.\gradlew.bat --no-configuration-cache -I tools/textures/verify.init.gradle verifyTextureAnimations
+.\gradlew.bat test --tests '*MatterGoldMaskTest' --tests '*MatterEmissiveQuadTest'
 ```
 
-检查使用隐藏的 OpenGL 窗口、Minecraft 原生贴图播放器及实际 `.mcmeta`，逐像素核对完整循环的上传与插值结果，
-并检查动画方块面上的自发光分区。测试源和临时原生依赖不会打入模组 JAR。
+检查使用实际 PNG、`.mcmeta`、1.20.1 `TextureAtlasSprite` 和 `BakedQuad`，验证金／蓝／紫区域
+生成全亮面、普通区域保持光照，以及裁切、镜像和连接面后的纹理坐标。测试不打开游戏或 OpenGL 窗口。
+
+1.20.1 的 `getU/getV/getUOffset/getVOffset` 使用 0～16 纹理坐标；发光分割使用 0～1，
+读写时必须换算。颜色掩码正确不等于实际方块面已经生成了发光区域。

@@ -26,6 +26,8 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - Added **20 central service positions**, with five on each of the four platform-collar segments. The **24 front service positions** remain available; the nine former outer service positions are no longer accepted. These positions support item/fluid ports and pattern assemblies.
 - Added **20 animated textures** for computation components, crystals, controller faces and fabrication modules, using 24 interpolated frames at two ticks per frame: a 2.4-second loop at 20 TPS.
 - Preserved gold and fluid-port blue emissive details across animated frames, refined the controller's dark center panel, and added local purple emissive accents to the Molecular Sequence Rewrite Array.
+- Fixed connected-face filler sampling to use the interior of the casing texture in Forge texel coordinates.
+- Corrected Forge 1.20.1 sprite UV conversion: its 0–16 coordinates must be normalized before splitting emissive faces. Gold/blue well details and purple molecular-array lines now generate full-bright faces without an AE connection; ordinary shell pixels keep normal shading.
 - Removed block-light emission from the well's controller, structure parts and service blocks while retaining their local emissive texture details. Controller powered visuals now follow structure/network state and construction operations.
 
 ### JEI and crafting compatibility
@@ -46,7 +48,7 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 
 ### Validation and remaining limits
 
-- **149 Forge unit tests passed**, including JEI 15 entry-point/coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
+- **152 Forge unit tests passed**, including JEI 15 entry-point/coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
 - **Four isolated Forge GameTests passed** for resource delivery/lookup and nexus cable, CPU, save, drop and power recovery. The separate **AdvancedAE integration test passed**, including the nexus recipe and research unlock and the existing 65,536-craft batch case.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.
@@ -77,6 +79,8 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - 新增 **20 个中央服务位置**，中央平台四个环段各五格；保留 **24 个正前方服务位置**，不再接受原先外围分散的九个位置。这些位置可安装物品／流体接口和样板总成。
 - 为演算部件、水晶、控制器正面和构筑井模块加入 **20 组动画贴图**，每组 24 帧、每帧两 Tick 并启用插值，在 20 TPS 下循环周期为 2.4 秒。
 - 保留动画中的金色、流体接口蓝色局部自发光，细化控制器中央暗色面板，并为分子构序重写阵列加入紫色局部自发光线条。
+- 同时修正连接面填充纹理的坐标，使用外壳内部区域取样。
+- 修正 Forge 1.20.1 贴图 UV 换算：其 0～16 坐标必须先归一化才能分割发光面。构筑井金／蓝纹路与分子阵列紫色线条无需 AE 连接即可生成全亮面，普通外壳仍保持正常光照。
 - 构筑井控制器、结构件和服务方块不再向环境发出方块光照，保留贴图本身的局部自发光细节。控制器亮起状态跟随结构、网络及施工操作更新。
 
 ### JEI 与合成兼容
@@ -97,7 +101,7 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 
 ### 验证与现有限制
 
-- **149 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及真实 AE2 15 库存 NBT 跨水晶分片往返恢复。
+- **152 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及真实 AE2 15 库存 NBT 跨水晶分片往返恢复。
 - **四项 Forge 隔离 GameTest 通过**，覆盖资源投料／查询和算枢接线、CPU、存档、掉落及供能恢复；独立 **AdvancedAE 集成测试通过**，包含算枢配方及研究解锁和原有 65,536 份批量派发场景。
 - 上述验证针对代码及坐标行为；最新 JEI 修正尚未进行游戏内交互式画面验收。
 - 构筑井仍存在原有配方限制：同产物、可替代原料重叠时，批次拆分可能使用另一条配方的耗时／能耗；重载时加入优先匹配的配方，可能使已有队列持续等待。

@@ -134,8 +134,9 @@ public final class MatterGoldEmissive {
         float minU = Float.POSITIVE_INFINITY, maxU = Float.NEGATIVE_INFINITY, minV = minU, maxV = maxU;
         for (int i = 0; i < 4; i++) {
             int base = i * IQuadTransformer.STRIDE;
-            us[i] = sprite.getUOffset(Float.intBitsToFloat(input[base + IQuadTransformer.UV0]));
-            vs[i] = sprite.getVOffset(Float.intBitsToFloat(input[base + IQuadTransformer.UV0 + 1]));
+            // 1.20.1 returns 0..16 texel coordinates; the partition math uses 0..1.
+            us[i] = sprite.getUOffset(Float.intBitsToFloat(input[base + IQuadTransformer.UV0])) / 16F;
+            vs[i] = sprite.getVOffset(Float.intBitsToFloat(input[base + IQuadTransformer.UV0 + 1])) / 16F;
             minU = Math.min(minU, us[i]); maxU = Math.max(maxU, us[i]);
             minV = Math.min(minV, vs[i]); maxV = Math.max(maxV, vs[i]);
         }
@@ -167,8 +168,8 @@ public final class MatterGoldEmissive {
                 output[base + IQuadTransformer.COLOR] = packed(input, corners, IQuadTransformer.COLOR, x, y, 8);
                 output[base + IQuadTransformer.UV2] = region.emissive() ? LightTexture.FULL_BRIGHT
                         : packed(input, corners, IQuadTransformer.UV2, x, y, 16);
-                output[base + IQuadTransformer.UV0] = Float.floatToRawIntBits(sprite.getU(u));
-                output[base + IQuadTransformer.UV0 + 1] = Float.floatToRawIntBits(sprite.getV(v));
+                output[base + IQuadTransformer.UV0] = Float.floatToRawIntBits(sprite.getU(u * 16F));
+                output[base + IQuadTransformer.UV0 + 1] = Float.floatToRawIntBits(sprite.getV(v * 16F));
             }
             hasEmissive |= region.emissive();
             result.add(new BakedQuad(output, source.getTintIndex(), source.getDirection(), sprite,

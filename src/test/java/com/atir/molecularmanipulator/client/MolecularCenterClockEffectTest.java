@@ -30,22 +30,28 @@ class MolecularCenterClockEffectTest {
         assertEquals(0, FeatherResonanceEffects.clockState(1200).secondOfMinute(),
                 "A full minute returns the dial to its first mark");
         assertEquals(1, FeatherResonanceEffects.clockState(1220).secondOfMinute());
+        assertEquals(0, FeatherResonanceEffects.clockState(1199).minuteOfHour());
+        assertEquals(1, FeatherResonanceEffects.clockState(1200).minuteOfHour(),
+                "The minute hand advances with the minute");
+        assertEquals(2, FeatherResonanceEffects.clockState(2400).minuteOfHour());
     }
 
     @Test
-    void handJumpsSixDegreesPerSecondInsteadOfSweeping() {
+    void handsJumpSixDegreesPerStepInsteadOfSweeping() {
         for (int second = 0; second < 60; second++) {
             var start = FeatherResonanceEffects.clockState(second * 20.0);
             var rest = FeatherResonanceEffects.clockState(second * 20.0 + 19.999);
-            assertEquals(second * 6.0, start.handDegrees(), 1.7 + 1.0E-9,
-                    "The hand starts each second on its own mark with a small overshoot");
-            assertEquals(second * 6.0, rest.handDegrees(), 1.0E-6,
-                    "The hand comes to rest before the next step");
-            assertTrue(start.handDegrees() >= rest.handDegrees(),
+            assertEquals(second * 6.0, start.secondDegrees(), 1.7 + 1.0E-9,
+                    "The second hand starts each second on its own mark with a small overshoot");
+            assertEquals(second * 6.0, rest.secondDegrees(), 1.0E-6,
+                    "The second hand comes to rest before the next step");
+            assertTrue(start.secondDegrees() >= rest.secondDegrees(),
                     "The overshoot must settle forward, never drift backwards");
+            assertEquals(second * 0.1, start.minuteDegrees(), 1.0E-9,
+                    "The minute hand creeps one tenth of a degree per second");
         }
-        assertEquals(6.0, FeatherResonanceEffects.clockState(40).handDegrees()
-                - FeatherResonanceEffects.clockState(20).handDegrees(), 1.0E-9,
+        assertEquals(6.0, FeatherResonanceEffects.clockState(40).secondDegrees()
+                - FeatherResonanceEffects.clockState(20).secondDegrees(), 1.0E-9,
                 "Consecutive marks are one sixtieth of a turn apart");
     }
 
@@ -70,7 +76,8 @@ class MolecularCenterClockEffectTest {
         var nan = FeatherResonanceEffects.clockState(Double.NaN);
         assertEquals(0, nan.secondOfMinute());
         assertEquals(0, nan.pulse());
-        assertTrue(Double.isFinite(FeatherResonanceEffects.clockState(Double.POSITIVE_INFINITY).handDegrees()));
+        assertTrue(Double.isFinite(FeatherResonanceEffects.clockState(Double.POSITIVE_INFINITY).secondDegrees()));
+        assertTrue(Double.isFinite(FeatherResonanceEffects.clockState(Double.POSITIVE_INFINITY).minuteDegrees()));
     }
 
     @Test
@@ -122,14 +129,13 @@ class MolecularCenterClockEffectTest {
     }
 
     @Test
-    void pulsingMarkAndHandBrightenOnTheStepAndFadeWithinTheSecond() {
-        // No other geometry in this effect exceeds alpha 220, so a higher alpha isolates the dial's
-        // own beat: full pulse at the step, almost gone halfway through the second.
-        long atStep = draw(false, 1000).vertices().stream().filter(v -> v.alpha() > 220).count();
-        long midSecond = draw(false, 1010).vertices().stream().filter(v -> v.alpha() > 220).count();
-        assertTrue(atStep > 0, "The leading mark and hand must flash at each step");
-        assertTrue(atStep > midSecond,
-                "The beat must decay inside the second: " + atStep + " vs " + midSecond);
+    void pulsingDividerAndSecondHandBrightenOnTheStepAndFadeWithinTheSecond() {
+        // 250 is the top band of the dial palette; no other geometry in this effect reaches it, so
+        // it isolates the beat: full pulse at the step, gone halfway through the second.
+        long atStep = draw(false, 1000).vertices().stream().filter(v -> v.alpha() == 250).count();
+        long midSecond = draw(false, 1010).vertices().stream().filter(v -> v.alpha() == 250).count();
+        assertTrue(atStep > 0, "The leading divider and second hand must flash at each step");
+        assertEquals(0, midSecond, "The beat must decay inside the second");
         assertEquals(0, draw(true, 1000).vertices().stream().filter(v -> v.alpha() > 34).count(),
                 "The glow pass stays inside its own alpha ceiling");
     }

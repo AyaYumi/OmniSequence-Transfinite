@@ -55,6 +55,6 @@ navigation:
 
 研究是可由数据包和 KubeJS 添加、替换或删除的配方，类型为 `molecularmanipulator:matter_research`。
 `duration` 按 tick 设置，仍可自由指定；省略时默认 1200 tick。内置的 600 tick 不会强制覆盖自定义研究时间。
-前置完成次数、每轮费用、轮数、并行、加工速度及解锁列表都可配置，完整示例见项目的 `docs/matter-research-api.md`。
+前置完成次数、每轮费用、轮数、并行、加工速度及解锁列表都可配置，完整示例见项目的 `docs/matter-research-api.zh-CN.md`。
 
 新增研究自动获得四种星图之一，同一轮暂停、继续或重载后保持样式一致；最多同时展示四个星图，仅限制显示，不限制研究并发。

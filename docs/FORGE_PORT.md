@@ -40,7 +40,7 @@ See [dependency setup](../libs/README.md) for local development artifacts. Requi
 
 ## Validation / 验证
 
-The 2.0.3 port passes 152 unit tests, six isolated Forge GameTests and the separate
+The 2.0.3 port passes 153 unit tests, nine isolated Forge GameTests and the separate
 AdvancedAE batch/recipe integration test. JEI 15.49.0.188 is the client test baseline.
 The distributable targets Java 17, includes the generated SRG refmap and bundles
 MixinExtras Forge 0.5.3. Client visual validation is still a separate check.
@@ -50,3 +50,9 @@ Run `gradlew test build` with Java 17. Before upgrading a pack, back up its old 
 Use a separate creative world for runtime checks: open each machine menu at the pack's normal GUI scale, check pattern paging/search and terminal filters, submit an ordinary crafting order, exercise item/fluid ports, build the three multiblocks, and save/reopen the world. Test AELIS with its option enabled, then restore the pack's original settings. Check exact input/output quantities and server logs as well as screenshots. An idle tick-time sample is not a sustained production-load benchmark.
 
 The Forge controller loot table uses `minecraft:copy_nbt` and `BlockEntityTag`; the NeoForge `copy_custom_data` function is not valid on 1.20.1. Runtime tests are described in [the regression guide](../tools/gametest/README.md).
+
+## Pattern storage and long batches
+
+The Sequence Array controller exposes only its configured main pattern library through Forge `ITEM_HANDLER`, using a cached `LazyOptional` invalidated and recreated with the block entity lifecycle. Crafting/smithing/stonecutting patterns occupy one slot each; transfers synchronize crystal ownership immediately and are locked during structure work and recovery. The two molecular crafting devices now advertise `Long.MAX_VALUE` batches through their existing long-valued AE2 protocol. Their output buffers and save format already use long counts.
+
+构序阵列控制器通过 Forge 物品能力开放主样板库，并适配能力失效／恢复生命周期；水晶数据所有权及施工锁定与 NeoForge 一致。两种重写设备使用已有 long 批量协议，提升上限不改变原有产物存档格式。

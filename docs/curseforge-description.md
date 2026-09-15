@@ -21,6 +21,8 @@ Start with **AE Foundation**, then unlock the **Sequence Array** and, with Advan
 
 ### Molecular Sequence Rewrite Array
 
+The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now support a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; overflow is rejected without consuming inputs.
+
 A compact crafting machine with **360 pattern slots across ten pages**. It batches supported recipes, can process them in as little as one tick, and returns outputs and container remainders through a persistent ME buffer.
 
 ### Assembler Matrix Sequence Rewrite Core
@@ -32,6 +34,7 @@ Install this core inside an **ExtendedAE Assembler Matrix** in place of ordinary
 Build a floating **Frost Feather Crown** with a **61 × 61 footprint and 29-block height**. Its central controller brings together:
 
 - **7,200 pattern slots by default**, configurable from one to 300 pages for a maximum of **10,800 slots**. The formed library is distributed across 14 quantum crystals and managed through the controller.
+- Attach an **ME Storage Bus** to the controller to move main-library patterns across all configured pages. Only valid crafting, smithing and stonecutting patterns can enter, one per slot; patterns can also be extracted. Other machine inventories remain private, and construction/restoration temporarily pauses external transfers.
 - Support for encoded AE2 crafting, smithing-table and stonecutting patterns.
 - **Nine separate passive autocrafting slots**, each with its own enable switch, ingredient reserves and output-stock target. Keep essentials stocked directly from ME without repeatedly placing orders.
 - **Matter sequence rewriting**: deconstruct eligible materials into metal, mineral, crystal and organic sequences, then reproduce items from a blueprint sample. Entropy, cooling and configurable Acceleration Card tiers regulate this process.
@@ -139,6 +142,8 @@ The Mod ID remains **`molecularmanipulator`** for existing world and script refe
 
 ### 分子构序重写阵列
 
+分子构序重写阵列和装配矩阵构序重写核心的逻辑批量并行上限由 `Integer.MAX_VALUE` 提高至 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。实际批量仍受材料、能量和每种产物的剩余容量限制；溢出批次会被拒绝且不消耗输入。
+
 拥有 **360 个样板槽、共十页**的单方块合成设备。对支持的配方批量执行，最快一 Tick 完成加工，并通过持久 ME 缓冲返回产物与容器余物。
 
 ### 装配矩阵构序重写核心
@@ -150,6 +155,7 @@ The Mod ID remains **`molecularmanipulator`** for existing world and script refe
 搭建**占地 61 × 61、高 29 格**的悬浮「霜晶羽冠」，通过中央控制器管理：
 
 - 默认 **7,200 个样板槽**，可配置一至 300 页，最多 **10,800 槽**。成型后由 14 颗量子水晶分摊保存样板库，仍由控制器统一管理。
+- 控制器可贴 **ME 存储总线**，跨全部已配置页搬运主样板库；每槽一个，只接受合法合成、锻造和切石样板，并允许取出。其他机器库存不开放，施工和恢复期间暂时停止外部存取。
 - 支持 AE2 编码合成、锻造和切石样板。
 - **九个独立被动自动合成槽**，分别设置启停、原料保护量和成品库存目标，直接从 ME 补充常用物资。
 - **物质构序重写**：将符合规则的物品分解为金属、矿物、晶体和有机四类构序，再根据蓝图样品复制物品。熵值、散热与可配置的加速卡档位共同调节加工过程。

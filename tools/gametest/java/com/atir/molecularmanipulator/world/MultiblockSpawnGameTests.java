@@ -89,6 +89,8 @@ public final class MultiblockSpawnGameTests {
             var layout = blueprint(kind, origin, Direction.EAST);
             var expected = footprint(layout);
             loadChunks(level, expected);
+            // The isolated world can contain terrain above Y=100; construction requires an empty footprint.
+            for (var position : layout.keySet()) level.setBlock(position, Blocks.AIR.defaultBlockState(), 3);
             level.setBlock(origin, layout.get(origin), 3);
             var machine = level.getBlockEntity(origin);
             helper.assertTrue(!MultiblockChunkLoading.isOccupiedChunk(level, origin), "Lone controller does not protect an unbuilt structure");

@@ -33,7 +33,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.List;
 
 public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssemblerMatrixFunction implements IGridTickable {
-    public static final long VIRTUAL_PARALLEL_LIMIT = Integer.MAX_VALUE;
+    public static final long VIRTUAL_PARALLEL_LIMIT = Long.MAX_VALUE;
     private static final int MAX_BUFFERED_TYPES = 256;
     private static final String OUTPUT_BUFFER_TAG = "output_buffer";
     private static final String OUTPUT_READY_TICK_TAG = "output_ready_tick";

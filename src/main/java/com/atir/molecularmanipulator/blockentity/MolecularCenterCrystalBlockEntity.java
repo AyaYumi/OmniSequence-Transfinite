@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public final class MolecularCenterCrystalBlockEntity extends BlockEntity {
     private ListTag patterns = new ListTag();
+    private long patternRevision;
 
     public MolecularCenterCrystalBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MOLECULAR_CENTER_CRYSTAL_BE.get(), pos, state);
@@ -23,7 +24,37 @@ public final class MolecularCenterCrystalBlockEntity extends BlockEntity {
 
     public void setPatterns(ListTag patterns) {
         this.patterns = patterns == null ? new ListTag() : patterns.copy();
+        patternRevision++;
         setChanged();
+    }
+
+    public long patternRevision() {
+        return patternRevision;
+    }
+
+    /** Update only the changed slot, before a same-tick save or crystal drop. */
+    public void setPattern(int slot, ItemStack stack) {
+        CompoundTag saved = null;
+        if (!stack.isEmpty()) {
+            saved = (CompoundTag) stack.save(new CompoundTag());
+            saved.putInt("Slot", slot);
+        }
+        for (int i = 0; i < patterns.size(); i++) {
+            if (patterns.getCompound(i).getInt("Slot") != slot) continue;
+            if (saved == null) patterns.remove(i);
+            else {
+                if (saved.equals(patterns.getCompound(i))) return;
+                patterns.set(i, saved);
+            }
+            patternRevision++;
+            setChanged();
+            return;
+        }
+        if (saved != null) {
+            patterns.add(saved);
+            patternRevision++;
+            setChanged();
+        }
     }
 
     public ItemStack createDrop() {
@@ -55,5 +86,6 @@ public final class MolecularCenterCrystalBlockEntity extends BlockEntity {
         patterns = tag.contains(MolecularCenterPatternShards.PATTERNS_TAG, Tag.TAG_LIST)
                 ? tag.getList(MolecularCenterPatternShards.PATTERNS_TAG, Tag.TAG_COMPOUND).copy()
                 : new ListTag();
+        patternRevision++;
     }
 }

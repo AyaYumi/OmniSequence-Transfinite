@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure.PartType;
@@ -10,6 +11,31 @@ import net.minecraft.nbt.ListTag;
 import org.junit.jupiter.api.Test;
 
 class MolecularCenterPatternShardsTest {
+    @Test
+    void firstFormationPreservesPrefilledControllerAndRecoveredCrystals() {
+        var local = new ListTag();
+        var recovered = new ListTag();
+        for (var source : java.util.List.of(local, recovered)) {
+            var item = new CompoundTag();
+            item.putInt("Slot", 0);
+            item.putString("source", source == local ? "controller" : "crystal");
+            source.add(item);
+        }
+        var combined = MolecularCenterPatternShards.combine(local, recovered);
+        assertEquals(2, combined.size());
+        assertEquals(0, combined.getCompound(0).getInt("Slot"));
+        assertEquals(1, combined.getCompound(1).getInt("Slot"));
+        assertEquals("crystal", combined.getCompound(1).getString("source"));
+        assertEquals(0, recovered.getCompound(0).getInt("Slot"), "Original shards must remain untouched");
+        var full = new ListTag();
+        for (int slot = 0; slot < MolecularCenterBlockEntity.MAX_PATTERN_SLOTS; slot++) {
+            var item = new CompoundTag(); item.putInt("Slot", slot); full.add(item);
+        }
+        assertNull(MolecularCenterPatternShards.combine(full, recovered), "Overflow must not discard either source");
+        assertEquals(MolecularCenterBlockEntity.MAX_PATTERN_SLOTS, full.size());
+        assertEquals(1, recovered.size());
+    }
+
     @Test
     void forgeInventorySerializationRetainsPatternsAndNbtAcrossCrystalShards() throws Exception {
         Class.forName(com.atir.molecularmanipulator.client.UiRenderRecorder.class.getName());

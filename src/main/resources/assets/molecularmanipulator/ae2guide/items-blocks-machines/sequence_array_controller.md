@@ -87,6 +87,16 @@ Passive batches extract directly from this controller's ME Network and use the `
 without acceleration cards. Primary outputs, byproducts, containers, reusable ingredients, and rollback refunds return
 exclusively to ME through persistent escrow. There is no internal-storage or adjacent-inventory output mode.
 
+## Moving patterns with an ME Storage Bus
+
+Attach a storage bus to an accessible face of the controller. It exposes every configured page of the main pattern library, regardless of the page currently displayed. Only valid encoded crafting, smithing and stonecutting patterns can be inserted, one per slot; extraction is supported. Blank/processing patterns and ordinary items are rejected. The nine passive-crafting slots, matter inventory, quantum slot and upgrades remain private.
+
+Power the storage bus network and supply its channel. The controller does not need to run a craft or consume additional AE power for transfers. A fresh unformed controller can be prefilled; building, dismantling, structure updates and crystal restoration temporarily block external access. Item pipes and hoppers use the same restricted interface.
+
+Set a higher storage-bus priority to prefer this library for new deposits. The bus does not automatically move patterns already stored elsewhere: use terminal transfers, an ME IO Port or another transport mechanism. Use the bus's write-only mode if you want to prevent extraction.
+
+Keep recovered pattern-bearing crystals during rebuilding. Each pattern edit immediately updates its crystal; removing a crystal locks external mutations until its library is restored. If a prefilled controller and recovered crystals exceed total capacity together, neither source is overwritten; unload patterns before combining them.
+
 ### Reusable inputs and cancellation
 
 The array can execute same-key remainders, including items marked as unbreakable, as one persistent reusable batch.

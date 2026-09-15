@@ -127,6 +127,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
 
     @Override
     public void onChangeInventory(appeng.api.inventories.InternalInventory inventory, int slot) {
+        if (inventory == fullPatternInventory) machine.onPatternInventoryChanged(slot);
         patternRevision++;
         saveChanges();
         if (isClientSide() || rebuildScheduled) {

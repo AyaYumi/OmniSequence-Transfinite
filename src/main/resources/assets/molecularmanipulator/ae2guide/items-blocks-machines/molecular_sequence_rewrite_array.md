@@ -31,6 +31,8 @@ Processing patterns are not executed internally. Use a normal pattern provider a
 
 ## Processing and outputs
 
+The logical batch limit is `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts). Ingredients, energy and remaining output capacity bound each batch; input/output arithmetic overflow is rejected.
+
 The array uses virtual parallel processing and can finish supported recipes in as little as one tick. Actual throughput
 still depends on available ingredients, ME power, and whether the network can accept the results.
 

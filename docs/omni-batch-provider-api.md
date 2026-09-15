@@ -235,7 +235,7 @@ AppliedEnhancements 1.0.6-forge；运行时 ABI 仍为 **1**。其他接口见 [
 本接口，支持构筑井配方声明的所有已注册 AEKey 输入。接收与排队任务开工前检查
 研究权限，开工时计算生产限制和加成。已开始加工的任务跨重载保留加工参数快照；
 排队任务保存原料所有权与配方 ID，并使用当前配方定义。`ae_inputs`、产物隔离和
-尚存的同产物重叠配方限制见[构筑井 API](matter-research-api.md)。
+尚存的同产物重叠配方限制见[构筑井 API](matter-research-api.zh-CN.md)。
 
 若第三方模组自己也修改了 AE2 CPU 的材料倍增逻辑，应在其 CPU Mixin 中调用
 `OmniBatchCraftingApi.isOmniManagedCpu(this)`。返回 `true` 时跳过自身倍增，交给

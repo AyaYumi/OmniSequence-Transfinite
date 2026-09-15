@@ -78,6 +78,15 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public static final int PATTERNS_PER_PAGE = 36;
     public static final int MAX_PATTERN_PAGES = 300;
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
+    private static final String PATTERNS_IN_CRYSTALS_TAG = "molecular_center_patterns_in_crystals";
+    private final net.neoforged.neoforge.items.IItemHandler externalPatternInventory =
+            new MolecularCenterPatternItemHandler(this);
+    private boolean patternStorageReady;
+    private boolean patternsInCrystals;
+    private boolean restoringPatternInventory;
+    private final MolecularCenterCrystalBlockEntity[] patternCrystals =
+            new MolecularCenterCrystalBlockEntity[MolecularCenterPatternShards.CRYSTAL_COUNT];
+    private final long[] patternCrystalRevisions = new long[MolecularCenterPatternShards.CRYSTAL_COUNT];
     public static final long VIRTUAL_PARALLEL_LIMIT = Long.MAX_VALUE;
     private static final int MAX_BUFFERED_TYPES = 256;
     private static final String LEGACY_OUTPUT_BUFFER_TAG = "molecular_center_output_buffer";
@@ -258,6 +267,41 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return getLogic().getFullPatternInventory().getSubInventory(0, activeSlots);
     }
 
+    public net.neoforged.neoforge.items.IItemHandler getExternalPatternInventory() {
+        return externalPatternInventory;
+    }
+
+    boolean canAccessExternalPatterns() {
+        return level != null && !level.isClientSide() && !isRemoved() && patternStorageReady
+                && !restoringPatternInventory && !building && !dismantling && !structureUpdating
+                && (!patternsInCrystals || usesPatternShards());
+    }
+
+    boolean canMutateExternalPatterns() {
+        return canAccessExternalPatterns() && (!patternsInCrystals
+                || allPatternCrystalsPresent() && !patternShardsChanged());
+    }
+
+    boolean isSupportedExternalPattern(ItemStack stack) {
+        return MolecularCenterLogic.isSupportedPattern(stack)
+                && appeng.api.crafting.PatternDetailsHelper.decodePattern(stack, level)
+                        instanceof IMolecularAssemblerSupportedPattern;
+    }
+
+    void onPatternInventoryChanged(int slot) {
+        if (!patternStorageReady || restoringPatternInventory || !patternsInCrystals || !usesPatternShards()
+                || level == null || level.isClientSide() || slot < 0 || slot >= MAX_PATTERN_SLOTS) return;
+        int size = MolecularCenterPatternShards.shardSize();
+        int shard = slot / size;
+        var crystal = crystalAt(MolecularCenterPatternShards.crystals().get(shard),
+                getBlockState().getValue(HorizontalDirectionalBlock.FACING));
+        if (crystal != null) {
+            crystal.setPattern(slot % size, getLogic().getFullPatternInventory().getStackInSlot(slot), level.registryAccess());
+            patternCrystals[shard] = crystal;
+            patternCrystalRevisions[shard] = crystal.patternRevision();
+        }
+    }
+
     @Override
     public List<PatternContainer> molecularmanipulator$getTerminalPatternContainers() {
         return terminalPatternContainers.getContainers();
@@ -322,11 +366,13 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         restoreBuildQueue();
         syncShellConnections(formed);
         loadPatternShards();
+        if (!patternsInCrystals && !usesPatternShards()) patternStorageReady = true;
         updateQuantumLink();
     }
 
     @Override
     public void onChunkUnloaded() {
+        patternStorageReady = false;
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.onChunkUnloaded();
@@ -334,6 +380,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void setRemoved() {
+        patternStorageReady = false;
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.setRemoved();
@@ -362,6 +409,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void clearContent() {
+        // Recovery drops already own the saved state; clearing this departing controller
+        // must not empty crystals that remain in the world or in recovered block items.
+        patternStorageReady = false;
         super.clearContent();
         matterInventory.clear();
         matterUpgrades.clear();
@@ -381,7 +431,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         savePatternShards(registries);
         getLogic().writeToNBT(payload, registries);
         saveStoredContents(payload, registries);
-        if (usesPatternShards()) MolecularCenterPatternShards.takeFromController(payload);
+        if (patternsInCrystals) {
+            MolecularCenterPatternShards.takeFromController(payload);
+            payload.putBoolean(PATTERNS_IN_CRYSTALS_TAG, true);
+        }
         payload.putString(CONTROLLER_ANCHOR_TAG, controllerAnchor.name());
         return RetainedBlockContents.createDrop(this, payload);
     }
@@ -423,7 +476,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         // leave an explicit source copy until the CURRENT structure is formed.
         getLogic().writeToNBT(tag, registries);
         savePatternShards(registries);
-        if (usesPatternShards()) MolecularCenterPatternShards.takeFromController(tag);
+        if (patternsInCrystals) MolecularCenterPatternShards.takeFromController(tag);
+        tag.putBoolean(PATTERNS_IN_CRYSTALS_TAG, patternsInCrystals);
     }
 
     private void saveStoredContents(CompoundTag tag, HolderLookup.Provider registries) {
@@ -470,9 +524,13 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
+        patternStorageReady = false;
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
         formed = tag.getBoolean("molecular_center_formed");
+        patternsInCrystals = tag.getBoolean(PATTERNS_IN_CRYSTALS_TAG)
+                || formed && !tag.contains(MolecularCenterPatternShards.PATTERNS_TAG, Tag.TAG_LIST)
+                && MolecularCenterStructure.StructureLayout.CURRENT.name().equals(tag.getString(LAST_KNOWN_LAYOUT_TAG));
         building = tag.getBoolean("molecular_center_building");
         dismantling = tag.getBoolean("molecular_center_dismantling");
         lastKnownStructureLayout = MolecularCenterStructure.StructureLayout.fromSavedName(tag.getString(LAST_KNOWN_LAYOUT_TAG));
@@ -1694,6 +1752,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var newLayout = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
         boolean newFormed = newLayout.isFormed();
+        if (!newFormed) discardPatternMirror();
         boolean knownLayoutChanged = newFormed && lastKnownStructureLayout != newLayout;
         if (newFormed) {
             lastKnownStructureLayout = newLayout;
@@ -1721,10 +1780,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                     net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, formed), 3);
             onGridConnectableSidesChanged();
             syncShellConnections(newFormed);
-            if (newFormed) loadPatternShards();
             getLogic().updatePatterns();
             stateChanged = true;
         }
+        if (newFormed && (!patternStorageReady || patternShardsChanged())) loadPatternShards();
         if (stateChanged) {
             saveChanges();
         }
@@ -2087,6 +2146,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         buildQueueInitialized = false;
         buildWorkParts = List.of();
         formed = false;
+        discardPatternMirror();
         level.setBlock(worldPosition, getBlockState().setValue(
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
         onGridConnectableSidesChanged();
@@ -2102,6 +2162,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     private void deactivateStructureForWork() {
         formed = false;
+        discardPatternMirror();
         level.setBlock(worldPosition, getBlockState().setValue(
                 net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
         onGridConnectableSidesChanged();
@@ -2538,21 +2599,62 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void savePatternShards(HolderLookup.Provider registries) {
-        if (level == null || level.isClientSide() || !usesPatternShards()) return;
+        if (level == null || level.isClientSide() || !patternStorageReady || restoringPatternInventory
+                || !usesPatternShards() || !allPatternCrystalsPresent() || patternShardsChanged()) return;
         writePatternShards(patternShards(registries), false);
     }
 
     private void loadPatternShards() {
-        if (level == null || level.isClientSide() || !usesPatternShards()) return;
+        if (level == null || level.isClientSide() || !usesPatternShards() || !allPatternCrystalsPresent()) return;
+        patternStorageReady = false;
         var inventory = getLogic().getFullPatternInventory();
         var local = MolecularCenterPatternShards.inventoryList(inventory, level.registryAccess());
         var shards = readPatternShards();
-        if (local.isEmpty() && shards.stream().allMatch(ListTag::isEmpty)) return;
-        var merged = local.isEmpty() ? MolecularCenterPatternShards.merge(shards)
-                : MolecularCenterPatternShards.merge(MolecularCenterPatternShards.split(local));
-        MolecularCenterPatternShards.applyList(inventory, merged, level.registryAccess());
-        writePatternShards(MolecularCenterPatternShards.split(merged), false);
+        var merged = patternsInCrystals || local.isEmpty() ? MolecularCenterPatternShards.merge(shards)
+                : MolecularCenterPatternShards.combine(local, MolecularCenterPatternShards.merge(shards));
+        // Keep both original stores intact when a prefilled controller and recovered
+        // crystals together exceed capacity. Never overwrite either copy.
+        if (merged == null) return;
+        restoringPatternInventory = true;
+        try {
+            MolecularCenterPatternShards.applyList(inventory, merged, level.registryAccess());
+            writePatternShards(MolecularCenterPatternShards.split(merged), false);
+            patternsInCrystals = true;
+            patternStorageReady = true;
+        } finally {
+            restoringPatternInventory = false;
+        }
         getLogic().updatePatterns();
+    }
+
+    private boolean allPatternCrystalsPresent() {
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        for (var part : MolecularCenterPatternShards.crystals()) {
+            if (crystalAt(part, facing) == null) return false;
+        }
+        return true;
+    }
+
+    private void discardPatternMirror() {
+        if (!patternsInCrystals || !patternStorageReady) return;
+        patternStorageReady = false;
+        restoringPatternInventory = true;
+        try {
+            MolecularCenterPatternShards.applyList(getLogic().getFullPatternInventory(), new ListTag(), level.registryAccess());
+        } finally {
+            restoringPatternInventory = false;
+        }
+    }
+
+    private boolean patternShardsChanged() {
+        if (!usesPatternShards()) return false;
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var parts = MolecularCenterPatternShards.crystals();
+        for (int i = 0; i < parts.size(); i++) {
+            var crystal = crystalAt(parts.get(i), facing);
+            if (crystal != patternCrystals[i] || crystal != null && crystal.patternRevision() != patternCrystalRevisions[i]) return true;
+        }
+        return false;
     }
 
     private boolean usesPatternShards() {
@@ -2586,7 +2688,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         for (int shard = 0; shard < crystals.size() && shard < shards.size(); shard++) {
             var crystal = crystalAt(crystals.get(shard), facing);
-            if (crystal != null) crystal.setPatterns(shards.get(shard));
+            if (crystal != null) {
+                crystal.setPatterns(shards.get(shard));
+                patternCrystals[shard] = crystal;
+                patternCrystalRevisions[shard] = crystal.patternRevision();
+            }
         }
         if (clearControllerCopy) {
             MolecularCenterPatternShards.applyList(getLogic().getFullPatternInventory(), new ListTag(),
@@ -3261,7 +3367,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     public boolean schedulePatternRebuild(Runnable rebuild) {
         if (level != null && !level.isClientSide() && level.getServer() != null) {
-            level.getServer().execute(rebuild);
+            // Server.execute may execute inline on its own thread. Queue through AE2
+            // so one bulk import rebuilds the pattern list once, not once per slot.
+            appeng.hooks.ticking.TickHandler.instance().addCallable(level, rebuild);
             return true;
         }
         return false;

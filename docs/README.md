@@ -7,6 +7,7 @@ The Mod ID remains `molecularmanipulator`.
 Project documentation: [2.0.3 release notes](releases/2.0.3.md),
 [bilingual CurseForge description](curseforge-description.md),
 [build and test instructions](../README.md#installation-and-build).
+The well recipe and research page also has a [Chinese version](matter-research-api.zh-CN.md).
 
 | Integration | Contract | Documentation |
 | --- | --- | --- |
@@ -29,12 +30,13 @@ general compatibility promise; use only the documented entry points.
 
 项目文档：[2.0.3 更新说明](releases/2.0.3.md)、[中英 CurseForge 介绍](curseforge-description.md)、
 [安装与构建](../README.zh-CN.md#安装与构建)。
+构筑井配方与研究文档同时提供[英文版](matter-research-api.md)。
 
 | 需求 | 使用接口 |
 | --- | --- |
 | 第三方样板机器接收完整 AEKey 批次，资源类型由供应器决定 | [批量供应器 API](omni-batch-provider-api.md) |
-| 构筑井通用输入、样板产物隔离与当前限制 | [配方格式与已知限制](matter-research-api.md) |
-| 数据包／KubeJS 研究与配方、前置等级、进度管理 | [研究 API](matter-research-api.md) |
+| 构筑井通用输入、样板产物隔离与当前限制 | [配方格式与已知限制](matter-research-api.zh-CN.md) |
+| 数据包／KubeJS 研究与配方、前置等级、进度管理 | [研究 API](matter-research-api.zh-CN.md) |
 | 调用 AELIS、管理循环合成执行 | [前置独立 API](https://github.com/AyaYumi/AppliedEnhancements/blob/main/docs/API_INTEGRATION_ZH.md) |
 
 开发时使用 `compileOnly`，运行时单独安装前置，不复制或嵌入 API 类。

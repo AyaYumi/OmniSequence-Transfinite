@@ -30,8 +30,10 @@ Omni-Computation research branch, including the Transfinite Compute Nexus recipe
 
 Third-party pattern-holding machines can opt into atomic material batching
 through the [Omni Batch Provider API v1](docs/omni-batch-provider-api.md).
-The [API index](docs/README.md) also covers [well research and KubeJS](docs/matter-research-api.md)
-and the separate AppliedEnhancements planning API.
+The [API index](docs/README.md) also covers
+[well research and KubeJS](docs/matter-research-api.md)
+([中文](docs/matter-research-api.zh-CN.md)) and the separate AppliedEnhancements
+planning API.
 
 > Known incompatibility: the only currently declared conflict is `Expanded AE 2.1.1`
 > (`expandedae-2.1.1.jar`, not ExtendedAE). The conflicting code is Expanded AE's
@@ -81,6 +83,8 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 
 ### Molecular Sequence Rewrite Array
 
+- The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now support a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; overflow is rejected without consuming inputs.
+
 - Provides a fixed 360 pattern slots: 10 pages with 36 slots each.
 - Exposes its pattern inventory as logical containers in the Pattern Access Terminal instead of one oversized entry.
 - Supports virtual high parallelism and recipe processing in as little as one tick.
@@ -112,6 +116,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 ### Sequence Array Controller (Sequence Array Multiblock)
 
 - Defaults to 200 pages / 7,200 pattern slots, configurable up to 300 pages / 10,800 slots. The formed library is saved across 14 quantum crystals; keep patterned crystals when moving the structure. Construction prefers patterned crystals over blank ones.
+- Attach an ME Storage Bus to an accessible controller face to insert or extract main-library patterns. The external inventory accepts valid crafting, smithing and stonecutting patterns only, one per slot, across all configured pages. Material, quantum, upgrade and the nine passive-crafting slots are excluded. New unformed controllers can be prefilled; construction, dismantling and restoration temporarily lock external transfers.
 
 - Forms a baseless Frost Feather Crown within a 61×61 footprint and a 29-block height: one horizontal ring, four layered crystal-feather fans, a central controller and a short four-prong amethyst pendant. Logical autocrafting parallelism remains up to `Long.MAX_VALUE`.
 - Eight phase-glass window panels and crystal/rune nodes decorate the ring, with four low focusing seats along the inner ribs. The central controller and front ME casing retain clear access.
@@ -132,7 +137,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 - Version 2.0.1 supports all registered AEKey input types through the optional `ae_inputs` field, including compatible addon resources. Existing item/fluid recipes remain valid. Generic-input recipes use the assembly; manual ports retain their item/fluid workflow.
 - Lookup uses the pattern's complete output and quantity before validating materials. Recipes such as `10A + 10B -> C` and `10A + 10B -> D` remain separate; two C crafts also remain `2C` when their combined inputs equal one D recipe. Queues retain their pattern definitions and recipe IDs.
 - Input, output and refund buffers retain exact AE keys and long amounts across saves. Finished products and queued refunds return to ME. Research permissions and production bonuses belong to the connected controller.
-- Output indexes and cached research definitions reduce repeated lookup work. Recipe reloads rebuild the indexes; controller research progress is read live. See the [recipe and research API](docs/matter-research-api.md) for JSON and Java integration.
+- Output indexes and cached research definitions reduce repeated lookup work. Recipe reloads rebuild the indexes; controller research progress is read live. See the [recipe and research API](docs/matter-research-api.md) ([中文](docs/matter-research-api.zh-CN.md)) for JSON and Java integration.
 
 Current limitations: when overlapping ingredient alternatives produce the same output, splitting a queue can select a different recipe's time and power. A reload that adds a higher-priority overlapping recipe can also leave an existing queue waiting. These cases are distinct from recipes that produce different outputs and remain unresolved in 2.0.3.
 

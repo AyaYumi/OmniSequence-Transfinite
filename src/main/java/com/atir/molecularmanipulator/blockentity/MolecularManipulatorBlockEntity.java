@@ -44,7 +44,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         implements SegmentedPatternContainerHost {
     public static final int PATTERN_SLOTS = 360;
     public static final int PATTERNS_PER_PAGE = 36;
-    public static final long VIRTUAL_PARALLEL_LIMIT = Integer.MAX_VALUE;
+    public static final long VIRTUAL_PARALLEL_LIMIT = Long.MAX_VALUE;
     private static final int MAX_BUFFERED_TYPES = 256;
     private static final String OUTPUT_BUFFER_TAG = "output_buffer";
     private static final String OUTPUT_READY_TICK_TAG = "output_ready_tick";

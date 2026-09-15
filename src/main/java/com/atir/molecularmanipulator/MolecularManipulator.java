@@ -49,6 +49,9 @@ public final class MolecularManipulator {
                 ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY_BE.get(),
                 (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
+                ModContent.MOLECULAR_CENTER_CONTROLLER_BE.get(),
+                (blockEntity, side) -> blockEntity.getExternalPatternInventory());
+        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
                 ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(),
                 (blockEntity, side) -> blockEntity.getExposedItemHandler(side));
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,

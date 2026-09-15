@@ -23,6 +23,14 @@ public final class MolecularCenterPatternShards {
     }
 
     public static List<MolecularCenterStructure.Part> crystals() {
+        return CrystalLayout.PARTS;
+    }
+
+    private static final class CrystalLayout {
+        private static final List<MolecularCenterStructure.Part> PARTS = findCrystals();
+    }
+
+    private static List<MolecularCenterStructure.Part> findCrystals() {
         var crystals = new ArrayList<MolecularCenterStructure.Part>(CRYSTAL_COUNT);
         for (var part : MolecularCenterStructure.parts()) {
             if (part.partType() == MolecularCenterStructure.PartType.COIL) crystals.add(part);
@@ -66,6 +74,35 @@ public final class MolecularCenterPatternShards {
             }
         }
         return merged;
+    }
+
+    /** Preserve a prefilled controller and recovered crystals when first forming a new array. */
+    @org.jetbrains.annotations.Nullable
+    public static ListTag combine(ListTag controller, ListTag recovered) {
+        var result = new ListTag();
+        var occupied = new java.util.BitSet(MolecularCenterBlockEntity.MAX_PATTERN_SLOTS);
+        var conflicts = new ListTag();
+        for (var source : List.of(controller, recovered)) {
+            for (var entry : source) {
+                var item = ((CompoundTag) entry).copy();
+                int slot = item.getInt("Slot");
+                if (slot < 0 || slot >= MolecularCenterBlockEntity.MAX_PATTERN_SLOTS || occupied.get(slot)) {
+                    conflicts.add(item);
+                } else {
+                    result.add(item);
+                    occupied.set(slot);
+                }
+            }
+        }
+        for (var entry : conflicts) {
+            int slot = occupied.nextClearBit(0);
+            if (slot >= MolecularCenterBlockEntity.MAX_PATTERN_SLOTS) return null;
+            var item = (CompoundTag) entry;
+            item.putInt("Slot", slot);
+            result.add(item);
+            occupied.set(slot);
+        }
+        return result;
     }
 
     public static ListTag inventoryList(AppEngInternalInventory inventory, HolderLookup.Provider registries) {

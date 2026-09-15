@@ -217,6 +217,9 @@ tasks.named('jar', Jar).configure {
     from('docs/matter-research-api.md') {
         into 'docs'
     }
+    from('docs/matter-research-api.zh-CN.md') {
+        into 'docs'
+    }
     from('docs/README.md') {
         into 'docs'
     }

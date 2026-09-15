@@ -1,275 +1,469 @@
-# Matter Fabrication Research / 物质构筑井研究 API
+# Matter Fabrication Well: Recipes and Research API
 
-## English integration reference (2.0.3)
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.3**.
+Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.17+**, and the
+required prerequisite AppliedEnhancements **1.0.6+**. The Mod ID stays
+`molecularmanipulator`.
 
-Minecraft 1.21.1 / NeoForge / Java 21. Required prerequisite: AppliedEnhancements
-1.0.6+. See the [API index](README.md) and [batch-provider contract](omni-batch-provider-api.md).
-Research progress belongs to each well controller, not to the player or a global network.
+Other languages: [中文版](matter-research-api.zh-CN.md).
+See also the [API index](README.md) and the separate
+[Omni Batch Provider API v1](omni-batch-provider-api.md).
 
-| Entry point | Contract |
+This page covers the two recipe types that make up the well's content:
+
+| Recipe type | Purpose |
 | --- | --- |
-| Data recipe `molecularmanipulator:matter_research` | Define research under `data/<namespace>/recipe/`; KubeJS uses `ServerEvents.recipes` and `event.custom`. |
-| `MatterResearchApi.definitions(Level)` | Available definitions sorted by `sort_order`, then ID; optional-mod availability is respected. |
-| `start(controller, id)`, `setPaused(controller, id, paused)` | Boolean result; mutations require the owning server thread. Materials are checked and extracted atomically from the controller's ME network. |
-| `completionCount`, `isCompleted` | Query rounds; `isCompleted` means at least one completion, not maximum depth. |
-| `canUseRecipe`, `isRecipeUnlocked` | Check research permission; custom executors must call the hook themselves. |
-| `productionProfile` | Returns `(parallel, ticks)` for current completed branches; actual batch size also depends on materials, power and per-key capacity. |
-| `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations; clamp to current maximum depth, end affected active research, do not refund spent research materials. `setCompleted(true)` means maximum depth. Callers enforce permissions. |
-| `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite; JSON/KubeJS `"max"` corresponds to Java map value `0`. |
+| `molecularmanipulator:matter_fabrication` | What a Matter Fabrication Well can produce. |
+| `molecularmanipulator:matter_research` | Research that unlocks those recipes and adds production bonuses. |
 
-The Java class is `com.atir.molecularmanipulator.research.MatterResearchApi`.
-Use `compileOnly` and separate runtime installation; do not embed these classes.
-Research API has no numeric ABI negotiation method. The separate batch API remains v1.
+Both are ordinary data-pack recipes under `data/<namespace>/recipe/`. KubeJS adds
+or replaces them with `ServerEvents.recipes` and `event.custom`; no extra plugin
+is required. Research progress belongs to each well controller, not to the player
+and not to a global network.
 
-Built-in research takes **600 ticks / 30 seconds per round**, with nine rounds by
-default. Custom definitions keep their own `duration`; omission means **1200 ticks**.
-The two stage-two branches require one foundation completion by default. AdvancedAE
-is required for the Omni branch. `unlocks` contains full **recipe IDs**, not item IDs.
-In 2.0.3 this branch also unlocks `molecularmanipulator:transfinite_compute_nexus`.
-Its default well recipe takes 1200 ticks at 4096 AE/t before research production bonuses.
-Multiple completed branches grant the highest parallelism and shortest processing
-time rather than multiplying bonuses. Research bonuses affect well production only.
+---
 
-For KubeJS research long fields, use decimal strings, especially above `2^53 - 1`;
-`'9223372036854775807'` is valid while floating-point or exponent notation is not.
-Use `neoforge:conditions` for optional-mod items: `required_mods` alone does not
-prevent missing ingredients from failing during recipe decoding.
-
-Pattern assemblies accept all registered AEKey input types through the optional
-`ae_inputs` recipe field. Entries use AE2's `GenericStack.CODEC` format with `#t`
-for the key type and `#` for the positive long amount. `ingredients` and `ae_inputs`
-share a nine-entry limit. Existing item/fluid recipes remain compatible; recipes
-using `ae_inputs` require assembly delivery. JEI and GuideME display these inputs.
-
-| Generic input field | Meaning |
-| --- | --- |
-| `#t` | Registered AEKey type ID; AE2 items use `ae2:i`, fluids use `ae2:f`. Addons define their own IDs. |
-| `#` | Raw amount per craft, an integer from 1 through 9223372036854775807. Item units are items; NeoForge fluid units are mB. |
-| `id`, `components`, other fields | Decoded by the selected key type. Use that addon's codec rather than assuming it shares the item/fluid format. |
-
-For example, `{"#t":"ae2:f","id":"minecraft:water","#":1000}` requests 1,000 mB of water.
-Unlike the research fields above, `#` uses AE2's numeric `Codec.LONG`, not the
-research decimal-string codec. For values beyond JavaScript's exact integer range,
-use an integer literal in a data-pack JSON file or construct the resource with Java
-`new GenericStack(key, longAmount)`. Do not first convert it through a JavaScript number.
-Generic keys match exactly, including components; normal `ingredients` retain their
-Ingredient/tag matching. Repeated or overlapping requirements are additive.
-
-Java recipes use `new MatterFabricationRecipe(ingredients, results, fluidInput,
-fluidResult, aeInputs, processingTime, aePerTick, requiresResearch)` with
-`List<GenericStack> aeInputs`. The previous constructors remain available and default
-to no generic inputs. Outputs still use `results` and `fluid_result` (up to two item
-results and one fluid result); this update does not introduce generic output fields.
-
-Recipe lookup indexes complete outputs, including amounts, and caches research
-definitions and recipe ownership. Recipe snapshot replacement rebuilds the index;
-controller completion counts remain live. Assemblies own persistent AEKey input,
-output and refund buffers.
-Started work stores its processing snapshot. New or unstarted work uses current
-recipe permissions and bonuses. Finished products and refunds return to ME;
-blocked transfers stay in the assembly. The controller's manual port workflow
-remains separate. Removing one block does not collect other assemblies' inventories.
-
-Pattern lookup includes the full expected output and quantity. Identical or
-proportional inputs producing different outputs remain separate, including API
-batches and mixed queues after save/reload. Two crafts of `10A + 10B -> C` produce
-`2C` even if `20A + 20B -> D` also exists. The same applies to `10A + 10B -> D`.
-
-Current 2.0.3 limitations: overlapping alternatives with identical outputs can select
-a different recipe during batch splitting, changing time and power. A reload that
-introduces an earlier matching recipe can leave an existing queue waiting even
-while its original recipe still exists. These cases remain unresolved; neither
-output indexing nor API admission should be treated as a fix for them.
-
-OP level 2 commands: `/matter_research unlock_all`, `complete <id> <true|false>`
-and `set <id> <count>`. Append `x y z` for an explicit loaded controller, or aim
-at one within 16 blocks. Console use requires coordinates. Java hooks do not
-inherit command permission checks.
-
-Complete field tables, KubeJS examples and administration details follow below.
-
-## 中文：研究与生产契约
-
-研究进度属于控制器。新建时为 0 阶，每个研究首次完成解锁其配方，之后可重复进行深度研究，提高这些配方的并行上限和加工速度。默认每个研究共 9 次（包含首次解锁）；不同研究分支可以同时运行。
-
-## 内置研究与解锁链
-
-| 研究 ID（前缀 `molecularmanipulator:`） | 每次研究时间 | 研究功耗 | 首次解锁内容 |
-| --- | --- | --- | --- |
-| `research/ae_foundation` | 600 tick / 30 秒 | 256 AE/t | 7 条 AE 材料配方，以及 27 条二阶研究材料和中间材料配方 |
-| `research/sequence_array` | 600 tick / 30 秒 | 512 AE/t | 构序阵列 6 类部件，以及分子构序重写阵列、装配矩阵构序重写核心 |
-| `research/omni_computation` | 600 tick / 30 秒 | 1024 AE/t | 万物演算 10 类部件与超限算枢 |
-
-上述 30 秒适用于内置研究的首次解锁及后续每轮深度研究。KubeJS/数据包的 `duration` 仍按 tick 自由配置，省略时仍默认 1200 tick；已开始的研究保留开工时的耗时快照，新开始的轮次使用更新后的定义。
-
-一阶的新增配方 ID 为 `molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`，覆盖两条二阶研究消耗的 17 种材料和机器，并补齐相关中间材料、量子注入液配方。数量 27 包含这些中间配方。加工方法基于整合包实际安装的 ExtendedAE、AdvancedAE 配方；处理器使用本井直接加工。它们在一阶首次完成后开放，获得一阶的深度研究加成。
-
-无 AdvancedAE 时，万物演算分支及 AdvancedAE 材料配方不加载，界面也不列出缺失配方。默认一阶完成 **1 次**即可开始二阶；之后可继续深度研究提高一阶配方的生产能力。前置完成次数可按研究逐项配置，支持固定次数和要求满级。构筑井控制器、5 类结构件和 4 类输入输出口使用 AE 原版材料制作，不受研究门槛影响；样板总成需要一阶首次完成后在构筑井内加工制作。
-
-分子构序重写阵列（`molecular_manipulator`）和装配矩阵构序重写核心（`assembler_matrix_molecular_core`）已移入二阶构序阵列分支：工作台配方改为构筑井加工，原材料种类与数量保持不变，基础加工均为 400 tick、512 AE/t。该分支首次完成后解锁这两条配方，后续深度研究为它们提供同分支的速度与并行加成。
-
-2.0.3 新增超限算枢配方，由万物演算分支解锁，配方 ID 为
-`molecularmanipulator:transfinite_compute_nexus`，基础耗时 1200 tick、功耗 4096 AE/t。
-它继承该分支的构筑井生产加成；算枢放置后的待机功耗单独配置，默认 16384 AE/t。
-
-当前服务方块可安装在构筑井正前方 24 格及中央四段平台各五格（共 20 格）；
-原外围九个位置已停用。样板总成与四种物品／流体接口使用相同的合法安装区域。
-
-## 默认九次进度
-
-每轮费用独立收取，不是从上一轮补差额。`并行`表示一次加工可执行多少份完整配方。
-
-| 累计完成次数 | 本轮材料 / 基础材料 | 完成后的并行上限 | 完成后的加工时间 |
-| --- | --- | --- | --- |
-| 1 | ×1 | 1 | 原始耗时 |
-| 2 | ×2 | 256 | 原始耗时 ÷2，向上取整 |
-| 3 | ×4 | 65,536 | 原始耗时 ÷4，向上取整 |
-| 4 | ×8 | 16,777,216 | 原始耗时 ÷8，向上取整 |
-| 5 | ×16 | 4,294,967,296 | 原始耗时 ÷16，向上取整 |
-| 6 | ×32 | 1,099,511,627,776 | 原始耗时 ÷32，向上取整 |
-| 7 | ×64 | 281,474,976,710,656 | 原始耗时 ÷64，向上取整 |
-| 8 | ×128 | 72,057,594,037,927,936 | 原始耗时 ÷128，向上取整 |
-| 9 | ×256 | 9,223,372,036,854,775,807（约 9.22E18） | 固定 1 tick |
-
-加工时间至少 1 tick。并行与速度加成只作用于该研究 `unlocks` 列出的构筑井配方，不改变研究自身耗时。不同研究若解锁同一配方，取最高并行、最短耗时，不将加成相乘。
-
-## 实时库存、批量扣料与保存
-
-- 页面每 5 个服务器 tick 同步所选研究的当前 AE 实际库存；开始研究时再次直接读取存储提供者，重新校验并批量提取。研究仅消耗控制器所在 AE 网络中的物品，不取玩家背包和接口库存。
-- 所有材料必须齐全才能开始。重叠的物品/标签要求通过联合分配校验，同一份库存不会重复计入两个需求，也不需要手工调整材料声明顺序。
-- 若提供者在核验与实际提取之间发生变化，研究不启动，退回已提取材料；网络暂不接收的退款由控制器保存，网络恢复后重试，退款未完成前不接受新研究。
-- 正常研究开始时扣完费用，后续计时不再取材。暂停、断网、缺电、结构损坏或搭建/拆除期间保留材料和进度。恢复研究不重复收费。
-- 所有前置研究都必须达到各自要求的完成次数，默认 1 次。`prerequisite_levels` 可覆盖单项要求；`"max"` 表示前置研究当前的最高次数。正在进行的后续研究若因指令回退或配置变更不再满足要求，会保留材料与进度并等待条件恢复，不会继续扣料。
-- 同一研究同时至多运行一轮，不同分支独立计时、耗能。研究可与普通生产同时进行，共享网络供电。
-- 已开始任务保存材料、轮数、深度表、研究时间和功耗快照；重载定义不重新收费。完成次数按研究 ID 保存，加工加成和解锁列表从当前定义计算。缩短深度表时保留原完成次数，以新的最后一项计算加成。
-- 旧版本的“已完成”迁移为完成 1 次；旧部分取材任务暂停，点击继续时一次性补齐尚未支付的部分，保留原进度。
-- 控制器存档、正常掉落和 AE 拆卸物品均保存研究次数、在研任务与待退款。记忆卡不复制这些内容。缺少依赖导致无法解码的任务/退款保留原始数据，兼容环境重载后可恢复。
-
-## 生产与 AE 大批量
-
-手动接口加工与样板总成都使用同一研究加成。手动物品缓存按实际库存、输出空间和供电计算本轮份数；不会把 long 数量塞进普通 ItemStack。
-
-样板总成实现公开 `OmniBatchCraftingProvider` API，支持本模组演算系统的 long 批次。输入支持所有已注册的 AEKey 类型，配方通过下述 `ae_inputs` 声明额外资源。输入与输出以 AE Key + long 持久保存，处理工作量取决于材料种类数，不逐份循环。AE 普通单份投料也使用同一持久批次，可在开始加工前合并同配方投料。
-
-样板总成自行持有输入、输出和退款缓存，产物与待退回原料自动写回其 ME 网络；网络不接收时保留在总成内，不转存到手动输出口。控制器保留的旧批次兼容路径与手动接口加工使用各自缓存。输出堵塞或保存重载不会丢弃已接收材料，单独拆除控制器不会收走其他总成的库存。
-
-投料时按完整产物及数量查找候选配方，并复用研究定义与配方归属索引；同产物候选仍按配方管理器的顺序匹配，输入逐次完整校验。索引随配方管理器的配方快照替换自动重建，支持数据包重载及 `replaceRecipes`。各控制器的研究完成次数实时读取，解锁、撤销和存档恢复不会沿用其他控制器或旧状态的权限。
-
-并行是上限：实际批次仍受材料、供电、输出接收能力和每种 AE Key 的 long 数量上限限制。例如每份输出 16 个相同物品时，单批份数最多 `Long.MAX_VALUE / 16`。功耗按原配方每 tick 功耗乘本批份数计收。原生测试已通过公开 API 实际接收并在 1 tick 结算 `Long.MAX_VALUE` 份 1 输入 / 1 输出、0 功耗配方；此测试验证数值和结算能力，不代表默认有免费材料或供电。
-
-## JEI 与输入输出口
-
-JEI 配方顶部标注负责开放此配方的研究阶段与名称。鼠标悬停可查看完整研究条件；多个研究授予同一配方时会全部列出。没有研究限制的配方显示“基础配方 · 无需研究”。底部时间和功耗为基础参数，深度研究加成由控制器实际应用。
-
-| 接口 | 控制方式 |
-| --- | --- |
-| 物品输入口、流体输入口 | 已绑定控制器且 AE 在线时，点击“全部退回 AE”将本接口缓存退回该网络；接收不下的保留 |
-| 物品输出口、流体输出口 | “自动输出”默认关闭；开启后每 5 tick 向已选方向的相邻容器转移，按实际接收量扣除缓存 |
-| 输出方向 | 上、下、北、南、西、东独立切换，新接口六方向默认全部关闭；开启后按钮固定浅蓝色并带方括号，关闭时灰色，鼠标悬停为青绿色，可多选；按钮显示该方向相邻方块的图标，悬停查看名称，方块改变后自动更新；使用世界方向，连接相邻容器朝向本接口的面 |
-| 样板总成 | 显示 AE 连接状态和样板占用数；支持命名，窗口缩放保留尚未保存的名称 |
-
-流体输入口、流体输出口的四个缓存槽都支持手动双向存取：鼠标拿着流体容器右键指定槽，有流体就尝试倒入，空容器就尝试装出；每次处理一个容器。单个水桶会变为空桶，单个空桶会变为水桶，创造模式也进行实际容器交换。堆叠空桶取水时，水桶放进背包，鼠标上空桶减一；若背包放不下结果，操作不生效。槽满、流体不兼容或不足以装满水桶时不会吞掉容器或流体。左键保留输入口倒入、输出口取出的原操作。
-
-输出缓存的自动转移无需保持界面打开。未选任何方向时停止输出；相邻区块未加载时不强制加载。物品和流体输出仅发送到相邻容器，不直接丢到世界中。已保存的方向设置不会因更新默认值而重置。输出开关、方向随世界保存，并保留在 AE 拆卸设置和控制器分批拆解打包的接口物品中。
-
-## 数据定义与 KubeJS
-
-研究是普通配方类型 `molecularmanipulator:matter_research`，位于 `data/<namespace>/recipe/<path>.json`。KubeJS 使用 `ServerEvents.recipes` 的 `event.custom` 添加或替换，不需要额外适配插件。
-
-| 字段 | 含义 |
-| --- | --- |
-| `title` | 名称或翻译键 |
-| `stage` | 显示阶数，默认 1；先后关系由前置列表决定 |
-| `sort_order` | 导航顺序，默认 0 |
-| `prerequisites` | 前置研究 ID 列表，各项默认要求完成 1 次；避免自引用和循环 |
-| `prerequisite_levels` | 可选映射 `{研究ID: 所需完成次数或 "max"}`，覆盖单项门槛；映射中的 ID 也会自动加入前置列表 |
-| `ingredients` | 基础研究耗材，每项 `{ingredient: {item: ...} 或 {tag: ...}, count: 正 long}` |
-| `duration` | 每次研究时间，至少 1 tick，默认 1200 |
-| `ae_per_tick` | 研究期间功耗，有限非负数，默认 256 |
-| `required_mods` | 显示、运行所需全部模组 ID |
-| `unlocks` | 解锁并获得加成的完整加工配方 ID，不是物品 ID |
-| `depths` | 每轮的费用和完成后的总加成；数组长度就是研究总次数，省略采用默认 9 次 |
-
-前置配置示例（JSON 与 KubeJS 的 `event.custom` 均可直接使用）：
-
-```json
-"prerequisites": ["molecularmanipulator:research/ae_foundation"],
-"prerequisite_levels": {
-  "molecularmanipulator:research/ae_foundation": 3,
-  "kubejs:another_research": "max"
-}
-```
-
-这表示 AE 材料构筑研究至少完成 3 次，并且 `kubejs:another_research` 满级。映射中未设置的已有前置默认要求 1 次；`prerequisites` 可以省略，只写映射也会建立依赖。`"max"` 会随前置研究的 `depths` 长度变化。数值门槛不会被自动调低，配置时应确保不超过该前置的可完成次数。缺失或依赖模组未加载的前置视为不满足。
-
-这里的“级”指累计完成研究次数，不是显示用的 `stage` 阶段编号。默认两条二阶分支不需要一阶满级。配置热重载后，开始、继续和计时校验都使用当前门槛；已有已付款任务不会重新收费。界面的分母会显示实际所需次数，达到要求后显示绿色。
-
-`depths` 每一项的字段：
-
-| 字段 | 含义 |
-| --- | --- |
-| `material_multiplier` | 本轮费用 = 基础 `ingredients` ×该倍率，默认 1 |
-| `ingredients` | 可选，提供时**完整替代**本轮材料，不再乘倍率；`[]` 表示免费一轮 |
-| `parallel` | 本轮完成后的总并行上限，必填正 long |
-| `speed_multiplier` | 用原配方时间除该值并向上取整，默认 1 |
-| `processing_ticks` | 大于 0 时固定加工 tick 数，优先于速度倍率；0/省略采用速度倍率 |
-
-所有 long 字段（材料 `count`、`material_multiplier`、`parallel`、`speed_multiplier`）可写十进制字符串，推荐始终加引号。超过 JavaScript 安全整数 `2^53 - 1` 时必须使用字符串，例如 `'9223372036854775807'`，不能用浮点数或 `'9.22E18'` 代替。费用乘法超出 long 上限时拒绝开始，不会变成负数或免费研究。
-
-下面示例放入整合包 `kubejs/server_scripts/matter_research.js`，新增只有 3 次的研究，逐轮改变材料、并行和速度：
+## 1. Quick start: custom well recipes behind research
 
 ```javascript
 ServerEvents.recipes(event => {
+  // 1) A research that unlocks the custom recipe.
   event.custom({
     type: 'molecularmanipulator:matter_research',
-    title: '石材深度研究', stage: 3, sort_order: 100,
+    title: 'Stone deep research',
+    stage: 3,
+    sort_order: 100,
     prerequisites: ['molecularmanipulator:research/ae_foundation'],
     ingredients: [{ingredient: {item: 'ae2:fluix_crystal'}, count: '32'}],
-    duration: 1200, ae_per_tick: 128,
+    duration: 1200,
+    ae_per_tick: 128,
     unlocks: ['kubejs:stone_processing'],
     depths: [
-      {parallel: '4', speed_multiplier: '1'},
+      {parallel: '4'},
       {material_multiplier: '3', parallel: '1024', speed_multiplier: '8'},
       {
         ingredients: [
           {ingredient: {item: 'ae2:fluix_crystal'}, count: '512'},
           {ingredient: {item: 'minecraft:diamond'}, count: '64'}
         ],
-        parallel: '9223372036854775807', processing_ticks: 1
+        parallel: '9223372036854775807',
+        processing_ticks: 1
       }
     ]
-  }).id('kubejs:stone_research')
+  }).id('kubejs:stone_research');
 
+  // 2) The well recipe itself.
   event.custom({
     type: 'molecularmanipulator:matter_fabrication',
     ingredients: [{ingredient: {item: 'minecraft:cobblestone'}, count: 1}],
     results: [{id: 'minecraft:stone', count: 1}],
-    processing_time: 200, ae_per_tick: 64, requires_research: true
-  }).id('kubejs:stone_processing')
-})
+    processing_time: 200,
+    ae_per_tick: 64,
+    requires_research: true
+  }).id('kubejs:stone_processing');
+});
 ```
 
-修改内置研究时，先 `event.remove({id: 'molecularmanipulator:research/ae_foundation'})`，然后注册同 ID 的完整新定义。可从 JAR 的 `data/molecularmanipulator/recipe/research/` 取出原 JSON 作为模板，保留想继续解锁的 `unlocks`。保持研究 ID 即可沿用完成次数。`depths` 改成几项就有几次研究，可完全替换每轮成本与加成。
+With `requires_research: true` the recipe is locked until **any** research that
+lists it in `unlocks` has at least one completion — here `kubejs:stone_research`.
 
-涉及可选模组物品时，顶层还须添加 `neoforge:conditions`，使缺少模组时跳过 Ingredient 解析：
+### 1.1 Locking a recipe behind a deeper research level
+
+Recipe permission is binary: one completion opens the recipe, and there is no
+per-recipe level field. To require a specific depth — for example **9/9 on
+Omni-Computation** — put the requirement on a *gate* research and unlock the
+recipe from that gate instead of from the built-in research:
 
 ```json
-"neoforge:conditions": [{"type": "neoforge:mod_loaded", "modid": "advanced_ae"}]
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "kubejs.research.late_stone",
+  "prerequisites": ["molecularmanipulator:research/omni_computation"],
+  "prerequisite_levels": {
+    "molecularmanipulator:research/omni_computation": 9
+  },
+  "ingredients": [{"ingredient": {"item": "ae2:fluix_crystal"}, "count": "64"}],
+  "duration": 2400,
+  "ae_per_tick": 512,
+  "stage": 3,
+  "sort_order": 200,
+  "unlocks": ["kubejs:stone_processing"]
+}
 ```
 
+`kubejs:stone_processing` can then be crafted only after the gate research
+completes once, and the gate itself cannot start until Omni-Computation has nine
+completions. Use the string `"max"` instead of `9` to require whatever the
+prerequisite's own `depths` length currently is.
 
-## 管理指令
+Notes:
 
-需要开启作弊或具有 OP 2 级权限。省略坐标时，准心需指向 16 格以内的物质构筑井控制器；也可在指令末尾加 `x y z`，支持 `~` 相对坐标。服务器控制台必须指定坐标，目标区块必须已经加载。指令仅操作目标控制器，不要求结构成型或 AE 在线，也不扣材料。
+- Levels count **completions**, not the display-only `stage` number on each research.
+- A numeric level is never lowered automatically. If it exceeds the prerequisite's
+  `depths` length, the gate can never be started; keep it within range.
+- `prerequisite_levels` keys are merged into `prerequisites`, so writing only the
+  map still establishes the dependency; prerequisites not listed in the map
+  default to one completion.
 
-| 指令 | 效果 |
+---
+
+## 2. Research definition: `molecularmanipulator:matter_research`
+
+Location: `data/<namespace>/recipe/<path>.json`.
+
+| Field | Meaning |
 | --- | --- |
-| `/matter_research unlock_all` | 将目标控制器的所有可用研究直接设为各自满级，包括 KubeJS 新增研究 |
-| `/matter_research complete <研究ID> true` | 将单项研究设为满级 |
-| `/matter_research complete <研究ID> false` | 将单项研究设为未完成，即 0 次 |
-| `/matter_research set <研究ID> <次数>` | 设置单项完成次数；0 表示未完成，超过上限自动设为最高次数 |
+| `title` | Display name or translation key. Required, must not be blank. |
+| `stage` | Displayed tier, default `1`. Ordering and gating come from the prerequisite list, not from this number. |
+| `sort_order` | Navigation order, default `0`. Definitions are sorted by `sort_order`, then by ID. |
+| `prerequisites` | List of research IDs; each defaults to one required completion. Self-references and cycles are invalid. |
+| `prerequisite_levels` | Optional map `{research ID: required completions or "max"}` overriding individual thresholds. Keys are added to `prerequisites`. |
+| `ingredients` | Base round cost. Required. Each entry is `{ingredient: {item: ...} or {tag: ...}, count: positive long}`. Item ingredients only — research cannot charge fluids or generic AE keys. |
+| `duration` | Ticks per round, at least `1`, default `1200`. |
+| `ae_per_tick` | Power drawn while researching, finite and non-negative, default `256`. |
+| `required_mods` | Mod IDs that must all be loaded for the definition to appear and run. |
+| `unlocks` | Full **recipe IDs** (not item IDs) that this research unlocks and boosts. |
+| `depths` | Per-round cost and total benefit after each completion. The array length is the number of rounds; omitting it uses the default nine-round table in §3. |
 
-例如：
+### 2.1 Depth entries
+
+Each `depths` element:
+
+| Field | Meaning |
+| --- | --- |
+| `material_multiplier` | Round cost = base `ingredients` × this, default `1`. |
+| `ingredients` | Optional. When present it **fully replaces** the round's materials and the multiplier is ignored; `[]` means a free round. |
+| `parallel` | Total parallel limit after this round. Required positive long. |
+| `speed_multiplier` | Base recipe time is divided by this and rounded up, default `1`. |
+| `processing_ticks` | When greater than `0`, a fixed processing time that takes priority over `speed_multiplier`; `0` or omitted uses the multiplier. |
+
+### 2.2 Long values and `2^53 - 1`
+
+Every long field (`count`, `material_multiplier`, `parallel`, `speed_multiplier`)
+accepts a decimal string, and quoting is recommended. Above JavaScript's exact
+integer limit `2^53 - 1` a string is **mandatory** — write
+`'9223372036854775807'`, never a float or `'9.22E18'`. Nothing detects a
+precision loss for you; a wrong JavaScript number is silently wrong. Costs whose
+multiplication exceeds the long range refuse to start instead of going negative
+or becoming free.
+
+---
+
+## 3. Default nine-round progression
+
+Used when `depths` is omitted, and by all three built-in researches. Costs are
+charged per round and are not the difference from the previous round. `parallel`
+is how many complete recipe executions a single craft may run.
+
+| Completions | Round cost / base cost | Parallel limit after | Processing time after |
+| --- | --- | --- | --- |
+| 1 | ×1 | 1 | base time |
+| 2 | ×2 | 256 | base time ÷ 2, rounded up |
+| 3 | ×4 | 65,536 | base time ÷ 4, rounded up |
+| 4 | ×8 | 16,777,216 | base time ÷ 8, rounded up |
+| 5 | ×16 | 4,294,967,296 | base time ÷ 16, rounded up |
+| 6 | ×32 | 1,099,511,627,776 | base time ÷ 32, rounded up |
+| 7 | ×64 | 281,474,976,710,656 | base time ÷ 64, rounded up |
+| 8 | ×128 | 72,057,594,037,927,936 | base time ÷ 128, rounded up |
+| 9 | ×256 | 9,223,372,036,854,775,807 (≈9.22E18) | fixed 1 tick |
+
+Processing time never drops below one tick. Parallelism and speed apply only to
+the well recipes listed in that research's `unlocks`; they never shorten research
+itself. When several researches unlock the same recipe, the **highest** parallel
+limit and the **shortest** time win — bonuses are combined with max/min, not
+multiplied.
+
+---
+
+## 4. Well recipe: `molecularmanipulator:matter_fabrication`
+
+| Field | Meaning |
+| --- | --- |
+| `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: 1-64}`. Defaults to empty. |
+| `results` | Up to **2** item outputs as strict stacks `{id: ..., count: ...}`. |
+| `fluid_input` | Optional fluid input `{id: ..., amount: ...}` in mB. Does not count toward the nine-input limit. |
+| `fluid_result` | Optional single fluid output, same format. |
+| `ae_inputs` | Up to **9** generic AEKey inputs; see §4.1. |
+| `processing_time` | Base ticks, default `200`; values below `1` are raised to `1`. |
+| `ae_per_tick` | Base power, default `64.0`; negative values are raised to `0`. |
+| `requires_research` | Default `false`. See §4.2. |
+
+Load-time error conditions: `ingredients` + `ae_inputs` may not exceed **9**;
+at least one of `ingredients`, `fluid_input` or `ae_inputs` must be present; every
+`ae_inputs` amount must be positive; and at least one item or fluid result is
+required. Unlike research definitions, a malformed well recipe fails to load
+instead of being rejected at craft time.
+
+### 4.1 Generic inputs (`ae_inputs`)
+
+`ae_inputs` accepts every registered AEKey type, which is how gases, chemicals
+and other addon resources are supplied. Entries use AE2's `GenericStack.CODEC`:
+`#t` is the registered AEKey type ID and `#` is the raw amount per craft.
+
+| Field | Meaning |
+| --- | --- |
+| `#t` | AEKey type ID. AE2 items use `ae2:i`, AE2 fluids use `ae2:f`; addons register their own. |
+| `#` | Raw amount per craft, from 1 through 9223372036854775807. Item types count items, NeoForge fluid types count mB. |
+| `id`, `components`, other fields | Decoded by the selected key type; use that addon's codec instead of assuming the item/fluid layout. |
+
+```json
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [{"ingredient": {"item": "minecraft:diamond"}, "count": 2}],
+  "ae_inputs": [
+    {"#t": "ae2:i", "id": "minecraft:diamond", "#": 2},
+    {"#t": "ae2:f", "id": "minecraft:water", "#": 1000}
+  ],
+  "fluid_input": {"id": "minecraft:water", "amount": 250},
+  "results": [{"id": "minecraft:obsidian", "count": 1}],
+  "processing_time": 200,
+  "ae_per_tick": 64
+}
+```
+
+`#` uses AE2's numeric `Codec.LONG`, **not** the decimal-string codec used by
+research fields, so a quoted `"3000000000"` is rejected. For values beyond
+JavaScript's exact integer range, write an integer literal in a data-pack JSON
+file or build the stack in Java with `new GenericStack(key, longAmount)`; do not
+pass it through a JavaScript number first.
+
+Generic keys match exactly, including components, while ordinary `ingredients`
+keep their Ingredient/tag matching. Repeated or overlapping requirements are
+additive — the same stock is never counted for two different requirements.
+
+Recipes containing `ae_inputs` must be fed by a **pattern assembly**. Manual item
+and fluid ports cannot supply generic AE buffers and reject such recipes.
+
+Java constructor for recipes with generic inputs:
+
+```java
+new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
+        aeInputs, processingTime, aePerTick, requiresResearch); // aeInputs is List<GenericStack>
+```
+
+The older 6- and 7-argument constructors remain available and default `aeInputs`
+to an empty list. Outputs still come from `results` and `fluid_result`; there are
+no generic output fields.
+
+### 4.2 Research permission
+
+A well recipe is locked when a research lists it in `unlocks`, or when
+`requires_research` is `true`. It becomes usable once any owning research has at
+least one completion; several owners mean any one of them is enough.
+`requires_research: true` stays locked when no research grants it, when the
+granting research is removed, or when its required mod is missing. A recipe whose
+granting research is not currently available (for example AdvancedAE is absent)
+is locked rather than silently opened.
+
+Recipe permission applies to the Matter Fabrication Well. It does not globally
+block other machines, and already-built multiblocks keep working.
+
+---
+
+## 5. Materials, admission and persistence
+
+- The interface polls the selected research's live AE stock every 5 server ticks.
+  Starting a round re-reads the storage providers, revalidates and extracts the
+  whole round cost. Only items in the controller's AE network are used — player
+  inventories and port buffers are not research supplies.
+- All materials must be present before a round starts. Overlapping item/tag
+  requirements are solved as one joint allocation, so a single stock is never
+  counted twice and declaration order does not matter.
+- If the provider changes between validation and extraction, the round does not
+  start and extracted materials are refunded. Refunds the network cannot accept
+  yet are kept by the controller and retried; no new research is accepted until
+  they are settled.
+- The full cost is charged once at the start. Pausing, disconnecting, losing
+  power, breaking the structure or building/dismantling then preserves both
+  materials and progress, and resuming never charges the same round twice.
+- Every prerequisite must reach its required completion count (default 1). If an
+  in-progress follow-up research stops meeting its prerequisites after a command
+  or config change, it keeps its materials and progress and waits.
+- One round per research runs at a time; different branches use independent
+  timers and power and can run alongside normal production on the same network.
+- Started work stores a snapshot of materials, round, depth table, duration and
+  power. Reloading definitions does not re-charge it. Completion counts are saved
+  per research ID, while bonuses and unlock lists are computed from the current
+  definitions. Shortening a depth table keeps the stored count and recomputes
+  bonuses from the new final entry.
+- Legacy saves migrate a "completed" flag to one completion; partially supplied
+  legacy tasks are paused and top up the unpaid part on resume, keeping progress
+  and round.
+- Controller NBT, normal drops and the AE dismantle item all preserve completion
+  counts, active tasks and pending refunds. A memory card does not copy them.
+  Tasks or refunds that cannot be decoded stay stored and recover after a
+  compatible reload.
+
+---
+
+## 6. Built-in research and unlock chain
+
+| Research ID (prefix `molecularmanipulator:research/`) | Time per round | Research power | First-completion unlocks |
+| --- | --- | --- | --- |
+| `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, pattern assembly |
+| `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
+| `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
+
+The 30 seconds applies to the first unlock and to every later deep-research round
+of the built-in researches. Custom `duration` values stay free in ticks and still
+default to 1200; a started round keeps the duration snapshot from its start.
+
+Both stage-two branches require **one** `ae_foundation` completion by default.
+The 27 stage-one additions are listed under the ID pattern
+`molecularmanipulator:fabrication/research_materials/<modid>/<item>` and cover the
+17 material types consumed by the two stage-two researches plus related
+intermediates and quantum infusion recipes. They open on the first tier-one
+completion and receive tier-one deep-research bonuses.
+
+Without AdvancedAE the Omni-Computation branch and its material recipes do not
+load, and the interface lists nothing for them. The Sequence Array branch is
+guarded by `required_mods: ["extendedae"]`.
+
+The Molecular Sequence Rewrite Array (`molecular_manipulator`) and the Assembler
+Matrix Sequence Rewrite Core (`assembler_matrix_molecular_core`) moved into the
+stage-two Sequence Array branch: their crafting recipes are now well recipes
+using the same materials and counts, at 400 ticks and 512 AE/t base. The branch's
+first completion unlocks both, and its deep research gives them the same speed
+and parallel bonuses. Already-built machines keep working.
+
+The Transfinite Compute Nexus recipe, `molecularmanipulator:transfinite_compute_nexus`,
+is unlocked by the Omni-Computation branch at 1200 ticks and 4096 AE/t before
+production bonuses, inherits that branch's well bonuses, and is itself gated on
+AdvancedAE. Once placed, the block's idle draw is configured separately through
+`transfinite_compute_nexus.idle_power`, defaulting to 16384 AE/t; that setting
+covers only the single-block nexus, while the Omni-Computation Core multiblock
+keeps its fixed 8192 AE/t idle draw.
+
+The well controller, the five structural blocks and the four item/fluid ports are
+crafted from vanilla AE materials and are not gated by research. Pattern
+assemblies are crafted inside the well and need the first tier-one completion.
+
+Service blocks link to the controller on the **24 positions in front of the well**
+and the **20 central platform positions** (five on each of the four collar
+segments), 44 bays in total. The nine former outer positions are no longer
+accepted. Pattern assemblies and the four item/fluid ports share the same bay set.
+The blocks themselves can be placed anywhere, but only a bay position links to the
+controller; the placement preview highlights the legal bays.
+
+---
+
+## 7. Batching, pattern lookup and known limits
+
+Manual port crafting and pattern assemblies share the same research bonuses.
+Manual item buffers compute the round's batch size from live stock, output space
+and power; long amounts are never packed into ordinary ItemStacks.
+
+Pattern assemblies implement the public `OmniBatchCraftingProvider` API and
+support the long batches of this mod's computation system. Inputs accept every
+registered AEKey type, and extra resources are declared through `ae_inputs`.
+Inputs and outputs are stored persistently as AE keys with long amounts, and the
+work is proportional to the number of distinct materials, not to the craft count.
+Ordinary single-craft AE delivery uses the same persistent batch and can merge
+same-recipe delivery before processing starts.
+
+Assemblies own their input, output and refund buffers. Products and pending
+refunds are written back to the assembly's ME network; when the network cannot
+accept them they stay in the assembly rather than being pushed to a manual output
+port. Blocked outputs or a save/reload never discard accepted materials, and
+removing one block does not collect other assemblies' inventories.
+
+Pattern lookup indexes the **complete output map including amounts**, and reuses
+the cached research definitions and recipe-ownership index. Candidates with the
+same output keep RecipeManager order, and every input is validated again per
+attempt. The index rebuilds automatically when the recipe manager's snapshot is
+replaced, which covers data-pack reloads and `replaceRecipes`. Completion counts
+are read live from each controller, so unlocks, revocations and save restores
+never inherit another controller's or a stale state.
+
+Parallel is a limit, not a guarantee: the actual batch still depends on
+materials, power, output acceptance and each AEKey's long capacity. For example,
+when one craft outputs 16 of the same item, a single batch is capped at
+`Long.MAX_VALUE / 16`. Power is charged as the recipe's per-tick draw times the
+batch's craft count.
+
+Native tests cover the numeric side through the public API: the pattern assembly
+accepts and commits a 3,000,000,000-craft generic batch and keeps those amounts
+long-valued across NBT round trips, while the Sequence Rewrite Array and
+Assembler Matrix providers prepare `Long.MAX_VALUE / 4` crafts with exact output
+counts and reject multiplication or buffer overflow without consuming inputs.
+That verifies capacity, not that any pack has free materials or power.
+
+Started work keeps its processing snapshot. New or not-yet-started work uses the
+current recipe permissions and bonuses; queued work stores material ownership and
+the recipe ID, so unstarted batches re-check the current recipe, permission and
+profile instead of reusing old figures. Work that can no longer proceed keeps its
+materials inside the assembly and can be returned as pending input.
+
+### 7.1 Known limitations in 2.0.3
+
+- Overlapping alternatives with identical outputs can match a different recipe
+  while a batch is split, changing its time and power.
+- A reload that introduces an earlier matching recipe can leave an existing queue
+  waiting even though its original recipe still exists.
+- A queue without a pattern is refunded when the pattern definition disappears,
+  not when the matched recipe changes.
+
+Neither output indexing nor API admission should be treated as a fix for these.
+
+---
+
+## 8. JEI and ports
+
+JEI labels each well recipe at the top with the research tier and name that
+grants it; hovering shows the full research conditions, and a recipe granted by
+several researches lists all of them. Recipes without research show
+"Basic recipe · No research", and recipes whose research is not configured show
+"Research not configured". The time and power shown at the bottom are base
+values; deep-research bonuses are applied by the controller.
+
+| Port | Behaviour |
+| --- | --- |
+| Item input port, fluid input port | With a bound controller and an online AE grid, "Return all to AE" sends this port's buffer back to that network; what cannot be accepted stays. |
+| Item output port, fluid output port | "Auto output" is off by default; when enabled it moves contents to adjacent containers in the selected directions every 5 ticks, deducting only what was actually accepted. |
+| Output directions | Up, down, north, south, west and east toggle independently, and all six start off. Enabled sides use AE2's highlighted (light-blue) button sprite and are drawn with brackets; hovering tints the button mint, and several sides can be active at once. Each button shows the adjacent block's icon and its name on hover, updates after the neighbour changes, uses world directions, and connects to the neighbouring container's face that points at this port. |
+| Pattern assembly | Shows AE connection state and occupied pattern count; supports naming, and an unsaved name survives window resizing. |
+
+Buffer capacity is 16 item slots (4×4) and four independent fluid tanks of
+2,147,483,647 mB each; incoming fluid merges into matching tanks before using
+empty ones.
+
+All four fluid buffer slots on the fluid input and output ports allow manual
+transfer in both directions: right-click a slot with a fluid container in hand to
+pour in, or with an empty container to fill it, one container per action. A full
+bucket becomes an empty bucket and vice versa, and this is a real exchange even
+in creative mode. Drawing water from a stack of empty buckets puts the filled
+bucket into your inventory and decrements the held stack; if the result cannot fit
+in the inventory, nothing happens. A full slot, an incompatible fluid or too
+little fluid to fill a bucket never consumes the container or the fluid. The
+original left-click behaviour (fill at an input port, take from an output port)
+is unchanged.
+
+Automatic output transfer does not require the interface to stay open. With no
+direction selected it stops, and unloaded neighbouring chunks are not force
+loaded. Items and fluids are only sent to adjacent containers, never dropped into
+the world. Saved direction settings are not reset when defaults change, and the
+output switch and directions are saved with the world, the AE dismantle settings
+and the port items packed by a controller batch dismantle. Breaking a port
+normally only preserves them while it still holds cached materials; breaking an
+empty port drops a plain block and the auto-output and direction settings are
+lost.
+
+---
+
+## 9. Administration commands
+
+Requires cheats or permission level 2. Without coordinates, look at a Matter
+Fabrication Well controller within 16 blocks; alternatively append `x y z`,
+including `~` relative coordinates. The server console must specify coordinates,
+and the target chunk must be loaded. Commands act only on that controller, do not
+require a formed structure or an online AE grid, and never charge materials.
+
+| Command | Effect |
+| --- | --- |
+| `/matter_research unlock_all` | Sets every available research on the target controller to its maximum depth, including KubeJS-added ones. |
+| `/matter_research complete <research ID> true` | Sets one research to its maximum depth. |
+| `/matter_research complete <research ID> false` | Clears one research to zero completions. |
+| `/matter_research set <research ID> <count>` | Sets one research's completion count; `0` clears it and values above the maximum are clamped. |
 
 ```mcfunction
 /matter_research unlock_all
@@ -279,46 +473,25 @@ ServerEvents.recipes(event => {
 /matter_research set molecularmanipulator:research/omni_computation 999 100 64 200
 ```
 
-最后一条将当前维度坐标 `100 64 200` 的控制器之万物演算研究设为最高次数，默认 9 次。研究 ID 支持 Tab 补全。负数被拒绝，计数参数接受 0 至 `9223372036854775807`；实际保存值会按该研究当前 `depths` 长度钳制。未加载 AdvancedAE 时，万物演算不会出现在补全和全部解锁列表中，单独指定也会提示不可用。
+Research IDs have tab completion. The count argument accepts 0 through
+9223372036854775807 and the stored value is clamped to that research's current
+`depths` length. Without AdvancedAE, Omni-Computation is absent from completion
+and from `unlock_all`, and naming it directly reports it as unavailable.
 
-设置某项完成状态或次数会结束该项正在进行的研究，已用于研究的材料不返还，也不会额外扣料；全部解锁会结束所有被设为满级的在研任务。单项设置不会清空其他分支的完成次数、在研任务和已投入材料。回退一阶后，尚未完成的二阶研究暂停推进，直到一阶重新满足配置要求（默认 1 次）；二阶既有完成记录及已授予的生产配方权限保留。修改结果保存到控制器 NBT，并同步到已打开的界面。
+Changing a research's state or count ends that research's active attempt. Already
+spent materials are not refunded, and nothing extra is charged; `unlock_all` ends
+the active attempts of everything it maxes out. Setting one research leaves other
+branches' counts, tasks and invested materials alone. Reverting tier one pauses
+unfinished tier-two research until the prerequisite is met again (one completion
+by default), while tier-two completion records and granted production permissions
+are kept. Results are written to the controller's NBT and pushed to open menus.
 
-## 权限与 Java API
+---
 
-`matter_fabrication` 配方的 `ingredients`（计数物品，每项 1–64 个）与 `ae_inputs`（通用 AEKey）合计最多 9 项，另支持 `fluid_input`、最多 2 种物品输出和 1 种流体输出。`requires_research` 默认 `false`。只要被研究的 `unlocks` 引用，就必须完成该研究；多个研究引用时任意一个完成即可。`requires_research: true` 在无人授予权限、研究被移除或缺少依赖时保持锁定。
-
-`ae_inputs` 默认为空，旧配方无需修改。每项采用 AE2 `GenericStack.CODEC` 格式：`#t` 是已注册的 AEKey 类型 ID，`#` 是每份配方所需的原始 long 数量（1–9223372036854775807），其余字段由对应类型的 Codec 决定。以下示例只使用 AE2 自带类型，可直接作为数据包配方：
-
-```json
-{
-  "type": "molecularmanipulator:matter_fabrication",
-  "ae_inputs": [
-    {"#t": "ae2:i", "id": "minecraft:diamond", "#": 2},
-    {"#t": "ae2:f", "id": "minecraft:water", "#": 1000},
-    {"#t": "ae2:f", "id": "minecraft:lava", "#": 1000}
-  ],
-  "results": [{"id": "minecraft:obsidian", "count": 1}],
-  "processing_time": 200,
-  "ae_per_tick": 64
-}
-```
-
-第三方气体、化学品等资源使用其 AE2 兼容模组注册的类型 ID 与序列化字段；数量单位也由该类型定义。Java 可用 `new GenericStack(key, amount)` 填充 `MatterFabricationRecipe` 的 `aeInputs`，或用 `GenericStack.CODEC` 导出准确格式。资源按完整 AEKey 精确匹配，重复键与 `ingredients`/`fluid_input` 的重叠需求会累加，不能重复抵扣同一份材料。
-
-`#` 使用 AE2 的数值 `Codec.LONG`，与研究字段支持的十进制字符串不同，不能直接沿用研究字段的字符串写法。超过 JavaScript 精确整数范围 `2^53 - 1` 时，使用数据包 JSON 中的整数字面量，或通过 Java 的 `new GenericStack(key, longAmount)` 构造，避免先经 JavaScript 浮点数转换。
-
-Java 完整构造器为 `new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult, aeInputs, processingTime, aePerTick, requiresResearch)`，其中 `aeInputs` 为 `List<GenericStack>`。旧构造器保持兼容，通用输入默认为空。产物仍由 `results` 和 `fluid_result` 定义，本次没有增加通用输出字段。
-
-包含 `ae_inputs` 的配方通过样板总成投料；普通物品/流体接口不能代替通用 AE 缓存。JEI 与指南显示这些原料，总成仍要求处理样板的完整输入、输出匹配实际构筑井配方。新增输入不会放宽研究、供电或产物校验。
-
-匹配包含样板的完整预期产物及数量。原料相同或成比例、产物不同的配方会分别执行：`10A + 10B -> C` 下单两份仍产出 `2C`，不会因同时存在 `20A + 20B -> D` 或 `10A + 10B -> D` 而改产 D；批量投料、交错排队及存档重载均已验证。
-
-2.0.3 尚存的边界：产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗；重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。这两类问题尚未修复。
-
-权限默认作用于物质构筑井，不全局拦截其他机器；两种高级多方块的部件配方已改为构筑井加工。已经建成的高级机器仍能使用。
+## 10. Java API
 
 ```java
-// 变更操作必须在该控制器所属的服务端线程执行。
+// Mutations must run on the owning server thread.
 MatterResearchApi.start(controller, "molecularmanipulator:research/ae_foundation");
 MatterResearchApi.setPaused(controller, "molecularmanipulator:research/sequence_array", true);
 int rounds = MatterResearchApi.completionCount(controller, "molecularmanipulator:research/ae_foundation");
@@ -332,23 +505,71 @@ int ticks = profile.ticks();
 var definitions = MatterResearchApi.definitions(serverLevel);
 ```
 
-类名为 `com.atir.molecularmanipulator.research.MatterResearchApi`。`start` 和 `setPaused` 返回操作是否被接受；`isCompleted` 保留兼容语义，至少完成 1 次即为 true。`setCompletionCount` 返回自动限制后的次数；`setCompleted(true)` 表示设为满级，`false` 表示归零。三个管理 API 与指令具有相同的在研任务处理规则。完整进度可通过 `controller.getResearch().save()` 读取。其他配方执行器需要自己调用权限和生产参数接口。
+The class is `com.atir.molecularmanipulator.research.MatterResearchApi`. Use
+`compileOnly` against the mod JAR, install the mod separately at runtime, and do
+not embed these classes. There is no numeric ABI negotiation for the research
+API; the separate batch API stays at v1.
 
-Java 模组可使用不可变研究定义的复制 API 配置前置：
+| Entry point | Contract |
+| --- | --- |
+| `definitions(Level)` | Available definitions sorted by `sort_order`, then ID; definitions whose `required_mods` are missing are filtered out. |
+| `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. `setPaused(..., false)` re-checks the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
+| `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
+| `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
+| `productionProfile` | `(parallel, ticks)` for the current completed branches of that recipe: highest parallel, shortest time; an unowned recipe returns parallel `1` and its raw processing time. |
+| `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end the affected active attempts without refunding. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
+| `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
+
+Mutations throw `IllegalStateException` when called off the owning server thread;
+read queries may be used from any thread. Complete progress can be read with
+`controller.getResearch().save()`.
+
+Java mods can build modified definitions through the copy API:
 
 ```java
 var parent = ResourceLocation.parse("molecularmanipulator:research/ae_foundation");
 var three = existingResearch.withPrerequisiteLevels(Map.of(parent, 3));
-var full = existingResearch.withPrerequisiteLevels(Map.of(parent, 0)); // Java 的 0 对应数据中的 "max"
+var full = existingResearch.withPrerequisiteLevels(Map.of(parent, 0)); // Java 0 == "max" in data
 int required = MatterResearchApi.requiredPrerequisiteLevel(three, parentRecipeHolder);
 boolean eligible = MatterResearchApi.prerequisitesMet(three,
         MatterResearchApi.definitions(serverLevel), controller.getResearch()::completionCount);
 ```
 
-将返回的新定义通过正常配方注册/替换流程安装；方法不会修改旧定义或玩家进度。原有 9 参数和 10 参数构造器继续可用，默认前置为 1 次；新的完整构造器最后一项是 `Map<ResourceLocation, Integer> prerequisiteLevels`。Java 映射允许正数（固定次数）或 0（满级），JSON/KubeJS 则使用正整数或字符串 `"max"`，不接受数值 0 和负数。
+`withPrerequisiteLevels` returns a new definition and leaves the old one and all
+player progress untouched; it replaces the level map rather than merging it. The
+returned definition must go through the normal recipe registration or replacement
+path. The 9- and 10-argument constructors remain available and default to one
+required completion per prerequisite; the full canonical constructor takes
+`Map<ResourceLocation, Integer> prerequisiteLevels` as its last parameter. The
+Java map accepts positive counts or `0` for maximum, while JSON and KubeJS accept
+a positive integer or the string `"max"` and reject `0` and negatives.
 
-数据包及 KubeJS 配方重载更新后续研究费用和当前配方加成。正在处理的 AE 批次保留开工时的产物、耗时和功耗快照，即使配方定义被移除，也会继续完成。尚未开工的排队批次保存原料所有权和配方 ID，按当前配方、权限与参数重新检查，不保留旧加工参数快照；无法继续加工时，原料仍留在总成内，可退回待加工原料。
+Other recipe executors must call the permission and production-parameter hooks
+themselves.
 
-研究中的世界特效自动支持第三方模组、数据包和 KubeJS 添加的阶段，无须修改配方格式。三个默认阶段分别使用冰青晶格、青金方阵、紫白轨道星图；其他阶段根据阶段 ID、控制器位置、维度和研究轮次，稳定伪随机选择四种星图之一（另含双螺旋）。同一轮在多人客户端、暂停/恢复和重载后保持相同样式，下一轮重新选取，允许再次选中相同样式。
+---
 
-世界渲染最多同时展示四个研究星图，优先显示运行中的任务；此数量只限制视觉开销，不限制可同时执行的研究数量。暂停、前置不满足、网络离线和供能不足时，星图变暗并停止光脉冲。研究进度通过方块同步传递，关闭控制器界面后依然显示；管理指令直接解锁不会触发研究完成动画。原有研究定义和公开 API 的签名保持兼容。
+## 11. World visuals
+
+Research world effects automatically cover stages added by third-party mods, data
+packs and KubeJS without any recipe change. The three built-in stages use an
+ice-cyan crystal lattice, a mint-teal array with gold accents and a violet-white
+orbital star map; any other stage picks one of the four star maps (lattice, array,
+orbital sphere, double helix) pseudo-randomly but stably from the stage ID,
+controller position, dimension and research round — so a custom stage can also
+land on one of the three built-in shapes. A round keeps the same look across
+multiplayer clients, pause/resume and reloads, and rerolls for the next round,
+including possibly the same map again.
+
+At most four research star maps render per controller, preferring running tasks.
+The cap only bounds visual cost and does not limit how many researches may run.
+Paused research, unmet prerequisites, an unavailable definition, a broken
+structure, an offline network or insufficient power dims the map and stops its
+light pulses; crown arcs grow with the research round, capped at three, and a real
+completion plays a 32-tick breakthrough burst. Progress travels through block
+updates every 5 ticks, so it stays visible with the controller screen closed.
+Command-based unlocks do not play the completion animation. The client-side
+`dynamic_effect_level` option (0, 1 or 2, default 2) controls effect detail: `0`
+disables the star maps entirely, and they only render while the client sees a
+formed structure. Existing research definitions and public API signatures remain
+compatible.

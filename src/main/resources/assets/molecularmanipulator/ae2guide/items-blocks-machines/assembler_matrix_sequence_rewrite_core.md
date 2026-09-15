@@ -27,6 +27,8 @@ core automatically.
 
 ## Processing and compatibility
 
+The logical batch limit is `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts). Ingredients, energy and remaining output capacity bound each batch; input/output arithmetic overflow is rejected.
+
 The core runs the real recipe assembly logic rather than multiplying an output stack. This preserves:
 
 - crafting remainders such as empty containers;

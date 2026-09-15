@@ -17,6 +17,11 @@ Changes from **2.0.3**.
 - Added a pattern-only item interface for the controller's main pattern library, available to ME Storage Buses and item automation. Every configured page accepts one valid crafting, smithing or stonecutting pattern per slot; other inventories stay closed, and external transfers are rejected while the structure is working or being restored.
 - Pattern edits immediately synchronize the affected crystal. Empty libraries, removed crystals and dismantling keep explicit ownership, so a stale controller mirror cannot restore patterns that were moved out. Bulk edits queue a shared pattern rebuild instead of decoding the whole library for each slot.
 
+#### Central ring clock
+
+- The Sequence Array controller's central ring is now a readable clock. Its 60 marks fill one per real second and reset each minute, and a hand steps six degrees per second with a short flash and settle instead of sweeping.
+- The beat runs on client time only, adds no saved state and no networking, and machine activity changes its brightness rather than its rate.
+
 #### Documentation
 
 - Rewrote the recipe and research reference (`docs/matter-research-api.md`) and added a cross-linked Chinese edition (`docs/matter-research-api.zh-CN.md`), which the JAR now ships alongside the batch-provider reference. The API index, both READMEs and the batch-provider cross-links were refreshed with it.
@@ -25,9 +30,9 @@ Changes from **2.0.3**.
 #### Validation and remaining limits
 
 - Both molecular devices accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips, and rejected multiplication and buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
-- **135 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
+- **144 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
 - **All fourteen isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
-- These checks cover code and coordinate behavior; the restructured guide layout has not received an interactive in-game visual check.
+- These checks cover code and coordinate behavior; the guide layout and the clock effect have not received an interactive in-game visual check.
 
 ---
 
@@ -44,6 +49,11 @@ Changes from **2.0.3**.
 - 新增控制器主样板库的专用物品接口，可供 ME 存储总线及物品自动化使用。全部已配置页每槽接受一个合法编码合成／锻造／切石样板；其他库存仍然不开放，施工及恢复期间拒绝外部存取。
 - 样板变更立即同步对应水晶。抽空样板库、移走水晶及拆卸时保留明确的数据所有权，控制器旧副本无法恢复已搬出的样板。批量修改统一排队刷新，不再逐槽解码整个样板库。
 
+#### 中央圆环走秒
+
+- 构序阵列控制器的中央圆环改为可读时钟：60 格刻度每现实一秒点亮一格，满一分钟归零；秒针每秒跳 6°，跳动瞬间短暂增亮并回弹收敛，而不是连续扫过。
+- 走时只使用客户端时间，不写入存档、不新增网络同步；机器状态只影响亮度，不改变节拍。
+
 #### 文档
 
 - 重写配方与研究参考（`docs/matter-research-api.md`），新增互链的中文版（`docs/matter-research-api.zh-CN.md`），并随批量投料参考一起打入 JAR。同步更新接口索引、两份 README 及批量投料参考的交叉链接。
@@ -52,13 +62,11 @@ Changes from **2.0.3**.
 #### 验证与现有限制
 
 - 两种分子设备在已供电装置测试中接受 **30 亿次合成／120 亿产物**，NBT 往返后产物数量精确不变，乘法与缓冲叠加溢出均被拒绝且不消耗输入；控制器存储总线与水晶数据所有权运行时检查同样通过。
-- **135 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
+- **144 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
 - **十四项隔离服务端 GameTest 全部通过**，覆盖三种多方块自然生成保护、超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
-- 上述验证针对代码及坐标行为；重构后的指南排版尚未进行游戏内交互式画面验收。
+- 上述验证针对代码及坐标行为；重构后的指南排版与圆环走秒的实际画面尚未进行游戏内交互式验收。
 
----
-
-## OmniSequence: Transfinite 2.0.3
+---## OmniSequence: Transfinite 2.0.3
 
 Minecraft 1.21.1 · NeoForge · Java 21
 

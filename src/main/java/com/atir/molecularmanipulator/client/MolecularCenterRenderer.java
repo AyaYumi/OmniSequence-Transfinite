@@ -48,6 +48,7 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
         boolean crystalFeathers = layout == MolecularCenterStructure.StructureLayout.CURRENT;
         if (crystalFeathers) angle = crown.angle();
         float completion = crown.completion(center.getLevel().getGameTime() + (double) partialTick);
+        double clockTicks = center.getLevel().getGameTime() + (double) partialTick;
 
         poseStack.pushPose();
         poseStack.translate(visualCenter.x - center.getBlockPos().getX(),
@@ -65,7 +66,7 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
         renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralDepth()),
                 angle, visualMode, effectLevel, false, center.getFieldColor(), center.getCoreColor(),
                 center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
-                crown.activity(), completion);
+                crown.activity(), completion, clockTicks);
         if (crystalFeathers) {
             FeatherResonanceEffects.renderCoreSurface(poseStack,
                     buffers.getBuffer(OmniRenderLayers.translucentEmissiveColor()), angle,
@@ -74,7 +75,7 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
         renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralGlow()),
                 angle, visualMode, effectLevel, true, center.getFieldColor(), center.getCoreColor(),
                 center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
-                crown.activity(), completion);
+                crown.activity(), completion, clockTicks);
         poseStack.popPose();
     }
 
@@ -83,16 +84,27 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
             float angle, int visualMode, int effectLevel, boolean glow,
             int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor) {
         renderLayoutPass(layout, poseStack, consumer, angle, visualMode, effectLevel, glow,
-                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, visualMode == 0 ? 0 : 1, 0);
+                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor,
+                visualMode == 0 ? 0 : 1, 0, 0);
+    }
+
+    static void renderLayoutPass(MolecularCenterStructure.StructureLayout layout,
+            PoseStack poseStack, VertexConsumer consumer,
+            float angle, int visualMode, int effectLevel, boolean glow,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor,
+            double clockTicks) {
+        renderLayoutPass(layout, poseStack, consumer, angle, visualMode, effectLevel, glow,
+                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor,
+                visualMode == 0 ? 0 : 1, 0, clockTicks);
     }
 
     private static void renderLayoutPass(MolecularCenterStructure.StructureLayout layout,
             PoseStack poseStack, VertexConsumer consumer, float angle, int visualMode, int effectLevel, boolean glow,
             int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor,
-            float activity, float completion) {
+            float activity, float completion, double clockTicks) {
         if (layout == MolecularCenterStructure.StructureLayout.CURRENT) {
             renderFeatherPass(poseStack, consumer, angle, activity, completion, effectLevel, glow,
-                    fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+                    fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, clockTicks);
         } else if (layout == MolecularCenterStructure.StructureLayout.LEGACY_1_3_9) {
             renderPass(poseStack, consumer, angle, visualMode, effectLevel, glow,
                     fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
@@ -104,15 +116,23 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
             float angle, int visualMode, int effectLevel, boolean glow,
             int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor) {
         renderFeatherPass(poseStack, consumer, angle, visualMode == 0 ? 0 : 1, 0,
-                effectLevel, glow, fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+                effectLevel, glow, fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, 0);
     }
 
     static void renderFeatherPass(PoseStack poseStack, VertexConsumer consumer,
             float angle, float activity, float completion, int effectLevel, boolean glow,
             int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor) {
+        renderFeatherPass(poseStack, consumer, angle, activity, completion, effectLevel, glow,
+                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, 0);
+    }
+
+    static void renderFeatherPass(PoseStack poseStack, VertexConsumer consumer,
+            float angle, float activity, float completion, int effectLevel, boolean glow,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor,
+            double clockTicks) {
         if (effectLevel <= 0) return;
         FeatherResonanceEffects.render(poseStack, consumer, angle, activity, completion, effectLevel > 1, glow,
-                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+                clockTicks, fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
     }
 
     // The solid amethyst tracks supply the silhouette; light only traces their

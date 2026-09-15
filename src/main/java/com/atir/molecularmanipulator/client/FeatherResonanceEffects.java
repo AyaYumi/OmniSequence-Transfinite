@@ -31,11 +31,19 @@ final class FeatherResonanceEffects {
     static void render(PoseStack stack, VertexConsumer out, float angle, float activity,
             float completion, boolean detailed, boolean glow, int field, int core,
             int primary, int secondary, int lattice) {
+        render(stack, out, angle, activity, completion, detailed, glow, 0, field, core,
+                primary, secondary, lattice);
+    }
+
+    /** {@code clockTicks} is real client time in ticks; it alone drives the one-second dial beat. */
+    static void render(PoseStack stack, VertexConsumer out, float angle, float activity,
+            float completion, boolean detailed, boolean glow, double clockTicks, int field, int core,
+            int primary, int secondary, int lattice) {
         activity = Math.clamp(activity, 0, 1);
         completion = Math.clamp(completion, 0, 1);
         if (!detailed) { secondary = primary; lattice = primary; }
         crown(stack, out, angle, activity, detailed, glow, field, core, primary, secondary, lattice);
-        rings(stack, out, angle, activity, detailed, glow, primary, secondary, lattice);
+        rings(stack, out, angle, activity, detailed, glow, primary, secondary, lattice, clockTicks);
         feathers(stack, out, angle, activity, detailed, glow, field, primary, secondary, lattice);
         starAndShards(stack, out, angle, detailed, glow, field, primary, secondary, lattice);
         if (completion > 0) {
@@ -94,7 +102,7 @@ final class FeatherResonanceEffects {
     }
 
     private static void rings(PoseStack stack, VertexConsumer out, float angle, float activity,
-            boolean detailed, boolean glow, int primary, int secondary, int lattice) {
+            boolean detailed, boolean glow, int primary, int secondary, int lattice, double clockTicks) {
         var pose = stack.last();
         for (int ring = 0; ring < 3; ring++) {
             double radius = RADII[ring], y = HEIGHTS[ring];
@@ -131,11 +139,49 @@ final class FeatherResonanceEffects {
             if (detailed) diamond(pose, out, center, radial.scale(0.25), tangent.scale(0.35),
                     glow ? 0.075F : 0.025F, primary, glow ? 18 : 142);
         }
-        if (detailed) for (int tick = 0; tick < 60; tick++) {
-            double phase = tick * Math.TAU / 60;
-            stroke(pose, out, circle(10.8, -4.95, phase), circle(tick % 5 == 0 ? 11.2 : 11.0, -4.95, phase),
-                    glow ? 0.06F : 0.025F, primary, glow ? 16 : 120);
+        if (detailed) {
+            var clock = clockState(clockTicks);
+            // The regression suite identifies the static main rail by alpha 158 at radius > 10,
+            // so the dial never emits that exact alpha on its marks or hand.
+            double twelve = -Math.PI / 2;
+            for (int tick = 0; tick < 60; tick++) {
+                double phase = twelve + tick * Math.TAU / 60;
+                double outer = tick % 5 == 0 ? 11.2 : 11.0;
+                float width = glow ? 0.055F : 0.024F;
+                int alpha;
+                if (tick == clock.secondOfMinute()) {
+                    outer = 11.55;
+                    width = glow ? 0.075F : 0.032F;
+                    alpha = glow ? (int) (28 + clock.pulse() * 6) : (int) (206 + clock.pulse() * 40 + activity * 9);
+                } else if (tick < clock.secondOfMinute()) {
+                    outer = 11.45;
+                    alpha = glow ? (int) (21 + activity * 4) : (int) (172 + activity * 24);
+                } else {
+                    alpha = glow ? 14 : 120;
+                }
+                stroke(pose, out, circle(10.8, -4.95, phase), circle(outer, -4.95, phase), width, primary, alpha);
+            }
+            double hand = twelve + Math.toRadians(clock.handDegrees());
+            stroke(pose, out, circle(6.35, -4.95, hand), circle(11.5, -4.95, hand),
+                    glow ? 0.09F : 0.042F, primary,
+                    glow ? (int) (26 + clock.pulse() * 8) : (int) (198 + clock.pulse() * 45 + activity * 12));
         }
+    }
+
+    /**
+     * Discrete one-second beat for the dial: the mark index steps by one per 20 ticks and wraps each
+     * minute, while the pulse and the hand's brief overshoot decay inside the second. Stepping rather
+     * than sweeping is what gives the ring its clock-like stutter.
+     */
+    record ClockState(int secondOfMinute, double pulse, double handDegrees) { }
+
+    static ClockState clockState(double clockTicks) {
+        if (!Double.isFinite(clockTicks)) return new ClockState(0, 0, 0);
+        double seconds = Math.max(0, clockTicks) / 20.0;
+        long whole = (long) Math.floor(seconds);
+        double fraction = seconds - whole;
+        int second = (int) Math.floorMod(whole, 60L);
+        return new ClockState(second, Math.pow(1 - fraction, 5), second * 6.0 + 1.7 * Math.pow(1 - fraction, 12));
     }
 
     private static void feathers(PoseStack stack, VertexConsumer out, float angle, float activity,

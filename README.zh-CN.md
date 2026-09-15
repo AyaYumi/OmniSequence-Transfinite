@@ -18,9 +18,9 @@
 | Glodium | 1.20-1.5-forge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`2.0.3-forge`，后续源码维护分支为 `1.20.1-forge`。
+当前版本：`2.0.4-forge`，后续源码维护分支为 `1.20.1-forge`。
 
-相对 2.0.2 的变化见 [2.0.3 更新说明](docs/releases/2.0.3.md)，完整历史见
+相对 2.0.3 的变化见 [2.0.4 更新说明](docs/releases/2.0.4.md)，完整历史见
 [CHANGELOG.md](CHANGELOG.md)，功能概览见[中英项目介绍](docs/curseforge-description.md)。
 Advanced AE (Forge 1.20.1) 对基础模组为可选，对默认万物演算研究分支及超限算枢配方为必要条件。
 
@@ -140,7 +140,7 @@ Forge 界面以本项目 `1.21.1-neoforge` 分支布局为参考，使用 Minecr
 - 输入、输出和退款缓存以精确 AEKey 和 long 数量保存，跨存档恢复；产物与待退回原料自动返回 ME。研究权限和生产加成属于连接的控制器。
 - 产物索引和研究定义缓存减少重复查询；配方重载重建索引，控制器研究进度实时读取。JSON 与 Java 接入见[配方和研究 API](docs/matter-research-api.zh-CN.md)。
 
-当前已知限制：产物相同、可替代原料范围重叠时，队列拆分可能改用另一条配方的耗时与能耗；重载时新增更高优先级的重叠配方，也可能使已有队列保持等待。这两类情况与产物不同的配方隔离是不同问题，2.0.3 尚未修复。
+当前已知限制：产物相同、可替代原料范围重叠时，队列拆分可能改用另一条配方的耗时与能耗；重载时新增更高优先级的重叠配方，也可能使已有队列保持等待。这两类情况与产物不同的配方隔离是不同问题，2.0.4 尚未修复。
 
 结构的完整材料清单和朝向以游戏内投影及 JEI 信息为准。
 
@@ -265,7 +265,7 @@ Forge API、材料与界面差异见 [移植说明](docs/FORGE_PORT.md)。
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-2.0.3-forge.jar
+build/libs/omnisequence-transfinite-2.0.4-forge.jar
 ```
 
 版本变化、安装与升级说明见 [CHANGELOG.md](CHANGELOG.md)。本项目使用

@@ -1,10 +1,66 @@
-# OmniSequence: Transfinite 2.0.3-forge
+# OmniSequence: Transfinite 2.0.4-forge
 
 Minecraft 1.20.1 · Forge · Java 17
 
 ## English
 
-- The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now support a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; overflow is rejected without consuming inputs.
+Changes from **2.0.3-forge**.
+
+### Molecular batch limit
+
+- The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now accept a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; multiplication and buffer overflow are rejected without consuming inputs.
+
+### Sequence Array pattern access
+
+- Added a pattern-only item interface for the controller's main pattern library, available to ME Storage Buses and item automation. Every configured page accepts one valid crafting, smithing or stonecutting pattern per slot; other inventories stay closed, and external transfers are rejected while the structure is working or being restored.
+- Pattern edits immediately synchronize the affected crystal. Empty libraries, removed crystals and dismantling keep explicit ownership, so a stale controller mirror cannot restore patterns that were moved out. Bulk edits queue a shared pattern rebuild instead of decoding the whole library for each slot.
+
+### Documentation
+
+- Rewrote the recipe and research reference for this branch (`docs/matter-research-api.md`) and added a cross-linked Chinese edition (`docs/matter-research-api.zh-CN.md`). Both document the Forge `recipes/` directory, `forge:conditions`, `ForgeRecipeCodecs` and the recipe-object research API.
+- Restructured all nine in-game GuideME pages, in English and Chinese, around at-a-glance tables, bullet lists, highlighted tips, item icon grids, side-by-side recipe previews and icon-bearing sub-page lists. No fact, number or instruction changed.
+
+### Validation and remaining limits
+
+- Both molecular devices accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips, and rejected multiplication and buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
+- **153 Forge unit tests passed**, including JEI 15 entry-point and coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
+- **Nine isolated Forge GameTests passed** for resource delivery and lookup, nexus cable/CPU/recovery, and natural-spawn protection for all three multiblocks.
+- These checks cover code and coordinate behavior; the restructured guide layout has not received an interactive in-game visual check.
+
+---
+
+## 中文
+
+相对于 **2.0.3-forge** 的更新。
+
+### 分子设备批量上限
+
+- 分子构序重写阵列和装配矩阵构序重写核心的逻辑批量并行上限由 `Integer.MAX_VALUE` 提高至 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。实际批量仍受材料、能量和每种产物的剩余容量限制；乘法及缓冲叠加溢出会被拒绝，且不消耗输入。
+
+### 构序阵列样板访问
+
+- 新增控制器主样板库的专用物品接口，可供 ME 存储总线及物品自动化使用。全部已配置页每槽接受一个合法编码合成／锻造／切石样板；其他库存仍然不开放，施工及恢复期间拒绝外部存取。
+- 样板变更立即同步对应水晶。抽空样板库、移走水晶及拆卸时保留明确的数据所有权，控制器旧副本无法恢复已搬出的样板。批量修改统一排队刷新，不再逐槽解码整个样板库。
+
+### 文档
+
+- 为本分支重写配方与研究参考（`docs/matter-research-api.md`），新增互链的中文版（`docs/matter-research-api.zh-CN.md`），其中记录 Forge 的 `recipes/` 目录、`forge:conditions`、`ForgeRecipeCodecs` 以及配方对象研究接口。
+- 重构全部九个游戏内 GuideME 页面（中英各九页）：改为速览表格、要点列表、高亮提示、物品图标网格、并排配方预览和带图标的子页面列表。内容、数字与步骤均未改动。
+
+### 验证与现有限制
+
+- 两种分子设备在已供电装置测试中接受 **30 亿次合成／120 亿产物**，NBT 往返后产物数量精确不变，乘法与缓冲叠加溢出均被拒绝且不消耗输入；控制器存储总线与水晶数据所有权运行时检查同样通过。
+- **153 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及跨水晶分片的真实 AE2 15 库存／NBT 往返。
+- **九项隔离 Forge GameTest 通过**，覆盖资源投料与查询、算枢接线／CPU／恢复，以及三种多方块的自然生成保护。
+- 上述验证针对代码及坐标行为；重构后的指南排版尚未进行游戏内交互式画面验收。
+
+---
+
+# OmniSequence: Transfinite 2.0.3-forge
+
+Minecraft 1.20.1 · Forge · Java 17
+
+## English
 
 Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. The animation and service-bay updates were already present on the Forge branch; this sync adds the remaining 2.0.3 features.
 
@@ -18,9 +74,6 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - Added its Matter Fabrication Well recipe and bilingual GuideME page. The default recipe unlocks through **Stage 2: Omni-Computation** and requires **Advanced AE**.
 
 ### Sequence Array pattern storage
-
-- Added a pattern-only controller item interface for ME Storage Buses and item automation. All configured main-library pages support insertion/extraction with one valid crafting/smithing/stonecutting pattern per slot. Other inventories are excluded, and work/restoration states reject external transfers.
-- Pattern edits immediately synchronize the affected crystal. Empty libraries, removed crystals and dismantling retain explicit ownership, preventing an old controller mirror from restoring transferred patterns. Bulk edits queue a shared pattern rebuild instead of repeatedly decoding the whole library inline.
 
 - The formed array now distributes its main pattern library across **14 quantum crystals**, while the controller continues to manage the library and expose it to the Pattern Access Terminal.
 - Crystals can retain pattern data when recovered. Automatic construction prefers crystals containing patterns before using blank crystals.
@@ -58,17 +111,14 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 
 ### Validation and remaining limits
 
-- Both molecular providers accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips and rejected multiplication/buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
-- **153 Forge unit tests passed**, including JEI 15 entry-point/coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
-- **Nine isolated Forge GameTests passed** for resource delivery/lookup, nexus cable/CPU/recovery, and all three multiblocks' natural spawning protection. The separate **AdvancedAE integration test passed**, including the nexus recipe and research unlock and the existing 65,536-craft batch case.
+- **152 Forge unit tests passed**, including JEI 15 entry-point/coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
+- **Six isolated Forge GameTests passed** for resource delivery/lookup, nexus cable/CPU/recovery, and all three multiblocks' natural spawning protection. The separate **AdvancedAE integration test passed**, including the nexus recipe and research unlock and the existing 65,536-craft batch case.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.
 
 ---
 
 ## 中文
-
-- 分子构序重写阵列和装配矩阵构序重写核心的逻辑批量并行上限由 `Integer.MAX_VALUE` 提高至 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。实际批量仍受材料、能量和每种产物的剩余容量限制；溢出批次会被拒绝且不消耗输入。
 
 相对于 **2.0.2-forge** 的更新，同步 NeoForge 提交 `32bc92c`。Forge 分支已具备动画与服务位更新，本次补齐其余 2.0.3 功能。
 
@@ -82,9 +132,6 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - 新增物质构筑井加工配方及中英文 GuideME 页面。默认配方由 **二阶：万物演算** 研究解锁，需要 **Advanced AE**。
 
 ### 构序阵列样板存储
-
-- 新增控制器主样板库专用物品接口，支持 ME 存储总线及物品自动化，全部已配置页均可存取，每槽一个合法编码合成／锻造／切石样板；其他库存不开放，施工与恢复期间拒绝外部存取。
-- 样板变更立即同步对应水晶；抽空、移走水晶及拆卸时明确数据所有权，避免控制器旧副本恢复已搬出的样板。批量修改统一排队刷新，避免逐槽同步解码整个样板库。
 
 - 成型阵列的大型样板库改由 **14 颗量子水晶** 分摊保存，仍由控制器统一管理，并向样板访问终端提供访问。
 - 回收水晶可以保留样板数据；自动施工优先使用带样板的水晶，再使用空白水晶。
@@ -122,8 +169,8 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 
 ### 验证与现有限制
 
-- **153 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及真实 AE2 15 库存 NBT 跨水晶分片往返恢复。
-- **九项 Forge 隔离 GameTest 通过**，覆盖资源投料／查询、算枢接线与任务恢复，以及三种多方块的自然生成保护；独立 **AdvancedAE 集成测试通过**，包含算枢配方及研究解锁和原有 65,536 份批量派发场景。
+- **152 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及真实 AE2 15 库存 NBT 跨水晶分片往返恢复。
+- **六项 Forge 隔离 GameTest 通过**，覆盖资源投料／查询、算枢接线与任务恢复，以及三种多方块的自然生成保护；独立 **AdvancedAE 集成测试通过**，包含算枢配方及研究解锁和原有 65,536 份批量派发场景。
 - 上述验证针对代码及坐标行为；最新 JEI 修正尚未进行游戏内交互式画面验收。
 - 构筑井仍存在原有配方限制：同产物、可替代原料重叠时，批次拆分可能使用另一条配方的耗时／能耗；重载时加入优先匹配的配方，可能使已有队列持续等待。
 
@@ -259,7 +306,6 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 
 ### 验证与已知限制
 
-- 两种重写设备在实际供电测试中均接收 **30 亿次合成／120 亿产物**，NBT 往返后数量准确，乘法及缓存累加溢出时拒收且不扣材料；控制器真实存储总线与水晶所有权测试也通过。
 - 当前源码通过全部 **131 项单元测试**及 **3 项必需 Forge GameTest**。运行测试覆盖已注册自定义 AEKey、精确序列化、批量投料、存档／退款、产物隔离及配方／研究重载；不代表所有整合包组合均已验证，也不构成整服性能提升的测量结论。
 - 产物相同且原料范围重叠的构筑配方，批量拆分后仍可能改选配方；重载时新增更靠前的重叠配方，也可能使已有队列等待。这些限制尚未修复。
 - 量子链路、虚拟 CPU、按供应器能力发配、可复用输入批次及 Batch Provider API 在 1.3.9 中已经存在，本日志将其视为延续功能。

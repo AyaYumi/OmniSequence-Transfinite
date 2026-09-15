@@ -141,6 +141,50 @@ class MolecularCenterClockEffectTest {
     }
 
     @Test
+    void dialShowsLocalWallClockTimeAndHonoursTheZoneOffset() {
+        long midnightUtc = 1_728_000_000_000L;   // an exact UTC midnight
+        var start = FeatherResonanceEffects.clockState(FeatherResonanceEffects.wallClockTicks(midnightUtc, 0));
+        assertEquals(0, start.secondOfMinute());
+        assertEquals(0, start.minuteOfHour());
+        assertEquals(0, start.hourOfHalfDay());
+        assertEquals(0.0, start.hourDegrees(), 1.0E-9);
+
+        long at1235 = midnightUtc + (12 * 3600 + 35 * 60 + 7) * 1000L;
+        var state = FeatherResonanceEffects.clockState(FeatherResonanceEffects.wallClockTicks(at1235, 0));
+        assertEquals(7, state.secondOfMinute());
+        assertEquals(35, state.minuteOfHour());
+        assertEquals(0, state.hourOfHalfDay(), "Twelve o'clock wraps to the top of the face");
+        assertEquals(17.5, state.hourDegrees(), 1.0E-6, "The hour hand has moved half a degree per minute");
+
+        // The same instant in UTC+8 is 20:35, i.e. eight on the twelve hour face.
+        var shifted = FeatherResonanceEffects.clockState(
+                FeatherResonanceEffects.wallClockTicks(at1235, 8 * 3600 * 1000));
+        assertEquals(8, shifted.hourOfHalfDay());
+        assertEquals(35, shifted.minuteOfHour());
+        assertEquals(7, shifted.secondOfMinute());
+
+        // Fourteen o'clock lands two on the face, and a whole day later nothing has changed.
+        long at1435 = midnightUtc + (14 * 3600 + 35 * 60 + 7) * 1000L;
+        var afternoon = FeatherResonanceEffects.clockState(FeatherResonanceEffects.wallClockTicks(at1435, 0));
+        assertEquals(2, afternoon.hourOfHalfDay());
+        assertEquals(77.5, afternoon.hourDegrees(), 1.0E-6);
+        assertEquals(FeatherResonanceEffects.wallClockTicks(at1435, 0),
+                FeatherResonanceEffects.wallClockTicks(at1435 + 86_400_000L, 0), 1.0E-9);
+    }
+
+    @Test
+    void hourHandAdvancesHalfADegreePerMinute() {
+        // Noon plus n minutes: the hour hand stays on XII and creeps half a degree per minute.
+        for (int minute = 0; minute < 60; minute++) {
+            var state = FeatherResonanceEffects.clockState(43200 * 20.0 + minute * 60 * 20.0);
+            assertEquals(minute * 0.5, state.hourDegrees(), 1.0E-9);
+            assertEquals(0, state.hourOfHalfDay());
+        }
+        assertEquals(30.0, FeatherResonanceEffects.clockState(46800 * 20.0).hourDegrees(), 1.0E-9,
+                "One hour advances the hand to the next numeral");
+    }
+
+    @Test
     void clockPassesPreserveTheCallersPose() {
         var pose = new PoseStack();
         pose.translate(4, -2, 9);

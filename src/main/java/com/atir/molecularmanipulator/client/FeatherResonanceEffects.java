@@ -13,9 +13,11 @@ final class FeatherResonanceEffects {
     private static final double[] RADII = {11.5, 14.1, 16.25};
     private static final double[] HEIGHTS = {-5.0, -2.5, -4.25};
     private static final double DIAL_Y = -4.95;
-    private static final double BAND_INNER = 10.55;
-    private static final double BAND_OUTER = 10.95;
-    private static final double NUMERAL_RADIUS = 9.05;
+    private static final double BAND_INNER = 10.30;
+    private static final double BAND_OUTER = 11.05;
+    private static final double NUMERAL_RADIUS = 9.15;
+    private static final double NUMERAL_HALF = 0.85;
+    private static final double NUMERAL_SPREAD = 0.32;
     private static final double SECOND_HAND = 9.95;
     private static final double MINUTE_HAND = 7.15;
     private static final String[] NUMERALS = {
@@ -165,30 +167,33 @@ final class FeatherResonanceEffects {
         var state = clockState(clockTicks);
         double twelve = -Math.PI / 2;
 
-        // Two fixed rails carry the band; the dividers between them are the seconds.
+        // Two fixed rails carry the band; the dividers between them are the seconds. Every divider
+        // stays visible: at typical viewing distances a stroke thinner than about 0.03 blocks falls
+        // below one pixel, which made the band read as if it had only a handful of ticks.
         for (double rail : new double[] {BAND_INNER, BAND_OUTER}) {
-            arc(pose, out, rail, DIAL_Y, 0, (Math.PI * 2), 64, glow ? 0.045F : 0.02F, primary,
-                    dialAlpha(glow, 0.34));
+            arc(pose, out, rail, DIAL_Y, 0, (Math.PI * 2), 64, glow ? 0.052F : 0.030F, primary,
+                    dialAlpha(glow, 0.40));
         }
         for (int tick = 0; tick < 60; tick++) {
             double phase = twelve + tick * (Math.PI * 2) / 60;
             boolean leading = tick == state.secondOfMinute();
-            double intensity = leading ? 0.78 + state.pulse() * 0.22 + activity * 0.1
-                    : tick < state.secondOfMinute() ? 0.44 + activity * 0.1 : 0;
+            // The leading divider rests one band below the top so that only the flash reaches it.
+            double intensity = leading ? 0.80 + state.pulse() * 0.20 + activity * 0.05
+                    : tick < state.secondOfMinute() ? 0.55 + activity * 0.08 : 0.28;
             stroke(pose, out, dialPoint(phase, BAND_INNER, 0, 0), dialPoint(phase, BAND_OUTER, 0, 0),
-                    leading ? (glow ? 0.08F : 0.032F) : (glow ? 0.055F : 0.022F),
+                    leading ? (glow ? 0.095F : 0.062F) : (glow ? 0.075F : 0.045F),
                     primary, dialAlpha(glow, intensity));
         }
-        // Hour dividers cross both rails; the numerals and ornaments sit just inside them.
+        // Hour dividers run outward past the band so the twelve hours stay legible at a distance.
         for (int hour = 0; hour < 12; hour++) {
             double phase = twelve + hour * (Math.PI * 2) / 12;
-            stroke(pose, out, dialPoint(phase, BAND_INNER - 0.38, 0, 0),
-                    dialPoint(phase, BAND_OUTER + 0.30, 0, 0), glow ? 0.075F : 0.03F, secondary,
-                    dialAlpha(glow, 0.52));
-            numeral(pose, out, phase, NUMERAL_RADIUS, NUMERALS[hour], glow ? 0.075F : 0.032F,
-                    lattice, dialAlpha(glow, 0.62 + activity * 0.16));
+            stroke(pose, out, dialPoint(phase, BAND_INNER - 0.15, 0, 0),
+                    dialPoint(phase, BAND_OUTER + 0.35, 0, 0), glow ? 0.09F : 0.05F, secondary,
+                    dialAlpha(glow, 0.62));
+            numeral(pose, out, phase, NUMERAL_RADIUS, NUMERALS[hour], glow ? 0.072F : 0.042F,
+                    lattice, dialAlpha(glow, 0.64 + activity * 0.14));
             ornament(pose, out, twelve + (hour + 0.5) * (Math.PI * 2) / 12, NUMERAL_RADIUS,
-                    glow ? 0.05F : 0.019F, secondary, dialAlpha(glow, 0.42));
+                    glow ? 0.05F : 0.028F, secondary, dialAlpha(glow, 0.45));
         }
         hand(pose, out, twelve + Math.toRadians(state.minuteDegrees()), MINUTE_HAND,
                 glow ? 0.075F : 0.03F, primary, dialAlpha(glow, 0.72));
@@ -231,19 +236,19 @@ final class FeatherResonanceEffects {
             char glyph = text.charAt(i);
             double centre = cursor + numeralAdvance(glyph) / 2;
             switch (glyph) {
-                case 'I' -> stroke(pose, out, dialPoint(phase, radius, centre, -0.7),
-                        dialPoint(phase, radius, centre, 0.7), width, color, alpha);
+                case 'I' -> stroke(pose, out, dialPoint(phase, radius, centre, -NUMERAL_HALF),
+                        dialPoint(phase, radius, centre, NUMERAL_HALF), width, color, alpha);
                 case 'V' -> {
-                    stroke(pose, out, dialPoint(phase, radius, centre - 0.28, 0.7),
-                            dialPoint(phase, radius, centre, -0.7), width, color, alpha);
-                    stroke(pose, out, dialPoint(phase, radius, centre + 0.28, 0.7),
-                            dialPoint(phase, radius, centre, -0.7), width, color, alpha);
+                    stroke(pose, out, dialPoint(phase, radius, centre - NUMERAL_SPREAD, NUMERAL_HALF),
+                            dialPoint(phase, radius, centre, -NUMERAL_HALF), width, color, alpha);
+                    stroke(pose, out, dialPoint(phase, radius, centre + NUMERAL_SPREAD, NUMERAL_HALF),
+                            dialPoint(phase, radius, centre, -NUMERAL_HALF), width, color, alpha);
                 }
                 case 'X' -> {
-                    stroke(pose, out, dialPoint(phase, radius, centre - 0.28, 0.7),
-                            dialPoint(phase, radius, centre + 0.28, -0.7), width, color, alpha);
-                    stroke(pose, out, dialPoint(phase, radius, centre + 0.28, 0.7),
-                            dialPoint(phase, radius, centre - 0.28, -0.7), width, color, alpha);
+                    stroke(pose, out, dialPoint(phase, radius, centre - NUMERAL_SPREAD, NUMERAL_HALF),
+                            dialPoint(phase, radius, centre + NUMERAL_SPREAD, -NUMERAL_HALF), width, color, alpha);
+                    stroke(pose, out, dialPoint(phase, radius, centre + NUMERAL_SPREAD, NUMERAL_HALF),
+                            dialPoint(phase, radius, centre - NUMERAL_SPREAD, -NUMERAL_HALF), width, color, alpha);
                 }
                 default -> { }
             }
@@ -252,7 +257,7 @@ final class FeatherResonanceEffects {
     }
 
     private static double numeralAdvance(char glyph) {
-        return glyph == 'I' ? 0.34 : 0.66;
+        return glyph == 'I' ? 0.38 : 0.74;
     }
 
     /** The small four-point star that sits between two hour numerals. */

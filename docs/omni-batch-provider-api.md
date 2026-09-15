@@ -2,7 +2,7 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.0.3 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
+Current for OmniSequence 2.0.4 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
 and the required AppliedEnhancements 1.0.6+. The runtime ABI remains **1**.
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -178,7 +178,7 @@ class or conditional Mixin that is loaded only when Mod ID
 
 自 OmniSequence: Transfinite 1.3.9 起提供。
 
-本文对应 2.0.3 / Minecraft 1.21.1 / Java 21，要求 AE2 19.2.17+ 和
+本文对应 2.0.4 / Minecraft 1.21.1 / Java 21，要求 AE2 19.2.17+ 和
 AppliedEnhancements 1.0.6+；运行时 ABI 仍为 **1**。其他接口见 [API 索引](README.md)。
 本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
 不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。

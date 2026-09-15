@@ -19,9 +19,9 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 | LDLib2 | 2.2.18 or later |
 | Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
 
-Current release: `2.0.3`
+Current release: `2.0.4`
 
-See the [2.0.3 release notes](docs/releases/2.0.3.md) for changes from 2.0.2,
+See the [2.0.4 release notes](docs/releases/2.0.4.md) for changes from 2.0.3,
 [CHANGELOG.md](CHANGELOG.md) for the complete history, and the
 [bilingual project description](docs/curseforge-description.md) for a feature overview.
 
@@ -139,7 +139,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 - Input, output and refund buffers retain exact AE keys and long amounts across saves. Finished products and queued refunds return to ME. Research permissions and production bonuses belong to the connected controller.
 - Output indexes and cached research definitions reduce repeated lookup work. Recipe reloads rebuild the indexes; controller research progress is read live. See the [recipe and research API](docs/matter-research-api.md) ([中文](docs/matter-research-api.zh-CN.md)) for JSON and Java integration.
 
-Current limitations: when overlapping ingredient alternatives produce the same output, splitting a queue can select a different recipe's time and power. A reload that adds a higher-priority overlapping recipe can also leave an existing queue waiting. These cases are distinct from recipes that produce different outputs and remain unresolved in 2.0.3.
+Current limitations: when overlapping ingredient alternatives produce the same output, splitting a queue can select a different recipe's time and power. A reload that adds a higher-priority overlapping recipe can also leave an existing queue waiting. These cases are distinct from recipes that produce different outputs and remain unresolved in 2.0.4.
 
 Use the in-game projection and JEI structure information as the authoritative material list and orientation reference.
 
@@ -249,7 +249,7 @@ the former 1,000-page maximum is no longer supported. Retain a world backup befo
 the crystal-storage migration. Move well service blocks from the nine retired outer
 positions to the front row or central collar, and restore the vacated blueprint blocks.
 
-Source maintenance for 2.0.3 continues on `1.21.1-neoforge`.
+Source maintenance for 2.0.4 continues on `1.21.1-neoforge`.
 For a source build, first place the separately built AppliedEnhancements 1.0.6 JAR
 in `libs/`, following [the dependency setup](libs/README.md). Its binary is ignored
 by Git and is not embedded in this mod. CI builds the prerequisite from its fixed
@@ -262,7 +262,7 @@ by Git and is not embedded in this mod. CI builds the prerequisite from its fixe
 Build artifact:
 
 ```text
-build/libs/omnisequence-transfinite-2.0.3.jar
+build/libs/omnisequence-transfinite-2.0.4.jar
 ```
 
 See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade

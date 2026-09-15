@@ -1,12 +1,68 @@
 # Changelog
 
-## OmniSequence: Transfinite 2.0.3
+## OmniSequence: Transfinite 2.0.4
 
 Minecraft 1.21.1 · NeoForge · Java 21
 
 ### English
 
-- The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now support a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; overflow is rejected without consuming inputs.
+Changes from **2.0.3**.
+
+#### Molecular batch limit
+
+- The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now accept a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; multiplication and buffer overflow are rejected without consuming inputs.
+
+#### Sequence Array pattern access
+
+- Added a pattern-only item interface for the controller's main pattern library, available to ME Storage Buses and item automation. Every configured page accepts one valid crafting, smithing or stonecutting pattern per slot; other inventories stay closed, and external transfers are rejected while the structure is working or being restored.
+- Pattern edits immediately synchronize the affected crystal. Empty libraries, removed crystals and dismantling keep explicit ownership, so a stale controller mirror cannot restore patterns that were moved out. Bulk edits queue a shared pattern rebuild instead of decoding the whole library for each slot.
+
+#### Documentation
+
+- Rewrote the recipe and research reference (`docs/matter-research-api.md`) and added a cross-linked Chinese edition (`docs/matter-research-api.zh-CN.md`), which the JAR now ships alongside the batch-provider reference. The API index, both READMEs and the batch-provider cross-links were refreshed with it.
+- Restructured all nine in-game GuideME pages, in English and Chinese, around at-a-glance tables, bullet lists, highlighted tips, item icon grids, side-by-side recipe previews and icon-bearing sub-page lists. No fact, number or instruction changed.
+
+#### Validation and remaining limits
+
+- Both molecular devices accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips, and rejected multiplication and buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
+- **135 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
+- **All fourteen isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
+- These checks cover code and coordinate behavior; the restructured guide layout has not received an interactive in-game visual check.
+
+---
+
+### 中文
+
+相对于 **2.0.3** 的更新。
+
+#### 分子设备批量上限
+
+- 分子构序重写阵列和装配矩阵构序重写核心的逻辑批量并行上限由 `Integer.MAX_VALUE` 提高至 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。实际批量仍受材料、能量和每种产物的剩余容量限制；乘法及缓冲叠加溢出会被拒绝，且不消耗输入。
+
+#### 构序阵列样板访问
+
+- 新增控制器主样板库的专用物品接口，可供 ME 存储总线及物品自动化使用。全部已配置页每槽接受一个合法编码合成／锻造／切石样板；其他库存仍然不开放，施工及恢复期间拒绝外部存取。
+- 样板变更立即同步对应水晶。抽空样板库、移走水晶及拆卸时保留明确的数据所有权，控制器旧副本无法恢复已搬出的样板。批量修改统一排队刷新，不再逐槽解码整个样板库。
+
+#### 文档
+
+- 重写配方与研究参考（`docs/matter-research-api.md`），新增互链的中文版（`docs/matter-research-api.zh-CN.md`），并随批量投料参考一起打入 JAR。同步更新接口索引、两份 README 及批量投料参考的交叉链接。
+- 重构全部九个游戏内 GuideME 页面（中英各九页）：改为速览表格、要点列表、高亮提示、物品图标网格、并排配方预览和带图标的子页面列表。内容、数字与步骤均未改动。
+
+#### 验证与现有限制
+
+- 两种分子设备在已供电装置测试中接受 **30 亿次合成／120 亿产物**，NBT 往返后产物数量精确不变，乘法与缓冲叠加溢出均被拒绝且不消耗输入；控制器存储总线与水晶数据所有权运行时检查同样通过。
+- **135 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
+- **十四项隔离服务端 GameTest 全部通过**，覆盖三种多方块自然生成保护、超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
+- 上述验证针对代码及坐标行为；重构后的指南排版尚未进行游戏内交互式画面验收。
+
+---
+
+## OmniSequence: Transfinite 2.0.3
+
+Minecraft 1.21.1 · NeoForge · Java 21
+
+### English
 
 Changes from **2.0.2**.
 
@@ -20,9 +76,6 @@ Changes from **2.0.2**.
 - Added its Matter Fabrication Well recipe and bilingual GuideME page. The default recipe unlocks through **Stage 2: Omni-Computation** and requires **Advanced AE**.
 
 #### Sequence Array pattern storage
-
-- Added a pattern-only controller item interface for ME Storage Buses and item automation. All configured main-library pages support insertion/extraction with one valid crafting/smithing/stonecutting pattern per slot. Other inventories are excluded, and work/restoration states reject external transfers.
-- Pattern edits immediately synchronize the affected crystal. Empty libraries, removed crystals and dismantling retain explicit ownership, preventing an old controller mirror from restoring transferred patterns. Bulk edits queue a shared pattern rebuild instead of repeatedly decoding the whole library inline.
 
 - The formed array now distributes its main pattern library across **14 quantum crystals**, while the controller continues to manage the library and expose it to the Pattern Access Terminal.
 - Crystals can retain pattern data when recovered. Automatic construction prefers crystals containing patterns before using blank crystals.
@@ -58,17 +111,14 @@ Changes from **2.0.2**.
 
 #### Validation and remaining limits
 
-- Both molecular providers accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips and rejected multiplication/buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
-- **135 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
-- **All fourteen isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
+- **134 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
+- **All eleven isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.
 
 ---
 
 ### 中文
-
-- 分子构序重写阵列和装配矩阵构序重写核心的逻辑批量并行上限由 `Integer.MAX_VALUE` 提高至 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。实际批量仍受材料、能量和每种产物的剩余容量限制；溢出批次会被拒绝且不消耗输入。
 
 相对于 **2.0.2** 的更新。
 
@@ -82,9 +132,6 @@ Changes from **2.0.2**.
 - 新增物质构筑井加工配方及中英文 GuideME 页面。默认配方由 **二阶：万物演算** 研究解锁，需要 **Advanced AE**。
 
 #### 构序阵列样板存储
-
-- 新增控制器主样板库专用物品接口，支持 ME 存储总线及物品自动化，全部已配置页均可存取，每槽一个合法编码合成／锻造／切石样板；其他库存不开放，施工与恢复期间拒绝外部存取。
-- 样板变更立即同步对应水晶；抽空、移走水晶及拆卸时明确数据所有权，避免控制器旧副本恢复已搬出的样板。批量修改统一排队刷新，避免逐槽同步解码整个样板库。
 
 - 成型阵列的大型样板库改由 **14 颗量子水晶** 分摊保存，仍由控制器统一管理，并向样板访问终端提供访问。
 - 回收水晶可以保留样板数据；自动施工优先使用带样板的水晶，再使用空白水晶。
@@ -120,8 +167,8 @@ Changes from **2.0.2**.
 
 #### 验证与现有限制
 
-- **135 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
-- **十四项隔离服务端 GameTest 全部通过**，覆盖三种多方块自然生成保护、超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
+- **134 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
+- **十一项隔离服务端 GameTest 全部通过**，覆盖三种多方块自然生成保护、超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
 - 上述验证针对代码及坐标行为；最新 JEI 修正尚未进行游戏内交互式画面验收。
 - 构筑井仍存在原有配方限制：同产物、可替代原料重叠时，批次拆分可能使用另一条配方的耗时／能耗；重载时加入优先匹配的配方，可能使已有队列持续等待。
 

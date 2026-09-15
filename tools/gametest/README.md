@@ -4,7 +4,7 @@ Run with Java 21 from the repository root after preparing the separate
 AppliedEnhancements dependency described in [libs/README.md](../../libs/README.md).
 No locally installed modpack or personal world is required.
 
-The 2.0.3 isolated server suite contains 14 tests. All fourteen passed, including the
+The 2.0.4 isolated server suite contains 14 tests. All fourteen passed, including the
 nexus lifecycle and multiblock natural-spawn protection tests. For the separate client coordinate checks, see
 [UI regression checks](../ui/README.md); those do not launch a Minecraft client.
 

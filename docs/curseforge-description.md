@@ -4,7 +4,7 @@
 
 OmniSequence: Transfinite expands Applied Energistics 2 and ExtendedAE with machines built for demanding endgame factories. Manage thousands of patterns, run concurrent crafting jobs, build a Matter Fabrication Well, and develop your production network through research.
 
-This description covers **version 2.0.3 for Minecraft 1.21.1 / NeoForge / Java 21**. For other downloads, use the requirements and changelog attached to that file.
+This description covers **version 2.0.4 for Minecraft 1.21.1 / NeoForge / Java 21**. For other downloads, use the requirements and changelog attached to that file.
 
 ## Machines for your endgame factory
 
@@ -103,7 +103,7 @@ Install the matching **Minecraft 1.21.1 NeoForge** files on both client and serv
 
 **Advanced AE 1.6.11+** is optional for the base mod and required for the default Omni-Computation research branch and nexus recipe. Optional integrations also include JEI, ExtendedAE Plus and AE2WTLib-compatible terminals.
 
-Stop the client/server before replacing the JAR, install the same OmniSequence version on both sides, and keep one enabled OmniSequence JAR per instance. When upgrading from a configuration above 300 pattern pages, move patterns beyond page 300 before installing 2.0.3. Use the current projection to relocate service blocks from the well's former outer service positions.
+Stop the client/server before replacing the JAR, install the same OmniSequence version on both sides, and keep one enabled OmniSequence JAR per instance. When upgrading from a configuration above 300 pattern pages, move patterns beyond page 300 before installing 2.0.4. Use the current projection to relocate service blocks from the well's former outer service positions.
 
 **Known incompatibility:** Expanded AE **2.1.1** includes a conflicting pattern-provider mixin and is blocked. ExtendedAE and AppliedFlux themselves are not the mod named in that conflict.
 
@@ -125,7 +125,7 @@ The Mod ID remains **`molecularmanipulator`** for existing world and script refe
 
 万象构序：超限是 Applied Energistics 2 与 ExtendedAE 的后期扩展。管理数千份样板、同时处理多个合成任务、搭建物质构筑井，并通过研究逐步扩展工厂的生产能力。
 
-以下介绍对应 **2.0.3，Minecraft 1.21.1 / NeoForge / Java 21**。其他下载文件的版本、前置和功能请以各自说明为准。
+以下介绍对应 **2.0.4，Minecraft 1.21.1 / NeoForge / Java 21**。其他下载文件的版本、前置和功能请以各自说明为准。
 
 ## 后期工厂的核心设备
 
@@ -224,7 +224,7 @@ The Mod ID remains **`molecularmanipulator`** for existing world and script refe
 
 **Advanced AE 1.6.11+** 对基础模组为可选，对默认万物演算研究分支和超限算枢配方为必要条件。其他可选兼容包括 JEI、ExtendedAE Plus 和兼容 AE2WTLib 的终端。
 
-替换 JAR 前完全关闭客户端／服务器，双端使用相同版本，每个实例保留一个启用的万象构序 JAR。如果原配置超过 300 页样板，请先迁出第 300 页之后的样板，再安装 2.0.3；原先位于构筑井外围服务位置的方块，应按当前投影迁移。
+替换 JAR 前完全关闭客户端／服务器，双端使用相同版本，每个实例保留一个启用的万象构序 JAR。如果原配置超过 300 页样板，请先迁出第 300 页之后的样板，再安装 2.0.4；原先位于构筑井外围服务位置的方块，应按当前投影迁移。
 
 **已知不兼容：** Expanded AE **2.1.1** 包含冲突的样板供应器 Mixin，已被阻止加载。该冲突并非针对 ExtendedAE 或 AppliedFlux 本体。
 

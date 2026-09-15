@@ -12,6 +12,17 @@ final class FeatherResonanceEffects {
     private static final Vec3 UP = new Vec3(0, 1, 0);
     private static final double[] RADII = {11.5, 14.1, 16.25};
     private static final double[] HEIGHTS = {-5.0, -2.5, -4.25};
+    private static final double DIAL_Y = -4.95;
+    private static final double BAND_INNER = 10.55;
+    private static final double BAND_OUTER = 10.95;
+    private static final double NUMERAL_RADIUS = 9.05;
+    private static final double SECOND_HAND = 9.95;
+    private static final double MINUTE_HAND = 7.15;
+    private static final String[] NUMERALS = {
+        "XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"
+    };
+    private static final int[] DEPTH_BANDS = {120, 152, 176, 196, 215, 235, 250};
+    private static final int[] GLOW_BANDS = {13, 17, 21, 25, 28, 31, 34};
 
     private FeatherResonanceEffects() { }
 
@@ -140,48 +151,164 @@ final class FeatherResonanceEffects {
                     glow ? 0.075F : 0.025F, primary, glow ? 18 : 142);
         }
         if (detailed) {
-            var clock = clockState(clockTicks);
-            // The regression suite identifies the static main rail by alpha 158 at radius > 10,
-            // so the dial never emits that exact alpha on its marks or hand.
-            double twelve = -Math.PI / 2;
-            for (int tick = 0; tick < 60; tick++) {
-                double phase = twelve + tick * Math.TAU / 60;
-                double outer = tick % 5 == 0 ? 11.2 : 11.0;
-                float width = glow ? 0.055F : 0.024F;
-                int alpha;
-                if (tick == clock.secondOfMinute()) {
-                    outer = 11.55;
-                    width = glow ? 0.075F : 0.032F;
-                    alpha = glow ? (int) (28 + clock.pulse() * 6) : (int) (206 + clock.pulse() * 40 + activity * 9);
-                } else if (tick < clock.secondOfMinute()) {
-                    outer = 11.45;
-                    alpha = glow ? (int) (21 + activity * 4) : (int) (172 + activity * 24);
-                } else {
-                    alpha = glow ? 14 : 120;
-                }
-                stroke(pose, out, circle(10.8, -4.95, phase), circle(outer, -4.95, phase), width, primary, alpha);
-            }
-            double hand = twelve + Math.toRadians(clock.handDegrees());
-            stroke(pose, out, circle(6.35, -4.95, hand), circle(11.5, -4.95, hand),
-                    glow ? 0.09F : 0.042F, primary,
-                    glow ? (int) (26 + clock.pulse() * 8) : (int) (198 + clock.pulse() * 45 + activity * 12));
+            clock(pose, out, activity, glow, primary, secondary, lattice, clockTicks);
         }
     }
 
     /**
-     * Discrete one-second beat for the dial: the mark index steps by one per 20 ticks and wraps each
-     * minute, while the pulse and the hand's brief overshoot decay inside the second. Stepping rather
-     * than sweeping is what gives the ring its clock-like stutter.
+     * A classical dial for the controller's central ring: a railway band that fills one divider per
+     * second, twelve Roman hour numerals, four-point ornaments between them, a stepped minute and
+     * second hand, and a rosette at the hub.
      */
-    record ClockState(int secondOfMinute, double pulse, double handDegrees) { }
+    private static void clock(PoseStack.Pose pose, VertexConsumer out, float activity,
+            boolean glow, int primary, int secondary, int lattice, double clockTicks) {
+        var state = clockState(clockTicks);
+        double twelve = -Math.PI / 2;
+
+        // Two fixed rails carry the band; the dividers between them are the seconds.
+        for (double rail : new double[] {BAND_INNER, BAND_OUTER}) {
+            arc(pose, out, rail, DIAL_Y, 0, Math.TAU, 64, glow ? 0.045F : 0.02F, primary,
+                    dialAlpha(glow, 0.34));
+        }
+        for (int tick = 0; tick < 60; tick++) {
+            double phase = twelve + tick * Math.TAU / 60;
+            boolean leading = tick == state.secondOfMinute();
+            double intensity = leading ? 0.78 + state.pulse() * 0.22 + activity * 0.1
+                    : tick < state.secondOfMinute() ? 0.44 + activity * 0.1 : 0;
+            stroke(pose, out, dialPoint(phase, BAND_INNER, 0, 0), dialPoint(phase, BAND_OUTER, 0, 0),
+                    leading ? (glow ? 0.08F : 0.032F) : (glow ? 0.055F : 0.022F),
+                    primary, dialAlpha(glow, intensity));
+        }
+        // Hour dividers cross both rails; the numerals and ornaments sit just inside them.
+        for (int hour = 0; hour < 12; hour++) {
+            double phase = twelve + hour * Math.TAU / 12;
+            stroke(pose, out, dialPoint(phase, BAND_INNER - 0.38, 0, 0),
+                    dialPoint(phase, BAND_OUTER + 0.30, 0, 0), glow ? 0.075F : 0.03F, secondary,
+                    dialAlpha(glow, 0.52));
+            numeral(pose, out, phase, NUMERAL_RADIUS, NUMERALS[hour], glow ? 0.075F : 0.032F,
+                    lattice, dialAlpha(glow, 0.62 + activity * 0.16));
+            ornament(pose, out, twelve + (hour + 0.5) * Math.TAU / 12, NUMERAL_RADIUS,
+                    glow ? 0.05F : 0.019F, secondary, dialAlpha(glow, 0.42));
+        }
+        hand(pose, out, twelve + Math.toRadians(state.minuteDegrees()), MINUTE_HAND,
+                glow ? 0.075F : 0.03F, primary, dialAlpha(glow, 0.72));
+        hand(pose, out, twelve + Math.toRadians(state.secondDegrees()), SECOND_HAND,
+                glow ? 0.085F : 0.034F, lattice,
+                dialAlpha(glow, 0.7 + state.pulse() * 0.3 + activity * 0.1));
+        hub(pose, out, glow, primary, secondary);
+    }
+
+    /** A tapered hand with a spade shoulder and a counterweight tail, drawn as line art. */
+    private static void hand(PoseStack.Pose pose, VertexConsumer out, double theta, double length,
+            float width, int color, int alpha) {
+        double shoulder = length * 0.62, base = length * 0.30, tail = -length * 0.30;
+        var tip = dialPoint(theta, 0, 0, length);
+        var leftShoulder = dialPoint(theta, 0, -0.11, shoulder);
+        var rightShoulder = dialPoint(theta, 0, 0.11, shoulder);
+        var leftSpade = dialPoint(theta, 0, -0.30, base);
+        var rightSpade = dialPoint(theta, 0, 0.30, base);
+        var leftNeck = dialPoint(theta, 0, -0.15, 0.24);
+        var rightNeck = dialPoint(theta, 0, 0.15, 0.24);
+        var counter = dialPoint(theta, 0, 0, tail);
+        stroke(pose, out, tip, leftShoulder, width, color, alpha);
+        stroke(pose, out, tip, rightShoulder, width, color, alpha);
+        stroke(pose, out, leftShoulder, leftSpade, width, color, alpha);
+        stroke(pose, out, rightShoulder, rightSpade, width, color, alpha);
+        stroke(pose, out, leftSpade, leftNeck, width, color, alpha);
+        stroke(pose, out, rightSpade, rightNeck, width, color, alpha);
+        stroke(pose, out, leftNeck, counter, width, color, alpha);
+        stroke(pose, out, rightNeck, counter, width, color, alpha);
+        stroke(pose, out, dialPoint(theta, 0, 0, 0.30), tip, width * 0.45F, color, alpha);
+    }
+
+    /** Roman numerals built from I, V and X strokes, each rotated to face away from the hub. */
+    private static void numeral(PoseStack.Pose pose, VertexConsumer out, double phase, double radius,
+            String text, float width, int color, int alpha) {
+        double total = 0;
+        for (int i = 0; i < text.length(); i++) total += numeralAdvance(text.charAt(i));
+        double cursor = -total / 2;
+        for (int i = 0; i < text.length(); i++) {
+            char glyph = text.charAt(i);
+            double centre = cursor + numeralAdvance(glyph) / 2;
+            switch (glyph) {
+                case 'I' -> stroke(pose, out, dialPoint(phase, radius, centre, -0.7),
+                        dialPoint(phase, radius, centre, 0.7), width, color, alpha);
+                case 'V' -> {
+                    stroke(pose, out, dialPoint(phase, radius, centre - 0.28, 0.7),
+                            dialPoint(phase, radius, centre, -0.7), width, color, alpha);
+                    stroke(pose, out, dialPoint(phase, radius, centre + 0.28, 0.7),
+                            dialPoint(phase, radius, centre, -0.7), width, color, alpha);
+                }
+                case 'X' -> {
+                    stroke(pose, out, dialPoint(phase, radius, centre - 0.28, 0.7),
+                            dialPoint(phase, radius, centre + 0.28, -0.7), width, color, alpha);
+                    stroke(pose, out, dialPoint(phase, radius, centre + 0.28, 0.7),
+                            dialPoint(phase, radius, centre - 0.28, -0.7), width, color, alpha);
+                }
+                default -> { }
+            }
+            cursor += numeralAdvance(glyph);
+        }
+    }
+
+    private static double numeralAdvance(char glyph) {
+        return glyph == 'I' ? 0.34 : 0.66;
+    }
+
+    /** The small four-point star that sits between two hour numerals. */
+    private static void ornament(PoseStack.Pose pose, VertexConsumer out, double phase, double radius,
+            float width, int color, int alpha) {
+        var center = dialPoint(phase, radius, 0, 0);
+        for (int spoke = 0; spoke < 4; spoke++) {
+            double angle = spoke * Math.TAU / 4;
+            stroke(pose, out, center,
+                    dialPoint(phase, radius, Math.cos(angle) * 0.26, Math.sin(angle) * 0.26),
+                    width, color, alpha);
+        }
+    }
+
+    private static void hub(PoseStack.Pose pose, VertexConsumer out, boolean glow, int primary, int secondary) {
+        arc(pose, out, 0.62, DIAL_Y, 0, Math.TAU, 20, glow ? 0.05F : 0.021F, primary, dialAlpha(glow, 0.56));
+        arc(pose, out, 0.28, DIAL_Y, 0, Math.TAU, 12, glow ? 0.05F : 0.021F, secondary, dialAlpha(glow, 0.46));
+        for (int spoke = 0; spoke < 4; spoke++) {
+            double angle = spoke * Math.TAU / 4 + Math.PI / 4;
+            stroke(pose, out, dialPoint(angle, 0.28, 0, 0), dialPoint(angle, 0.62, 0, 0),
+                    glow ? 0.05F : 0.021F, primary, dialAlpha(glow, 0.5));
+        }
+    }
+
+    /** Places a point in the dial plane using a radial frame: {@code along} is outward. */
+    private static Vec3 dialPoint(double phase, double radius, double lateral, double along) {
+        double r = radius + along;
+        return new Vec3(Math.cos(phase) * r - Math.sin(phase) * lateral, DIAL_Y,
+                Math.sin(phase) * r + Math.cos(phase) * lateral);
+    }
+
+    // The rail regression selects vertices by alpha 158 above radius 10, so the bands straddle that
+    // value instead of ever landing on it. 3D radius is larger than the dial radius, so the whole
+    // face is inside the window that check watches.
+    private static int dialAlpha(boolean glow, double intensity) {
+        int band = (int) Math.round(Math.clamp(intensity, 0, 1) * (DEPTH_BANDS.length - 1));
+        return glow ? GLOW_BANDS[band] : DEPTH_BANDS[band];
+    }
+
+    /**
+     * Discrete one-second beat for the dial. The seconds index steps by one per 20 ticks and wraps
+     * each minute, while the pulse and the second hand's brief overshoot decay inside the second.
+     * Stepping rather than sweeping is what gives the ring its clock-like stutter.
+     */
+    record ClockState(int secondOfMinute, int minuteOfHour, double pulse,
+            double secondDegrees, double minuteDegrees) { }
 
     static ClockState clockState(double clockTicks) {
-        if (!Double.isFinite(clockTicks)) return new ClockState(0, 0, 0);
+        if (!Double.isFinite(clockTicks)) return new ClockState(0, 0, 0, 0, 0);
         double seconds = Math.max(0, clockTicks) / 20.0;
         long whole = (long) Math.floor(seconds);
         double fraction = seconds - whole;
         int second = (int) Math.floorMod(whole, 60L);
-        return new ClockState(second, Math.pow(1 - fraction, 5), second * 6.0 + 1.7 * Math.pow(1 - fraction, 12));
+        int minute = (int) Math.floorMod(whole / 60L, 60L);
+        return new ClockState(second, minute, Math.pow(1 - fraction, 5),
+                second * 6.0 + 1.7 * Math.pow(1 - fraction, 12), minute * 6.0 + second * 0.1);
     }
 
     private static void feathers(PoseStack stack, VertexConsumer out, float angle, float activity,

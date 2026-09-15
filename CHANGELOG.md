@@ -17,8 +17,8 @@ Changes from **2.0.3-forge**.
 
 ### Central ring clock
 
-- The Sequence Array controller's central ring is now a classical clock face: twelve Roman hour numerals, four-point ornaments between them, a railway band that fills one divider per real second and resets each minute, and stepped minute and second hands drawn with spade shoulders and counterweight tails.
-- The beat runs on client time only, adds no saved state and no networking, and machine activity changes its brightness rather than its rate.
+- The Sequence Array controller's central ring is now a classical clock face: twelve Roman hour numerals, four-point ornaments between them, a railway band that fills one divider per real second and resets each minute, and stepped hour, minute and second hands drawn with spade shoulders and counterweight tails.
+- The dial reads the client's local wall-clock time, so it shows the player's own time of day. It adds no saved state and no networking, and machine activity changes its brightness rather than its rate.
 
 ### Documentation
 
@@ -49,8 +49,8 @@ Changes from **2.0.3-forge**.
 
 ### 中央圆环走秒
 
-- 构序阵列控制器的中央圆环改为古典钟面：十二个罗马数字时标、数字之间的四角星饰、每现实一秒点亮一格的轨道式刻度环（满一分钟归零），以及带铲形肩部与配重尾的跳步分针和秒针。
-- 走时只使用客户端时间，不写入存档、不新增网络同步；机器状态只影响亮度，不改变节拍。
+- 构序阵列控制器的中央圆环改为古典钟面：十二个罗马数字时标、数字之间的四角星饰、每现实一秒点亮一格的轨道式刻度环（满一分钟归零），以及带铲形肩部与配重尾的跳步时针、分针和秒针。
+- 钟面读取客户端本地现实时间，显示玩家自己的实际时刻；不写入存档、不新增网络同步；机器状态只影响亮度，不改变节拍。
 
 ### 文档
 

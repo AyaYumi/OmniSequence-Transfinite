@@ -17,6 +17,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.TimeZone;
+
 /**
  * Layout-aware fields rendered through the built-in molecular spectral pipeline.
  * The outer field never writes depth, so the transparent sphere cannot mask its core.
@@ -48,7 +50,9 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
         boolean crystalFeathers = layout == MolecularCenterStructure.StructureLayout.CURRENT;
         if (crystalFeathers) angle = crown.angle();
         float completion = crown.completion(center.getLevel().getGameTime() + (double) partialTick);
-        double clockTicks = center.getLevel().getGameTime() + (double) partialTick;
+        // The dial reads the client's local wall clock rather than world time.
+        long now = System.currentTimeMillis();
+        double clockTicks = FeatherResonanceEffects.wallClockTicks(now, TimeZone.getDefault().getOffset(now));
 
         poseStack.pushPose();
         poseStack.translate(visualCenter.x - center.getBlockPos().getX(),

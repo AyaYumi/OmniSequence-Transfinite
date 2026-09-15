@@ -20,6 +20,7 @@ final class FeatherResonanceEffects {
     private static final double NUMERAL_SPREAD = 0.32;
     private static final double SECOND_HAND = 9.95;
     private static final double MINUTE_HAND = 7.15;
+    private static final double HOUR_HAND = 5.00;
     private static final String[] NUMERALS = {
         "XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"
     };
@@ -158,9 +159,9 @@ final class FeatherResonanceEffects {
     }
 
     /**
-     * A classical dial for the controller's central ring: a railway band that fills one divider per
-     * second, twelve Roman hour numerals, four-point ornaments between them, a stepped minute and
-     * second hand, and a rosette at the hub.
+     * A classical dial for the controller's central ring, reading the client's local wall clock:
+     * a railway band that fills one divider per second, twelve Roman hour numerals, four-point
+     * ornaments between them, stepped hour, minute and second hands, and a rosette at the hub.
      */
     private static void clock(PoseStack.Pose pose, VertexConsumer out, float activity,
             boolean glow, int primary, int secondary, int lattice, double clockTicks) {
@@ -195,11 +196,13 @@ final class FeatherResonanceEffects {
             ornament(pose, out, twelve + (hour + 0.5) * (Math.PI * 2) / 12, NUMERAL_RADIUS,
                     glow ? 0.05F : 0.028F, secondary, dialAlpha(glow, 0.45));
         }
+        hand(pose, out, twelve + Math.toRadians(state.hourDegrees()), HOUR_HAND,
+                glow ? 0.085F : 0.050F, secondary, dialAlpha(glow, 0.78));
         hand(pose, out, twelve + Math.toRadians(state.minuteDegrees()), MINUTE_HAND,
-                glow ? 0.075F : 0.03F, primary, dialAlpha(glow, 0.72));
+                glow ? 0.075F : 0.040F, primary, dialAlpha(glow, 0.74));
         hand(pose, out, twelve + Math.toRadians(state.secondDegrees()), SECOND_HAND,
                 glow ? 0.085F : 0.034F, lattice,
-                dialAlpha(glow, 0.7 + state.pulse() * 0.3 + activity * 0.1));
+                dialAlpha(glow, 0.70 + state.pulse() * 0.30 + activity * 0.10));
         hub(pose, out, glow, primary, secondary);
     }
 
@@ -302,18 +305,32 @@ final class FeatherResonanceEffects {
      * each minute, while the pulse and the second hand's brief overshoot decay inside the second.
      * Stepping rather than sweeping is what gives the ring its clock-like stutter.
      */
-    record ClockState(int secondOfMinute, int minuteOfHour, double pulse,
-            double secondDegrees, double minuteDegrees) { }
+    record ClockState(int secondOfMinute, int minuteOfHour, int hourOfHalfDay, double pulse,
+            double secondDegrees, double minuteDegrees, double hourDegrees) { }
 
     static ClockState clockState(double clockTicks) {
-        if (!Double.isFinite(clockTicks)) return new ClockState(0, 0, 0, 0, 0);
+        if (!Double.isFinite(clockTicks)) return new ClockState(0, 0, 0, 0, 0, 0, 0);
         double seconds = Math.max(0, clockTicks) / 20.0;
         long whole = (long) Math.floor(seconds);
         double fraction = seconds - whole;
         int second = (int) Math.floorMod(whole, 60L);
         int minute = (int) Math.floorMod(whole / 60L, 60L);
-        return new ClockState(second, minute, Math.pow(1 - fraction, 5),
-                second * 6.0 + 1.7 * Math.pow(1 - fraction, 12), minute * 6.0 + second * 0.1);
+        int hour = (int) Math.floorMod(whole / 3600L, 12L);
+        return new ClockState(second, minute, hour, Math.pow(1 - fraction, 5),
+                second * 6.0 + 1.7 * Math.pow(1 - fraction, 12),
+                minute * 6.0 + second * 0.1,
+                hour * 30.0 + minute * 0.5);
+    }
+
+    /**
+     * Local wall-clock time as dial ticks, wrapped to the current day, so the face reads the
+     * player's own clock instead of world time. The offset is supplied by the caller because the
+     * zone can change and its daylight-saving state changes with the instant.
+     */
+    static double wallClockTicks(long epochMillis, int zoneOffsetMillis) {
+        long secondsOfDay = Math.floorMod(
+                Math.floorDiv(epochMillis, 1000L) + zoneOffsetMillis / 1000L, 86400L);
+        return secondsOfDay * 20.0;
     }
 
     private static void feathers(PoseStack stack, VertexConsumer out, float angle, float activity,

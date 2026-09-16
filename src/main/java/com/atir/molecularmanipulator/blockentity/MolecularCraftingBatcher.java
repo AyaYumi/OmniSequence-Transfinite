@@ -659,48 +659,61 @@ final class MolecularCraftingBatcher {
             }
         }
 
+        if (longestGroups.isEmpty()) {
+            return false;
+        }
+
         try {
             var validatedStates = new HashSet<AEItemKey>();
             for (var entry : longestGroups.entrySet()) {
                 var group = entry.getValue();
                 for (long used = 0; used < group.usesPerTool(); used++) {
-                    AEItemKey stateKey = group.keyAfter(used);
-                    if (!validatedStates.add(stateKey)) {
-                        continue;
-                    }
-                    if (validatedStates.size()
-                            > MAX_REUSABLE_VALIDATION_STATES) {
-                        return false;
-                    }
-                    var stateInputs = createValidationInputs(
-                            plan, group, used);
-                    if (stateInputs == null
-                            || !fillCraftingGrid(pattern, stateInputs)) {
-                        return false;
-                    }
-                    var stateCraftingInput =
-                            craftingGrid;
-                    ItemStack stateOutput =
-                            pattern.assemble(stateCraftingInput, level);
-                    if (!stateOutput.isEmpty()) {
-                        stateOutput = stateOutput.copy();
-
-                    }
-                    var statePrimary = new Object2LongOpenHashMap<AEKey>();
-                    if (stateOutput.isEmpty()
-                            || !addOutput(statePrimary, stateOutput)
-                            || !mapsEqual(primaryPerCraft, statePrimary)
-                            || !remainingItemsMatch(pattern,
-                                    expectedValidationRemainders(
-                                            plan, group, used))) {
+                    if (!validateDamageState(pattern, plan, level, group, used,
+                            primaryPerCraft, validatedStates)) {
                         return false;
                     }
                 }
             }
-            return !longestGroups.isEmpty();
+            return true;
         } catch (RuntimeException exception) {
             return false;
         }
+    }
+
+    private boolean validateDamageState(
+            IMolecularAssemblerSupportedPattern pattern,
+            MolecularReusableBatchPlan plan, Level level,
+            MolecularReusableBatchPlan.DamageGroup group, long used,
+            Object2LongOpenHashMap<AEKey> primaryPerCraft,
+            HashSet<AEItemKey> validatedStates) {
+        AEItemKey stateKey = group.keyAfter(used);
+        if (stateKey == null) {
+            return false;
+        }
+        if (!validatedStates.add(stateKey)) {
+            var stateInputs = createValidationInputs(plan, group, used);
+            return stateInputs != null && fillCraftingGrid(pattern, stateInputs)
+                    && remainingItemsMatch(pattern,
+                            expectedValidationRemainders(plan, group, used));
+        }
+        if (validatedStates.size() > MAX_REUSABLE_VALIDATION_STATES) {
+            return false;
+        }
+        var stateInputs = createValidationInputs(plan, group, used);
+        if (stateInputs == null || !fillCraftingGrid(pattern, stateInputs)) {
+            return false;
+        }
+        var stateCraftingInput = craftingGrid;
+        ItemStack stateOutput = pattern.assemble(stateCraftingInput, level);
+        if (!stateOutput.isEmpty()) {
+            stateOutput = stateOutput.copy();
+        }
+        var statePrimary = new Object2LongOpenHashMap<AEKey>();
+        return !stateOutput.isEmpty()
+                && addOutput(statePrimary, stateOutput)
+                && mapsEqual(primaryPerCraft, statePrimary)
+                && remainingItemsMatch(pattern,
+                        expectedValidationRemainders(plan, group, used));
     }
 
     private KeyCounter[] createValidationInputs(

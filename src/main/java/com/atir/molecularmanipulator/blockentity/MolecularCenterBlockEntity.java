@@ -850,7 +850,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         addOutputs(pendingPrimaryOutputs, primary);
         addOutputs(pendingByproducts, remainders);
         recordPipelineActivity(gameTime, craftCount);
-        outputReadyTick = Math.max(outputReadyTick, gameTime + 1);
+        scheduleOutputFlush(gameTime);
         markOutputBufferChanged(gameTime);
         returnAutoCraftRemaindersImmediately(remainders, gameTime);
     }
@@ -3083,7 +3083,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 logPostCommitFailure("crafting event", exception);
             }
             recordPipelineActivity(level.getGameTime(), craftingBatcher.getCraftCount());
-            outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
+            scheduleOutputFlush(level.getGameTime());
             try {
                 markOutputBufferChanged(level.getGameTime());
             } catch (RuntimeException exception) {
@@ -3240,8 +3240,13 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             activeReusableBatch = null;
         }
         recordPipelineActivity(gameTime, step);
-        outputReadyTick = Math.max(outputReadyTick, gameTime + 1);
+        scheduleOutputFlush(gameTime);
         markOutputBufferChanged(gameTime);
+    }
+
+    private void scheduleOutputFlush(long gameTime) {
+        outputReadyTick = MolecularOutputScheduling.scheduleNextTick(
+                outputReadyTick, gameTime);
     }
 
     private static void mergeChecked(Object2LongOpenHashMap<AEKey> totals,

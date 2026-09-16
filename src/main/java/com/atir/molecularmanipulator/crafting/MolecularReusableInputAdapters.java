@@ -13,9 +13,10 @@ import org.jetbrains.annotations.Nullable;
  * three molecular crafting providers.
  */
 public final class MolecularReusableInputAdapters {
-    // Finite tools are exhaustively validated against the real recipe for every
-    // damage state. Keep one synchronous provider push below a watchdog-risky
-    // amount of recipe work; larger orders continue in subsequent batches.
+    /**
+     * Maximum distinct damage states validated synchronously per dispatch.
+     * Identical tools share validation, so the total batch may be larger.
+     */
     public static final long MAX_DETERMINISTIC_TRANSITIONS = 2_048;
 
     private MolecularReusableInputAdapters() {
@@ -86,7 +87,10 @@ public final class MolecularReusableInputAdapters {
                 return unsupported(initialKey);
             }
 
-            long limit = Math.min(requestedCrafts, MAX_DETERMINISTIC_TRANSITIONS);
+            // Bound synchronous recipe work; later batches continue from the
+            // exact remainder returned at the end of this window.
+            long limit = Math.min(Math.min(requestedCrafts, physicalUses(initialKey)),
+                    MAX_DETERMINISTIC_TRANSITIONS);
             long completed = 1;
             AEKey current = firstRemainder;
             while (completed < limit) {
@@ -130,6 +134,25 @@ public final class MolecularReusableInputAdapters {
         expected.setDamageValue(currentStack.getDamageValue() + 1);
         AEItemKey expectedKey = AEItemKey.of(expected);
         return expectedKey != null && expectedKey.equals(nextItem);
+    }
+
+    /**
+     * Upper bound for +1 damage transitions, including a possible craft at max
+     * damage. The recipe determines the actual breaking point and remainder.
+     */
+    public static long physicalUses(AEKey key) {
+        if (!(key instanceof AEItemKey itemKey)) {
+            return 0;
+        }
+        ItemStack stack = itemKey.toStack();
+        if (!stack.isDamageableItem() || stack.getMaxDamage() <= 0) {
+            return 0;
+        }
+        // Cucumber/MATC returns a stack at max damage after the final durability
+        // use; that stack is still a valid input and breaks on the following use.
+        // Count that terminal state so a batch does not silently discard one craft.
+        return Math.max(0L,
+                (long) stack.getMaxDamage() - stack.getDamageValue() + 1L);
     }
 
     private static boolean isDeterministicDamageCandidate(AEKey key) {

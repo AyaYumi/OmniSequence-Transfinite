@@ -181,10 +181,50 @@ public final class MolecularAdaptiveBatchController {
         return value > Long.MAX_VALUE / 2 ? Long.MAX_VALUE : Math.max(1, value * 2);
     }
 
+    /**
+     * Largest reusable (tool-pool) batch this provider/pattern pair is currently
+     * trusted with. Starts unbounded and only shrinks after a real rejection, so
+     * a single rejected aggregate no longer disables aggregation for the whole
+     * crafting job.
+     */
+    public long getReusableWindowCap(ICraftingProvider provider,
+            IPatternDetails patternDetails) {
+        if (provider == null || patternDetails == null) {
+            return Long.MAX_VALUE;
+        }
+        var state = getState(provider, patternDetails);
+        return state.isBlocked(currentTick()) ? 0 : state.reusableWindowCap;
+    }
+
+    /**
+     * The provider already owns a batch, so this refusal says nothing about the
+     * requested size. Only suspend the pair for the rest of the tick instead of
+     * shrinking a window that was never actually tested.
+     */
+    public void onReusableBusy(ICraftingProvider provider,
+            IPatternDetails patternDetails) {
+        if (provider == null || patternDetails == null) {
+            return;
+        }
+        getState(provider, patternDetails).block(currentTick());
+    }
+
+    public void onReusableRejected(ICraftingProvider provider,
+            IPatternDetails patternDetails, long attemptedCrafts) {
+        if (provider == null || patternDetails == null || attemptedCrafts <= 0) {
+            return;
+        }
+        var state = getState(provider, patternDetails);
+        long reference = Math.min(state.reusableWindowCap, attemptedCrafts);
+        state.reusableWindowCap = Math.max(1, reference / 2);
+        state.block(currentTick());
+    }
+
     private static final class State {
         private long nextBatch = 1;
         private long lastAccepted;
         private long maxWindow = Long.MAX_VALUE;
+        private long reusableWindowCap = Long.MAX_VALUE;
         private long blockedTick = Long.MIN_VALUE;
         private long lastAttemptOrder = Long.MIN_VALUE;
         private boolean probing = true;

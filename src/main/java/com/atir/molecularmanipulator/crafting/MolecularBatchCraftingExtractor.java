@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -380,18 +381,29 @@ public final class MolecularBatchCraftingExtractor {
             return firstCandidate;
         }
 
-        ItemStack stack = key.toStack();
-        long physicalUses = (long) stack.getMaxDamage()
-                - stack.getDamageValue();
+        long physicalUses = MolecularReusableInputAdapters.physicalUses(key);
         if (physicalUses <= 0) {
             return null;
         }
-        long safeCrafts = Math.min(
-                Math.min(requestedCrafts, physicalUses),
+        long safeCrafts = Math.min(Math.min(requestedCrafts, physicalUses),
                 MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS);
-        AEItemKey finalKey = safeCrafts == physicalUses
-                ? null
-                : damageKeyAfter(key, safeCrafts);
+        if (safeCrafts == physicalUses && safeCrafts > 1) {
+            var beforeMaximum = damageKeyAfter(key, safeCrafts - 2);
+            if (input.isValid(beforeMaximum, level)
+                    && input.getRemainingKey(beforeMaximum) == null) {
+                safeCrafts--;
+            }
+        }
+        var lastKey = damageKeyAfter(key, safeCrafts - 1);
+        if (!input.isValid(lastKey, level)) {
+            return firstCandidate;
+        }
+        AEKey remainder = input.getRemainingKey(lastKey);
+        if (remainder != null
+                && !MolecularReusableInputAdapters.isExactDamageStep(lastKey, remainder)) {
+            return firstCandidate;
+        }
+        AEItemKey finalKey = (AEItemKey) remainder;
         return new ToolCandidate(key, 0, safeCrafts, finalKey);
     }
 
@@ -467,30 +479,97 @@ public final class MolecularBatchCraftingExtractor {
         if (craftCount <= 0 || candidates.isEmpty()) {
             return null;
         }
+
+        var compact = selectToolsInOrder(candidates, craftCount, false);
+        if (compact != null) {
+            return compact;
+        }
+
+        /*
+         * AE2 has already extracted one instance of the first key. A damaged
+         * first tool can occupy a disjoint range of validation states and use
+         * the complete per-dispatch validation budget before a large pool of
+         * identical fresh tools is considered. Keep that extracted tool in the
+         * batch for one craft, then prefer the candidates that cover the most
+         * crafts with a shared damage-state range.
+         */
+        return selectToolsInOrder(candidates, craftCount, true);
+    }
+
+    @Nullable
+    private static ToolSelection selectToolsInOrder(
+            List<ToolCandidate> candidates, long craftCount,
+            boolean preserveFirstTool) {
         long remaining = craftCount;
         var groups = new ArrayList<DamageGroup>();
         var selected = new KeyCounter();
+        var validationStates = new HashSet<AEItemKey>();
         try {
-            for (var candidate : candidates) {
+            ToolCandidate first = candidates.get(0);
+            if (preserveFirstTool) {
+                if (first.available() <= 0) {
+                    return null;
+                }
+                addToolGroup(groups, selected, first, 1, 1);
+                addValidationStates(validationStates, first, 1);
+                remaining--;
+                if (remaining == 0) {
+                    return new ToolSelection(
+                            List.copyOf(groups), selected);
+                }
+            }
+
+            var ordered = new ArrayList<>(candidates);
+            if (preserveFirstTool) {
+                ordered.sort(Comparator
+                        .comparingLong(
+                                MolecularBatchCraftingExtractor::candidateCapacity)
+                        .reversed()
+                        .thenComparing(Comparator.comparingLong(
+                                ToolCandidate::safeCrafts).reversed()));
+            }
+
+            for (var candidate : ordered) {
                 if (remaining == 0) {
                     break;
                 }
-                long fullCount = Math.min(candidate.available(),
-                        remaining / candidate.safeCrafts());
-                if (fullCount > 0) {
-                    groups.add(new DamageGroup(candidate.key(), fullCount,
-                            candidate.safeCrafts(), candidate.finalKey()));
-                    selected.add(candidate.key(), fullCount);
-                    remaining -= Math.multiplyExact(
-                            fullCount, candidate.safeCrafts());
+                long available = candidate.available();
+                if (preserveFirstTool && candidate == first) {
+                    available--;
                 }
-                if (remaining > 0 && fullCount < candidate.available()) {
-                    AEItemKey partialFinal = damageKeyAfter(
-                            candidate.key(), remaining);
-                    groups.add(new DamageGroup(candidate.key(), 1,
-                            remaining, partialFinal));
-                    selected.add(candidate.key(), 1);
-                    remaining = 0;
+                if (available <= 0) {
+                    continue;
+                }
+
+                long maximumUses = Math.min(
+                        candidate.safeCrafts(), remaining);
+                long usesPerTool = limitUsesByValidationBudget(
+                        candidate, maximumUses, validationStates);
+                if (usesPerTool <= 0) {
+                    continue;
+                }
+
+                long fullCount = Math.min(available,
+                        remaining / usesPerTool);
+                if (fullCount > 0) {
+                    addToolGroup(groups, selected, candidate,
+                            fullCount, usesPerTool);
+                    remaining -= Math.multiplyExact(
+                            fullCount, usesPerTool);
+                }
+                long longestSelectedUses = fullCount > 0
+                        ? usesPerTool : 0;
+                if (remaining > 0 && fullCount < available) {
+                    long partialUses = Math.min(remaining, usesPerTool);
+                    addToolGroup(groups, selected, candidate,
+                            1, partialUses);
+                    longestSelectedUses = Math.max(
+                            longestSelectedUses, partialUses);
+                    remaining -= partialUses;
+                }
+                if (longestSelectedUses > 0) {
+                    addValidationStates(validationStates, candidate,
+                            longestSelectedUses);
                 }
             }
             return remaining == 0 && !groups.isEmpty()
@@ -499,6 +578,68 @@ public final class MolecularBatchCraftingExtractor {
         } catch (RuntimeException exception) {
             return null;
         }
+    }
+
+    private static long candidateCapacity(ToolCandidate candidate) {
+        return saturatedMultiply(
+                candidate.available(), candidate.safeCrafts());
+    }
+
+    private static long limitUsesByValidationBudget(
+            ToolCandidate candidate, long maximumUses,
+            HashSet<AEItemKey> validationStates) {
+        long low = 1;
+        long high = maximumUses;
+        long best = 0;
+        int budget = (int) MolecularReusableInputAdapters
+                .MAX_DETERMINISTIC_TRANSITIONS;
+        while (low <= high) {
+            long candidateUses = low + (high - low) / 2;
+            int additional = countAdditionalValidationStates(
+                    validationStates, candidate, candidateUses,
+                    budget - validationStates.size());
+            if (additional <= budget - validationStates.size()) {
+                best = candidateUses;
+                low = candidateUses + 1;
+            } else {
+                high = candidateUses - 1;
+            }
+        }
+        return best;
+    }
+
+    private static int countAdditionalValidationStates(
+            HashSet<AEItemKey> validationStates,
+            ToolCandidate candidate, long uses, int remainingBudget) {
+        int additional = 0;
+        for (long used = 0; used < uses; used++) {
+            if (!validationStates.contains(
+                    damageKeyAfter(candidate.key(), used))
+                    && ++additional > remainingBudget) {
+                return additional;
+            }
+        }
+        return additional;
+    }
+
+    private static void addValidationStates(
+            HashSet<AEItemKey> validationStates,
+            ToolCandidate candidate, long uses) {
+        for (long used = 0; used < uses; used++) {
+            validationStates.add(damageKeyAfter(
+                    candidate.key(), used));
+        }
+    }
+
+    private static void addToolGroup(
+            List<DamageGroup> groups, KeyCounter selected,
+            ToolCandidate candidate, long count, long usesPerTool) {
+        AEItemKey finalKey = usesPerTool == candidate.safeCrafts()
+                ? candidate.finalKey()
+                : damageKeyAfter(candidate.key(), usesPerTool);
+        groups.add(new DamageGroup(candidate.key(), count,
+                usesPerTool, finalKey));
+        selected.add(candidate.key(), count);
     }
 
     private static KeyCounter[] combinedToolPoolInputs(

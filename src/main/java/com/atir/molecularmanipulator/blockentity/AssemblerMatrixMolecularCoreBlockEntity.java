@@ -182,7 +182,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             } catch (RuntimeException exception) {
                 logPostCommitFailure("crafting event", exception);
             }
-            outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
+            scheduleOutputFlush(level.getGameTime());
             try {
                 markOutputBufferChanged(level.getGameTime());
             } catch (RuntimeException exception) {
@@ -388,8 +388,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             }
             addOutputs(bufferedOutputs, refunds);
             activeReusableBatch = null;
-            outputReadyTick = Math.max(
-                    outputReadyTick, level.getGameTime() + 1);
+            scheduleOutputFlush(level.getGameTime());
             saveChanges();
             return true;
         }
@@ -419,10 +418,14 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             addOutputs(bufferedOutputs, job.completedRemainders());
             activeReusableBatch = null;
         }
-        outputReadyTick = Math.max(
-                outputReadyTick, level.getGameTime() + 1);
+        scheduleOutputFlush(level.getGameTime());
         saveChanges();
         return true;
+    }
+
+    private void scheduleOutputFlush(long gameTime) {
+        outputReadyTick = MolecularOutputScheduling.scheduleNextTick(
+                outputReadyTick, gameTime);
     }
 
     private static void addOutputs(

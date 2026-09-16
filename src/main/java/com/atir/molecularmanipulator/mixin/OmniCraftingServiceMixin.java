@@ -6,14 +6,18 @@ import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.crafting.ICraftingSubmitResult;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.networking.crafting.UnsuitableCpus;
 import appeng.crafting.CraftingLink;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -44,6 +48,49 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
             ICraftingCPU target, boolean prioritizePower, IActionSource source,
             CallbackInfoReturnable<ICraftingSubmitResult> callback) {
         molecularmanipulator$refreshOmniCpus();
+    }
+
+    @Inject(method = "findSuitableCraftingCPU", at = @At("RETURN"), cancellable = true)
+    private void molecularmanipulator$preferOmniForBatchPlans(ICraftingPlan job,
+            boolean prioritizePower, IActionSource source,
+            MutableObject<UnsuitableCpus> unsuitable,
+            CallbackInfoReturnable<CraftingCPUCluster> callback) {
+        var selected = callback.getReturnValue();
+        if (job == null || job.simulation()
+                || selected != null && (OmniComputationCoreBlockEntity.ownerOf(selected) != null
+                        || selected.isPreferredFor(source))
+                || !molecularmanipulator$hasBatchPlan(job)) {
+            return;
+        }
+
+        for (var cpu : craftingCPUClusters) {
+            var owner = OmniComputationCoreBlockEntity.ownerOf(cpu);
+            if (owner != null && owner.isStructureFormed() && cpu.isActive()
+                    && !cpu.isBusy() && cpu.getAvailableStorage() >= job.bytes()
+                    && cpu.canBeAutoSelectedFor(source)) {
+                callback.setReturnValue(cpu);
+                return;
+            }
+        }
+    }
+
+    @Unique
+    private boolean molecularmanipulator$hasBatchPlan(ICraftingPlan job) {
+        try {
+            for (var entry : job.patternTimes().entrySet()) {
+                if (entry.getValue() == null || entry.getValue() <= 1) {
+                    continue;
+                }
+                for (var provider : ((CraftingService) (Object) this).getProviders(entry.getKey())) {
+                    if (MolecularBatchCraftingProvider.supports(provider, entry.getKey())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (RuntimeException exception) {
+            return false;
+        }
+        return false;
     }
 
     @Inject(method = "submitJob", at = @At("HEAD"), cancellable = true)

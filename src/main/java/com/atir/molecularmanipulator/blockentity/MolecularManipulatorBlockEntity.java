@@ -193,7 +193,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             } catch (RuntimeException exception) {
                 logPostCommitFailure("crafting event", exception);
             }
-            outputReadyTick = Math.max(outputReadyTick, level.getGameTime() + 1);
+            scheduleOutputFlush(level.getGameTime());
             try {
                 markOutputBufferChanged(level.getGameTime());
             } catch (RuntimeException exception) {
@@ -370,8 +370,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             }
             addOutputs(bufferedOutputs, refunds);
             activeReusableBatch = null;
-            outputReadyTick = Math.max(
-                    outputReadyTick, level.getGameTime() + 1);
+            scheduleOutputFlush(level.getGameTime());
             saveChanges();
             return;
         }
@@ -403,9 +402,13 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             addOutputs(bufferedOutputs, job.completedRemainders());
             activeReusableBatch = null;
         }
-        outputReadyTick = Math.max(
-                outputReadyTick, level.getGameTime() + 1);
+        scheduleOutputFlush(level.getGameTime());
         saveChanges();
+    }
+
+    private void scheduleOutputFlush(long gameTime) {
+        outputReadyTick = MolecularOutputScheduling.scheduleNextTick(
+                outputReadyTick, gameTime);
     }
 
     private static void addOutputs(

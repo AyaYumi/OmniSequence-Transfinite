@@ -11,6 +11,10 @@ Changes from **2.0.3**.
 #### Molecular batch limit
 
 - The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now accept a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; multiplication and buffer overflow are rejected without consuming inputs.
+- Consecutive batches no longer postpone the output buffer's scheduled return to the ME network. Damageable reusable tools preserve their real final use, and mixed-durability batches validate every selected damage state before committing inputs.
+- Mixed used and fresh durability tools now share one validation-state budget when a batch is planned. A partially used Infusion Crystal can remain in ME storage without making the Sequence Array fall back to one-recipe-at-a-time dispatch.
+- AE2's crafting-status screen sends a complete snapshot when its selected CPU starts or finishes a job, clearing completed or cancelled rows without reopening the screen.
+- Automatic CPU allocation now prefers an available Omni-Computation CPU for plans containing molecular batch-capable patterns, while preserving manually selected and explicitly preferred CPUs.
 
 #### Sequence Array pattern access
 
@@ -26,6 +30,11 @@ Changes from **2.0.3**.
 
 - Rewrote the recipe and research reference (`docs/matter-research-api.md`) and added a cross-linked Chinese edition (`docs/matter-research-api.zh-CN.md`), which the JAR now ships alongside the batch-provider reference. The API index, both READMEs and the batch-provider cross-links were refreshed with it.
 - Restructured all nine in-game GuideME pages, in English and Chinese, around at-a-glance tables, bullet lists, highlighted tips, item icon grids, side-by-side recipe previews and icon-bearing sub-page lists. No fact, number or instruction changed.
+
+#### AE2 crafting-CPU cluster isolation
+
+- The Omni-Computation Controller and the Transfinite Compute Nexus are AE2 `CraftingBlockEntity` classes whose blocks are **not** crafting-unit blocks, so AE2 may only ever see them as a standalone 1×1×1 cluster containing themselves. A neighbouring AE2 crafting storage or CPU used to be merged into that cluster, and the controller into theirs, which made AE2's unit-block lookup cast a non-unit block and crash the server thread while ticking (`ClassCastException: OmniComputationControllerBlock cannot be cast to AbstractCraftingUnitBlock`) - typically right after a world or chunk load restored a previously formed controller.
+- The crafting-CPU multiblock scan now refuses to put any Omni core in a region that also holds a real AE crafting unit, in both directions, so every controller, nexus, storage and CPU keeps its own cluster.
 
 #### Validation and remaining limits
 
@@ -43,6 +52,10 @@ Changes from **2.0.3**.
 #### 分子设备批量上限
 
 - 分子构序重写阵列和装配矩阵构序重写核心的逻辑批量并行上限由 `Integer.MAX_VALUE` 提高至 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。实际批量仍受材料、能量和每种产物的剩余容量限制；乘法及缓冲叠加溢出会被拒绝，且不消耗输入。
+- 连续批次不再反复推迟缓存产物回传到 ME 网络的时间。可复用耐久工具保留真实的最后一次使用机会，混合耐久批次在接管输入前逐状态校验。
+- 已使用与全新的耐久工具混合存放时，批量计划现在统一计算整个工具池的耐久状态校验额度。ME 网络中存在已损耗的注魔水晶也不会再让构序阵列回退为逐次投料。
+- 所选合成 CPU 的任务开始或结束时，AE2 合成状态界面发送完整快照；完成或取消后无需重新打开界面即可清除旧任务行。
+- 自动分配 CPU 时，包含可执行分子批量样板的计划会优先选择可用的万物演算 CPU；玩家手动选择及已有明确偏好的 CPU 保持原行为。
 
 #### 构序阵列样板访问
 
@@ -58,6 +71,11 @@ Changes from **2.0.3**.
 
 - 重写配方与研究参考（`docs/matter-research-api.md`），新增互链的中文版（`docs/matter-research-api.zh-CN.md`），并随批量投料参考一起打入 JAR。同步更新接口索引、两份 README 及批量投料参考的交叉链接。
 - 重构全部九个游戏内 GuideME 页面（中英各九页）：改为速览表格、要点列表、高亮提示、物品图标网格、并排配方预览和带图标的子页面列表。内容、数字与步骤均未改动。
+
+#### AE2 合成 CPU 组隔离
+
+- 全知计算控制器与超限算枢本质上是 AE2 的 `CraftingBlockEntity`，但它们的方块**不是**合成单元方块，因此 AE2 只应把它们视为仅含自身 1×1×1 的独立组。此前相邻的 AE2 合成存储／合成 CPU 会被并入该组，控制器也会被并入对方的组，导致 AE2 查询单元方块时把非单元方块强转并在线程 tick 中崩溃（`ClassCastException: OmniComputationControllerBlock cannot be cast to AbstractCraftingUnitBlock`）——通常发生在世界或区块加载恢复了先前已成立的控制器之后。
+- 合成 CPU 多方块扫描现在双向拒绝把任何全知核心放入同时含有真实 AE 合成单元的范围内，因此控制器、超限算枢、合成存储与合成 CPU 各自保持独立的组与存储统计。
 
 #### 验证与现有限制
 

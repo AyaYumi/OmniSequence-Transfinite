@@ -13,6 +13,7 @@
     "ClusterAssemblerMatrixMixin",
     "CraftingCPUClusterAccessor",
     "CraftingCPUCalculatorMixin",
+    "CraftingStatusMenuMixin",
     "CraftingCpuLogicMixin",
     "GridActiveMachinesMixin",
     "KeyCounterMixin",

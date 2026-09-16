@@ -624,7 +624,12 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
                                     .isSingleOnly(offer.provider(),
                                             patternDetails)) {
                         reusableDirectLimit = Math.max(
-                                reusableDirectLimit, offer.batchLimit());
+                                reusableDirectLimit, Math.min(
+                                        offer.batchLimit(),
+                                        molecularmanipulator$adaptiveBatchController
+                                                .getReusableWindowCap(
+                                                        offer.provider(),
+                                                        patternDetails)));
                     }
                 }
             }
@@ -1061,6 +1066,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
                     provider, patternDetails)
                     || molecularmanipulator$adaptiveBatchController
                             .isSingleOnly(provider, patternDetails)
+                    || craftCount > molecularmanipulator$adaptiveBatchController
+                            .getReusableWindowCap(provider, patternDetails)
                     || apiBatchContext) {
                 return false;
             }
@@ -1215,12 +1222,15 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
                         provider, patternDetails);
             } else if (reusablePlan != null) {
                 // A reusable candidate is only fully validated inside the
-                // molecular provider. If that late validation rejects it,
-                // remember the result for this crafting job so the next AE2
-                // attempt uses the original one-recipe dispatch instead of
-                // rebuilding the same rejected aggregate forever.
-                molecularmanipulator$adaptiveBatchController.forceSingle(
-                        provider, patternDetails);
+                // molecular provider. A busy provider has not tested this size;
+                // a real validation rejection should shrink the retry window.
+                if (provider.isBusy()) {
+                    molecularmanipulator$adaptiveBatchController.onReusableBusy(
+                            provider, patternDetails);
+                } else {
+                    molecularmanipulator$adaptiveBatchController.onReusableRejected(
+                            provider, patternDetails, craftCount);
+                }
             }
             return accepted;
         } finally {
@@ -1388,12 +1398,18 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu {
     private long molecularmanipulator$getAvailableReusableBatchLimit(
             CraftingService craftingService, IPatternDetails patternDetails,
             KeyCounter[] firstInputs) {
-        return MolecularBatchDispatchSafety.getAvailableBatchLimit(
+        long limit = 0;
+        for (var offer : MolecularBatchDispatchSafety.getAvailableBatchOffers(
                 craftingService, patternDetails, firstInputs,
                 provider -> MolecularBatchCraftingProvider.supportsReusable(
                         provider, patternDetails)
                         && !molecularmanipulator$adaptiveBatchController
-                                .isSingleOnly(provider, patternDetails));
+                                .isSingleOnly(provider, patternDetails))) {
+            limit = Math.max(limit, Math.min(offer.batchLimit(),
+                    molecularmanipulator$adaptiveBatchController
+                            .getReusableWindowCap(offer.provider(), patternDetails)));
+        }
+        return limit;
     }
 
     @Unique

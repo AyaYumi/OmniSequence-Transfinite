@@ -40,10 +40,15 @@ jobs:
             echo "::error::AppliedEnhancements 1.20.1-forge does not yet contain the Forge 1.20.1 port. Publish that dependency branch before running this build."
             exit 1
           fi
+          dependency_version="$(sed -n 's/^applied_enhancements_version=//p' gradle.properties | tr -d '\r')"
+          if ! grep -Fqx "mod_version=${dependency_version}" .dependencies/appliedenhancements/gradle.properties; then
+            echo "::error::AppliedEnhancements branch version does not match the requested ${dependency_version}."
+            exit 1
+          fi
           chmod +x .dependencies/appliedenhancements/gradlew
           .dependencies/appliedenhancements/gradlew -p .dependencies/appliedenhancements build
           mkdir -p libs
-          cp .dependencies/appliedenhancements/build/libs/appliedenhancements-1.0.6-forge.jar libs/
+          cp ".dependencies/appliedenhancements/build/libs/appliedenhancements-${dependency_version}.jar" libs/
 
       # 1.4.18 is published on Modrinth. The local integration pack uses 1.4.19.
       - name: Build with Gradle

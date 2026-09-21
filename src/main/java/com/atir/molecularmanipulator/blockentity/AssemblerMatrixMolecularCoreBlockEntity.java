@@ -441,9 +441,20 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         }
     }
 
+    public void flushOutputsAfterCpuAccounting() {
+        flushBufferedOutputs(true);
+    }
+
     private AEKeyTransferScheduler.FlushResult flushBufferedOutputs() {
+        return flushBufferedOutputs(false);
+    }
+
+    private AEKeyTransferScheduler.FlushResult flushBufferedOutputs(
+            boolean cpuAccountingComplete) {
         var level = getLevel();
-        if (level == null || assembling || bufferedOutputs.isEmpty() || level.getGameTime() < outputReadyTick) {
+        if (level == null || assembling || bufferedOutputs.isEmpty()
+                || !cpuAccountingComplete
+                        && level.getGameTime() < outputReadyTick) {
             return AEKeyTransferScheduler.FlushResult.EMPTY;
         }
         var grid = getMainNode().getGrid();

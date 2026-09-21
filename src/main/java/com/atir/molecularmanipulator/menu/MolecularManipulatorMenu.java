@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.menu;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
-import appeng.helpers.patternprovider.PatternProviderReturnInventory;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
@@ -60,13 +59,6 @@ public final class MolecularManipulatorMenu extends AEBaseMenu implements Patter
         for (int index = 0; index < patternInventory.size(); index++) {
             addSlot(new RestrictedInputSlot(RestrictedInputSlot.PlacableItemType.PROVIDER_PATTERN,
                     patternInventory, index), SlotSemantics.ENCODED_PATTERN);
-        }
-
-        var returnInventory = logic.getReturnInv().createMenuWrapper();
-        for (int index = 0; index < PatternProviderReturnInventory.NUMBER_OF_SLOTS; index++) {
-            if (index < returnInventory.size()) {
-                addSlot(new AppEngSlot(returnInventory, index), SlotSemantics.STORAGE);
-            }
         }
 
         this.patternSlots = getSlots(SlotSemantics.ENCODED_PATTERN).stream()

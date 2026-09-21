@@ -23,6 +23,7 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
     private boolean patternSearchIndexPending;
     private int requestedPatternRevision = -1;
     private int indexedPatternRevision = -1;
+    private int autoPageRevision = -1;
 
     public MolecularManipulatorScreen(MolecularManipulatorMenu menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -72,6 +73,22 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
         if (modularView != null) {
             modularView.tick();
         }
+        if (patternSearchQuery.isBlank() && autoPageRevision != menu.patternRevision) {
+            autoPageRevision = menu.patternRevision;
+            autoAdvanceFullPage();
+        }
+    }
+
+    private void autoAdvanceFullPage() {
+        if (menu.getPage() + 1 >= menu.getPageCount()) return;
+        var visible = menu.getVisiblePatternSlotIndices();
+        if (visible.length != MolecularManipulatorBlockEntity.PATTERNS_PER_PAGE) return;
+        for (int sourceSlot : visible) {
+            if (sourceSlot < 0 || sourceSlot >= menu.getPatternSlots().size()
+                    || !menu.getPatternSlots().get(sourceSlot).hasItem()) return;
+        }
+        menu.requestPage(menu.getPage() + 1);
+        layoutPatternPage();
     }
 
     @Override
@@ -89,12 +106,10 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
             float partialTicks) {
         super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
         AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 35, offsetX + 186, offsetY + 130);
-        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 134, offsetX + 186, offsetY + 170);
-        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 176, offsetX + 186, offsetY + 267);
+        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 134, offsetX + 186, offsetY + 222);
         AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 51, 9, 4);
-        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 1);
-        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 189, 9, 3);
-        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 247, 9, 1);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 3);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 202, 9, 1);
     }
 
     void changePage(int offset) {

@@ -49,3 +49,12 @@ logs/
 __pycache__/
 *.py[cod]
 libs/*.jar
+
+### Local diagnostic scratch files ###
+/*.log
+/*_javap.txt
+/_tmp*
+/tmp-*
+/y-*.log
+/codex-backups/
+/libs/_codex_backups/

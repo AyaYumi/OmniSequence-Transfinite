@@ -22,6 +22,10 @@ public final class ModConfig {
     public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
     public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
     public static final ModConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
+    public static final ModConfigSpec.BooleanValue OMNI_COALESCE_RETURN_NOTIFICATIONS;
+    public static final ModConfigSpec.BooleanValue OMNI_PROFILE_EXACT_RETURNS;
+    public static final ModConfigSpec.IntValue OMNI_RETURN_PROFILE_SAMPLE_INTERVAL;
+    public static final ModConfigSpec.BooleanValue OMNI_DIRECT_NATIVE_OUTPUT_RETURN;
     public static final ModConfigSpec.IntValue NEXUS_IDLE_POWER;
 
     public static final ModConfigSpec CLIENT_SPEC;
@@ -140,11 +144,23 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.omni_compat_dispatch_max_time_us")
                 .defineInRange(
                         "omni_compat_dispatch_max_time_us",
-                        20_000, 250, 50_000);
+                        50_000, 250, 50_000);
         OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
                 "Maximum dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.")
                 .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
                 .defineInRange("omni_dispatch_max_work_units", 2_147_483_647L, 64L, Long.MAX_VALUE);
+        OMNI_COALESCE_RETURN_NOTIFICATIONS = server.comment(
+                "Notify each changed AE key once after an exact output insertion has settled all its ledgers.")
+                .define("omni_coalesce_return_notifications", true);
+        OMNI_PROFILE_EXACT_RETURNS = server.comment(
+                "Log exact CPU output-return timing and notification counts at most once per 10 seconds while active.")
+                .define("omni_profile_exact_returns", false);
+        OMNI_RETURN_PROFILE_SAMPLE_INTERVAL = server.comment(
+                "Time one in this many exact output insertions to keep profiling overhead low. Counts remain exact.")
+                .defineInRange("omni_return_profile_sample_interval", 64, 1, 4096);
+        OMNI_DIRECT_NATIVE_OUTPUT_RETURN = server.comment(
+                "Directly transfer native UselessMod intermediate output balances to their live bound CPU on the same grid. Unsupported queues use normal return.")
+                .define("omni_direct_native_output_return", true);
         server.pop();
         server.pop();
         server.comment("Transfinite Compute Nexus power settings.", "超限算枢耗电设置。")

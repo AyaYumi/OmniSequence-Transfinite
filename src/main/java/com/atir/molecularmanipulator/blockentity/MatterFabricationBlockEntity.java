@@ -27,6 +27,7 @@ import com.atir.molecularmanipulator.crafting.MatterFabricationRecipeInput;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchProgress;
+import com.atir.molecularmanipulator.research.ResearchMaterialOrderService;
 import com.atir.molecularmanipulator.research.ResearchVisualState;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
@@ -96,7 +97,9 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             INPUT_SLOTS + OUTPUT_SLOTS);
     private final MachineSource actionSource = new MachineSource(this);
     private static final String RESEARCH_TAG = "fabrication_research";
+    private static final String RESEARCH_ORDERS_TAG = "fabrication_research_orders";
     private final MatterResearchProgress research = new MatterResearchProgress();
+    private final ResearchMaterialOrderService researchOrders = new ResearchMaterialOrderService(this);
     private static final String BATCH_TAG = "fabrication_owned_batch";
     private final MatterFabricationBatch batch = new MatterFabricationBatch();
     private long manualCrafts = 1;
@@ -153,7 +156,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     public MatterFabricationBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(), pos, state);
         quantumInventory.setMaxStackSize(0, 1);
-        getMainNode().setFlags(GridFlags.REQUIRE_CHANNEL).setIdlePowerUsage(IDLE_POWER);
+        getMainNode().setFlags(GridFlags.REQUIRE_CHANNEL).setIdlePowerUsage(IDLE_POWER)
+                .addService(appeng.api.networking.crafting.ICraftingRequester.class, researchOrders);
     }
 
     @Override
@@ -173,6 +177,10 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
 
     public InternalInventory getInputInventory() {
         return inventory.getSubInventory(0, INPUT_SLOTS);
+    }
+
+    public ResearchMaterialOrderService getResearchOrders() {
+        return researchOrders;
     }
 
     public InternalInventory getOutputInventory() {
@@ -212,7 +220,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
 
     public boolean hasRemovalRecovery() {
         return !inventory.isEmpty() || !quantumInventory.isEmpty() || batch.hasWork() || research.hasStoredMaterials()
-                || !pendingMigrationServiceBlocks.isEmpty() || !pendingDismantleRecovery.isEmpty();
+                || researchOrders.hasPending() || !pendingMigrationServiceBlocks.isEmpty() || !pendingDismantleRecovery.isEmpty();
     }
 
     private ItemStack createRemovalRecovery(HolderLookup.Provider registries) {
@@ -223,6 +231,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         contents.put("inv", payload.getCompound("inv"));
         quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG, registries);
         if (research.hasProgress()) contents.put(RESEARCH_TAG, research.save());
+        if (researchOrders.hasPending()) contents.put(RESEARCH_ORDERS_TAG, researchOrders.save(registries));
         if (batch.hasWork()) contents.put(BATCH_TAG, batch.save(registries));
         if (!pendingDismantleRecovery.isEmpty()) contents.put(DISMANTLE_RECOVERY_TAG, pendingDismantleRecovery.save(registries));
         var services = new ListTag();
@@ -237,6 +246,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         quantumInventory.clear();
         batch.clear();
         research.clearStoredMaterials();
+        researchOrders.clear();
         pendingMigrationServiceBlocks.clear();
         pendingDismantleRecovery = ItemStack.EMPTY;
     }
@@ -411,10 +421,11 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void exportSettings(SettingsFrom mode, DataComponentMap.Builder builder, Player player) {
         super.exportSettings(mode, builder, player);
-        if (mode == SettingsFrom.DISMANTLE_ITEM && (research.hasProgress() || batch.hasWork())) {
+        if (mode == SettingsFrom.DISMANTLE_ITEM && (research.hasProgress() || batch.hasWork() || researchOrders.hasPending())) {
             var tag = new CompoundTag();
             if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
             if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(level.registryAccess()));
+            if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(level.registryAccess()));
             builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         }
     }
@@ -429,6 +440,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
                 research.load(tag.getCompound(RESEARCH_TAG), level.registryAccess());
                 saveChanges();
             }
+            if (tag.contains(RESEARCH_ORDERS_TAG)) researchOrders.load(tag.getCompound(RESEARCH_ORDERS_TAG), level.registryAccess());
         }
     }
 
@@ -478,6 +490,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             refreshStructure();
             nextStructureCheck = gameTime + STRUCTURE_CHECK_INTERVAL;
         }
+        researchOrders.tick();
         tickResearch();
         if (batch.hasWork()) processBatch();
         else if (!processPatternBuffers()) processRecipe();
@@ -1817,6 +1830,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
         else tag.remove(RESEARCH_TAG);
+        if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(registries));
+        else tag.remove(RESEARCH_ORDERS_TAG);
         if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(registries)); else tag.remove(BATCH_TAG);
         tag.putLong("fabrication_manual_crafts", manualCrafts);
         tag.putInt(PROGRESS_TAG, progress);
@@ -1860,6 +1875,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         super.loadTag(tag, registries);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         research.load(tag.getCompound(RESEARCH_TAG), registries);
+        researchOrders.load(tag.getCompound(RESEARCH_ORDERS_TAG), registries);
         batch.load(tag.getCompound(BATCH_TAG), registries);
         manualCrafts = Math.max(1, tag.getLong("fabrication_manual_crafts"));
         progress = Math.max(0, tag.getInt(PROGRESS_TAG));

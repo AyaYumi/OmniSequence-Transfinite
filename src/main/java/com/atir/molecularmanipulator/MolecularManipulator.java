@@ -5,6 +5,7 @@ import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
+import com.atir.molecularmanipulator.integration.useless.UselessBigIntegerApiBridge;
 import appeng.api.AECapabilities;
 import appeng.api.upgrades.Upgrades;
 import appeng.core.definitions.AEItems;
@@ -68,6 +69,7 @@ public final class MolecularManipulator {
 
     private void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            UselessBigIntegerApiBridge.register();
             validateMixins();
             Upgrades.add(AEItems.SPEED_CARD, ModContent.MOLECULAR_CENTER_CONTROLLER.get(), 4);
             ModContent.bindBlockEntity();

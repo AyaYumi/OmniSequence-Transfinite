@@ -2,17 +2,24 @@ package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingCPU;
+import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.crafting.ICraftingSubmitResult;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.networking.crafting.UnsuitableCpus;
 import appeng.crafting.CraftingLink;
+import appeng.crafting.execution.CraftingSubmitResult;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
+import com.atir.molecularmanipulator.crafting.OmniSmartDoublingPlanner;
+import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
+import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
+import com.appliedenhancements.api.AelisExactCraftingPlanApi;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,6 +29,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 import java.util.Set;
 
@@ -37,6 +45,29 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
 
     @Shadow
     public abstract void addLink(CraftingLink link);
+
+    @ModifyVariable(method = "submitJob", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private ICraftingPlan molecularmanipulator$rewriteSmartDoublingPlan(ICraftingPlan plan) {
+        return OmniSmartDoublingPlanner.rewriteForSubmission(plan,
+                pattern -> ((CraftingService) (Object) this).getProviders(pattern));
+    }
+
+    @Inject(method = "getProviders", at = @At("HEAD"), cancellable = true)
+    private void molecularmanipulator$resolveSmartPatternProviders(IPatternDetails pattern,
+            CallbackInfoReturnable<Iterable<ICraftingProvider>> callback) {
+        IPatternDetails original = pattern;
+        if (pattern instanceof MolecularScaledPattern scaled) {
+            original = scaled.base();
+        } else {
+            try {
+                var unwrapped = MolecularExternalScaledPattern.unwrapSmartDoubling(pattern);
+                if (unwrapped.multiplier() > 1) original = unwrapped.patternDetails();
+            } catch (RuntimeException ignored) { }
+        }
+        if (original != pattern) {
+            callback.setReturnValue(((CraftingService) (Object) this).getProviders(original));
+        }
+    }
 
     @Inject(method = "updateCPUClusters", at = @At("RETURN"))
     private void molecularmanipulator$appendOmniCpus(CallbackInfo callback) {
@@ -56,8 +87,10 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
             MutableObject<UnsuitableCpus> unsuitable,
             CallbackInfoReturnable<CraftingCPUCluster> callback) {
         var selected = callback.getReturnValue();
-        if (job == null || job.simulation()
-                || selected != null && (OmniComputationCoreBlockEntity.ownerOf(selected) != null
+        if (job == null || job.simulation()) {
+            return;
+        }
+        if (selected != null && (OmniComputationCoreBlockEntity.ownerOf(selected) != null
                         || selected.isPreferredFor(source))
                 || !molecularmanipulator$hasBatchPlan(job)) {
             return;
@@ -77,6 +110,9 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
     @Unique
     private boolean molecularmanipulator$hasBatchPlan(ICraftingPlan job) {
         try {
+            if (AelisExactCraftingPlanApi.requiresExactExecution(job)) {
+                return true;
+            }
             for (var entry : job.patternTimes().entrySet()) {
                 if (entry.getValue() == null || entry.getValue() <= 1) {
                     continue;

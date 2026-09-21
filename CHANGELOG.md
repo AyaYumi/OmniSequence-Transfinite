@@ -1,5 +1,19 @@
 # Changelog
 
+## OmniSequence: Transfinite 2.0.5-fix
+
+- Fixed Data Energistics CPU selection crashing with `Duplicate crafting CPU stable identity` when multiple Omni CPU lanes share one controller position. Each lane now uses its persistent dimension/controller/lane identity; ordinary AE2 CPU identities are unchanged.
+- Compatibility is optional and does not require Data Energistics to be installed.
+
+## OmniSequence: Transfinite 2.0.5
+
+Minecraft 1.21.1 · NeoForge · Java 21
+
+### Native UselessMod BigInteger output return
+
+- Smart-doubling batches whose UselessMod capacity changes between the probe and commit now retry at the largest complete wrapper-task boundary. This keeps successful native admissions bound to the exact CPU callback instead of falling back to thousands of segmented long inserts.
+- Added regression coverage for transient partial admissions and exact input conservation.
+
 ## OmniSequence: Transfinite 2.0.4
 
 Minecraft 1.21.1 · NeoForge · Java 21

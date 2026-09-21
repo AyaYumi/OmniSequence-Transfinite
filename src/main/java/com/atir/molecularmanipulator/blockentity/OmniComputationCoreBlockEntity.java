@@ -267,7 +267,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     private boolean hasStoredCpuContents() {
         if (!pendingVirtualCpuStates.isEmpty() || !suspendedCpuStates.isEmpty() || getPreviousState() != null) return true;
-        return allCpus().stream().anyMatch(cpu -> cpu.isBusy() || !cpu.craftingLogic.getInventory().list.isEmpty());
+        return allCpus().stream().anyMatch(cpu -> cpu.isBusy() || !cpu.craftingLogic.getInventory().list.isEmpty()
+                || ((com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu) cpu.craftingLogic).hasExactStoredItems());
     }
 
     @Override
@@ -317,6 +318,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 CPU_OWNERS.remove(cpu, this);
                 cpu.destroy();
                 cpu.craftingLogic.getInventory().clear();
+                ((com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu) cpu.craftingLogic).clearExactStoredItems();
             }
         } finally {
             retiringStoredCpus = false;
@@ -2023,8 +2025,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     /**
-     * Stable, local-only identity for diagnostics and future integrations.
-     * This mod does not register a Data Energistics integration.
+     * Persistent lane identity used by diagnostics and Data Energistics CPU selection.
      */
     public String laneStableId(CraftingCPUCluster cpu) {
         long id = laneId(cpu);

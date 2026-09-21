@@ -4,8 +4,9 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.KeyCounter;
 import appeng.helpers.patternprovider.PatternProviderLogic;
+import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputProvider;
 
-public interface MolecularBatchCraftingProvider {
+public interface MolecularBatchCraftingProvider extends OmniPostAccountingOutputProvider {
 
     boolean molecularmanipulator$supportsBatching(IPatternDetails patternDetails);
 
@@ -21,6 +22,19 @@ public interface MolecularBatchCraftingProvider {
     default boolean molecularmanipulator$supportsReusableBatching(
             IPatternDetails patternDetails) {
         return false;
+    }
+
+    /**
+     * Returns outputs from an accepted aggregate after the CPU has recorded
+     * them in its waiting-for inventory. Implementations may keep the normal
+     * next-tick retry when the network cannot accept the complete output yet.
+     */
+    default void molecularmanipulator$flushOutputsAfterCpuAccounting() {
+    }
+
+    @Override
+    default void flushOutputsAfterCpuAccounting() {
+        molecularmanipulator$flushOutputsAfterCpuAccounting();
     }
 
     /**

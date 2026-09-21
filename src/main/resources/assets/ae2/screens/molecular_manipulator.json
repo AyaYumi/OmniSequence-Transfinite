@@ -3,7 +3,7 @@
   "includes": ["common/common.json"],
   "generatedBackground": {
     "width": 194,
-    "height": 274
+    "height": 229
   },
   "slots": {
     "ENCODED_PATTERN": {
@@ -11,19 +11,14 @@
       "top": 52,
       "grid": "BREAK_AFTER_9COLS"
     },
-    "STORAGE": {
-      "left": 16,
-      "top": 145,
-      "grid": "HORIZONTAL"
-    },
     "PLAYER_INVENTORY": {
       "left": 16,
-      "top": 190,
+      "top": 145,
       "grid": "BREAK_AFTER_9COLS"
     },
     "PLAYER_HOTBAR": {
       "left": 16,
-      "top": 248,
+      "top": 203,
       "grid": "HORIZONTAL"
     }
   },

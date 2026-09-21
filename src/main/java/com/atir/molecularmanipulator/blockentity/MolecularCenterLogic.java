@@ -95,6 +95,11 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     }
 
     @Override
+    public void molecularmanipulator$flushOutputsAfterCpuAccounting() {
+        machine.flushOutputsAfterCpuAccounting();
+    }
+
+    @Override
     public void updatePatterns() {
         availablePatterns.clear();
         availablePatternSet.clear();

@@ -7,6 +7,8 @@ import net.neoforged.neoforge.items.IItemHandler;
 /** External automation sees only the configured main pattern library. */
 final class MolecularCenterPatternItemHandler implements IItemHandler {
     private final MolecularCenterBlockEntity controller;
+    private ItemStack[] snapshot = new ItemStack[0];
+    private int snapshotRevision = Integer.MIN_VALUE;
 
     MolecularCenterPatternItemHandler(MolecularCenterBlockEntity controller) {
         this.controller = controller;
@@ -17,14 +19,37 @@ final class MolecularCenterPatternItemHandler implements IItemHandler {
         return Math.min(ModConfig.activePatternSlots(), controller.getLogic().getFullPatternInventory().size());
     }
 
+    /**
+     * Storage buses poll every exposed slot repeatedly. Keep one immutable view
+     * of the pattern library and rebuild it only after the inventory revision
+     * changes; this avoids copying/reading every pattern NBT on every poll.
+     */
+    private void refreshSnapshotIfNeeded() {
+        int slots = getSlots();
+        int revision = controller.getLogic().getPatternRevision();
+        if (snapshot.length == slots && snapshotRevision == revision) return;
+        var next = new ItemStack[slots];
+        var inventory = controller.getLogic().getFullPatternInventory();
+        for (int slot = 0; slot < slots; slot++) {
+            var stack = inventory.getStackInSlot(slot);
+            next[slot] = stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
+        }
+        snapshot = next;
+        snapshotRevision = revision;
+    }
+
     private boolean available(int slot) {
         return slot >= 0 && slot < getSlots() && controller.canAccessExternalPatterns();
     }
 
     @Override
     public ItemStack getStackInSlot(int slot) {
-        return available(slot) ? controller.getLogic().getFullPatternInventory().getStackInSlot(slot).copy()
-                : ItemStack.EMPTY;
+        if (!available(slot)) return ItemStack.EMPTY;
+        refreshSnapshotIfNeeded();
+        // StorageBus only reads this value. Returning the cached immutable view
+        // avoids a second deep NBT copy for every slot poll; all mutations still
+        // go through insertItem/extractItem and invalidate via patternRevision.
+        return snapshot[slot];
     }
 
     @Override

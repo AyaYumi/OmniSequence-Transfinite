@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,7 @@ public final class MatterResearchProgress {
     private final Map<ResourceLocation, Task> tasks = new LinkedHashMap<>();
     private final Map<ResourceLocation, CompoundTag> unavailableTasks = new LinkedHashMap<>();
     private final Map<AEItemKey, Long> refunds = new LinkedHashMap<>();
+    private final Set<ResourceLocation> autoStart = new java.util.LinkedHashSet<>();
     private final ListTag unavailableRefunds = new ListTag();
     private HolderLookup.Provider registries;
     private String lastError = "";
@@ -35,15 +37,88 @@ public final class MatterResearchProgress {
 
     public Set<ResourceLocation> completed() { return Set.copyOf(completions.keySet()); }
     public int completionCount(ResourceLocation id) { return completions.getOrDefault(id, 0); }
-    public boolean hasProgress() { return !completions.isEmpty() || !tasks.isEmpty() || !unavailableTasks.isEmpty() || hasRefunds(); }
-    public boolean hasStoredMaterials() { return !tasks.isEmpty() || !unavailableTasks.isEmpty() || hasRefunds(); }
+    public boolean hasProgress() { return !completions.isEmpty() || !tasks.isEmpty() || !unavailableTasks.isEmpty()
+            || !autoStart.isEmpty() || hasRefunds(); }
+    public boolean hasStoredMaterials() { return !tasks.isEmpty() || !unavailableTasks.isEmpty() || !autoStart.isEmpty() || hasRefunds(); }
     /** Clears material ownership after it has been packed into a dismantled controller. */
     public void clearStoredMaterials() {
-        tasks.clear(); unavailableTasks.clear(); refunds.clear(); unavailableRefunds.clear(); lastError = "";
+        tasks.clear(); unavailableTasks.clear(); refunds.clear(); unavailableRefunds.clear(); autoStart.clear(); lastError = "";
     }
     private boolean hasRefunds() { return !refunds.isEmpty() || !unavailableRefunds.isEmpty(); }
     public boolean hasTask(ResourceLocation id) { return tasks.containsKey(id); }
     public boolean isPaused(ResourceLocation id) { return tasks.containsKey(id) && tasks.get(id).paused; }
+
+    /** Queue missing materials through the connected AE2 crafting service, then start when supplied. */
+    public boolean orderMissing(MatterFabricationBlockEntity machine, ResourceLocation id) {
+        if (!ready(machine) || unavailableTasks.containsKey(id) || hasRefunds()) return false;
+        var holder = MatterResearchApi.definitions(machine.getLevel()).stream()
+                .filter(value -> value.id().equals(id)).findFirst().orElse(null);
+        if (holder == null || !prerequisitesMet(machine, holder.value())) return false;
+        int completed = completionCount(id);
+        if (completed >= holder.value().depths().size()) return false;
+        var task = tasks.get(id);
+        int round = task == null ? completed + 1 : task.round;
+        var costs = task == null ? holder.value().costsFor(round) : task.costs;
+        var paid = task == null ? new long[costs.size()] : task.paid;
+        var stock = liveInventory(machine);
+        var missing = new LinkedHashMap<AEItemKey, Long>();
+        var crafting = machine.getMainNode().getGrid().getCraftingService();
+        var remaining = new LinkedHashMap<>(stock);
+        boolean waitingForOrder = false;
+        var order = new ArrayList<Integer>();
+        for (int index = 0; index < costs.size(); index++) order.add(index);
+        // Reserve concrete stock for the most specific ingredients first so overlapping tags
+        // cannot make two costs both believe they can spend the same stack.
+        order.sort(java.util.Comparator.comparingInt((Integer index) -> {
+            int matches = 0;
+            for (var entry : stock.entrySet()) if (costs.get(index).ingredient().test(entry.getKey().toStack())) matches++;
+            return matches;
+        }).thenComparingInt(Integer::intValue));
+        var deficits = new long[costs.size()];
+        for (int index : order) {
+            long required = Math.max(0L, costs.get(index).count() - paid[index]);
+            long available = 0L;
+            for (var entry : remaining.entrySet()) {
+                if (!costs.get(index).ingredient().test(entry.getKey().toStack()) || entry.getValue() <= 0) continue;
+                long take = Math.min(required - available, entry.getValue());
+                available += take;
+                entry.setValue(entry.getValue() - take);
+                if (available == required) break;
+            }
+            deficits[index] = required - available;
+        }
+        for (int index = 0; index < costs.size(); index++) {
+            long deficit = deficits[index];
+            if (deficit <= 0) continue;
+            AEItemKey selected = null;
+            for (var example : costs.get(index).ingredient().getItems()) {
+                var key = AEItemKey.of(example);
+                if (key != null && crafting.isCraftable(key)) { selected = key; break; }
+            }
+            if (selected == null) {
+                lastError = "not_craftable";
+                return false;
+            }
+            long alreadyOrdered = machine.getResearchOrders().pendingAmount(selected);
+            waitingForOrder |= alreadyOrdered > 0;
+            long toOrder = deficit - Math.min(deficit, alreadyOrdered);
+            if (toOrder > 0) missing.merge(selected, toOrder, MatterResearchProgress::saturatedAdd);
+        }
+        if (!missing.isEmpty()) {
+            machine.getResearchOrders().request(missing);
+            autoStart.add(id);
+            lastError = "orders_submitted";
+            machine.saveChanges();
+            return true;
+        }
+        if (waitingForOrder) {
+            autoStart.add(id);
+            lastError = "orders_submitted";
+            machine.saveChanges();
+            return true;
+        }
+        return start(machine, id);
+    }
 
     public boolean start(MatterFabricationBlockEntity machine, ResourceLocation id) {
         if (tasks.containsKey(id)) return resume(machine, id);
@@ -156,6 +231,11 @@ public final class MatterResearchProgress {
 
     public void tick(MatterFabricationBlockEntity machine) {
         refund(machine);
+        if (!autoStart.isEmpty()) {
+            for (var id : List.copyOf(autoStart)) {
+                if (!machine.getResearchOrders().hasPending() && start(machine, id)) autoStart.remove(id);
+            }
+        }
         if (tasks.isEmpty()) return;
         var available = new LinkedHashMap<ResourceLocation, MatterResearchRecipe>();
         for (var holder : MatterResearchApi.definitions(machine.getLevel())) available.put(holder.id(), holder.value());
@@ -192,12 +272,16 @@ public final class MatterResearchProgress {
         unavailableTasks.values().forEach(value -> active.add(value.copy())); tag.put("tasks", active);
         var pending = new ListTag(); refunds.forEach((key, amount) -> pending.add(GenericStack.writeTag(registries, new GenericStack(key, amount))));
         unavailableRefunds.forEach(value -> pending.add(value.copy()));
-        tag.put("refunds", pending); return tag;
+        tag.put("refunds", pending);
+        var queued = new ListTag();
+        autoStart.forEach(id -> queued.add(StringTag.valueOf(id.toString())));
+        tag.put("auto_start", queued);
+        return tag;
     }
 
     public void load(CompoundTag tag, HolderLookup.Provider registries) {
         this.registries = registries;
-        completions.clear(); tasks.clear(); unavailableTasks.clear(); refunds.clear(); unavailableRefunds.clear(); lastError = "";
+        completions.clear(); tasks.clear(); unavailableTasks.clear(); refunds.clear(); unavailableRefunds.clear(); autoStart.clear(); lastError = "";
         var counts = tag.getCompound("completions");
         for (var key : counts.getAllKeys()) {
             var id = ResourceLocation.tryParse(key); int count = counts.getInt(key);
@@ -206,6 +290,10 @@ public final class MatterResearchProgress {
         for (var value : tag.getList("completed", 8)) {
             var id = ResourceLocation.tryParse(value.getAsString());
             if (id != null) completions.putIfAbsent(id, 1);
+        }
+        for (var value : tag.getList("auto_start", 8)) {
+            var id = ResourceLocation.tryParse(value.getAsString());
+            if (id != null) autoStart.add(id);
         }
         var active = tag.getList("tasks", 10);
         for (int i = 0; i < active.size(); i++) {
@@ -260,6 +348,11 @@ public final class MatterResearchProgress {
 
     public String clientState(MatterFabricationBlockEntity machine, ResourceLocation selected) {
         var root = state();
+        var orders = new JsonObject();
+        orders.addProperty("status", machine.getResearchOrders().status());
+        orders.addProperty("queued", machine.getResearchOrders().queuedTypes());
+        orders.addProperty("active", machine.getResearchOrders().activeJobs());
+        root.add("orders", orders);
         if (selected == null) return root.toString();
         var holder = MatterResearchApi.definitions(machine.getLevel()).stream().filter(r -> r.id().equals(selected)).findFirst().orElse(null);
         if (holder == null) return root.toString();
@@ -303,6 +396,10 @@ public final class MatterResearchProgress {
         var json = MatterResearchRecipe.CODEC.codec().encodeStart(ops, recipe).getOrThrow().getAsJsonObject();
         json.add("depths", ResearchDepth.CODEC.listOf().encodeStart(ops, recipe.depths()).getOrThrow());
         return json.toString();
+    }
+    private static long saturatedAdd(long first, long second) {
+        if (second > 0 && first > Long.MAX_VALUE - second) return Long.MAX_VALUE;
+        return first + second;
     }
     private static final class Task {
         final MatterResearchRecipe definition; final String terms; final int round;

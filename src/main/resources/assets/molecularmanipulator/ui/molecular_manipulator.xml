@@ -3,7 +3,7 @@
            xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Low-Drag-MC/LDLib2/refs/heads/1.21/ldlib2-ui.xsd">
     <stylesheet location="ldlib2:lss/mc.lss"/>
     <style>
-        #root { width: 194; height: 274; }
+        #root { width: 194; height: 229; }
         .placed { position: absolute; }
         .ui-label {
             font-size: 9;
@@ -44,12 +44,8 @@
                       style="left: 15; top: 126; width: 162; height: 3"
                       min-value="0" max-value="1" value="0"/>
 
-        <label id="return-title" class="placed ui-label left-label section-label"
-               style="left: 12; top: 136; width: 166; height: 9">
-            <lang key="gui.ae2.ReturnInventory"/>
-        </label>
         <label id="inventory-title" class="placed ui-label left-label section-label"
-               style="left: 12; top: 178; width: 166; height: 9">
+               style="left: 12; top: 136; width: 166; height: 9">
             <lang key="container.inventory"/>
         </label>
     </root>

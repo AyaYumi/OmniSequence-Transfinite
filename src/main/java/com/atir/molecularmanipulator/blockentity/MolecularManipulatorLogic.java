@@ -55,6 +55,11 @@ final class MolecularManipulatorLogic extends PatternProviderLogic implements Mo
     }
 
     @Override
+    public void molecularmanipulator$flushOutputsAfterCpuAccounting() {
+        machine.flushOutputsAfterCpuAccounting();
+    }
+
+    @Override
     public void updatePatterns() {
         super.updatePatterns();
         availablePatterns.clear();

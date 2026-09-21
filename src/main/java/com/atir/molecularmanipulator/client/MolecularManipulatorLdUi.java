@@ -95,9 +95,9 @@ final class MolecularManipulatorLdUi {
                 : screen.patternSearchHasNoResults() ? RED : SECONDARY_TEXT);
 
         int totalPatterns = menu.getPatternSlots().size();
-        int usedPatterns = (int) menu.getPatternSlots().stream()
-                .filter(slot -> slot.hasItem())
-                .count();
+        int usedPatterns = previousPatternRevision == menu.patternRevision
+                && previousUsedPatterns >= 0 ? previousUsedPatterns
+                : (int) menu.getPatternSlots().stream().filter(slot -> slot.hasItem()).count();
         capacityLabel.setValue(Component.literal(usedPatterns + "/" + totalPatterns));
         capacityLabel.getTextStyle().textColor(menu.patternSearchActive ? CYAN : SECONDARY_TEXT);
         capacityProgress.setProgress(totalPatterns == 0 ? 0 : usedPatterns / (float) totalPatterns);

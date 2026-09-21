@@ -55,6 +55,11 @@ base {
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Explicit development-only transformed execution verification; never in a normal release.
+if (project.hasProperty('exactSmoke')) {
+    sourceSets.main.java.srcDir 'src/exactSmoke/java'
+}
+
 neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version

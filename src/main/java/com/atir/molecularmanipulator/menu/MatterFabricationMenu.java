@@ -24,6 +24,7 @@ public final class MatterFabricationMenu extends AEBaseMenu {
     private static final String ACTION_DISMANTLE = "dismantle_structure";
     private static final String ACTION_UPDATE_STRUCTURE = "update_structure";
     private static final String ACTION_RESEARCH = "toggle_research";
+    private static final String ACTION_RESEARCH_ORDER = "order_research_materials";
     private static final String ACTION_RESEARCH_PAGE = "research_page";
     private static final String ACTION_RESEARCH_SELECT = "select_research";
 
@@ -107,6 +108,7 @@ public final class MatterFabricationMenu extends AEBaseMenu {
         registerClientAction(ACTION_DISMANTLE, this::dismantleStructure);
         registerClientAction(ACTION_UPDATE_STRUCTURE, this::updateStructure);
         registerClientAction(ACTION_RESEARCH, String.class, this::toggleResearch);
+        registerClientAction(ACTION_RESEARCH_ORDER, String.class, this::orderResearchMaterials);
         registerClientAction(ACTION_RESEARCH_PAGE, Boolean.class, this::showResearchPage);
         registerClientAction(ACTION_RESEARCH_SELECT, String.class, this::selectResearch);
     }
@@ -148,6 +150,22 @@ public final class MatterFabricationMenu extends AEBaseMenu {
             } else MatterResearchApi.start(machine, researchId);
             syncResearch();
         }
+    }
+
+    public void orderResearchMaterials(String researchId) {
+        if (isClientSide()) {
+            sendClientAction(ACTION_RESEARCH_ORDER, researchId);
+        } else if (getPlayer().mayBuild()) {
+            var id = ResourceLocation.tryParse(researchId);
+            if (id != null) {
+                MatterResearchApi.orderMissing(machine, id);
+                syncResearch();
+            }
+        }
+    }
+
+    public void requestResearchOrder(String id) {
+        if (isClientSide()) sendClientAction(ACTION_RESEARCH_ORDER, id);
     }
 
     public void requestRefresh() {

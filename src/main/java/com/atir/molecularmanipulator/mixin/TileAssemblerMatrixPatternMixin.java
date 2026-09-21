@@ -30,4 +30,12 @@ public abstract class TileAssemblerMatrixPatternMixin implements MolecularBatchC
             IPatternDetails patternDetails) {
         return molecularmanipulator$supportsBatching(patternDetails);
     }
+
+    @Override
+    public void molecularmanipulator$flushOutputsAfterCpuAccounting() {
+        var tile = (TileAssemblerMatrixPattern) (Object) this;
+        if (tile.getCluster() instanceof MolecularMatrixCluster cluster) {
+            cluster.molecularmanipulator$flushOutputsAfterCpuAccounting();
+        }
+    }
 }

@@ -9,4 +9,6 @@ package com.atir.molecularmanipulator.api.crafting;
  */
 public interface IOmniCraftingCpu {
     boolean isOmniMaterialAllocator();
+    default boolean hasExactStoredItems() { return false; }
+    default void clearExactStoredItems() { }
 }

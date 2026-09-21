@@ -23,6 +23,11 @@ public final class MatterResearchApi {
         return id != null && machine.getResearch().start(machine, id);
     }
 
+    public static boolean orderMissing(MatterFabricationBlockEntity machine, ResourceLocation id) {
+        requireServer(machine);
+        return id != null && machine.getResearch().orderMissing(machine, id);
+    }
+
     public static boolean setPaused(MatterFabricationBlockEntity machine, String researchId, boolean paused) {
         requireServer(machine);
         var id = ResourceLocation.tryParse(researchId);

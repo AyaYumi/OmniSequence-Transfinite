@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.client.render;
 
 import appeng.blockentity.crafting.CraftingCubeModelData;
+import appeng.block.crafting.AbstractCraftingUnitBlock;
 import appeng.client.render.cablebus.CubeBuilder;
 import com.atir.molecularmanipulator.client.render.NexusFormedLayout.Box;
 import java.util.ArrayList;
@@ -14,7 +15,6 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.IDynamicBakedModel;
 import net.neoforged.neoforge.client.model.data.ModelData;
@@ -56,7 +56,7 @@ public final class NexusFormedBakedModel implements IDynamicBakedModel {
         Box inner = NexusFormedLayout.inner(side, connections);
         builder.setTexture(lightBase);
         add(builder, inner);
-        builder.setEmissiveMaterial(state != null && state.getValue(BlockStateProperties.POWERED));
+        builder.setEmissiveMaterial(state != null && state.getValue(AbstractCraftingUnitBlock.POWERED));
         builder.setTexture(light);
         add(builder, inner);
         builder.setEmissiveMaterial(false);

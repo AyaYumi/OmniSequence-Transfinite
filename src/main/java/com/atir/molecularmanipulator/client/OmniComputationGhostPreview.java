@@ -4,13 +4,13 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
 import com.mojang.blaze3d.systems.RenderSystem;
+import appeng.block.crafting.AbstractCraftingUnitBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -38,8 +38,8 @@ public final class OmniComputationGhostPreview {
         if (minecraft.level == null) {
             return false;
         }
-        if (core.getBlockState().hasProperty(BlockStateProperties.POWERED)
-                && core.getBlockState().getValue(BlockStateProperties.POWERED)) {
+        if (core.getBlockState().hasProperty(AbstractCraftingUnitBlock.POWERED)
+                && core.getBlockState().getValue(AbstractCraftingUnitBlock.POWERED)) {
             clear();
             return false;
         }
@@ -98,8 +98,8 @@ public final class OmniComputationGhostPreview {
             return;
         }
         if (core.getInspection().formed()
-                || core.getBlockState().hasProperty(BlockStateProperties.POWERED)
-                && core.getBlockState().getValue(BlockStateProperties.POWERED)) {
+                || core.getBlockState().hasProperty(AbstractCraftingUnitBlock.POWERED)
+                && core.getBlockState().getValue(AbstractCraftingUnitBlock.POWERED)) {
             clear();
             return;
         }

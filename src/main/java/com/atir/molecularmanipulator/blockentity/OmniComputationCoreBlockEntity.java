@@ -9,6 +9,7 @@ import appeng.api.networking.IGridConnection;
 import appeng.api.networking.IGridNode;
 import appeng.api.orientation.BlockOrientation;
 import appeng.api.stacks.AEItemKey;
+import appeng.block.crafting.AbstractCraftingUnitBlock;
 import appeng.blockentity.crafting.CraftingBlockEntity;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.helpers.PlayerSource;
@@ -43,7 +44,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -265,6 +265,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return !quantumInventory.isEmpty() || hasStoredCpuContents();
     }
 
+    /** Snapshot CPU contents before AbstractCraftingUnitBlock breaks the cluster on removal. */
+    public void prepareRemovalRecovery() {
+        retireStoredCpus(true);
+    }
+
     private boolean hasStoredCpuContents() {
         if (!pendingVirtualCpuStates.isEmpty() || !suspendedCpuStates.isEmpty() || getPreviousState() != null) return true;
         return allCpus().stream().anyMatch(cpu -> cpu.isBusy() || !cpu.craftingLogic.getInventory().list.isEmpty()
@@ -372,8 +377,19 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         }
         boolean powered = structureFormed && getMainNode().isOnline()
                 && (!singleBlock || hasExternalNetworkConnection());
-        if (current.getValue(BlockStateProperties.POWERED) != powered) {
-            level.setBlock(worldPosition, current.setValue(BlockStateProperties.POWERED, powered), 3);
+        var next = current;
+        if (next.getValue(AbstractCraftingUnitBlock.POWERED) != powered) {
+            next = next.setValue(AbstractCraftingUnitBlock.POWERED, powered);
+        }
+        // AE2's own FORMED flag comes from AbstractCraftingUnitBlock, and AE2's block
+        // logic reads it via isFormed(); keep the blockstate in step with our own
+        // structure scan so AE2 never sees a formed core as unformed.
+        if (next.hasProperty(AbstractCraftingUnitBlock.FORMED)
+                && next.getValue(AbstractCraftingUnitBlock.FORMED) != structureFormed) {
+            next = next.setValue(AbstractCraftingUnitBlock.FORMED, structureFormed);
+        }
+        if (next != current) {
+            level.setBlock(worldPosition, next, 3);
         }
         if (updateFormed) {
             onGridConnectableSidesChanged();
@@ -1356,8 +1372,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         var payload = new CompoundTag();
         saveAdditional(payload, registries);
         BlockState sourceState = getBlockState();
-        BlockState centeredState = sourceState.hasProperty(BlockStateProperties.POWERED)
-                ? sourceState.setValue(BlockStateProperties.POWERED, false)
+        BlockState centeredState = sourceState.hasProperty(AbstractCraftingUnitBlock.POWERED)
+                ? sourceState.setValue(AbstractCraftingUnitBlock.POWERED, false)
                 : sourceState;
         if (!level.setBlock(targetPos, centeredState, 3)
                 || !(level.getBlockEntity(targetPos)
@@ -1906,7 +1922,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         // stale state if the structure changed while this chunk was unloaded.
         structureFormed = tag.contains(STRUCTURE_FORMED_TAG)
                 ? tag.getBoolean(STRUCTURE_FORMED_TAG)
-                : getBlockState().getValue(BlockStateProperties.POWERED);
+                : getBlockState().getValue(AbstractCraftingUnitBlock.POWERED);
         if (dismantling || rebuildingLegacyStructure) structureFormed = false;
         if (singleBlock) structureFormed = true;
         visualLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;

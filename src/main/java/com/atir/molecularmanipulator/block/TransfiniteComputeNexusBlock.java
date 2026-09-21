@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.block;
 
-import appeng.block.AEBaseEntityBlock;
+import appeng.block.crafting.AbstractCraftingUnitBlock;
 import appeng.util.InteractionUtil;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import java.util.ArrayList;
@@ -25,24 +25,36 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
 
 /** A cable-connected, self-contained Omni CPU without a controller menu. */
-public final class TransfiniteComputeNexusBlock extends AEBaseEntityBlock<OmniComputationCoreBlockEntity> {
+public final class TransfiniteComputeNexusBlock extends AbstractCraftingUnitBlock<OmniComputationCoreBlockEntity> {
     public TransfiniteComputeNexusBlock() {
-        super(Properties.of().strength(12.0F, 2400.0F).requiresCorrectToolForDrops());
+        // AE2 casts any CraftingBlockEntity's block to AbstractCraftingUnitBlock, so
+        // this must extend it even though the nexus supplies its own storage.
+        super(Properties.of().strength(12.0F, 2400.0F).requiresCorrectToolForDrops(),
+                TransfiniteCraftingUnitType.INSTANCE);
         registerDefaultState(defaultBlockState()
                 .setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH)
-                .setValue(BlockStateProperties.POWERED, false));
+                .setValue(AbstractCraftingUnitBlock.POWERED, false));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        // AbstractCraftingUnitBlock already registers AE2's POWERED and FORMED.
         super.createBlockStateDefinition(builder);
-        builder.add(HorizontalDirectionalBlock.FACING, BlockStateProperties.POWERED);
+        builder.add(HorizontalDirectionalBlock.FACING);
+    }
+
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
+        if (!state.is(replacement.getBlock())
+                && level.getBlockEntity(pos) instanceof OmniComputationCoreBlockEntity core) {
+            core.prepareRemovalRecovery();
+        }
+        super.onRemove(state, level, pos, replacement, moved);
     }
 
     @Override
@@ -52,11 +64,13 @@ public final class TransfiniteComputeNexusBlock extends AEBaseEntityBlock<OmniCo
     }
 
     @Override
-    protected BlockState updateShape(BlockState state, Direction facing, BlockState facingState,
+    public BlockState updateShape(BlockState state, Direction facing, BlockState facingState,
             LevelAccessor level, BlockPos currentPos, BlockPos facingPos) {
         var blockEntity = level.getBlockEntity(currentPos);
         if (blockEntity != null) blockEntity.requestModelDataUpdate();
-        return super.updateShape(state, facing, facingState, level, currentPos, facingPos);
+        // Deliberately skip super: AbstractCraftingUnitBlock#updateShape opens AE2's
+        // crafting CPU menu, and the nexus has no machine screen.
+        return state;
     }
 
     @Override

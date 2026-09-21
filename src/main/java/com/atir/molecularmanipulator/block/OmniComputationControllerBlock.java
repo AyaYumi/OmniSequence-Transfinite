@@ -6,7 +6,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
-import appeng.block.AEBaseEntityBlock;
+import appeng.block.crafting.AbstractCraftingUnitBlock;
 import appeng.util.InteractionUtil;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
@@ -18,6 +18,7 @@ import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -25,21 +26,25 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
-public final class OmniComputationControllerBlock extends AEBaseEntityBlock<OmniComputationCoreBlockEntity> {
+public final class OmniComputationControllerBlock extends AbstractCraftingUnitBlock<OmniComputationCoreBlockEntity> {
     public OmniComputationControllerBlock(Properties properties) {
-        super(properties);
+        // AE2 casts any CraftingBlockEntity's block to AbstractCraftingUnitBlock, so
+        // this must extend it even though the multiblock supplies its own storage.
+        super(properties, TransfiniteCraftingUnitType.INSTANCE);
         registerDefaultState(defaultBlockState()
                 .setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH)
-                .setValue(BlockStateProperties.POWERED, false));
+                .setValue(AbstractCraftingUnitBlock.POWERED, false));
     }
 
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {
         if (!state.is(replacement.getBlock()) && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             MultiblockChunkLoading.release(serverLevel, pos);
+            if (level.getBlockEntity(pos) instanceof OmniComputationCoreBlockEntity machine) {
+                machine.prepareRemovalRecovery();
+            }
         }
         super.onRemove(state, level, pos, replacement, moved);
     }
@@ -56,8 +61,19 @@ public final class OmniComputationControllerBlock extends AEBaseEntityBlock<Omni
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        // AbstractCraftingUnitBlock already registers AE2's POWERED and FORMED.
         super.createBlockStateDefinition(builder);
-        builder.add(HorizontalDirectionalBlock.FACING, BlockStateProperties.POWERED);
+        builder.add(HorizontalDirectionalBlock.FACING);
+    }
+
+    @Override
+    public BlockState updateShape(BlockState state, Direction facing, BlockState facingState,
+            LevelAccessor level, BlockPos currentPos, BlockPos facingPos) {
+        var blockEntity = getBlockEntity(level, currentPos);
+        if (blockEntity != null) blockEntity.requestModelDataUpdate();
+        // Deliberately skip super: AbstractCraftingUnitBlock#updateShape opens AE2's
+        // crafting CPU menu, and this controller has its own menu.
+        return state;
     }
 
     @Override

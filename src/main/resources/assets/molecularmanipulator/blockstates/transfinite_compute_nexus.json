@@ -1,12 +1,20 @@
 {
   "variants": {
-    "facing=north,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
-    "facing=east,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
-    "facing=south,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
-    "facing=west,powered=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
-    "facing=north,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
-    "facing=east,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
-    "facing=south,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
-    "facing=west,powered=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"}
+    "facing=north,powered=false,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=east,powered=false,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=south,powered=false,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=west,powered=false,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=north,powered=true,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=east,powered=true,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=south,powered=true,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=west,powered=true,formed=false": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=north,powered=false,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=east,powered=false,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=south,powered=false,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=west,powered=false,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=north,powered=true,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=east,powered=true,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=south,powered=true,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"},
+    "facing=west,powered=true,formed=true": {"model": "molecularmanipulator:block/transfinite_compute_nexus_on"}
   }
 }

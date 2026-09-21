@@ -6,6 +6,7 @@ import com.atir.molecularmanipulator.blockentity.OmniCrownGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
 import com.atir.molecularmanipulator.config.ModConfig;
+import appeng.block.crafting.AbstractCraftingUnitBlock;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -15,7 +16,6 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import java.util.List;
@@ -47,7 +47,7 @@ public final class OmniComputationRenderer
         if (core.isSingleBlock()) return;
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || core.getLevel() == null
-                || !core.getBlockState().getValue(BlockStateProperties.POWERED)) return;
+                || !core.getBlockState().getValue(AbstractCraftingUnitBlock.POWERED)) return;
         var layout = core.getVisualLayout();
         if (!layout.isFormed()) return;
         var facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);

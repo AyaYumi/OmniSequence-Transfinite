@@ -6,4 +6,6 @@ public interface MolecularMatrixCluster {
     void molecularmanipulator$registerCore(AssemblerMatrixMolecularCoreBlockEntity core);
 
     boolean molecularmanipulator$hasCore();
+
+    void molecularmanipulator$flushOutputsAfterCpuAccounting();
 }

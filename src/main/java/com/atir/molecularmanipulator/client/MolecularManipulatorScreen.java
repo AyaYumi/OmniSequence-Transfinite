@@ -25,6 +25,7 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     private boolean patternSearchIndexPending;
     private int requestedPatternRevision = -1;
     private int indexedPatternRevision = -1;
+    private int autoPageRevision = -1;
 
     public MolecularManipulatorScreen(MolecularManipulatorMenu menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -67,7 +68,29 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
                 && patternSearchDebounce == 0) {
             requestPatternSearchIndex();
         }
+<<<<<<< HEAD
         updateNavigation();
+=======
+        if (modularView != null) {
+            modularView.tick();
+        }
+        if (patternSearchQuery.isBlank() && autoPageRevision != menu.patternRevision) {
+            autoPageRevision = menu.patternRevision;
+            autoAdvanceFullPage();
+        }
+    }
+
+    private void autoAdvanceFullPage() {
+        if (menu.getPage() + 1 >= menu.getPageCount()) return;
+        var visible = menu.getVisiblePatternSlotIndices();
+        if (visible.length != MolecularManipulatorBlockEntity.PATTERNS_PER_PAGE) return;
+        for (int sourceSlot : visible) {
+            if (sourceSlot < 0 || sourceSlot >= menu.getPatternSlots().size()
+                    || !menu.getPatternSlots().get(sourceSlot).hasItem()) return;
+        }
+        menu.requestPage(menu.getPage() + 1);
+        layoutPatternPage();
+>>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
     }
 
     @Override
@@ -86,6 +109,7 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
             float partialTicks) {
         super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
+<<<<<<< HEAD
         MachineUiLayout.MOLECULAR_ARRAY.draw(guiGraphics, offsetX, offsetY);
         OmniUiTheme.progress(guiGraphics, offsetX + 15, offsetY + 126, 162, 3,
                 usedPatterns / (float) Math.max(1, menu.getPatternSlots().size()), OmniUiTheme.CYAN);
@@ -111,6 +135,13 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
         if (x >= 146 && x < 180 && y >= 20 && y < 32 || x >= 15 && x < 177 && y >= 126 && y < 130) {
             graphics.renderComponentTooltip(font, List.of(Component.translatable("gui.molecularmanipulator.pattern_capacity_tooltip")), mouseX, mouseY);
         }
+=======
+        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 35, offsetX + 186, offsetY + 130);
+        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 134, offsetX + 186, offsetY + 222);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 51, 9, 4);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 3);
+        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 202, 9, 1);
+>>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
     }
 
     void changePage(int offset) {

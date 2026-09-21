@@ -10,6 +10,7 @@ import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputAdapterRegistry;
 import com.atir.molecularmanipulator.crafting.AdvancedAEBatchDispatch;
 import com.atir.molecularmanipulator.crafting.AdvancedAEBatchDispatch.TaskAdjustment;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
@@ -73,6 +74,10 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     @Unique
     private BatchExtraction molecularmanipulator$batchExtraction;
     @Unique
+    private final Set<ICraftingProvider>
+            molecularmanipulator$acceptedBatchOutputProviders =
+                    Collections.newSetFromMap(new IdentityHashMap<>());
+    @Unique
     private Level molecularmanipulator$lastLevel;
     @Unique
     private final Map<ICraftingProvider, Set<IPatternDetails>>
@@ -89,15 +94,23 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$lastLevel = level;
         molecularmanipulator$refreshReusableSingleOnlyJob();
         molecularmanipulator$clearBatch();
+        molecularmanipulator$acceptedBatchOutputProviders.clear();
         molecularmanipulator$apiDispatch.begin(level, molecularmanipulator$getCurrentJob());
     }
 
-    @Inject(method = "executeCrafting", at = @At("RETURN"))
+    @Inject(method = "executeCrafting", at = @At("RETURN"), cancellable = true)
     private void molecularmanipulator$endBatchContext(int maxPatterns, CraftingService craftingService,
             IEnergyService energyService, Level level, CallbackInfoReturnable<Integer> callback) {
+        boolean flushedAcceptedBatch =
+                molecularmanipulator$flushAcceptedBatchOutputs();
+        if (flushedAcceptedBatch
+                && molecularmanipulator$getCurrentJob() == null) {
+            callback.setReturnValue(0);
+        }
         molecularmanipulator$craftingService = null;
         molecularmanipulator$energyService = null;
         molecularmanipulator$clearBatch();
+        molecularmanipulator$acceptedBatchOutputProviders.clear();
     }
 
     @Inject(method = "cancel", at = @At("HEAD"))
@@ -274,6 +287,9 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         } finally {
             if (batchScope != null) {
                 batchScope.close();
+            }
+            if (accepted && extraction.craftCount() > 1) {
+                molecularmanipulator$acceptedBatchOutputProviders.add(provider);
             }
             if (!accepted) {
                 molecularmanipulator$restoreBatchTask(taskAdjustment);
@@ -499,5 +515,24 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$apiDispatch.close();
         molecularmanipulator$batchPattern = null;
         molecularmanipulator$batchExtraction = null;
+    }
+
+    @Unique
+    private boolean molecularmanipulator$flushAcceptedBatchOutputs() {
+        if (molecularmanipulator$acceptedBatchOutputProviders.isEmpty()) {
+            return false;
+        }
+        boolean flushed = false;
+        for (var provider : molecularmanipulator$acceptedBatchOutputProviders) {
+            try {
+                flushed |= OmniPostAccountingOutputAdapterRegistry
+                        .flushAfterCpuAccounting(provider);
+            } catch (RuntimeException exception) {
+                MolecularManipulator.LOGGER.warn(
+                        "Molecular batch output could not be returned immediately; retaining it for the normal retry",
+                        exception);
+            }
+        }
+        return flushed;
     }
 }

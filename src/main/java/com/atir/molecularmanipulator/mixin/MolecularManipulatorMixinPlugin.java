@@ -26,6 +26,12 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         var loadingModList = FMLLoader.getLoadingModList();
+        if (mixinClassName.endsWith(".DataEnergisticsCpuIdentityMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;
+        }
+        if (mixinClassName.endsWith(".UselessExactOutputReturnMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("useless_mod") != null;
+        }
         if (ADVANCED_AE_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
         }

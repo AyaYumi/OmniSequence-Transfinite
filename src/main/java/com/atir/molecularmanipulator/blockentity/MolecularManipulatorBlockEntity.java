@@ -407,6 +407,13 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
                 outputReadyTick, gameTime);
     }
 
+    void flushOutputsAfterCpuAccounting() {
+        var level = getLevel();
+        if (level != null && !level.isClientSide()) {
+            flushBufferedOutputs(level, true);
+        }
+    }
+
     private static void addOutputs(
             Object2LongOpenHashMap<AEKey> destination,
             Object2LongOpenHashMap<AEKey> outputs) {
@@ -418,8 +425,14 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     }
 
     private void flushBufferedOutputs(Level level) {
+        flushBufferedOutputs(level, false);
+    }
+
+    private void flushBufferedOutputs(Level level,
+            boolean cpuAccountingComplete) {
         if (assembling || bufferedOutputs.isEmpty()
-                || level.getGameTime() < outputReadyTick) {
+                || !cpuAccountingComplete
+                        && level.getGameTime() < outputReadyTick) {
             return;
         }
         var grid = getMainNode().getGrid();

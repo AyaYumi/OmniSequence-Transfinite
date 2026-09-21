@@ -26,6 +26,8 @@ import java.util.Set;
 public final class MolecularExternalScaledPattern {
     private static final String EAP_SCALED_PATTERN =
             "com.extendedae_plus.api.crafting.ScaledProcessingPattern";
+    private static final String USELESS_SCALED_PATTERN =
+            "com.sorrowmist.useless.content.machines.advanced_alloy_furnace.ae.ScaledProcessingPattern";
     private static final int MAX_NESTING = 16;
 
     private static volatile Lookup lookup;
@@ -34,18 +36,27 @@ public final class MolecularExternalScaledPattern {
     }
 
     public static Unwrapped unwrapMultiInput(IPatternDetails patternDetails) {
+        return unwrap(patternDetails, true);
+    }
+
+    /** Resolves EAP/Useless smart-doubling wrappers for providers that can consume any exact scale. */
+    public static Unwrapped unwrapSmartDoubling(IPatternDetails patternDetails) {
+        return unwrap(patternDetails, false);
+    }
+
+    private static Unwrapped unwrap(IPatternDetails patternDetails, boolean requireMultipleInputs) {
         if (patternDetails == null) {
             throw new IllegalArgumentException("Pattern details cannot be null");
         }
 
-        var resolvedLookup = getLookup(patternDetails.getClass().getClassLoader());
+        var resolvedLookup = getLookup(patternDetails.getClass().getClassLoader(), patternDetails);
         if (resolvedLookup.missing()
                 || !resolvedLookup.scaledPatternClass().isInstance(patternDetails)) {
             return new Unwrapped(patternDetails, 1);
         }
         if (resolvedLookup.failure() != null) {
             throw new IllegalStateException(
-                    "ExtendedAE Plus scaled-pattern API could not be inspected",
+                "Optional smart-doubling pattern API could not be inspected",
                     resolvedLookup.failure());
         }
 
@@ -66,7 +77,7 @@ public final class MolecularExternalScaledPattern {
             current = original;
         }
 
-        if (!hasMultipleDistinctInputTemplates(current)) {
+        if (requireMultipleInputs && !hasMultipleDistinctInputTemplates(current)) {
             // Retain EAP's high-throughput wrapper when every input resolves to
             // the same key. Sequential routing cannot split that recipe into
             // mutually blocking ingredient waves.
@@ -75,27 +86,33 @@ public final class MolecularExternalScaledPattern {
         return new Unwrapped(current, combinedMultiplier);
     }
 
-    private static Lookup getLookup(ClassLoader classLoader) {
+    private static Lookup getLookup(ClassLoader classLoader, IPatternDetails patternDetails) {
         var current = lookup;
-        if (current != null) {
+        if (current != null && current.scaledPatternClass().isInstance(patternDetails)) {
             return current;
         }
         synchronized (MolecularExternalScaledPattern.class) {
             current = lookup;
-            if (current != null) {
+            if (current != null && current.scaledPatternClass().isInstance(patternDetails)) {
                 return current;
             }
-            Class<?> scaledPatternClass;
-            try {
-                scaledPatternClass = Class.forName(
-                        EAP_SCALED_PATTERN, false, classLoader);
-            } catch (ClassNotFoundException exception) {
+            Class<?> scaledPatternClass = null;
+            for (var name : List.of(EAP_SCALED_PATTERN, USELESS_SCALED_PATTERN)) {
+                try {
+                    var candidate = Class.forName(name, false, classLoader);
+                    if (candidate.isInstance(patternDetails)) {
+                        scaledPatternClass = candidate;
+                        break;
+                    }
+                } catch (ClassNotFoundException ignored) {
+                } catch (LinkageError exception) {
+                    current = new Lookup(Object.class, null, null, false, exception);
+                    lookup = current;
+                    return current;
+                }
+            }
+            if (scaledPatternClass == null) {
                 current = Lookup.absent();
-                lookup = current;
-                return current;
-            } catch (LinkageError exception) {
-                current = new Lookup(
-                        Object.class, null, null, false, exception);
                 lookup = current;
                 return current;
             }

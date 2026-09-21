@@ -93,6 +93,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
+        ResearchJeiBookmarks.setRuntime(jeiRuntime);
         if (!AdvancedAEIntegration.isLoaded()) {
             jeiRuntime.getIngredientManager().removeIngredientsAtRuntime(
                     VanillaTypes.ITEM_STACK,

@@ -31,13 +31,8 @@ final class MatterResearchPanel {
     private final MatterFabricationMenu menu;
     private final Font font;
     private final List<Button> rows = new ArrayList<>();
-<<<<<<< HEAD
-    private final Button previous, next, action;
-    private List<MatterResearchRecipe> definitions = List.of();
-=======
     private final Button previous, next, action, order, bookmark;
-    private List<RecipeHolder<MatterResearchRecipe>> definitions = List.of();
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
+    private List<MatterResearchRecipe> definitions = List.of();
     private Set<String> completed = Set.of();
     private JsonObject tasks = new JsonObject();
     private JsonObject counts = new JsonObject(), live = new JsonObject();
@@ -64,22 +59,16 @@ final class MatterResearchPanel {
             });
             rows.add(button); add.accept(button);
         }
-<<<<<<< HEAD
         previous = OmniUiTheme.button(left + 18, top + 244, 28, 16, Component.literal("<"), clicked -> { page--; update(true); });
         next = OmniUiTheme.button(left + 86, top + 244, 28, 16, Component.literal(">"), clicked -> { page++; update(true); });
-        action = OmniUiTheme.button(left + 136, top + 244, 176, 16, Component.empty(), clicked -> {
-=======
-        previous = AeUiTheme.button(left + 18, top + 244, 28, 16, Component.literal("<"), clicked -> { page--; update(true); });
-        next = AeUiTheme.button(left + 86, top + 244, 28, 16, Component.literal(">"), clicked -> { page++; update(true); });
-        action = AeUiTheme.button(left + 136, top + 244, 84, 16, Component.empty(), clicked -> {
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
+        action = OmniUiTheme.button(left + 136, top + 244, 84, 16, Component.empty(), clicked -> {
             if (selected != null) menu.toggleResearch(selected.toString());
         });
         action.setTooltip(Tooltip.create(text("action_hint")));
-        order = AeUiTheme.button(left + 228, top + 244, 84, 16,
+        order = OmniUiTheme.button(left + 228, top + 244, 84, 16,
                 text("order"), clicked -> { if (selected != null) menu.requestResearchOrder(selected.toString()); });
         order.setTooltip(Tooltip.create(text("order_hint")));
-        bookmark = AeUiTheme.button(left + 292, top + 48, 20, 16, Component.literal("★"), clicked -> bookmarkSelected());
+        bookmark = OmniUiTheme.button(left + 292, top + 48, 20, 16, Component.literal("★"), clicked -> bookmarkSelected());
         bookmark.setTooltip(Tooltip.create(text("bookmark_hint")));
         add.accept(previous); add.accept(next); add.accept(action); add.accept(order); add.accept(bookmark);
         update(false);
@@ -134,12 +123,9 @@ final class MatterResearchPanel {
         next.active = (page + 1) * ROWS < definitions.size();
         var holder = selected();
         action.visible = visible && holder != null;
-<<<<<<< HEAD
         ((OmniButton) action).setProminent(true);
-=======
         order.visible = visible && holder != null;
         bookmark.visible = visible && holder != null;
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
         if (holder != null) {
             var task = task(holder);
             boolean paused = task != null && task.get("paused").getAsBoolean();
@@ -193,16 +179,12 @@ final class MatterResearchPanel {
         OmniUiTheme.progress(graphics, 136, 101, 176, 6, Math.min(1, progress / (float) definition.duration()), OmniUiTheme.CYAN);
         fitted(graphics, Component.translatable("gui.molecularmanipulator.research.timing", progress / 20,
                 definition.duration() / 20, DisplayNumbers.compact(definition.aePerTick())),
-<<<<<<< HEAD
                 136, 111, 176, OmniUiTheme.MUTED_TEXT);
-=======
-                136, 111, 176, AeUiTheme.MUTED_TEXT);
         if (!orderStatus.equals("idle")) {
             fitted(graphics, Component.translatable("gui.molecularmanipulator.research.order_status",
                     orderStatus, orderQueued, orderActive), 136, 121, 176,
-                    orderStatus.equals("submitted") ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
+                    orderStatus.equals("submitted") ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
         }
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
         quantityTooltips.add(new QuantityTooltip(136, 111, 176, 11, List.of(Component.translatable(
                 "gui.molecularmanipulator.research.timing", progress / 20, definition.duration() / 20,
                 DisplayNumbers.exact(definition.aePerTick())))));
@@ -296,10 +278,6 @@ final class MatterResearchPanel {
     private MatterResearchRecipe selected() {
         return definitions.stream().filter(holder -> holder.id().equals(selected)).findFirst().orElse(null);
     }
-<<<<<<< HEAD
-    private JsonObject task(MatterResearchRecipe holder) { return tasks.getAsJsonObject(holder.id().toString()); }
-    private MatterResearchRecipe terms(MatterResearchRecipe holder, JsonObject task) {
-=======
 
     private void bookmarkSelected() {
         var holder = selected();
@@ -313,9 +291,8 @@ final class MatterResearchPanel {
         }
         ResearchJeiBookmarks.addItems(stacks);
     }
-    private JsonObject task(RecipeHolder<MatterResearchRecipe> holder) { return tasks.getAsJsonObject(holder.id().toString()); }
-    private MatterResearchRecipe terms(RecipeHolder<MatterResearchRecipe> holder, JsonObject task) {
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
+    private JsonObject task(MatterResearchRecipe holder) { return tasks.getAsJsonObject(holder.id().toString()); }
+    private MatterResearchRecipe terms(MatterResearchRecipe holder, JsonObject task) {
         if (task == null) return holder.value();
         return taskTerms.getOrDefault(holder.id(), holder.value());
     }

@@ -29,7 +29,7 @@ class UselessBigIntegerApiBridgeTest {
         Pattern(long factor) { this.factor = factor; }
         public AEItemKey getDefinition() { return AEItemKey.of(Items.STONE); }
         public IInput[] getInputs() { return new IInput[0]; }
-        public List<GenericStack> getOutputs() { return List.of(new GenericStack(OUTPUT, factor)); }
+        public GenericStack[] getOutputs() { return new GenericStack[]{new GenericStack(OUTPUT, factor)}; }
     }
     public static class Wrapped extends Pattern implements Scaled {
         Wrapped(long factor) { super(factor); }
@@ -95,7 +95,7 @@ class UselessBigIntegerApiBridgeTest {
         assertEquals(tasks, adapter.getMaximumBigIntegerCrafts(pattern, inputs, tasks));
         assertEquals(9 * multiplier, inputs[0].get(INPUT), "capacity must not consume inputs");
         assertTrue(adapter.pushBigIntegerCraftingPattern(pattern, tasks, inputs));
-        var expected = tasks.multiply(BigInteger.valueOf(pattern.getOutputs().getFirst().amount()));
+        var expected = tasks.multiply(BigInteger.valueOf(pattern.getOutputs()[0].amount()));
         assertTrue(expected.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0);
         assertEquals(expected, p.target.produced, "machine output must equal CPU waiting ledger");
         assertTrue(inputs[0].isEmpty());

@@ -8,7 +8,6 @@ import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 
@@ -107,21 +106,21 @@ public final class OmniExactInventory {
         };
     }
 
-    public ListTag write(HolderLookup.Provider registries) {
+    public ListTag write() {
         var result = new ListTag();
         overflow.forEach((key, amount) -> {
-            var entry = key.toTagGeneric(registries);
+            var entry = key.toTagGeneric();
             entry.putString("amount", amount.toString());
             result.add(entry);
         });
         return result;
     }
 
-    public void read(ListTag entries, HolderLookup.Provider registries) {
+    public void read(ListTag entries) {
         var restored = new LinkedHashMap<AEKey, BigInteger>();
         for (var tag : entries) {
             var entry = (CompoundTag) tag;
-            var key = AEKey.fromTagGeneric(registries, entry);
+            var key = AEKey.fromTagGeneric(entry);
             var amount = new BigInteger(entry.getString("amount"));
             if (key == null || amount.signum() <= 0 || restored.putIfAbsent(key, amount) != null) {
                 throw new IllegalArgumentException("Invalid exact inventory stock");

@@ -5,10 +5,9 @@ import net.minecraft.client.gui.GuiGraphics;
 
 /** Shared, allocation-free screen geometry transcribed from the 1.21.1 branch. */
 public enum MachineUiLayout {
-    MOLECULAR_ARRAY("molecular_manipulator", 194, 274,
-            List.of(panel(8, 35, 186, 130), panel(8, 134, 186, 170), panel(8, 176, 186, 267)),
-            List.of(grid("ENCODED_PATTERN", 15, 51, 9, 4), grid("STORAGE", 15, 144, 9, 1),
-                    inventory(15, 189), hotbar(15, 247))),
+    MOLECULAR_ARRAY("molecular_manipulator", 194, 229,
+            List.of(panel(8, 35, 186, 130), panel(8, 134, 186, 222)),
+            List.of(grid("ENCODED_PATTERN", 15, 51, 9, 4), inventory(15, 144), hotbar(15, 202))),
     MOLECULAR_CENTER("molecular_center", 430, 286,
             List.of(area(4, 28, 192, 153), area(4, 157, 192, 282)),
             List.of(grid("ENCODED_PATTERN", 16, 51, 9, 4), inventory(16, 187), hotbar(16, 245))),

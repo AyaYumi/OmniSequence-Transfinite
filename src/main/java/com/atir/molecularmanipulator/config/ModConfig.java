@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ModConfig {
-<<<<<<< HEAD
     public static final ForgeConfigSpec SERVER_SPEC;
     public static final ForgeConfigSpec.IntValue PATTERN_PAGES;
     public static final ForgeConfigSpec.IntValue BUILD_BLOCKS_PER_TICK;
@@ -23,28 +22,11 @@ public final class ModConfig {
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
     public static final ForgeConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
+    public static final ForgeConfigSpec.BooleanValue OMNI_COALESCE_RETURN_NOTIFICATIONS;
+    public static final ForgeConfigSpec.BooleanValue OMNI_PROFILE_EXACT_RETURNS;
+    public static final ForgeConfigSpec.IntValue OMNI_RETURN_PROFILE_SAMPLE_INTERVAL;
+    public static final ForgeConfigSpec.BooleanValue OMNI_DIRECT_NATIVE_OUTPUT_RETURN;
     public static final ForgeConfigSpec.IntValue NEXUS_IDLE_POWER;
-=======
-    public static final ModConfigSpec SERVER_SPEC;
-    public static final ModConfigSpec.IntValue PATTERN_PAGES;
-    public static final ModConfigSpec.IntValue BUILD_BLOCKS_PER_TICK;
-    public static final ModConfigSpec.IntValue IDLE_POWER;
-    public static final ModConfigSpec.LongValue MATTER_SEQUENCE_CAPACITY;
-    public static final ModConfigSpec.LongValue MATTER_ENTROPY_CAPACITY;
-    public static final ModConfigSpec.LongValue MATTER_ENTROPY_COOLING_PER_SECOND;
-    public static final List<ModConfigSpec.IntValue> MATTER_SPEED_CARD_PARALLEL;
-    public static final List<ModConfigSpec.IntValue> MATTER_SPEED_CARD_CYCLE_TICKS;
-    public static final List<ModConfigSpec.LongValue> MATTER_SPEED_CARD_COOLING_MULTIPLIER;
-    public static final ModConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
-    public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
-    public static final ModConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
-    public static final ModConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
-    public static final ModConfigSpec.BooleanValue OMNI_COALESCE_RETURN_NOTIFICATIONS;
-    public static final ModConfigSpec.BooleanValue OMNI_PROFILE_EXACT_RETURNS;
-    public static final ModConfigSpec.IntValue OMNI_RETURN_PROFILE_SAMPLE_INTERVAL;
-    public static final ModConfigSpec.BooleanValue OMNI_DIRECT_NATIVE_OUTPUT_RETURN;
-    public static final ModConfigSpec.IntValue NEXUS_IDLE_POWER;
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
 
     public static final ForgeConfigSpec CLIENT_SPEC;
     public static final ForgeConfigSpec.EnumValue<MatterSequenceTooltipMode>

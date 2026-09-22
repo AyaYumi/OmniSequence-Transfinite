@@ -22,8 +22,8 @@ class OmniExactCraftingStateTest {
         var pattern = new IPatternDetails() {
             public AEItemKey getDefinition() { return PATTERN; }
             public IInput[] getInputs() { return new IInput[0]; }
-            public java.util.List<appeng.api.stacks.GenericStack> getOutputs() {
-                return java.util.List.of(new appeng.api.stacks.GenericStack(FINITE, 4));
+            public appeng.api.stacks.GenericStack[] getOutputs() {
+                return new appeng.api.stacks.GenericStack[]{new appeng.api.stacks.GenericStack(FINITE, 4)};
             }
         };
         var state = OmniExactCraftingState.create(Map.of(pattern, BigInteger.valueOf(100)), Map.of());
@@ -169,8 +169,8 @@ class OmniExactCraftingStateTest {
         return new IPatternDetails() {
             @Override public AEItemKey getDefinition() { return definition; }
             @Override public IInput[] getInputs() { return new IInput[0]; }
-            @Override public java.util.List<appeng.api.stacks.GenericStack> getOutputs() {
-                return java.util.List.of();
+            @Override public appeng.api.stacks.GenericStack[] getOutputs() {
+                return new appeng.api.stacks.GenericStack[0];
             }
         };
     }

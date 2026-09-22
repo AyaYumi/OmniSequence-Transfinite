@@ -106,7 +106,7 @@ public final class UselessExactOutputReturn {
 
     private static long oldestAge(Object manager, Layout layout, Level level) throws ReflectiveOperationException {
         var queue = (List<?>) layout.queue.get(manager);
-        return queue.isEmpty() || level == null ? 0 : Math.max(0, level.getGameTime() - layout.queuedTick.getLong(queue.getFirst()));
+        return queue.isEmpty() || level == null ? 0 : Math.max(0, level.getGameTime() - layout.queuedTick.getLong(queue.get(0)));
     }
 
     /** Invoked only by Omni's post-accounting registry, never a cancellation/force flush. */

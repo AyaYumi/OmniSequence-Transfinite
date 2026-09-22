@@ -76,6 +76,9 @@ public final class MolecularScaledPatternFactory {
     private static IPatternDetails preserveOptionalInterfaces(
             IPatternDetails base, IPatternDetails scaled) {
         var preservedInterfaces = new ArrayList<Class<?>>();
+        if (scaled instanceof com.github.appliedenhancements.integration.ae2.AelisScaledPattern) {
+            preservedInterfaces.add(com.github.appliedenhancements.integration.ae2.AelisScaledPattern.class);
+        }
         for (var interfaceName : OPTIONAL_PATTERN_INTERFACES) {
             var optionalInterface = loadOptionalInterface(base, interfaceName);
             if (optionalInterface != null

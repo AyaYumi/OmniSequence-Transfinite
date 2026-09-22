@@ -11,7 +11,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -290,12 +289,12 @@ public final class OmniExactCraftingState {
                 : amount.longValueExact();
     }
 
-    public CompoundTag write(HolderLookup.Provider registries) {
+    public CompoundTag write() {
         var result = new CompoundTag();
         if (outputProgress != null) result.putString("outputRemaining", outputProgress.remaining().toString());
         var tasks = new ListTag();
         remaining.forEach((definition, amount) -> {
-            var entry = definition.toTagGeneric(registries);
+            var entry = definition.toTagGeneric();
             entry.putString(AMOUNT_TAG, amount.toString());
             tasks.add(entry);
         });
@@ -303,29 +302,29 @@ public final class OmniExactCraftingState {
 
         var keys = new ListTag();
         for (var key : infiniteKeys) {
-            keys.add(key.toTagGeneric(registries));
+            keys.add(key.toTagGeneric());
         }
         result.put(INFINITE_KEYS_TAG, keys);
 
         var outputCredits = new ListTag();
         uncreditedOutputs.forEach((key, amount) -> {
-            var entry = key.toTagGeneric(registries);
+            var entry = key.toTagGeneric();
             entry.putString(AMOUNT_TAG, amount.toString());
             outputCredits.add(entry);
         });
         result.put(OUTPUT_CREDITS_TAG, outputCredits);
         var completed = new ListTag();
         completedOutputs.forEach((key, amount) -> {
-            var entry = key.toTagGeneric(registries);
+            var entry = key.toTagGeneric();
             entry.putString(AMOUNT_TAG, amount.toString()); completed.add(entry);
         });
         result.put("completedOutputs", completed);
         var batches = new ListTag();
         lastBatches.forEach((key, batch) -> {
-            var entry = key.toTagGeneric(registries); entry.putString("amount", batch.outputAmount().toString());
+            var entry = key.toTagGeneric(); entry.putString("amount", batch.outputAmount().toString());
             var inputs = new ListTag();
             batch.inputs().forEach((inputKey, amount) -> {
-                var input = inputKey.toTagGeneric(registries); input.putString("amount", amount.toString()); inputs.add(input);
+                var input = inputKey.toTagGeneric(); input.putString("amount", amount.toString()); inputs.add(input);
             });
             entry.put("inputs", inputs); batches.add(entry);
         });
@@ -334,13 +333,13 @@ public final class OmniExactCraftingState {
     }
 
     public static OmniExactCraftingState read(
-            CompoundTag tag, HolderLookup.Provider registries) {
+            CompoundTag tag) {
         Objects.requireNonNull(tag, "tag");
         var remaining = new LinkedHashMap<AEItemKey, BigInteger>();
         var tasks = tag.getList(TASKS_TAG, Tag.TAG_COMPOUND);
         for (int i = 0; i < tasks.size(); i++) {
             var entry = tasks.getCompound(i);
-            var key = AEKey.fromTagGeneric(registries, entry);
+            var key = AEKey.fromTagGeneric(entry);
             if (!(key instanceof AEItemKey definition)
                     || !entry.contains(AMOUNT_TAG, Tag.TAG_STRING)) {
                 throw new IllegalArgumentException("Invalid exact crafting task tag");
@@ -353,7 +352,7 @@ public final class OmniExactCraftingState {
         var infiniteKeys = new LinkedHashSet<AEKey>();
         var keys = tag.getList(INFINITE_KEYS_TAG, Tag.TAG_COMPOUND);
         for (int i = 0; i < keys.size(); i++) {
-            var key = AEKey.fromTagGeneric(registries, keys.getCompound(i));
+            var key = AEKey.fromTagGeneric(keys.getCompound(i));
             if (key == null) {
                 throw new IllegalArgumentException("Invalid infinite crafting key tag");
             }
@@ -363,7 +362,7 @@ public final class OmniExactCraftingState {
         var outputCredits = tag.getList(OUTPUT_CREDITS_TAG, Tag.TAG_COMPOUND);
         for (int i = 0; i < outputCredits.size(); i++) {
             var entry = outputCredits.getCompound(i);
-            var key = AEKey.fromTagGeneric(registries, entry);
+            var key = AEKey.fromTagGeneric(entry);
             if (key == null || !entry.contains(AMOUNT_TAG, Tag.TAG_STRING)) {
                 throw new IllegalArgumentException("Invalid exact output credit tag");
             }
@@ -377,7 +376,7 @@ public final class OmniExactCraftingState {
         var completed = tag.getList("completedOutputs", Tag.TAG_COMPOUND);
         for (int i = 0; i < completed.size(); i++) {
             var entry = completed.getCompound(i);
-            var key = AEKey.fromTagGeneric(registries, entry);
+            var key = AEKey.fromTagGeneric(entry);
             var amount = new BigInteger(entry.getString(AMOUNT_TAG));
             if (key == null || amount.signum() <= 0 || state.completedOutputs.putIfAbsent(key, amount) != null) {
                 throw new IllegalArgumentException("Invalid completed output tag");
@@ -386,12 +385,12 @@ public final class OmniExactCraftingState {
         var batches = tag.getList("lastBatches", Tag.TAG_COMPOUND);
         for (int i = 0; i < batches.size(); i++) {
             var entry = batches.getCompound(i);
-            var key = AEKey.fromTagGeneric(registries, entry);
+            var key = AEKey.fromTagGeneric(entry);
             var inputs = new LinkedHashMap<AEKey, BigInteger>();
             var inputTags = entry.getList("inputs", Tag.TAG_COMPOUND);
             for (int j = 0; j < inputTags.size(); j++) {
                 var input = inputTags.getCompound(j);
-                var inputKey = AEKey.fromTagGeneric(registries, input);
+                var inputKey = AEKey.fromTagGeneric(input);
                 if (inputKey == null || inputs.putIfAbsent(inputKey, new BigInteger(input.getString("amount"))) != null) {
                     throw new IllegalArgumentException("Invalid saved batch input");
                 }

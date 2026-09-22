@@ -278,15 +278,8 @@ public final class MatterResearchProgress {
         return tag;
     }
 
-<<<<<<< HEAD
     public void load(CompoundTag tag) {
-
-        completions.clear(); tasks.clear(); unavailableTasks.clear(); refunds.clear(); unavailableRefunds.clear(); lastError = "";
-=======
-    public void load(CompoundTag tag, HolderLookup.Provider registries) {
-        this.registries = registries;
         completions.clear(); tasks.clear(); unavailableTasks.clear(); refunds.clear(); unavailableRefunds.clear(); autoStart.clear(); lastError = "";
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
         var counts = tag.getCompound("completions");
         for (var key : counts.getAllKeys()) {
             var id = ResourceLocation.tryParse(key); int count = counts.getInt(key);

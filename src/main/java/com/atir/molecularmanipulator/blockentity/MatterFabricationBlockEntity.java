@@ -225,14 +225,9 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         contents.put("inv", payload.getCompound("inv"));
         quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG);
         if (research.hasProgress()) contents.put(RESEARCH_TAG, research.save());
-<<<<<<< HEAD
+        if (researchOrders.hasPending()) contents.put(RESEARCH_ORDERS_TAG, researchOrders.save());
         if (batch.hasWork()) contents.put(BATCH_TAG, batch.save());
         if (!pendingDismantleRecovery.isEmpty()) contents.put(DISMANTLE_RECOVERY_TAG, pendingDismantleRecovery.save(new CompoundTag()));
-=======
-        if (researchOrders.hasPending()) contents.put(RESEARCH_ORDERS_TAG, researchOrders.save(registries));
-        if (batch.hasWork()) contents.put(BATCH_TAG, batch.save(registries));
-        if (!pendingDismantleRecovery.isEmpty()) contents.put(DISMANTLE_RECOVERY_TAG, pendingDismantleRecovery.save(registries));
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
         var services = new ListTag();
         for (var stack : pendingMigrationServiceBlocks) if (!stack.isEmpty()) services.add(stack.save(new CompoundTag()));
         contents.put(PENDING_SERVICE_BLOCKS_TAG, services);
@@ -423,14 +418,9 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         if (mode == SettingsFrom.DISMANTLE_ITEM && (research.hasProgress() || batch.hasWork() || researchOrders.hasPending())) {
             var tag = new CompoundTag();
             if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
-<<<<<<< HEAD
             if (batch.hasWork()) tag.put(BATCH_TAG, batch.save());
+            if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save());
             builder.merge(tag);
-=======
-            if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(level.registryAccess()));
-            if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(level.registryAccess()));
-            builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
         }
     }
 
@@ -444,7 +434,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
                 research.load(tag.getCompound(RESEARCH_TAG));
                 saveChanges();
             }
-            if (tag.contains(RESEARCH_ORDERS_TAG)) researchOrders.load(tag.getCompound(RESEARCH_ORDERS_TAG), level.registryAccess());
+            if (tag.contains(RESEARCH_ORDERS_TAG)) researchOrders.load(tag.getCompound(RESEARCH_ORDERS_TAG));
         }
     }
 
@@ -1836,13 +1826,9 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
         if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
         else tag.remove(RESEARCH_TAG);
-<<<<<<< HEAD
-        if (batch.hasWork()) tag.put(BATCH_TAG, batch.save()); else tag.remove(BATCH_TAG);
-=======
-        if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(registries));
+        if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save());
         else tag.remove(RESEARCH_ORDERS_TAG);
-        if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(registries)); else tag.remove(BATCH_TAG);
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
+        if (batch.hasWork()) tag.put(BATCH_TAG, batch.save()); else tag.remove(BATCH_TAG);
         tag.putLong("fabrication_manual_crafts", manualCrafts);
         tag.putInt(PROGRESS_TAG, progress);
         if (activeRecipeId != null) {
@@ -1882,18 +1868,11 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     @Override
     public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
-<<<<<<< HEAD
         super.loadTag(tag);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);
         research.load(tag.getCompound(RESEARCH_TAG));
+        researchOrders.load(tag.getCompound(RESEARCH_ORDERS_TAG));
         batch.load(tag.getCompound(BATCH_TAG));
-=======
-        super.loadTag(tag, registries);
-        quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
-        research.load(tag.getCompound(RESEARCH_TAG), registries);
-        researchOrders.load(tag.getCompound(RESEARCH_ORDERS_TAG), registries);
-        batch.load(tag.getCompound(BATCH_TAG), registries);
->>>>>>> 9902ba3 (feat: finalize transfinite exact crafting and compatibility fixes)
         manualCrafts = Math.max(1, tag.getLong("fabrication_manual_crafts"));
         progress = Math.max(0, tag.getInt(PROGRESS_TAG));
         activeRecipeId = ResourceLocation.tryParse(tag.getString(ACTIVE_RECIPE_TAG));

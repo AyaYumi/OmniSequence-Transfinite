@@ -54,7 +54,6 @@ import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvide
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
@@ -377,15 +376,17 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             ICraftingRequester requester,
             CallbackInfoReturnable<ICraftingSubmitResult> callback) {
         if (!callback.getReturnValue().successful()
-                || OmniComputationCoreBlockEntity.ownerOf(cluster) == null
-                || !AelisExactCraftingPlanApi.requiresExactExecution(plan)) {
+                || OmniComputationCoreBlockEntity.ownerOf(cluster) == null) {
             return;
         }
         try {
+            var metadata = AelisExactCraftingPlanApi.read(plan);
+            if (!metadata.executionRequirement().requiresExactExecution()) {
+                return;
+            }
             var state = OmniExactCraftingState.create(
-                    AelisExactCraftingPlanApi.getPatternTimes(plan),
-                    AelisExactCraftingPlanApi.getInfiniteInputAmounts(plan));
-            state.setOutputRemaining(AelisExactCraftingPlanApi.getFinalOutputAmount(plan));
+                    metadata.patternTimes(), metadata.infiniteInputs());
+            state.setOutputRemaining(metadata.finalOutputAmount());
             molecularmanipulator$exactState = state;
             molecularmanipulator$discardProjectedInfiniteInputs(state);
             molecularmanipulator$installExactState(state);
@@ -409,21 +410,21 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
 
     @Inject(method = "writeToNBT", at = @At("RETURN"))
     private void molecularmanipulator$writeExactCraftingState(
-            CompoundTag data, HolderLookup.Provider registries,
+            CompoundTag data,
             CallbackInfo callback) {
-        data.put(MOLECULARMANIPULATOR_EXACT_INVENTORY_TAG, molecularmanipulator$exactInventory.write(registries));
+        data.put(MOLECULARMANIPULATOR_EXACT_INVENTORY_TAG, molecularmanipulator$exactInventory.write());
         if (job != null && molecularmanipulator$exactState != null) {
             data.put(MOLECULARMANIPULATOR_EXACT_STATE_TAG,
-                    molecularmanipulator$exactState.write(registries));
+                    molecularmanipulator$exactState.write());
         }
     }
 
     @Inject(method = "readFromNBT", at = @At("RETURN"))
     private void molecularmanipulator$readExactCraftingState(
-            CompoundTag data, HolderLookup.Provider registries,
+            CompoundTag data,
             CallbackInfo callback) {
         molecularmanipulator$exactInventory.read(data.getList(MOLECULARMANIPULATOR_EXACT_INVENTORY_TAG,
-                Tag.TAG_COMPOUND), registries);
+                Tag.TAG_COMPOUND));
         molecularmanipulator$exactInventory.refill(((CraftingCpuLogic) (Object) this).getInventory());
         molecularmanipulator$exactState = null;
         if (!data.contains(MOLECULARMANIPULATOR_EXACT_STATE_TAG,
@@ -439,8 +440,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         }
         try {
             var state = OmniExactCraftingState.read(
-                    data.getCompound(MOLECULARMANIPULATOR_EXACT_STATE_TAG),
-                    registries).rebind(
+                    data.getCompound(MOLECULARMANIPULATOR_EXACT_STATE_TAG)).rebind(
                             molecularmanipulator$getTasks(job).keySet(),
                             cluster.getLevel());
             if (state.outputProgress() == null) state.setOutputRemaining(java.math.BigInteger.valueOf(
@@ -465,7 +465,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
 
     @Inject(method = "readFromNBT", at = @At("HEAD"))
     private void molecularmanipulator$resetPreviousExactInventory(CompoundTag data,
-            HolderLookup.Provider registries, CallbackInfo callback) {
+            CallbackInfo callback) {
         // The base loader may cancel an invalid saved job and attempt a refund.
         // Never combine that new physical window with this object's old overflow.
         molecularmanipulator$exactInventory.clear();
@@ -2738,8 +2738,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         // admission into one long-sized task per tick.
         if (exactProvider.usesNativeBigIntegerBatch()) {
             boolean directEligible = !molecularmanipulator$exactPrototypeHasContainers && cluster.isActive()
-                    && !patternDetails.getOutputs().isEmpty()
-                    && patternDetails.getOutputs().stream().allMatch(output -> output.amount() > 0
+                    && patternDetails.getOutputs().length > 0
+                    && java.util.Arrays.stream(patternDetails.getOutputs()).allMatch(output -> output.amount() > 0
                         && !output.what().matches(((ExactExecutingJobAccessor) job).molecularmanipulator$getFinalOutput()));
             try (var directScope = com.atir.molecularmanipulator.integration.useless.OmniDirectAdmission.open(
                     directEligible ? cluster.getGrid() : null)) {

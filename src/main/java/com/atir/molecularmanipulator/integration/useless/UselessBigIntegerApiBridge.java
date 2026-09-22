@@ -39,7 +39,7 @@ public final class UselessBigIntegerApiBridge {
     private static final String ADAPTERS_CLASS =
             "com.sorrowmist.useless.api.crafting.bigint.cpu.AlloyFurnaceBigIntegerCpuAdapters";
     private static final ResourceLocation CPU_ADAPTER_ID =
-            ResourceLocation.fromNamespaceAndPath("omnisequence", "useless_bigint_cpu");
+            new ResourceLocation("omnisequence", "useless_bigint_cpu");
     /**
      * A capacity probe and the following atomic admission can observe different
      * lane budgets.  When Useless returns a native count that cuts through a

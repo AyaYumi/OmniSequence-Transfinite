@@ -31,9 +31,10 @@ public final class OmniSmartDoublingPlanner {
             rewritten.merge(entry.getKey(), operations, OmniSmartDoublingPlanner::saturatedAdd);
         }
         if (!changed) return plan;
-        return new CraftingPlan(plan.finalOutput(), plan.bytes(), plan.simulation(), plan.multiplePaths(),
+        var rewrittenPlan = new CraftingPlan(plan.finalOutput(), plan.bytes(), plan.simulation(), plan.multiplePaths(),
                 plan.usedItems(), plan.emittedItems(), plan.missingItems(),
                 Collections.unmodifiableMap(rewritten));
+        return com.appliedenhancements.api.AelisCycleExecutionApi.copyMetadata(plan, rewrittenPlan);
     }
 
     private static boolean hasSmartProvider(Iterable<ICraftingProvider> providers) {

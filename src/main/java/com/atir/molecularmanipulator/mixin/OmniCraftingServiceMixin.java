@@ -110,7 +110,7 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
     @Unique
     private boolean molecularmanipulator$hasBatchPlan(ICraftingPlan job) {
         try {
-            if (AelisExactCraftingPlanApi.requiresExactExecution(job)) {
+            if (AelisExactCraftingPlanApi.executionRequirement(job).requiresExactExecution()) {
                 return true;
             }
             for (var entry : job.patternTimes().entrySet()) {

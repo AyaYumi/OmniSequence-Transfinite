@@ -1,5 +1,20 @@
 # AppliedEnhancements development dependency / 开发前置
 
+## Current exact API build
+
+The current source requires **appliedenhancements-1.0.9-fix.jar** for compilation
+and runtime (protocol 9). Copy the revised AppliedEnhancements build to `libs/`.
+Both client and server must use that same build. Automatic AELIS integration
+may remain disabled: an online Omni core or nexus explicitly invokes the planner.
+The revised API manages its own explicit-call scope.
+
+当前源码编译和运行均须使用修订版 **1.0.9-fix**，两端使用同一构建。
+将独立前置构建产物 `appliedenhancements-1.0.9-fix.jar` 放入本目录。
+自动规划开关可以保持关闭，在线核心／算枢主动调用公开 API。
+旧 CI 固定提交不含本次尚未提交的前置修订；前置发布后须更新 CI 的固定提交。
+
+## Historical 2.0.0 dependency setup
+
 OmniSequence 2.0.0 requires **AppliedEnhancements 1.0.6+** on both sides.
 The source build is pinned to 1.0.6 through `gradle.properties`.
 

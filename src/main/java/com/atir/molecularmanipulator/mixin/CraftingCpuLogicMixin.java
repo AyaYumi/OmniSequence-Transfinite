@@ -377,15 +377,17 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             ICraftingRequester requester,
             CallbackInfoReturnable<ICraftingSubmitResult> callback) {
         if (!callback.getReturnValue().successful()
-                || OmniComputationCoreBlockEntity.ownerOf(cluster) == null
-                || !AelisExactCraftingPlanApi.requiresExactExecution(plan)) {
+                || OmniComputationCoreBlockEntity.ownerOf(cluster) == null) {
             return;
         }
         try {
+            var metadata = AelisExactCraftingPlanApi.read(plan);
+            if (!metadata.executionRequirement().requiresExactExecution()) {
+                return;
+            }
             var state = OmniExactCraftingState.create(
-                    AelisExactCraftingPlanApi.getPatternTimes(plan),
-                    AelisExactCraftingPlanApi.getInfiniteInputAmounts(plan));
-            state.setOutputRemaining(AelisExactCraftingPlanApi.getFinalOutputAmount(plan));
+                    metadata.patternTimes(), metadata.infiniteInputs());
+            state.setOutputRemaining(metadata.finalOutputAmount());
             molecularmanipulator$exactState = state;
             molecularmanipulator$discardProjectedInfiniteInputs(state);
             molecularmanipulator$installExactState(state);

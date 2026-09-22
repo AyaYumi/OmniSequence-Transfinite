@@ -141,8 +141,8 @@ configurations {
 }
 
 dependencies {
-    compileOnly files("libs/appliedenhancements-${applied_enhancements_version}.jar")
-    localRuntime files("libs/appliedenhancements-${applied_enhancements_version}.jar")
+    compileOnly files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
+    localRuntime files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
     implementation "org.appliedenergistics:appliedenergistics2:${ae2_version}"
     implementation "io.github.glodblock:Glodium:${glodium_version}"
     implementation "curse.maven:ex-pattern-provider-${extendedae_curse_project}:${extendedae_curse_file}"

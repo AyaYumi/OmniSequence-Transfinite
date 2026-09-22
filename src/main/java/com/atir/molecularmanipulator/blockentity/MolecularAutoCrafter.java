@@ -177,6 +177,13 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     }
 
     void tick(long gameTime) {
+        // Inventory callbacks are not guaranteed while a controller is being
+        // dismantled, restored from a carried block, or edited through a
+        // client menu. Reconcile persisted configs against the authoritative
+        // pattern inventory before selecting any scheduled slot. This prevents
+        // an enabled entry from surviving pattern removal and being revived
+        // when the same controller is formed again.
+        reconcileConfigs();
         if (configs.isEmpty()) {
             return;
         }
@@ -205,6 +212,34 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
         if (slots.length > 0) {
             scheduleCursor = (start + 1) % slots.length;
+        }
+    }
+
+    private void reconcileConfigs() {
+        if (configs.isEmpty()) {
+            return;
+        }
+        boolean changed = false;
+        var iterator = configs.int2ObjectEntrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            int slot = entry.getIntKey();
+            var stack = patternInventory.getStackInSlot(slot);
+            var config = entry.getValue();
+            if (stack.isEmpty() || !MolecularCenterLogic.isSupportedPattern(stack)) {
+                iterator.remove();
+                changed = true;
+                continue;
+            }
+            var definition = decode(slot);
+            if (definition == null || !config.definition.equals(definition.getDefinition())) {
+                iterator.remove();
+                changed = true;
+            }
+        }
+        if (changed) {
+            scheduleDirty = true;
+            host.saveChanges();
         }
     }
 

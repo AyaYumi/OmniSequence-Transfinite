@@ -21,11 +21,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Checkout AppliedEnhancements 1.0.6
+      - name: Checkout AppliedEnhancements 1.0.9-fix
         uses: actions/checkout@v4
         with:
           repository: AyaYumi/AppliedEnhancements
-          ref: 3f63fa2908f0ba2693ebbb0bf4134b54bd38d31d
+          ref: 78bd11afc8db29573af067f2a28eb2cd7c403075
           path: .codex-tmp/appliedenhancements
 
       - name: Build separate prerequisite
@@ -35,7 +35,7 @@ jobs:
       - name: Prepare compile dependency
         run: |
           mkdir -p libs
-          cp .codex-tmp/appliedenhancements/build/libs/appliedenhancements-1.0.6.jar libs/
+          cp .codex-tmp/appliedenhancements/build/libs/appliedenhancements-1.0.9-fix.jar libs/
 
       - name: Build with Gradle
         run: ./gradlew --no-configuration-cache build

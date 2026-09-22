@@ -18,7 +18,8 @@ import java.util.Objects;
  * The encoded pattern definition is deliberately left unchanged; callers that look up a
  * provider by pattern identity must use {@link #unwrap(IPatternDetails)} first.
  */
-public final class MolecularScaledPattern implements IPatternDetails {
+public final class MolecularScaledPattern implements IPatternDetails,
+        com.github.appliedenhancements.integration.ae2.AelisScaledPattern {
     private final IPatternDetails base;
     private final long multiplier;
     private final IInput[] inputs;
@@ -53,6 +54,16 @@ public final class MolecularScaledPattern implements IPatternDetails {
     }
 
     public long multiplier() {
+        return multiplier;
+    }
+
+    @Override
+    public IPatternDetails appliedenhancements$originalPattern() {
+        return base;
+    }
+
+    @Override
+    public long appliedenhancements$operationsPerPush() {
         return multiplier;
     }
 

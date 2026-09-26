@@ -28,7 +28,8 @@ class ResponsiveContainerScreenTest {
         assertEquals(68, screen.getGuiLeft());
         assertEquals(-23, screen.getGuiTop());
         for (String style : new String[] {"molecular_center", "omni_computation", "matter_fabrication",
-                "matter_fabrication_port", "matter_fabrication_pattern_assembly"}) {
+                "matter_fabrication_port", "matter_fabrication_pattern_assembly",
+                "molecular_auto_crafter", "molecular_auto_crafter_config"}) {
             try (var stream = getClass().getResourceAsStream("/assets/ae2/screens/" + style + ".json")) {
                 assertNotNull(stream);
                 var json = com.google.gson.JsonParser.parseString(new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();

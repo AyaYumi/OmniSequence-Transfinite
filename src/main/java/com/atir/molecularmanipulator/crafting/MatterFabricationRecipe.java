@@ -25,11 +25,12 @@ public record MatterFabricationRecipe(
         FluidStack fluidInput,
         FluidStack fluidResult,
         List<GenericStack> aeInputs,
+        List<GenericStack> aeOutputs,
         int processingTime,
         double aePerTick,
         boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
-    public static final int MAX_INPUTS = 9;
-    public static final int MAX_OUTPUTS = 2;
+    public static final int MAX_INPUTS = 12;
+    public static final int MAX_OUTPUTS = 6;
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
             FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick) {
@@ -38,7 +39,13 @@ public record MatterFabricationRecipe(
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
             FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick, boolean requiresResearch) {
-        this(ingredients, results, fluidInput, fluidResult, List.of(), processingTime, aePerTick, requiresResearch);
+        this(ingredients, results, fluidInput, fluidResult, List.of(), List.of(), processingTime, aePerTick, requiresResearch);
+    }
+
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
+            FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            int processingTime, double aePerTick, boolean requiresResearch) {
+        this(ingredients, results, fluidInput, fluidResult, aeInputs, List.of(), processingTime, aePerTick, requiresResearch);
     }
 
     public MatterFabricationRecipe {
@@ -47,13 +54,16 @@ public record MatterFabricationRecipe(
         fluidInput = fluidInput.copy();
         fluidResult = fluidResult.copy();
         aeInputs = List.copyOf(aeInputs);
+        aeOutputs = List.copyOf(aeOutputs);
         if (ingredients.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
-            throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 9 item/AE inputs or a fluid input");
+            throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 12 item/AE inputs or a fluid input");
         }
-        if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)) {
-            throw new IllegalArgumentException("AE input amounts must be positive");
+        if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)
+                || aeOutputs.stream().anyMatch(stack -> stack.amount() <= 0)) {
+            throw new IllegalArgumentException("AE stack amounts must be positive");
         }
-        if (results.size() > MAX_OUTPUTS || results.isEmpty() && fluidResult.isEmpty()) {
+        if (results.size() > MAX_OUTPUTS || aeOutputs.size() > MAX_OUTPUTS
+                || results.isEmpty() && fluidResult.isEmpty() && aeOutputs.isEmpty()) {
             throw new IllegalArgumentException("Matter fabrication recipes require at least one item or fluid result");
         }
         processingTime = Math.max(1, processingTime);
@@ -71,7 +81,7 @@ public record MatterFabricationRecipe(
 
     public int[] consumptionPlan(MatterFabricationRecipeInput input, long crafts) {
         // Manual ports have no generic AE storage; these recipes must be supplied by an assembly.
-        if (!aeInputs.isEmpty() || crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
+        if (!aeInputs.isEmpty() || !aeOutputs.isEmpty() || crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
             return null;
         }
         int[] available = new int[input.size()];
@@ -162,8 +172,8 @@ public record MatterFabricationRecipe(
                 .apply(instance, CountedIngredient::new));
 
         public CountedIngredient {
-            if (count < 1 || count > 64) {
-                throw new IllegalArgumentException("Ingredient count must be between 1 and 64");
+            if (count < 1) {
+                throw new IllegalArgumentException("Ingredient count must be positive");
             }
         }
     }
@@ -181,6 +191,8 @@ public record MatterFabricationRecipe(
                                 .forGetter(MatterFabricationRecipe::fluidResult),
                         GenericStack.CODEC.listOf(0, MAX_INPUTS).optionalFieldOf("ae_inputs", List.of())
                                 .forGetter(MatterFabricationRecipe::aeInputs),
+                        GenericStack.CODEC.listOf(0, MAX_OUTPUTS).optionalFieldOf("ae_outputs", List.of())
+                                .forGetter(MatterFabricationRecipe::aeOutputs),
                         Codec.INT.optionalFieldOf("processing_time", 200)
                                 .forGetter(MatterFabricationRecipe::processingTime),
                         Codec.DOUBLE.optionalFieldOf("ae_per_tick", 64.0)
@@ -210,7 +222,11 @@ public record MatterFabricationRecipe(
                         if (aeInputCount < 0 || aeInputCount > MAX_INPUTS) throw new IllegalArgumentException("Invalid AE input count");
                         var aeInputs = new ArrayList<GenericStack>(aeInputCount);
                         for (int index = 0; index < aeInputCount; index++) aeInputs.add(GenericStack.STREAM_CODEC.decode(buffer));
-                        return new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult, aeInputs,
+                        int aeOutputCount = buffer.readVarInt();
+                        if (aeOutputCount < 0 || aeOutputCount > MAX_OUTPUTS) throw new IllegalArgumentException("Invalid AE output count");
+                        var aeOutputs = new ArrayList<GenericStack>(aeOutputCount);
+                        for (int index = 0; index < aeOutputCount; index++) aeOutputs.add(GenericStack.STREAM_CODEC.decode(buffer));
+                        return new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult, aeInputs, aeOutputs,
                                 buffer.readVarInt(), buffer.readDouble(), buffer.readBoolean());
                     }
 
@@ -229,6 +245,8 @@ public record MatterFabricationRecipe(
                         FluidStack.OPTIONAL_STREAM_CODEC.encode(buffer, recipe.fluidResult);
                         buffer.writeVarInt(recipe.aeInputs.size());
                         for (var input : recipe.aeInputs) GenericStack.STREAM_CODEC.encode(buffer, input);
+                        buffer.writeVarInt(recipe.aeOutputs.size());
+                        for (var output : recipe.aeOutputs) GenericStack.STREAM_CODEC.encode(buffer, output);
                         buffer.writeVarInt(recipe.processingTime);
                         buffer.writeDouble(recipe.aePerTick);
                         buffer.writeBoolean(recipe.requiresResearch);

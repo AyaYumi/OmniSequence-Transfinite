@@ -1341,7 +1341,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private RecipeSelection findRecipe() {
         if (patternRecipeId != null && inputsAreEmpty()) patternRecipeId = null;
         for (var input : snapshotInputs()) {
-            var match = level.getRecipeManager().getAllRecipesFor(ModContent.MATTER_FABRICATION_RECIPE_TYPE.get()).stream()
+            var match = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level).fabrication().stream()
                     .filter(holder -> patternRecipeId == null || holder.id().equals(patternRecipeId))
                     .filter(holder -> holder.value().matches(input, level) && MatterResearchApi.canUseRecipe(this, holder)).findFirst();
             if (match.isPresent()) {

@@ -43,7 +43,7 @@ public final class MolecularScaledPatternFactory {
                 scaled = eapScaled;
             }
         }
-        return preserveOptionalInterfaces(base, scaled);
+        return preserveOptionalInterfaces(base, scaled, multiplier);
     }
 
     private static boolean isClassOrSubclass(
@@ -74,9 +74,13 @@ public final class MolecularScaledPatternFactory {
     }
 
     private static IPatternDetails preserveOptionalInterfaces(
-            IPatternDetails base, IPatternDetails scaled) {
+            IPatternDetails base, IPatternDetails scaled, long multiplier) {
         var preservedInterfaces = new ArrayList<Class<?>>();
-        if (scaled instanceof com.github.appliedenhancements.integration.ae2.AelisScaledPattern) {
+        // AppliedEnhancements reconciles a rewritten task by looking for this
+        // interface on the replacement key.  ExtendedAE Plus's own wrapper
+        // does not implement it, so expose the same contract through the
+        // compatibility proxy below.
+        if (!(scaled instanceof com.github.appliedenhancements.integration.ae2.AelisScaledPattern)) {
             preservedInterfaces.add(com.github.appliedenhancements.integration.ae2.AelisScaledPattern.class);
         }
         for (var interfaceName : OPTIONAL_PATTERN_INTERFACES) {
@@ -113,6 +117,15 @@ public final class MolecularScaledPatternFactory {
                         }
 
                         try {
+                            if (method.getDeclaringClass()
+                                    == com.github.appliedenhancements.integration.ae2.AelisScaledPattern.class) {
+                                return switch (method.getName()) {
+                                    case "appliedenhancements$originalPattern" -> base;
+                                    case "appliedenhancements$operationsPerPush" -> multiplier;
+                                    default -> throw new UnsupportedOperationException(
+                                            "Unknown AelisScaledPattern method: " + method);
+                                };
+                            }
                             if (method.getDeclaringClass() == IPatternDetails.class
                                     || method.getDeclaringClass().isInstance(scaled)) {
                                 return method.invoke(scaled, arguments);
@@ -124,7 +137,11 @@ public final class MolecularScaledPatternFactory {
                     });
             return (IPatternDetails) proxy;
         } catch (IllegalArgumentException | LinkageError exception) {
-            return scaled;
+            // Keep the AppliedEnhancements contract even when an optional
+            // integration uses an incompatible class loader. The local
+            // implementation already carries the same scaled recipe and is
+            // safer than returning an unmarked external wrapper.
+            return new MolecularScaledPattern(base, multiplier);
         }
     }
 

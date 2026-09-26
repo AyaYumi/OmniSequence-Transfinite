@@ -153,6 +153,7 @@ dependencies {
     compileOnly "org.appliedenergistics:guideme:21.1.1"
     compileOnly "dev.vfyjxf:taffy:1.1.4"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
+    compileOnly "curse.maven:ae2-jei-integration-1074338:7727898"
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'

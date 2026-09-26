@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.integration.guideme;
 
-import appeng.api.stacks.GenericStack;
+import appeng.api.stacks.AEItemKey;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -30,7 +30,8 @@ public final class MatterFabricationGuideRecipes implements RecipeTypeMappingSup
         var box = LytStandardRecipeBox.builder()
                 .icon(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get())
                 .title(Component.translatable("gui.molecularmanipulator.fabrication.jei_title").getString());
-        int inputCount = recipe.ingredients().size() + recipe.aeInputs().size();
+        int inputCount = recipe.ingredients().size()
+                + (int) recipe.aeInputs().stream().filter(input -> input.what() instanceof AEItemKey).count();
         if (inputCount > 0) {
             int columns = Math.min(3, inputCount);
             var inputs = new LytSlotGrid(columns, Math.ceilDiv(inputCount, columns));
@@ -40,9 +41,13 @@ public final class MatterFabricationGuideRecipes implements RecipeTypeMappingSup
                 inputs.setIngredient(i % columns, i / columns, Ingredient.of(Arrays.stream(counted.ingredient().getItems())
                         .map(stack -> stack.copyWithCount(counted.count()))));
             }
-            for (int i = 0; i < recipe.aeInputs().size(); i++) {
-                int index = recipe.ingredients().size() + i;
-                inputs.setItem(index % columns, index / columns, GenericStack.wrapInItemStack(recipe.aeInputs().get(i)));
+            int index = recipe.ingredients().size();
+            for (var input : recipe.aeInputs()) {
+                if (input.what() instanceof AEItemKey item) {
+                    inputs.setItem(index % columns, index / columns,
+                            item.toStack((int) Math.min(Integer.MAX_VALUE, input.amount())));
+                    index++;
+                }
             }
             box.input(inputs);
         }
@@ -62,8 +67,12 @@ public final class MatterFabricationGuideRecipes implements RecipeTypeMappingSup
                 : text("unlock", owners)));
         if (!recipe.fluidInput().isEmpty()) box.addBottom(paragraph(text("fluid_input",
                 recipe.fluidInput().getHoverName().getString(), DisplayNumbers.exact(recipe.fluidInput().getAmount()))));
+        for (var input : recipe.aeInputs()) box.addBottom(paragraph(text("ae_input",
+                input.what().getDisplayName().getString(), DisplayNumbers.exact(input.amount()))));
         if (!recipe.fluidResult().isEmpty()) box.addBottom(paragraph(text("fluid_output",
                 recipe.fluidResult().getHoverName().getString(), DisplayNumbers.exact(recipe.fluidResult().getAmount()))));
+        for (var output : recipe.aeOutputs()) box.addBottom(paragraph(text("ae_output",
+                output.what().getDisplayName().getString(), DisplayNumbers.exact(output.amount()))));
         box.addBottom(paragraph(text("stats", DisplayNumbers.exact(recipe.processingTime() / 20.0),
                 DisplayNumbers.exact(recipe.aePerTick()))));
         return box.build(holder);

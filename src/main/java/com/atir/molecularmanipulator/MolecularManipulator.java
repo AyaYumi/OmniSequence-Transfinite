@@ -43,6 +43,8 @@ public final class MolecularManipulator {
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                ModContent.MOLECULAR_AUTO_CRAFTER_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.OMNI_COMPUTATION_CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);

@@ -29,7 +29,8 @@
     "PatternAccessTermMenuMixin",
     "PatternProviderLogicMixin",
     "TileAssemblerMatrixPatternMixin",
-    "UselessExactOutputReturnMixin"
+    "UselessExactOutputReturnMixin",
+    "ExtendedAEPlusPatternUploadMixin"
   ],
   "client": [
     "CPUSelectionListMixin",

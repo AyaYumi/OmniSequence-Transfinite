@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.registry;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
 import com.atir.molecularmanipulator.block.MolecularManipulatorBlock;
+import com.atir.molecularmanipulator.block.MolecularAutoCrafterBlock;
 import com.atir.molecularmanipulator.block.MatterFabricationControllerBlock;
 import com.atir.molecularmanipulator.block.MatterFabricationPatternAssemblyBlock;
 import com.atir.molecularmanipulator.block.MatterFabricationPortBlock;
@@ -22,6 +23,7 @@ import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternAssemblyBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPortBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterCrystalBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
@@ -33,6 +35,8 @@ import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
 import com.atir.molecularmanipulator.menu.MatterFabricationPatternAssemblyMenu;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
+import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
+import com.atir.molecularmanipulator.menu.MolecularAutoCrafterConfigMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -73,6 +77,11 @@ public final class ModContent {
     public static final DeferredItem<BlockItem> ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM =
             ITEMS.register("assembler_matrix_molecular_core",
                     () -> new BlockItem(ASSEMBLER_MATRIX_MOLECULAR_CORE.get(), new Item.Properties()));
+
+    public static final DeferredBlock<MolecularAutoCrafterBlock> MOLECULAR_AUTO_CRAFTER =
+            BLOCKS.register("molecular_auto_crafter", MolecularAutoCrafterBlock::new);
+    public static final DeferredItem<BlockItem> MOLECULAR_AUTO_CRAFTER_ITEM =
+            registerBlockItem("molecular_auto_crafter", MOLECULAR_AUTO_CRAFTER);
 
     public static final DeferredBlock<MolecularCenterControllerBlock> MOLECULAR_CENTER_CONTROLLER =
             BLOCKS.register("molecular_center_controller", () -> new MolecularCenterControllerBlock(
@@ -262,6 +271,10 @@ public final class ModContent {
             OMNI_COMPUTATION_CONTROLLER_BE = BLOCK_ENTITIES.register("omni_computation_controller",
                     () -> BlockEntityType.Builder.of(OmniComputationCoreBlockEntity::new,
                             OMNI_COMPUTATION_CONTROLLER.get(), TRANSFINITE_COMPUTE_NEXUS.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MolecularAutoCrafterBlockEntity>>
+            MOLECULAR_AUTO_CRAFTER_BE = BLOCK_ENTITIES.register("molecular_auto_crafter",
+                    () -> BlockEntityType.Builder.of(MolecularAutoCrafterBlockEntity::new,
+                            MOLECULAR_AUTO_CRAFTER.get()).build(null));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MatterFabricationBlockEntity>>
             MATTER_FABRICATION_CONTROLLER_BE = BLOCK_ENTITIES.register("matter_fabrication_controller",
                     () -> BlockEntityType.Builder.of(MatterFabricationBlockEntity::new,
@@ -282,6 +295,10 @@ public final class ModContent {
             MENUS.register("molecular_center", () -> MolecularCenterMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<OmniComputationMenu>> OMNI_COMPUTATION_MENU =
             MENUS.register("omni_computation", () -> OmniComputationMenu.TYPE);
+    public static final DeferredHolder<MenuType<?>, MenuType<MolecularAutoCrafterMenu>> MOLECULAR_AUTO_CRAFTER_MENU =
+            MENUS.register("molecular_auto_crafter", () -> MolecularAutoCrafterMenu.TYPE);
+    public static final DeferredHolder<MenuType<?>, MenuType<MolecularAutoCrafterConfigMenu>> MOLECULAR_AUTO_CRAFTER_CONFIG_MENU =
+            MENUS.register("molecular_auto_crafter_config", () -> MolecularAutoCrafterConfigMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MatterFabricationMenu>> MATTER_FABRICATION_MENU =
             MENUS.register("matter_fabrication", () -> MatterFabricationMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MatterFabricationPortMenu>>
@@ -311,6 +328,7 @@ public final class ModContent {
                     .displayItems((parameters, output) -> {
                         output.accept(MOLECULAR_MANIPULATOR_ITEM.get());
                         output.accept(ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get());
+                        output.accept(MOLECULAR_AUTO_CRAFTER_ITEM.get());
                         output.accept(MOLECULAR_CENTER_CONTROLLER_ITEM.get());
                         output.accept(MOLECULAR_CENTER_CASING_ITEM.get());
                         output.accept(MOLECULAR_CENTER_GLASS_ITEM.get());
@@ -387,6 +405,8 @@ public final class ModContent {
     public static void bindBlockEntity() {
         TRANSFINITE_COMPUTE_NEXUS.get().setBlockEntity(
                 OmniComputationCoreBlockEntity.class, OMNI_COMPUTATION_CONTROLLER_BE.get(), null, null);
+        MOLECULAR_AUTO_CRAFTER.get().setBlockEntity(
+                MolecularAutoCrafterBlockEntity.class, MOLECULAR_AUTO_CRAFTER_BE.get(), null, null);
         MOLECULAR_MANIPULATOR.get().setBlockEntity(
                 MolecularManipulatorBlockEntity.class,
                 MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(),

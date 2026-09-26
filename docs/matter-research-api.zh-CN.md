@@ -267,14 +267,17 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 | `ae_foundation` | 600 tick / 30 秒 | 256 AE/t | 7 条 AE 材料配方、27 条二阶材料与中间材料配方、样板总成 |
 | `sequence_array` | 600 tick / 30 秒 | 512 AE/t | 构序阵列 6 类部件、分子构序重写阵列、装配矩阵构序重写核心 |
 | `omni_computation` | 600 tick / 30 秒 | 1024 AE/t | 万物演算 10 类部件与超限算枢 |
+| `machine/<machine_key>` | 600 tick / 30 秒 | 512 AE/t | 对应附属机器导入的配方（加载模组且机器存在时） |
 
 30 秒适用于内置研究的首次解锁及后续每轮深度研究。自定义 `duration` 仍按 tick 自由配置，
 省略时默认 1200；已开始的轮次保留开工时的耗时快照。
 
-两条二阶分支默认都需要一阶完成 **1 次**。一阶新增的 27 条配方 ID 形如
-`molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`，覆盖两条二阶研究
-消耗的 17 种材料，并补齐相关中间材料与量子注入液配方。它们在一阶首次完成后开放，并获得
-一阶的深度研究加成。
+这些二阶分支默认都需要一阶完成 **1 次**。内置材料配方 ID 位于
+`molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`；附属机器配方 ID 位于
+`molecularmanipulator:fabrication/import/machine/<机器键>/<产物>`。有可导入配方的机器各有独立
+研究分支。构筑井在配方管理器重载后读取当前生效的配方，包括 KubeJS `ServerEvents.recipes`
+的改动。同一产物的不同原料分支保留为独立配方；原料种类与数量均相同的分支合并。研究界面
+按产物显示分支数量，JEI 中的 AE 物品、流体、闪电与数据资源保留原料类型。
 
 无 AdvancedAE 时，万物演算分支及其材料配方不加载，界面也不列出它们。构序阵列分支由
 `required_mods: ["extendedae"]` 约束。

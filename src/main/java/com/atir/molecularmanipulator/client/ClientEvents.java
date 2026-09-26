@@ -3,8 +3,10 @@ package com.atir.molecularmanipulator.client;
 import appeng.init.client.InitScreens;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.client.render.NexusFormedGeometry;
+import com.atir.molecularmanipulator.client.render.AutoCrafterGlowGeometry;
 import com.atir.molecularmanipulator.client.render.OmniShaders;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
+import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
@@ -33,6 +35,10 @@ public final class ClientEvents {
     public static void registerScreens(RegisterMenuScreensEvent event) {
         InitScreens.register(event, MolecularManipulatorMenu.TYPE, MolecularManipulatorScreen::new,
                 "/screens/molecular_manipulator.json");
+        InitScreens.register(event, ModContent.MOLECULAR_AUTO_CRAFTER_MENU.get(),
+                MolecularAutoCrafterScreen::new, "/screens/molecular_auto_crafter.json");
+        InitScreens.register(event, ModContent.MOLECULAR_AUTO_CRAFTER_CONFIG_MENU.get(),
+                MolecularAutoCrafterConfigScreen::new, "/screens/molecular_auto_crafter_config.json");
         InitScreens.register(event, ModContent.MOLECULAR_CENTER_MENU.get(), MolecularCenterScreen::new,
                 "/screens/molecular_center.json");
         InitScreens.register(event, ModContent.OMNI_COMPUTATION_MENU.get(), OmniComputationScreen::new,
@@ -50,6 +56,8 @@ public final class ClientEvents {
     public static void registerGeometryLoaders(ModelEvent.RegisterGeometryLoaders event) {
         event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "nexus_formed"),
                 NexusFormedGeometry.LOADER);
+        event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "auto_crafter_glow"),
+                AutoCrafterGlowGeometry.LOADER);
     }
 
     @SubscribeEvent

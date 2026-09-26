@@ -303,17 +303,22 @@ block other machines, and already-built multiblocks keep working.
 | `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, pattern assembly |
 | `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
 | `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
+| `machine/<machine_key>` | 600 ticks / 30 s | 512 AE/t | Recipes imported from that addon machine (when the mod and machine are present) |
 
 The 30 seconds applies to the first unlock and to every later deep-research round
 of the built-in researches. Custom `duration` values stay free in ticks and still
 default to 1200; a started round keeps the duration snapshot from its start.
 
-Both stage-two branches require **one** `ae_foundation` completion by default.
-The 27 stage-one additions are listed under the ID pattern
-`molecularmanipulator:fabrication/research_materials/<modid>/<item>` and cover the
-17 material types consumed by the two stage-two researches plus related
-intermediates and quantum infusion recipes. They open on the first tier-one
-completion and receive tier-one deep-research bonuses.
+These stage-two branches require **one** `ae_foundation` completion by default.
+Built-in additions use IDs under
+`molecularmanipulator:fabrication/research_materials/<modid>/<item>`. Addon machine
+recipes use `molecularmanipulator:fabrication/import/machine/<machine_key>/<output>`;
+each machine with supported recipes has its own research branch. The importer reads
+the effective recipe manager after reload, including changes made through KubeJS
+`ServerEvents.recipes`. Distinct input branches remain separate recipes. Identical
+inputs and counts for the same output are merged, while the research panel shows one
+output row with the number of branches. Supported AE item, fluid, lightning, and data
+resources keep their native ingredient identity in JEI.
 
 Without AdvancedAE the Omni-Computation branch and its material recipes do not
 load, and the interface lists nothing for them. The Sequence Array branch is

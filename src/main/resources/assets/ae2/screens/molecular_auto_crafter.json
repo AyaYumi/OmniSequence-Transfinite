@@ -1,0 +1,22 @@
+{
+  "$schema": "schema.json",
+  "includes": ["common/common.json"],
+  "helpTopic": "molecularmanipulator:items-blocks-machines/molecular_auto_crafter.md",
+  "generatedBackground": {"width": 180, "height": 220},
+  "slots": {
+    "ENCODED_PATTERN": {"left": 10, "top": 36, "grid": "HORIZONTAL"},
+    "MACHINE_OUTPUT": {"left": 10, "top": 88, "grid": "BREAK_AFTER_9COLS"},
+    "PLAYER_INVENTORY": {"left": 10, "top": 140, "grid": "BREAK_AFTER_9COLS"},
+    "PLAYER_HOTBAR": {"left": 10, "top": 198, "grid": "HORIZONTAL"}
+  },
+  "text": {
+    "output": {
+      "text": {"translate": "gui.molecularmanipulator.auto_craft_output"},
+      "position": {"left": 10, "top": 76}
+    },
+    "inventory": {
+      "text": {"translate": "container.inventory"},
+      "position": {"left": 10, "top": 128}
+    }
+  }
+}

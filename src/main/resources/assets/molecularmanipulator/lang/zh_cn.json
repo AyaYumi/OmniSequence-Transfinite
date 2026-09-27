@@ -178,6 +178,8 @@
   "molecularmanipulator.configuration.build_blocks_per_tick.tooltip": "设置一键安放或一键拆卸时每 Tick 最多处理的结构方块数量。数值越高完成越快，但瞬时服务器负载也越高；范围 1～256，默认 32。",
   "molecularmanipulator.configuration.idle_power": "待机耗电（AE/t）",
   "molecularmanipulator.configuration.idle_power.tooltip": "设置构序阵列控制器维持联网时的待机耗电。范围 1～4096 AE/t，默认 128 AE/t。",
+  "molecularmanipulator.configuration.force_load_chunks": "强制加载机器区块",
+  "molecularmanipulator.configuration.force_load_chunks.tooltip": "成型或施工期间保持构序阵列、万物演算核心和物质构筑井占用的区块加载。关闭后，机器 Tick 时会释放已有强加载票据；默认开启。",
   "molecularmanipulator.configuration.omni_batch_dispatch_enabled": "万物演算批量推送",
   "molecularmanipulator.configuration.omni_batch_dispatch_enabled.tooltip": "控制兼容供应器是否允许一次抽取并推送多次配方材料。关闭后全部回退为 AE2 单次推送；默认开启。",
   "molecularmanipulator.configuration.omni_compat_dispatch_max_calls_per_tick": "万物演算兼容派发调用硬上限",

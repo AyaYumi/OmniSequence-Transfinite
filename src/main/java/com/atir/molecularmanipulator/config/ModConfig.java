@@ -12,6 +12,7 @@ public final class ModConfig {
     public static final ForgeConfigSpec.IntValue PATTERN_PAGES;
     public static final ForgeConfigSpec.IntValue BUILD_BLOCKS_PER_TICK;
     public static final ForgeConfigSpec.IntValue IDLE_POWER;
+    public static final ForgeConfigSpec.BooleanValue FORCE_LOAD_CHUNKS;
     public static final ForgeConfigSpec.LongValue MATTER_SEQUENCE_CAPACITY;
     public static final ForgeConfigSpec.LongValue MATTER_ENTROPY_CAPACITY;
     public static final ForgeConfigSpec.LongValue MATTER_ENTROPY_COOLING_PER_SECOND;
@@ -48,6 +49,11 @@ public final class ModConfig {
         IDLE_POWER = server.comment("Molecular Center idle power usage in AE/t.")
                 .translation("molecularmanipulator.configuration.idle_power")
                 .defineInRange("idle_power", 128, 1, 4096);
+        FORCE_LOAD_CHUNKS = server.comment(
+                "Keep chunks occupied by the Sequence Array, Omni-Computation Core, and Matter Fabrication Well loaded while formed or being built.",
+                "成型或施工期间是否保持构序阵列、万物演算核心和物质构筑井占用的区块加载。")
+                .translation("molecularmanipulator.configuration.force_load_chunks")
+                .define("force_load_chunks", true);
         server.comment(
                 "Matter Sequence storage, entropy, cooling, and processing speed.",
                 "物质构序存储、熵值、散热与处理速度设置。")
@@ -153,7 +159,7 @@ public final class ModConfig {
                 "Notify each changed AE key once after an exact output insertion has settled all its ledgers.")
                 .define("omni_coalesce_return_notifications", true);
         OMNI_PROFILE_EXACT_RETURNS = server.comment(
-                "Log exact CPU output-return timing and notification counts at most once per 10 seconds while active.")
+                "Log exact CPU output-return timing, notification counts, and native UselessMod transfer diagnostics while active. Aggregate reports use 10-second intervals.")
                 .define("omni_profile_exact_returns", false);
         OMNI_RETURN_PROFILE_SAMPLE_INTERVAL = server.comment(
                 "Time one in this many exact output insertions to keep profiling overhead low. Counts remain exact.")

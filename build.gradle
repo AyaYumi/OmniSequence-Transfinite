@@ -100,6 +100,12 @@ repositories {
     flatDir { dirs 'libs' }
 
     maven {
+        name = 'AE2UELM'
+        url = 'https://repo.expandium.net/releases'
+        content { includeGroup 'appeng' }
+    }
+
+    maven {
         name = 'MinecraftForgeReleases'
         url = 'https://maven.minecraftforge.net/releases/'
         content { includeGroup 'net.minecraftforge' }
@@ -140,7 +146,11 @@ configurations {
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
-    implementation fg.deobf("maven.modrinth:ae2:${ae2_version}")
+    // Use exactly one AE2 implementation on both compile and runtime classpaths.
+    // A module coordinate lets ForgeGradle remap the production UELM jar.
+    implementation fg.deobf(project.hasProperty('ae2_uelm_version')
+            ? "appeng:appliedenergistics2-forge:${project.property('ae2_uelm_version')}"
+            : "maven.modrinth:ae2:${ae2_version}")
     implementation fg.deobf("maven.modrinth:glodium:${glodium_version}")
     implementation fg.deobf("maven.modrinth:extended-ae:${extendedae_version}")
     implementation fg.deobf("org.appliedenergistics:guideme:${guideme_version}")
@@ -178,6 +188,7 @@ tasks.named('processResources', ProcessResources).configure {
             mod_version            : mod_version,
             mod_authors            : mod_authors,
             mod_description        : mod_description,
+            applied_enhancements_version: applied_enhancements_version,
     ]
     inputs.properties replaceProperties
 

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.function.Consumer;
+import com.atir.molecularmanipulator.integration.jei.ResearchJeiBookmarks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -30,12 +31,15 @@ final class MatterResearchPanel {
     private final MatterFabricationMenu menu;
     private final Font font;
     private final List<Button> rows = new ArrayList<>();
-    private final Button previous, next, action;
+    private final Button previous, next, action, order, bookmark;
     private List<MatterResearchRecipe> definitions = List.of();
     private Set<String> completed = Set.of();
     private JsonObject tasks = new JsonObject();
     private JsonObject counts = new JsonObject(), live = new JsonObject();
     private String notice = "";
+    private String orderStatus = "idle";
+    private int orderQueued;
+    private int orderActive;
     private String lastState = "";
     private final Map<ResourceLocation, MatterResearchRecipe> taskTerms = new HashMap<>();
     private ResourceLocation selected;
@@ -57,11 +61,16 @@ final class MatterResearchPanel {
         }
         previous = OmniUiTheme.button(left + 18, top + 244, 28, 16, Component.literal("<"), clicked -> { page--; update(true); });
         next = OmniUiTheme.button(left + 86, top + 244, 28, 16, Component.literal(">"), clicked -> { page++; update(true); });
-        action = OmniUiTheme.button(left + 136, top + 244, 176, 16, Component.empty(), clicked -> {
+        action = OmniUiTheme.button(left + 136, top + 244, 84, 16, Component.empty(), clicked -> {
             if (selected != null) menu.toggleResearch(selected.toString());
         });
         action.setTooltip(Tooltip.create(text("action_hint")));
-        add.accept(previous); add.accept(next); add.accept(action);
+        order = OmniUiTheme.button(left + 228, top + 244, 84, 16,
+                text("order"), clicked -> { if (selected != null) menu.requestResearchOrder(selected.toString()); });
+        order.setTooltip(Tooltip.create(text("order_hint")));
+        bookmark = OmniUiTheme.button(left + 292, top + 48, 20, 16, Component.literal("★"), clicked -> bookmarkSelected());
+        bookmark.setTooltip(Tooltip.create(text("bookmark_hint")));
+        add.accept(previous); add.accept(next); add.accept(action); add.accept(order); add.accept(bookmark);
         update(false);
     }
 
@@ -79,6 +88,12 @@ final class MatterResearchPanel {
             counts = state.has("counts") ? state.getAsJsonObject("counts") : new JsonObject();
             live = state.has("live") ? state.getAsJsonObject("live") : new JsonObject();
             notice = state.has("notice") ? state.get("notice").getAsString() : "";
+            if (state.has("orders")) {
+                var orders = state.getAsJsonObject("orders");
+                orderStatus = orders.has("status") ? orders.get("status").getAsString() : "idle";
+                orderQueued = orders.has("queued") ? orders.get("queued").getAsInt() : 0;
+                orderActive = orders.has("active") ? orders.get("active").getAsInt() : 0;
+            }
             taskTerms.clear();
             if (level != null) tasks.entrySet().forEach(entry -> MatterResearchRecipe.CODEC.codec()
                     .parse(JsonOps.INSTANCE, entry.getValue().getAsJsonObject().get("terms"))
@@ -109,6 +124,8 @@ final class MatterResearchPanel {
         var holder = selected();
         action.visible = visible && holder != null;
         ((OmniButton) action).setProminent(true);
+        order.visible = visible && holder != null;
+        bookmark.visible = visible && holder != null;
         if (holder != null) {
             var task = task(holder);
             boolean paused = task != null && task.get("paused").getAsBoolean();
@@ -119,6 +136,7 @@ final class MatterResearchPanel {
                     && prerequisitesMet(holder.value())
                     && (task != null && !paused || menu.formed && !menu.building && !menu.dismantling && !menu.updatingStructure
                         && liveForSelected() && live.get("online").getAsBoolean() && live.has("affordable") && live.get("affordable").getAsBoolean());
+            order.active = !maxed && prerequisitesMet(holder.value()) && liveForSelected();
         }
     }
 
@@ -162,6 +180,11 @@ final class MatterResearchPanel {
         fitted(graphics, Component.translatable("gui.molecularmanipulator.research.timing", progress / 20,
                 definition.duration() / 20, DisplayNumbers.compact(definition.aePerTick())),
                 136, 111, 176, OmniUiTheme.MUTED_TEXT);
+        if (!orderStatus.equals("idle")) {
+            fitted(graphics, Component.translatable("gui.molecularmanipulator.research.order_status",
+                    orderStatus, orderQueued, orderActive), 136, 121, 176,
+                    orderStatus.equals("submitted") ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
+        }
         quantityTooltips.add(new QuantityTooltip(136, 111, 176, 11, List.of(Component.translatable(
                 "gui.molecularmanipulator.research.timing", progress / 20, definition.duration() / 20,
                 DisplayNumbers.exact(definition.aePerTick())))));
@@ -254,6 +277,19 @@ final class MatterResearchPanel {
 
     private MatterResearchRecipe selected() {
         return definitions.stream().filter(holder -> holder.id().equals(selected)).findFirst().orElse(null);
+    }
+
+    private void bookmarkSelected() {
+        var holder = selected();
+        if (holder == null || Minecraft.getInstance().level == null) return;
+        int completedCount = count(holder);
+        int round = Math.min(completedCount + 1, holder.value().depths().size());
+        List<ItemStack> stacks = new ArrayList<>();
+        for (var cost : holder.value().costsFor(round)) {
+            var examples = cost.ingredient().getItems();
+            if (examples.length > 0) stacks.add(examples[0]);
+        }
+        ResearchJeiBookmarks.addItems(stacks);
     }
     private JsonObject task(MatterResearchRecipe holder) { return tasks.getAsJsonObject(holder.id().toString()); }
     private MatterResearchRecipe terms(MatterResearchRecipe holder, JsonObject task) {

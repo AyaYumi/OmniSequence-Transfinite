@@ -28,6 +28,14 @@ public abstract class ClusterAssemblerMatrixMixin implements MolecularMatrixClus
         return molecularmanipulator$getCore() != null;
     }
 
+    @Override
+    public void molecularmanipulator$flushOutputsAfterCpuAccounting() {
+        var core = molecularmanipulator$getCore();
+        if (core != null) {
+            core.flushOutputsAfterCpuAccounting();
+        }
+    }
+
     @Inject(method = "pushCraftingJob", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$routeCrafting(IPatternDetails patternDetails, KeyCounter[] inputHolder,
             CallbackInfoReturnable<Boolean> callback) {

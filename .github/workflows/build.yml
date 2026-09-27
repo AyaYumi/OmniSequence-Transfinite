@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: AyaYumi/AppliedEnhancements
-          ref: 1.20.1-forge
+          ref: 715972a7f33d9d6e9fab52e22ae8bf19191f129f
           path: .dependencies/appliedenhancements
 
       - name: Build Forge planner dependency

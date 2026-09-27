@@ -25,6 +25,7 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     private boolean patternSearchIndexPending;
     private int requestedPatternRevision = -1;
     private int indexedPatternRevision = -1;
+    private int autoPageRevision = -1;
 
     public MolecularManipulatorScreen(MolecularManipulatorMenu menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -68,6 +69,22 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
             requestPatternSearchIndex();
         }
         updateNavigation();
+        if (patternSearchQuery.isBlank() && autoPageRevision != menu.patternRevision) {
+            autoPageRevision = menu.patternRevision;
+            autoAdvanceFullPage();
+        }
+    }
+
+    private void autoAdvanceFullPage() {
+        if (menu.getPage() + 1 >= menu.getPageCount()) return;
+        var visible = menu.getVisiblePatternSlotIndices();
+        if (visible.length != MolecularManipulatorBlockEntity.PATTERNS_PER_PAGE) return;
+        for (int sourceSlot : visible) {
+            if (sourceSlot < 0 || sourceSlot >= menu.getPatternSlots().size()
+                    || !menu.getPatternSlots().get(sourceSlot).hasItem()) return;
+        }
+        menu.requestPage(menu.getPage() + 1);
+        layoutPatternPage();
     }
 
     @Override

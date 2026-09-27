@@ -9,6 +9,8 @@ import appeng.blockentity.crafting.PatternProviderBlockEntity;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocator;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
+import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
@@ -109,13 +111,18 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     }
 
     public boolean acceptPattern(IPatternDetails details, KeyCounter[] inputs) {
+        return acceptPattern(details, inputs, 1);
+    }
+
+    /** Accepts either one ordinary craft or a validated smart-doubled delivery. */
+    public boolean acceptPattern(IPatternDetails details, KeyCounter[] inputs, long crafts) {
         var supplied = new java.util.LinkedHashMap<appeng.api.stacks.AEKey, Long>();
         try {
             for (var counter : inputs) for (var entry : counter) {
                 if (entry.getLongValue() <= 0) return false;
                 supplied.merge(entry.getKey(), entry.getLongValue(), Math::addExact);
             }
-            if (!buffer.enqueue(details, supplied, 1)) return false;
+            if (!buffer.enqueue(details, supplied, crafts)) return false;
         } catch (ArithmeticException error) { return false; }
         for (var counter : inputs) counter.clear();
         return true;

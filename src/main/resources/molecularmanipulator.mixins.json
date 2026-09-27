@@ -16,6 +16,9 @@
     "CraftingCPUCalculatorMixin",
     "CraftingStatusMenuMixin",
     "CraftingCpuLogicMixin",
+    "DataEnergisticsCpuIdentityMixin",
+    "ExactExecutingJobAccessor",
+    "ExactReturnPerformanceMixin",
     "GridActiveMachinesMixin",
     "KeyCounterMixin",
     "LabeledPatternCheckProviderMixin",
@@ -27,7 +30,8 @@
     "PatternAccessTermMenuMixin",
     "PatternProviderLogicMixin",
     "RecipeManagerAccessor",
-    "TileAssemblerMatrixPatternMixin"
+    "TileAssemblerMatrixPatternMixin",
+    "UselessExactOutputReturnMixin"
   ],
   "client": [
     "CPUSelectionListMixin",

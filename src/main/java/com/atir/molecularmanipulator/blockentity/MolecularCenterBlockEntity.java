@@ -3249,6 +3249,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 outputReadyTick, gameTime);
     }
 
+    void flushOutputsAfterCpuAccounting() {
+        if (level != null && !level.isClientSide()) {
+            flushBufferedOutputs(level.getGameTime(), true);
+        }
+    }
+
     private static void mergeChecked(Object2LongOpenHashMap<AEKey> totals,
             Object2LongOpenHashMap<AEKey> source) {
         for (var entry : source.object2LongEntrySet()) {
@@ -3264,6 +3270,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void flushBufferedOutputs(long gameTime) {
+        flushBufferedOutputs(gameTime, false);
+    }
+
+    private void flushBufferedOutputs(long gameTime,
+            boolean cpuAccountingComplete) {
         if (assembling) {
             return;
         }
@@ -3289,7 +3300,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             blocked |= refundResult.blocked();
             transferred = saturatedAdd(transferred, refundResult.transferred());
 
-            if (gameTime >= outputReadyTick) {
+            if (cpuAccountingComplete || gameTime >= outputReadyTick) {
                 var primaryResult = flushPending(pendingPrimaryOutputs,
                         storage, craftingService, pendingPrimaryTransferScheduler, transferBudget);
                 changed |= primaryResult.changed();

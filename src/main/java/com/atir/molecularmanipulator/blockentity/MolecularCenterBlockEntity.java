@@ -3160,7 +3160,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     private void logPostCommitFailure(String stage,
             RuntimeException exception) {
-        MolecularManipulator.LOGGER.warn(
+        com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                 "Molecular sequence array {} failed after batch ownership committed at {}",
                 stage, getBlockPos(), exception);
     }

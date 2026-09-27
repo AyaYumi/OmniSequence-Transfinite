@@ -19,6 +19,7 @@ import appeng.menu.locator.MenuLocator;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
@@ -242,7 +243,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
 
     private void logPostCommitFailure(String stage,
             RuntimeException exception) {
-        MolecularManipulator.LOGGER.warn(
+        RateLimitedLog.warn(
                 "Molecular manipulator {} failed after batch ownership committed at {}",
                 stage, getBlockPos(), exception);
     }

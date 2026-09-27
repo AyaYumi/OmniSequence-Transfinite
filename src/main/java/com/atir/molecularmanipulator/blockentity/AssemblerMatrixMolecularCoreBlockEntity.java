@@ -15,6 +15,7 @@ import appeng.me.helpers.MachineSource;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -246,7 +247,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
 
     private void logPostCommitFailure(String stage,
             RuntimeException exception) {
-        MolecularManipulator.LOGGER.warn(
+        RateLimitedLog.warn(
                 "Assembler-matrix molecular core {} failed after batch ownership committed at {}",
                 stage, getBlockPos(), exception);
     }

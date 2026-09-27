@@ -13,6 +13,7 @@ import appeng.crafting.CraftingCalculation;
 import appeng.crafting.CraftingTreeNode;
 import appeng.crafting.inv.CraftingSimulationState;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -179,7 +180,7 @@ public abstract class OmniCraftingCalculationMixin {
             return;
         }
         if (result.error() != null) {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+            RateLimitedLog.warn(
                     "Omni AELIS API request fell back to AE2: category={}, reason={}",
                     result.fallbackCategory(), result.fallbackReason(), result.error());
         } else if (com.appliedenhancements.Config.AELIS_DIAGNOSTICS.get()) {

@@ -20,6 +20,7 @@ import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
@@ -312,7 +313,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                     details, craftingInventory, level, expectedOutputs, expectedRemainders);
         } catch (RuntimeException exception) {
             config.state = AutoCraftState.WAITING_MATERIALS;
-            MolecularManipulator.LOGGER.debug("Auto-crafter failed to extract one craft for slot {} at {}",
+            RateLimitedLog.debug("Auto-crafter failed to extract one craft for slot {} at {}",
                     slot, host.getBlockPos(), exception);
             return;
         }
@@ -415,7 +416,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             CraftingEvent.fireAutoCraftingEvent(level, pattern,
                     batcher.getCraftedOutput().copy(), batcher.getCraftingGrid());
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.warn("Auto-crafting event failed for slot {} at {}",
+            RateLimitedLog.warn("Auto-crafting event failed for slot {} at {}",
                     slot, host.getBlockPos(), exception);
         }
         config.state = AutoCraftState.RUNNING;

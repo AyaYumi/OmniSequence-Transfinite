@@ -11,6 +11,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UselessBigIntegerApiBridgeTest {
     static {
+        if (net.neoforged.fml.loading.LoadingModList.get() == null) {
+            net.neoforged.fml.loading.LoadingModList.of(List.of(), List.of(), List.of(), List.of(), java.util.Map.of());
+        }
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
     }

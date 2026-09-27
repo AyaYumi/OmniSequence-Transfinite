@@ -116,6 +116,11 @@ public final class UselessExactOutputReturn {
     }
 
     public static void diagnostic(String reason) {
+        if (!profilingEnabled()) {
+            REASONS.clear();
+            diagnosticDeadline = 0;
+            return;
+        }
         REASONS.merge(reason, 1L, Long::sum);
         long now = System.nanoTime();
         if (diagnosticDeadline == 0) diagnosticDeadline = now + 10_000_000_000L;
@@ -143,6 +148,7 @@ public final class UselessExactOutputReturn {
         var optional = LAYOUTS.get(manager.getClass());
         if (optional.isEmpty()) return BigInteger.ZERO;
         var layout = optional.get();
+        boolean profiling = profilingEnabled();
         long started = 0;
         long returnAge = 0;
         BigInteger transferred = BigInteger.ZERO;
@@ -210,12 +216,16 @@ public final class UselessExactOutputReturn {
                     returnAge = Math.max(returnAge, Math.max(0, level.getGameTime() - layout.queuedTick.getLong(pending)));
                     diagnostic(afterAccounting ? "accepted-same-tick" : "accepted-block-tick");
                     for (BigInteger value : accepted.values()) {
-                        transferred = transferred.add(value); keysTransferred++;
-                        equivalentSegments = equivalentSegments.add(value.add(MAX_LONG).subtract(BigInteger.ONE).divide(MAX_LONG));
+                        transferred = transferred.add(value);
+                        if (profiling) {
+                            keysTransferred++;
+                            equivalentSegments = equivalentSegments.add(value.add(MAX_LONG).subtract(BigInteger.ONE).divide(MAX_LONG));
+                        }
                     }
                 }
                 if (amounts.isEmpty()) {
-                    iterator.remove(); batchesCompleted++;
+                    iterator.remove();
+                    if (profiling) batchesCompleted++;
                     layout.completed.invoke(null, pending);
                 }
             }
@@ -226,7 +236,8 @@ public final class UselessExactOutputReturn {
         } finally {
             if (started != 0) {
                 long elapsed = System.nanoTime() - started;
-                spentThisTick += elapsed; totalNanos += elapsed;
+                spentThisTick += elapsed;
+                if (profiling) totalNanos += elapsed;
                 try { layout.addWork.invoke(null, elapsed); }
                 catch (ReflectiveOperationException failure) { throw new IllegalStateException("Native transfer budget accounting failed", failure); }
                 reportIfDue();
@@ -259,6 +270,11 @@ public final class UselessExactOutputReturn {
     }
 
     private static void reportIfDue() {
+        if (!profilingEnabled()) {
+            keysTransferred = batchesCompleted = totalNanos = nextReport = 0;
+            equivalentSegments = BigInteger.ZERO;
+            return;
+        }
         long now = System.nanoTime();
         if (nextReport == 0) nextReport = now + 10_000_000_000L;
         if (now < nextReport || keysTransferred == 0) return;
@@ -267,6 +283,10 @@ public final class UselessExactOutputReturn {
                 keysTransferred, batchesCompleted, equivalentSegments, totalNanos / 1_000_000.0);
         keysTransferred = batchesCompleted = totalNanos = 0; equivalentSegments = BigInteger.ZERO;
         nextReport = now + 10_000_000_000L;
+    }
+
+    private static boolean profilingEnabled() {
+        return ModConfig.SERVER_SPEC.isLoaded() && ModConfig.OMNI_PROFILE_EXACT_RETURNS.get();
     }
 
     private static final class Layout {

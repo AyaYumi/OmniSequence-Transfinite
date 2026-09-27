@@ -10,6 +10,7 @@ import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerCraftingProvider
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutputReceiver;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerProviderAdapterRegistry;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import net.minecraft.resources.ResourceLocation;
 
 import java.lang.reflect.Constructor;
@@ -403,7 +404,7 @@ public final class UselessBigIntegerApiBridge {
                 Object planned = plannedMethod.invoke(context);
                 callbacks.onAdmitted(readOutputs(planned));
             } catch (ReflectiveOperationException | RuntimeException exception) {
-                MolecularManipulator.LOGGER.warn(
+                RateLimitedLog.warn(
                         "Could not relay UselessMod BigInteger admission callback", exception);
             }
         }
@@ -436,7 +437,7 @@ public final class UselessBigIntegerApiBridge {
                 }
                 return java.util.Map.copyOf(accepted);
             } catch (ReflectiveOperationException | RuntimeException exception) {
-                MolecularManipulator.LOGGER.warn(
+                RateLimitedLog.warn(
                         "Could not claim UselessMod BigInteger outputs for CPU", exception);
                 return java.util.Map.of();
             }
@@ -470,7 +471,7 @@ public final class UselessBigIntegerApiBridge {
                 if (cancelled) callbacks.onCancelled(amount);
                 else if (!exactOutputs.isEmpty()) callbacks.onOutputs(List.copyOf(exactOutputs));
             } catch (ReflectiveOperationException | RuntimeException exception) {
-                MolecularManipulator.LOGGER.warn(
+                RateLimitedLog.warn(
                         "Could not relay UselessMod BigInteger output callback", exception);
             }
         }

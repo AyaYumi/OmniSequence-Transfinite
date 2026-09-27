@@ -46,6 +46,7 @@ import com.atir.molecularmanipulator.crafting.MolecularScaledPatternFactory;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.crafting.OmniExactInventory;
 import com.atir.molecularmanipulator.crafting.OmniExactInputReservation;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
@@ -729,7 +730,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
     @Unique
     private static void molecularmanipulator$logApiBatchFailure(
             String phase, Throwable exception) {
-        com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+        RateLimitedLog.warn(
                 "Omni batch-provider API failure during {}; applying the ownership-safe outcome",
                 phase, exception);
     }
@@ -2195,7 +2196,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
                 flushed |= OmniPostAccountingOutputAdapterRegistry
                         .flushAfterCpuAccounting(provider);
             } catch (RuntimeException exception) {
-                com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+                RateLimitedLog.warn(
                         "Molecular batch output could not be returned immediately; retaining it for the normal retry",
                         exception);
             }
@@ -2999,7 +3000,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
     @Unique
     private static void molecularmanipulator$logProviderCleanupFailure(
             String phase, RuntimeException exception) {
-        com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+        RateLimitedLog.error(
                 "Pattern provider {} failed after its push decision; "
                         + "AE2 accounting will continue and scaled dispatch will be downgraded",
                 phase, exception);

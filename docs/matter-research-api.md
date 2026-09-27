@@ -9,14 +9,15 @@ Other languages: [中文版](matter-research-api.zh-CN.md).
 See also the [API index](README.md) and the separate
 [Omni Batch Provider API v1](omni-batch-provider-api.md).
 
-This page covers the two recipe types that make up the well's content:
+This page covers the three recipe types that make up the well's content:
 
 | Recipe type | Purpose |
 | --- | --- |
 | `molecularmanipulator:matter_fabrication` | What a Matter Fabrication Well can produce. |
 | `molecularmanipulator:matter_research` | Research that unlocks those recipes and adds production bonuses. |
+| `molecularmanipulator:matter_machine_import` | An entire machine's recipe import, field mappings, and research branch. |
 
-Both are ordinary data-pack recipes under `data/<namespace>/recipes/`. KubeJS adds
+All three are ordinary data-pack recipes under `data/<namespace>/recipes/`. KubeJS adds
 or replaces them with `ServerEvents.recipes` and `event.custom`; no extra plugin
 is required. Research progress belongs to each well controller, not to the player
 and not to a global network.
@@ -124,6 +125,131 @@ Notes:
 
 ---
 
+## 1.2 Machine imports and field mappings: `molecularmanipulator:matter_machine_import`
+
+Declare imports in `kubejs/server_scripts` through `ServerEvents.recipes`; no extra
+KubeJS plugin is required. This example imports furnace recipes into a research branch:
+
+```javascript
+ServerEvents.recipes(event => {
+  event.custom({
+    type: 'molecularmanipulator:matter_machine_import',
+    machine: 'minecraft:furnace',
+    serializers: ['minecraft:smelting'],
+    inputs: {items: ['/ingredient']},
+    outputs: {items: ['/result']},
+    processing_time: 200,
+    ae_per_tick: 256,
+    research: {
+      title: 'Furnace research',
+      stage: 2,
+      sort_order: 1100,
+      prerequisites: ['molecularmanipulator:research/ae_foundation'],
+      ingredients: [{ingredient: {item: 'minecraft:furnace'}, count: '1'}],
+      duration: 600,
+      ae_per_tick: 512
+    }
+  }).id('kubejs:furnace_import');
+});
+```
+
+The generated research ID is `molecularmanipulator:research/machine/kubejs/furnace_import`.
+Imported recipe IDs start with `molecularmanipulator:fabrication/import/machine/kubejs/furnace_import/`.
+Keep declaration IDs stable: changing the ID creates another research branch and does
+not migrate completion counts stored on existing controllers.
+
+| Declaration field | Meaning |
+| --- | --- |
+| `machine` | Required machine item ID. An absent item disables the import. KubeJS-registered items are supported. |
+| `serializers` | Required nonempty list of source recipe JSON `type` IDs: recipe **serializer IDs**, not JEI category IDs. |
+| `research` | Required; accepts all existing `matter_research` fields, including costs, prerequisites, `depths`, and `required_mods`. Imported recipe IDs are appended to `unlocks`; explicit additional unlocks are retained. |
+| `inputs` / `outputs` | Optional; each replaces automatic parsing for that direction. Omit it to use existing parsers. When specified, include every resource in that direction. |
+| `processing_time` | Imported recipes' base duration, default 200 ticks. |
+| `ae_per_tick` | Imported recipes' base power, default 256 AE/t. Separate from `research.ae_per_tick`. |
+
+### Field paths
+
+`inputs` and `outputs` share this mapping format:
+
+| Mapping field | Contents |
+| --- | --- |
+| `items` | Item field paths. Inputs accept `{item: ...}`, `{tag: ...}`, or `{ingredient: ..., count: ...}`. Outputs accept `{id: ..., count: ..., nbt: ...}`, also allowing `item` instead of `id`. |
+| `fluids` | Fluid field paths accepting `{id: ..., amount: ..., nbt: ...}`, also allowing `fluid` instead of `id`. Amounts are in mB. |
+| `resources` | Field paths containing serialized AE stacks: a `GenericStack` with `#t` and `#`, or `{key_type: ..., resource: ..., amount: ...}`. |
+| `ae_keys` | Rules constructing registered AE resources from ordinary recipe fields; see below. |
+
+Paths follow JSON Pointer: `/inputs/items` selects a nested field, `/inputs/0` selects
+the first array entry, and the empty string selects the whole recipe. Escape `/` in
+field names as `~1` and `~` as `~0`. Paths refer to JSON **re-encoded by the source
+recipe serializer**; serializers may omit defaults, so this can differ from the
+original KubeJS JSON. Arrays are read entry by entry. Alternative item ingredients
+belong inside `ingredient`, for example
+`{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`.
+Explicit paths must be readable, arrays nonempty, and amounts positive integers.
+An unreadable entry skips the whole recipe and logs its ID rather than importing
+only part of its inputs or outputs.
+
+### Lightning and other special AE resources
+
+This declaration maps `lightningTier` and `lightningCost` to Lightning Tech's native
+AE lightning type. It replaces the built-in lightning assembly chamber import and
+generates its research from this declaration:
+
+```javascript
+ServerEvents.recipes(event => {
+  event.custom({
+    type: 'molecularmanipulator:matter_machine_import',
+    machine: 'ae2lt:lightning_assembly_chamber',
+    serializers: ['ae2lt:lightning_assembly'],
+    inputs: {
+      items: ['/inputs'],
+      ae_keys: [{
+        key_type: 'ae2lt:lightning',
+        amount_path: '/lightningCost',
+        amount_default: 4,
+        fields: {tier: 'high_voltage'},
+        field_paths: {tier: '/lightningTier'}
+      }]
+    },
+    outputs: {items: ['/result']},
+    research: {
+      title: 'Lightning assembly research',
+      stage: 2,
+      required_mods: ['ae2lt'],
+      prerequisites: ['molecularmanipulator:research/ae_foundation'],
+      ingredients: [{ingredient: {item: 'ae2lt:lightning_assembly_chamber'}, count: '1'}],
+      duration: 600,
+      ae_per_tick: 512
+    }
+  }).id('kubejs:lightning_assembly_import');
+});
+```
+
+`key_type` must be an AEKey type registered by a mod. `amount_path` reads the amount;
+if absent, `amount_default` is used (default 0, so supply a valid default or source).
+`fields` supplies JSON constants, including nested objects. `field_paths` copies
+source JSON values into named AEKey fields, falling back to the corresponding `fields`
+constant when absent. A missing field without a default skips the recipe. System
+fields `#t` and `#` cannot be overridden. `extreme_high_voltage` retains its native
+lightning identity; no wrapped generic stack item is created.
+
+For data resources, use `key_type: 'data_energistics:digitalization'`,
+`fields: {resource: 'data_energistics:data_flow'}`, and the appropriate `amount_path`.
+These rules decode existing AE types; new AEKey and JEI ingredient types must still
+be registered by the resource's mod. Without a native JEI converter, the well does
+not disguise a resource as a wrapped item.
+
+### Reload and precedence
+
+- Imports and research rebuild from effective recipes after reload and client recipe sync, including KubeJS changes.
+- A serializer belongs to one import declaration. Custom declarations override built-in entries. If custom declarations overlap, they are sorted by declaration ID and the last wins; avoid overlaps.
+- A missing machine, unmet `research.required_mods`, or no successfully imported recipes hides the branch.
+- Recipes merge when the same machine has identical complete outputs and input amounts. Distinct inputs remain branches counted by the research panel.
+- A recipe supports up to 12 item/AE inputs plus one fluid input, and up to 6 item outputs, 6 AE outputs, plus one fluid output. Extra fluids become AE fluid stacks and count against AE slots. Recipes exceeding these limits are skipped.
+- Fuel, chance outputs, nonconsumed catalysts, temperature, and similar machine behavior are not automatically simulated by field mappings. Import only recipes whose consumed inputs and deterministic outputs can be represented accurately.
+
+---
+
 ## 2. Research definition: `molecularmanipulator:matter_research`
 
 Location: `data/<namespace>/recipes/<path>.json`.
@@ -196,19 +322,20 @@ multiplied.
 
 | Field | Meaning |
 | --- | --- |
-| `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: 1-64}`. Defaults to empty. |
-| `results` | Up to **2** item outputs as `{id: ..., count: ...}`. |
-| `fluid_input` | Optional fluid input `{id: ..., amount: ...}` in mB. Does not count toward the nine-input limit. |
+| `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: ...}` with a positive integer count. Defaults to empty. |
+| `results` | Up to **6** item outputs as `{id: ..., count: ...}`. |
+| `fluid_input` | Optional fluid input `{id: ..., amount: ...}` in mB. Does not count toward the twelve-input limit. |
 | `fluid_result` | Optional single fluid output, same format. |
-| `ae_inputs` | Up to **9** generic AEKey inputs; see §4.1. |
+| `ae_inputs` | Up to **12** generic AEKey inputs; see §4.1. |
+| `ae_outputs` | Up to **6** generic AEKey outputs, using the same stack codec as `ae_inputs`. |
 | `processing_time` | Base ticks, default `200`; values below `1` are raised to `1`. |
 | `ae_per_tick` | Base power, default `64.0`; negative values are raised to `0`. |
 | `requires_research` | Default `false`. See §4.2. |
 
-Load-time error conditions: `ingredients` + `ae_inputs` may not exceed **9**;
+Load-time error conditions: `ingredients` + `ae_inputs` may not exceed **12**;
 at least one of `ingredients`, `fluid_input` or `ae_inputs` must be present; every
-`ae_inputs` amount must be a positive integer; and at least one item or fluid
-result is required. Unlike research definitions, a malformed well recipe fails to
+`ae_inputs` / `ae_outputs` amount must be a positive integer; and at least one item,
+fluid, or AE result is required. Unlike research definitions, a malformed well recipe fails to
 load instead of being rejected at craft time.
 
 ### 4.1 Generic inputs (`ae_inputs`)
@@ -258,7 +385,7 @@ Generic keys match exactly, including their NBT, while ordinary `ingredients`
 keep their Ingredient/tag matching. Repeated or overlapping requirements are
 additive — the same stock is never counted for two different requirements.
 
-Recipes containing `ae_inputs` must be fed by a **pattern assembly**. Manual item
+Recipes containing `ae_inputs` or `ae_outputs` must be fed by a **pattern assembly**. Manual item
 and fluid ports cannot supply generic AE buffers and reject such recipes.
 
 Java constructor for recipes with generic inputs:
@@ -268,9 +395,13 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
         aeInputs, processingTime, aePerTick, requiresResearch); // aeInputs is List<GenericStack>
 ```
 
-The older constructors remain available and default `aeInputs` to an empty list.
-Outputs still come from `results` and `fluid_result` (up to two item results and
-one fluid result); there are no generic output fields.
+The older constructors remain available and default omitted generic input/output
+lists to empty. The complete constructor accepts both lists:
+
+```java
+new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
+        aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+```
 
 ### 4.2 Research permission
 

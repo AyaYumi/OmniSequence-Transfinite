@@ -71,6 +71,17 @@ public final class MolecularAutoCrafterBlock extends AEBaseEntityBlock<Molecular
     }
 
     @Override
+    public List<ItemStack> getDrops(BlockState state, net.minecraft.world.level.storage.loot.LootParams.Builder builder) {
+        var drops = new java.util.ArrayList<>(super.getDrops(state, builder));
+        var entity = builder.getOptionalParameter(
+                net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY);
+        if (entity instanceof MolecularAutoCrafterBlockEntity crafter && crafter.hasRemovalRecovery()) {
+            drops.removeIf(stack -> stack.is(asItem()));
+        }
+        return drops;
+    }
+
+    @Override
     public void neighborChanged(BlockState state, Level level, BlockPos pos, Block block,
             BlockPos fromPos, boolean isMoving) {
         var entity = getBlockEntity(level, pos);

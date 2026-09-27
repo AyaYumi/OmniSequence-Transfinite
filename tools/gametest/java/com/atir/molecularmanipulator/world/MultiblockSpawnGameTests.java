@@ -49,6 +49,18 @@ public final class MultiblockSpawnGameTests {
             refresh(machine);
             helper.assertTrue(MultiblockChunkLoading.ownedChunks(level, origin).equals(expected),
                     "Real formed structure must protect exactly its blueprint footprint: " + kind);
+            boolean forceLoading = com.atir.molecularmanipulator.config.ModConfig.FORCE_LOAD_CHUNKS.get();
+            try {
+                com.atir.molecularmanipulator.config.ModConfig.FORCE_LOAD_CHUNKS.set(false);
+                MultiblockChunkLoading.maintain(machine);
+                helper.assertTrue(MultiblockChunkLoading.ownedChunks(level, origin).isEmpty(),
+                        "Disabling force loading must release existing controller tickets");
+            } finally {
+                com.atir.molecularmanipulator.config.ModConfig.FORCE_LOAD_CHUNKS.set(forceLoading);
+                MultiblockChunkLoading.maintain(machine);
+            }
+            helper.assertTrue(MultiblockChunkLoading.ownedChunks(level, origin).equals(expected),
+                    "Re-enabling force loading must reacquire the formed footprint");
             verifyFootprint(helper, expected);
             var point = expected.iterator().next().getBlockAt(0, 250, 0);
             verifySpawnReasons(helper, point);

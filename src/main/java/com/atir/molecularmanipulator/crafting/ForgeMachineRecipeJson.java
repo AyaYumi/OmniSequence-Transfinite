@@ -8,6 +8,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSerializer;
 import com.mojang.serialization.JsonOps;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.WeakHashMap;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -36,16 +37,25 @@ public final class ForgeMachineRecipeJson {
     private ForgeMachineRecipeJson() {}
 
     public static void capture(RecipeManager manager, Map<ResourceLocation, JsonElement> json) {
+        var copied = new LinkedHashMap<ResourceLocation, JsonElement>();
+        json.forEach((id, value) -> copied.put(id, value.deepCopy()));
         synchronized (SOURCES) {
             SOURCES.put(manager, new Snapshot(
-                    ((RecipeManagerAccessor) manager).molecularmanipulator$getRecipesByName(), Map.copyOf(json)));
+                    ((RecipeManagerAccessor) manager).molecularmanipulator$getRecipesByName(), Map.copyOf(copied), false));
         }
+    }
+
+    public static void receive(RecipeManager manager, Map<ResourceLocation, JsonElement> json) {
+        synchronized (SOURCES) {
+            SOURCES.put(manager, new Snapshot(Map.of(), Map.copyOf(json), true));
+        }
+        MatterRecipeIndex.invalidate(manager);
     }
 
     public static JsonElement encode(Level level, Recipe<?> recipe) {
         synchronized (SOURCES) {
             var snapshot = SOURCES.get(level.getRecipeManager());
-            if (snapshot != null && snapshot.recipes.get(recipe.getId()) == recipe) {
+            if (snapshot != null && (snapshot.client || snapshot.recipes.get(recipe.getId()) == recipe)) {
                 var json = snapshot.json.get(recipe.getId());
                 if (json != null) return json.deepCopy();
             }
@@ -57,5 +67,6 @@ public final class ForgeMachineRecipeJson {
         }
     }
 
-    private record Snapshot(Map<ResourceLocation, Recipe<?>> recipes, Map<ResourceLocation, JsonElement> json) {}
+    private record Snapshot(Map<ResourceLocation, Recipe<?>> recipes, Map<ResourceLocation, JsonElement> json,
+            boolean client) {}
 }

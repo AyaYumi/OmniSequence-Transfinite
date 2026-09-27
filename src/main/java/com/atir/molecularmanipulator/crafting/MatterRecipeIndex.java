@@ -125,6 +125,12 @@ public final class MatterRecipeIndex {
         }
     }
 
+    public static void invalidate(RecipeManager manager) {
+        synchronized (CACHE) {
+            CACHE.remove(manager);
+        }
+    }
+
     public List<MatterFabricationRecipe> candidates(Map<AEKey, Long> output) {
         return byOutput.getOrDefault(output, List.of());
     }

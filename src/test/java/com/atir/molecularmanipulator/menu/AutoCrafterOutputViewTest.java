@@ -17,11 +17,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AutoCrafterOutputViewTest {
     static {
-        if (net.minecraftforge.fml.loading.LoadingModList.get() == null) {
-            net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(), List.of(), List.of(), java.util.Map.of());
-        }
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
+        if (net.minecraftforge.fml.loading.LoadingModList.get() == null) {
+            net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(), null);
+        }
     }
 
     @Test
@@ -47,7 +47,8 @@ class AutoCrafterOutputViewTest {
         assertEquals(outputs.get(36), view.getStack(0));
         assertNull(view.getStack(1));
         assertEquals(1, view.refresh(outputs, 1));
-        assertEquals(outputs.subList(18, 36), view.toList());
+        assertEquals(outputs.subList(18, 36), java.util.stream.IntStream.range(0, view.size())
+                .mapToObj(view::getStack).toList());
         assertEquals(0, view.refresh(List.of(outputs.get(0)), 2));
         assertEquals(1, view.pageCount());
         for (int slot = 1; slot < view.size(); slot++) assertNull(view.getStack(slot));

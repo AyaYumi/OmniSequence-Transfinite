@@ -30,6 +30,7 @@ public final class MolecularManipulator {
         MultiblockChunkLoading.register();
         modEventBus.addListener(this::commonSetup);
         PatternSearchIndexPayload.register();
+        com.atir.molecularmanipulator.network.MachineRecipeJsonPayload.register();
         MatterSequenceRegistry.loadOrCreate();
         MinecraftForge.EVENT_BUS.addListener(this::serverAboutToStart);
     }

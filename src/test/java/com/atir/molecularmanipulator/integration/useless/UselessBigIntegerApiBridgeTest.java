@@ -11,11 +11,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UselessBigIntegerApiBridgeTest {
     static {
-        if (net.neoforged.fml.loading.LoadingModList.get() == null) {
-            net.neoforged.fml.loading.LoadingModList.of(List.of(), List.of(), List.of(), List.of(), java.util.Map.of());
-        }
         net.minecraft.SharedConstants.tryDetectVersion();
         net.minecraft.server.Bootstrap.bootStrap();
+        if (net.minecraftforge.fml.loading.LoadingModList.get() == null) {
+            net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(), null);
+        }
     }
     static final AEItemKey INPUT = AEItemKey.of(Items.COAL);
     static final AEItemKey OUTPUT = AEItemKey.of(Items.DIAMOND);

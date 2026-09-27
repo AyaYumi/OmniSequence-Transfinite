@@ -2,10 +2,8 @@ package com.atir.molecularmanipulator.integration.extendedaeplus;
 
 import appeng.api.networking.IGrid;
 import appeng.api.inventories.InternalInventory;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.component.CustomData;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.config.ModConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -108,11 +106,11 @@ public final class MatrixUploadCoreIntegration {
 
     private static ItemStack withoutEncoder(ItemStack stack) {
         var copy = stack.copy();
-        var customData = copy.get(DataComponents.CUSTOM_DATA);
+        var customData = copy.getTag();
         if (customData != null) {
-            CompoundTag tag = customData.copyTag();
+            CompoundTag tag = customData.copy();
             tag.remove("encodePlayer");
-            copy.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+            copy.setTag(tag);
         }
         return copy;
     }

@@ -55,7 +55,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
         var level = net.minecraft.client.Minecraft.getInstance().level;
         if (level != null) {
             registration.addRecipes(MatterFabricationJeiCategory.TYPE,
-                    level.getRecipeManager().getAllRecipesFor(ModContent.MATTER_FABRICATION_RECIPE_TYPE.get())
+                    com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level).fabrication()
                             .stream().map(java.util.function.Function.identity()).toList());
         }
         registration.addRecipes(MatterFabricationStructureJeiCategory.TYPE,

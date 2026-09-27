@@ -13,12 +13,12 @@
 | Minecraft | 1.20.1 |
 | Forge | 47.4.10 或更高（测试基线 47.4.20） |
 | Applied Energistics 2 | 15.4.10 至 15.x |
-| AppliedEnhancements | 1.0.6-forge，客户端和服务端必需 |
+| AppliedEnhancements | 1.0.9-fix-forge，客户端和服务端必需 |
 | ExtendedAE | 整合包基线 1.20-1.4.19-forge；CI 基线 1.20-1.4.18-forge |
 | Glodium | 1.20-1.5-forge |
 | 可选兼容 | Advanced AE、ExtendedAE Plus、JEI、AE2WTLib |
 
-当前版本：`2.0.4-forge`，后续源码维护分支为 `1.20.1-forge`。
+当前版本：`2.0.6-forge`，后续源码维护分支为 `1.20.1-forge`。
 
 相对 2.0.3 的变化见 [2.0.4 更新说明](docs/releases/2.0.4.md)，完整历史见
 [CHANGELOG.md](CHANGELOG.md)，功能概览见[中英项目介绍](docs/curseforge-description.md)。
@@ -255,7 +255,7 @@ Forge API、材料与界面差异见 [移植说明](docs/FORGE_PORT.md)。
 原位置按投影补回对应结构方块。
 
 源码构建前，按 [前置准备说明](libs/README.md) 将独立构建的
-`appliedenhancements-1.0.6-forge.jar` 放入 `libs/`。前置 JAR 不提交到本仓库，
+`appliedenhancements-1.0.9-fix-forge.jar` 放入 `libs/`。前置 JAR 不提交到本仓库，
 也不嵌入本模组；Forge 前置构建见依赖说明。全部机器界面与 JEI 页面使用自主绘制的浅色科幻控制台风格，保留 Minecraft / AE2 容器交互，不需要 LDLib2；详见 [界面设计](docs/UI_DESIGN.md)。
 
 ```powershell
@@ -265,7 +265,7 @@ Forge API、材料与界面差异见 [移植说明](docs/FORGE_PORT.md)。
 构建产物：
 
 ```text
-build/libs/omnisequence-transfinite-2.0.4-forge.jar
+build/libs/omnisequence-transfinite-2.0.6-forge.jar
 ```
 
 版本变化、安装与升级说明见 [CHANGELOG.md](CHANGELOG.md)。本项目使用

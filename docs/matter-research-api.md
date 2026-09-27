@@ -1,8 +1,8 @@
 # Matter Fabrication Well: Recipes and Research API (Forge)
 
-Current for **2.0.4-forge**.
+Current for **2.0.6-forge**.
 Target: Minecraft **1.20.1** / Forge **47.4.20+**, Java **17**, AE2 **15.4.10+**, and
-the required prerequisite AppliedEnhancements **1.0.6-forge**. The Mod ID stays
+the required prerequisite AppliedEnhancements **1.0.9-fix-forge**. The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
@@ -330,20 +330,22 @@ block other machines, and already-built multiblocks keep working.
 | `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, pattern assembly |
 | `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
 | `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
+| `machine/<machine_key>` | 600 ticks / 30 s | 512 AE/t | Recipes imported from that addon machine (when the mod and machine are present) |
 
 The 30 seconds applies to the first unlock and to every later deep-research round
 of the built-in researches. Custom `duration` values stay free in ticks and still
 default to 1200; a started round keeps the duration snapshot from its start.
 
-Both stage-two branches require **one** `ae_foundation` completion by default.
-The 27 stage-one additions are listed under the ID pattern
-`molecularmanipulator:fabrication/research_materials/<modid>/<item>`. The two
-stage-two researches consume 17 distinct material types: 8 AdvancedAE, 7
-ExtendedAE (`expatternprovider`) and 2 vanilla AE2 items. The AE2 pair is covered
-by the seven `fabrication/ae/` recipes, so 15 of the 17 live in the
-research-materials set, which also supplies the related intermediates and quantum
-infusion recipes. They open on the first tier-one completion and receive tier-one
-deep-research bonuses.
+These stage-two branches require **one** `ae_foundation` completion by default.
+Built-in additions use IDs under
+`molecularmanipulator:fabrication/research_materials/<modid>/<item>`. Addon machine
+recipes use `molecularmanipulator:fabrication/import/machine/<machine_key>/<output>`;
+each machine with supported recipes has its own research branch. The importer reads
+the effective recipe manager after reload, including changes made through KubeJS
+`ServerEvents.recipes`. Distinct input branches remain separate recipes. Identical
+inputs and counts for the same output are merged, while the research panel shows one
+output row with the number of branches. Supported AE item, fluid, lightning, and data
+resources keep their native ingredient identity in JEI.
 
 Without AdvancedAE the Omni-Computation branch and its material recipes do not
 load, and the interface lists nothing for them. Those definitions and recipes are
@@ -430,7 +432,7 @@ the recipe ID, so unstarted batches re-check the current recipe, permission and
 profile instead of reusing old figures. Work that can no longer proceed keeps its
 materials inside the assembly and can be returned as pending input.
 
-### 7.1 Known limitations in 2.0.4
+### 7.1 Known limitations in 2.0.6
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.

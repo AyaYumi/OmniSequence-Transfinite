@@ -4,7 +4,7 @@
 
 OmniSequence: Transfinite expands Applied Energistics 2 and ExtendedAE with machines built for demanding endgame factories. Manage thousands of patterns, run concurrent crafting jobs, build a Matter Fabrication Well, and develop your production network through research.
 
-This description covers **version 2.0.4-forge for Minecraft 1.20.1 / Forge / Java 17**. For other downloads, use the requirements and changelog attached to that file.
+This description covers **version 2.0.6-forge for Minecraft 1.20.1 / Forge / Java 17**. For other downloads, use the requirements and changelog attached to that file.
 
 ## Machines for your endgame factory
 
@@ -98,7 +98,7 @@ Install the matching **Minecraft 1.20.1 Forge** files on both client and server:
 | Java | 17 |
 | Forge | 47.4.10+; build baseline 47.4.20 |
 | Applied Energistics 2 | 15.4.10–15.x |
-| AppliedEnhancements | 1.0.6-forge; install separately |
+| AppliedEnhancements | 1.0.9-fix-forge; install separately |
 | ExtendedAE | Compatible Forge 1.20.1 build; tested baseline 1.20-1.4.19-forge |
 | Glodium | 1.20-1.5-forge |
 | GuideME | 20.1.15 |
@@ -125,7 +125,7 @@ The Mod ID remains **`molecularmanipulator`** for existing world and script refe
 
 万象构序：超限是 Applied Energistics 2 与 ExtendedAE 的后期扩展。管理数千份样板、同时处理多个合成任务、搭建物质构筑井，并通过研究逐步扩展工厂的生产能力。
 
-以下介绍对应 **2.0.4-forge，Minecraft 1.20.1 / Forge / Java 17**。其他下载文件的版本、前置和功能请以各自说明为准。
+以下介绍对应 **2.0.6-forge，Minecraft 1.20.1 / Forge / Java 17**。其他下载文件的版本、前置和功能请以各自说明为准。
 
 ## 后期工厂的核心设备
 
@@ -219,7 +219,7 @@ Forge 版使用原生 Minecraft/AE2 控件，不需要 LDLib2。
 | Java | 17 |
 | Forge | 47.4.10+，构建基线 47.4.20 |
 | Applied Energistics 2 | 15.4.10–15.x |
-| AppliedEnhancements | 1.0.6-forge，需单独安装 |
+| AppliedEnhancements | 1.0.9-fix-forge，需单独安装 |
 | ExtendedAE | Compatible Forge 1.20.1 build; tested baseline 1.20-1.4.19-forge |
 | Glodium | 1.20-1.5-forge |
 | GuideME | 20.1.15 |

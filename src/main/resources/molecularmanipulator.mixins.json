@@ -30,8 +30,10 @@
     "PatternAccessTermMenuMixin",
     "PatternProviderLogicMixin",
     "RecipeManagerAccessor",
+    "ForgeMachineRecipeJsonMixin",
     "TileAssemblerMatrixPatternMixin",
-    "UselessExactOutputReturnMixin"
+    "UselessExactOutputReturnMixin",
+    "ExtendedAEPlusPatternUploadMixin"
   ],
   "client": [
     "CPUSelectionListMixin",

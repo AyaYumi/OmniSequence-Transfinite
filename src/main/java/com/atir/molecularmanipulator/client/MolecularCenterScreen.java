@@ -278,6 +278,9 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         }
         boolean quantumVisible = detailTab == TAB_QUANTUM;
         menu.getQuantumSlot().setActive(quantumVisible);
+        if (menu.getMatrixUploadCoreSlot() != null) {
+            menu.getMatrixUploadCoreSlot().setActive(quantumVisible);
+        }
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
     }
@@ -444,6 +447,10 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         } else if (detailTab == TAB_QUANTUM) {
             drawSlotFrame(graphics, MolecularCenterMenu.QUANTUM_SLOT_X, MolecularCenterMenu.QUANTUM_SLOT_Y,
                     0xFF55799E);
+            if (menu.getMatrixUploadCoreSlot() != null) {
+                drawSlotFrame(graphics, MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X,
+                        MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_Y, 0xFF8B70C4);
+            }
             graphics.fill(x + 312, y + 85, x + 314, y + 92, OmniUiTheme.SHADOW);
             graphics.fill(x + 312, y + 92, x + 314, y + 95, 0xFF55799E);
         }
@@ -603,7 +610,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 ? Component.translatable("gui.molecularmanipulator.auto_craft_invalid_pattern")
                 : output.what().getDisplayName();
         if (output != null) {
-            graphics.renderItem(GenericStack.wrapInItemStack(output), DETAIL_CONTENT_LEFT, 90);
+            AEStackIcon.draw(graphics, output, DETAIL_CONTENT_LEFT, 90);
         }
         autoCraftOutputLimit.setTooltip(Tooltip.create(Component.translatable(
                 "gui.molecularmanipulator.auto_craft_output_limit_for_tooltip", outputName)));
@@ -620,8 +627,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
             }
             int columnX = inputIndex % 2 == 0 ? DETAIL_CONTENT_LEFT : 313;
             int rowY = 123 + inputIndex / 2 * 22;
-            ItemStack icon = GenericStack.wrapInItemStack(input);
-            graphics.renderItem(icon, columnX, rowY);
+            AEStackIcon.draw(graphics, input, columnX, rowY);
             autoCraftInputReserves[inputIndex].setTooltip(Tooltip.create(Component.translatable(
                     "gui.molecularmanipulator.auto_craft_input_reserve_for_tooltip",
                     inputIndex + 1, input.what().getDisplayName())));
@@ -637,6 +643,12 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 Component.translatable("gui.molecularmanipulator.quantum_singularity"),
                 MolecularCenterMenu.QUANTUM_SLOT_X + 8, 46, contentWidth,
                 OmniUiTheme.PRIMARY_TEXT);
+        if (menu.getMatrixUploadCoreSlot() != null) {
+            drawCenteredFittedString(graphics,
+                    Component.translatable("gui.molecularmanipulator.quantum_upload_core"),
+                    MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X + 8, 46, 68,
+                    OmniUiTheme.ACCENT);
+        }
 
         var state = menu.quantumLinkState;
         int stateColor = switch (state) {
@@ -659,13 +671,20 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_channel"),
                 DETAIL_CONTENT_LEFT, 155, contentWidth, OmniUiTheme.MUTED_TEXT);
         drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_remote_ring"),
-                DETAIL_CONTENT_LEFT, 173, contentWidth, OmniUiTheme.MUTED_TEXT);
+                DETAIL_CONTENT_LEFT, 169, contentWidth, OmniUiTheme.MUTED_TEXT);
+        if (menu.getMatrixUploadCoreSlot() != null) {
+            drawFittedString(graphics,
+                    Component.translatable("gui.molecularmanipulator.quantum_upload_core_hint"),
+                    DETAIL_CONTENT_LEFT, 187, contentWidth, OmniUiTheme.MUTED_TEXT);
+        }
         drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.spawn_protection"),
-                DETAIL_CONTENT_LEFT, 196, contentWidth, OmniUiTheme.SUCCESS);
+                DETAIL_CONTENT_LEFT, menu.getMatrixUploadCoreSlot() == null ? 187 : 207,
+                contentWidth, OmniUiTheme.SUCCESS);
         if (!menu.legacyStructure) {
             drawFittedString(graphics,
                     Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
-                    DETAIL_CONTENT_LEFT, 211, contentWidth, OmniUiTheme.MUTED_TEXT);
+                    DETAIL_CONTENT_LEFT, menu.getMatrixUploadCoreSlot() == null ? 202 : 222,
+                    contentWidth, OmniUiTheme.MUTED_TEXT);
         }
     }
 

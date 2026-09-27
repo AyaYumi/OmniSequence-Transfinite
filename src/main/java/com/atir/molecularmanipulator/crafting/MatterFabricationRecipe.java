@@ -24,24 +24,40 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
         FluidStack fluidInput,
         FluidStack fluidResult,
         List<GenericStack> aeInputs,
+        List<GenericStack> aeOutputs,
         int processingTime,
         double aePerTick,
         boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
-    public static final int MAX_INPUTS = 9;
-    public static final int MAX_OUTPUTS = 2;
+    public static final int MAX_INPUTS = 12;
+    public static final int MAX_OUTPUTS = 6;
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
             FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick) {
         this(ingredients, results, fluidInput, fluidResult, processingTime, aePerTick, false);
     }
 
-    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick, boolean requiresResearch) {
-        this(ingredients, results, fluidInput, fluidResult, List.of(), processingTime, aePerTick, requiresResearch);
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
+            FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(ingredients, results, fluidInput, fluidResult, List.of(), List.of(), processingTime, aePerTick, requiresResearch);
+    }
+
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
+            FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            int processingTime, double aePerTick, boolean requiresResearch) {
+        this(ingredients, results, fluidInput, fluidResult, aeInputs, List.of(), processingTime, aePerTick, requiresResearch);
     }
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results, FluidStack fluidInput,
-            FluidStack fluidResult, List<GenericStack> aeInputs, int processingTime, double aePerTick, boolean requiresResearch) {
-        this(com.atir.molecularmanipulator.MolecularManipulator.id("unregistered"), ingredients, results, fluidInput, fluidResult, aeInputs, processingTime, aePerTick, requiresResearch);
+            FluidStack fluidResult, List<GenericStack> aeInputs, List<GenericStack> aeOutputs,
+            int processingTime, double aePerTick, boolean requiresResearch) {
+        this(com.atir.molecularmanipulator.MolecularManipulator.id("unregistered"), ingredients, results,
+                fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+    }
+
+    public MatterFabricationRecipe(net.minecraft.resources.ResourceLocation id, List<CountedIngredient> ingredients,
+            List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            int processingTime, double aePerTick, boolean requiresResearch) {
+        this(id, ingredients, results, fluidInput, fluidResult, aeInputs, List.of(), processingTime, aePerTick, requiresResearch);
     }
 
     public MatterFabricationRecipe(net.minecraft.resources.ResourceLocation id, List<CountedIngredient> ingredients,
@@ -52,7 +68,7 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
     @Override public net.minecraft.resources.ResourceLocation getId() { return id; }
     public MatterFabricationRecipe value() { return this; }
     public MatterFabricationRecipe withId(net.minecraft.resources.ResourceLocation recipeId) {
-        return new MatterFabricationRecipe(recipeId, ingredients, results, fluidInput, fluidResult, aeInputs, processingTime, aePerTick, requiresResearch);
+        return new MatterFabricationRecipe(recipeId, ingredients, results, fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
     }
 
     public MatterFabricationRecipe {
@@ -61,13 +77,16 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
         fluidInput = fluidInput.copy();
         fluidResult = fluidResult.copy();
         aeInputs = List.copyOf(aeInputs);
+        aeOutputs = List.copyOf(aeOutputs);
         if (ingredients.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
-            throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 9 item/AE inputs or a fluid input");
+            throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 12 item/AE inputs or a fluid input");
         }
-        if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)) {
-            throw new IllegalArgumentException("AE input amounts must be positive");
+        if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)
+                || aeOutputs.stream().anyMatch(stack -> stack.amount() <= 0)) {
+            throw new IllegalArgumentException("AE stack amounts must be positive");
         }
-        if (results.size() > MAX_OUTPUTS || results.isEmpty() && fluidResult.isEmpty()) {
+        if (results.size() > MAX_OUTPUTS || aeOutputs.size() > MAX_OUTPUTS
+                || results.isEmpty() && fluidResult.isEmpty() && aeOutputs.isEmpty()) {
             throw new IllegalArgumentException("Matter fabrication recipes require at least one item or fluid result");
         }
         processingTime = Math.max(1, processingTime);
@@ -85,7 +104,7 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
 
     public int[] consumptionPlan(MatterFabricationRecipeInput input, long crafts) {
         // Manual ports have no generic AE storage; these recipes must be supplied by an assembly.
-        if (!aeInputs.isEmpty() || crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
+        if (!aeInputs.isEmpty() || !aeOutputs.isEmpty() || crafts < 1 || !fluidMatches(input.fluid(), crafts)) {
             return null;
         }
         int[] available = new int[input.size()];
@@ -176,8 +195,8 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
                 .apply(instance, CountedIngredient::new));
 
         public CountedIngredient {
-            if (count < 1 || count > 64) {
-                throw new IllegalArgumentException("Ingredient count must be between 1 and 64");
+            if (count < 1) {
+                throw new IllegalArgumentException("Ingredient count must be positive");
             }
         }
     }
@@ -195,6 +214,8 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
                                 .forGetter(MatterFabricationRecipe::fluidResult),
                         ForgeRecipeCodecs.GENERIC_INPUTS
                                 .forGetter(MatterFabricationRecipe::aeInputs),
+                        ForgeRecipeCodecs.GENERIC_OUTPUTS
+                                .forGetter(MatterFabricationRecipe::aeOutputs),
                         Codec.INT.optionalFieldOf("processing_time", 200)
                                 .forGetter(MatterFabricationRecipe::processingTime),
                         Codec.DOUBLE.optionalFieldOf("ae_per_tick", 64.0)

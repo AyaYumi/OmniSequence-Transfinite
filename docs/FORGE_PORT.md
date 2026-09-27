@@ -1,6 +1,6 @@
 # Forge 1.20.1 port / 移植说明
 
-The `1.20.1-forge` branch ports the OmniSequence 2.0.3 feature set (NeoForge commit `32bc92c`) to **2.0.4-forge**, together with AppliedEnhancements **1.0.6-forge**. It targets Java 17 bytecode, Forge 47.4.10 or newer, and AE2 15.4.10. The local integration baseline is Forge 47.4.20.
+The `1.20.1-forge` branch ports the OmniSequence 2.0.6 feature set to **2.0.6-forge**, together with AppliedEnhancements **1.0.9-fix-forge**. It targets Java 17 bytecode, Forge 47.4.10 or newer, and AE2 15.4.10. The local integration baseline is Forge 47.4.20.
 
 | Boundary | Forge implementation |
 | --- | --- |

@@ -1,0 +1,8 @@
+{
+  "loader": "molecularmanipulator:auto_crafter_glow",
+  "textures": {
+    "particle": "molecularmanipulator:block/molecular_auto_crafter",
+    "base": "molecularmanipulator:block/molecular_auto_crafter",
+    "glow": "molecularmanipulator:block/molecular_auto_crafter_glow_idle"
+  }
+}

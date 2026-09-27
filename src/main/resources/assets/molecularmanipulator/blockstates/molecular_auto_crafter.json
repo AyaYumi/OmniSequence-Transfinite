@@ -1,0 +1,12 @@
+{
+  "multipart": [
+    {"when": {"facing": "north", "working": "false"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_idle"}},
+    {"when": {"facing": "south", "working": "false"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_idle", "y": 180}},
+    {"when": {"facing": "west", "working": "false"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_idle", "y": 270}},
+    {"when": {"facing": "east", "working": "false"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_idle", "y": 90}},
+    {"when": {"facing": "north", "working": "true"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_work"}},
+    {"when": {"facing": "south", "working": "true"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_work", "y": 180}},
+    {"when": {"facing": "west", "working": "true"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_work", "y": 270}},
+    {"when": {"facing": "east", "working": "true"}, "apply": {"model": "molecularmanipulator:block/molecular_auto_crafter_glow_work", "y": 90}}
+  ]
+}

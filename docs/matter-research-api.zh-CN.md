@@ -1,8 +1,8 @@
 # 物质构筑井：配方与研究 API（Forge）
 
-当前对应 **2.0.4-forge**。
+当前对应 **2.0.6-forge**。
 目标环境：Minecraft **1.20.1** / Forge **47.4.20+**、Java **17**、AE2 **15.4.10+**，以及
-必需前置 AppliedEnhancements **1.0.6-forge**。模组 ID 仍为 `molecularmanipulator`。
+必需前置 AppliedEnhancements **1.0.9-fix-forge**。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.md)。
@@ -291,16 +291,17 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 | `ae_foundation` | 600 tick / 30 秒 | 256 AE/t | 7 条 AE 材料配方、27 条二阶材料与中间材料配方、样板总成 |
 | `sequence_array` | 600 tick / 30 秒 | 512 AE/t | 构序阵列 6 类部件、分子构序重写阵列、装配矩阵构序重写核心 |
 | `omni_computation` | 600 tick / 30 秒 | 1024 AE/t | 万物演算 10 类部件与超限算枢 |
+| `machine/<machine_key>` | 600 tick / 30 秒 | 512 AE/t | 对应附属机器导入的配方（加载模组且机器存在时） |
 
 30 秒适用于内置研究的首次解锁及后续每轮深度研究。自定义 `duration` 仍按 tick 自由配置，
 省略时默认 1200；已开始的轮次保留开工时的耗时快照。
 
-两条二阶分支默认都需要一阶完成 **1 次**。一阶新增的 27 条配方 ID 形如
-`molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`。两条二阶研究共消耗
-17 种材料：8 种 AdvancedAE、7 种 ExtendedAE（`expatternprovider`）与 2 种 AE 原版物品。其中
-两种 AE 原版物品由 7 条 `fabrication/ae/` 配方覆盖，因此 17 种里有 15 种属于
-research_materials 配方集，该集合还补齐了相关中间材料与量子注入液配方。它们在一阶首次完成后
-开放，并获得一阶的深度研究加成。
+这些二阶分支默认都需要一阶完成 **1 次**。内置材料配方 ID 位于
+`molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`；附属机器配方 ID 位于
+`molecularmanipulator:fabrication/import/machine/<机器键>/<产物>`。有可导入配方的机器各有独立
+研究分支。构筑井在配方管理器重载后读取当前生效的配方，包括 KubeJS `ServerEvents.recipes`
+的改动。同一产物的不同原料分支保留为独立配方；原料种类与数量均相同的分支合并。研究界面
+按产物显示分支数量，JEI 中的 AE 物品、流体、闪电与数据资源保留原料类型。
 
 无 AdvancedAE 时，万物演算分支及其材料配方不加载，界面也不列出它们。这些定义与配方使用
 Forge 的 `conditions` 以 `advanced_ae` 为条件，研究列表再按 `required_mods` 过滤，因此不可用
@@ -362,7 +363,7 @@ tick 功耗乘本批份数计收。
 批次保存原料所有权与配方 ID，因此未开工批次会按当前配方、权限与参数重新检查，而不是沿用
 旧数值。无法继续加工时，原料仍留在总成内，可作为待加工原料退回。
 
-### 7.1 2.0.4 尚存的边界
+### 7.1 2.0.6 尚存的边界
 
 - 产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。

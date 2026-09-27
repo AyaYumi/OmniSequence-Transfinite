@@ -1,5 +1,7 @@
 package com.atir.molecularmanipulator.integration.jei;
 
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.client.OmniUiTheme;
@@ -9,9 +11,11 @@ import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import java.util.*;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.forge.ForgeTypes;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeType;
@@ -22,6 +26,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.fml.ModList;
 
 /** Compact AE recipe sheet: research banner, centered material flow, base time/power footer. */
 public final class MatterFabricationJeiCategory implements IRecipeCategory<MatterFabricationRecipe> {
@@ -39,10 +44,10 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
     @Override public IDrawable getIcon() { return icon; }
     @Override public int getWidth() { return 184; }
     @Override public int getHeight() { return 100; }
-    private static int inputColumns(int count) { return count == 4 ? 2 : Math.min(3, count); }
+    private static int inputColumns(int count) { return count > 9 ? 4 : count == 4 ? 2 : Math.min(3, count); }
     public static int inputX(int count, int index) {
         int columns = inputColumns(count), rowItems = Math.min(columns, count - index / columns * columns);
-        return 8 + (3 - rowItems) * 9 + index % columns * 18;
+        return 8 + ((count > 9 ? 4 : 3) - rowItems) * 9 + index % columns * 18;
     }
     public static int inputY(int count, int index) {
         int columns = inputColumns(count), rows = (count + columns - 1) / columns;
@@ -60,21 +65,45 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
         }
         for (int i = 0; i < recipe.aeInputs().size(); i++) {
             int index = recipe.ingredients().size() + i;
-            builder.addInputSlot(inputX(inputCount, index), inputY(inputCount, index))
-                    .setBackground(slot, -1, -1).addItemStack(GenericStack.wrapInItemStack(recipe.aeInputs().get(i)));
+            addAeStack(builder.addInputSlot(inputX(inputCount, index), inputY(inputCount, index))
+                    .setBackground(slot, -1, -1), recipe.aeInputs().get(i));
         }
-        if (!recipe.fluidInput().isEmpty()) builder.addInputSlot(inputCount == 0 ? 35 : 72, 42)
+        if (!recipe.fluidInput().isEmpty()) builder.addInputSlot(inputCount == 0 ? 35 : inputCount > 9 ? 80 : 72, 42)
                 .setBackground(slot, -1, -1).addFluidStack(recipe.fluidInput().getFluid(), recipe.fluidInput().getAmount())
                 .setFluidRenderer(recipe.fluidInput().getAmount(), false, 16, 16);
-        int outputs = recipe.results().size() + (recipe.fluidResult().isEmpty() ? 0 : 1);
+        int outputs = recipe.results().size() + (recipe.fluidResult().isEmpty() ? 0 : 1) + recipe.aeOutputs().size();
         for (int i = 0; i < recipe.results().size(); i++) builder.addOutputSlot(outputX(outputs, i), outputY(outputs, i))
-                .setBackground(ConsoleSlotBackground.OUTPUT, -1, -1).addItemStack(recipe.results().get(i));
-        if (!recipe.fluidResult().isEmpty()) builder.addOutputSlot(outputX(outputs, outputs - 1), outputY(outputs, outputs - 1))
-                .setBackground(ConsoleSlotBackground.OUTPUT, -1, -1).addFluidStack(recipe.fluidResult().getFluid(), recipe.fluidResult().getAmount())
-                .setFluidRenderer(recipe.fluidResult().getAmount(), false, 16, 16);
+                .setBackground(slot, -1, -1).addItemStack(recipe.results().get(i));
+        int outputIndex = recipe.results().size();
+        if (!recipe.fluidResult().isEmpty()) {
+            builder.addOutputSlot(outputX(outputs, outputIndex), outputY(outputs, outputIndex))
+                    .setBackground(slot, -1, -1).addFluidStack(recipe.fluidResult().getFluid(), recipe.fluidResult().getAmount())
+                    .setFluidRenderer(recipe.fluidResult().getAmount(), false, 16, 16);
+            outputIndex++;
+        }
+        for (var output : recipe.aeOutputs()) {
+            addAeStack(builder.addOutputSlot(outputX(outputs, outputIndex), outputY(outputs, outputIndex))
+                    .setBackground(slot, -1, -1), output);
+            outputIndex++;
+        }
+    }
+
+    private static void addAeStack(IRecipeSlotBuilder slot, GenericStack stack) {
+        int visibleAmount = (int) Math.min(Integer.MAX_VALUE, stack.amount());
+        if (stack.what() instanceof AEItemKey item) {
+            slot.addItemStack(item.toStack(visibleAmount));
+        } else if (stack.what() instanceof AEFluidKey fluid) {
+            slot.addIngredient(ForgeTypes.FLUID_STACK, new net.minecraftforge.fluids.FluidStack(fluid.getFluid(), visibleAmount))
+                    .setFluidRenderer(visibleAmount, false, 16, 16);
+        } else if (!ModList.get().isLoaded("ae2jeiintegration")
+                || !MatterFabricationJeiIngredients.add(slot, stack)) {
+            MolecularManipulator.LOGGER.warn("No native JEI ingredient converter for AE key {}", stack.what());
+        }
     }
     private static int outputX(int count, int index) { return Math.min(2, count - index / 2 * 2) == 1 ? 146 : 136 + index % 2 * 20; }
-    private static int outputY(int count, int index) { return count <= 2 ? 42 : 33 + index / 2 * 20; }
+    private static int outputY(int count, int index) {
+        return count <= 2 ? 42 : count <= 4 ? 33 + index / 2 * 20 : 24 + index / 2 * 18;
+    }
 
     @Override public void draw(MatterFabricationRecipe recipe, IRecipeSlotsView slots, GuiGraphics graphics, double mouseX, double mouseY) {
         var font = Minecraft.getInstance().font;
@@ -110,7 +139,7 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
     private static StageInfo resolveStage(MatterFabricationRecipe recipe) {
         var level = Minecraft.getInstance().level;
         if (level != null) {
-            var ids = level.getRecipeManager().getAllRecipesFor(ModContent.MATTER_FABRICATION_RECIPE_TYPE.get()).stream()
+            var ids = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level).fabrication().stream()
                     .filter(holder -> holder.value() == recipe).map(holder -> holder.id()).toList();
             var owners = MatterResearchApi.definitions(level).stream()
                     .filter(holder -> holder.value().unlocks().stream().anyMatch(ids::contains)).toList();
@@ -134,4 +163,5 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
     private static String format(double value) {
         return DisplayNumbers.compact(value);
     }
+
 }

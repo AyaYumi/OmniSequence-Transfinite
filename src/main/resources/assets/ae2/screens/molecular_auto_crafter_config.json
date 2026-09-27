@@ -1,0 +1,9 @@
+{
+  "$schema": "schema.json",
+  "includes": ["common/common.json"],
+  "generatedBackground": {"width": 288, "height": 144},
+  "slots": {
+    "ENCODED_PATTERN": {"left": 10, "top": 8, "grid": "HORIZONTAL"}
+  },
+  "text": {}
+}

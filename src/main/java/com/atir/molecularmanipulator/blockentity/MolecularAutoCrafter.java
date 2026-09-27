@@ -35,7 +35,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Quantum-crafter style passive crafting owned by one sequence-array controller.
+ * Quantum-crafter style passive crafting shared by the sequence-array controller
+ * and its standalone single-block host.
  *
  * <p>Every configured pattern is evaluated independently. A single evaluation may
  * represent up to {@link Long#MAX_VALUE} recipe executions; the implementation
@@ -58,7 +59,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private static final String TOTAL_CRAFTS_TAG = "total_crafts";
     private static final double POWER_EPSILON = 0.01;
 
-    private final MolecularCenterBlockEntity host;
+    private final MolecularAutoCrafterHost host;
     private final AppEngInternalInventory patternInventory;
     private final MolecularCraftingBatcher batcher = new MolecularCraftingBatcher();
     private final Int2ObjectOpenHashMap<PatternConfig> configs = new Int2ObjectOpenHashMap<>();
@@ -67,7 +68,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private int scheduleCursor;
     private boolean suppressInventoryEvents;
 
-    MolecularAutoCrafter(MolecularCenterBlockEntity host) {
+    public MolecularAutoCrafter(MolecularAutoCrafterHost host) {
         this.host = host;
         this.patternInventory = new AppEngInternalInventory(this,
                 PATTERN_SLOTS, 1, new IAEItemFilter() {
@@ -212,6 +213,13 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         if (slots.length > 0) {
             scheduleCursor = (start + 1) % slots.length;
         }
+    }
+
+    public boolean isWorking() {
+        for (var config : configs.values()) {
+            if (config.enabled && config.state == AutoCraftState.RUNNING) return true;
+        }
+        return false;
     }
 
     private void reconcileConfigs() {

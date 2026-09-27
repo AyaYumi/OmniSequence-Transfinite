@@ -72,7 +72,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
-        implements InternalInventoryHost, SegmentedPatternContainerHost {
+        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost {
     public static final int PATTERNS_PER_PAGE = 36;
     public static final int MAX_PATTERN_PAGES = 300;
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
@@ -110,6 +110,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "molecular_center_legacy_structure_update_dismissed";
     private static final String MATTER_INVENTORY_TAG = "matter_sequence_inventory";
+    private static final String MATRIX_UPLOAD_CORE_TAG = "matrix_upload_core_inventory";
     private static final String METAL_SEQUENCE_TAG = "matter_sequence_metal";
     private static final String MINERAL_SEQUENCE_TAG = "matter_sequence_mineral";
     private static final String CRYSTAL_SEQUENCE_TAG = "matter_sequence_crystal";
@@ -156,6 +157,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
     private final AppEngInternalInventory matterInventory = new AppEngInternalInventory(this, 4);
+    private final AppEngInternalInventory matrixUploadCoreInventory = new AppEngInternalInventory(this, 1);
     private final IUpgradeInventory matterUpgrades = UpgradeInventories.forMachine(
             ModContent.MOLECULAR_CENTER_CONTROLLER.get(), MAX_SPEED_CARDS, this::onMatterUpgradesChanged);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
@@ -244,6 +246,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         matterInventory.setMaxStackSize(0, 1);
         matterInventory.setMaxStackSize(1, 1);
         matterInventory.setMaxStackSize(3, 1);
+        matrixUploadCoreInventory.setMaxStackSize(0, 1);
         getMainNode()
                 .setFlags(GridFlags.REQUIRE_CHANNEL)
                 .setIdlePowerUsage(ModConfig.IDLE_POWER.get());
@@ -338,6 +341,19 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return matterInventory;
     }
 
+    public AppEngInternalInventory getMatrixUploadCoreInventory() {
+        return matrixUploadCoreInventory;
+    }
+
+    public boolean hasMatrixUploadCore() {
+        return com.atir.molecularmanipulator.integration.extendedaeplus.MatrixUploadCoreIntegration
+                .isUploadCore(matrixUploadCoreInventory.getStackInSlot(0));
+    }
+
+    public boolean canAcceptMatrixUpload() {
+        return isOperational() && canMutateExternalPatterns();
+    }
+
     public IUpgradeInventory getMatterUpgrades() {
         return matterUpgrades;
     }
@@ -411,7 +427,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || !pendingByproducts.isEmpty()
                 || !reusableBatchRefunds.isEmpty()
                 || RetainedBlockContents.hasPatternContents(this)
-                || !matterInventory.isEmpty() || !matterUpgrades.isEmpty()
+                || !matterInventory.isEmpty() || !matrixUploadCoreInventory.isEmpty()
+                || !matterUpgrades.isEmpty()
                 || !autoCrafter.getPatternInventory().isEmpty()
                 || !legacyDeconstructRefund.isEmpty()
                 || metalSequence > 0 || mineralSequence > 0 || crystalSequence > 0 || organicSequence > 0;
@@ -432,6 +449,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         patternStorageReady = false;
         super.clearContent();
         matterInventory.clear();
+        matrixUploadCoreInventory.clear();
         matterUpgrades.clear();
         metalSequence = mineralSequence = crystalSequence = organicSequence = entropy = 0;
         legacyDeconstructRefund = ItemStack.EMPTY;
@@ -510,6 +528,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
         autoCrafter.save(tag);
         matterInventory.writeToNBT(tag, MATTER_INVENTORY_TAG);
+        matrixUploadCoreInventory.writeToNBT(tag, MATRIX_UPLOAD_CORE_TAG);
         matterUpgrades.writeToNBT(tag, MATTER_UPGRADES_TAG);
         tag.putLong(METAL_SEQUENCE_TAG, metalSequence);
         tag.putLong(MINERAL_SEQUENCE_TAG, mineralSequence);
@@ -640,6 +659,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
         matterInventory.readFromNBT(tag, MATTER_INVENTORY_TAG);
+        matrixUploadCoreInventory.readFromNBT(tag, MATRIX_UPLOAD_CORE_TAG);
         legacyDeconstructRefund = tag.contains(LEGACY_DECONSTRUCT_REFUND_TAG, Tag.TAG_COMPOUND)
                 ? ItemStack.of(tag.getCompound(LEGACY_DECONSTRUCT_REFUND_TAG))
                 : ItemStack.EMPTY;
@@ -830,21 +850,25 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return lastPipelineTransfer;
     }
 
-    boolean canRunAutoCrafting() {
+    @Override
+    public boolean canRunAutoCrafting() {
         return !assembling && !pipelineBlocked && !hasActiveReusableBatch() && isOperational()
                 && getLogic().getReturnInv().isEmpty();
     }
 
-    MachineSource autoCraftActionSource() {
+    @Override
+    public MachineSource autoCraftActionSource() {
         return actionSource;
     }
 
-    boolean canQueueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
+    @Override
+    public boolean canQueueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders) {
         return canQueueOutputs(primary, remainders);
     }
 
-    void queueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
+    @Override
+    public void queueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders, long gameTime,
             long craftCount) {
         addOutputs(pendingPrimaryOutputs, primary);
@@ -890,7 +914,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
-    void queueAutoCraftRefund(AEKey key, long amount) {
+    @Override
+    public void queueAutoCraftRefund(AEKey key, long amount) {
         if (key == null || amount <= 0) {
             return;
         }
@@ -903,7 +928,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
-    long getBufferedAutoCraftAmount(AEKey key) {
+    @Override
+    public long getBufferedAutoCraftAmount(AEKey key) {
         if (key == null) {
             return 0;
         }

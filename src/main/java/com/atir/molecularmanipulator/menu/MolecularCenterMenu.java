@@ -22,6 +22,7 @@ import com.atir.molecularmanipulator.blockentity.MolecularCenterLogic;
 import com.atir.molecularmanipulator.network.PatternSearchIndexBuilder;
 import com.atir.molecularmanipulator.network.PatternSearchIndexChunk;
 import com.atir.molecularmanipulator.network.PatternSearchIndexReceiver;
+import com.atir.molecularmanipulator.integration.extendedaeplus.MatrixUploadCoreIntegration;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -65,6 +66,8 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public static final int SEQUENCE_SLOT_Y = 66;
     public static final int QUANTUM_SLOT_X = 304;
     public static final int QUANTUM_SLOT_Y = 61;
+    public static final int MATRIX_UPLOAD_CORE_SLOT_X = 376;
+    public static final int MATRIX_UPLOAD_CORE_SLOT_Y = 61;
     public static final int SPEED_SLOT_X = 337;
     public static final int SPEED_SLOT_Y = 169;
     public static final int AUTO_CRAFT_PATTERN_X = 233;
@@ -205,6 +208,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     private final List<Slot> patternSlots;
     private final List<AppEngSlot> sequenceSlots;
     private final AppEngSlot quantumSlot;
+    private final AppEngSlot matrixUploadCoreSlot;
     private final List<AppEngSlot> speedSlots;
     private final List<AppEngSlot> autoCraftPatternSlots;
     private long patternSearchIndexGeneration;
@@ -217,6 +221,8 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         this.sequenceSlots = new java.util.ArrayList<>(3);
         addSequenceSlots();
         this.quantumSlot = addQuantumSlot();
+        this.matrixUploadCoreSlot = MatrixUploadCoreIntegration.isLoaded()
+                ? addMatrixUploadCoreSlot() : null;
         this.speedSlots = addSpeedSlots();
         this.autoCraftPatternSlots = addAutoCraftPatternSlots();
         this.pageInventory = isClientSide()
@@ -312,6 +318,19 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         return slot;
     }
 
+    private AppEngSlot addMatrixUploadCoreSlot() {
+        var slot = new AppEngSlot(center.getMatrixUploadCoreInventory(), 0) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return MatrixUploadCoreIntegration.isUploadCore(stack) && super.mayPlace(stack);
+            }
+        };
+        addSlot(slot, SlotSemantics.CONFIG);
+        slot.x = MATRIX_UPLOAD_CORE_SLOT_X;
+        slot.y = MATRIX_UPLOAD_CORE_SLOT_Y;
+        return slot;
+    }
+
     private List<AppEngSlot> addSpeedSlots() {
         var result = new java.util.ArrayList<AppEngSlot>(MolecularCenterBlockEntity.MAX_SPEED_CARDS);
         for (int index = 0; index < MolecularCenterBlockEntity.MAX_SPEED_CARDS; index++) {
@@ -362,6 +381,10 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
 
     public AppEngSlot getQuantumSlot() {
         return quantumSlot;
+    }
+
+    public AppEngSlot getMatrixUploadCoreSlot() {
+        return matrixUploadCoreSlot;
     }
 
     public List<AppEngSlot> getSpeedSlots() {

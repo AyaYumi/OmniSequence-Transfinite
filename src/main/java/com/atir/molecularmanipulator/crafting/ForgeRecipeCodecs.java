@@ -51,18 +51,23 @@ public final class ForgeRecipeCodecs {
     });
 
     /** DFU's 1.20 optionalFieldOf swallows invalid values; never turn malformed resource costs into free inputs. */
-    public static final MapCodec<List<GenericStack>> GENERIC_INPUTS = new MapCodec<>() {
+    public static final MapCodec<List<GenericStack>> GENERIC_INPUTS = genericStacks("ae_inputs");
+    public static final MapCodec<List<GenericStack>> GENERIC_OUTPUTS = genericStacks("ae_outputs");
+
+    private static MapCodec<List<GenericStack>> genericStacks(String field) {
+        return new MapCodec<>() {
         private final Codec<List<GenericStack>> codec = GENERIC_STACK.listOf();
-        @Override public <T> Stream<T> keys(DynamicOps<T> ops) { return Stream.of(ops.createString("ae_inputs")); }
+        @Override public <T> Stream<T> keys(DynamicOps<T> ops) { return Stream.of(ops.createString(field)); }
         @Override public <T> DataResult<List<GenericStack>> decode(DynamicOps<T> ops, MapLike<T> input) {
-            T value = input.get("ae_inputs");
+            T value = input.get(field);
             return value == null ? DataResult.success(List.of()) : codec.parse(ops, value);
         }
         @Override public <T> RecordBuilder<T> encode(List<GenericStack> input, DynamicOps<T> ops, RecordBuilder<T> prefix) {
-            if (!input.isEmpty()) prefix.add("ae_inputs", codec.encodeStart(ops, input));
+            if (!input.isEmpty()) prefix.add(field, codec.encodeStart(ops, input));
             return prefix;
         }
-    };
+        };
+    }
 
     public static final Codec<Ingredient> INGREDIENT = json(
             value -> Ingredient.fromJson(value, false), Ingredient::toJson);

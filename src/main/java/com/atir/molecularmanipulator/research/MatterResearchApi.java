@@ -108,9 +108,11 @@ public final class MatterResearchApi {
     public static boolean isRecipeUnlocked(MatterFabricationBlockEntity machine, String recipeId) {
         var id = ResourceLocation.tryParse(recipeId);
         if (id == null || machine.getLevel() == null) return false;
-        var recipe = machine.getLevel().getRecipeManager().byKey(id).orElse(null);
-        return recipe != null && hasPermission(machine, id,
-                recipe instanceof MatterFabricationRecipe fabrication && fabrication.requiresResearch());
+        var recipe = MatterRecipeIndex.get(machine.getLevel()).fabrication(id);
+        if (recipe != null) return hasPermission(machine, id, recipe.value().requiresResearch());
+        var other = machine.getLevel().getRecipeManager().byKey(id).orElse(null);
+        return other != null && hasPermission(machine, id,
+                other instanceof MatterFabricationRecipe fabrication && fabrication.requiresResearch());
     }
 
     private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked) {

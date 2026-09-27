@@ -23,6 +23,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
 import org.joml.Vector3f;
 
 /** Paginated research navigation plus an independently scrolling material/unlock list. */
@@ -191,7 +192,9 @@ final class MatterResearchPanel {
         List<MatterResearchRecipe.Cost> costs;
         try { costs = maxed ? List.of() : definition.costsFor(round); } catch (ArithmeticException error) { costs = List.of(); }
         var level = Minecraft.getInstance().level;
-        var unlocks = definition.unlocks().stream().filter(id -> level.getRecipeManager().byKey(id).isPresent()).toList();
+        var recipeIndex = MatterRecipeIndex.get(level);
+        var unlocks = recipeIndex.unlocksForResearch(holder).stream()
+                .filter(id -> recipeIndex.fabrication(id) != null || level.getRecipeManager().byKey(id).isPresent()).toList();
         int prerequisiteHeight = holder.value().prerequisites().isEmpty() ? 0 : 15 + 16 * holder.value().prerequisites().size();
         contentHeight = prerequisiteHeight + 17 + costs.size() * 27 + 20 + unlocks.size() * 20;
         scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - 111)));
@@ -246,17 +249,34 @@ final class MatterResearchPanel {
             fitted(graphics, text("unlocks"), 136, y, 176, OmniUiTheme.PRIMARY_TEXT); y += 20;
             for (var id : unlocks) {
                 var recipe = level.getRecipeManager().byKey(id);
+                var imported = recipeIndex.fabrication(id);
                 var stack = recipe.map(value -> value.getResultItem(level.registryAccess())).orElse(ItemStack.EMPTY);
-                Component name = stack.isEmpty() ? Component.literal(id.toString()) : stack.getHoverName();
-                if (stack.isEmpty() && recipe.isPresent()
-                        && recipe.get() instanceof com.atir.molecularmanipulator.crafting.MatterFabricationRecipe fabrication
-                        && !fabrication.fluidResult().isEmpty()) {
-                    var fluid = appeng.api.stacks.AEFluidKey.of(fabrication.fluidResult());
-                    name = fluid.getDisplayName();
-                    stack = appeng.api.stacks.GenericStack.wrapInItemStack(new appeng.api.stacks.GenericStack(fluid, fabrication.fluidResult().getAmount()));
+                if (stack.isEmpty() && imported != null) stack = imported.value().getResultItem(level.registryAccess());
+                var fabrication = imported == null ? null : imported.value();
+                if (fabrication == null && recipe.isPresent()
+                        && recipe.get() instanceof com.atir.molecularmanipulator.crafting.MatterFabricationRecipe value) {
+                    fabrication = value;
+                }
+                appeng.api.stacks.GenericStack resource = null;
+                if (stack.isEmpty() && fabrication != null) {
+                    if (!fabrication.fluidResult().isEmpty()) {
+                        resource = new appeng.api.stacks.GenericStack(
+                                appeng.api.stacks.AEFluidKey.of(fabrication.fluidResult()),
+                                fabrication.fluidResult().getAmount());
+                    } else if (!fabrication.aeOutputs().isEmpty()) {
+                        resource = fabrication.aeOutputs().get(0);
+                    }
+                }
+                Component name = resource != null ? resource.what().getDisplayName()
+                        : stack.isEmpty() ? Component.literal(id.toString()) : stack.getHoverName();
+                if (imported != null) {
+                    int branches = recipeIndex.branchCountForResearch(holder.id(), imported.value());
+                    if (branches > 1) name = name.copy().append(" ").append(Component.translatable(
+                            "gui.molecularmanipulator.research.branch_recipes", branches));
                 }
                 if (y > 104 && y < 237) {
-                    graphics.renderItem(stack, 136, y);
+                    if (resource == null) graphics.renderItem(stack, 136, y);
+                    else AEStackIcon.draw(graphics, resource, 136, y);
                     fitted(graphics, name, 156, y + 3, 152, OmniUiTheme.MUTED_TEXT);
                 }
                 y += 20;

@@ -16,6 +16,7 @@ AE systems for material fabrication, molecular sequence rewriting, large-scale c
 <ItemIcon id="molecularmanipulator:matter_fabrication_fluid_input" />
 <ItemIcon id="molecularmanipulator:molecular_center_controller" />
 <ItemIcon id="molecularmanipulator:molecular_manipulator" />
+<ItemIcon id="molecularmanipulator:molecular_auto_crafter" />
 <ItemIcon id="molecularmanipulator:assembler_matrix_molecular_core" />
 <ItemIcon id="molecularmanipulator:omni_computation_controller" />
 <ItemIcon id="molecularmanipulator:transfinite_compute_nexus" />

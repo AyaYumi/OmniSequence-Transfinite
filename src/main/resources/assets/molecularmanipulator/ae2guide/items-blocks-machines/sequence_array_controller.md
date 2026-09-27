@@ -202,6 +202,8 @@ Eligible item tooltips show a compact `[Hold Shift]` prompt by default. The clie
 
 The quantum slot accepts one half of a paired entangled singularity. Put the other half in a powered AE2 Quantum Ring to connect the array across dimensions.
 
+When ExtendedAE Plus is installed, the Quantum Link page also shows an **EAEP Upload Core** slot. Place an ExtendedAE Plus Assembler Matrix Upload Core there to make patterns created in the Pattern Encoding Terminal enter this Sequence Array's pattern library automatically. The slot is hidden when ExtendedAE Plus is absent. This affects Pattern Encoding Terminal uploads; ordinary pattern-provider uploads keep their normal routing.
+
 * Before the structure is formed, this remote link can be used only to retrieve construction materials.
 * A full link consumes an additional 512 AE/t and one channel.
 

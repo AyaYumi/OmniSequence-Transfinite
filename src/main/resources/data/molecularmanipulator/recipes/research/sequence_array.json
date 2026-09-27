@@ -70,6 +70,7 @@
     "molecularmanipulator:molecular_center_glass",
     "molecularmanipulator:molecular_center_stabilizer",
     "molecularmanipulator:molecular_manipulator",
+    "molecularmanipulator:molecular_auto_crafter",
     "molecularmanipulator:assembler_matrix_molecular_core"
   ],
   "required_mods": [

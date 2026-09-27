@@ -29,6 +29,7 @@ import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
+import com.atir.molecularmanipulator.crafting.MatterMachineImportRecipe;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
@@ -319,6 +320,11 @@ public final class ModContent {
             RECIPE_TYPES.register("matter_research", () -> RecipeType.simple(MolecularManipulator.id("matter_research")));
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<MatterResearchRecipe>> MATTER_RESEARCH_RECIPE_SERIALIZER =
             RECIPE_SERIALIZERS.register("matter_research", MatterResearchRecipe.Serializer::new);
+
+    public static final DeferredHolder<RecipeType<?>, RecipeType<MatterMachineImportRecipe>> MATTER_MACHINE_IMPORT_RECIPE_TYPE =
+            RECIPE_TYPES.register("matter_machine_import", () -> RecipeType.simple(MolecularManipulator.id("matter_machine_import")));
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<MatterMachineImportRecipe>> MATTER_MACHINE_IMPORT_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("matter_machine_import", MatterMachineImportRecipe.Serializer::new);
 
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MAIN_TAB = CREATIVE_TABS.register(
             "main",

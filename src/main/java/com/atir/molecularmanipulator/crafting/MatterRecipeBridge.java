@@ -65,10 +65,15 @@ public final class MatterRecipeBridge {
     private MatterRecipeBridge() {}
 
     private static MachineSpec machine(String key, String modId, String itemId, String... recipeTypes) {
-        return new MachineSpec(key, modId, ResourceLocation.parse(itemId), List.of(recipeTypes));
+        return new MachineSpec(key, modId, ResourceLocation.parse(itemId), List.of(recipeTypes), null);
     }
 
-    public record MachineSpec(String key, String modId, ResourceLocation machineItem, List<String> recipeTypes) {}
+    public record MachineSpec(String key, String modId, ResourceLocation machineItem, List<String> recipeTypes,
+            MatterMachineImportRecipe declaration) {
+        public MachineSpec(String key, String modId, ResourceLocation machineItem, List<String> recipeTypes) {
+            this(key, modId, machineItem, recipeTypes, null);
+        }
+    }
 
     public record ImportedRecipe(RecipeHolder<MatterFabricationRecipe> holder, String machineKey,
             String modId, ItemStack output, FluidStack fluidOutput, int branchCount) {
@@ -79,7 +84,7 @@ public final class MatterRecipeBridge {
         }
     }
 
-    private record Input(Ingredient ingredient, int count) {}
+    record Input(Ingredient ingredient, int count) {}
     record LightningRequirement(String tier, long amount) {}
     private record Branch(Output output,
             List<MatterFabricationRecipe.CountedIngredient> ingredients,
@@ -87,27 +92,67 @@ public final class MatterRecipeBridge {
 
     public static List<MachineSpec> machines() { return MACHINES; }
 
+    public static List<MachineSpec> machines(Collection<RecipeHolder<?>> source) {
+        var result = new ArrayList<>(MACHINES);
+        source.stream().filter(holder -> holder.value() instanceof MatterMachineImportRecipe)
+                .sorted(Comparator.comparing(holder -> holder.id().toString())).forEach(holder -> {
+                    var declaration = (MatterMachineImportRecipe) holder.value();
+                    var key = holder.id().getNamespace() + "/" + holder.id().getPath();
+                    result.add(new MachineSpec(key, declaration.machine().getNamespace(), declaration.machine(),
+                            declaration.serializers().stream().map(ResourceLocation::toString).toList(), declaration));
+                });
+        return List.copyOf(result);
+    }
+
     public static List<ImportedRecipe> importRecipes(Level level, Collection<RecipeHolder<?>> source) {
+        return importRecipes(level, source, machines(source));
+    }
+
+    public static List<ImportedRecipe> importRecipes(Level level, Collection<RecipeHolder<?>> source,
+            List<MachineSpec> machines) {
         var byType = new LinkedHashMap<String, MachineSpec>();
-        for (var machine : MACHINES) for (var type : machine.recipeTypes) byType.put(type, machine);
+        for (var machine : machines) {
+            if (!BuiltInRegistries.ITEM.containsKey(machine.machineItem)
+                    || machine.declaration == null && !ModList.get().isLoaded(machine.modId)
+                    || machine.declaration != null && !machine.declaration.research().available()) continue;
+            for (var type : machine.recipeTypes) byType.put(type, machine);
+        }
         var grouped = new LinkedHashMap<String, List<Branch>>();
         var info = new LinkedHashMap<String, GroupInfo>();
+        var failures = new LinkedHashMap<String, List<ResourceLocation>>();
         for (var holder : source) {
-            if (!(holder.value() instanceof Recipe<?> recipe) || recipe instanceof MatterFabricationRecipe) continue;
+            if (!(holder.value() instanceof Recipe<?> recipe) || recipe instanceof MatterFabricationRecipe
+                    || recipe instanceof MatterMachineImportRecipe) continue;
             var serializerId = BuiltInRegistries.RECIPE_SERIALIZER.getKey(recipe.getSerializer());
             var type = serializerId == null ? "" : serializerId.toString();
             var machine = byType.get(type);
-            if (machine == null || !ModList.get().isLoaded(machine.modId)) continue;
+            if (machine == null) continue;
             var encoded = encode(level, recipe);
-            if (encoded == null) continue;
-            var output = output(level, recipe, encoded, type);
-            if (output.items().isEmpty() && output.fluids().isEmpty() && output.resources().isEmpty()) continue;
-            var branch = convert(level, recipe, output, encoded, type);
-            if (branch == null) continue;
+            if (encoded == null) {
+                recordFailure(failures, machine, holder.id());
+                continue;
+            }
+            var output = machine.declaration != null && machine.declaration.outputs().isPresent()
+                    ? mappedOutput(level, encoded, machine.declaration.outputs().get())
+                    : output(level, recipe, encoded, type);
+            if (output == null || output.items().isEmpty() && output.fluids().isEmpty() && output.resources().isEmpty()
+                    || output.items().size() > MatterFabricationRecipe.MAX_OUTPUTS
+                    || output.resources().size() + Math.max(0, output.fluids().size() - 1) > MatterFabricationRecipe.MAX_OUTPUTS) {
+                recordFailure(failures, machine, holder.id());
+                continue;
+            }
+            var branch = convert(level, recipe, output, encoded, type, machine);
+            if (branch == null) {
+                recordFailure(failures, machine, holder.id());
+                continue;
+            }
             var key = machine.key + "|" + outputKey(output) + "|" + branch.signature;
             grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(branch);
             info.putIfAbsent(key, new GroupInfo(machine, output, branch.signature));
         }
+        failures.forEach((machine, ids) -> MolecularManipulator.LOGGER.warn(
+                "Matter machine import {} skipped {} recipes with unreadable fields/resources or unsupported slot counts: {}",
+                machine, ids.size(), ids));
         var byMachineOutput = new LinkedHashMap<String, List<Map.Entry<String, List<Branch>>>>();
         for (var entry : grouped.entrySet()) {
             var group = info.get(entry.getKey());
@@ -144,10 +189,12 @@ public final class MatterRecipeBridge {
                     var extra = outputFluids.get(fluidIndex);
                     aeOutputs.add(new appeng.api.stacks.GenericStack(appeng.api.stacks.AEFluidKey.of(extra), extra.getAmount()));
                 }
+                var declaration = group.machine.declaration;
                 var fabrication = new MatterFabricationRecipe(branch.ingredients(),
                         branch.output().items(), branch.fluid(),
                         outputFluids.isEmpty() ? FluidStack.EMPTY : outputFluids.getFirst(),
-                        branch.aeInputs(), aeOutputs, 200, 256, true);
+                        branch.aeInputs(), aeOutputs, declaration == null ? 200 : declaration.processingTime(),
+                        declaration == null ? 256 : declaration.aePerTick(), true);
                 result.add(new ImportedRecipe(new RecipeHolder<>(id, fabrication), group.machine.key,
                         group.machine.modId,
                         group.output.items().isEmpty() ? ItemStack.EMPTY : group.output.items().getFirst(),
@@ -158,10 +205,211 @@ public final class MatterRecipeBridge {
         return List.copyOf(result);
     }
 
+    private static void recordFailure(Map<String, List<ResourceLocation>> failures, MachineSpec machine, ResourceLocation id) {
+        if (machine.declaration != null) failures.computeIfAbsent(machine.key, ignored -> new ArrayList<>()).add(id);
+    }
+
     private record GroupInfo(MachineSpec machine, Output output, String signature) {}
 
     private record Output(List<ItemStack> items, List<FluidStack> fluids,
             List<appeng.api.stacks.GenericStack> resources) {}
+
+    private record MappedInputs(List<Input> items, List<FluidStack> fluids,
+            List<appeng.api.stacks.GenericStack> resources) {}
+
+    private static Output mappedOutput(Level level, JsonElement encoded, MatterMachineImportRecipe.Fields fields) {
+        try {
+            var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+            var items = new ArrayList<ItemStack>();
+            var fluids = new ArrayList<FluidStack>();
+            var resources = new ArrayList<appeng.api.stacks.GenericStack>();
+            for (var path : fields.items()) {
+                var parsed = readMappedItemOutputs(ops, atPath(encoded, path));
+                if (parsed.isEmpty()) return null;
+                items.addAll(parsed);
+            }
+            for (var path : fields.fluids()) {
+                var parsed = readFluids(ops, atPath(encoded, path));
+                if (parsed.isEmpty()) return null;
+                fluids.addAll(parsed);
+            }
+            for (var path : fields.resources()) {
+                var parsed = readResources(level, atPath(encoded, path));
+                if (parsed.isEmpty()) return null;
+                resources.addAll(parsed);
+            }
+            for (var rule : fields.aeKeys()) {
+                var parsed = mappedResource(level, encoded, rule);
+                if (parsed == null) return null;
+                resources.add(parsed);
+            }
+            return new Output(List.copyOf(items), List.copyOf(fluids), List.copyOf(resources));
+        } catch (RuntimeException ignored) { return null; }
+    }
+
+    private static MappedInputs mappedInputs(Level level, JsonElement encoded, MatterMachineImportRecipe.Fields fields) {
+        try {
+            var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+            var items = new ArrayList<Input>();
+            var fluids = new ArrayList<FluidStack>();
+            var resources = new ArrayList<appeng.api.stacks.GenericStack>();
+            for (var path : fields.items()) {
+                items.addAll(readMappedItemInputs(ops, atPath(encoded, path)));
+            }
+            for (var path : fields.fluids()) {
+                var parsed = readFluids(ops, atPath(encoded, path));
+                if (parsed.isEmpty()) return null;
+                fluids.addAll(parsed);
+            }
+            for (var path : fields.resources()) {
+                var parsed = readResources(level, atPath(encoded, path));
+                if (parsed.isEmpty()) return null;
+                resources.addAll(parsed);
+            }
+            for (var rule : fields.aeKeys()) {
+                var parsed = mappedResource(level, encoded, rule);
+                if (parsed == null) return null;
+                resources.add(parsed);
+            }
+            return new MappedInputs(List.copyOf(items), List.copyOf(fluids), List.copyOf(resources));
+        } catch (RuntimeException ignored) { return null; }
+    }
+
+    static JsonElement atPath(JsonElement root, String pointer) {
+        if (pointer.isEmpty()) return root;
+        if (!pointer.startsWith("/")) return null;
+        JsonElement current = root;
+        for (var part : pointer.substring(1).split("/", -1)) {
+            var key = part.replace("~1", "/").replace("~0", "~");
+            if (current instanceof JsonObject object) current = object.get(key);
+            else if (current != null && current.isJsonArray()) {
+                try { current = current.getAsJsonArray().get(Integer.parseInt(key)); }
+                catch (RuntimeException error) { return null; }
+            } else return null;
+            if (current == null) return null;
+        }
+        return current;
+    }
+
+    static List<Input> readMappedItemInputs(DynamicOps<JsonElement> ops, JsonElement element) {
+        if (element == null || element.isJsonNull()) throw new IllegalArgumentException("Missing item input");
+        if (element.isJsonArray()) {
+            var result = new ArrayList<Input>();
+            for (var child : element.getAsJsonArray()) result.addAll(readMappedItemInputs(ops, child));
+            if (result.isEmpty()) throw new IllegalArgumentException("Empty item inputs");
+            return List.copyOf(result);
+        }
+        if (!(element instanceof JsonObject object)) throw new IllegalArgumentException("Item input must be an ingredient");
+        var ingredient = Ingredient.CODEC_NONEMPTY.parse(ops, object.has("ingredient") ? object.get("ingredient") : object)
+                .getOrThrow();
+        long count = strictAmount(object, 1);
+        if (count > Integer.MAX_VALUE) throw new IllegalArgumentException("Item input count exceeds integer range");
+        return List.of(new Input(ingredient, (int) count));
+    }
+
+    static List<ItemStack> readMappedItemOutputs(DynamicOps<JsonElement> ops, JsonElement element) {
+        if (element == null || element.isJsonNull()) throw new IllegalArgumentException("Missing item output");
+        if (element.isJsonArray()) {
+            var result = new ArrayList<ItemStack>();
+            for (var child : element.getAsJsonArray()) result.addAll(readMappedItemOutputs(ops, child));
+            if (result.isEmpty()) throw new IllegalArgumentException("Empty item outputs");
+            return List.copyOf(result);
+        }
+        if (!(element instanceof JsonObject object)) throw new IllegalArgumentException("Item output must be a stack");
+        var normalized = object.deepCopy();
+        if (normalized.has("item") && !normalized.has("id")) normalized.add("id", normalized.remove("item"));
+        long count = strictAmount(normalized, 1);
+        if (count > Integer.MAX_VALUE) throw new IllegalArgumentException("Item output count exceeds integer range");
+        normalized.addProperty("count", 1);
+        return List.of(ItemStack.STRICT_CODEC.parse(ops, normalized).getOrThrow().copyWithCount((int) count));
+    }
+
+    private static long strictAmount(JsonObject object, long fallback) {
+        for (var field : List.of("amount", "count", "#")) {
+            if (object.has(field)) return positiveInteger(object.get(field));
+        }
+        if (fallback < 1) throw new IllegalArgumentException("Missing amount");
+        return fallback;
+    }
+
+    private static long positiveInteger(JsonElement value) {
+        long amount = new java.math.BigDecimal(value.getAsString()).longValueExact();
+        if (amount < 1) throw new IllegalArgumentException("Amount must be positive");
+        return amount;
+    }
+
+    private static List<FluidStack> readFluids(DynamicOps<JsonElement> ops, JsonElement element) {
+        if (element == null || element.isJsonNull()) return List.of();
+        if (element.isJsonArray()) {
+            var result = new ArrayList<FluidStack>();
+            for (var child : element.getAsJsonArray()) {
+                var parsed = readFluids(ops, child);
+                if (parsed.isEmpty()) throw new IllegalArgumentException("Unreadable fluid stack");
+                result.addAll(parsed);
+            }
+            return List.copyOf(result);
+        }
+        if (!(element instanceof JsonObject object)) return List.of();
+        var normalized = object.deepCopy();
+        if (normalized.has("fluid") && !normalized.has("id")) normalized.add("id", normalized.remove("fluid"));
+        long amount = strictAmount(normalized, 0);
+        if (amount > Integer.MAX_VALUE) throw new IllegalArgumentException("Fluid amount exceeds integer range");
+        normalized.addProperty("amount", amount);
+        return List.of(FluidStack.CODEC.parse(ops, normalized).getOrThrow());
+    }
+
+    private static List<appeng.api.stacks.GenericStack> readResources(Level level, JsonElement element) {
+        if (element == null || element.isJsonNull()) return List.of();
+        if (element.isJsonArray()) {
+            var result = new ArrayList<appeng.api.stacks.GenericStack>();
+            for (var child : element.getAsJsonArray()) {
+                var parsed = readResources(level, child);
+                if (parsed.isEmpty()) throw new IllegalArgumentException("Unreadable AE resource");
+                result.addAll(parsed);
+            }
+            return List.copyOf(result);
+        }
+        if (!(element instanceof JsonObject object)) return List.of();
+        var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+        var normalized = object.deepCopy();
+        if (normalized.has("#t")) normalized.addProperty("#", positiveInteger(normalized.get("#")));
+        else normalized.addProperty("amount", strictAmount(normalized, 0));
+        var stack = normalized.has("#t")
+                ? appeng.api.stacks.GenericStack.CODEC.parse(ops, normalized).result().orElse(null)
+                : resourceStack(level, normalized);
+        return stack == null || stack.amount() <= 0 ? List.of() : List.of(stack);
+    }
+
+    private static appeng.api.stacks.GenericStack mappedResource(Level level, JsonElement encoded,
+            MatterMachineImportRecipe.ResourceRule rule) {
+        var object = mappedResourceData(encoded, rule);
+        if (object == null) return null;
+        var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+        return appeng.api.stacks.GenericStack.CODEC.parse(ops, object).result().orElse(null);
+    }
+
+    static JsonObject mappedResourceData(JsonElement encoded, MatterMachineImportRecipe.ResourceRule rule) {
+        long amount = rule.amountDefault();
+        if (!rule.amountPath().isEmpty()) {
+            var value = atPath(encoded, rule.amountPath());
+            if (value != null) {
+                try { amount = positiveInteger(value); } catch (RuntimeException ignored) { return null; }
+            }
+        }
+        if (amount <= 0) return null;
+        var object = new JsonObject();
+        object.addProperty("#t", rule.keyType().toString());
+        object.addProperty("#", amount);
+        rule.fields().forEach((field, value) -> object.add(field, value.deepCopy()));
+        for (var entry : rule.fieldPaths().entrySet()) {
+            var value = atPath(encoded, entry.getValue());
+            if (value == null) {
+                if (!rule.fields().containsKey(entry.getKey())) return null;
+            } else if (value.isJsonNull()) return null;
+            else object.add(entry.getKey(), value.deepCopy());
+        }
+        return object;
+    }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static JsonElement encode(Level level, Recipe<?> recipe) {
@@ -323,11 +571,18 @@ public final class MatterRecipeBridge {
         return 1;
     }
 
-    private static Branch convert(Level level, Recipe<?> recipe, Output output, JsonElement encoded, String type) {
+    private static Branch convert(Level level, Recipe<?> recipe, Output output, JsonElement encoded, String type,
+            MachineSpec machine) {
         try {
             var parsed = new ArrayList<Input>();
             var aeInputs = new ArrayList<appeng.api.stacks.GenericStack>();
-            if (encoded != null) {
+            var mapped = machine.declaration != null && machine.declaration.inputs().isPresent()
+                    ? mappedInputs(level, encoded, machine.declaration.inputs().get()) : null;
+            if (machine.declaration != null && machine.declaration.inputs().isPresent() && mapped == null) return null;
+            if (mapped != null) {
+                parsed.addAll(mapped.items());
+                aeInputs.addAll(mapped.resources());
+            } else if (encoded != null) {
                 if (type.equals("ae2lt:crystal_catalyzer") && encoded instanceof JsonObject object) {
                     var catalyst = object.get("catalyst");
                     if (catalyst != null) parseIngredient(level, catalyst, 1).ifPresent(ingredient ->
@@ -350,7 +605,7 @@ public final class MatterRecipeBridge {
                     aeInputs.add(dataFlow);
                 }
             }
-            if (parsed.isEmpty()) {
+            if (parsed.isEmpty() && mapped == null) {
                 for (var ingredient : recipe.getIngredients()) if (ingredient != null && !ingredient.isEmpty()) {
                     parsed.add(new Input(ingredient, 1));
                 }
@@ -368,8 +623,8 @@ public final class MatterRecipeBridge {
                 ingredients.add(new MatterFabricationRecipe.CountedIngredient(
                         examples.get(entry.getKey()), entry.getValue().intValue()));
             }
-            var fluids = findFluidInputs(encoded);
-            if (type.equals("data_energistics:data_charge_press") && encoded instanceof JsonObject object
+            var fluids = mapped == null ? findFluidInputs(encoded) : mapped.fluids();
+            if (mapped == null && type.equals("data_energistics:data_charge_press") && encoded instanceof JsonObject object
                     && fluids.isEmpty() && number(object, "fluid_amount", 0) > 0) {
                 var fluidId = ResourceLocation.parse("data_energistics:data_corrosion_liquid");
                 long amount = number(object, "fluid_amount", 0);

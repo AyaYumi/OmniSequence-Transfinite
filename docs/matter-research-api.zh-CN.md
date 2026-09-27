@@ -1,20 +1,21 @@
 # 物质构筑井：配方与研究 API
 
-自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.5**。
+自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.6**。
 目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.17+**，以及必需前置
 AppliedEnhancements **1.0.6+**。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.md)。
 
-本文档覆盖构筑井的两类配方：
+本文档覆盖构筑井的三类配方：
 
 | 配方类型 | 作用 |
 | --- | --- |
 | `molecularmanipulator:matter_fabrication` | 物质构筑井能加工什么。 |
 | `molecularmanipulator:matter_research` | 解锁这些配方并提供生产加成的研究。 |
+| `molecularmanipulator:matter_machine_import` | 声明整台机器的配方导入、解析规则与研究分支。 |
 
-两者都是 `data/<namespace>/recipe/` 下的普通数据包配方。KubeJS 使用
+三者都是 `data/<namespace>/recipe/` 下的普通数据包配方。KubeJS 使用
 `ServerEvents.recipes` 与 `event.custom` 添加或替换，不需要额外适配插件。研究进度属于
 每个构筑井控制器，不属于玩家，也不属于全局网络。
 
@@ -100,6 +101,126 @@ ServerEvents.recipes(event => {
 
 ---
 
+## 1.2 整机导入与解析规则：`molecularmanipulator:matter_machine_import`
+
+在 `kubejs/server_scripts` 中使用 `ServerEvents.recipes` 添加声明，不需要额外的 KubeJS 插件。
+下面的例子导入熔炉配方，并为它们创建独立研究分支：
+
+```javascript
+ServerEvents.recipes(event => {
+  event.custom({
+    type: 'molecularmanipulator:matter_machine_import',
+    machine: 'minecraft:furnace',
+    serializers: ['minecraft:smelting'],
+    inputs: {items: ['/ingredient']},
+    outputs: {items: ['/result']},
+    processing_time: 200,
+    ae_per_tick: 256,
+    research: {
+      title: '熔炉研究',
+      stage: 2,
+      sort_order: 1100,
+      prerequisites: ['molecularmanipulator:research/ae_foundation'],
+      ingredients: [{ingredient: {item: 'minecraft:furnace'}, count: '1'}],
+      duration: 600,
+      ae_per_tick: 512
+    }
+  }).id('kubejs:furnace_import');
+});
+```
+
+该声明的研究 ID 为 `molecularmanipulator:research/machine/kubejs/furnace_import`，导入配方 ID
+位于 `molecularmanipulator:fabrication/import/machine/kubejs/furnace_import/`。
+声明 ID 应保持稳定；修改它会产生另一个研究 ID，原控制器的研究完成次数不会自动迁移。
+
+| 声明字段 | 含义 |
+| --- | --- |
+| `machine` | 必需，机器物品 ID；物品不存在时不导入。机器可由 KubeJS 注册。 |
+| `serializers` | 必需、非空，对应源配方 JSON 的 `type`，即配方**序列化器 ID**，不是 JEI 分类 ID。 |
+| `research` | 必需，使用现有 `matter_research` 的全部字段，包括材料、前置、`depths`、`required_mods`。导入配方自动加入其 `unlocks`；额外填写的 `unlocks` 也保留。 |
+| `inputs` / `outputs` | 可选，分别替换输入或输出的自动解析。省略时复用现有解析器；提供时必须覆盖该方向的全部资源。 |
+| `processing_time` | 导入配方的基础耗时，默认 200 tick。 |
+| `ae_per_tick` | 导入配方的基础功耗，默认 256 AE/t；与 `research.ae_per_tick` 分开配置。 |
+
+### 字段路径
+
+`inputs` 和 `outputs` 使用相同的配置格式：
+
+| 映射字段 | 内容 |
+| --- | --- |
+| `items` | 物品字段路径列表。输入接受 `{item: ...}`、`{tag: ...}` 或 `{ingredient: ..., count: ...}`；输出接受 `{id: ..., count: ..., components: ...}`，也接受 `item` 代替 `id`。 |
+| `fluids` | 流体字段路径列表，格式 `{id: ..., amount: ..., components: ...}`，也接受 `fluid` 代替 `id`；数量单位 mB。 |
+| `resources` | 已序列化 AE 堆栈的字段路径列表，接受含 `#t` 与 `#` 的 `GenericStack`，或 `{key_type: ..., resource: ..., amount: ...}`。 |
+| `ae_keys` | 从普通配方字段构造已注册 AE 资源的规则列表，见下例。 |
+
+路径遵循 JSON Pointer：`/inputs/items` 读取嵌套字段，`/inputs/0` 读取数组第一项，
+空字符串读取整个配方；字段名中的 `/` 写成 `~1`、`~` 写成 `~0`。路径必须对应源配方
+经其序列化器重新编码后的 JSON；某些序列化器会省略默认值，原始 KubeJS JSON 与编码结果可能不同。
+字段值为数组时逐项读取；物品输入的可替换原料数组应放进 `ingredient`，例如
+`{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`。
+显式映射字段必须可读取、数组必须非空，数量必须是正整数。某项无法解析时整条配方跳过，
+日志会列出对应配方 ID，避免只保留部分原料或产物。
+
+### 闪电等特殊 AE 资源
+
+下面的规则将 `lightningTier` 和 `lightningCost` 映射为闪电科技原有的 AE 闪电类型。
+这是一个完整声明；它覆盖内置闪电组装室导入规则，研究会由此声明生成：
+
+```javascript
+ServerEvents.recipes(event => {
+  event.custom({
+    type: 'molecularmanipulator:matter_machine_import',
+    machine: 'ae2lt:lightning_assembly_chamber',
+    serializers: ['ae2lt:lightning_assembly'],
+    inputs: {
+      items: ['/inputs'],
+      ae_keys: [{
+        key_type: 'ae2lt:lightning',
+        amount_path: '/lightningCost',
+        amount_default: 4,
+        fields: {tier: 'high_voltage'},
+        field_paths: {tier: '/lightningTier'}
+      }]
+    },
+    outputs: {items: ['/result']},
+    research: {
+      title: '闪电组装研究',
+      stage: 2,
+      required_mods: ['ae2lt'],
+      prerequisites: ['molecularmanipulator:research/ae_foundation'],
+      ingredients: [{ingredient: {item: 'ae2lt:lightning_assembly_chamber'}, count: '1'}],
+      duration: 600,
+      ae_per_tick: 512
+    }
+  }).id('kubejs:lightning_assembly_import');
+});
+```
+
+`key_type` 必须是模组已经注册的 AEKey 类型。`amount_path` 读取数量；字段缺失时使用
+`amount_default`，默认 0，必须填写有效默认值或提供有效来源数量。`fields` 提供 JSON 常量（可含嵌套对象），
+`field_paths` 把源字段的 JSON 值复制到同名 AEKey 字段；来源字段缺失时使用
+`fields` 中的同名默认值，没有默认值则跳过配方。`#t` 和 `#` 由系统生成，不能通过这两张表覆盖。
+极高压配方读取到 `extreme_high_voltage` 后保留该类型；不会生成包裹通用堆栈。
+
+如资源 ID 写在普通字段中，也可用 `ae_keys` 构造数据资源：设置
+`key_type: 'data_energistics:digitalization'`，`fields: {resource: 'data_energistics:data_flow'}`，
+以及对应的 `amount_path`。规则只解析已存在的 AE 类型；新的 AEKey 类型及 JEI 原料类型
+仍由提供资源的模组注册。没有原生 JEI 转换器时，构筑井不会用包裹物品伪造身份。
+
+### 重载与覆盖
+
+- 每次配方重载或客户端收到配方同步后，按当前生效配方重建导入与研究，包含 KubeJS 的修改。
+- 同一序列化器只分配给一个导入声明；自定义声明覆盖内置配置。多个自定义声明重复指定时，
+  按声明 ID 字典序排序，后者优先，建议避免重叠。
+- 机器缺失、`research.required_mods` 不满足或没有成功导入的配方时，不显示对应研究。
+- 同一机器、同一完整产物及数量、同一原料及数量的配方合并；不同原料分支保留并在研究列表中统计。
+- 当前每条构筑井配方最多 12 个物品/AE 输入，另加一个流体输入；最多 6 个物品输出、6 个 AE 输出，
+  另加一个流体输出。额外流体转为 AE 流体堆栈并占用 AE 槽位，超限配方跳过。
+- 燃料、概率产物、催化剂不消耗、温度等机器行为不会由字段规则自动模拟；仅添加能准确表达为
+  构筑井输入与确定产物的配方规则。
+
+---
+
 ## 2. 研究定义：`molecularmanipulator:matter_research`
 
 位置：`data/<namespace>/recipe/<path>.json`。
@@ -165,18 +286,19 @@ ServerEvents.recipes(event => {
 
 | 字段 | 含义 |
 | --- | --- |
-| `ingredients` | 计数物品输入，每项 `{ingredient: {item: ...} 或 {tag: ...}, count: 1-64}`，默认空。 |
-| `results` | 最多 **2** 种物品产物，严格格式 `{id: ..., count: ...}`。 |
-| `fluid_input` | 可选流体输入 `{id: ..., amount: ...}`，单位 mB。不计入九项输入上限。 |
+| `ingredients` | 计数物品输入，每项 `{ingredient: {item: ...} 或 {tag: ...}, count: ...}`，数量为正整数，默认空。 |
+| `results` | 最多 **6** 种物品产物，严格格式 `{id: ..., count: ...}`。 |
+| `fluid_input` | 可选流体输入 `{id: ..., amount: ...}`，单位 mB。不计入十二项输入上限。 |
 | `fluid_result` | 可选单种流体产物，格式相同。 |
-| `ae_inputs` | 最多 **9** 项通用 AEKey 输入，见 §4.1。 |
+| `ae_inputs` | 最多 **12** 项通用 AEKey 输入，见 §4.1。 |
+| `ae_outputs` | 最多 **6** 项通用 AEKey 输出，与 `ae_inputs` 使用相同的堆栈格式。 |
 | `processing_time` | 基础 tick，默认 `200`；小于 `1` 会被提升为 `1`。 |
 | `ae_per_tick` | 基础功耗，默认 `64.0`；负值会被提升为 `0`。 |
 | `requires_research` | 默认 `false`，见 §4.2。 |
 
-加载期错误条件：`ingredients` + `ae_inputs` 合计不得超过 **9** 项；`ingredients`、
-`fluid_input`、`ae_inputs` 至少要有一项；每项 `ae_inputs` 数量必须为正；且至少要有一种物品
-或流体产物。与研究定义不同，格式错误的构筑井配方会直接加载失败，而不是留到加工时才拒绝。
+加载期错误条件：`ingredients` + `ae_inputs` 合计不得超过 **12** 项；`ingredients`、
+`fluid_input`、`ae_inputs` 至少要有一项；每项 `ae_inputs` / `ae_outputs` 数量必须为正；
+且至少要有一种物品、流体或 AE 资源产物。与研究定义不同，格式错误的构筑井配方会直接加载失败。
 
 ### 4.1 通用输入（`ae_inputs`）
 
@@ -212,7 +334,7 @@ ServerEvents.recipes(event => {
 通用资源按完整 AEKey 精确匹配（含组件），而普通 `ingredients` 保持 Ingredient/tag 匹配。
 重复或重叠的需求会累加——同一份库存不会重复抵扣两个不同需求。
 
-含 `ae_inputs` 的配方必须由**样板总成**投料。手动物品与流体接口无法提供通用 AE 缓存，
+含 `ae_inputs` 或 `ae_outputs` 的配方必须使用**样板总成**。手动物品与流体接口无法提供通用 AE 缓存，
 会直接拒绝这类配方。
 
 含通用输入的 Java 构造器：
@@ -222,8 +344,12 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
         aeInputs, processingTime, aePerTick, requiresResearch); // aeInputs 为 List<GenericStack>
 ```
 
-旧的 6 参数与 7 参数构造器保持可用，`aeInputs` 默认为空列表。产物仍由 `results` 与
-`fluid_result` 定义，没有通用输出字段。
+旧的 6、7、8 参数构造器保持可用，省略的通用输入或输出列表默认为空。完整构造器为：
+
+```java
+new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
+        aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+```
 
 ### 4.2 研究权限
 

@@ -39,7 +39,8 @@ public final class MatterRecipeIndex {
     private MatterRecipeIndex(Level level, RecipeManager manager, Collection<RecipeHolder<?>> source) {
         this.source = source;
         var allFabrication = new ArrayList<>(manager.getAllRecipesFor(ModContent.MATTER_FABRICATION_RECIPE_TYPE.get()));
-        var imported = MatterRecipeBridge.importRecipes(level, source);
+        var machines = MatterRecipeBridge.machines(source);
+        var imported = MatterRecipeBridge.importRecipes(level, source, machines);
         for (var value : imported) {
             var holder = value.holder();
             if (allFabrication.stream().noneMatch(existing -> existing.id().equals(holder.id()))) {
@@ -63,18 +64,29 @@ public final class MatterRecipeIndex {
                         .thenComparing(holder -> holder.id().toString())).toList());
         var importedByMachine = new LinkedHashMap<String, List<RecipeHolder<MatterFabricationRecipe>>>();
         for (var value : imported) importedByMachine.computeIfAbsent(value.machineKey(), ignored -> new ArrayList<>()).add(value.holder());
-        for (var machine : MatterRecipeBridge.machines()) {
+        for (var machine : machines) {
             var recipes = importedByMachine.getOrDefault(machine.key(), List.of());
-            if (recipes.isEmpty() || !ModList.get().isLoaded(machine.modId())) continue;
+            if (recipes.isEmpty() || machine.declaration() == null && !ModList.get().isLoaded(machine.modId())) continue;
             var item = BuiltInRegistries.ITEM.get(machine.machineItem());
             if (item == null || !BuiltInRegistries.ITEM.containsKey(machine.machineItem())) continue;
             var unlocks = recipes.stream().map(RecipeHolder::id).toList();
             var id = MolecularManipulator.id("research/machine/" + machine.key());
-            var parent = ResourceLocation.parse("molecularmanipulator:research/ae_foundation");
-            var definition = new MatterResearchRecipe("research.molecularmanipulator.machine." + machine.key(),
-                    manager.byKey(parent).isPresent() ? List.of(parent) : List.of(),
-                    List.of(new MatterResearchRecipe.Cost(Ingredient.of(item), 1)), 600, 512,
-                    unlocks, List.of(machine.modId()), 1000 + definitions.size(), 2);
+            MatterResearchRecipe definition;
+            if (machine.declaration() == null) {
+                var parent = ResourceLocation.parse("molecularmanipulator:research/ae_foundation");
+                definition = new MatterResearchRecipe("research.molecularmanipulator.machine." + machine.key(),
+                        manager.byKey(parent).isPresent() ? List.of(parent) : List.of(),
+                        List.of(new MatterResearchRecipe.Cost(Ingredient.of(item), 1)), 600, 512,
+                        unlocks, List.of(machine.modId()), 1000 + definitions.size(), 2);
+            } else {
+                var configured = machine.declaration().research();
+                var allUnlocks = new ArrayList<>(configured.unlocks());
+                allUnlocks.addAll(unlocks);
+                definition = new MatterResearchRecipe(configured.title(), configured.prerequisites(),
+                        configured.ingredients(), configured.duration(), configured.aePerTick(), allUnlocks,
+                        configured.requiredMods(), configured.sortOrder(), configured.stage(),
+                        configured.depths(), configured.prerequisiteLevels());
+            }
             var holder = new RecipeHolder<>(id, definition);
             definitions.add(holder);
             var counts = new HashMap<String, Integer>();

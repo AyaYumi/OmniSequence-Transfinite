@@ -14,6 +14,7 @@ The well recipe and research page also has a [Chinese version](matter-research-a
 | Atomic AEKey delivery to a pattern provider | `com.atir.molecularmanipulator.api.crafting`, runtime ABI 1; supported resource types depend on the provider | [Omni Batch Provider API](omni-batch-provider-api.md) |
 | Generic well inputs and pattern output isolation | `MatterFabricationRecipe.aeInputs`, JSON `ae_inputs`, assembly-owned queues | [Well recipe format and limitations](matter-research-api.md) |
 | Well research, prerequisites, progress administration and production bonuses | `com.atir.molecularmanipulator.research.MatterResearchApi` and data recipes | [Matter Research / KubeJS API](matter-research-api.md) |
+| Import a machine's recipes with script-defined field mappings and research | `molecularmanipulator:matter_machine_import`, data packs or KubeJS `event.custom` | [Machine import API](matter-research-api.md#12-machine-imports-and-field-mappings-molecularmanipulatormatter_machine_import) |
 | AELIS planning, cyclic execution and shared AE2 enhancements | Separate AppliedEnhancements mod | [AppliedEnhancements API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/main/docs/API_INTEGRATION.md) |
 
 Use `compileOnly` against the relevant mod JARs, install required mods separately
@@ -37,6 +38,7 @@ general compatibility promise; use only the documented entry points.
 | 第三方样板机器接收完整 AEKey 批次，资源类型由供应器决定 | [批量供应器 API](omni-batch-provider-api.md) |
 | 构筑井通用输入、样板产物隔离与当前限制 | [配方格式与已知限制](matter-research-api.zh-CN.md) |
 | 数据包／KubeJS 研究与配方、前置等级、进度管理 | [研究 API](matter-research-api.zh-CN.md) |
+| KubeJS 整机导入、字段解析规则与自动研究分支 | [整机导入 API](matter-research-api.zh-CN.md#12-整机导入与解析规则molecularmanipulatormatter_machine_import) |
 | 调用 AELIS、管理循环合成执行 | [前置独立 API](https://github.com/AyaYumi/AppliedEnhancements/blob/main/docs/API_INTEGRATION_ZH.md) |
 
 开发时使用 `compileOnly`，运行时单独安装前置，不复制或嵌入 API 类。

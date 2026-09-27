@@ -153,7 +153,7 @@ public final class ModConfig {
                 "Notify each changed AE key once after an exact output insertion has settled all its ledgers.")
                 .define("omni_coalesce_return_notifications", true);
         OMNI_PROFILE_EXACT_RETURNS = server.comment(
-                "Log exact CPU output-return timing and notification counts at most once per 10 seconds while active.")
+                "Log exact CPU output-return timing, notification counts, and native UselessMod transfer diagnostics while active. Aggregate reports use 10-second intervals.")
                 .define("omni_profile_exact_returns", false);
         OMNI_RETURN_PROFILE_SAMPLE_INTERVAL = server.comment(
                 "Time one in this many exact output insertions to keep profiling overhead low. Counts remain exact.")

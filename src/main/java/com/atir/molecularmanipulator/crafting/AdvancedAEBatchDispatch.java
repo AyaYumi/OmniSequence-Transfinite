@@ -8,8 +8,8 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ICraftingInventory;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.api.crafting.*;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.ToLongFunction;
@@ -177,7 +177,7 @@ public final class AdvancedAEBatchDispatch implements AutoCloseable {
     private static void logFailure(String phase, Throwable error) {
         if (error instanceof Error fatal && !(fatal instanceof LinkageError) && !(fatal instanceof AssertionError))
             throw fatal;
-        MolecularManipulator.LOGGER.warn("AdvancedAE batch API failure during {}; preserving input ownership", phase, error);
+        RateLimitedLog.warn("AdvancedAE batch API failure during {}; preserving input ownership", phase, error);
     }
 
     private static boolean contains(Map<ICraftingProvider, Set<IPatternDetails>> map,

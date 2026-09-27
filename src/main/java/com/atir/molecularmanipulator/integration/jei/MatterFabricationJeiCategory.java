@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.integration.jei;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.client.AeUiTheme;
@@ -34,6 +35,7 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
             MolecularManipulator.id("matter_fabrication_processing"), MatterFabricationRecipe.class);
     private final IDrawable icon, slot;
     private final Map<MatterFabricationRecipe, StageInfo> stages = new WeakHashMap<>();
+    private static final Set<AEKeyType> MISSING_CONVERTERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public MatterFabricationJeiCategory(IGuiHelper helper) {
         icon = helper.createDrawableItemStack(new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()));
@@ -97,7 +99,9 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
                     .setFluidRenderer(visibleAmount, false, 16, 16);
         } else if (!ModList.get().isLoaded("ae2jeiintegration")
                 || !MatterFabricationJeiIngredients.add(slot, stack)) {
-            MolecularManipulator.LOGGER.warn("No native JEI ingredient converter for AE key {}", stack.what());
+            if (MISSING_CONVERTERS.add(stack.what().getType())) {
+                MolecularManipulator.LOGGER.warn("No native JEI ingredient converter for AE key {}", stack.what());
+            }
         }
     }
     private static int outputX(int count, int index) { return Math.min(2, count - index / 2 * 2) == 1 ? 146 : 136 + index % 2 * 20; }

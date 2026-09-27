@@ -18,6 +18,7 @@ import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor.BatchExtraction;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchSafety;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -276,7 +277,7 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
                     try {
                         balancedProvider.molecularmanipulator$endBalancedBatch();
                     } catch (RuntimeException cleanupException) {
-                        MolecularManipulator.LOGGER.warn(
+                        RateLimitedLog.warn(
                                 "AdvancedAE balanced batch cleanup failed after provider dispatch",
                                 cleanupException);
                     }
@@ -528,7 +529,7 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
                 flushed |= OmniPostAccountingOutputAdapterRegistry
                         .flushAfterCpuAccounting(provider);
             } catch (RuntimeException exception) {
-                MolecularManipulator.LOGGER.warn(
+                RateLimitedLog.warn(
                         "Molecular batch output could not be returned immediately; retaining it for the normal retry",
                         exception);
             }

@@ -1,6 +1,6 @@
 # 物质构筑井：配方与研究 API
 
-自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.6**。
+自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.6-config-fix**。
 目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.17+**，以及必需前置
 AppliedEnhancements **1.0.6+**。模组 ID 仍为 `molecularmanipulator`。
 

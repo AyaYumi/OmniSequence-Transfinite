@@ -91,7 +91,7 @@ Dispatch adapts to machine acceptance and server load. Ingredients, energy, back
 
 ## Persistence and remote access
 
-* The core force-loads required chunks while formed and during construction, dismantling or structure updates.
+* When `sequence_array.force_load_chunks` is enabled, the core force-loads required chunks while formed and during construction, dismantling or structure updates.
 * Normal controller drops retain stored contents, active jobs and quantum-slot contents. Restore the structure and network after replacing it.
 * If part of the structure is broken or unloaded, active jobs, stored ingredients and progress are preserved. Work resumes after the complete structure is loaded and valid again.
 

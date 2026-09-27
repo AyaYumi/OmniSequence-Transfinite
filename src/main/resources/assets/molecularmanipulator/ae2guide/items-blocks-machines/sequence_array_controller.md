@@ -69,7 +69,7 @@ Unrelated blocks or entities at the destination stop relocation. Clear the desti
 
 ### Chunk loading and drops
 
-The array force-loads required chunks while formed and during construction, dismantling or structure updates. Valid loading tasks resume after world reloads. Structural damage pauses work while retaining progress; unnecessary tickets are released. Normal controller drops retain inventory, quantum-slot contents and owned task state.
+When `sequence_array.force_load_chunks` is enabled, the array force-loads required chunks while formed and during construction, dismantling or structure updates. Valid loading tasks resume after world reloads. Structural damage pauses work while retaining progress; unnecessary tickets are released. Normal controller drops retain inventory, quantum-slot contents and owned task state.
 
 > The formed current layout stores its main pattern library in the 14 quantum crystals; retain those crystals when moving the array. Legacy and incomplete layouts retain their controller pattern copy for migration.
 

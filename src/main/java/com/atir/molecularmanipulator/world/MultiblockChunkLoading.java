@@ -4,6 +4,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
+import com.atir.molecularmanipulator.config.ModConfig;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,7 +56,8 @@ public final class MultiblockChunkLoading {
 
     public static void maintain(BlockEntity machine) {
         if (!(machine.getLevel() instanceof ServerLevel level) || machine.isRemoved()) return;
-        var required = requiredChunks(machine);
+        var required = ModConfig.FORCE_LOAD_CHUNKS.get()
+                ? requiredChunks(machine) : Set.<ChunkPos>of();
         var owner = machine.getBlockPos();
         if (!required.isEmpty()) {
             required = new HashSet<>(required);

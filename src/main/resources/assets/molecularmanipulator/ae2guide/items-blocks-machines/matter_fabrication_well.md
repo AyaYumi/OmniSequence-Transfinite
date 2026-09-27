@@ -93,7 +93,7 @@ Production displays rotating star rings, converging material streams and manufac
 > Paused, prerequisite-blocked, offline or unpowered research stops sending light pulses. Custom stages receive an automatic visual preset.
 
 * Only the current well blueprint is retained; experimental development layouts are no longer recognized.
-* The controller force-loads the required chunks while formed or during construction and dismantling. Tickets are released when no valid structure or operation needs them.
+* When `sequence_array.force_load_chunks` is enabled, the controller force-loads the required chunks while formed or during construction and dismantling. Tickets are released when no valid structure or operation needs them.
 * Chunk loading does not supply materials or energy.
 
 **Dismantle** recovers the structure from top to bottom while keeping the controller. Materials go to ME first and then the player's inventory; full destinations pause the saved operation.

@@ -1,6 +1,6 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.6**.
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.6-config-fix**.
 Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.17+**, and the
 required prerequisite AppliedEnhancements **1.0.6+**. The Mod ID stays
 `molecularmanipulator`.

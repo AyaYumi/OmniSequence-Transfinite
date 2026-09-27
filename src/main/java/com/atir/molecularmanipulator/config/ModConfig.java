@@ -12,6 +12,7 @@ public final class ModConfig {
     public static final ModConfigSpec.IntValue PATTERN_PAGES;
     public static final ModConfigSpec.IntValue BUILD_BLOCKS_PER_TICK;
     public static final ModConfigSpec.IntValue IDLE_POWER;
+    public static final ModConfigSpec.BooleanValue FORCE_LOAD_CHUNKS;
     public static final ModConfigSpec.LongValue MATTER_SEQUENCE_CAPACITY;
     public static final ModConfigSpec.LongValue MATTER_ENTROPY_CAPACITY;
     public static final ModConfigSpec.LongValue MATTER_ENTROPY_COOLING_PER_SECOND;
@@ -48,6 +49,11 @@ public final class ModConfig {
         IDLE_POWER = server.comment("Molecular Center idle power usage in AE/t.")
                 .translation("molecularmanipulator.configuration.idle_power")
                 .defineInRange("idle_power", 128, 1, 4096);
+        FORCE_LOAD_CHUNKS = server.comment(
+                "Keep chunks occupied by the Sequence Array, Omni-Computation Core, and Matter Fabrication Well loaded while formed or being built.",
+                "成型或施工期间是否保持构序阵列、万物演算核心和物质构筑井占用的区块加载。")
+                .translation("molecularmanipulator.configuration.force_load_chunks")
+                .define("force_load_chunks", true);
         server.comment(
                 "Matter Sequence storage, entropy, cooling, and processing speed.",
                 "物质构序存储、熵值、散热与处理速度设置。")
@@ -151,15 +157,19 @@ public final class ModConfig {
                 .defineInRange("omni_dispatch_max_work_units", 2_147_483_647L, 64L, Long.MAX_VALUE);
         OMNI_COALESCE_RETURN_NOTIFICATIONS = server.comment(
                 "Notify each changed AE key once after an exact output insertion has settled all its ledgers.")
+                .translation("molecularmanipulator.configuration.omni_coalesce_return_notifications")
                 .define("omni_coalesce_return_notifications", true);
         OMNI_PROFILE_EXACT_RETURNS = server.comment(
                 "Log exact CPU output-return timing, notification counts, and native UselessMod transfer diagnostics while active. Aggregate reports use 10-second intervals.")
+                .translation("molecularmanipulator.configuration.omni_profile_exact_returns")
                 .define("omni_profile_exact_returns", false);
         OMNI_RETURN_PROFILE_SAMPLE_INTERVAL = server.comment(
                 "Time one in this many exact output insertions to keep profiling overhead low. Counts remain exact.")
+                .translation("molecularmanipulator.configuration.omni_return_profile_sample_interval")
                 .defineInRange("omni_return_profile_sample_interval", 64, 1, 4096);
         OMNI_DIRECT_NATIVE_OUTPUT_RETURN = server.comment(
                 "Directly transfer native UselessMod intermediate output balances to their live bound CPU on the same grid. Unsupported queues use normal return.")
+                .translation("molecularmanipulator.configuration.omni_direct_native_output_return")
                 .define("omni_direct_native_output_return", true);
         server.pop();
         server.pop();

@@ -71,7 +71,7 @@ The three molecular crafting machines support persistent reusable-input batches 
 
 Use in-game projections and JEI's interactive structure previews to inspect layers, orientation and materials before building. Large multiblocks support automatic construction and dismantling; dismantling processes matching blocks from top to bottom and retains its progress across saves.
 
-The large multiblocks automatically keep their required chunks loaded while formed or performing construction, dismantling or structure updates. Structural damage pauses affected work while preserving its state. The single-block nexus does not load chunks for you.
+The large multiblocks automatically keep their required chunks loaded while formed or performing construction, dismantling or structure updates when `sequence_array.force_load_chunks` is enabled. Structural damage pauses affected work while preserving its state. The single-block nexus does not load chunks for you.
 
 Those occupied chunks also block natural spawning at every height, including monsters, animals, aquatic mobs and bats. This includes natural world-generation, patrol and reinforcement spawns. Spawners, spawn eggs, commands and existing mobs remain unaffected. Protection follows the chunk footprint and ends when no multiblock owns it; the single-block nexus has no such area.
 
@@ -192,7 +192,7 @@ The Mod ID remains **`molecularmanipulator`** for existing world and script refe
 
 通过游戏内投影和 JEI 可交互结构预览，查看层级、朝向及完整材料。大型多方块支持自动搭建和拆卸；拆卸按高度从上到下处理匹配方块，进度可以跨存档恢复。
 
-大型多方块在成型及施工、拆卸、结构更新期间自动强加载所需区块。结构损坏会暂停相关工作并保留状态。单方块超限算枢不提供区块加载。
+大型多方块在 `sequence_array.force_load_chunks` 开启时，会在成型及施工、拆卸、结构更新期间自动强加载所需区块。结构损坏会暂停相关工作并保留状态。单方块超限算枢不提供区块加载。
 
 这些占地区块的整个高度同时禁止自然生成生物，包括怪物、动物、水生生物和蝙蝠，涵盖自然生成、世界生成、巡逻和增援生成。刷怪笼、刷怪蛋、指令和已有生物不受影响。禁刷随区块范围生效，最后一台多方块释放范围后解除；单方块超限算枢不提供该保护。
 

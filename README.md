@@ -129,7 +129,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 - Exposes configured pattern pages as multiple logical Pattern Access Terminal containers, with the combined library managed by the controller.
 - One-click dismantling uses a timed two-step confirmation. Rapid double-clicks, clicking another control, or waiting for the timeout will not trigger accidental removal.
 - Provides independent RGB effects for the energy field, core, rings, and lattice. Crafting accelerates the animation only; visual settings do not change processing speed.
-- Automatically force-loads required chunks while formed or during construction, dismantling and structure updates; structural damage pauses work while preserving progress.
+- Automatically force-loads required chunks while formed or during construction, dismantling and structure updates when `sequence_array.force_load_chunks` is enabled; structural damage pauses work while preserving progress.
 
 ### Matter Fabrication Well and Pattern Assembly
 
@@ -228,6 +228,7 @@ Client options are grouped under `tooltips` and `visual`.
 | `sequence_array.pattern_pages` | 200 | Pattern pages available to the Sequence Array Controller; 36 slots per page, range 1-300; fourteen quantum crystals share the formed library |
 | `sequence_array.build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
 | `sequence_array.idle_power` | 128 | Sequence Array Controller idle power in AE/t |
+| `sequence_array.force_load_chunks` | `true` | Keep the Sequence Array, Omni-Computation Core, and Matter Fabrication Well chunks loaded while formed or being built |
 | `transfinite_compute_nexus.idle_power` | 16384 | Nexus idle power in AE/t; requires one powered ME channel |
 | `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
 | `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | Per-core, per-tick emergency ceiling for complete `1×` calls to ordinary providers |

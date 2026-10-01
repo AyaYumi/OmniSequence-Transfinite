@@ -29,7 +29,7 @@ GIF 展示平面贴图帧，不等同于游戏内立体模型、连接纹理和�
 ## 太虚造化天枢
 
 新增部件采用独立的 16×16 原生像素材质，源生成脚本为 `generate_taixu.py`。
-生成、连接纹理、特效和独立验证说明见 [太虚建筑部件](../../docs/taixu-building-palette.zh-CN.md)。
+运行 `python tools/textures/generate_taixu.py` 生成材质，使用 `verify_taixu.py` 检查输出。
 正式贴图位于 `textures/block/taixu/`；预览位于 `build/taixu-palette/`。
 
 Windows 下可用 Java 21 运行隔离 GPU 检查：

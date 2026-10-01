@@ -1,8 +1,7 @@
 # UI regression checks / 界面回归检查
 
-AE2 19.2.17/19.2.18 paired-mod CPU list rendering and server compatibility checks
-are documented in [AE2 compatibility](../../docs/ae2-19.2.18-compatibility.zh-CN.md).
-Use `ae2-compat.init.gradle` to run the real client capture in an isolated world.
+Use `ae2-compat.init.gradle` to check AE2 19.2.17/19.2.18 paired-mod CPU list
+rendering and server compatibility with a real client capture in an isolated world.
 
 Run `./gradlew test` for the standard unit suite. To check the responsive screen
 and JEI integration with the dependency versions from a particular modpack, supply

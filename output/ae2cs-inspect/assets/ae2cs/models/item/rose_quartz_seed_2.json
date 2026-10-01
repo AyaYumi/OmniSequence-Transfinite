@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "ae2cs:item/rose_quartz_seed_2"
-  }
-}

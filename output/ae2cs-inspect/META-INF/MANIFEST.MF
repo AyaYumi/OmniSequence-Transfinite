@@ -1,9 +1,0 @@
-Manifest-Version: 1.0
-MixinConfigs: ae2cs.mixins.json
-Specification-Title: ae2cs
-Specification-Version: 1.2.1
-Specification-Vendor: ExtremelyFrozen Team
-Implementation-Title: ae2cs-1.21.1
-Implementation-Version: 1.2.1
-Implementation-Vendor: ExtremelyFrozen Team
-

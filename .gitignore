@@ -46,6 +46,8 @@ repo/
 
 ### Local verification output and separate mod dependencies ###
 logs/
+/output/
+/test-results/
 __pycache__/
 *.py[cod]
 libs/*.jar

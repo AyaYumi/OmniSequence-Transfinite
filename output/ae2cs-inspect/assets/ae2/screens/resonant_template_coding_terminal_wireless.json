@@ -1,7 +1,0 @@
-{
-  "$schema": "schema.json",
-  "includes": [
-    "resonant_template_coding_terminal.json",
-    "wtlib/universal_terminal.json"
-  ]
-}

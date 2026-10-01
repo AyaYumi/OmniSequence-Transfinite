@@ -21,9 +21,7 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on Neo
 
 Current release: `2.0.5`
 
-See the [2.0.5 release notes](docs/releases/2.0.5.md) for changes from 2.0.4,
-[CHANGELOG.md](CHANGELOG.md) for the complete history, and the
-[bilingual project description](docs/curseforge-description.md) for a feature overview.
+See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
 
 Advanced AE 1.6.11+ is optional for the base mod and required for the default
 Omni-Computation research branch, including the Transfinite Compute Nexus recipe.

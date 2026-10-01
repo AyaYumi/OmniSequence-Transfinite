@@ -21,8 +21,7 @@
 
 当前版本：`2.0.5`，后续源码维护分支为 `1.21.1-neoforge`。
 
-相对 2.0.4 的变化见 [2.0.5 更新说明](docs/releases/2.0.5.md)，完整历史见
-[CHANGELOG.md](CHANGELOG.md)，功能概览见[中英项目介绍](docs/curseforge-description.md)。
+完整版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 Advanced AE 1.6.11+ 对基础模组为可选，对默认万物演算研究分支及超限算枢配方为必要条件。
 
 开发接入见 [API 索引](docs/README.md)、[批量供应器 API v1](docs/omni-batch-provider-api.md)

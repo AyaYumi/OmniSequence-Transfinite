@@ -4,9 +4,7 @@ Target: OmniSequence: Transfinite **2.0.5**, Minecraft **1.21.1**, NeoForge,
 Java **21**, AE2 **19.2.17+**, AppliedEnhancements **1.0.6+**.
 The Mod ID remains `molecularmanipulator`.
 
-Project documentation: [2.0.5 release notes](releases/2.0.5.md),
-[bilingual CurseForge description](curseforge-description.md),
-[build and test instructions](../README.md#installation-and-build).
+Prerequisites and verification: [build and test instructions](../README.md#installation-and-build).
 The well recipe and research page also has a [Chinese version](matter-research-api.zh-CN.md).
 
 | Integration | Contract | Documentation |
@@ -29,8 +27,7 @@ general compatibility promise; use only the documented entry points.
 本文档对应 2.0.5，批量投料 API 保持 v1；研究接口从 2.0.0 提供。模组 ID
 仍为 `molecularmanipulator`，客户端和服务端都需要 AppliedEnhancements 1.0.6+。
 
-项目文档：[2.0.5 更新说明](releases/2.0.5.md)、[中英 CurseForge 介绍](curseforge-description.md)、
-[安装与构建](../README.zh-CN.md#安装与构建)。
+前置准备与验证：[安装与构建](../README.zh-CN.md#安装与构建)。
 构筑井配方与研究文档同时提供[英文版](matter-research-api.md)。
 
 | 需求 | 使用接口 |

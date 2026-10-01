@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2cs:charged_certus_quartz_block"
+    }
+  ],
+  "result": {
+    "count": 4,
+    "id": "ae2:charged_certus_quartz_crystal"
+  }
+}

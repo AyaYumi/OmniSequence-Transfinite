@@ -72,7 +72,11 @@ public final class MolecularExternalScaledPattern {
 
             var original = getOriginal(resolvedLookup, current);
             long multiplier = getMultiplier(resolvedLookup, current, original);
-            validateScaledLayer(current, original, multiplier);
+            validateScaledLayer(
+                    current,
+                    original,
+                    multiplier,
+                    resolvedLookup.scaledPatternClass());
             combinedMultiplier = Math.multiplyExact(combinedMultiplier, multiplier);
             current = original;
         }
@@ -246,12 +250,20 @@ public final class MolecularExternalScaledPattern {
     }
 
     private static void validateScaledLayer(IPatternDetails scaledPattern,
-            IPatternDetails original, long multiplier) {
+            IPatternDetails original, long multiplier, Class<?> scaledPatternClass) {
+        // UselessMod deliberately writes the operations-per-push component into
+        // the execution definition. That definition identifies the scaled
+        // dispatch unit and therefore cannot equal the original pattern's
+        // definition. The input/output vectors below remain the authoritative
+        // identity checks for this wrapper.
+        boolean generatedExecutionDefinition =
+                USELESS_SCALED_PATTERN.equals(scaledPatternClass.getName());
         if (multiplier <= 0
-                || !Objects.equals(
-                        scaledPattern.getDefinition(), original.getDefinition())) {
+                || (!generatedExecutionDefinition
+                        && !Objects.equals(
+                                scaledPattern.getDefinition(), original.getDefinition()))) {
             throw new IllegalStateException(
-                    "ExtendedAE Plus scaled-pattern identity is inconsistent");
+                    "Scaled-pattern identity is inconsistent");
         }
 
         var scaledInputs = scaledPattern.getInputs();

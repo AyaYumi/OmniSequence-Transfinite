@@ -9,7 +9,11 @@ import appeng.api.storage.IStorageProvider;
 import appeng.api.storage.MEStorage;
 import appeng.blockentity.AEBaseBlockEntity;
 import appeng.blockentity.networking.CreativeEnergyCellBlockEntity;
+import appeng.blockentity.crafting.CraftingBlockEntity;
 import appeng.core.definitions.AEBlocks;
+import appeng.crafting.CraftingPlan;
+import appeng.me.helpers.MachineSource;
+import com.github.appliedenhancements.integration.ae2.AelisScaledPattern;
 import com.atir.molecularmanipulator.api.crafting.*;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipeInput;
@@ -62,17 +66,92 @@ public final class MatterAEKeyGameTests {
         var bay = MatterFabricationStructure.worldPos(ORIGIN, Direction.NORTH, MatterFabricationStructure.patternAssemblyBays().getFirst());
         level.setBlock(bay, ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY.get().defaultBlockState(), 3);
         var assembly = (MatterFabricationPatternAssemblyBlockEntity) level.getBlockEntity(bay);
+        var secondBay = MatterFabricationStructure.worldPos(ORIGIN, Direction.NORTH, MatterFabricationStructure.patternAssemblyBays().get(1));
+        level.setBlock(secondBay, ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY.get().defaultBlockState(), 3);
+        var secondAssembly = (MatterFabricationPatternAssemblyBlockEntity) level.getBlockEntity(secondBay);
         var powerPos = ORIGIN.offset(30, 0, 0);
         level.setBlock(powerPos, AEBlocks.CREATIVE_ENERGY_CELL.block().defaultBlockState(), 3);
         var power = (CreativeEnergyCellBlockEntity) level.getBlockEntity(powerPos);
+        var cpuPos = ORIGIN.offset(31, 0, 0);
+        level.setBlock(cpuPos, AEBlocks.CRAFTING_STORAGE_1K.block().defaultBlockState(), 3);
+        var cpu = (CraftingBlockEntity) level.getBlockEntity(cpuPos);
+        var unit = new LinkedHashMap<AEKey, Long>();
+        unit.put(AEItemKey.of(Items.DIAMOND), 2L); unit.put(HOT, 3_000_000_000L); unit.put(COLD, 7L);
+        unit.put(AEFluidKey.of(Fluids.LAVA), 100L); unit.put(AEFluidKey.of(Fluids.WATER), 250L);
         helper.runAfterDelay(5, () -> {
-            controller.refreshStructure(); assembly.setControllerPos(ORIGIN);
+            controller.refreshStructure(); assembly.setControllerPos(ORIGIN); secondAssembly.setControllerPos(ORIGIN);
             GridHelper.createConnection(controller.getMainNode().getNode(), power.getMainNode().getNode());
         });
         helper.runAfterDelay(40, () -> {
-            helper.assertTrue(controller.isStructureFormed() && assembly.isOperational(), "Real well and AE grid must be active");
+            helper.assertTrue(controller.isStructureFormed() && assembly.isOperational() && secondAssembly.isOperational(),
+                    "Real well and both pattern assemblies must be active");
             verifyLifecycle(helper, controller, assembly);
-            System.out.println("MATTER_AEKEY_PASS: custom key registration, recipe and menu codecs, exact matching, long batching, active/queued/refund reload and ME return");
+            secondAssembly.getLogic().getPatternInv().setItemDirect(0,
+                    assembly.getLogic().getPatternInv().getStackInSlot(0).copy());
+            secondAssembly.getLogic().updatePatterns();
+            var registered = new java.util.HashSet<appeng.api.networking.crafting.ICraftingProvider>();
+            for (var provider : ((appeng.me.service.CraftingService) controller.getMainNode().getGrid().getCraftingService())
+                    .getProviders(assembly.getLogic().getAvailablePatterns().getFirst())) registered.add(provider);
+            helper.assertTrue(registered.contains(assembly.getLogic()) && registered.contains(secondAssembly.getLogic()),
+                    "AE crafting service must register both assemblies as providers");
+            for (var host : List.of(assembly, secondAssembly)) {
+                var pattern = host.getLogic().getAvailablePatterns().getFirst();
+                helper.assertTrue(host.getLogic().pushPattern(pattern, counters(unit)), "Each assembly must accept its own work");
+            }
+        });
+        helper.runAfterDelay(50, () -> {
+            for (var host : List.of(assembly, secondAssembly)) {
+                helper.assertTrue(host.getBuffer().queuedPatterns() == 0 && !host.getBuffer().isProcessing(),
+                        "Controller must process both assembly queues");
+                helper.assertTrue(amounts(host.getBuffer().contents(true)).equals(Map.of(AEItemKey.of(Items.EMERALD), 1L)),
+                        "Each assembly must retain its own produced output");
+            }
+            var pattern = assembly.getLogic().getAvailablePatterns().getFirst();
+            var scaled = new com.atir.molecularmanipulator.crafting.MolecularScaledPattern(pattern, 1_026);
+            var compatible = (appeng.api.crafting.IPatternDetails) java.lang.reflect.Proxy.newProxyInstance(
+                    pattern.getClass().getClassLoader(),
+                    new Class<?>[] { appeng.api.crafting.IPatternDetails.class, AelisScaledPattern.class },
+                    (proxy, method, arguments) -> {
+                        if (method.getDeclaringClass() == Object.class) {
+                            return switch (method.getName()) {
+                                case "equals" -> proxy == arguments[0];
+                                case "hashCode" -> System.identityHashCode(proxy);
+                                case "toString" -> "CompatibleScaledPattern[" + scaled + "]";
+                                default -> throw new UnsupportedOperationException(method.getName());
+                            };
+                        }
+                        return switch (method.getName()) {
+                            case "appliedenhancements$originalPattern" -> pattern;
+                            case "appliedenhancements$operationsPerPush" -> 1_026L;
+                            default -> method.invoke(scaled, arguments);
+                        };
+                    });
+            var scaledProviders = new java.util.HashSet<appeng.api.networking.crafting.ICraftingProvider>();
+            for (var provider : ((appeng.me.service.CraftingService) controller.getMainNode().getGrid().getCraftingService())
+                    .getProviders(compatible)) scaledProviders.add(provider);
+            helper.assertTrue(scaledProviders.contains(assembly.getLogic()) && scaledProviders.contains(secondAssembly.getLogic()),
+                    "Compatible scaled plan must still find both pattern assemblies");
+            helper.assertTrue(secondAssembly.getLogic().pushPattern(compatible,
+                            counters(MatterPatternBuffer.scaled(unit, 1_026))),
+                    "Compatible scaled plan must deliver its full material vector to an assembly");
+            helper.assertTrue(secondAssembly.getBuffer().queuedPatterns() == 1,
+                    "Scaled delivery must queue one durable batch");
+            secondAssembly.getBuffer().clear();
+            assembly.getBuffer().clear();
+            var plan = new CraftingPlan(new GenericStack(AEItemKey.of(Items.EMERALD), 1_026),
+                    100, false, false, new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of(compatible, 1L));
+            helper.assertTrue(cpu.getCluster() != null && cpu.getCluster().isActive(), "Real crafting CPU must be active");
+            helper.assertTrue(controller.getMainNode().getGrid().getCraftingService()
+                    .submitJob(plan, null, cpu.getCluster(), false, new MachineSource(controller)).successful(),
+                    "Compatible scaled 1026-craft job must submit to real CPU");
+            var cpuInventory = cpu.getCluster().craftingLogic.getInventory();
+            MatterPatternBuffer.scaled(unit, 1_026).forEach((key, amount) ->
+                    cpuInventory.insert(key, amount, Actionable.MODULATE));
+        });
+        helper.runAfterDelay(65, () -> {
+            helper.assertTrue(assembly.getBuffer().hasContents() || secondAssembly.getBuffer().hasContents(),
+                    "Real CPU must deliver materials to one of the two assemblies");
+            System.out.println("MATTER_AEKEY_PASS: real CPU dispatched 1026 crafts into two assemblies");
             helper.succeed();
         });
     }

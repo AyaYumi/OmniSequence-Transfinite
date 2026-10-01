@@ -1,0 +1,20 @@
+{
+  "type": "ae2cs:crystal_aggregator_recipe_serializer",
+  "energy_cost": 128000,
+  "input_a": {
+    "count": 1,
+    "item": "ae2:pattern_encoding_terminal"
+  },
+  "input_b": {
+    "count": 1,
+    "item": "ae2cs:resonating_processor"
+  },
+  "input_c": {
+    "count": 1,
+    "item": "ae2:crafting_terminal"
+  },
+  "result": {
+    "count": 1,
+    "id": "ae2cs:resonant_template_coding_terminal_part"
+  }
+}

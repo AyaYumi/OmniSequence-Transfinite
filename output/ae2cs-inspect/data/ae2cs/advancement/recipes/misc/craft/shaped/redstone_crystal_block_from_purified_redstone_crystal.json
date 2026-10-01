@@ -1,0 +1,38 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "appflux"
+    }
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_purified_redstone_crystal": {
+      "conditions": {
+        "items": [
+          {
+            "items": "ae2cs:purified_redstone_crystal"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "ae2cs:craft/shaped/redstone_crystal_block_from_purified_redstone_crystal"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_purified_redstone_crystal"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "ae2cs:craft/shaped/redstone_crystal_block_from_purified_redstone_crystal"
+    ]
+  }
+}

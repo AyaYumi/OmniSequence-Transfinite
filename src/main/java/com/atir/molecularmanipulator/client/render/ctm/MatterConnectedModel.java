@@ -125,7 +125,7 @@ public final class MatterConnectedModel extends BakedModelWrapper<BakedModel> {
         if (patches.stream().noneMatch(patch -> patch.remapped())) return List.of(quad);
         TextureAtlasSprite filler = null;
         if (patches.stream().anyMatch(patch -> patch.useCasingBackground(info.face()))) {
-            var name = ResourceLocation.fromNamespaceAndPath("molecularmanipulator", "block/matter_fabrication_casing_top");
+            var name = ResourceLocation.fromNamespaceAndPath("molecularmanipulator", MatterConnectedTextureRules.fillerTexture(info.face()));
             filler = context.spriteLookup.apply(name);
             if (filler == null || !filler.contents().name().equals(name)) return List.of(quad);
         }
@@ -171,7 +171,8 @@ public final class MatterConnectedModel extends BakedModelWrapper<BakedModel> {
         var sprite = quad.getSprite();
         var texture = sprite.contents().name();
         if (!texture.getNamespace().equals("molecularmanipulator")
-                || !texture.getPath().startsWith("block/matter_fabrication_")) return null;
+                || !(texture.getPath().startsWith("block/matter_fabrication_")
+                || texture.getPath().startsWith("block/taixu/"))) return null;
         int[] data = quad.getVertices();
         if (data.length != 4 * IQuadTransformer.STRIDE) return null;
         Vec3[] positions = new Vec3[4];

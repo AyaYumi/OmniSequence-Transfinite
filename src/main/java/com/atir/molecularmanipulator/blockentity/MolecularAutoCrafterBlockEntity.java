@@ -186,6 +186,14 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         return key == null ? 0 : bufferedOutputs.getLong(key);
     }
 
+    @Override
+    public void flushAutoCraftOutputsAfterControlChange() {
+        Level level = getLevel();
+        if (level != null && !level.isClientSide() && !assembling) {
+            flushOutputs(level);
+        }
+    }
+
     /** Snapshot for the output-buffer slots; the machine remains the owner of these resources. */
     public List<GenericStack> getBufferedAutoCraftOutputs() {
         var result = new ArrayList<GenericStack>();

@@ -1,0 +1,20 @@
+{
+  "type": "ae2cs:crystal_aggregator_recipe_serializer",
+  "energy_cost": 16000,
+  "input_a": {
+    "count": 1,
+    "item": "ae2cs:resonating_pattern_provider"
+  },
+  "input_b": {
+    "count": 2,
+    "item": "ae2cs:resonating_processor"
+  },
+  "input_c": {
+    "count": 3,
+    "item": "ae2:capacity_card"
+  },
+  "result": {
+    "count": 1,
+    "id": "ae2cs:extended_resonating_pattern_provider"
+  }
+}

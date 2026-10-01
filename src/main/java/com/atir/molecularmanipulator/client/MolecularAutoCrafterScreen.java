@@ -8,7 +8,6 @@ import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -103,18 +102,19 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
         outputModeButton.setMessage(Component.translatable(adjacent
                 ? "gui.molecularmanipulator.auto_craft_output_adjacent"
                 : "gui.molecularmanipulator.auto_craft_output_network"));
-        outputModeButton.setTooltip(Tooltip.create(Component.translatable(adjacent
-                ? "gui.molecularmanipulator.auto_craft_output_adjacent"
-                : "gui.molecularmanipulator.auto_craft_output_network").copy().append("\n")
-                .append(Component.translatable(adjacent
+        outputModeButton.setTooltipLines(
+                Component.translatable(adjacent
+                        ? "gui.molecularmanipulator.auto_craft_output_adjacent"
+                        : "gui.molecularmanipulator.auto_craft_output_network"),
+                Component.translatable(adjacent
                         ? "gui.molecularmanipulator.auto_craft_output_adjacent_hint"
-                        : "gui.molecularmanipulator.auto_craft_output_network_hint"))));
+                        : "gui.molecularmanipulator.auto_craft_output_network_hint"));
         outputDirectionButton.visible = adjacent;
         outputDirectionButton.active = adjacent;
         outputDirectionButton.setMessage(Component.translatable(
                 "gui.molecularmanipulator.auto_craft_output_directions"));
-        outputDirectionButton.setTooltip(Tooltip.create(Component.translatable(
-                "gui.molecularmanipulator.auto_craft_output_directions_hint")));
+        outputDirectionButton.setTooltipLines(Component.translatable(
+                "gui.molecularmanipulator.auto_craft_output_directions_hint"));
         if (!adjacent) directionPopupOpen = false;
         outputDirectionButton.setSelected(adjacent && directionPopupOpen);
         if (directionPopup != null) {
@@ -133,7 +133,6 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
             startButtons[index].setMessage(Component.translatable(
                     enabled ? "gui.molecularmanipulator.auto_craft_stop_slot"
                             : "gui.molecularmanipulator.auto_craft_start_slot", index + 1));
-            startButtons[index].setTooltip(Tooltip.create(startButtons[index].getMessage()));
         }
     }
 
@@ -299,8 +298,8 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
             var facing = menu.getMachine().getBlockState()
                     .getValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING);
             return new Direction[] {
-                    Direction.UP, Direction.DOWN, facing.getCounterClockWise(),
-                    facing.getClockWise(), facing, facing.getOpposite()
+                    Direction.UP, Direction.DOWN, facing.getClockWise(),
+                    facing.getCounterClockWise(), facing, facing.getOpposite()
             };
         }
 

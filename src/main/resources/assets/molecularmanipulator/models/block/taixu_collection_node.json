@@ -1,0 +1,81 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "textures": {
+    "collector": "molecularmanipulator:block/taixu/collector",
+    "socket": "molecularmanipulator:block/taixu/socket",
+    "pillar_end": "molecularmanipulator:block/taixu/pillar_end",
+    "collector_glow": "molecularmanipulator:block/taixu/collector_glow",
+    "particle": "molecularmanipulator:block/taixu/collector"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#collector",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#socket",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#socket",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#socket",
+          "cullface": "east"
+        },
+        "up": {
+          "texture": "#pillar_end",
+          "cullface": "up"
+        },
+        "down": {
+          "texture": "#pillar_end",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "from": [
+        -0.005,
+        -0.005,
+        -0.005
+      ],
+      "to": [
+        16.005,
+        16.005,
+        16.005
+      ],
+      "faces": {
+        "north": {
+          "texture": "#collector_glow",
+          "cullface": "north",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      },
+      "shade": false,
+      "neoforge_data": {
+        "block_light": 15,
+        "sky_light": 15,
+        "ambient_occlusion": false
+      }
+    }
+  ]
+}

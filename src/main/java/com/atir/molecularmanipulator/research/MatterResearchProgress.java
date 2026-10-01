@@ -65,6 +65,7 @@ public final class MatterResearchProgress {
         var crafting = machine.getMainNode().getGrid().getCraftingService();
         var remaining = new LinkedHashMap<>(stock);
         boolean waitingForOrder = false;
+        boolean uncraftable = false;
         var order = new ArrayList<Integer>();
         for (int index = 0; index < costs.size(); index++) order.add(index);
         // Reserve concrete stock for the most specific ingredients first so overlapping tags
@@ -96,8 +97,12 @@ public final class MatterResearchProgress {
                 if (key != null && crafting.isCraftable(key)) { selected = key; break; }
             }
             if (selected == null) {
-                lastError = "not_craftable";
-                return false;
+                var examples = costs.get(index).ingredient().getItems();
+                if (examples.length > 0) {
+                    machine.getResearchOrders().reportUncraftable(AEItemKey.of(examples[0]), deficit);
+                }
+                uncraftable = true;
+                continue;
             }
             long alreadyOrdered = machine.getResearchOrders().pendingAmount(selected);
             waitingForOrder |= alreadyOrdered > 0;
@@ -107,13 +112,13 @@ public final class MatterResearchProgress {
         if (!missing.isEmpty()) {
             machine.getResearchOrders().request(missing);
             autoStart.add(id);
-            lastError = "orders_submitted";
+            lastError = uncraftable ? "not_craftable" : "orders_submitted";
             machine.saveChanges();
             return true;
         }
-        if (waitingForOrder) {
+        if (waitingForOrder || uncraftable) {
             autoStart.add(id);
-            lastError = "orders_submitted";
+            lastError = uncraftable ? "not_craftable" : "orders_submitted";
             machine.saveChanges();
             return true;
         }
@@ -132,6 +137,7 @@ public final class MatterResearchProgress {
             var task = new Task(definition.value(), encode(definition.value(), registries), count + 1);
             if (!pay(machine, task)) return false;
             tasks.put(id, task);
+            autoStart.remove(id);
             refunds.clear();
             lastError = "";
             machine.saveChanges();
@@ -233,7 +239,7 @@ public final class MatterResearchProgress {
         refund(machine);
         if (!autoStart.isEmpty()) {
             for (var id : List.copyOf(autoStart)) {
-                if (!machine.getResearchOrders().hasPending() && start(machine, id)) autoStart.remove(id);
+                if (machine.getLevel().getGameTime() % 20 == 0 && start(machine, id)) autoStart.remove(id);
             }
         }
         if (tasks.isEmpty()) return;
@@ -348,11 +354,7 @@ public final class MatterResearchProgress {
 
     public String clientState(MatterFabricationBlockEntity machine, ResourceLocation selected) {
         var root = state();
-        var orders = new JsonObject();
-        orders.addProperty("status", machine.getResearchOrders().status());
-        orders.addProperty("queued", machine.getResearchOrders().queuedTypes());
-        orders.addProperty("active", machine.getResearchOrders().activeJobs());
-        root.add("orders", orders);
+        root.add("orders", machine.getResearchOrders().clientState(machine.getLevel().registryAccess()));
         if (selected == null) return root.toString();
         var holder = MatterResearchApi.definitions(machine.getLevel()).stream().filter(r -> r.id().equals(selected)).findFirst().orElse(null);
         if (holder == null) return root.toString();

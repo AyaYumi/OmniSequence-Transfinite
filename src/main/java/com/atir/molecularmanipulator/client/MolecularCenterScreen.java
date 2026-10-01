@@ -30,23 +30,20 @@ import java.util.List;
 import java.util.Locale;
 
 public final class MolecularCenterScreen extends ResponsiveContainerScreen<MolecularCenterMenu> {
-    static final int TAB_MATTER = 0;
+    static final int TAB_OVERVIEW = 0;
     static final int TAB_AUTO_CRAFT = 1;
-    static final int TAB_QUANTUM = 2;
-    static final int TAB_COLORS = 3;
+    static final int TAB_COLORS = 2;
+    static final int TAB_ARCHIVE = 3;
     private static final int PANEL_LEFT = 198;
     private static final int PANEL_RIGHT = 426;
     private static final int LEFT_CONTENT_LEFT = 8;
     private static final int LEFT_CONTENT_RIGHT = 188;
     private static final int DETAIL_CONTENT_LEFT = PANEL_LEFT + 9;
     private static final int DETAIL_CONTENT_RIGHT = PANEL_RIGHT - 7;
-    private static final int ACCENT = AeUiTheme.ACCENT;
     private static final int DISMANTLE_CONFIRM_TICKS = 60;
     private static final int DISMANTLE_CONFIRM_DELAY_TICKS = 6;
     private static final int SEARCH_DEBOUNCE_TICKS = 5;
 
-    private EditBox deconstructTarget;
-    private EditBox rewriteTarget;
     private EditBox patternSearch;
     private EditBox autoCraftOutputLimit;
     private final EditBox[] autoCraftInputReserves = new EditBox[MolecularAutoCrafter.MAX_INPUTS];
@@ -59,7 +56,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private boolean patternSearchIndexPending;
     private int requestedPatternRevision = -1;
     private int indexedPatternRevision = -1;
-    private int detailTab = TAB_MATTER;
+    private int detailTab = TAB_OVERVIEW;
     private int dismantleConfirmTicks;
     private int displayedAutoCraftSlot = Integer.MIN_VALUE;
     private MolecularCenterLdUi modularView;
@@ -119,19 +116,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         if (!patternSearchQuery.isBlank()) {
             patternSearchDebounce = 1;
         }
-        var targetTooltip = Tooltip.create(
-                Component.translatable("gui.molecularmanipulator.matter_target_tooltip"));
-        deconstructTarget = AeUiTheme.tallTextField(style, font, leftPos + 207, topPos + 146, 56, 16,
-                Component.translatable("gui.molecularmanipulator.matter_deconstruct_target"),
-                Component.translatable("gui.molecularmanipulator.matter_target_tooltip"));
-        configureTargetField(deconstructTarget, menu.deconstructTarget, targetTooltip);
-        addScreenWidget(deconstructTarget);
-        rewriteTarget = AeUiTheme.tallTextField(style, font, leftPos + 323, topPos + 146, 56, 16,
-                Component.translatable("gui.molecularmanipulator.matter_rewrite_target"),
-                Component.translatable("gui.molecularmanipulator.matter_target_tooltip"));
-        configureTargetField(rewriteTarget, menu.rewriteTarget, targetTooltip);
-        addScreenWidget(rewriteTarget);
-
         autoCraftOutputLimit = AeUiTheme.tallTextField(style, font,
                 leftPos + 226, topPos + 90, 141, 16,
                 Component.translatable("gui.molecularmanipulator.auto_craft_output_limit"),
@@ -262,10 +246,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     }
 
     void selectTab(int tab) {
-        detailTab = Math.max(TAB_MATTER, Math.min(TAB_COLORS, tab));
-        boolean matterVisible = detailTab == TAB_MATTER;
-        deconstructTarget.visible = matterVisible;
-        rewriteTarget.visible = matterVisible;
+        detailTab = Math.max(TAB_OVERVIEW, Math.min(TAB_ARCHIVE, tab));
         boolean autoCraftVisible = detailTab == TAB_AUTO_CRAFT;
         boolean autoCraftSelected = menu.autoCraftSelectedSlot >= 0
                 && menu.autoCraftState != MolecularAutoCrafter.AutoCraftState.EMPTY;
@@ -275,18 +256,18 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                     && input < menu.autoCraftInputCount;
         }
         for (var slot : menu.getSequenceSlots()) {
-            slot.setActive(matterVisible);
+            slot.setActive(detailTab == TAB_ARCHIVE);
         }
         for (var slot : menu.getSpeedSlots()) {
-            slot.setActive(matterVisible);
+            slot.setActive(detailTab == TAB_ARCHIVE);
         }
         for (var slot : menu.getAutoCraftPatternSlots()) {
             slot.setActive(autoCraftVisible);
         }
-        boolean quantumVisible = detailTab == TAB_QUANTUM;
-        menu.getQuantumSlot().setActive(quantumVisible);
+        boolean overviewVisible = detailTab == TAB_OVERVIEW;
+        menu.getQuantumSlot().setActive(overviewVisible);
         if (menu.getMatrixUploadCoreSlot() != null) {
-            menu.getMatrixUploadCoreSlot().setActive(quantumVisible);
+            menu.getMatrixUploadCoreSlot().setActive(overviewVisible);
         }
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
@@ -307,8 +288,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         if (dismantleConfirmTicks > 0) {
             --dismantleConfirmTicks;
         }
-        syncTargetField(deconstructTarget, menu.deconstructTarget);
-        syncTargetField(rewriteTarget, menu.rewriteTarget);
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
         if (modularView != null) {
@@ -364,16 +343,23 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         return detailTab;
     }
 
+    boolean hasArchivedMatter() {
+        if (menu.metalSequence > 0 || menu.mineralSequence > 0
+                || menu.crystalSequence > 0 || menu.organicSequence > 0
+                || menu.entropy > 0 || menu.deconstructEnabled || menu.rewriteEnabled) {
+            return true;
+        }
+        for (var slot : menu.getSequenceSlots()) {
+            if (!slot.getItem().isEmpty()) return true;
+        }
+        for (var slot : menu.getSpeedSlots()) {
+            if (!slot.getItem().isEmpty()) return true;
+        }
+        return false;
+    }
+
     boolean patternSearchWaiting() {
         return !patternSearchQuery.isBlank() && patternSearchIndexPending;
-    }
-
-    long deconstructTargetInput() {
-        return parseTarget(deconstructTarget);
-    }
-
-    long rewriteTargetInput() {
-        return parseTarget(rewriteTarget);
     }
 
     long autoCraftOutputLimitInput() {
@@ -416,7 +402,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         AeUiTheme.area(graphics, x + 4, y + 157, x + 192, y + imageHeight - 4);
         AeUiTheme.area(graphics, x + PANEL_LEFT, y + 28, x + PANEL_RIGHT,
                 y + imageHeight - (detailTab == TAB_AUTO_CRAFT ? 2 : 4));
-        if (menu.legacyStructure && detailTab != TAB_AUTO_CRAFT) {
+        if (menu.legacyStructure && detailTab == TAB_COLORS) {
             AeUiTheme.insetPanel(graphics, x + 204, y + 219, x + 422, y + 257);
             drawPanelBorder(graphics, x + 204, y + 219, x + 422, y + 257, AeUiTheme.WARNING);
         }
@@ -440,7 +426,15 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         }
         drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_MAIN_Y, 9, 3);
         drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_HOTBAR_Y, 9, 1);
-        if (detailTab == TAB_MATTER) {
+        if (detailTab == TAB_OVERVIEW) {
+            drawSlotFrame(graphics, MolecularCenterMenu.QUANTUM_SLOT_X, MolecularCenterMenu.QUANTUM_SLOT_Y,
+                    0xFF55799E);
+            if (menu.getMatrixUploadCoreSlot() != null) {
+                drawSlotFrame(graphics, MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X,
+                        MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_Y, 0xFF8B70C4);
+            }
+            graphics.fill(x + 207, y + 148, x + 418, y + 149, AeUiTheme.SHADOW);
+        } else if (detailTab == TAB_ARCHIVE) {
             drawPlainSlotFrame(graphics,
                     MolecularCenterMenu.SEQUENCE_INPUT_X, MolecularCenterMenu.SEQUENCE_SLOT_Y);
             drawPlainSlotFrame(graphics,
@@ -451,19 +445,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 drawPlainSlotFrame(graphics, MolecularCenterMenu.SPEED_SLOT_X + slot * 18,
                         MolecularCenterMenu.SPEED_SLOT_Y);
             }
-            graphics.fill(x + 265, y + 73, x + 288, y + 75, AeUiTheme.SHADOW);
-            graphics.fill(x + 337, y + 73, x + 360, y + 75, AeUiTheme.SHADOW);
-            graphics.fill(x + 285, y + 71, x + 288, y + 77, ACCENT);
-            graphics.fill(x + 357, y + 71, x + 360, y + 77, ACCENT);
-        } else if (detailTab == TAB_QUANTUM) {
-            drawSlotFrame(graphics, MolecularCenterMenu.QUANTUM_SLOT_X, MolecularCenterMenu.QUANTUM_SLOT_Y,
-                    0xFF55799E);
-            if (menu.getMatrixUploadCoreSlot() != null) {
-                drawSlotFrame(graphics, MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X,
-                        MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_Y, 0xFF8B70C4);
-            }
-            graphics.fill(x + 312, y + 85, x + 314, y + 92, AeUiTheme.SHADOW);
-            graphics.fill(x + 312, y + 92, x + 314, y + 95, 0xFF55799E);
         }
     }
 
@@ -506,104 +487,146 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                                         menu.getPageCount());
         drawRightAlignedFittedString(graphics, pageText, LEFT_CONTENT_RIGHT, 36, 55,
                 AeUiTheme.MUTED_TEXT);
-        var state = menu.legacyStructure
-                ? Component.translatable("gui.molecularmanipulator.structure_legacy_139")
-                : menu.formed ? Component.translatable("gui.molecularmanipulator.formed")
-                : Component.translatable("gui.molecularmanipulator.incomplete");
-        graphics.drawString(font, state, 8, 137,
-                menu.legacyStructure || !menu.formed ? AeUiTheme.WARNING : AeUiTheme.SUCCESS, false);
-        if (!menu.formed && menu.buildTotal > 0 && menu.buildProgress < menu.buildTotal) {
-            graphics.drawString(font, Component.translatable("gui.molecularmanipulator.progress",
-                    menu.buildProgress, menu.buildTotal), 90, 137, AeUiTheme.PRIMARY_TEXT, false);
-        }
         graphics.drawString(font, playerInventoryTitle, 17, 174, AeUiTheme.PRIMARY_TEXT, false);
 
         switch (detailTab) {
-            case TAB_MATTER -> renderMatterTab(graphics);
+            case TAB_OVERVIEW -> renderOverview(graphics);
             case TAB_AUTO_CRAFT -> renderAutoCraftTab(graphics);
-            case TAB_QUANTUM -> renderQuantumTab(graphics);
             case TAB_COLORS -> renderColorsTab(graphics);
+            case TAB_ARCHIVE -> renderArchive(graphics);
             default -> {
             }
         }
-        if (menu.legacyStructure && detailTab != TAB_AUTO_CRAFT) {
+        if (menu.legacyStructure && detailTab == TAB_COLORS) {
             drawFittedString(graphics, Component.translatable(
                     "gui.molecularmanipulator.structure_update_projection_warning"),
                     210, 222, 204, AeUiTheme.WARNING);
         }
     }
 
-    private void renderMatterTab(GuiGraphics graphics) {
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.sequence_input"),
-                MolecularCenterMenu.SEQUENCE_INPUT_X + 8, 41, 68, AeUiTheme.PRIMARY_TEXT);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.sequence_blueprint"),
-                MolecularCenterMenu.SEQUENCE_SAMPLE_X + 8, 41, 68, AeUiTheme.CYAN);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.sequence_output"),
-                MolecularCenterMenu.SEQUENCE_OUTPUT_X + 8, 41, 68, AeUiTheme.ACCENT);
-        var deconstructState = matterStateLabel(menu.deconstructJobState);
-        var rewriteState = matterStateLabel(menu.rewriteJobState);
-        drawCenteredFittedString(graphics, deconstructState, 255, 116, 96,
-                matterStateColor(menu.deconstructJobState));
-        drawCenteredFittedString(graphics, rewriteState, 371, 116, 96,
-                matterStateColor(menu.rewriteJobState));
-        var deconstructCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
-                formatAmount(menu.deconstructJobProcessed),
-                menu.deconstructTarget == 0 ? "\u221e" : formatAmount(menu.deconstructTarget));
-        var rewriteCount = Component.translatable("gui.molecularmanipulator.matter_job_count",
-                formatAmount(menu.rewriteJobProcessed),
-                menu.rewriteTarget == 0 ? "\u221e" : formatAmount(menu.rewriteTarget));
-        drawCenteredFittedString(graphics, deconstructCount, 255, 126, 96, AeUiTheme.MUTED_TEXT);
-        drawCenteredFittedString(graphics, rewriteCount, 371, 126, 96, AeUiTheme.MUTED_TEXT);
+    private void renderOverview(GuiGraphics graphics) {
+        int width = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
         drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.matter_speed",
-                        menu.speedCards, menu.matterParallelOperations, menu.matterCycleTicks),
-                DETAIL_CONTENT_LEFT, 173,
-                MolecularCenterMenu.SPEED_SLOT_X - DETAIL_CONTENT_LEFT - 6,
-                AeUiTheme.PRIMARY_TEXT);
+                Component.translatable("gui.molecularmanipulator.overview_title"),
+                DETAIL_CONTENT_LEFT, 36, hasArchivedMatter() ? 140 : width, AeUiTheme.ACCENT);
 
-        int columnGap = 10;
-        int columnWidth = (DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT - columnGap) / 2;
-        int rightColumnX = DETAIL_CONTENT_LEFT + columnWidth + columnGap;
-        drawSequenceAmount(graphics, "metal", menu.metalSequence,
-                DETAIL_CONTENT_LEFT, 193, columnWidth, AeUiTheme.MUTED_TEXT);
-        drawSequenceAmount(graphics, "crystal", menu.crystalSequence,
-                rightColumnX, 193, columnWidth, AeUiTheme.CYAN);
-        drawSequenceAmount(graphics, "mineral", menu.mineralSequence,
-                DETAIL_CONTENT_LEFT, 208, columnWidth, AeUiTheme.WARNING);
-        drawSequenceAmount(graphics, "organic", menu.organicSequence,
-                rightColumnX, 208, columnWidth, AeUiTheme.SUCCESS);
-        if (!menu.legacyStructure) {
+        Component structure = menu.legacyStructure
+                ? Component.translatable("gui.molecularmanipulator.structure_legacy_139")
+                : Component.translatable(menu.formed
+                        ? "gui.molecularmanipulator.formed"
+                        : "gui.molecularmanipulator.incomplete");
+        drawOverviewRow(graphics, "overview_structure", structure, 50,
+                menu.formed && !menu.legacyStructure ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
+        drawOverviewRow(graphics, "overview_network",
+                Component.translatable(menu.operational
+                        ? "gui.molecularmanipulator.overview_online"
+                        : "gui.molecularmanipulator.overview_offline"),
+                67, menu.operational ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
+        drawOverviewRow(graphics, "overview_patterns",
+                Component.literal(formatAmount(menu.usedPatternSlots) + " / "
+                        + formatAmount(menu.patternCapacity)), 84, AeUiTheme.PRIMARY_TEXT);
+        drawOverviewRow(graphics, "overview_auto_craft",
+                Component.literal(Integer.bitCount(menu.autoCraftEnabledMask) + " / "
+                        + MolecularAutoCrafter.PATTERN_SLOTS), 101, AeUiTheme.PRIMARY_TEXT);
+        drawOverviewRow(graphics, "overview_pipeline",
+                menu.activePipelineRecipes > 0
+                        ? Component.translatable("gui.molecularmanipulator.overview_pipeline_active",
+                                menu.activePipelineRecipes, formatAmount(menu.activePipelineCrafts))
+                        : Component.translatable("gui.molecularmanipulator.overview_pipeline_idle"),
+                118, menu.activePipelineRecipes > 0 ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
+        drawOverviewRow(graphics, "overview_pending",
+                menu.pipelineBlocked
+                        ? Component.translatable("gui.molecularmanipulator.overview_output_blocked",
+                                formatAmount(menu.pendingOutputAmount))
+                        : Component.literal(formatAmount(menu.pendingOutputAmount)), 135,
+                menu.pipelineBlocked ? AeUiTheme.WARNING : AeUiTheme.PRIMARY_TEXT);
+
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.quantum_title"),
+                DETAIL_CONTENT_LEFT, 155, width, AeUiTheme.CYAN);
+        var state = menu.quantumLinkState;
+        int stateColor = switch (state) {
+            case CONNECTED -> AeUiTheme.SUCCESS;
+            case CONNECTED_BUILD_ONLY -> AeUiTheme.CYAN;
+            case EMPTY, SEARCHING -> AeUiTheme.MUTED_TEXT;
+            case REMOTE_MISSING, REMOTE_OFFLINE, STRUCTURE_INCOMPLETE -> AeUiTheme.WARNING;
+            default -> AeUiTheme.ERROR;
+        };
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_status",
+                Component.translatable("gui.molecularmanipulator.quantum_state."
+                        + state.name().toLowerCase(Locale.ROOT))),
+                DETAIL_CONTENT_LEFT, 171, width, stateColor);
+        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_frequency",
+                menu.quantumFrequency == 0 ? "-" : formatFrequency(menu.quantumFrequency)),
+                DETAIL_CONTENT_LEFT, 185, width, AeUiTheme.PRIMARY_TEXT);
+        drawCenteredFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.quantum_singularity"),
+                MolecularCenterMenu.QUANTUM_SLOT_X + 8, 198, 90, AeUiTheme.PRIMARY_TEXT);
+        if (menu.getMatrixUploadCoreSlot() != null) {
+            drawCenteredFittedString(graphics,
+                    Component.translatable("gui.molecularmanipulator.quantum_upload_core"),
+                    MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X + 8, 198, 84, AeUiTheme.ACCENT);
+        }
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.overview_quantum_requirements",
+                        formatAmount((long) MolecularCenterBlockEntity.QUANTUM_LINK_POWER)),
+                DETAIL_CONTENT_LEFT, 230, width, AeUiTheme.MUTED_TEXT);
+        if (menu.getMatrixUploadCoreSlot() != null) {
             drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.matter_entropy_per_item",
-                            formatOptionalAmount(menu.deconstructEntropyPerItem),
-                            formatOptionalAmount(menu.rewriteEntropyPerItem)),
-                    DETAIL_CONTENT_LEFT, 225,
-                    DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT, AeUiTheme.ACCENT);
+                    Component.translatable("gui.molecularmanipulator.quantum_upload_core_hint"),
+                    DETAIL_CONTENT_LEFT, 245, width, AeUiTheme.MUTED_TEXT);
+        }
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.spawn_protection"),
+                DETAIL_CONTENT_LEFT, menu.getMatrixUploadCoreSlot() == null ? 245 : 260,
+                width, AeUiTheme.SUCCESS);
+        if (menu.getMatrixUploadCoreSlot() == null && !menu.legacyStructure) {
             drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.matter_cooling_estimate",
-                            formatCoolingTime(menu.deconstructCoolingSeconds),
-                            formatCoolingTime(menu.rewriteCoolingSeconds),
-                            formatAmount(menu.entropyCoolingPerSecond)),
-                    DETAIL_CONTENT_LEFT, 238,
-                    DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT, AeUiTheme.MUTED_TEXT);
-            drawKeyValueRow(graphics,
-                    Component.translatable("gui.molecularmanipulator.sequence_entropy"),
-                    Component.literal(formatAmount(menu.entropy) + " / "
-                            + formatAmount(menu.entropyCapacity)),
-                    DETAIL_CONTENT_LEFT, DETAIL_CONTENT_RIGHT, 255, 6,
-                    AeUiTheme.ACCENT, AeUiTheme.MUTED_TEXT);
+                    Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
+                    DETAIL_CONTENT_LEFT, 260, width, AeUiTheme.MUTED_TEXT);
         }
     }
 
-    private void drawSequenceAmount(GuiGraphics graphics, String type, long amount,
-            int x, int y, int width, int color) {
+    private void drawOverviewRow(GuiGraphics graphics, String key, Component value, int y, int valueColor) {
         drawKeyValueRow(graphics,
-                Component.translatable("gui.molecularmanipulator.sequence_" + type),
-                Component.literal(formatAmount(amount)),
-                x, x + width, y, 4, color, AeUiTheme.PRIMARY_TEXT);
+                Component.translatable("gui.molecularmanipulator." + key), value,
+                DETAIL_CONTENT_LEFT, DETAIL_CONTENT_RIGHT, y, 6,
+                AeUiTheme.MUTED_TEXT, valueColor);
+    }
+
+    private void renderArchive(GuiGraphics graphics) {
+        int width = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.archive_title"),
+                DETAIL_CONTENT_LEFT, 31, width, AeUiTheme.WARNING);
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.archive_stopped"),
+                DETAIL_CONTENT_LEFT, 48, width, AeUiTheme.MUTED_TEXT);
+        drawCenteredFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.sequence_input"),
+                MolecularCenterMenu.SEQUENCE_INPUT_X + 8, 58, 64, AeUiTheme.PRIMARY_TEXT);
+        drawCenteredFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.sequence_blueprint"),
+                MolecularCenterMenu.SEQUENCE_SAMPLE_X + 8, 58, 64, AeUiTheme.PRIMARY_TEXT);
+        drawCenteredFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.sequence_output"),
+                MolecularCenterMenu.SEQUENCE_OUTPUT_X + 8, 58, 64, AeUiTheme.PRIMARY_TEXT);
+        drawOverviewRow(graphics, "sequence_metal", Component.literal(formatAmount(menu.metalSequence)),
+                104, AeUiTheme.PRIMARY_TEXT);
+        drawOverviewRow(graphics, "sequence_mineral", Component.literal(formatAmount(menu.mineralSequence)),
+                120, AeUiTheme.PRIMARY_TEXT);
+        drawOverviewRow(graphics, "sequence_crystal", Component.literal(formatAmount(menu.crystalSequence)),
+                136, AeUiTheme.PRIMARY_TEXT);
+        drawOverviewRow(graphics, "sequence_organic", Component.literal(formatAmount(menu.organicSequence)),
+                152, AeUiTheme.PRIMARY_TEXT);
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.archive_speed_cards"),
+                DETAIL_CONTENT_LEFT, 175, 120, AeUiTheme.MUTED_TEXT);
+        drawOverviewRow(graphics, "sequence_entropy", Component.literal(formatAmount(menu.entropy)),
+                203, AeUiTheme.MUTED_TEXT);
+        drawFittedString(graphics,
+                Component.translatable("gui.molecularmanipulator.archive_note"),
+                DETAIL_CONTENT_LEFT, 230, width, AeUiTheme.WARNING);
     }
 
     private void renderAutoCraftTab(GuiGraphics graphics) {
@@ -646,59 +669,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
     }
 
-    private void renderQuantumTab(GuiGraphics graphics) {
-        int contentWidth = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_title"),
-                DETAIL_CONTENT_LEFT, 31, contentWidth, AeUiTheme.ACCENT);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.quantum_singularity"),
-                MolecularCenterMenu.QUANTUM_SLOT_X + 8, 46, contentWidth,
-                AeUiTheme.PRIMARY_TEXT);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            drawCenteredFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.quantum_upload_core"),
-                    MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X + 8, 46, 68,
-                    AeUiTheme.ACCENT);
-        }
-
-        var state = menu.quantumLinkState;
-        int stateColor = switch (state) {
-            case CONNECTED -> AeUiTheme.SUCCESS;
-            case CONNECTED_BUILD_ONLY -> AeUiTheme.CYAN;
-            case EMPTY, SEARCHING -> AeUiTheme.MUTED_TEXT;
-            case REMOTE_MISSING, REMOTE_OFFLINE, STRUCTURE_INCOMPLETE -> AeUiTheme.WARNING;
-            default -> AeUiTheme.ERROR;
-        };
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_status",
-                Component.translatable("gui.molecularmanipulator.quantum_state."
-                        + state.name().toLowerCase(Locale.ROOT))),
-                DETAIL_CONTENT_LEFT, 101, contentWidth, stateColor);
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_frequency",
-                menu.quantumFrequency == 0 ? "—" : formatFrequency(menu.quantumFrequency)),
-                DETAIL_CONTENT_LEFT, 119, contentWidth, AeUiTheme.PRIMARY_TEXT);
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_power",
-                formatAmount((long) MolecularCenterBlockEntity.QUANTUM_LINK_POWER)),
-                DETAIL_CONTENT_LEFT, 137, contentWidth, AeUiTheme.PRIMARY_TEXT);
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_channel"),
-                DETAIL_CONTENT_LEFT, 155, contentWidth, AeUiTheme.MUTED_TEXT);
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_remote_ring"),
-                DETAIL_CONTENT_LEFT, 169, contentWidth, AeUiTheme.MUTED_TEXT);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.quantum_upload_core_hint"),
-                    DETAIL_CONTENT_LEFT, 187, contentWidth, AeUiTheme.MUTED_TEXT);
-        }
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.spawn_protection"),
-                DETAIL_CONTENT_LEFT, menu.getMatrixUploadCoreSlot() == null ? 187 : 207,
-                contentWidth, AeUiTheme.SUCCESS);
-        if (!menu.legacyStructure) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
-                    DETAIL_CONTENT_LEFT, menu.getMatrixUploadCoreSlot() == null ? 202 : 222,
-                    contentWidth, AeUiTheme.MUTED_TEXT);
-        }
-    }
-
     private void renderColorsTab(GuiGraphics graphics) {
         graphics.drawString(font, Component.translatable("gui.molecularmanipulator.visual_colors"),
                 210, 31, AeUiTheme.ACCENT, false);
@@ -712,13 +682,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                     266, y, color, false);
             graphics.fill(308, y + 2, 316, y + 10, 0xFF000000 | color);
         }
-    }
-
-    private void configureTargetField(EditBox field, long target, Tooltip tooltip) {
-        field.setMaxLength(12);
-        field.setFilter(MolecularCenterScreen::isTargetText);
-        field.setValue(Long.toString(target));
-        field.setTooltip(tooltip);
     }
 
     private void configureLongField(EditBox field, long value, String tooltipKey) {
@@ -822,18 +785,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         return true;
     }
 
-    private static long parseTarget(EditBox field) {
-        if (field.getValue().isBlank()) {
-            return 0;
-        }
-        try {
-            return Math.min(MolecularCenterBlockEntity.MAX_JOB_TARGET,
-                    Math.max(0, Long.parseLong(field.getValue())));
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
-    }
-
     private static long parseNonNegativeLong(EditBox field) {
         if (field.getValue().isBlank()) {
             return 0;
@@ -845,47 +796,10 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         }
     }
 
-    private static void syncTargetField(EditBox field, long target) {
-        if (!field.isFocused() && parseTarget(field) != target) {
-            field.setValue(Long.toString(target));
-        }
-    }
-
     private static void syncLongField(EditBox field, long value) {
         if (!field.isFocused() && parseNonNegativeLong(field) != value) {
             field.setValue(Long.toString(Math.max(0, value)));
         }
-    }
-
-    Component deconstructLabel() {
-        return Component.translatable(menu.deconstructEnabled
-                ? "gui.molecularmanipulator.sequence_deconstruct_stop"
-                : "gui.molecularmanipulator.sequence_deconstruct_start");
-    }
-
-    Component rewriteLabel() {
-        return Component.translatable(menu.rewriteEnabled
-                ? "gui.molecularmanipulator.sequence_rewrite_stop"
-                : "gui.molecularmanipulator.sequence_rewrite_start");
-    }
-
-    Component rewriteOutputLabel() {
-        return Component.translatable("gui.molecularmanipulator.rewrite_output."
-                + menu.rewriteOutputMode.name().toLowerCase(Locale.ROOT));
-    }
-
-    private static Component matterStateLabel(MolecularCenterBlockEntity.MatterJobState state) {
-        return Component.translatable("gui.molecularmanipulator.matter_job_state."
-                + state.name().toLowerCase(Locale.ROOT));
-    }
-
-    private static int matterStateColor(MolecularCenterBlockEntity.MatterJobState state) {
-        return switch (state) {
-            case RUNNING -> AeUiTheme.SUCCESS;
-            case WAITING_NETWORK, WAITING_POWER, COOLING, INPUT_EMPTY, INSUFFICIENT_SEQUENCE -> AeUiTheme.WARNING;
-            case IDLE, STOPPED, TARGET_REACHED -> AeUiTheme.MUTED_TEXT;
-            default -> AeUiTheme.ERROR;
-        };
     }
 
     Component previewLabel() {
@@ -910,28 +824,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         return Long.toString(amount);
     }
 
-    private static String formatOptionalAmount(long amount) {
-        return amount <= 0 ? "\u2014" : formatAmount(amount);
-    }
-
-    private static Component formatCoolingTime(long seconds) {
-        if (seconds < 0) {
-            return Component.literal("\u2014");
-        }
-        if (seconds == Long.MAX_VALUE) {
-            return Component.translatable("gui.molecularmanipulator.matter_cooling_impossible");
-        }
-        if (seconds < 60) {
-            return Component.translatable(
-                    "gui.molecularmanipulator.matter_cooling_seconds", seconds);
-        }
-        if (seconds < 3600) {
-            return Component.literal(String.format(Locale.ROOT, "%d:%02d",
-                    seconds / 60, seconds % 60));
-        }
-        return Component.literal(String.format(Locale.ROOT, "%d:%02d:%02d",
-                seconds / 3600, seconds / 60 % 60, seconds % 60));
-    }
 
     private static String formatFrequency(long frequency) {
         return Long.toUnsignedString(frequency, 16).toUpperCase(Locale.ROOT);

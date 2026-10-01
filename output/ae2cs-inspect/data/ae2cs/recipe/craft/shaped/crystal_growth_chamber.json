@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "item": "ae2:growth_accelerator"
+    },
+    "b": {
+      "item": "ae2:quartz_cluster"
+    },
+    "c": {
+      "item": "ae2:quartz_glass"
+    },
+    "d": {
+      "item": "ae2cs:resonating_processor"
+    },
+    "e": {
+      "tag": "ae2:glass_cable"
+    }
+  },
+  "pattern": [
+    "aba",
+    "cdc",
+    "aea"
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2cs:crystal_growth_chamber"
+  }
+}

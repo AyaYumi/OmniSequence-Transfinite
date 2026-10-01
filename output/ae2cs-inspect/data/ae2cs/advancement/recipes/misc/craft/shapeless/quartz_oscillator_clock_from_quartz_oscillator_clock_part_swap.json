@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_quartz_oscillator_clock_part": {
+      "conditions": {
+        "items": [
+          {
+            "items": "ae2cs:quartz_oscillator_clock_part"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "ae2cs:craft/shapeless/quartz_oscillator_clock_from_quartz_oscillator_clock_part_swap"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_quartz_oscillator_clock_part"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "ae2cs:craft/shapeless/quartz_oscillator_clock_from_quartz_oscillator_clock_part_swap"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2cs:extended_ender_interface_part"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2cs:extended_ender_interface"
+  }
+}

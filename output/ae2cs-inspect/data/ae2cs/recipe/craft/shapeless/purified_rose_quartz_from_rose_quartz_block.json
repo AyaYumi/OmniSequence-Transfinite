@@ -1,0 +1,19 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "create"
+    }
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2cs:rose_quartz_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "id": "ae2cs:purified_rose_quartz"
+  }
+}

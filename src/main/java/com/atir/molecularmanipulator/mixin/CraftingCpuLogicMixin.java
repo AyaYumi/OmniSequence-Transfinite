@@ -48,6 +48,7 @@ import com.atir.molecularmanipulator.crafting.OmniExactInventory;
 import com.atir.molecularmanipulator.crafting.OmniExactInputReservation;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
+import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider;
@@ -83,6 +84,7 @@ import java.util.UUID;
 
 @Mixin(value = CraftingCpuLogic.class, remap = false)
 public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.appliedenhancements.api.AelisExactCraftingCpu {
+    @Unique private AelisBatchExecutionContext molecularmanipulator$cycleBatch;
     @Unique private final OmniExactInventory molecularmanipulator$exactInventory = new OmniExactInventory();
     @Unique private static final String MOLECULARMANIPULATOR_EXACT_INVENTORY_TAG = "molecularmanipulator:exactInventory";
     @Override public boolean hasExactStoredItems() { return !molecularmanipulator$exactInventory.isEmpty(); }
@@ -622,6 +624,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             molecularmanipulator$logApiBatchFailure(
                     "provider delivery", exception);
         } finally {
+            if (delivery.accepted()) AelisBatchExecutionContext.acceptCurrentDispatch();
             delivery.seal();
             molecularmanipulator$closeCurrentApiAdmission();
         }
@@ -786,6 +789,9 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         if (molecularmanipulator$exactState != null) {
             inventory = molecularmanipulator$exactState.wrap(molecularmanipulator$exactInventoryView(inventory));
         }
+        molecularmanipulator$cycleBatch = AelisBatchExecutionContext.acquire(patternDetails.getDefinition(), inventory);
+        inventory = molecularmanipulator$cycleBatch.inventory();
+        if (inventory == null) return null;
         if (molecularmanipulator$dispatchOwner != null
                 && (molecularmanipulator$unscaledQuotaBlockedPatterns.contains(
                                 patternDetails)
@@ -829,7 +835,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             return firstInputs;
         }
 
-        if (molecularmanipulator$exactState != null
+        if (!molecularmanipulator$cycleBatch.hasCycleProtection()
+                && molecularmanipulator$exactState != null
                 && (molecularmanipulator$exactState.hasOnlyInfiniteInputs(firstInputs)
                     || (expectedContainerItems.isEmpty()
                         && MolecularBatchDispatchSafety.isBatchablePattern(patternDetails)))) {
@@ -898,7 +905,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         if (task == null) {
             return firstInputs;
         }
-        long taskValue = molecularmanipulator$getTaskValue(task);
+        long taskValue = Math.min(molecularmanipulator$getTaskValue(task),
+                molecularmanipulator$cycleBatch.maximumCrafts());
         if (taskValue <= 0) {
             return firstInputs;
         }
@@ -958,7 +966,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
                     long reusableMaxCrafts = Math.min(
                             Math.min(taskValue, reusableDirectLimit),
                             waitingForCraftLimit);
-                    if (extraction == null && reusableMaxCrafts > 1) {
+                    if (extraction == null && reusableMaxCrafts > 1
+                            && !molecularmanipulator$cycleBatch.hasCycleProtection()) {
                         extraction = MolecularBatchCraftingExtractor.expandFromFirst(
                                 patternDetails, inventory, energyService, level,
                                 firstInputs, expectedOutputs,
@@ -1148,7 +1157,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             long reusableMaxCrafts = Math.min(
                     Math.min(taskValue, reusableBatchLimit),
                     waitingForCraftLimit);
-            if (reusableMaxCrafts > 1) {
+            if (reusableMaxCrafts > 1 && !molecularmanipulator$cycleBatch.hasCycleProtection()) {
                 extraction = MolecularBatchCraftingExtractor.expandFromFirst(
                         patternDetails, inventory, energyService, level,
                         firstInputs, expectedOutputs, expectedContainerItems,
@@ -1327,6 +1336,33 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             target = "Lappeng/api/networking/crafting/ICraftingProvider;pushPattern(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;)Z"))
     private boolean molecularmanipulator$pushBatch(ICraftingProvider provider, IPatternDetails patternDetails,
             KeyCounter[] inputs, Operation<Boolean> original) {
+        var context = molecularmanipulator$cycleBatch;
+        if (context == null || !context.hasCycleProtection()) {
+            return molecularmanipulator$pushBatchWithinCycle(provider, patternDetails, inputs, original);
+        }
+        var extraction = molecularmanipulator$batchExtraction;
+        long crafts = extraction != null && molecularmanipulator$batchPattern == patternDetails
+                && extraction.inputs() == inputs ? extraction.craftCount()
+                : molecularmanipulator$adaptivePattern == patternDetails
+                        && molecularmanipulator$adaptiveInputs == inputs
+                                ? molecularmanipulator$adaptiveCraftCount : 1;
+        AelisBatchExecutionContext.Dispatch dispatch;
+        try {
+            dispatch = context.beginDispatch(inputs, crafts);
+        } catch (IllegalStateException invalidBatch) {
+            RateLimitedLog.warn("Rejected invalid cyclic Omni batch", invalidBatch);
+            return false;
+        }
+        try (dispatch) {
+            boolean accepted = molecularmanipulator$pushBatchWithinCycle(provider, patternDetails, inputs, original);
+            if (accepted) dispatch.accepted();
+            return accepted;
+        }
+    }
+
+    @Unique
+    private boolean molecularmanipulator$pushBatchWithinCycle(ICraftingProvider provider, IPatternDetails patternDetails,
+            KeyCounter[] inputs, Operation<Boolean> original) {
         var actualInputs = molecularmanipulator$exactState == null ? Map.<AEKey, BigInteger>of()
                 : molecularmanipulator$batchInputAmounts(inputs, BigInteger.ONE);
         var extraction = molecularmanipulator$batchExtraction;
@@ -1349,7 +1385,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         boolean fallbackContext = molecularmanipulator$dispatchOwner != null
                 && molecularmanipulator$fallbackPattern == patternDetails
                 && molecularmanipulator$fallbackInputs == inputs;
-        if (!apiBatchContext) {
+        if (!apiBatchContext && (molecularmanipulator$cycleBatch == null
+                || !molecularmanipulator$cycleBatch.hasCycleProtection())) {
             KeyCounter[] unitPrototype = adaptiveContext
                     ? molecularmanipulator$adaptiveFirstInputs
                     : expandedContext
@@ -2023,6 +2060,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
     @Unique
     private void molecularmanipulator$clearBatch() {
         molecularmanipulator$closeCurrentApiAdmission();
+        molecularmanipulator$cycleBatch = null;
         molecularmanipulator$exactPrototypeHasContainers = false;
         molecularmanipulator$batchPattern = null;
         molecularmanipulator$batchExtraction = null;

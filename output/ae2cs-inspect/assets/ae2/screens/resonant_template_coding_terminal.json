@@ -1,0 +1,499 @@
+{
+  "_comments": {
+    "file": "谐振样板编码终端界面布局。"
+  },
+  "includes": [
+    "terminals/pattern_encoding_terminal.json"
+  ],
+  "terminalStyle": {
+    "header": {
+      "_comment": "终端顶部背景切片；srcRect = [贴图X, 贴图Y, 宽, 高]。",
+      "texture": "ae2cs:textures/gui/resonant_template_coding_terminal.png",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "srcRect": [0, 0, 195, 17]
+    },
+    "firstRow": {
+      "_comment": "终端第一行背景切片；srcRect = [贴图X, 贴图Y, 宽, 高]。",
+      "texture": "ae2cs:textures/gui/resonant_template_coding_terminal.png",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "srcRect": [0, 17, 195, 18]
+    },
+    "row": {
+      "_comment": "终端中间可重复行背景切片；srcRect = [贴图X, 贴图Y, 宽, 高]。",
+      "texture": "ae2cs:textures/gui/resonant_template_coding_terminal.png",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "srcRect": [0, 35, 195, 18]
+    },
+    "lastRow": {
+      "_comment": "终端最后一行背景切片；srcRect = [贴图X, 贴图Y, 宽, 高]。",
+      "texture": "ae2cs:textures/gui/resonant_template_coding_terminal.png",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "srcRect": [0, 53, 195, 18]
+    },
+    "bottom": {
+      "_comment": "终端底部背景和玩家库存区域背景切片；srcRect = [贴图X, 贴图Y, 宽, 高]。",
+      "texture": "ae2cs:textures/gui/resonant_template_coding_terminal.png",
+      "textureWidth": 512,
+      "textureHeight": 512,
+      "srcRect": [0, 71, 195, 196]
+    }
+  },
+  "slots": {
+    "BLANK_PATTERN": {
+      "_comment": "空白样板输入槽坐标；left 从界面左侧算起，bottom 从界面底部向上算起。",
+      "left": 147,
+      "bottom": 163
+    },
+    "ENCODED_PATTERN": {
+      "_comment": "编码后样板输出槽坐标；left 从界面左侧算起，bottom 从界面底部向上算起。",
+      "left": 147,
+      "bottom": 116
+    },
+    "CRAFTING_GRID": {
+      "_comment": "合成样板 3x3 输入槽起始坐标；grid=BREAK_AFTER_3COLS 表示每 3 列换行。",
+      "left": 15,
+      "bottom": 165,
+      "grid": "BREAK_AFTER_3COLS"
+    },
+    "CRAFTING_RESULT": {
+      "_comment": "合成样板输出结果槽坐标；真实拉取槽模式下结果槽会跟随此位置。",
+      "left": 106,
+      "bottom": 147
+    },
+    "SMITHING_TABLE_TEMPLATE": {
+      "_comment": "锻造台样板模板输入槽坐标；真实拉取槽模式下对应输入槽会跟随此位置。",
+      "left": 15,
+      "bottom": 147
+    },
+    "SMITHING_TABLE_BASE": {
+      "_comment": "锻造台样板基础材料输入槽坐标；真实拉取槽模式下对应输入槽会跟随此位置。",
+      "left": 33,
+      "bottom": 147
+    },
+    "SMITHING_TABLE_ADDITION": {
+      "_comment": "锻造台样板追加材料输入槽坐标；真实拉取槽模式下对应输入槽会跟随此位置。",
+      "left": 51,
+      "bottom": 147
+    },
+    "SMITHING_TABLE_RESULT": {
+      "_comment": "锻造台样板输出结果槽坐标；真实拉取槽模式下结果槽会跟随此位置。",
+      "left": 109,
+      "bottom": 147
+    },
+    "STONECUTTING_INPUT": {
+      "_comment": "切石机样板虚拟槽模式下的输入槽坐标。",
+      "left": 15,
+      "bottom": 147
+    },
+    "PROCESSING_INPUTS": {
+      "_comment": "处理样板输入材料槽起始坐标；处理模式下 Java 会按可视 4x4 区域和滚动条继续排布。",
+      "left": 23,
+      "bottom": 174
+    },
+    "PROCESSING_OUTPUTS": {
+      "_comment": "处理样板输出结果槽起始坐标；grid=VERTICAL 表示后续输出槽向下排列。",
+      "left": 109,
+      "bottom": 174,
+      "grid": "VERTICAL"
+    },
+    "PLAYER_INVENTORY": {
+      "_comment": "玩家背包 3x9 主库存槽起始坐标；grid=BREAK_AFTER_9COLS 表示每 9 列换行。",
+      "left": 8,
+      "bottom": 83,
+      "grid": "BREAK_AFTER_9COLS"
+    },
+    "PLAYER_HOTBAR": {
+      "_comment": "玩家快捷栏 1x9 槽起始坐标；grid=HORIZONTAL 表示横向排列。",
+      "left": 8,
+      "bottom": 25,
+      "grid": "HORIZONTAL"
+    }
+  },
+  "text": {
+    "dialog_title": {
+      "text": {
+        "translate": "gui.ae2.Terminal"
+      },
+      "position": {
+        "_comment": "终端窗口标题文字坐标；left/top 从界面左上角算起。",
+        "left": 8,
+        "top": 6
+      }
+    },
+    "crafting_grid_title": {
+      "text": {
+        "translate": "gui.ae2.PatternEncoding"
+      },
+      "position": {
+        "_comment": "样板编码区域标题文字坐标；left 从界面左侧算起，bottom 从界面底部向上算起。",
+        "left": 8,
+        "bottom": 190
+      }
+    }
+  },
+  "tooltips": {
+    "processing-primary-output": {
+      "_comment": "处理样板主输出槽 tooltip 命中区域坐标和尺寸。",
+      "left": 109,
+      "bottom": 175,
+      "width": 18,
+      "height": 18,
+      "tooltip": [
+        { "translate": "gui.ae2.PatternEncoding.primary_processing_result_tooltip" },
+        { "translate": "gui.ae2.PatternEncoding.primary_processing_result_hint", "color": "#666666" }
+      ]
+    },
+    "processing-optional-output1": {
+      "_comment": "处理样板第 1 个副输出槽 tooltip 命中区域坐标和尺寸；位置与主输出重叠，用于不同显示状态。",
+      "left": 109,
+      "bottom": 175,
+      "width": 18,
+      "height": 18,
+      "tooltip": [
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_tooltip" },
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_hint", "color": "#666666" }
+      ]
+    },
+    "processing-optional-output2": {
+      "_comment": "处理样板第 2 个副输出槽 tooltip 命中区域坐标和尺寸。",
+      "left": 109,
+      "bottom": 157,
+      "width": 18,
+      "height": 18,
+      "tooltip": [
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_tooltip" },
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_hint", "color": "#666666" }
+      ]
+    },
+    "processing-optional-output3": {
+      "_comment": "处理样板第 3 个副输出槽 tooltip 命中区域坐标和尺寸。",
+      "left": 109,
+      "bottom": 139,
+      "width": 18,
+      "height": 18,
+      "tooltip": [
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_tooltip" },
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_hint", "color": "#666666" }
+      ]
+    },
+    "processing-optional-output4": {
+      "_comment": "处理样板第 4 个副输出槽 tooltip 命中区域坐标和尺寸。",
+      "left": 109,
+      "bottom": 121,
+      "width": 18,
+      "height": 18,
+      "tooltip": [
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_tooltip" },
+        { "translate": "gui.ae2.PatternEncoding.secondary_processing_result_hint", "color": "#666666" }
+      ]
+    }
+  },
+  "images": {
+    "resonantCraftingModePanel": {
+      "_comment": "谐振终端合成样板模式面板背景切片。",
+      "texture": "ae2cs:textures/gui/resonant_terminal_coding_area.png",
+      "textureWidth": 256,
+      "textureHeight": 256,
+      "srcRect": [0, 0, 124, 84]
+    },
+    "resonantSmithingModePanel": {
+      "_comment": "谐振终端锻造台样板模式面板背景切片；编码虚拟槽模式。",
+      "texture": "ae2cs:textures/gui/resonant_terminal_coding_area.png",
+      "textureWidth": 256,
+      "textureHeight": 256,
+      "srcRect": [128, 0, 124, 84]
+    },
+    "resonantSmithingPulledModePanel": {
+      "_comment": "谐振终端锻造台样板模式面板背景切片；真实拉取槽模式。",
+      "texture": "ae2cs:textures/gui/resonant_terminal_coding_area.png",
+      "textureWidth": 256,
+      "textureHeight": 256,
+      "srcRect": [0, 172, 124, 84]
+    },
+    "resonantStonecuttingVirtualModePanel": {
+      "_comment": "谐振终端切石机样板模式面板背景切片；编码虚拟槽模式。",
+      "texture": "ae2cs:textures/gui/resonant_terminal_coding_area.png",
+      "textureWidth": 256,
+      "textureHeight": 256,
+      "srcRect": [0, 88, 124, 84]
+    },
+    "resonantStonecuttingPulledModePanel": {
+      "_comment": "谐振终端切石机样板模式面板背景切片；真实拉取槽模式。",
+      "texture": "ae2cs:textures/gui/resonant_terminal_coding_area.png",
+      "textureWidth": 256,
+      "textureHeight": 256,
+      "srcRect": [128, 88, 124, 84]
+    },
+    "resonantAnvilPulledModePanel": {
+      "_comment": "谐振终端铁砧模式面板背景切片；真实拉取槽模式。",
+      "texture": "ae2cs:textures/gui/resonant_terminal_coding_area.png",
+      "textureWidth": 256,
+      "textureHeight": 256,
+      "srcRect": [128, 172, 124, 84]
+    }
+  },
+  "widgets": {
+    "processingPatternModeScrollbar": {
+      "_comment": "处理样板输入材料滚动条坐标和高度。",
+      "left": 14,
+      "bottom": 175,
+      "height": 72
+    },
+    "stonecuttingPatternModeScrollbar": {
+      "_comment": "切石机样板输出配方列表滚动条坐标和高度。",
+      "left": 117,
+      "bottom": 172,
+      "height": 68
+    },
+    "stonecuttingRecipeList": {
+      "_comment": "切石机样板输出配方列表第一个输出槽底图坐标和可见区域尺寸。",
+      "left": 35,
+      "bottom": 171,
+      "width": 80,
+      "height": 66
+    },
+    "craftingSubstitutions": {
+      "_comment": "合成样板物品替换按钮坐标。",
+      "left": 80,
+      "bottom": 166
+    },
+    "craftingFluidSubstitutions": {
+      "_comment": "合成样板流体替换按钮坐标。",
+      "left": 90,
+      "bottom": 166
+    },
+    "craftingClearPattern": {
+      "_comment": "合成样板清除配置按钮坐标。",
+      "left": 70,
+      "bottom": 166
+    },
+    "smithingTableSubstitutions": {
+      "_comment": "锻造台样板物品替换按钮坐标。",
+      "left": 24,
+      "bottom": 158
+    },
+    "smithingTableClearPattern": {
+      "_comment": "锻造台样板清除配置按钮坐标。",
+      "left": 14,
+      "bottom": 158
+    },
+    "pullEncodedInputsToGridCrafting": {
+      "_comment": "真实拉取槽模式下，合成/工作台模式将真实槽物品放回 ME 网络按钮坐标。",
+      "left": 70,
+      "bottom": 166
+    },
+    "clearPulledInputsToPlayerCrafting": {
+      "_comment": "真实拉取槽模式下，合成/工作台模式将真实槽物品取回玩家物品栏按钮坐标。",
+      "left": 80,
+      "bottom": 166
+    },
+    "pullEncodedInputsToGridProcessing": {
+      "_comment": "真实拉取槽模式下，处理配方模式将真实槽物品放回 ME 网络按钮坐标。",
+      "left": 98,
+      "bottom": 175
+    },
+    "clearPulledInputsToPlayerProcessing": {
+      "_comment": "真实拉取槽模式下，处理配方模式将真实槽物品取回玩家物品栏按钮坐标。",
+      "left": 98,
+      "bottom": 165
+    },
+    "pullEncodedInputsToGridSmithing": {
+      "_comment": "真实拉取槽模式下，锻造台模式将真实槽物品放回 ME 网络按钮坐标。",
+      "left": 14,
+      "bottom": 158
+    },
+    "clearPulledInputsToPlayerSmithing": {
+      "_comment": "真实拉取槽模式下，锻造台模式将真实槽物品取回玩家物品栏按钮坐标。",
+      "left": 24,
+      "bottom": 158
+    },
+    "pullEncodedInputsToGridStonecutting": {
+      "_comment": "真实拉取槽模式下，切石机模式将真实槽物品放回 ME 网络按钮坐标。",
+      "left": 14,
+      "bottom": 171
+    },
+    "clearPulledInputsToPlayerStonecutting": {
+      "_comment": "真实拉取槽模式下，切石机模式将真实槽物品取回玩家物品栏按钮坐标。",
+      "left": 24,
+      "bottom": 171
+    },
+    "processingCycleOutput": {
+      "_comment": "处理样板轮换产物按钮坐标。",
+      "left": 98,
+      "bottom": 155
+    },
+    "splitProcessingIngredients": {
+      "_comment": "处理样板材料分裂/合并切换按钮坐标。",
+      "left": 98,
+      "bottom": 165
+    },
+    "processingClearPattern": {
+      "_comment": "处理样板清空按钮坐标。",
+      "left": 98,
+      "bottom": 175
+    },
+    "pulledStonecuttingResult": {
+      "_comment": "切石配方真实拉取槽模式下，真实切石产物槽坐标。",
+      "left": 15,
+      "bottom": 121
+    },
+    "pulledStonecuttingInput": {
+      "_comment": "切石配方真实拉取槽模式下，真实切石输入槽坐标。",
+      "left": 15,
+      "bottom": 161
+    },
+    "pulledAnvilName": {
+      "_comment": "铁砧真实拉取槽模式下，物品命名输入栏坐标和尺寸。",
+      "left": 14,
+      "bottom": 166,
+      "width": 103,
+      "height": 10
+    },
+    "pulledAnvilInput0": {
+      "_comment": "铁砧真实拉取槽模式下，第一个物品输入槽坐标。",
+      "left": 15,
+      "bottom": 147,
+      "width": 16,
+      "height": 16
+    },
+    "pulledAnvilInput1": {
+      "_comment": "铁砧真实拉取槽模式下，第二个物品输入槽坐标。",
+      "left": 49,
+      "bottom": 147,
+      "width": 16,
+      "height": 16
+    },
+    "pulledAnvilResult": {
+      "_comment": "铁砧真实拉取槽模式下，输出槽坐标。",
+      "left": 106,
+      "bottom": 147,
+      "width": 16,
+      "height": 16
+    },
+    "pulledAnvilCost": {
+      "_comment": "铁砧真实拉取槽模式下，附魔消耗文字坐标。",
+      "left": 15,
+      "bottom": 118,
+      "width": 107,
+      "height": 10
+    },
+    "clearPulledAnvilInputsToNetwork": {
+      "_comment": "铁砧真实拉取槽模式下，将铁砧真实槽物品放回 ME 网络按钮坐标。",
+      "left": 14,
+      "bottom": 128
+    },
+    "clearPulledAnvilInputsToPlayer": {
+      "_comment": "铁砧真实拉取槽模式下，将铁砧真实槽物品取回玩家物品栏按钮坐标。",
+      "left": 24,
+      "bottom": 128
+    },
+    "encodeResonatingPattern": {
+      "_comment": "处理样板普通/谐振编码模式按钮坐标。",
+      "left": 147,
+      "bottom": 183,
+      "width": 16,
+      "height": 16
+    },
+    "encodePattern": {
+      "_comment": "编写样板按钮坐标。",
+      "left": 147,
+      "bottom": 143
+    },
+    "modeTabButton0": {
+      "_comment": "合成样板编码模式页签按钮坐标和尺寸。",
+      "left": 173,
+      "bottom": 193,
+      "width": 22,
+      "height": 22
+    },
+    "modeTabButton1": {
+      "_comment": "处理样板编码模式页签按钮坐标和尺寸。",
+      "left": 173,
+      "bottom": 172,
+      "width": 22,
+      "height": 22
+    },
+    "modeTabButton2": {
+      "_comment": "锻造样板编码模式页签按钮坐标和尺寸。",
+      "left": 173,
+      "bottom": 151,
+      "width": 22,
+      "height": 22
+    },
+    "modeTabButton3": {
+      "_comment": "切石样板编码模式页签按钮坐标和尺寸。",
+      "left": 173,
+      "bottom": 130,
+      "width": 22,
+      "height": 22
+    },
+    "modeTabButton4": {
+      "_comment": "铁砧真实拉取槽模式页签按钮坐标和尺寸。",
+      "left": 173,
+      "bottom": 109,
+      "width": 22,
+      "height": 22
+    },
+    "modePanel0": {
+      "_comment": "合成样板模式面板坐标。",
+      "left": 8,
+      "bottom": 180
+    },
+    "modePanel1": {
+      "_comment": "处理样板模式面板坐标和尺寸。",
+      "left": 6,
+      "bottom": 184,
+      "width": 160,
+      "height": 90
+    },
+    "modePanel2": {
+      "_comment": "锻造样板模式面板坐标。",
+      "left": 8,
+      "bottom": 180
+    },
+    "modePanel3": {
+      "_comment": "切石样板模式面板坐标。",
+      "left": 8,
+      "bottom": 180
+    },
+    "modePanel4": {
+      "_comment": "铁砧真实拉取槽模式面板坐标。",
+      "left": 8,
+      "bottom": 180
+    },
+    "resonantCraftingModePanel": {
+      "_comment": "合成样板模式面板背景尺寸；坐标复用 modePanel0。",
+      "width": 124,
+      "height": 84
+    },
+    "resonantSmithingModePanel": {
+      "_comment": "锻造台样板模式面板背景尺寸；坐标复用 modePanel2。",
+      "width": 124,
+      "height": 84
+    },
+    "resonantSmithingPulledModePanel": {
+      "_comment": "锻造台样板真实拉取槽模式面板背景尺寸；坐标复用 modePanel2。",
+      "width": 124,
+      "height": 84
+    },
+    "resonantStonecuttingVirtualModePanel": {
+      "_comment": "切石机样板模式面板背景尺寸；编码虚拟槽模式，坐标复用 modePanel3。",
+      "width": 124,
+      "height": 84
+    },
+    "resonantStonecuttingPulledModePanel": {
+      "_comment": "切石机样板模式面板背景尺寸；真实拉取槽模式，坐标复用 modePanel3。",
+      "width": 124,
+      "height": 84
+    },
+    "resonantAnvilPulledModePanel": {
+      "_comment": "铁砧真实拉取槽模式面板背景尺寸；坐标复用 modePanel4。",
+      "width": 124,
+      "height": 84
+    }
+  }
+}

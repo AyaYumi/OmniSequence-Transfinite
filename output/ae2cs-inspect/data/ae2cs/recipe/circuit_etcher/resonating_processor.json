@@ -1,0 +1,20 @@
+{
+  "type": "ae2cs:circuit_etcher_recipe_serializer",
+  "energy_cost": 57600,
+  "input_a": {
+    "count": 4,
+    "tag": "c:storage_blocks/pure_crystal/resonating_crystal_block"
+  },
+  "input_b": {
+    "count": 4,
+    "tag": "c:storage_blocks/pure_crystal/meteor_crystal_block"
+  },
+  "input_c": {
+    "count": 4,
+    "tag": "c:storage_blocks/silicon"
+  },
+  "result": {
+    "count": 36,
+    "id": "ae2cs:resonating_processor"
+  }
+}

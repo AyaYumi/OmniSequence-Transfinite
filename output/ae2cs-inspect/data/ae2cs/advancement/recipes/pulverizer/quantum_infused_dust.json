@@ -1,0 +1,41 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_input_0": {
+      "conditions": {
+        "items": [
+          {
+            "count": {
+              "min": 1
+            },
+            "items": "advanced_ae:shattered_singularity"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "ae2cs:pulverizer/quantum_infused_dust"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_input_0"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "ae2cs:pulverizer/quantum_infused_dust"
+    ]
+  }
+}

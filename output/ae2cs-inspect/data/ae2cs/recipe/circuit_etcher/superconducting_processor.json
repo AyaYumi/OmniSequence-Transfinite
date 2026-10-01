@@ -1,0 +1,26 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "neoecoae"
+    }
+  ],
+  "type": "ae2cs:circuit_etcher_recipe_serializer",
+  "energy_cost": 57600,
+  "input_a": {
+    "count": 4,
+    "item": "neoecoae:energized_superconductive_block"
+  },
+  "input_b": {
+    "count": 4,
+    "item": "ae2cs:crystal_grid_block"
+  },
+  "input_c": {
+    "count": 4,
+    "tag": "c:storage_blocks/silicon"
+  },
+  "result": {
+    "count": 36,
+    "id": "neoecoae:superconducting_processor"
+  }
+}

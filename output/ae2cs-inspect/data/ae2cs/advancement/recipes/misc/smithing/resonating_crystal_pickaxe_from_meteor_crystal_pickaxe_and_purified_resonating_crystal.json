@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_meteor_crystal_pickaxe": {
+      "conditions": {
+        "items": [
+          {
+            "items": "ae2cs:meteor_crystal_pickaxe"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "ae2cs:smithing/resonating_crystal_pickaxe_from_meteor_crystal_pickaxe_and_purified_resonating_crystal"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_meteor_crystal_pickaxe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "ae2cs:smithing/resonating_crystal_pickaxe_from_meteor_crystal_pickaxe_and_purified_resonating_crystal"
+    ]
+  }
+}

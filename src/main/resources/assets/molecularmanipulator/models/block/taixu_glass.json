@@ -1,0 +1,48 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "translucent",
+  "textures": {
+    "glass": "molecularmanipulator:block/taixu/glass",
+    "particle": "molecularmanipulator:block/taixu/glass"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#glass",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#glass",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#glass",
+          "cullface": "east"
+        },
+        "up": {
+          "texture": "#glass",
+          "cullface": "up"
+        },
+        "down": {
+          "texture": "#glass",
+          "cullface": "down"
+        }
+      }
+    }
+  ]
+}

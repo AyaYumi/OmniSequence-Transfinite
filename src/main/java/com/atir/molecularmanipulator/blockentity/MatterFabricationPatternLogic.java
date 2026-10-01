@@ -14,6 +14,7 @@ import com.atir.molecularmanipulator.api.crafting.*;
 import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.integration.ae2.OmniSmartDoublingProvider;
+import com.github.appliedenhancements.integration.ae2.AelisScaledPattern;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -108,6 +109,11 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
     }
 
     private static SmartPattern normalizeSmartPattern(IPatternDetails pattern) {
+        if (pattern instanceof AelisScaledPattern scaled
+                && scaled.appliedenhancements$operationsPerPush() > 1) {
+            return new SmartPattern(scaled.appliedenhancements$originalPattern(),
+                    scaled.appliedenhancements$operationsPerPush());
+        }
         if (pattern instanceof MolecularScaledPattern scaled) {
             return new SmartPattern(scaled.base(), scaled.multiplier());
         }

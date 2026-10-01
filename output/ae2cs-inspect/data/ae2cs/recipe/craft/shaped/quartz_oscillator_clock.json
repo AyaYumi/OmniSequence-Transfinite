@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "item": "minecraft:comparator"
+    },
+    "b": {
+      "item": "ae2:level_emitter"
+    },
+    "c": {
+      "item": "ae2:toggle_bus"
+    },
+    "d": {
+      "item": "ae2cs:simple_pattern_provider"
+    },
+    "e": {
+      "item": "ae2cs:resonating_processor"
+    },
+    "f": {
+      "item": "minecraft:clock"
+    }
+  },
+  "pattern": [
+    "aba",
+    "cdc",
+    "efe"
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2cs:quartz_oscillator_clock"
+  }
+}

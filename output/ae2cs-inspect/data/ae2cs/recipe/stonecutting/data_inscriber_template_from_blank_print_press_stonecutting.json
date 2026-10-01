@@ -1,0 +1,16 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "data_energistics"
+    }
+  ],
+  "type": "minecraft:stonecutting",
+  "ingredient": {
+    "item": "ae2cs:blank_print_press"
+  },
+  "result": {
+    "count": 1,
+    "id": "data_energistics:data_inscriber_template"
+  }
+}

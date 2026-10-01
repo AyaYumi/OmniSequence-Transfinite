@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "molecularmanipulator:block/taixu_stabilizer"
+    },
+    "facing=east": {
+      "model": "molecularmanipulator:block/taixu_stabilizer",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "molecularmanipulator:block/taixu_stabilizer",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "molecularmanipulator:block/taixu_stabilizer",
+      "y": 270
+    }
+  }
+}

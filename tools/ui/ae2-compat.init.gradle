@@ -1,0 +1,25 @@
+// Opt-in paired-mod client verification; all output stays under build/.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('ae2Compatibility') {
+            java.srcDir file('tools/ui/java')
+            java.include '**/Ae2CompatibilityProbe.java', '**/Ae2CompatibilityCaptureMixin.java'
+            resources.srcDir file('tools/ui/ae2-compat-resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def client = neoForge.runs.getByName('client')
+        client.gameDirectory = file(project.findProperty('ae2CompatDirectory') ?: 'build/ae2-compat-client-run')
+        client.programArguments.addAll('--quickPlaySingleplayer', 'AE2Compatibility',
+                '--width', '1200', '--height', '800', '--mixin', 'ae2-compat-probe.mixins.json')
+        client.systemProperty('ae2.compat.output', file("build/reports/ae2-compat-${project.ae2_version}").absolutePath)
+        client.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileAe2CompatibilityJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

@@ -32,4 +32,11 @@ public interface MolecularAutoCrafterHost {
     void queueAutoCraftRefund(AEKey key, long amount);
 
     long getBufferedAutoCraftAmount(AEKey key);
+
+    /**
+     * Flushes already completed passive-crafting outputs after a slot is stopped
+     * or its pattern is removed. This is a delivery operation only; it never
+     * starts another craft or takes another input from the network.
+     */
+    void flushAutoCraftOutputsAfterControlChange();
 }

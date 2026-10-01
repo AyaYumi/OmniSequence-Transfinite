@@ -1,0 +1,26 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "appgen"
+    }
+  ],
+  "type": "ae2cs:circuit_etcher_recipe_serializer",
+  "energy_cost": 57600,
+  "input_a": {
+    "count": 9,
+    "item": "appgen:ember_block"
+  },
+  "input_b": {
+    "count": 4,
+    "tag": "c:storage_blocks/redstone"
+  },
+  "input_c": {
+    "count": 4,
+    "tag": "c:storage_blocks/silicon"
+  },
+  "result": {
+    "count": 36,
+    "id": "appgen:origination_processor"
+  }
+}

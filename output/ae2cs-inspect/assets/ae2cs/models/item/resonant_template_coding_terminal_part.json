@@ -1,0 +1,9 @@
+{
+  "parent": "ae2cs:item/resonant_template_coding_terminal_display_base",
+  "textures": {
+    "front_foreground": "ae2cs:part/resonant_template_coding_terminal/base",
+    "front_bright": "ae2cs:part/resonant_template_coding_terminal/bright",
+    "front_medium": "ae2cs:part/resonant_template_coding_terminal/medium",
+    "front_dark": "ae2cs:part/resonant_template_coding_terminal/dark"
+  }
+}

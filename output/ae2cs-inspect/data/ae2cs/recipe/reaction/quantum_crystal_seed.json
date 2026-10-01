@@ -1,0 +1,38 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ],
+  "type": "advanced_ae:reaction",
+  "input_energy": 80000,
+  "input_fluid": {
+    "amount": 1000,
+    "ingredient": {
+      "fluid": "advanced_ae:quantum_infusion_source"
+    }
+  },
+  "input_items": [
+    {
+      "ingredient": {
+        "tag": "c:dusts/sky_stone"
+      }
+    },
+    {
+      "ingredient": {
+        "tag": "c:dusts/quantum_alloy"
+      }
+    },
+    {
+      "ingredient": {
+        "tag": "c:dusts/quartz"
+      }
+    }
+  ],
+  "output": {
+    "#": 4,
+    "#t": "ae2:i",
+    "id": "ae2cs:quantum_crystal_seed"
+  }
+}

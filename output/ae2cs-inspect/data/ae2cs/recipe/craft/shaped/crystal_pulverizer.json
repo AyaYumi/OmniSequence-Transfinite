@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "item": "ae2:charged_certus_quartz_crystal"
+    },
+    "b": {
+      "item": "ae2:inscriber"
+    },
+    "c": {
+      "tag": "c:ingots/iron"
+    },
+    "d": {
+      "item": "ae2cs:quartz_grindstone"
+    },
+    "e": {
+      "item": "ae2:logic_processor"
+    },
+    "f": {
+      "item": "ae2cs:resonating_processor"
+    }
+  },
+  "pattern": [
+    "aba",
+    "cdc",
+    "efe"
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2cs:crystal_pulverizer"
+  }
+}

@@ -4,14 +4,16 @@ import appeng.client.gui.Icon;
 import appeng.client.gui.widgets.IconButton;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
+
+import java.util.List;
 
 /** Uses AE2's native icons with optional compact, centered rendering. */
 final class MolecularAutoCrafterIconButton extends IconButton {
     private Icon icon;
     private final int compactIconSize;
     private boolean selected;
+    private List<Component> tooltipLines;
 
     MolecularAutoCrafterIconButton(int x, int y, Icon icon, Component message, Runnable action) {
         this(x, y, -1, -1, icon, message, action);
@@ -28,7 +30,16 @@ final class MolecularAutoCrafterIconButton extends IconButton {
             setHeight(buttonSize);
         }
         setMessage(message);
-        if (!message.getString().isBlank()) setTooltip(Tooltip.create(message));
+    }
+
+    /** Uses AE2's native tooltip path without also registering vanilla's tooltip. */
+    void setTooltipLines(Component... lines) {
+        tooltipLines = List.of(lines);
+    }
+
+    @Override
+    public List<Component> getTooltipMessage() {
+        return tooltipLines == null ? super.getTooltipMessage() : tooltipLines;
     }
 
     void setIcon(Icon icon) {

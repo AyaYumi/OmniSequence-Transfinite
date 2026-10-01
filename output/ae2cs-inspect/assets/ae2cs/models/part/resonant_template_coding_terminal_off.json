@@ -1,0 +1,8 @@
+{
+  "parent": "ae2:part/display_off",
+  "textures": {
+    "lightsBright": "ae2cs:part/resonant_template_coding_terminal/bright",
+    "lightsMedium": "ae2cs:part/resonant_template_coding_terminal/medium",
+    "lightsDark": "ae2cs:part/resonant_template_coding_terminal/dark"
+  }
+}

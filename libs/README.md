@@ -2,14 +2,17 @@
 
 ## Current exact API build
 
-The current source requires **appliedenhancements-1.0.9-fix.jar** for compilation
-and runtime (protocol 9). Copy the revised AppliedEnhancements build to `libs/`.
+The current source requires **appliedenhancements-1.1.0.jar** for
+compilation and runtime (exact protocol 9 plus the shared cycle batch API).
+Copy the revised AppliedEnhancements build to `libs/`.
 Both client and server must use that same build. Automatic AELIS integration
 may remain disabled: an online Omni core or nexus explicitly invokes the planner.
 The revised API manages its own explicit-call scope.
 
-当前源码编译和运行均须使用修订版 **1.0.9-fix**，两端使用同一构建。
-将独立前置构建产物 `appliedenhancements-1.0.9-fix.jar` 放入本目录。
+当前源码编译和运行均须使用修订版 **1.1.0**，两端使用同一构建。
+将独立前置构建产物 `appliedenhancements-1.1.0.jar` 放入本目录。
+此版本增加共享循环取料和派发事务接口，Omni 的新旧批量供应器均使用它。
+此构建还兼容 AE2 19.2.18 的 CPU 列表显示改动，并继续支持 AE2 19.2.17。
 自动规划开关可以保持关闭，在线核心／算枢主动调用公开 API。
 旧 CI 固定提交不含本次尚未提交的前置修订；前置发布后须更新 CI 的固定提交。
 

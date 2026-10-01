@@ -923,6 +923,13 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return saturatedAdd(amount, reusableBatchRefunds.getLong(key));
     }
 
+    @Override
+    public void flushAutoCraftOutputsAfterControlChange() {
+        if (level != null && !level.isClientSide() && !assembling) {
+            flushBufferedOutputs(level.getGameTime(), true);
+        }
+    }
+
     public long getMetalSequence() {
         return metalSequence;
     }
@@ -1852,7 +1859,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         flushBufferedOutputs(gameTime);
         autoCrafter.tick(gameTime);
         flushLegacyDeconstructRefund();
-        processMatterJobs();
+        if (deconstructEnabled) stopDeconstruction(MatterJobState.STOPPED);
+        if (rewriteEnabled) stopRewrite(MatterJobState.STOPPED);
         syncVisualActivity(gameTime, false);
         if (structureCheckTick != gameTime && gameTime % 20 == 0) {
             structureCheckTick = gameTime;

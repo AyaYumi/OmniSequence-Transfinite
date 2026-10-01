@@ -1,0 +1,131 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "textures": {
+    "ring_side": "molecularmanipulator:block/taixu/ring_side",
+    "ring_top": "molecularmanipulator:block/taixu/ring_top",
+    "ring_side_glow": "molecularmanipulator:block/taixu/ring_side_glow",
+    "ring_top_glow": "molecularmanipulator:block/taixu/ring_top_glow",
+    "particle": "molecularmanipulator:block/taixu/ring_side"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#ring_side",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#ring_side",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#ring_side",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#ring_side",
+          "cullface": "east"
+        },
+        "up": {
+          "texture": "#ring_top",
+          "cullface": "up"
+        },
+        "down": {
+          "texture": "#ring_top",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "from": [
+        -0.005,
+        -0.005,
+        -0.005
+      ],
+      "to": [
+        16.005,
+        16.005,
+        16.005
+      ],
+      "faces": {
+        "north": {
+          "texture": "#ring_side_glow",
+          "cullface": "north",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#ring_side_glow",
+          "cullface": "south",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#ring_side_glow",
+          "cullface": "west",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#ring_side_glow",
+          "cullface": "east",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#ring_top_glow",
+          "cullface": "up",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#ring_top_glow",
+          "cullface": "down",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      },
+      "shade": false,
+      "neoforge_data": {
+        "block_light": 15,
+        "sky_light": 15,
+        "ambient_occlusion": false
+      }
+    }
+  ]
+}

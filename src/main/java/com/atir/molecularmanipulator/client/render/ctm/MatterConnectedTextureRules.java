@@ -67,6 +67,14 @@ public final class MatterConnectedTextureRules {
 
     public static Mode mode(String texture) {
         String name = textureName(texture);
+        if (isTaixu(texture)) {
+            return switch (name) {
+                case "jade", "glass" -> Mode.ISOTROPIC;
+                case "pillar", "conduit" -> Mode.V_ONLY;
+                case "ring_side", "ring_top" -> Mode.U_ONLY;
+                default -> Mode.ICON;
+            };
+        }
         if (name.endsWith("_top") || name.equals("matter_fabrication_casing")
                 || name.equals("matter_fabrication_glass")) {
             return Mode.ISOTROPIC;
@@ -77,6 +85,14 @@ public final class MatterConnectedTextureRules {
     }
 
     public static float edgeBand(Face face) {
+        if (isTaixu(face.texture())) {
+            // Glass corner mounts reach three texels; jade has a one-texel seam.
+            return switch (textureName(face.texture())) {
+                case "glass" -> 3.0F / 16;
+                case "jade", "pillar", "conduit", "ring_side", "ring_top" -> 1.0F / 16;
+                default -> BORDER;
+            };
+        }
         return switch (textureName(face.texture())) {
             case "matter_fabrication_glass" -> 1.0F / 16.0F;
             // The edited ports encode input/output in the first inset blue/gold ring.
@@ -92,6 +108,14 @@ public final class MatterConnectedTextureRules {
 
     private static String textureName(String texture) {
         return texture.substring(Math.max(texture.lastIndexOf('/'), texture.lastIndexOf(':')) + 1);
+    }
+
+    public static boolean isTaixu(String texture) {
+        return texture.startsWith("molecularmanipulator:block/taixu/");
+    }
+
+    public static String fillerTexture(Face face) {
+        return isTaixu(face.texture()) ? "block/taixu/jade" : "block/matter_fabrication_casing_top";
     }
 
     /**
@@ -161,16 +185,17 @@ public final class MatterConnectedTextureRules {
     private static List<Patch> iconPatches(Face face, int mask, float border, float outline) {
         mask = normalizedMask(mask);
         boolean assembly = textureName(face.texture()).equals("matter_fabrication_pattern_assembly");
+        boolean gilded = isTaixu(face.texture()) && textureName(face.texture()).equals("gilded");
         // Assembly corner fasteners reach pixel 3, but its central frame reaches pixel 2.
         // Extend cleanup only inside the four corner squares, never along the whole glyph edge.
-        float corner = assembly ? 4.0F / 16 : outline;
+        float corner = assembly ? 4.0F / 16 : gilded ? 5.0F / 16 : outline;
         float[] cuts = corner > border
                 ? new float[] {0, border, corner, 1 - corner, 1 - border, 1}
                 : new float[] {0, border, 1 - border, 1};
         var result = new ArrayList<Patch>((cuts.length - 1) * (cuts.length - 1));
         for (int row = 0; row < cuts.length - 1; row++) for (int col = 0; col < cuts.length - 1; col++) {
             float x0 = cuts[col], x1 = cuts[col + 1], y0 = cuts[row], y1 = cuts[row + 1];
-            boolean cornerSquare = assembly && (x1 <= corner || x0 >= 1 - corner)
+            boolean cornerSquare = (assembly || gilded) && (x1 <= corner || x0 >= 1 - corner)
                     && (y1 <= corner || y0 >= 1 - corner);
             float seam = cornerSquare ? corner : border;
             boolean left = x1 <= seam, right = x0 >= 1 - seam;
@@ -192,7 +217,7 @@ public final class MatterConnectedTextureRules {
             if (horizontalOutline) {
                 // Sample a straight piece of this same top/bottom edge, not neutral casing filler.
                 // The assembly glyph starts near the middle of its top band, so use its clear shoulder.
-                float sample = assembly ? 4.0F / 16 : 0.5F;
+                float sample = assembly ? 4.0F / 16 : gilded ? 6.0F / 16 : 0.5F;
                 u0 = sample + 1.0F / 16;
                 u1 = sample;
             }

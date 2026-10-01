@@ -1,0 +1,9 @@
+{
+  "type": "neoforge:add_features",
+  "biomes": "#minecraft:is_overworld",
+  "features": [
+    "ae2cs:certus_quartz_ore_placed",
+    "ae2cs:charged_certus_quartz_ore_placed"
+  ],
+  "step": "underground_ores"
+}

@@ -13,6 +13,7 @@ import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
 import com.atir.molecularmanipulator.menu.MatterFabricationPatternAssemblyMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.registry.TaixuContent;
 import java.io.IOException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -32,6 +33,11 @@ public final class ClientEvents {
     }
 
     @SubscribeEvent
+    public static void clientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
+        event.enqueueWork(TaixuRenderCompatibility::initialize);
+    }
+
+    @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
         InitScreens.register(event, MolecularManipulatorMenu.TYPE, MolecularManipulatorScreen::new,
                 "/screens/molecular_manipulator.json");
@@ -45,6 +51,7 @@ public final class ClientEvents {
                 "/screens/omni_computation.json");
         InitScreens.register(event, ModContent.MATTER_FABRICATION_MENU.get(), MatterFabricationScreen::new,
                 "/screens/matter_fabrication.json");
+        InitScreens.register(event, TaixuContent.MENU.get(), TaixuScreen::new, "/screens/taixu_creation_nexus.json");
         InitScreens.register(event, ModContent.MATTER_FABRICATION_PORT_MENU.get(), MatterFabricationPortScreen::new,
                 "/screens/matter_fabrication_port.json");
         InitScreens.register(event, ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY_MENU.get(),
@@ -62,6 +69,9 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(TaixuContent.CORE_BE.get(), TaixuCoreRenderer::new);
+        event.registerBlockEntityRenderer(TaixuContent.CONTROLLER_BE.get(), TaixuRenderer::new);
+        event.registerEntityRenderer(TaixuContent.ASSEMBLY.get(), TaixuAssemblyRenderer::new);
         event.registerBlockEntityRenderer(ModContent.MOLECULAR_CENTER_CONTROLLER_BE.get(),
                 MolecularCenterRenderer::new);
         event.registerBlockEntityRenderer(ModContent.OMNI_COMPUTATION_CONTROLLER_BE.get(),
@@ -81,6 +91,8 @@ public final class ClientEvents {
             MolecularCenterGhostPreview.onResourceReload();
             OmniComputationGhostPreview.onResourceReload();
             MatterFabricationGhostPreview.onResourceReload();
+            TaixuGhostPreview.onResourceReload();
+            TaixuAssemblyRenderer.clear();
         });
     }
 }

@@ -1,0 +1,7 @@
+{
+  "parent": "ae2:part/display_base",
+  "textures": {
+    "front": "ae2cs:part/resonant_template_coding_terminal/base",
+    "particle": "ae2cs:part/resonant_template_coding_terminal/base"
+  }
+}

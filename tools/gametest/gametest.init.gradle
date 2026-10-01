@@ -9,7 +9,8 @@ allprojects {
         }
         neoForge.mods.getByName(project.mod_id).sourceSet(regression)
         def server = neoForge.runs.getByName('gameTestServer')
-        server.gameDirectory = file('build/multiblock-regression-run')
+        server.gameDirectory = file(project.findProperty('multiblockRegressionDirectory') ?: 'build/multiblock-regression-run')
+        server.logLevel = org.slf4j.event.Level.INFO
         server.systemProperty('blueprint.verification.output', file('build/reports/multiblock-regression').absolutePath)
         tasks.named('compileMultiblockRegressionJava', JavaCompile) {
             dependsOn tasks.named('classes')

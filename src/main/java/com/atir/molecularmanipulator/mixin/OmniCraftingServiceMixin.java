@@ -20,6 +20,7 @@ import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
+import com.github.appliedenhancements.integration.ae2.AelisScaledPattern;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -56,7 +57,10 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
     private void molecularmanipulator$resolveSmartPatternProviders(IPatternDetails pattern,
             CallbackInfoReturnable<Iterable<ICraftingProvider>> callback) {
         IPatternDetails original = pattern;
-        if (pattern instanceof MolecularScaledPattern scaled) {
+        if (pattern instanceof AelisScaledPattern scaled
+                && scaled.appliedenhancements$operationsPerPush() > 1) {
+            original = scaled.appliedenhancements$originalPattern();
+        } else if (pattern instanceof MolecularScaledPattern scaled) {
             original = scaled.base();
         } else {
             try {
@@ -64,7 +68,7 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
                 if (unwrapped.multiplier() > 1) original = unwrapped.patternDetails();
             } catch (RuntimeException ignored) { }
         }
-        if (original != pattern) {
+        if (original != null && original != pattern) {
             callback.setReturnValue(((CraftingService) (Object) this).getProviders(original));
         }
     }

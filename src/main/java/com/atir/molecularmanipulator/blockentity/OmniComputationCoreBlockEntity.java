@@ -107,8 +107,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private final boolean singleBlock;
     private final AppEngInternalInventory quantumInventory;
     private OmniComputationStructure.Inspection inspection =
-            new OmniComputationStructure.Inspection(OmniComputationStructure.parts().size(), 0,
-                    OmniComputationStructure.parts().size(), 0, false,
+            new OmniComputationStructure.Inspection(OmniComputationStructure.structureBlockCount(), 0,
+                    OmniComputationStructure.structureBlockCount(), 0, false,
                     OmniComputationStructure.StructureLayout.INCOMPLETE);
     private boolean structureFormed;
     private boolean legacyStructureUpdateDismissed;

@@ -1,0 +1,19 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "neoecoae"
+    }
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2cs:crystal_grid_block"
+    }
+  ],
+  "result": {
+    "count": 9,
+    "id": "neoecoae:crystal_matrix"
+  }
+}

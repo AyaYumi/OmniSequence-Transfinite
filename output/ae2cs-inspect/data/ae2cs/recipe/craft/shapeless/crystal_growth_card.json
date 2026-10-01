@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2:advanced_card"
+    },
+    {
+      "item": "ae2:growth_accelerator"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2cs:crystal_growth_card"
+  }
+}

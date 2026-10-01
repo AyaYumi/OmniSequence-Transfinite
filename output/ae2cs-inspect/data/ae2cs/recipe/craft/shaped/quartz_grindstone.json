@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "tag": "c:ingots/iron"
+    },
+    "b": {
+      "tag": "c:gears/wood"
+    },
+    "c": {
+      "tag": "ae2:all_certus_quartz"
+    }
+  },
+  "pattern": [
+    "aba",
+    "cac",
+    "aca"
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2cs:quartz_grindstone"
+  }
+}

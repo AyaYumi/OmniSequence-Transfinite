@@ -352,6 +352,7 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_FLUID_INPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_FLUID_OUTPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
+                        TaixuContent.displayItems(output);
                         if (AdvancedAEIntegration.isLoaded()) {
                             output.accept(TRANSFINITE_COMPUTE_NEXUS_ITEM.get());
                             output.accept(OMNI_COMPUTATION_CONTROLLER_ITEM.get());
@@ -399,6 +400,8 @@ public final class ModContent {
     }
 
     public static void register(IEventBus eventBus) {
+        TaixuContent.init();
+        TaixuContent.registerEntities(eventBus);
         BLOCKS.register(eventBus);
         ITEMS.register(eventBus);
         BLOCK_ENTITIES.register(eventBus);
@@ -409,6 +412,7 @@ public final class ModContent {
     }
 
     public static void bindBlockEntity() {
+        TaixuContent.bindBlockEntity();
         TRANSFINITE_COMPUTE_NEXUS.get().setBlockEntity(
                 OmniComputationCoreBlockEntity.class, OMNI_COMPUTATION_CONTROLLER_BE.get(), null, null);
         MOLECULAR_AUTO_CRAFTER.get().setBlockEntity(

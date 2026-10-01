@@ -22,5 +22,31 @@ allprojects {
             javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
             workingDir = project.projectDir
         }
+        tasks.register('verifyTaixuTextureAnimations', JavaExec) {
+            dependsOn compileProbe
+            classpath = files(compileProbe.flatMap { it.destinationDirectory }) + sourceSets.main.output +
+                    sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + natives
+            mainClass = 'TextureAnimationGpuProbe'
+            javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+            workingDir = project.projectDir
+            args 'src/main/resources/assets/molecularmanipulator/textures/block/taixu', '10'
+        }
+        def compileTaixuProbe = tasks.register('compileTaixuProbe', JavaCompile) {
+            dependsOn tasks.named('classes')
+            source = files('tools/textures/TaixuModelProbe.java')
+            classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+            destinationDirectory = layout.buildDirectory.dir('classes/java/taixuProbe')
+            javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(21) }
+            options.encoding = 'UTF-8'
+            options.compilerArgs.add('-proc:none')
+        }
+        tasks.register('verifyTaixuModels', JavaExec) {
+            dependsOn compileTaixuProbe
+            classpath = files(compileTaixuProbe.flatMap { it.destinationDirectory }) + sourceSets.main.output +
+                    sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath + natives
+            mainClass = 'TaixuModelProbe'
+            javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+            workingDir = project.projectDir
+        }
     }
 }

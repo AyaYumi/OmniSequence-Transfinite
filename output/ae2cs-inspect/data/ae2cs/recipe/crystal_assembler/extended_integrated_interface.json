@@ -1,0 +1,50 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    }
+  ],
+  "type": "extendedae:crystal_assembler",
+  "input_items": [
+    {
+      "ingredient": {
+        "item": "ae2cs:integrated_interface"
+      }
+    },
+    {
+      "amount": 6,
+      "ingredient": {
+        "item": "ae2:capacity_card"
+      }
+    },
+    {
+      "amount": 6,
+      "ingredient": {
+        "item": "minecraft:crafting_table"
+      }
+    },
+    {
+      "amount": 2,
+      "ingredient": {
+        "item": "extendedae:concurrent_processor"
+      }
+    },
+    {
+      "amount": 12,
+      "ingredient": {
+        "tag": "ae2:glass_cable"
+      }
+    },
+    {
+      "amount": 6,
+      "ingredient": {
+        "tag": "c:glass_blocks"
+      }
+    }
+  ],
+  "output": {
+    "count": 1,
+    "id": "ae2cs:extended_integrated_interface"
+  }
+}

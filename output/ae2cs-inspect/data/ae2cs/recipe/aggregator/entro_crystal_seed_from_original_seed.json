@@ -1,0 +1,22 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    }
+  ],
+  "type": "ae2cs:crystal_aggregator_recipe_serializer",
+  "energy_cost": 16000,
+  "input_a": {
+    "count": 2,
+    "item": "extendedae:entro_seed"
+  },
+  "input_b": {
+    "count": 4,
+    "tag": "c:dusts/quartz"
+  },
+  "result": {
+    "count": 6,
+    "id": "ae2cs:entro_crystal_seed"
+  }
+}

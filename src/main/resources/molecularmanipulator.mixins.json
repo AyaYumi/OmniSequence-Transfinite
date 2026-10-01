@@ -8,6 +8,8 @@
     "minVersion": "0.5.0"
   },
   "mixins": [
+    "TaixuEntityCollisionMixin",
+    "TaixuPlayerCarriageMixin",
     "AdvancedAECraftingCpuLogicMixin",
     "CalculatorAssemblerMatrixMixin",
     "ClusterAssemblerMatrixMixin",

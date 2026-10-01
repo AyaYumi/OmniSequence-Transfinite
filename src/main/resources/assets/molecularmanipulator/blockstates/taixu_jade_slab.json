@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "molecularmanipulator:block/taixu_jade_slab"
+    },
+    "type=top": {
+      "model": "molecularmanipulator:block/taixu_jade_slab_top"
+    },
+    "type=double": {
+      "model": "molecularmanipulator:block/taixu_jade_casing"
+    }
+  }
+}

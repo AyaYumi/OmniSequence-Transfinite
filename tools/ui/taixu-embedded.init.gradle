@@ -1,0 +1,56 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+// Controller layout patch compiled against the user's installed release.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def baseline = file(property('taixuBaselineJar'))
+        def patched = ['**/blockentity/TaixuStructure*', '**/blockentity/TaixuBlockEntity*',
+                '**/blockentity/TaixuControllerEmbedding*', '**/blockentity/TaixuMotionGeometry*',
+                '**/blockentity/TaixuMotionState*', '**/entity/TaixuAssemblyEntity*',
+                '**/client/TaixuRenderer*', '**/client/TaixuScreen*', '**/client/TaixuGhostPreview*',
+                '**/menu/TaixuMenu*']
+        def languages = ['assets/molecularmanipulator/lang/zh_cn.json', 'assets/molecularmanipulator/lang/en_us.json']
+        def classes = file('build/taixu-embedded-classes')
+        def resources = file('build/taixu-embedded-resources')
+        def prepare = tasks.register('prepareTaixuEmbeddedBaseline') {
+            inputs.file baseline
+            languages.each { inputs.file file('src/main/resources/' + it) }
+            outputs.dir resources
+            doLast {
+                copy { from zipTree(baseline); exclude '**/*.class', 'META-INF/MANIFEST.MF'; into resources }
+                languages.each { path ->
+                    def destination = new File(resources, path)
+                    def merged = new JsonSlurper().parse(destination)
+                    def additions = new JsonSlurper().parse(file('src/main/resources/' + path))
+                    additions.findAll { key, value -> key.startsWith('gui.molecularmanipulator.taixu.embed') || key == 'gui.molecularmanipulator.taixu.height_range' }
+                            .each { key, value -> merged[key] = value }
+                    destination.text = JsonOutput.prettyPrint(JsonOutput.toJson(merged)) + '\n'
+                }
+            }
+        }
+        sourceSets.main.java.setIncludes(patched.collect { it + '.java' })
+        sourceSets.main.compileClasspath += files(baseline)
+        sourceSets.main.output.classesDirs.setFrom(classes)
+        sourceSets.main.resources.setSrcDirs([resources])
+        tasks.named('createMinecraftArtifacts') { dependsOn prepare }
+        tasks.named('processResources') { dependsOn prepare }
+        tasks.named('compileJava', JavaCompile) {
+            destinationDirectory.set(classes)
+            doLast {
+                copy { from zipTree(baseline); include '**/*.class'; exclude patched.collect { it + '.class' }; into classes }
+            }
+        }
+        sourceSets.test.java.setIncludes(['**/RecordingColorConsumer.java', '**/TaixuStructureTest.java',
+                '**/TaixuMotionGeometryTest.java', '**/TaixuStructureEffectsTest.java', '**/TaixuEffectStateTest.java'])
+        tasks.register('assembleTaixuEmbeddedPatch', Zip) {
+            dependsOn tasks.named('classes')
+            archiveFileName.set('omnisequence-transfinite-2.0.7-taixu-embedded.jar')
+            destinationDirectory.set(file('build/libs'))
+            from(zipTree(baseline)) { exclude patched.collect { it + '.class' }; exclude languages }
+            from(classes) { include patched.collect { it + '.class' } }
+            from(resources) { include languages }
+        }
+    }
+}

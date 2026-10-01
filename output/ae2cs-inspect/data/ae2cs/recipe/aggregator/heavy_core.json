@@ -1,0 +1,20 @@
+{
+  "type": "ae2cs:crystal_aggregator_recipe_serializer",
+  "energy_cost": 160000,
+  "input_a": {
+    "count": 4,
+    "item": "minecraft:wind_charge"
+  },
+  "input_b": {
+    "count": 1,
+    "item": "minecraft:heart_of_the_sea"
+  },
+  "input_c": {
+    "count": 1,
+    "item": "minecraft:anvil"
+  },
+  "result": {
+    "count": 1,
+    "id": "minecraft:heavy_core"
+  }
+}

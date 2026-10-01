@@ -122,7 +122,7 @@ Accepted reusable batches remain owned by the provider across saves, chunk unloa
 - Eight phase-glass window panels and crystal/rune nodes decorate the ring, with four low focusing seats along the inner ribs. The central controller and front ME casing retain clear access.
 - Legacy support retains only the official 1.3.9 palace array. Updating recovers its blocks and builds the current structure, moving the controller three blocks down and fifteen blocks behind its old position while retaining its contents. Check the projection and prepare materials and recovery space before confirming.
 - Pattern slots accept encoded AE2 crafting, smithing-table, and stonecutting patterns. Processing, blank, and invalid patterns are rejected.
-- The Auto Crafting tab provides nine dedicated pattern slots independent of the large AE pattern library. Each slot can be enabled separately, configures an ME reserve for every logical input, and caps the primary output's ME stock. An output limit of `0` keeps crafting until ingredients run out.
+- The Auto Crafting tab provides nine dedicated pattern slots independent of the large AE pattern library. Each slot can be enabled separately, configures an ME reserve for every logical input, and caps the primary output's ME stock. An output limit of `0` keeps crafting until ingredients run out, in interruptible batches of at most 64 recipe executions per server tick.
 - Passive crafts extract directly from the attached ME Network and return primary outputs, byproducts, containers, and reusable inputs exclusively to ME. Adjacent output and acceleration cards are not used.
 - Supports deterministic reusable-input and multi-tool durability-pool batches with persistent cancellation and refund state.
 - Shift-moving a supported pattern fills the current pattern page first, then continues into later pages.
@@ -171,41 +171,11 @@ Large controllers include a quantum endpoint. Place one half of a paired Entangl
 - It disconnects safely when the remote side unloads, loses power, or has a frequency conflict, then reconnects automatically when conditions recover.
 - A wired connection and a conflicting remote network cannot operate at the same time.
 
-## Matter Sequence Rewriting
+## Assembly Overview And Legacy Matter Data
 
-The Sequence Array Controller contains a deconstruction-marker slot, blueprint-sample slot, and rewritten-output slot. It independently stores metal, mineral, crystal, and organic matter sequences.
+The Sequence Array now opens on an assembly overview showing structure and ME status, active pattern capacity, enabled stocking slots, recent assembly throughput, buffered output, and the quantum link. The quantum singularity and optional upload-core slots are on this page.
 
-Rules are loaded from:
-
-```text
-config/molecularmanipulator/matter_rewrite_rules.json
-```
-
-Exact item rules take priority over tag rules. Items with custom data such as enchantments, custom names, durability, or container contents are not deconstructed or reproduced. Each of the four sequence types has a configurable capacity up to `Long.MAX_VALUE`, with `Long.MAX_VALUE` as the default.
-
-Entropy uses saturating `long` arithmetic:
-
-```text
-deconstruction entropy/item = max(1, saturated sum of four outputs / 64)
-rewrite entropy/item        = max(1, saturated sum of four costs / 16)
-effective cooling/second    = base cooling × current speed-card cooling multiplier
-```
-
-The entropy capacity defaults to `1000000`; base cooling defaults to `25` per second. The controller shows entropy per item, effective cooling, and the estimated wait before each operation can resume. An item whose entropy cost alone exceeds the configured capacity reports a configuration-limit error instead of cooling forever.
-
-The default speed-card tiers are fully configurable:
-
-| Installed cards | Parallel operations | Batch time | Cooling multiplier |
-| ---: | ---: | ---: | ---: |
-| 0 | 1 | 20 ticks | 1× |
-| 1 | 2 | 10 ticks | 2× |
-| 2 | 4 | 5 ticks | 4× |
-| 3 | 16 | 2 ticks | 16× |
-| 4 | 64 | 1 tick | 64× |
-
-The JSON file documents these formulas and the corresponding categorized TOML paths. Existing rule files are upgraded to documentation format 4 without replacing configured rules.
-
-Eligible item tooltips default to a compact Shift-expand prompt. The client option `matter_sequence_tooltip_mode` supports `DISABLED`, `HOLD_SHIFT`, and `ALWAYS_VISIBLE`.
+Legacy deconstruction and rewriting stop on upgrade. Existing metal, mineral, crystal, and organic balances remain saved on the controller for future migration. If the controller holds legacy matter data or items, an **Old Data** button appears on the overview. Its recovery page allows stored items and speed cards to be withdrawn; it does not resume production. The old item-value tooltip is disabled while this system is retired.
 
 ## Core Configuration
 

@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "package": "io.github.lounode.ae2cs.mixin",
+  "mixins": [
+    "CableBusBlockEntityMixin",
+    "GridNodeMixin",
+    "GrowthAcceleratorBlockEntityMixin",
+    "IngredientMixin",
+    "PatternAccessTermMenuMixin"
+  ],
+  "client": [
+    "IBlockEntityRendererExtensionMixin"
+  ],
+  "server": [
+  ],
+  "compatibilityLevel": "JAVA_21",
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

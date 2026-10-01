@@ -1,0 +1,14 @@
+{
+  "type": "ae2:entropy",
+  "input": {
+    "block": {
+      "id": "ae2:quartz_block"
+    }
+  },
+  "mode": "heat",
+  "output": {
+    "block": {
+      "id": "ae2cs:charged_certus_quartz_block"
+    }
+  }
+}

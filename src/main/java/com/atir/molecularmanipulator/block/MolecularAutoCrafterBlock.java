@@ -46,8 +46,9 @@ public final class MolecularAutoCrafterBlock extends AEBaseEntityBlock<Molecular
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
+        Direction front = context.getHorizontalDirection().getOpposite();
         return defaultBlockState().setValue(HorizontalDirectionalBlock.FACING,
-                context.getHorizontalDirection().getOpposite());
+                front);
     }
 
     @Override

@@ -1,0 +1,15 @@
+{
+  "values": [
+    "#ae2cs:storage_blocks/pure_crystal/ender_quartz_block",
+    "#ae2cs:storage_blocks/pure_crystal/resonating_crystal_block",
+    "#ae2cs:storage_blocks/pure_crystal/meteor_crystal_block",
+    "#ae2cs:storage_blocks/pure_crystal/redstone_crystal_block",
+    "#ae2cs:storage_blocks/pure_crystal/quantum_crystal_block",
+    "#ae2cs:storage_blocks/pure_crystal/rose_quartz_block",
+    "#ae2cs:storage_blocks/pure_crystal/irradiated_crystal_block",
+    "#ae2cs:storage_blocks/pure_crystal/link_crystal_block",
+    "#ae2cs:storage_blocks/pure_crystal/charged_overload_crystal_block",
+    "#ae2cs:storage_blocks/pure_crystal/crystal_grid_block",
+    "#ae2cs:storage_blocks/pure_crystal/charged_certus_quartz_block"
+  ]
+}

@@ -39,6 +39,8 @@ public final class MolecularManipulator {
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                com.atir.molecularmanipulator.registry.TaixuContent.CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.MOLECULAR_CENTER_SHELL_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(), (blockEntity, context) -> blockEntity);

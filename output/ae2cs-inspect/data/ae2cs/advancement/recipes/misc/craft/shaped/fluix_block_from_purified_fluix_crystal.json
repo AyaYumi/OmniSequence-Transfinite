@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_purified_fluix_crystal": {
+      "conditions": {
+        "items": [
+          {
+            "items": "ae2cs:purified_fluix_crystal"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "ae2cs:craft/shaped/fluix_block_from_purified_fluix_crystal"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_purified_fluix_crystal"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "ae2cs:craft/shaped/fluix_block_from_purified_fluix_crystal"
+    ]
+  }
+}

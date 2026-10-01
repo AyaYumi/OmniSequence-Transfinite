@@ -1,0 +1,26 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "neoecoae"
+    }
+  ],
+  "type": "ae2cs:crystal_aggregator_recipe_serializer",
+  "energy_cost": 51200,
+  "input_a": {
+    "count": 32,
+    "item": "neoecoae:superconducting_processor_print"
+  },
+  "input_b": {
+    "count": 32,
+    "item": "neoecoae:crystal_matrix"
+  },
+  "input_c": {
+    "count": 32,
+    "item": "ae2:printed_silicon"
+  },
+  "result": {
+    "count": 32,
+    "id": "neoecoae:superconducting_processor"
+  }
+}

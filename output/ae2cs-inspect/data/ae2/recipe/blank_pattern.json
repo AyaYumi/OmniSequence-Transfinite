@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2cs:resonating_pattern"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2:blank_pattern"
+  }
+}

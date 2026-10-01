@@ -1,0 +1,26 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "mekanism:reaction",
+  "chemical_input": {
+    "amount": 1000,
+    "chemical": "mekanism:fissile_fuel"
+  },
+  "duration": 400,
+  "fluid_input": {
+    "amount": 1000,
+    "tag": "c:sulfuric_acid"
+  },
+  "item_input": {
+    "count": 1,
+    "item": "ae2cs:nether_quartz_seed"
+  },
+  "item_output": {
+    "count": 1,
+    "id": "ae2cs:irradiated_seed"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "tag": "c:ingots/iron"
+    },
+    "b": {
+      "item": "ae2:wireless_access_point"
+    },
+    "c": {
+      "item": "ae2cs:resonating_processor"
+    },
+    "d": {
+      "tag": "ae2:smart_cable"
+    },
+    "e": {
+      "item": "ae2cs:ender_broadcaster"
+    }
+  },
+  "pattern": [
+    "aba",
+    " c ",
+    "ded"
+  ],
+  "result": {
+    "count": 1,
+    "id": "ae2cs:ender_emitter"
+  }
+}

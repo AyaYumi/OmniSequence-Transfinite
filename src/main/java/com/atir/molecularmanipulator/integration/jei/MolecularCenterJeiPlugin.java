@@ -36,6 +36,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
+        registration.addRecipeCategories(new TaixuStructureJeiCategory(registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MolecularCenterJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MatterFabricationJeiCategory(
@@ -50,6 +51,9 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
+        registration.addRecipes(TaixuStructureJeiCategory.TYPE, List.of(new TaixuStructureJeiRecipe(
+                com.atir.molecularmanipulator.blockentity.TaixuStructure.materials(),
+                new ItemStack(com.atir.molecularmanipulator.registry.TaixuContent.CONTROLLER.get()))));
         registration.addRecipes(MolecularCenterJeiCategory.TYPE, List.of(new MolecularCenterJeiRecipe(
                 createStructureMaterials(), new ItemStack(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get()))));
         var level = net.minecraft.client.Minecraft.getInstance().level;
@@ -71,6 +75,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
+        registration.addRecipeCatalyst(new ItemStack(com.atir.molecularmanipulator.registry.TaixuContent.CONTROLLER.get()), TaixuStructureJeiCategory.TYPE);
         registration.addRecipeCatalyst(
                 new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()),
                 MatterFabricationJeiCategory.TYPE,
@@ -79,6 +84,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
+        registration.addGuiScreenHandler(com.atir.molecularmanipulator.client.TaixuScreen.class, ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiScreenHandler(ResponsiveContainerScreen.class, ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiScreenHandler(MolecularCenterScreen.class, ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiScreenHandler(OmniComputationScreen.class, ResponsiveScreenJeiProperties.screenHandler());

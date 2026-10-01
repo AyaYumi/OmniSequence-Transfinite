@@ -1,0 +1,23 @@
+// Focused AE2 19.2.18 extraction and paired-mod long-batch regression.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def regression = sourceSets.create('ae2ServerCompatibility') {
+            java.srcDirs file('tools/gametest/ae2-compat'), file('tools/gametest/java')
+            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        server.gameDirectory = file('build/ae2-compat-server-run')
+        server.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileAe2ServerCompatibilityJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

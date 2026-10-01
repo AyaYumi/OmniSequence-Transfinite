@@ -22,7 +22,7 @@ import org.lwjgl.system.MemoryUtil;
 
 /** Hidden OpenGL probe; loads the shipped metadata and uses Minecraft's real sprite ticker. */
 public final class TextureAnimationGpuProbe {
-    private static final Path TEXTURES = Path.of("src/main/resources/assets/molecularmanipulator/textures/block");
+    private static Path textures = Path.of("src/main/resources/assets/molecularmanipulator/textures/block");
 
     private static final class Sprite extends TextureAtlasSprite {
         Sprite(SpriteContents contents) {
@@ -31,6 +31,8 @@ public final class TextureAnimationGpuProbe {
     }
 
     public static void main(String[] args) throws Exception {
+        if (args.length > 0) textures = Path.of(args[0]);
+        int expectedCount = args.length > 1 ? Integer.parseInt(args[1]) : 20;
         if (!GLFW.glfwInit()) throw new AssertionError("GLFW initialization failed");
         GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
         long window = GLFW.glfwCreateWindow(32, 32, "Texture verification", 0, 0);
@@ -41,13 +43,13 @@ public final class TextureAnimationGpuProbe {
             RenderSystem.initRenderThread();
             System.out.println("GPU=" + GL11.glGetString(GL11.GL_RENDERER));
             int count = 0;
-            try (var paths = Files.list(TEXTURES)) {
+            try (var paths = Files.list(textures)) {
                 for (var metadataPath : paths.filter(p -> p.toString().endsWith(".png.mcmeta")).sorted().toList()) {
                     verify(metadataPath);
                     count++;
                 }
             }
-            if (count != 20) throw new AssertionError("Expected 20 animated textures, got " + count);
+            if (count != expectedCount) throw new AssertionError("Expected " + expectedCount + " animated textures, got " + count);
             System.out.println("TEXTURE_GPU_ALL_PASS textures=" + count + " ticks=48 mipmaps=4");
         } finally {
             GLFW.glfwDestroyWindow(window);
@@ -62,7 +64,7 @@ public final class TextureAnimationGpuProbe {
         try (var input = Files.newInputStream(metadataPath)) {
             metadata = ResourceMetadata.fromJsonStream(input);
         }
-        try (var input = Files.newInputStream(TEXTURES.resolve(name + ".png"))) {
+        try (var input = Files.newInputStream(textures.resolve(name + ".png"))) {
             image = NativeImage.read(input);
         }
         var location = ResourceLocation.parse("molecularmanipulator:block/" + name);

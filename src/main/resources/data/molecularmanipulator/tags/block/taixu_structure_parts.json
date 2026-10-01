@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    "molecularmanipulator:taixu_creation_nexus",
+    "molecularmanipulator:taixu_jade_casing",
+    "molecularmanipulator:taixu_gilded_block",
+    "molecularmanipulator:taixu_pillar",
+    "molecularmanipulator:taixu_ring_track",
+    "molecularmanipulator:taixu_glass",
+    "molecularmanipulator:taixu_conduit",
+    "molecularmanipulator:taixu_collection_node",
+    "molecularmanipulator:taixu_genesis_core",
+    "molecularmanipulator:taixu_stabilizer",
+    "molecularmanipulator:taixu_crystal_spire",
+    "molecularmanipulator:taixu_resource_port",
+    "molecularmanipulator:taixu_jade_stairs",
+    "molecularmanipulator:taixu_jade_slab"
+  ]
+}

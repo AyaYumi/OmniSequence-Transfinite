@@ -1,0 +1,25 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "mekanism:crushing",
+  "input": {
+    "type": "neoforge:compound",
+    "children": [
+      {
+        "tag": "ae2cs:pure_crystal/quantum_crystal"
+      },
+      {
+        "item": "advanced_ae:quantum_alloy"
+      }
+    ],
+    "count": 1
+  },
+  "output": {
+    "count": 1,
+    "id": "ae2cs:quantum_crystal_dust"
+  }
+}

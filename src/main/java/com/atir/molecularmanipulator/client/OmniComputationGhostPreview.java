@@ -107,6 +107,7 @@ public final class OmniComputationGhostPreview {
         var blocks = new ArrayList<SectionedGhostPreviewRenderer.GhostBlock>();
         for (var part : OmniComputationStructure.parts()) {
             if (part.type() == OmniComputationStructure.PartType.CONTROLLER
+                    || part.type() == OmniComputationStructure.PartType.AIR
                     || isFullyEnclosed(part)) {
                 continue;
             }
@@ -116,11 +117,10 @@ public final class OmniComputationGhostPreview {
             }
             var expectedState = OmniComputationStructure.block(part.type()).defaultBlockState();
             var currentState = level.getBlockState(pos);
-            boolean clearance = part.type() == OmniComputationStructure.PartType.AIR;
-            if (clearance ? currentState.isAir() : currentState.is(expectedState.getBlock())) {
+            if (currentState.is(expectedState.getBlock())) {
                 continue;
             }
-            boolean conflict = clearance || !currentState.canBeReplaced();
+            boolean conflict = !currentState.canBeReplaced();
             blocks.add(new SectionedGhostPreviewRenderer.GhostBlock(
                     pos, expectedState, conflict));
         }

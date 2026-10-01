@@ -1,0 +1,13 @@
+{
+  "values": [
+    "ae2cs:crystal_growth_chamber",
+    "ae2cs:circuit_etcher",
+    "ae2cs:quartz_grindstone",
+    "ae2cs:crystal_pulverizer",
+    "ae2cs:crystal_vibration_chamber",
+    "ae2cs:crystal_aggregator",
+    "ae2cs:entropy_variation_reaction_chamber",
+    "ae2cs:ender_broadcaster",
+    "ae2cs:ender_emitter"
+  ]
+}

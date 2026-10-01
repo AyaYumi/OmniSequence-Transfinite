@@ -1,0 +1,7 @@
+{
+  "type": "ae2wtlib:upgrade",
+  "terminal": {
+    "item": "ae2cs:wireless_resonant_terminal"
+  },
+  "terminalName": "ae2cs_resonant_pattern_encoding"
+}

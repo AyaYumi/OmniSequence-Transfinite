@@ -1,0 +1,48 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "textures": {
+    "gilded": "molecularmanipulator:block/taixu/gilded",
+    "particle": "molecularmanipulator:block/taixu/gilded"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gilded",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#gilded",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#gilded",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#gilded",
+          "cullface": "east"
+        },
+        "up": {
+          "texture": "#gilded",
+          "cullface": "up"
+        },
+        "down": {
+          "texture": "#gilded",
+          "cullface": "down"
+        }
+      }
+    }
+  ]
+}

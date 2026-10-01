@@ -23,6 +23,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.common.crafting.CompoundIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 /** Converts supported addon machine recipes into Matter Fabrication recipes at runtime. */
@@ -589,7 +590,7 @@ public final class MatterRecipeBridge {
                             parsed.add(new Input(ingredient, (int) Math.min(Integer.MAX_VALUE,
                                     Math.max(1, number(object, "catalystCount", 1))))));
                 } else {
-                    collectInputs(level, encoded, parsed, false);
+                    parsed.addAll(readItemInputs(level.registryAccess().createSerializationContext(JsonOps.INSTANCE), encoded));
                 }
                 collectGenericInputs(level, encoded, aeInputs);
                 if (LIGHTNING_RECIPE_TYPES.contains(type) && encoded instanceof JsonObject object) {
@@ -648,27 +649,51 @@ public final class MatterRecipeBridge {
         } catch (RuntimeException ignored) { return null; }
     }
 
-    private static void collectInputs(Level level, JsonElement element, List<Input> result,
+    static List<Input> readItemInputs(DynamicOps<JsonElement> ops, JsonElement element) {
+        var result = new ArrayList<Input>();
+        collectInputs(ops, element, result, false);
+        return List.copyOf(result);
+    }
+
+    private static void collectInputs(DynamicOps<JsonElement> ops, JsonElement element, List<Input> result,
             boolean outputContext) {
         if (element == null || element.isJsonNull()) return;
         if (element.isJsonArray()) {
-            for (var child : element.getAsJsonArray()) collectInputs(level, child, result, outputContext);
+            for (var child : element.getAsJsonArray()) collectInputs(ops, child, result, outputContext);
             return;
         }
         if (!(element instanceof JsonObject object)) return;
+        if (!outputContext && object.has("type") && !object.has("fluid")) {
+            // Flat sized ingredients encode alternatives as a custom ingredient after recipe sync.
+            var ingredient = parseIngredient(ops, object);
+            if (ingredient.isPresent()) {
+                result.add(new Input(ingredient.get(), amount(object)));
+                return;
+            }
+            var ingredientType = ResourceLocation.tryParse(text(object, "type"));
+            if (ResourceLocation.parse("neoforge:compound").equals(ingredientType)
+                    || ingredientType != null && net.neoforged.neoforge.registries.NeoForgeRegistries.INGREDIENT_TYPES
+                            .containsKey(ingredientType)) {
+                throw new IllegalArgumentException("Unreadable custom ingredient: " + ingredientType);
+            }
+        }
         if (!outputContext && (object.has("item") || object.has("tag")) && !object.has("fluid")) {
-            parseIngredient(level, object, amount(object)).ifPresent(value -> result.add(new Input(value, amount(object))));
+            parseIngredient(ops, object).ifPresent(value -> result.add(new Input(value, amount(object))));
             return;
         }
-        if (!outputContext && object.has("ingredient") && object.get("ingredient") instanceof JsonObject ingredient
-                && !ingredient.has("fluid")) {
-            parseIngredient(level, ingredient, amount(object)).ifPresent(value -> result.add(new Input(value, amount(object))));
-            return;
+        if (!outputContext && object.has("ingredient")) {
+            var ingredient = object.get("ingredient");
+            if (!(ingredient instanceof JsonObject ingredientObject && ingredientObject.has("fluid"))) {
+                // An ingredient array is one slot with alternatives, not several required slots.
+                parseIngredient(ops, ingredient)
+                        .ifPresent(value -> result.add(new Input(value, amount(object))));
+                return;
+            }
         }
         for (var entry : object.entrySet()) {
             var key = entry.getKey().toLowerCase();
             boolean childOutput = outputContext || isOutputField(key);
-            if (!key.contains("fluid")) collectInputs(level, entry.getValue(), result, childOutput);
+            if (!key.contains("fluid")) collectInputs(ops, entry.getValue(), result, childOutput);
         }
     }
 
@@ -731,8 +756,16 @@ public final class MatterRecipeBridge {
     }
 
     private static java.util.Optional<Ingredient> parseIngredient(Level level, JsonElement element, int ignored) {
+        return parseIngredient(level.registryAccess().createSerializationContext(JsonOps.INSTANCE), element);
+    }
+
+    private static java.util.Optional<Ingredient> parseIngredient(DynamicOps<JsonElement> ops, JsonElement element) {
         try {
-            DynamicOps<JsonElement> ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+            if (element instanceof JsonObject object
+                    && "neoforge:compound".equals(text(object, "type"))) {
+                return CompoundIngredient.CODEC.codec().parse(ops, object).result()
+                        .map(CompoundIngredient::toVanilla);
+            }
             return Ingredient.CODEC_NONEMPTY.parse(ops, element).result();
         } catch (RuntimeException ignoredError) { return java.util.Optional.empty(); }
     }

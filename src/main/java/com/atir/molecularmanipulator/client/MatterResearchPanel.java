@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.client;
 
+import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
@@ -30,10 +31,13 @@ import org.joml.Vector3f;
 /** Paginated research navigation plus an independently scrolling material/unlock list. */
 final class MatterResearchPanel {
     private static final int ROWS = 6;
+    private static final int SCROLL_TOP = 140;
+    private static final int SCROLL_BOTTOM = 237;
+    private static final int SCROLL_HEIGHT = SCROLL_BOTTOM - SCROLL_TOP;
     private final MatterFabricationMenu menu;
     private final Font font;
     private final List<Button> rows = new ArrayList<>();
-    private final Button previous, next, action, order, bookmark;
+    private final Button previous, next, action, order, bookmark, orderDetails;
     private List<RecipeHolder<MatterResearchRecipe>> definitions = List.of();
     private Set<String> completed = Set.of();
     private JsonObject tasks = new JsonObject();
@@ -42,6 +46,8 @@ final class MatterResearchPanel {
     private String orderStatus = "idle";
     private int orderQueued;
     private int orderActive;
+    private List<OrderEntry> orderEntries = List.of();
+    private boolean showOrderDetails;
     private String lastState = "";
     private final Map<ResourceLocation, MatterResearchRecipe> taskTerms = new HashMap<>();
     private ResourceLocation selected;
@@ -69,11 +75,21 @@ final class MatterResearchPanel {
         });
         action.setTooltip(Tooltip.create(text("action_hint")));
         order = AeUiTheme.button(left + 228, top + 244, 84, 16,
-                text("order"), clicked -> { if (selected != null) menu.requestResearchOrder(selected.toString()); });
+                text("order"), clicked -> {
+                    if (selected != null) {
+                        menu.requestResearchOrder(selected.toString());
+                        showOrderDetails = true;
+                        scroll = 0;
+                    }
+                });
         order.setTooltip(Tooltip.create(text("order_hint")));
+        orderDetails = AeUiTheme.button(left + 262, top + 121, 50, 14,
+                text("order_details"), clicked -> { showOrderDetails = !showOrderDetails; scroll = 0; });
+        orderDetails.setTooltip(Tooltip.create(text("order_details_hint")));
         bookmark = AeUiTheme.button(left + 292, top + 48, 20, 16, Component.literal("★"), clicked -> bookmarkSelected());
         bookmark.setTooltip(Tooltip.create(text("bookmark_hint")));
-        add.accept(previous); add.accept(next); add.accept(action); add.accept(order); add.accept(bookmark);
+        add.accept(previous); add.accept(next); add.accept(action); add.accept(order);
+        add.accept(bookmark); add.accept(orderDetails);
         update(false);
     }
 
@@ -96,6 +112,23 @@ final class MatterResearchPanel {
                 orderStatus = orders.has("status") ? orders.get("status").getAsString() : "idle";
                 orderQueued = orders.has("queued") ? orders.get("queued").getAsInt() : 0;
                 orderActive = orders.has("active") ? orders.get("active").getAsInt() : 0;
+                var parsed = new ArrayList<OrderEntry>();
+                if (level != null && orders.has("items")) {
+                    var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
+                    for (var element : orders.getAsJsonArray("items")) {
+                        var entry = element.getAsJsonObject();
+                        var target = GenericStack.CODEC.parse(ops, entry.get("target")).result();
+                        if (target.isEmpty()) continue;
+                        var missing = new ArrayList<GenericStack>();
+                        for (var value : entry.getAsJsonArray("missing")) {
+                            GenericStack.CODEC.parse(ops, value).result().ifPresent(missing::add);
+                        }
+                        parsed.add(new OrderEntry(target.get(), entry.get("queued").getAsLong(),
+                                entry.get("active").getAsLong(), entry.get("status").getAsString(),
+                                List.copyOf(missing)));
+                    }
+                }
+                orderEntries = List.copyOf(parsed);
             }
             taskTerms.clear();
             if (level != null) tasks.entrySet().forEach(entry -> MatterResearchRecipe.CODEC.codec()
@@ -126,6 +159,9 @@ final class MatterResearchPanel {
         var holder = selected();
         action.visible = visible && holder != null;
         order.visible = visible && holder != null;
+        orderDetails.visible = visible && holder != null
+                && (showOrderDetails || !orderEntries.isEmpty() || !orderStatus.equals("idle"));
+        orderDetails.setMessage(text(showOrderDetails ? "order_materials" : "order_details"));
         bookmark.visible = visible && holder != null;
         if (holder != null) {
             var task = task(holder);
@@ -187,13 +223,19 @@ final class MatterResearchPanel {
                 definition.duration() / 20, DisplayNumbers.compact(definition.aePerTick())),
                 136, 111, 176, AeUiTheme.MUTED_TEXT);
         if (!orderStatus.equals("idle")) {
-            fitted(graphics, Component.translatable("gui.molecularmanipulator.research.order_status",
-                    orderStatus, orderQueued, orderActive), 136, 121, 176,
+            fitted(graphics, orderState(orderStatus), 136, 123, 120,
                     orderStatus.equals("submitted") ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
+            quantityTooltips.add(new QuantityTooltip(136, 121, 120, 15, List.of(
+                    orderState(orderStatus), Component.translatable("gui.molecularmanipulator.research.order_counts",
+                            orderQueued, orderActive))));
         }
         quantityTooltips.add(new QuantityTooltip(136, 111, 176, 11, List.of(Component.translatable(
                 "gui.molecularmanipulator.research.timing", progress / 20, definition.duration() / 20,
                 DisplayNumbers.exact(definition.aePerTick())))));
+        if (showOrderDetails) {
+            drawOrderDetails(graphics);
+            return;
+        }
         List<MatterResearchRecipe.Cost> costs;
         try { costs = maxed ? List.of() : definition.costsFor(round); } catch (ArithmeticException error) { costs = List.of(); }
         var level = Minecraft.getInstance().level;
@@ -202,15 +244,15 @@ final class MatterResearchPanel {
                 .filter(id -> recipeIndex.fabrication(id) != null || level.getRecipeManager().byKey(id).isPresent()).toList();
         int prerequisiteHeight = holder.value().prerequisites().isEmpty() ? 0 : 15 + 16 * holder.value().prerequisites().size();
         contentHeight = prerequisiteHeight + 17 + costs.size() * 27 + 20 + unlocks.size() * 20;
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - 111)));
+        scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - SCROLL_HEIGHT)));
         // Minecraft 1.21's scissor coordinates are screen-space and do not inherit the pose stack.
         var matrix = graphics.pose().last().pose();
-        var clipStart = matrix.transformPosition(new Vector3f(132, 126, 0));
-        var clipEnd = matrix.transformPosition(new Vector3f(317, 237, 0));
+        var clipStart = matrix.transformPosition(new Vector3f(132, SCROLL_TOP, 0));
+        var clipEnd = matrix.transformPosition(new Vector3f(317, SCROLL_BOTTOM, 0));
         graphics.enableScissor((int) Math.floor(clipStart.x), (int) Math.floor(clipStart.y),
                 (int) Math.ceil(clipEnd.x), (int) Math.ceil(clipEnd.y));
         try {
-            int y = 129 - (int) scroll;
+            int y = SCROLL_TOP + 3 - (int) scroll;
             if (prerequisiteHeight > 0) {
                 fitted(graphics, text("prerequisites"), 136, y, 176, AeUiTheme.PRIMARY_TEXT); y += 15;
                 for (var id : holder.value().prerequisites()) {
@@ -246,7 +288,7 @@ final class MatterResearchPanel {
                         details.add(quantity("committed", paid));
                         details.add(quantity("remaining", required));
                     }
-                    int top = Math.max(126, y), bottom = Math.min(237, y + 24);
+                    int top = Math.max(SCROLL_TOP, y), bottom = Math.min(SCROLL_BOTTOM, y + 24);
                     if (bottom > top) quantityTooltips.add(new QuantityTooltip(136, top, 176, bottom - top, List.copyOf(details)));
                 }
                 y += 27;
@@ -287,16 +329,76 @@ final class MatterResearchPanel {
                 y += 20;
             }
         } finally { graphics.disableScissor(); }
-        if (contentHeight > 111) {
-            int thumb = Math.max(12, 111 * 111 / contentHeight);
-            int y = 126 + (int) ((111 - thumb) * scroll / (contentHeight - 111));
+        if (contentHeight > SCROLL_HEIGHT) {
+            int thumb = Math.max(12, SCROLL_HEIGHT * SCROLL_HEIGHT / contentHeight);
+            int y = SCROLL_TOP + (int) ((SCROLL_HEIGHT - thumb) * scroll / (contentHeight - SCROLL_HEIGHT));
+            graphics.fill(315, y, 317, y + thumb, AeUiTheme.ACCENT);
+        }
+    }
+
+    private void drawOrderDetails(GuiGraphics graphics) {
+        contentHeight = orderEntries.isEmpty() ? SCROLL_HEIGHT : 18;
+        for (var entry : orderEntries) contentHeight += 31 + entry.missing().size() * 22;
+        scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - SCROLL_HEIGHT)));
+        var matrix = graphics.pose().last().pose();
+        var clipStart = matrix.transformPosition(new Vector3f(132, SCROLL_TOP, 0));
+        var clipEnd = matrix.transformPosition(new Vector3f(317, SCROLL_BOTTOM, 0));
+        graphics.enableScissor((int) Math.floor(clipStart.x), (int) Math.floor(clipStart.y),
+                (int) Math.ceil(clipEnd.x), (int) Math.ceil(clipEnd.y));
+        try {
+            int y = SCROLL_TOP + 3 - (int) scroll;
+            if (orderEntries.isEmpty()) {
+                fitted(graphics, text("order_empty"), 136, y, 176, AeUiTheme.MUTED_TEXT);
+            } else {
+                int missingTypes = orderEntries.stream().mapToInt(entry -> entry.missing().size()).sum();
+                fitted(graphics, Component.translatable("gui.molecularmanipulator.research.order_missing_count",
+                        missingTypes), 136, y, 176, AeUiTheme.WARNING);
+                y += 18;
+                for (var entry : orderEntries) {
+                    if (y + 27 > SCROLL_TOP && y < SCROLL_BOTTOM) {
+                        AEStackIcon.draw(graphics, entry.target(), 136, y);
+                        fitted(graphics, entry.target().what().getDisplayName(), 156, y, 156,
+                                AeUiTheme.PRIMARY_TEXT);
+                        fitted(graphics, Component.translatable("gui.molecularmanipulator.research.order_target_status",
+                                DisplayNumbers.exact(entry.target().amount()), orderState(entry.status())),
+                                156, y + 11, 156, entry.missing().isEmpty()
+                                        && entry.status().equals("submitted") ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
+                        int top = Math.max(SCROLL_TOP, y), bottom = Math.min(SCROLL_BOTTOM, y + 27);
+                        if (bottom > top) quantityTooltips.add(new QuantityTooltip(136, top, 176, bottom - top,
+                                List.of(entry.target().what().getDisplayName(),
+                                        quantity("required", entry.target().amount()), orderState(entry.status()),
+                                        Component.translatable("gui.molecularmanipulator.research.order_counts",
+                                                entry.queued(), entry.active()))));
+                    }
+                    y += 31;
+                    for (var missing : entry.missing()) {
+                        if (y + 20 > SCROLL_TOP && y < SCROLL_BOTTOM) {
+                            AEStackIcon.draw(graphics, missing, 144, y);
+                            fitted(graphics, missing.what().getDisplayName(), 164, y, 148,
+                                    AeUiTheme.WARNING);
+                            fitted(graphics, Component.translatable(
+                                    "gui.molecularmanipulator.research.order_missing_amount",
+                                    DisplayNumbers.exact(missing.amount())), 164, y + 11, 148,
+                                    AeUiTheme.MUTED_TEXT);
+                            int top = Math.max(SCROLL_TOP, y), bottom = Math.min(SCROLL_BOTTOM, y + 20);
+                            if (bottom > top) quantityTooltips.add(new QuantityTooltip(144, top, 168, bottom - top,
+                                    List.of(missing.what().getDisplayName(), quantity("remaining", missing.amount()))));
+                        }
+                        y += 22;
+                    }
+                }
+            }
+        } finally { graphics.disableScissor(); }
+        if (contentHeight > SCROLL_HEIGHT) {
+            int thumb = Math.max(12, SCROLL_HEIGHT * SCROLL_HEIGHT / contentHeight);
+            int y = SCROLL_TOP + (int) ((SCROLL_HEIGHT - thumb) * scroll / (contentHeight - SCROLL_HEIGHT));
             graphics.fill(315, y, 317, y + thumb, AeUiTheme.ACCENT);
         }
     }
 
     boolean scroll(double x, double y, double amount) {
-        if (!visible || x < 128 || x >= 320 || y < 126 || y >= 237) return false;
-        scroll = Math.max(0, Math.min(scroll - amount * 27, Math.max(0, contentHeight - 111)));
+        if (!visible || x < 128 || x >= 320 || y < SCROLL_TOP || y >= SCROLL_BOTTOM) return false;
+        scroll = Math.max(0, Math.min(scroll - amount * 27, Math.max(0, contentHeight - SCROLL_HEIGHT)));
         return true;
     }
 
@@ -368,6 +470,11 @@ final class MatterResearchPanel {
         return font.width(label) <= width ? label : Component.literal(font.plainSubstrByWidth(label.getString(), width - font.width("…")) + "…");
     }
     private static Component text(String key) { return Component.translatable("gui.molecularmanipulator.research." + key); }
+    private static Component orderState(String key) {
+        return Component.translatable("gui.molecularmanipulator.research.order_state." + key);
+    }
+    private record OrderEntry(GenericStack target, long queued, long active, String status,
+                              List<GenericStack> missing) { }
     private void fitted(GuiGraphics graphics, Component text, int x, int y, int width, int color) {
         float scale = Math.min(1, width / (float) Math.max(1, font.width(text)));
         graphics.pose().pushPose();

@@ -1,0 +1,30 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "data_energistics"
+    },
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    }
+  ],
+  "type": "ae2cs:circuit_etcher_recipe_serializer",
+  "energy_cost": 57600,
+  "input_a": {
+    "count": 9,
+    "item": "data_energistics:data_crystal_block"
+  },
+  "input_b": {
+    "count": 36,
+    "item": "ae2:quantum_entangled_singularity"
+  },
+  "input_c": {
+    "count": 4,
+    "tag": "c:storage_blocks/silicon"
+  },
+  "result": {
+    "count": 36,
+    "id": "data_energistics:data_processor"
+  }
+}

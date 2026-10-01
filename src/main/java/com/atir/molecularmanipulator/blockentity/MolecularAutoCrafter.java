@@ -48,6 +48,13 @@ import java.util.UUID;
 public final class MolecularAutoCrafter implements InternalInventoryHost {
     public static final int PATTERN_SLOTS = MolecularAutoCraftSchema.PATTERN_SLOTS;
     public static final int MAX_INPUTS = 9;
+    /**
+     * A passive slot is checked every server tick. Keep one accepted batch
+     * bounded so that an unlimited or virtual ME input cannot turn one click
+     * into an uninterruptible Long.MAX_VALUE output escrow. The next tick can
+     * continue the same recipe, while disabling a slot remains responsive.
+     */
+    static final long MAX_BATCH_CRAFTS = 64;
     private static final String ROOT_TAG = "molecular_auto_crafter";
     private static final String VERSION_TAG = "version";
     static final int SCHEMA_VERSION = MolecularAutoCraftSchema.VERSION;
@@ -118,6 +125,9 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         config.state = enabled ? AutoCraftState.READY : AutoCraftState.DISABLED;
         config.lastBatch = 0;
         host.saveChanges();
+        if (!enabled) {
+            host.flushAutoCraftOutputsAfterControlChange();
+        }
     }
 
     public void setProtection(int slot, int inputIndex, long amount) {
@@ -153,6 +163,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                 && isIndependentSlot(slot)) {
             if (configs.remove(slot) != null) {
                 scheduleDirty = true;
+                host.flushAutoCraftOutputsAfterControlChange();
             }
         }
     }
@@ -297,7 +308,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             return;
         }
         var outputAllowance = outputAllowance(details, config, storage, source);
-        long maxCrafts = outputAllowance.maxCrafts();
+        long maxCrafts = Math.min(outputAllowance.maxCrafts(), MAX_BATCH_CRAFTS);
         if (maxCrafts <= 0) {
             config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
             return;

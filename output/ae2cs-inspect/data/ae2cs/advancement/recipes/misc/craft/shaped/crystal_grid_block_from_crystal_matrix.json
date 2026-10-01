@@ -1,0 +1,38 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "neoecoae"
+    }
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_crystal_matrix": {
+      "conditions": {
+        "items": [
+          {
+            "items": "neoecoae:crystal_matrix"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "ae2cs:craft/shaped/crystal_grid_block_from_crystal_matrix"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_crystal_matrix"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "ae2cs:craft/shaped/crystal_grid_block_from_crystal_matrix"
+    ]
+  }
+}

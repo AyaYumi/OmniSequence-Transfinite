@@ -109,4 +109,24 @@ class MatterMachineImportRecipeTest {
         assertThrows(ArithmeticException.class, () -> MatterRecipeBridge.readMappedItemOutputs(JsonOps.INSTANCE,
                 JsonParser.parseString("{\"id\":\"minecraft:iron_ingot\",\"count\":1.5}")));
     }
+
+    @Test
+    void syncedCompoundSizedIngredientStaysOneAlternativeInputSlot() {
+        var inputs = MatterRecipeBridge.readItemInputs(JsonOps.INSTANCE, JsonParser.parseString("""
+                {
+                  "type": "ae2cs:circuit_etcher_recipe_serializer",
+                  "input_a": {"count": 9, "tag": "c:storage_blocks/certus_quartz"},
+                  "input_b": {"count": 4, "tag": "c:storage_blocks/redstone"},
+                  "input_c": {"type": "neoforge:compound", "count": 4, "ingredients": [
+                    {"item": "minecraft:iron_block"}, {"item": "minecraft:gold_block"}
+                  ]},
+                  "result": {"count": 36, "id": "ae2:calculation_processor"}
+                }
+                """));
+
+        assertEquals(3, inputs.size());
+        assertEquals(4, inputs.get(2).count());
+        assertEquals(2, inputs.get(2).ingredient().getItems().length,
+                "A synced compound ingredient must retain its alternatives in one slot");
+    }
 }

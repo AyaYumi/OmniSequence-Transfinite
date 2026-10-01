@@ -63,11 +63,11 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public static final int SEQUENCE_INPUT_X = 232;
     public static final int SEQUENCE_SAMPLE_X = 304;
     public static final int SEQUENCE_OUTPUT_X = 376;
-    public static final int SEQUENCE_SLOT_Y = 66;
-    public static final int QUANTUM_SLOT_X = 304;
-    public static final int QUANTUM_SLOT_Y = 61;
-    public static final int MATRIX_UPLOAD_CORE_SLOT_X = 376;
-    public static final int MATRIX_UPLOAD_CORE_SLOT_Y = 61;
+    public static final int SEQUENCE_SLOT_Y = 76;
+    public static final int QUANTUM_SLOT_X = 252;
+    public static final int QUANTUM_SLOT_Y = 210;
+    public static final int MATRIX_UPLOAD_CORE_SLOT_X = 358;
+    public static final int MATRIX_UPLOAD_CORE_SLOT_Y = 210;
     public static final int SPEED_SLOT_X = 337;
     public static final int SPEED_SLOT_Y = 169;
     public static final int AUTO_CRAFT_PATTERN_X = 233;
@@ -204,6 +204,20 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public long autoCraftInputReserve7;
     @GuiSync(80)
     public long autoCraftInputReserve8;
+    @GuiSync(81)
+    public boolean operational;
+    @GuiSync(82)
+    public int usedPatternSlots;
+    @GuiSync(83)
+    public int patternCapacity;
+    @GuiSync(84)
+    public int activePipelineRecipes;
+    @GuiSync(85)
+    public long activePipelineCrafts;
+    @GuiSync(86)
+    public long pendingOutputAmount;
+    @GuiSync(87)
+    public boolean pipelineBlocked;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
@@ -214,6 +228,8 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     private final List<AppEngSlot> speedSlots;
     private final List<AppEngSlot> autoCraftPatternSlots;
     private long patternSearchIndexGeneration;
+    private int countedPatternRevision = -1;
+    private int countedPatternCapacity = -1;
     private Consumer<PatternSearchIndexChunk> patternSearchIndexListener;
 
     private MolecularCenterMenu(int id, Inventory playerInventory, PatternProviderLogicHost host) {
@@ -243,11 +259,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         registerClientAction(ACTION_DISMANTLE, this::dismantle);
         registerClientAction(ACTION_ADJUST_VISUAL_COLOR, Integer.class, this::adjustVisualColor);
         registerClientAction(ACTION_RESET_VISUAL_COLORS, this::resetVisualColors);
-        registerClientAction(ACTION_DECONSTRUCT_MATTER, this::deconstructMatter);
-        registerClientAction(ACTION_REWRITE_MATTER, this::rewriteMatter);
-        registerClientAction(ACTION_SET_DECONSTRUCT_TARGET, Long.class, this::setDeconstructTarget);
-        registerClientAction(ACTION_SET_REWRITE_TARGET, Long.class, this::setRewriteTarget);
-        registerClientAction(ACTION_CYCLE_REWRITE_OUTPUT, this::cycleRewriteOutput);
         registerClientAction(ACTION_UPDATE_STRUCTURE, this::updateStructure);
         registerClientAction(ACTION_KEEP_LEGACY_STRUCTURE, this::keepLegacyStructure);
         registerClientAction(ACTION_REQUEST_PATTERN_SEARCH_INDEX, this::sendPatternSearchIndex);
@@ -933,6 +944,24 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             building = center.isBuilding();
             dismantling = center.isDismantling();
             patternRevision = center.getLogic().getPatternRevision();
+            patternCapacity = Math.min(
+                    com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
+                    center.getLogic().getFullPatternInventory().size());
+            if (patternRevision != countedPatternRevision || patternCapacity != countedPatternCapacity) {
+                int used = 0;
+                var inventory = center.getLogic().getFullPatternInventory();
+                for (int slot = 0; slot < patternCapacity; slot++) {
+                    if (!inventory.getStackInSlot(slot).isEmpty()) used++;
+                }
+                usedPatternSlots = used;
+                countedPatternRevision = patternRevision;
+                countedPatternCapacity = patternCapacity;
+            }
+            operational = center.isOperational();
+            activePipelineRecipes = center.getActivePipelineRecipes();
+            activePipelineCrafts = center.getActivePipelineCrafts();
+            pendingOutputAmount = center.getPendingOutputAmount();
+            pipelineBlocked = center.isPipelineBlocked();
             refreshAutoCraftView();
         }
         super.broadcastChanges();

@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.client;
 
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.MatterSequenceTooltipMode;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
@@ -9,19 +8,14 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.Locale;
 
-@EventBusSubscriber(modid = MolecularManipulator.MOD_ID, value = Dist.CLIENT)
 public final class MatterSequenceTooltip {
     private MatterSequenceTooltip() {
     }
 
-    @SubscribeEvent
     public static void addMatterSequenceTooltip(ItemTooltipEvent event) {
         var displayMode = ModConfig.MATTER_SEQUENCE_TOOLTIP_MODE.get();
         if (displayMode == MatterSequenceTooltipMode.DISABLED) {

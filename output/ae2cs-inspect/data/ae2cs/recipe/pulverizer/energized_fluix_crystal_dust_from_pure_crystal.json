@@ -1,0 +1,18 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "neoecoae"
+    }
+  ],
+  "type": "ae2cs:crystal_pulverizer_recipe_serializer",
+  "energy_cost": 8000,
+  "input": {
+    "count": 1,
+    "item": "ae2cs:purified_energized_fluix_crystal"
+  },
+  "result": {
+    "count": 1,
+    "id": "neoecoae:energized_fluix_crystal_dust"
+  }
+}

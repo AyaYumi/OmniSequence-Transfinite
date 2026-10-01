@@ -1,0 +1,26 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "ae2omnicells"
+    }
+  ],
+  "type": "ae2cs:crystal_aggregator_recipe_serializer",
+  "energy_cost": 102400,
+  "input_a": {
+    "count": 32,
+    "tag": "c:dusts/ender_pearl"
+  },
+  "input_b": {
+    "count": 32,
+    "tag": "c:ingots/iron"
+  },
+  "input_c": {
+    "count": 32,
+    "tag": "c:dusts/certus_quartz"
+  },
+  "result": {
+    "count": 64,
+    "id": "ae2omnicells:ender_ingot"
+  }
+}

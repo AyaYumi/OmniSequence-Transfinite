@@ -50,8 +50,8 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.idle_power")
                 .defineInRange("idle_power", 128, 1, 4096);
         FORCE_LOAD_CHUNKS = server.comment(
-                "Keep chunks occupied by the Sequence Array, Omni-Computation Core, and Matter Fabrication Well loaded while formed or being built.",
-                "成型或施工期间是否保持构序阵列、万物演算核心和物质构筑井占用的区块加载。")
+                "Keep chunks occupied by the Sequence Array, Omni-Computation Core, Matter Fabrication Well, and Taixu Creation Nexus loaded while formed or being built. Required for Taixu physical motion.",
+                "成型或施工期间是否保持构序阵列、万物演算核心、物质构筑井和太虚造化天枢占用的区块加载；太虚实体运动需要开启。")
                 .translation("molecularmanipulator.configuration.force_load_chunks")
                 .define("force_load_chunks", true);
         server.comment(

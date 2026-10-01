@@ -1,0 +1,13 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "middle": {
+      "tag": "c:gems/quartz"
+    }
+  },
+  "mode": "press",
+  "result": {
+    "count": 1,
+    "id": "ae2cs:simple_circuit_print"
+  }
+}

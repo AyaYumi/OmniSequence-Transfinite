@@ -1,0 +1,48 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "textures": {
+    "jade": "molecularmanipulator:block/taixu/jade",
+    "particle": "molecularmanipulator:block/taixu/jade"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#jade",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#jade",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#jade",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#jade",
+          "cullface": "east"
+        },
+        "up": {
+          "texture": "#jade",
+          "cullface": "up"
+        },
+        "down": {
+          "texture": "#jade",
+          "cullface": "down"
+        }
+      }
+    }
+  ]
+}

@@ -48,6 +48,7 @@ public final class MultiblockChunkLoading {
     }
 
     public static Set<ChunkPos> requiredChunks(BlockEntity machine) {
+        if (machine instanceof com.atir.molecularmanipulator.blockentity.TaixuBlockEntity taixu) return taixu.getChunkLoadingChunks();
         if (machine instanceof MolecularCenterBlockEntity center) return center.getChunkLoadingChunks();
         if (machine instanceof OmniComputationCoreBlockEntity omni) return omni.getChunkLoadingChunks();
         if (machine instanceof MatterFabricationBlockEntity matter) return matter.getChunkLoadingChunks();
@@ -118,7 +119,8 @@ public final class MultiblockChunkLoading {
             var machine = level.getBlockEntity(entry.getKey());
             if (!(machine instanceof MolecularCenterBlockEntity
                     || machine instanceof OmniComputationCoreBlockEntity
-                    || machine instanceof MatterFabricationBlockEntity)) {
+                    || machine instanceof MatterFabricationBlockEntity
+                    || machine instanceof com.atir.molecularmanipulator.blockentity.TaixuBlockEntity)) {
                 helper.removeAllTickets(entry.getKey());
             } else {
                 // Runtime formation has not been checked yet. Keep the saved ticking

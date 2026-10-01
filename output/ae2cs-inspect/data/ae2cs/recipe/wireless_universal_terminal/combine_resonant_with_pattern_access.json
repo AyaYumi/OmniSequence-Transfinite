@@ -1,0 +1,11 @@
+{
+  "type": "ae2wtlib:combine",
+  "terminalA": {
+    "item": "ae2cs:wireless_resonant_terminal"
+  },
+  "terminalB": {
+    "item": "ae2wtlib:wireless_pattern_access_terminal"
+  },
+  "terminalAName": "ae2cs_resonant_pattern_encoding",
+  "terminalBName": "pattern_access"
+}

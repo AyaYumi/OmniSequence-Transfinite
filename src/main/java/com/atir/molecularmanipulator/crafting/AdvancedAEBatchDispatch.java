@@ -9,6 +9,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ICraftingInventory;
 import com.atir.molecularmanipulator.api.crafting.*;
+import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -124,7 +125,10 @@ public final class AdvancedAEBatchDispatch implements AutoCloseable {
             // A provider may accept ownership and then throw. Do not reinject accepted materials.
             logFailure("commit", error);
         } finally {
-            if (delivery != null) delivery.seal();
+            if (delivery != null) {
+                if (delivery.accepted()) AelisBatchExecutionContext.acceptCurrentDispatch();
+                delivery.seal();
+            }
             close();
         }
         if (delivery != null && delivery.accepted()) {

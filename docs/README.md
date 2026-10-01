@@ -4,9 +4,6 @@ Target: OmniSequence: Transfinite **2.0.6-forge**, Minecraft **1.20.1**, Forge,
 Java **17**, AE2 **15.4.10 through 15.x**, AppliedEnhancements **1.0.9-fix-forge**.
 The Mod ID remains `molecularmanipulator`.
 
-Project documentation: [2.0.6 release notes](releases/2.0.6.md),
-[bilingual CurseForge description](curseforge-description.md),
-[build and test instructions](../README.md#installation-and-build).
 The well recipe and research page also has a [Chinese version](matter-research-api.zh-CN.md).
 
 | Integration | Contract | Documentation |
@@ -34,8 +31,6 @@ UI enabled/highlight state is presentation data, not a new crafting or research 
 本文档对应 2.0.6-forge，批量投料 API 保持 v1；研究接口从 2.0.0 提供。模组 ID
 仍为 `molecularmanipulator`，客户端和服务端都需要 AppliedEnhancements 1.0.9-fix-forge。
 
-项目文档：[2.0.6 更新说明](releases/2.0.6.md)、[中英 CurseForge 介绍](curseforge-description.md)、
-[安装与构建](../README.zh-CN.md#安装与构建)。
 构筑井配方与研究文档同时提供[英文版](matter-research-api.md)。
 
 | 需求 | 使用接口 |

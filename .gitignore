@@ -44,6 +44,8 @@ repo/
 logs/
 .codex-tmp/
 .worktrees/
+/output/
+/test-results/
 
 # Local Forge dependency artifacts
 /libs/*.jar

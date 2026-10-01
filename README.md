@@ -20,9 +20,7 @@ An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.20.1 on For
 
 Current release: `2.0.6-forge`
 
-See the [2.0.4 release notes](docs/releases/2.0.4.md) for changes from 2.0.3,
-[CHANGELOG.md](CHANGELOG.md) for the complete history, and the
-[bilingual project description](docs/curseforge-description.md) for a feature overview.
+See [CHANGELOG.md](CHANGELOG.md) for the complete version history.
 
 Advanced AE (Forge 1.20.1) is optional for the base mod and required for the default
 Omni-Computation research branch, including the Transfinite Compute Nexus recipe.
@@ -83,7 +81,7 @@ The Forge interfaces follow this project's `1.21.1-neoforge` layouts, implemente
 - Output-port direction controls show each adjacent block's thumbnail, name and output state. Neighbor icons and tooltips are rebuilt only when the block state or direction setting changes.
 - The Omni-Computation screen restores the structure/telemetry panels, quantum-link row and centered inventory. Large screens scale their rendering and input coordinates together; JEI structure quantities use separate high-contrast badges.
 
-See [UI layout and validation](docs/UI_DESIGN.md) for the screen map and headless checks. These checks do not substitute for a modpack gameplay or performance benchmark.
+See [UI regression checks](tools/ui/README.md) for headless validation. These checks do not substitute for a modpack gameplay or performance benchmark.
 
 ## Core Machines
 
@@ -246,7 +244,7 @@ Ordinary and unknown providers receive adaptive runtime-scaled patterns only for
 
 Existing flat options and the previous `matter_speed_cards` section are moved into the categorized paths while preserving their values. The mod creates a `.toml.bak` backup before migration. The retired `omni_batch_allow_substitution_patterns` key is removed without resetting other custom values. If another unsupported option is found, the mod keeps up to five backups and atomically rebuilds the file from the current schema; missing or out-of-range known values are repaired without resetting other valid settings.
 
-See [Forge port details](docs/FORGE_PORT.md) for API, material and UI differences.
+See the [Forge API index](docs/README.md) for integration contracts.
 
 ## Installation and Build
 
@@ -255,7 +253,7 @@ Install the required dependencies above and place the built JAR in both the clie
 Source maintenance for 2.0.4 continues on `1.20.1-forge`.
 For a source build, first place the separately built AppliedEnhancements 1.0.9-fix-forge JAR
 in `libs/`, following [the dependency setup](libs/README.md). Its binary is ignored
-by Git and is not embedded in this mod. See the dependency setup for Forge artifacts. All machine screens and JEI pages use the custom light sci-fi console UI while retaining Minecraft / AE2 container behavior. LDLib2 is not required; see [UI design](docs/UI_DESIGN.md).
+by Git and is not embedded in this mod. See the dependency setup for Forge artifacts. All machine screens and JEI pages use the custom light sci-fi console UI while retaining Minecraft / AE2 container behavior. LDLib2 is not required.
 
 ```powershell
 ./gradlew.bat clean build --no-configuration-cache
@@ -271,7 +269,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade
 notes. This project is licensed under the [MIT License](LICENSE).
 
 `build` includes unit tests. Additional isolated-world upgrade, saved-state and
-dismantling checks are documented in [the regression test guide](docs/FORGE_PORT.md).
+dismantling checks are documented in [the GameTest guide](tools/gametest/README.md).
 Runtime textures, shaders, GuideME pages and the two official 1.3.9 blueprints are
 kept in `src/main/resources`; design drafts and generated screenshots are not source dependencies.
 

@@ -20,8 +20,7 @@
 
 当前版本：`2.0.6-forge`，后续源码维护分支为 `1.20.1-forge`。
 
-相对 2.0.3 的变化见 [2.0.4 更新说明](docs/releases/2.0.4.md)，完整历史见
-[CHANGELOG.md](CHANGELOG.md)，功能概览见[中英项目介绍](docs/curseforge-description.md)。
+完整版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 Advanced AE (Forge 1.20.1) 对基础模组为可选，对默认万物演算研究分支及超限算枢配方为必要条件。
 
 开发接入见 [API 索引](docs/README.md)、[批量供应器 API v1](docs/omni-batch-provider-api.md)
@@ -78,7 +77,7 @@ Forge 界面以本项目 `1.21.1-neoforge` 分支布局为参考，使用 Minecr
 - 输出接口的方向按钮显示相邻方块缩略图、名称与输出状态；只在方块状态或方向设置变化时重建图标和提示。
 - 万物演算核心恢复结构与运行信息分区、量子链接行和居中库存；大界面的绘制和输入同步缩放，JEI 结构材料数量使用独立高对比度标签。
 
-布局及隔离检查说明见 [界面设计](docs/UI_DESIGN.md)。这些检查不替代整合包内的实际玩法或性能测试。
+界面隔离检查见 [界面测试说明](tools/ui/README.md)。这些检查不替代整合包内的实际玩法或性能测试。
 
 ## 核心设备
 
@@ -242,7 +241,7 @@ JSON 规则文件内写有上述计算公式及对应的分类 TOML 路径。已
 
 已有扁平配置项和旧 `matter_speed_cards` 分区会迁移到新的分类路径，并尽量保留已配置值。迁移或配置修复前会保留 `.toml.bak` 备份；已停用的 `omni_batch_allow_substitution_patterns` 键会被移除，不会重置其他有效设置。
 
-Forge API、材料与界面差异见 [移植说明](docs/FORGE_PORT.md)。
+Forge 接口契约见 [API 索引](docs/README.md)。
 
 ## 安装与构建
 
@@ -256,7 +255,7 @@ Forge API、材料与界面差异见 [移植说明](docs/FORGE_PORT.md)。
 
 源码构建前，按 [前置准备说明](libs/README.md) 将独立构建的
 `appliedenhancements-1.0.9-fix-forge.jar` 放入 `libs/`。前置 JAR 不提交到本仓库，
-也不嵌入本模组；Forge 前置构建见依赖说明。全部机器界面与 JEI 页面使用自主绘制的浅色科幻控制台风格，保留 Minecraft / AE2 容器交互，不需要 LDLib2；详见 [界面设计](docs/UI_DESIGN.md)。
+也不嵌入本模组；Forge 前置构建见依赖说明。全部机器界面与 JEI 页面使用自主绘制的浅色科幻控制台风格，保留 Minecraft / AE2 容器交互，不需要 LDLib2。
 
 ```powershell
 ./gradlew.bat clean build --no-configuration-cache
@@ -272,7 +271,7 @@ build/libs/omnisequence-transfinite-2.0.6-forge.jar
 [MIT License](LICENSE)。
 
 `build` 会运行单元测试；隔离世界中的升级、存档与拆除检查见
-[回归测试说明](docs/FORGE_PORT.md)。正式材质、着色器、GuideME 和两份
+[GameTest 说明](tools/gametest/README.md)。正式材质、着色器、GuideME 和两份
 1.3.9 蓝图位于 `src/main/resources`，设计草稿及生成截图不参与源码构建。
 
 JEI 15 坐标回归步骤见[界面测试说明](tools/ui/README.md)，无需打开游戏；Forge 原生界面不依赖 LDLib2。

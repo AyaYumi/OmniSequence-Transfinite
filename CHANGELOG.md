@@ -357,7 +357,7 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 - Adapt vertex submission and render bounds; scale large controllers to fit the display.
 - Preserve the Forge CPU readiness safeguard and cached/bounded scheduling behavior.
 - Adapt ExtendedAE's expatternprovider namespace and gate unavailable dependency-only materials.
-- See docs/FORGE_PORT.md and libs/README.md for compatibility details.
+- See [the API index](docs/README.md) and [dependency setup](libs/README.md) for compatibility details.
 
 # Changelog
 

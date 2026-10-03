@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.7-forge — EAEP matrix upload compatibility / EAEP 自动上传兼容
+
+- Restore automatic encoded-pattern upload to a powered, formed Sequence Array equipped with EAEP's Upload Core. EAEP 1.6.x moved the entry points to MatrixUploadUtil, changed the menu return type to void and added a silent direct-upload overload; retain the older EAEP entry points as well.
+- Share source-slot transfer and duplicate blank-pattern refunds across both APIs, use a localized duplicate message independent of EAEP's renamed keys, and avoid copying the incoming pattern once per library slot. Upload scans run only when encoding/uploading, with no added tick scans or recurring logs. Minecraft 1.20.1 only.
+- Add an installed-pack regression for the real encoding-menu hook, exact source ownership, duplicate refunds, both direct overloads, changed encoder names, missing-core fallback and processing patterns.
+- Validation: 281 unit tests and build/API JavaDoc/release Mixin checks passed against both upstream AE2 15.4.10 and UELM 15.5.4. The isolated 366-mod Project Infinity 0.1 regression passed with EAEP 1.6.2, including eight actual menu pages. No sustained TPS benchmark was repeated for this event-driven fix.
+
+中文
+
+- 修复装有 EAEP 上传核心、已成型且联网的构序矩阵无法自动接收编码样板。适配 EAEP 1.6.x 的 MatrixUploadUtil、无返回值菜单入口与静默上传重载，同时保留旧版接口。
+- 新旧入口共用源槽位转移和重复样板空白返还，重复提示使用本模组中英翻译；传入样板只预处理一次。只在编码／上传时查询，不新增 tick 扫描或重复日志。仅修改 1.20.1。
+- 新增实际整合包回归，覆盖真实编码菜单、源物品只扣一次、重复返还、两种直接上传入口、不同编码玩家、无核心回退及处理样板行为。
+- 验证：原版 AE2 15.4.10 与 UELM 15.5.4 下各 281 项单元测试及构建／API JavaDoc／正式 Mixin 检查通过；366 模组 Project Infinity 0.1 隔离回归使用 EAEP 1.6.2 通过，包括八个真实菜单页面。本次事件触发的修复未重测持续 TPS。
+
 ## 2.0.7-forge — auto crafter output direction correction / 自动合成器输出方向修正
 
 - Correct the left/right mapping in the auto crafter's Output Directions panel to use the view from the machine's front. Neighbour icons, selection highlights and click targets now refer to the same physical side for every horizontal facing.

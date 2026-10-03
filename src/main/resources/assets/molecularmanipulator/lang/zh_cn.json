@@ -79,6 +79,7 @@
   "gui.molecularmanipulator.quantum_channel": "占用 1 个 AE 频道",
   "gui.molecularmanipulator.quantum_remote_ring": "目标端类型：标准 AE2 量子环",
   "gui.molecularmanipulator.quantum_upload_core": "上传核心",
+  "message.molecularmanipulator.matrix_upload_duplicate": "构序矩阵中已存在相同样板。",
   "gui.molecularmanipulator.quantum_upload_core_hint": "EAEP：编码终端样板自动进入构序矩阵",
   "gui.molecularmanipulator.quantum_state.empty": "请放入配对的缠绕态奇点",
   "gui.molecularmanipulator.quantum_state.structure_incomplete": "本地多方块结构不完整（尚未检查远端量子环）",

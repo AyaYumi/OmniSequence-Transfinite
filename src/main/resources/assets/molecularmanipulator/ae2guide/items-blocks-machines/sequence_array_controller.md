@@ -67,7 +67,9 @@ Construction, dismantling, and crystal recovery pause external pattern changes. 
 
 The quantum slot accepts only a **Quantum Entangled Singularity**. Place its partner in a powered AE2 quantum bridge to access the remote network, including construction materials before formation. The connection costs **512 AE/t and one channel** extra.
 
-The optional ExtendedAE Plus upload core has its own slot. **Dismantle** recovers from the top, returning to ME first and the player second; full destinations pause recovery.
+The optional ExtendedAE Plus upload core has its own slot. On a powered, formed array connected to the encoding terminal's ME network, encoded crafting, stonecutting and smithing patterns upload automatically into the main library. Duplicate encoding returns a blank pattern; processing patterns keep their normal terminal behavior. Both older EAEP and the 1.6.x upload API are supported.
+
+**Dismantle** recovers from the top, returning to ME first and the player second; full destinations pause recovery.
 
 Normal controller removal preserves patterns, jobs, and dedicated inventory contents. With multiblock chunk loading enabled, the formed structure and construction keep required chunks loaded.
 

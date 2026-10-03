@@ -2,6 +2,9 @@ package com.atir.molecularmanipulator.integration.extendedaeplus;
 
 import appeng.api.networking.IGrid;
 import appeng.api.inventories.InternalInventory;
+import appeng.core.definitions.AEItems;
+import appeng.helpers.IPatternTerminalMenuHost;
+import appeng.menu.me.items.PatternEncodingTermMenu;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
@@ -26,6 +29,30 @@ public final class MatrixUploadCoreIntegration {
     public static boolean isUploadCore(ItemStack stack) {
         return isLoaded() && stack != null && !stack.isEmpty()
                 && UPLOAD_CORE_ID.equals(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+    }
+
+    /** Handles the source slot once, for both legacy and current EAEP menu hooks. */
+    public static boolean uploadFromEncodingMenu(ServerPlayer player, PatternEncodingTermMenu menu) {
+        if (player == null || menu == null || !isLoaded()
+                || !(menu.getTarget() instanceof IPatternTerminalMenuHost terminalHost)) return false;
+        var node = menu.getNetworkNode();
+        var grid = node == null ? null : node.getGrid();
+        if (grid == null) return false;
+        var inventory = terminalHost.getLogic().getEncodedPatternInv();
+        var pattern = inventory.getStackInSlot(0);
+        if (pattern.isEmpty()) return false;
+        int count = pattern.getCount();
+        if (containsPatternOnSequenceArray(pattern, grid)) {
+            sendDuplicateMessage(player);
+            var blanks = terminalHost.getLogic().getBlankPatternInv()
+                    .insertItem(0, AEItems.BLANK_PATTERN.stack(count), false);
+            inventory.extractItem(0, count, false);
+            if (!blanks.isEmpty()) player.getInventory().placeItemBackInInventory(blanks, false);
+            return true;
+        }
+        if (!uploadToSequenceArray(player, pattern, grid)) return false;
+        inventory.extractItem(0, count, false);
+        return true;
     }
 
     /**
@@ -76,7 +103,7 @@ public final class MatrixUploadCoreIntegration {
 
     public static void sendDuplicateMessage(ServerPlayer player) {
         if (player != null) {
-            player.sendSystemMessage(Component.translatable("extendedae_plus.message.matrix.duplicate"));
+            player.sendSystemMessage(Component.translatable("message.molecularmanipulator.matrix_upload_duplicate"));
         }
     }
 
@@ -89,19 +116,14 @@ public final class MatrixUploadCoreIntegration {
     }
 
     private static boolean containsPattern(InternalInventory inventory, ItemStack pattern, int slots) {
+        var incoming = withoutEncoder(pattern);
         for (int slot = 0; slot < slots; slot++) {
-            if (matchesIgnoringEncoder(inventory.getStackInSlot(slot), pattern)) {
+            var stored = inventory.getStackInSlot(slot);
+            if (!stored.isEmpty() && ItemStack.matches(withoutEncoder(stored), incoming)) {
                 return true;
             }
         }
         return false;
-    }
-
-    private static boolean matchesIgnoringEncoder(ItemStack stored, ItemStack incoming) {
-        if (stored.isEmpty() || incoming.isEmpty()) return false;
-        var storedCopy = withoutEncoder(stored);
-        var incomingCopy = withoutEncoder(incoming);
-        return ItemStack.matches(storedCopy, incomingCopy);
     }
 
     private static ItemStack withoutEncoder(ItemStack stack) {

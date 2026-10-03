@@ -49,7 +49,8 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         if (JEI_RESPONSIVE_SLOT_MIXIN.equals(mixinClassName) || JEI_RESPONSIVE_RENDER_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("jei") != null;
         }
-        if (EXTENDEDAE_PLUS_UPLOAD_MIXIN.equals(mixinClassName)) {
+        if (EXTENDEDAE_PLUS_UPLOAD_MIXIN.equals(mixinClassName)
+                || mixinClassName.endsWith(".ExtendedAEPlusMatrixUploadMixin")) {
             return loadingModList != null && loadingModList.getModFileById("extendedae_plus") != null;
         }
         return true;

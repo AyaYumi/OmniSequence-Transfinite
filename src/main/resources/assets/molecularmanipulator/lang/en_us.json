@@ -79,6 +79,7 @@
   "gui.molecularmanipulator.quantum_channel": "Consumes one AE channel",
   "gui.molecularmanipulator.quantum_remote_ring": "Target type: standard AE2 quantum ring",
   "gui.molecularmanipulator.quantum_upload_core": "Upload Core",
+  "message.molecularmanipulator.matrix_upload_duplicate": "This Sequence Array already contains the pattern.",
   "gui.molecularmanipulator.quantum_upload_core_hint": "EAEP: encoding-terminal patterns enter this Sequence Array",
   "gui.molecularmanipulator.quantum_state.empty": "Insert a paired singularity",
   "gui.molecularmanipulator.quantum_state.structure_incomplete": "Local multiblock incomplete; remote ring not checked yet",

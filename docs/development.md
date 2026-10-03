@@ -16,6 +16,10 @@ API. Every push validates documents/resources and performs the Java build/test.
 CI uses the same upstream-built prerequisite JAR with both AE implementations. The API is validated before compilation. Dependencies remain
 separately installed and are never shaded into the mod.
 CI uses published ExtendedAE 1.4.18; Project Infinity 0.1 validation uses 1.4.20 with EAEP 1.6.2, AdvancedAE 1.3.6 and Radium 0.14.2.
+The optional EAEP Upload Core bridge supports the legacy ExtendedAEPatternUploadUtil
+and the split 1.6.x MatrixUploadUtil (void menu upload and both boolean direct
+overloads). Hooks are enabled only when EAEP is installed. Run the installed-pack
+runner with `--tests matrixupload` for the real encoding-menu upload regression.
 GuideME resolves from published Modrinth Maven coordinates without a local JAR.
 
 ## Build and API documentation

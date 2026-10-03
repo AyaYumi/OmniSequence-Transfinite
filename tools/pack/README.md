@@ -35,6 +35,7 @@ crashes or repeated failures. The client exits after the suite.
 | Eight controller pages | Actual menu opening packets; quantum filtering, 64 black holes, Shift transfer, normal insertion/extraction |
 | Applied planning | Three order modes, exact long/BigInteger plans, finite inventory, malformed/duplicate patterns, complete native crafting job |
 | EAEP smart doubling | Installed enabled/disabled interfaces, private multiplier, preserved wrapper and exact remainder, Omni bypass |
+| EAEP matrix upload | Real encoding-menu hook, one source transfer, duplicate blank refund, both MatrixUploadUtil overloads, different encoder, missing-core and processing fallback |
 | Well research | Prerequisites, maximum batch, reserved materials, stop/refund, restart/save; real AE dependent-material orders complete with one click |
 | Hub | Tags and blacklist, simultaneous resources, fluid generation, 64-hole scaling, 1000 mB copies, FE priority/AE fallback, full-storage no-draw |
 | Quantum | Real grid merge/power, conflicting ownership, removal disconnect and release |
@@ -78,6 +79,18 @@ temporarily increased production values from unit tests.
 运行，实际整合包结果只涵盖记录的版本、配方和负载。
 
 ## Forge visual regression / Forge 视觉回归
+
+Use `--tests matrixupload` to run the real EAEP 1.6.x encoding-menu hook against a
+formed, powered Sequence Array with its Upload Core. Require `MATRIX_UPLOAD_PASS`,
+`PACK_FLOW_ALL_PASS` and `PAIRED_CLIENT_ALL_PASS`. The test checks exact source
+consumption, duplicate blank refunds, both direct-upload overloads, encoder-name
+changes, missing-core fallback and retained processing patterns. The 366-mod
+Project Infinity 0.1 run passed with EAEP 1.6.2. Legacy hooks remain supported;
+this installed-pack run does not test an older EAEP binary or sustained TPS.
+
+使用 `--tests matrixupload` 验证 EAEP 1.6.x 的真实编码菜单；需要三种全部通过标记。
+覆盖源槽位、重复空白返还、两个上传重载、编码玩家变化、无核心回退和处理样板保留。
+366 模组整合包已使用 EAEP 1.6.2 通过；本次实测不包含旧版 EAEP 或持续 TPS。
 
 Add `--visual` to `run_pack.py` to test the installed pack's Xenon, Entity Culling,
 Modern UI and JEI together. The runner opens the eight real pages, clicks the

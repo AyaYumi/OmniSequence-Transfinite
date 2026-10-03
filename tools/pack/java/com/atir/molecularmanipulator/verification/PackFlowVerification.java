@@ -81,7 +81,8 @@ public final class PackFlowVerification {
                         OmniDismantleGameTests.class, Legacy139MigrationGameTests.class,
                         com.atir.molecularmanipulator.blockentity.AdvancedAEBatchGameTests.class,
                         Ae2CompatibilityGameTests.class,
-                        com.atir.molecularmanipulator.blockentity.PackFeatureGameTests.class
+                        com.atir.molecularmanipulator.blockentity.PackFeatureGameTests.class,
+                        com.atir.molecularmanipulator.blockentity.MatrixUploadGameTests.class
                     };
                     for (var type : classes) GameTestRegistry.register(type);
                     GameTestRegistry.getAllTestFunctions().stream()

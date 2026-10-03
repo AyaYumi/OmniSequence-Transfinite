@@ -20,7 +20,9 @@ public final class OmniSmartDoublingPlanner {
         boolean changed = false;
         for (var entry : plan.patternTimes().entrySet()) {
             long operations = entry.getValue() == null ? 0 : entry.getValue();
-            if (operations > 1 && !(entry.getKey() instanceof MolecularScaledPattern)
+            if (operations > 1
+                    && !(entry.getKey() instanceof com.github.appliedenhancements.integration.ae2.AelisScaledPattern)
+                    && !com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManaged(entry.getKey())
                     && hasSmartProvider(providerLookup.apply(entry.getKey()))) {
                 try {
                     rewritten.put(MolecularScaledPatternFactory.create(entry.getKey(), operations), 1L);
@@ -39,8 +41,12 @@ public final class OmniSmartDoublingPlanner {
 
     private static boolean hasSmartProvider(Iterable<ICraftingProvider> providers) {
         if (providers == null) return false;
-        for (var provider : providers) if (provider instanceof OmniSmartDoublingProvider) return true;
-        return false;
+        boolean local = false;
+        for (var provider : providers) {
+            if (com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManagedProvider(provider)) return false;
+            if (provider instanceof OmniSmartDoublingProvider) local = true;
+        }
+        return local;
     }
 
     private static long saturatedAdd(long left, long right) {

@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.7-forge. Names and help text are available in English and Chinese.
+Current source: 2.0.8-forge. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 

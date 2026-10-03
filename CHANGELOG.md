@@ -1,5 +1,16 @@
 # Changelog
 
+## OmniSequence: Transfinite 2.0.8-forge
+
+- Native smart doubling bypasses Omni's second multiplier, runtime batch expansion and multi-input normalization. Disabled native tasks still receive ordinary local batching.
+- Require Applied Enhancements 1.1.1-forge for cached optional enabled-state queries and exact mixed-task reconciliation. Keep native wrappers, provider splits and remainders; retain tick budgets and TPS caches.
+- Added unit and transformed engine regressions for enabled tasks, mixed exact quantities, existing wrappers and both optional native submit overloads.
+
+中文
+
+- 已开启智能倍增的外部样板跳过 Omni 二次倍率包装、运行时批量扩展和多输入拆解；关闭倍增的普通样板仍可走本地批量。
+- 需要 Applied Enhancements 1.1.1-forge，保留外部包装、供应器分配、余量、工作预算和 TPS 缓存，加入混合任务及两种提交入口回归。
+
 ## OmniSequence: Transfinite 2.0.7-forge
 
 ### Complete Forge feature synchronization and compatibility

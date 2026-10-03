@@ -1,6 +1,6 @@
 # Paired client verification / 双模组客户端验证
 
-Run with Java 17 and the separately built Applied Enhancements 1.1.0-forge JAR in
+Run with Java 17 and the separately built Applied Enhancements 1.1.1-forge JAR in
 `libs/`. This optional source set never enters a normal release JAR.
 
 ```powershell

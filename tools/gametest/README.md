@@ -1,6 +1,6 @@
 # Forge engine regressions / Forge 隔离游戏测试
 
-Current source: 2.0.7-forge, Minecraft 1.20.1, Java 17.
+Current source: 2.0.8-forge, Minecraft 1.20.1, Java 17.
 [Development guide](../../docs/development.md) · [Dependency setup](../../libs/README.md)
 
 | Init script | Coverage |
@@ -19,7 +19,7 @@ Current source: 2.0.7-forge, Minecraft 1.20.1, Java 17.
 
 Default AE2 is 15.4.10. Add `-Pae2_uelm_version=15.5.4-uelm` to build and run
 against UELM. Each classpath contains exactly one AE implementation and the
-separately built Applied Enhancements 1.1.0-forge prerequisite in `libs/`.
+separately built Applied Enhancements 1.1.1-forge prerequisite in `libs/`.
 The optional AAE suite resolves Forge AdvancedAE and GeckoLib through the
 CurseMaven properties in `gradle.properties`; these are never packaged in Omni.
 

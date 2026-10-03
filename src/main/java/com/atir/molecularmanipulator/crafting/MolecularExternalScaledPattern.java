@@ -36,6 +36,8 @@ public final class MolecularExternalScaledPattern {
     }
 
     public static Unwrapped unwrapMultiInput(IPatternDetails patternDetails) {
+        if (com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManaged(patternDetails))
+            return new Unwrapped(patternDetails, 1);
         return unwrap(patternDetails, true);
     }
 

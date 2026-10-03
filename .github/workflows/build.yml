@@ -24,13 +24,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: AyaYumi/AppliedEnhancements
-          ref: ee50e7c40d7bd162d8d1ca4bc4989c488e647e7d
+          ref: 1652320dc3bf75841a0392f3fc3f5d8e00cefc5d
           path: .dependencies/appliedenhancements
       - name: Build shared prerequisite against upstream AE2
         run: |
           bash .dependencies/appliedenhancements/gradlew -p .dependencies/appliedenhancements build apiJavadoc --console=plain
           mkdir -p libs
-          cp .dependencies/appliedenhancements/build/libs/appliedenhancements-1.1.0-forge.jar libs/
+          cp .dependencies/appliedenhancements/build/libs/appliedenhancements-1.1.1-forge.jar libs/
       - name: Validate resources and documentation
         shell: python
         run: |
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: omnisequence-2.0.7-forge-${{ matrix.name }}
+          name: omnisequence-2.0.8-forge-${{ matrix.name }}
           path: |
             build/libs/*.jar
             build/docs/api/

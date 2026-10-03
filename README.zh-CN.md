@@ -9,16 +9,16 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.7-forge，源码分支 `1.20.1-forge` |
+| 本模组 | 2.0.8-forge，源码分支 `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 |
-| AppliedEnhancements | 修订版 1.1.0-forge，客户端和服务端都需要 |
+| AppliedEnhancements | 修订版 1.1.1-forge，客户端和服务端都需要 |
 | AE2 | 15.4.10 / UELM 15.5.4 |
 | ExtendedAE | 1.20-1.4.19-forge 或更高 |
 | ExpandedAE | 2.1.1 与样板供应器 Mixin 冲突，不兼容 |
 | JEI / AdvancedAE | 可选；AdvancedAE 启用对应研究与兼容 |
 
-前置单独安装，不嵌入本模组。当前源码使用 AppliedEnhancements 1.1.0-forge 新增的共享
+前置单独安装，不嵌入本模组。当前源码使用 AppliedEnhancements 1.1.1-forge 新增的共享
 循环取料和事务 API，旧 1.0.x 构建不足以编译或运行。
 
 ## 核心设备
@@ -90,17 +90,17 @@ JEI 展示构筑配方与奇点序质流体说明。
 ## 安装与构建
 
 使用 Java 17，按 [libs/README.md](libs/README.md) 准备独立前置
-`libs/appliedenhancements-1.1.0-forge.jar`，随后执行：
+`libs/appliedenhancements-1.1.1-forge.jar`，随后执行：
 
 ```powershell
 .\gradlew.bat clean build --no-configuration-cache
 ```
 
-产物：`build/libs/omnisequence-transfinite-2.0.7-forge.jar`。`build` 包含单元测试。
+产物：`build/libs/omnisequence-transfinite-2.0.8-forge.jar`。`build` 包含单元测试。
 隔离游戏测试、API/JAR 校验和贴图维护见[开发说明](docs/development.md)；测试代码
 和预览不进入正式 JAR。
 
-CI 默认从已发布的固定 Git 提交构建 AppliedEnhancements 1.1.0-forge，也可用匹配
+CI 默认从已发布的固定 Git 提交构建 AppliedEnhancements 1.1.1-forge，也可用匹配
 JAR 地址覆盖；旧 1.0.x 不能替代共享事务接口。配置方式见开发说明。
 
 升级前备份存档。已支持的迁移保留配方、研究、已持有缓存和量子连接。原 1,000

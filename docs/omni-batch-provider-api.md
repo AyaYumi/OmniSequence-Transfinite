@@ -2,8 +2,8 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.0.7-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10 / UELM 15.5.4
-and the required AppliedEnhancements 1.1.0-forge. The runtime ABI remains **1**.
+Current for OmniSequence 2.0.8-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10 / UELM 15.5.4
+and the required AppliedEnhancements 1.1.1-forge. The runtime ABI remains **1**.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 

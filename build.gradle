@@ -244,6 +244,25 @@ tasks.withType(ProcessResources).configureEach {
     includeEmptyDirs = false
 }
 
+// Fail clearly before compiling against an older local prerequisite.
+def verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi') {
+    def dependencyJar = layout.projectDirectory.file("libs/appliedenhancements-${applied_enhancements_version}.jar")
+    inputs.file(dependencyJar)
+    doLast {
+        def jarFile = dependencyJar.asFile
+        if (!jarFile.isFile()) {
+            throw new GradleException("Missing AppliedEnhancements dependency: " + jarFile + ". See libs/README.md")
+        }
+        new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
+            if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null
+                    || archive.getEntry('com/appliedenhancements/api/AelisSmartDoublingApi.class') == null) {
+                throw new GradleException('The AppliedEnhancements JAR lacks the required 1.1.1 transaction/smart-doubling API. See libs/README.md')
+            }
+        }
+    }
+}
+tasks.named('compileJava').configure { dependsOn verifyAppliedEnhancementsApi }
+
 tasks.named('test', Test).configure {
     useJUnitPlatform()
 }

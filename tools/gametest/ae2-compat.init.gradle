@@ -4,7 +4,7 @@ allprojects {
         if (project != rootProject) return
         def regression = sourceSets.create('ae2ServerCompatibility') {
             java.srcDirs project.file('tools/gametest/ae2-compat'), project.file('tools/gametest/java')
-            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java'
+            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java', '**/SmartDoublingGameTests.java', 'com/extendedae_plus/**/*.java', 'com/sorrowmist/**/*.java'
             resources.srcDir project.file('tools/gametest/resources')
             resources.exclude 'data/molecularmanipulator/recipes/**'
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
@@ -21,7 +21,7 @@ allprojects {
         tasks.matching { it.name == 'runGameTestServer' }.configureEach {
             doLast {
                 def report = project.file('build/ae2-compat-server-run/logs/latest.log').text
-                if (!report.contains('All 2 required tests passed'))
+                if (!report.contains('All 3 required tests passed'))
                     throw new GradleException('Paired-mod AE2 compatibility checks did not pass')
             }
         }

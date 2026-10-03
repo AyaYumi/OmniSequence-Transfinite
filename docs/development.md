@@ -1,17 +1,17 @@
 # Development and release / 开发与发布
 
-Current source: 2.0.7-forge, Java 17, Minecraft 1.20.1, Forge 47.4.20.
+Current source: 2.0.8-forge, Java 17, Minecraft 1.20.1, Forge 47.4.20.
 [API index](README.md) · [Dependency setup](../libs/README.md)
 
 ## Dependency input
 
-The source requires `libs/appliedenhancements-1.1.0-forge.jar`, including
+The source requires `libs/appliedenhancements-1.1.1-forge.jar`, including
 `com.appliedenhancements.api.AelisBatchExecutionContext`. Obtain the revised
 AppliedEnhancements build and install the same version on both sides. Dependency
 JARs are ignored and never embedded in OmniSequence.
 
 CI builds the prerequisite from published AppliedEnhancements commit
-`ee50e7c40d7bd162d8d1ca4bc4989c488e647e7d`, which provides the 1.1.0 shared
+`1652320dc3bf75841a0392f3fc3f5d8e00cefc5d`, which provides the 1.1.1-forge shared
 API. Every push validates documents/resources and performs the Java build/test.
 CI uses the same upstream-built prerequisite JAR with both AE implementations. The API is validated before compilation. Dependencies remain
 separately installed and are never shaded into the mod.
@@ -30,7 +30,7 @@ Default dependencies are in `gradle.properties`. To build against UELM, add `"-P
 
 | Output | Purpose |
 | --- | --- |
-| `build/libs/omnisequence-transfinite-2.0.7-forge.jar` | Runtime mod |
+| `build/libs/omnisequence-transfinite-2.0.8-forge.jar` | Runtime mod |
 | `build/docs/api/index.html` | Generated public Java API documentation |
 | `build/reports/tests/test/index.html` | Unit test results |
 
@@ -88,7 +88,7 @@ may describe a real file change.
 
 ## 中文
 
-构建使用修订版 AppliedEnhancements 1.1.0-forge，前置 JAR 不入库也不嵌入产物。远程
+构建使用修订版 AppliedEnhancements 1.1.1-forge，前置 JAR 不入库也不嵌入产物。远程
 构建默认使用已发布的固定 Git 提交，用同一份原版 AE 构建的前置分别验证两套 AE 实现。不能将旧前置
 改名当作新版 API。JavaDoc 可重新生成到 build/docs/api。
 

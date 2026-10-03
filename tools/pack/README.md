@@ -88,6 +88,17 @@ cached meshes. Success requires both `FORGE_VISUAL_ALL_PASS` and
 `PAIRED_CLIENT_ALL_PASS`, plus manual inspection of the PNGs. Add `--menus-only`
 to stop after menu/bookmark validation and check that the bookmark overlay opens.
 
+Add `--crafting-packets --menus-only` to verify actual crafting quantity input,
+screen-coordinate Next clicks, plan arrival and AE's back action with quantities
+64, 2,147,483,648 and 9,223,372,036,854,775,808. Each returned amount must match
+exactly and the connection must remain open. Success requires
+`FORGE_CRAFTING_PACKET_ALL_PASS` plus `PAIRED_CLIENT_ALL_PASS`. This gate exercises
+Applied's separate request/restoration packet classes in the installed pack;
+codec round trips alone cannot detect Forge's outgoing class lookup collision.
+
+使用 `--crafting-packets --menus-only` 可验证真实数量页点击下一步、收到计划和返回数量页，
+覆盖普通、超 int 和超 long 数量；返回后必须保留原数值且连接不中断。
+
 Visual mode uses a 1700×900 Chinese client, render distance 24, and disposable
 fixtures only. It tests distance culling while keeping unrelated optimization
 settings. It does not change a player's options, copy their saves, or constitute

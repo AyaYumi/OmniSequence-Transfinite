@@ -92,6 +92,7 @@ public final class PairedClientVerification {
                 int page = step / 2;
                 if (page == NAMES.length) {
                     if (!hubSlotsPassed) throw new IllegalStateException("Server menu checks did not pass");
+                    if (Boolean.getBoolean("omni.craftingPacketVerification") && !ForgeCraftingPacketVerification.tick(mc)) return;
                     if (Boolean.getBoolean("omni.visualVerification") && !Boolean.getBoolean("omni.menusOnlyVerification")) {
                         if (!ForgeVisualVerification.tick(mc)) return;
                     }

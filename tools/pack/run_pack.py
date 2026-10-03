@@ -36,6 +36,7 @@ def main():
     parser.add_argument("--tests", default="", help="Optional lowercase test-name substring")
     parser.add_argument("--visual", action="store_true", help="Run Forge lens, motion and JEI visual regressions after menus")
     parser.add_argument("--menus-only", action="store_true", help="Stop after menu and bookmark verification")
+    parser.add_argument("--crafting-packets", action="store_true", help="Click real crafting Next/back actions with normal, long and exact quantities")
     options = parser.parse_args()
     if os.name != "nt":
         parser.error("This launcher reads a Windows launcher batch file")
@@ -102,6 +103,8 @@ def main():
             args.append("-Xmx8G" if value.startswith("-Xmx") else "-Xms1G" if value.startswith("-Xms") else value)
             index += 1
     args.insert(1, "-Domni.packVerification=true")
+    if options.crafting_packets:
+        args.insert(1, "-Domni.craftingPacketVerification=true")
     if options.visual:
         args.insert(1, "-Domni.visualVerification=true")
         for flag, value in [("--width", "1700"), ("--height", "900")]:

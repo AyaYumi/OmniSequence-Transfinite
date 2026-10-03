@@ -1,5 +1,25 @@
 # Changelog
 
+## OmniSequence: Transfinite 2.0.7-forge — updated build / 更新构建
+
+- Fixed production startup failure in `SingularityEntityCollisionMixin`: the Mixin configuration now references the packaged Forge refmap, so Minecraft method/field targets resolve in installed JARs.
+- Fixed world-entry stack overflow when KubeJS replaces recipe loading: capture final script JSON after reload and exclude runtime/context graphs from fallback serialization. Unreadable recipes emit a rate-limited warning.
+- Restore moving Hub collision surfaces when Radium bypasses vanilla entity collision queries. Empty and distant body queries retain Radium's existing fast path.
+- Added release-JAR validation for the refmap link and entity, carriage, recipe, screen and recipe-accessor mappings. Development tests alone cannot validate production names.
+- Retained native smart-doubling bypass, exact quantities and all TPS work budgets/caches.
+- Verified 36 workflows and eight real menu pages in the installed 366-JAR Project Infinity 0.1 environment, plus paired upstream AE2 15.4.10 / UELM 15.5.4 regressions. Includes continuous dependent-material research, quantum grid ownership, native EAEP scaling, full craft completion, fluid/copy energy and Radium carriage. See [the pack runner](tools/pack/README.md) for repeatable verification and measurement limits.
+- A separate sustained flow passed 600 idle and 600 active server ticks. Active research, all 189 configured resources, 64 black holes, copying and moving Hub bodies averaged 7.93 ms/tick (p95 21.06 ms, max 32.54 ms) on the validation machine. This measured workload does not establish TPS for other saves or machine counts.
+
+中文
+
+- 修复正式整合包启动时实体 Mixin 找不到 `tick` 的崩溃：配置正确引用 JAR 内 Forge 映射文件，正式环境能解析 Minecraft 方法和字段。
+- 修复 KubeJS 改写配方加载后进世界时递归序列化导致的栈溢出：在脚本完成后保存最终 JSON，后备序列化排除运行上下文；无法读取的配方警告全局限流。
+- 修复 Radium 绕过原版碰撞查询后天枢环带失去碰撞的问题；没有移动建筑或建筑不在附近时保留原有快速路径。
+- 增加正式 JAR 检查，验证映射文件引用，以及实体、玩家携带、配方、界面和配方字段映射，防止开发环境测试掩盖打包问题。
+- 保留原生智能倍增绕过、精确数量及全部 TPS 工作预算与缓存。
+- 在包含 366 个 JAR 的 Project Infinity 0.1 实际环境中通过 36 项流程及八个真实菜单页面，并分别通过原版 AE2 15.4.10／UELM 15.5.4 双模组回归。覆盖依赖材料持续研究、量子连接所有权、EAEP 倍增、完整合成、流体与复制能耗、Radium 携带。可重复验收及计时范围见整合包测试说明。
+- 单独持续运行测试通过 600 tick 空闲及 600 tick 同时运行；研究、189 种配置资源、64 黑洞、复制和天枢运动同时运行时，平均 7.93 ms/tick，p95 21.06 ms，最大 32.54 ms。该结果仅代表本机测试负载，不能代替其他存档和机器数量的测量。
+
 ## OmniSequence: Transfinite 2.0.8-forge
 
 - Native smart doubling bypasses Omni's second multiplier, runtime batch expansion and multi-input normalization. Disabled native tasks still receive ordinary local batching.

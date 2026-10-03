@@ -9,10 +9,10 @@ quantum-linked multiblocks. Mod ID: `molecularmanipulator`.
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.8-forge, branch `1.20.1-forge` |
+| OmniSequence | 2.0.7-forge, branch `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 |
-| AppliedEnhancements | Revised 1.1.1-forge build, client and server |
+| AppliedEnhancements | Revised 1.1.0-forge build, client and server |
 | AE2 | 15.4.10 / UELM 15.5.4 |
 | ExtendedAE | 1.20-1.4.19-forge or later |
 | ExpandedAE | Version 2.1.1 is incompatible with the pattern-provider Mixin |
@@ -108,19 +108,19 @@ global one-minute log window; optional profiler summaries remain disabled by def
 
 ## Installation and build
 
-Use Java 17 and provide `libs/appliedenhancements-1.1.1-forge.jar` as described in
+Use Java 17 and provide `libs/appliedenhancements-1.1.0-forge.jar` as described in
 [libs/README.md](libs/README.md). Then:
 
 ```powershell
 .\gradlew.bat clean build --no-configuration-cache
 ```
 
-Output: `build/libs/omnisequence-transfinite-2.0.8-forge.jar`. Unit tests run with `build`.
+Output: `build/libs/omnisequence-transfinite-2.0.7-forge.jar`. Unit tests run with `build`.
 [Development instructions](docs/development.md) cover isolated engine regressions,
 API/JAR validation and source cleanup. Test code and previews are outside the
 normal release source set.
 
-CI builds the matching AppliedEnhancements 1.1.1-forge dependency from a published fixed
+CI builds the matching AppliedEnhancements 1.1.0-forge dependency from a published fixed
 Git commit. A trusted matching JAR can override that source; see development
 instructions. Older 1.0.x builds cannot substitute for the shared transaction API.
 

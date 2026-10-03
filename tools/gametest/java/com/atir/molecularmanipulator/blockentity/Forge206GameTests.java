@@ -38,7 +38,7 @@ public final class Forge206GameTests {
         var level = helper.getLevel();
         var manager = level.getRecipeManager();
         var original = List.copyOf(manager.getRecipes());
-        var apply = RecipeManager.class.getDeclaredMethod("apply", Map.class, ResourceManager.class, ProfilerFiller.class);
+        var apply = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findMethod(RecipeManager.class, "m_5787_", Map.class, ResourceManager.class, ProfilerFiller.class);
         apply.setAccessible(true);
         try {
             var json = new LinkedHashMap<ResourceLocation, JsonElement>();

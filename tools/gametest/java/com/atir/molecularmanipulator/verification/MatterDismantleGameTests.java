@@ -59,7 +59,7 @@ public final class MatterDismantleGameTests {
         }
         var player = FakePlayerFactory.get(level,
                 new GameProfile(UUID.fromString("25f1f1a3-b9ee-49a9-b5f6-e34901dc0986"), "MatterDismantleVerifier"));
-        var field = PlayerList.class.getDeclaredField("playersByUUID");
+        var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_");
         field.setAccessible(true);
         @SuppressWarnings("unchecked")
         var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());

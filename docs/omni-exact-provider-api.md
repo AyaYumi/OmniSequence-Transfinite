@@ -1,6 +1,6 @@
 # Exact-count provider API / 大数供应器接口
 
-Current source: 2.0.8-forge, Java 17, AE2 15.4.10 / UELM 15.5.4, revised AppliedEnhancements 1.1.1-forge.
+Current source: 2.0.7-forge, Java 17, AE2 15.4.10 / UELM 15.5.4, revised AppliedEnhancements 1.1.0-forge.
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is

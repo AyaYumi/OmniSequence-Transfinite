@@ -27,8 +27,10 @@ public final class CosmicSingularityGameTests {
         ItemEntity first = new ItemEntity(level, center.x, center.y, center.z, new ItemStack(Items.DIAMOND));
         ItemEntity late = new ItemEntity(level, center.x + 5, center.y, center.z, new ItemStack(Items.GOLD_INGOT));
         var pig = EntityType.PIG.create(level);
-        var player = net.minecraftforge.common.util.FakePlayerFactory.get(level,
+        boolean pack = Boolean.getBoolean("omni.packVerification");
+        var player = pack ? level.getServer().getPlayerList().getPlayers().get(0) : net.minecraftforge.common.util.FakePlayerFactory.get(level,
                 new com.mojang.authlib.GameProfile(java.util.UUID.fromString("55ca2c8d-ae1d-4404-9236-e21193d3064d"), "CaptureVerifier"));
+        var previousPosition = player.position(); var previousVelocity = player.getDeltaMovement();
         try {
             level.setBlockAndUpdate(white, ModContent.WHITE_HOLE_BLOCK.get().defaultBlockState());
             WhiteHoleRegistry.register(level, white);
@@ -37,7 +39,9 @@ public final class CosmicSingularityGameTests {
             var machine = (CosmicSingularityBlockEntity) level.getBlockEntity(black);
             first.setNoGravity(true); level.addFreshEntity(first);
             pig.setPos(center.x, center.y, center.z); pig.setNoGravity(true); level.addFreshEntity(pig);
-            player.setPos(center.x, center.y, center.z); player.setDeltaMovement(Vec3.ZERO); level.addFreshEntity(player);
+            if (pack) player.teleportTo(center.x, center.y, center.z);
+            else { player.setPos(center.x, center.y, center.z); level.addFreshEntity(player); }
+            player.setDeltaMovement(Vec3.ZERO);
             machine.serverTick();
             helper.assertTrue(first.position().distanceTo(white.getCenter()) < 2, "Items must emerge from the white hole");
             helper.assertTrue(pig.position().distanceTo(white.getCenter()) < 2, "Non-player mobs must emerge from the white hole");
@@ -58,7 +62,9 @@ public final class CosmicSingularityGameTests {
             System.out.println("COSMIC_CAPTURE_PASS: items, mobs, scan interval, new arrivals, exits and white-hole uniqueness");
             helper.succeed();
         } finally {
-            first.discard(); late.discard(); pig.discard(); player.discard();
+            first.discard(); late.discard(); pig.discard();
+            if (pack) { player.teleportTo(previousPosition.x,previousPosition.y,previousPosition.z); player.setDeltaMovement(previousVelocity); }
+            else player.discard();
             ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(time);
             level.setBlockAndUpdate(black, Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(white, Blocks.AIR.defaultBlockState());

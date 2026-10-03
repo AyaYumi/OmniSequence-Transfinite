@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+[[mods]]
+modId="omniverification"
+version="1"
+displayName="Isolated paired-mod verification"
+description="Test-only runner for disposable Project Infinity worlds."
+[[dependencies.omniverification]]
+modId="molecularmanipulator"
+mandatory=true
+versionRange="[2.0.7-forge,)"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.omniverification]]
+modId="appliedenhancements"
+mandatory=true
+versionRange="[1.1.0-forge,)"
+ordering="AFTER"
+side="BOTH"

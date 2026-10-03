@@ -50,7 +50,7 @@ public final class MolecularDismantleGameTests {
         var player = FakePlayerFactory.get(level, new GameProfile(
                 UUID.fromString("de449f22-b34a-4262-8f42-e57a3705844b"), "MolecularDismantle"));
         player.setGameMode(GameType.CREATIVE);
-        var playerMapField = PlayerList.class.getDeclaredField("playersByUUID");
+        var playerMapField = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_");
         playerMapField.setAccessible(true);
         @SuppressWarnings("unchecked")
         var players = (Map<UUID, ServerPlayer>) playerMapField.get(level.getServer().getPlayerList());

@@ -31,7 +31,7 @@ public final class SingularityConstructionGameTests {
         for (var air : SingularityStructure.requiredAir()) level.setBlock(SingularityStructure.worldPos(ORIGIN, FACING, air), Blocks.AIR.defaultBlockState(), 2);
         var player = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("d79be3e7-9f13-43f1-8ef3-91e4823ecdd8"), "SingularityVerifier"));
         player.setPos(ORIGIN.getX() + .5, ORIGIN.getY() + 1, ORIGIN.getZ() + .5);
-        var field = PlayerList.class.getDeclaredField("playersByUUID"); field.setAccessible(true);
+        var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_"); field.setAccessible(true);
         @SuppressWarnings("unchecked") var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());
         var previous = players.put(player.getUUID(), player);
         try {
@@ -123,7 +123,7 @@ public final class SingularityConstructionGameTests {
                 service.addGlobalStorageProvider(provider);
                 var player = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("c1a04a02-226a-408d-ae05-71c41b14ebf6"), "SingularityMeVerifier"));
                 player.setPos(anchor.getX() + .5, anchor.getY() + 1, anchor.getZ() - 1); player.setGameMode(GameType.SURVIVAL);
-                var field = PlayerList.class.getDeclaredField("playersByUUID"); field.setAccessible(true);
+                var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_"); field.setAccessible(true);
                 @SuppressWarnings("unchecked") var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());
                 players.put(player.getUUID(), player);
                 try {

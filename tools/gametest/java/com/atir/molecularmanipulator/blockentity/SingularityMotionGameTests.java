@@ -34,7 +34,7 @@ public final class SingularityMotionGameTests {
         var chunks = SingularityStructure.chunks(anchor, Direction.NORTH);
         for (var chunk : chunks) { level.setChunkForced(chunk.x, chunk.z, true); level.getChunk(chunk.x, chunk.z); }
         var player = FakePlayerFactory.get(level, new GameProfile(UUID.randomUUID(), "MotionMigration"));
-        var field = PlayerList.class.getDeclaredField("playersByUUID"); field.setAccessible(true);
+        var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_"); field.setAccessible(true);
         @SuppressWarnings("unchecked") var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());
         players.put(player.getUUID(), player);
         SingularityBlockEntity machine = null;
@@ -101,7 +101,7 @@ public final class SingularityMotionGameTests {
         for (var air : SingularityStructure.requiredAir()) level.setBlock(SingularityStructure.worldPos(ANCHOR, Direction.NORTH, air), Blocks.AIR.defaultBlockState(), 2);
         var machine = (SingularityBlockEntity) level.getBlockEntity(ANCHOR);
         var player = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("cc6f0f85-c3f9-4a09-b398-ecadbf66fabc"), "SingularityRider"));
-        var field = PlayerList.class.getDeclaredField("playersByUUID"); field.setAccessible(true);
+        var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_"); field.setAccessible(true);
         @SuppressWarnings("unchecked") var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());
         players.put(player.getUUID(), player);
         try {

@@ -1,8 +1,8 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.8-forge**.
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.7-forge**.
 Target: Minecraft **1.20.1** / Forge, Java **17**, AE2 **15.4.10 / UELM 15.5.4**, and the
-required prerequisite AppliedEnhancements **1.1.1-forge**. The Mod ID stays
+required prerequisite AppliedEnhancements **1.1.0-forge**. The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
@@ -163,9 +163,11 @@ not migrate completion counts stored on existing controllers.
 
 Paths follow JSON Pointer: `/inputs/items` selects a nested field, `/inputs/0` selects
 the first array entry, and the empty string selects the whole recipe. Escape `/` in
-field names as `~1` and `~` as `~0`. Paths refer to JSON **re-encoded by the source
-recipe serializer**; serializers may omit defaults, so this can differ from the
-original KubeJS JSON. Arrays are read entry by entry. Alternative item ingredients
+field names as `~1` and `~` as `~0`. Forge paths use retained reload JSON, including
+KubeJS's final added/modified recipe JSON after script processing. Recipes replaced
+through a Java-only path fall back to data-field encoding, excluding runtime/context
+fields. Integrations should prefer registered JSON definitions; unreadable fallback
+recipes are skipped with a rate-limited warning. Arrays are read entry by entry. Alternative item ingredients
 belong inside `ingredient`, for example
 `{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`.
 Explicit paths must be readable, arrays nonempty, and amounts positive integers.
@@ -537,7 +539,7 @@ the recipe ID, so unstarted batches re-check the current recipe, permission and
 profile instead of reusing old figures. Work that can no longer proceed keeps its
 materials inside the assembly and can be returned as pending input.
 
-### 7.1 Known limitations in 2.0.8-forge
+### 7.1 Known limitations in 2.0.7-forge
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.

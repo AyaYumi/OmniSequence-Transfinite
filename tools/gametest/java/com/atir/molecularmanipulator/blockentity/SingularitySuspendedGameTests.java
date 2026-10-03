@@ -108,7 +108,7 @@ public final class SingularitySuspendedGameTests {
             System.out.println("SINGULARITY_SUSPENDED_MOTION_PASS classicCompatible=true queueReload=true dockFirst=true autoBuild=true restartBodies=11 bounds=true");h.succeed();
         }finally{if(machine!=null)machine.motion().clear();level.setBlock(anchor,Blocks.AIR.defaultBlockState(),3);players.remove(player.getUUID());for(var c:chunks)level.setChunkForced(c.x,c.z,false);}
     }
-    @SuppressWarnings("unchecked") private static Map<UUID,ServerPlayer> players(ServerLevel level)throws Exception{var f=PlayerList.class.getDeclaredField("playersByUUID");f.setAccessible(true);return (Map<UUID,ServerPlayer>)f.get(level.getServer().getPlayerList());}
+    @SuppressWarnings("unchecked") private static Map<UUID,ServerPlayer> players(ServerLevel level)throws Exception{var f=net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_");f.setAccessible(true);return (Map<UUID,ServerPlayer>)f.get(level.getServer().getPlayerList());}
     private static void near(ServerPlayer p,BlockPos pos){p.setPos(pos.getX()+.5,pos.getY()+1,pos.getZ()-2);}
     private static void advance(ServerLevel l){((ServerLevelData)l.getLevelData()).setGameTime(l.getGameTime()+1);}
     private static SingularityBlockEntity reload(ServerLevel l,SingularityBlockEntity m){var p=m.getBlockPos();var t=m.saveWithFullMetadata();var s=m.getBlockState();m.motion().discardBodies();l.removeBlockEntity(p);var r=(SingularityBlockEntity)BlockEntity.loadStatic(p,s,t);l.setBlockEntity(r);return r;}

@@ -143,7 +143,7 @@ public final class MatterRecipeLookupGameTests {
                         ? "molecularmanipulator:matter_fabrication" : "molecularmanipulator:matter_research");
                 data.put(holder.getId(), json);
             }
-            var apply = RecipeManager.class.getDeclaredMethod("apply", Map.class, ResourceManager.class, ProfilerFiller.class); apply.setAccessible(true);
+            var apply = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findMethod(RecipeManager.class, "m_5787_", Map.class, ResourceManager.class, ProfilerFiller.class); apply.setAccessible(true);
             apply.invoke(manager, data, level.getServer().getResourceManager(), InactiveProfiler.INSTANCE);
             otherController.getResearch().load(new CompoundTag());
             helper.assertTrue(MatterResearchApi.canUseRecipe(otherController, first) && !MatterResearchApi.canUseRecipe(otherController, second),

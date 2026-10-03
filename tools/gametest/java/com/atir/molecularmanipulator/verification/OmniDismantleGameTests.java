@@ -44,7 +44,7 @@ public final class OmniDismantleGameTests {
         var player = FakePlayerFactory.get(level,
                 new GameProfile(UUID.fromString("bb640ace-12c8-4b60-a710-0a94177c0193"), "OmniDismantle"));
         player.setGameMode(GameType.CREATIVE);
-        var field = PlayerList.class.getDeclaredField("playersByUUID");
+        var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_");
         field.setAccessible(true);
         @SuppressWarnings("unchecked")
         var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());

@@ -256,7 +256,7 @@ def verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi'
         new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
             if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null
                     || archive.getEntry('com/appliedenhancements/api/AelisSmartDoublingApi.class') == null) {
-                throw new GradleException('The AppliedEnhancements JAR lacks the required 1.1.1 transaction/smart-doubling API. See libs/README.md')
+                throw new GradleException('The AppliedEnhancements JAR lacks the required updated 1.1.0-forge transaction/smart-doubling API. See libs/README.md')
             }
         }
     }
@@ -278,6 +278,38 @@ idea {
 reobf { jarJar {} }
 tasks.named("jarJar").configure { finalizedBy "reobfJarJar" }
 tasks.named("build").configure { dependsOn "jarJar" }
+
+// Development runs use named Minecraft classes and can hide a missing refmap link.
+// Validate the reobfuscated distributable, rather than only compiler output.
+def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
+    dependsOn tasks.named('reobfJarJar')
+    def releaseJar = tasks.named('jarJar', Jar).flatMap { it.archiveFile }
+    inputs.file(releaseJar)
+    doLast {
+        new java.util.zip.ZipFile(releaseJar.get().asFile).withCloseable { archive ->
+            def parser = new groovy.json.JsonSlurper()
+            def config = parser.parse(archive.getInputStream(archive.getEntry("${mod_id}.mixins.json")), 'UTF-8')
+            def refmapName = "${mod_id}.refmap.json"
+            if (config.refmap != refmapName || archive.getEntry(refmapName) == null) {
+                throw new GradleException('Release Mixin configuration must reference the packaged Forge refmap')
+            }
+            def refmap = parser.parse(archive.getInputStream(archive.getEntry(refmapName)), 'UTF-8')
+            [
+                'SingularityEntityCollisionMixin': ['tick', 'm_8119_'],
+                'SingularityPlayerCarriageMixin': ['tick', 'm_9933_'],
+                'ForgeMachineRecipeJsonMixin': ['apply', 'm_5787_'],
+                'ResponsiveScreenBackgroundMixin': ['renderBackground', 'm_280273_'],
+                'RecipeManagerAccessor': ['byName', 'f_199900_']
+            ].each { mixin, target ->
+                def mapping = refmap.mappings["com/atir/molecularmanipulator/mixin/${mixin}"]?[target[0]]
+                if (!(mapping instanceof String) || !mapping.contains(target[1])) {
+                    throw new GradleException("Missing production Forge mapping for ${mixin}.${target[0]}")
+                }
+            }
+        }
+    }
+}
+tasks.named('check').configure { dependsOn verifyReleaseMixins }
 
 // Public contracts are documented independently from Minecraft implementation classes.
 tasks.register('apiJavadoc', Javadoc) {

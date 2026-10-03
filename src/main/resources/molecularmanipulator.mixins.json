@@ -1,6 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8",
+  "refmap": "molecularmanipulator.refmap.json",
   "package": "com.atir.molecularmanipulator.mixin",
   "plugin": "com.atir.molecularmanipulator.mixin.MolecularManipulatorMixinPlugin",
   "compatibilityLevel": "JAVA_17",
@@ -34,8 +35,10 @@
     "UselessExactOutputReturnMixin",
     "ExtendedAEPlusPatternUploadMixin",
     "ForgeMachineRecipeJsonMixin",
+    "KubeJsMachineRecipeJsonMixin",
     "RecipeManagerAccessor",
-    "SingularityLevelCollisionMixin"
+    "SingularityLevelCollisionMixin",
+    "RadiumSingularityCollisionMixin"
   ],
   "client": [
     "CPUSelectionListMixin",

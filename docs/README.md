@@ -1,7 +1,11 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.8-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
-Java **17**, AE2 **15.4.10 / UELM 15.5.4**, revised AppliedEnhancements **1.1.1-forge**.
+Current updated build keeps the 2.0.7-forge version requested by the maintainer and includes subsequent fixes. Use matching JAR contents on both sides, rather than relying on the version string alone.
+
+当前更新构建按维护者要求保留 2.0.7-forge 版本号，并包含后续修复。两端使用相同 JAR 内容，不能仅凭版本字符串判定构建一致。
+
+Current source: OmniSequence **2.0.7-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
+Java **17**, AE2 **15.4.10 / UELM 15.5.4**, revised AppliedEnhancements **1.1.0-forge**.
 Mod ID: `molecularmanipulator`.
 
 | Contract | English | 中文 |
@@ -14,7 +18,7 @@ Mod ID: `molecularmanipulator`.
 | Tick budgets, research/recipe caches, idle paths and performance regressions | [Performance maintenance](performance.md) | 同页中文说明 |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
-AppliedEnhancements mod. Use its matching 1.1.1-forge API documentation. Omni's internal
+AppliedEnhancements mod. Use its matching 1.1.0-forge API documentation. Omni's internal
 planner/Mixin classes are not integration entry points.
 
 Use `compileOnly` with the separate JARs and install each mod at runtime. Do not

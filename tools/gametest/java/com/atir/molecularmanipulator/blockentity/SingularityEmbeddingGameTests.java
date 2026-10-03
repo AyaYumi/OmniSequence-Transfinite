@@ -26,7 +26,7 @@ public final class SingularityEmbeddingGameTests {
     @GameTest(template = "multiblock_dismantle_empty", batch = "singularity_embedding", timeoutTicks = 1000)
     public static void protectedMigrationRefundsAndFourFacings(GameTestHelper helper) throws Exception {
         var level = helper.getLevel();
-        var field = PlayerList.class.getDeclaredField("playersByUUID"); field.setAccessible(true);
+        var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_"); field.setAccessible(true);
         @SuppressWarnings("unchecked") var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());
         int index = 0;
         for (var facing : Direction.Plane.HORIZONTAL) {
@@ -97,7 +97,7 @@ public final class SingularityEmbeddingGameTests {
         var chunks = SingularityStructure.chunks(anchor, facing, 2);
         for (var chunk : chunks) { level.setChunkForced(chunk.x, chunk.z, true); level.getChunk(chunk.x, chunk.z); }
         var player = FakePlayerFactory.get(level, new GameProfile(UUID.randomUUID(), "SingularityEmbedMotion"));
-        var field = PlayerList.class.getDeclaredField("playersByUUID"); field.setAccessible(true);
+        var field = net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_"); field.setAccessible(true);
         @SuppressWarnings("unchecked") var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList()); players.put(player.getUUID(), player);
         SingularityBlockEntity embedded = null;
         try {

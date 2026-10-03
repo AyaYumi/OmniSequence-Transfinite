@@ -64,7 +64,7 @@ public final class Legacy139MigrationGameTests {
         var level=helper.getLevel();
         var player=FakePlayerFactory.get(level,new GameProfile(UUID.fromString("6e7f53a8-7ae9-4798-b114-9081143b77c2"),"BlueprintVerifier"));
         player.setGameMode(GameType.CREATIVE);
-        var field=PlayerList.class.getDeclaredField("playersByUUID");field.setAccessible(true);
+        var field=net.minecraftforge.fml.util.ObfuscationReflectionHelper.findField(PlayerList.class, "f_11197_");field.setAccessible(true);
         @SuppressWarnings("unchecked") var players=(Map<UUID,ServerPlayer>)field.get(level.getServer().getPlayerList());
         var previous=players.put(player.getUUID(),player);
         var results=new JsonArray();

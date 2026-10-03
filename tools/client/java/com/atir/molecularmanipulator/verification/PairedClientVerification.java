@@ -38,17 +38,6 @@ public final class PairedClientVerification {
             "well", "well-research", "sequence", "molecular", "omni"};
 
     @SubscribeEvent
-    public static void screenOpening(net.minecraftforge.client.event.ScreenEvent.Opening event) {
-        com.mojang.logging.LogUtils.getLogger().info("PAIRED_CLIENT_SCREEN={}", event.getNewScreen());
-    }
-
-    @SubscribeEvent
-    public static void menuClosed(net.minecraftforge.event.entity.player.PlayerContainerEvent.Close event) {
-        com.mojang.logging.LogUtils.getLogger().info("PAIRED_CLIENT_MENU_CLOSED={} side={}",
-                event.getContainer(), event.getEntity().level().isClientSide);
-    }
-
-    @SubscribeEvent
     public static void tick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END || done) return;
         var mc = Minecraft.getInstance();
@@ -104,7 +93,12 @@ public final class PairedClientVerification {
                 if (page == NAMES.length) {
                     if (!hubSlotsPassed) throw new IllegalStateException("Server menu checks did not pass");
                     com.mojang.logging.LogUtils.getLogger().info("PAIRED_CLIENT_ALL_PASS: shaders/resources, 8 real screen pages, menu packets");
-                    done = true; mc.stop(); return;
+                    done = true;
+                    if (Boolean.getBoolean("omni.packVerification")) {
+                        Class.forName("com.atir.molecularmanipulator.verification.PackFlowVerification")
+                                .getField("menusFinished").setBoolean(null, true);
+                    } else mc.stop();
+                    return;
                 }
                 switch (page) {
                     case 0 -> open(mc, SingularityContent.CONTROLLER.get(), SingularityMenu.TYPE);

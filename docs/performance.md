@@ -14,6 +14,8 @@ NeoForge source. These rules also apply to future changes.
 | Build and dismantle | Process bounded work per tick and keep durable ownership of pending refunds |
 | Independent crafting | Cap each evaluation at 64 crafts and rotate slot/output scheduling |
 | Large-body collisions | Use the body index; reuse vanilla results immediately when no bodies are present |
+| Radium movement collisions | Add indexed Hub surfaces only when nearby; keep the original lazy query when no extra surface is present |
+| KubeJS recipe synchronization | Capture final JSON at reload, exclude runtime object graphs, and rate-limit unreadable recipes; no per-tick reflection |
 | Miniature black-hole attraction | Scan nearby entities every five ticks; apply pull every tick and recheck removal, level and bounds |
 | Storage-bus acceleration | Record slots during native enumeration; recheck item identity on every extraction retry |
 | Planner and diagnostics | Retain node/time/search budgets; diagnostics default off and repeated failures are globally rate limited |
@@ -28,6 +30,12 @@ Use [the engine suite](../tools/gametest/README.md) for both upstream AE2 and UE
 Its lookup timings describe that path only. Full modpack TPS also depends on machine
 count, active recipes, attached inventories, other mods and hardware; record MSPT
 in a representative disposable save before comparing changes.
+
+The [pack runner](../tools/pack/README.md) records server START-to-END tick time
+during asynchronous workflows. Tests which manually call many ticks or construct
+entire blueprints execute inside the END handler, outside that timer. Single-sample
+figures and setup warnings cannot establish sustained TPS. Keep raw logs and sample
+counts with any performance report.
 
 ## 中文
 

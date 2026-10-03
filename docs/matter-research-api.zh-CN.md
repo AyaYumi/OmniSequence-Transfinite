@@ -1,8 +1,8 @@
 # 物质构筑井：配方与研究 API
 
-自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.8-forge**。
+自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.7-forge**。
 目标环境：Minecraft **1.20.1** / Forge、Java **17**、AE2 **15.4.10 / UELM 15.5.4**，以及必需前置
-AppliedEnhancements **1.1.1-forge**。模组 ID 仍为 `molecularmanipulator`。
+AppliedEnhancements **1.1.0-forge**。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.zh-CN.md)。
@@ -154,8 +154,9 @@ ServerEvents.recipes(event => {
 | `ae_keys` | 从普通配方字段构造已注册 AE 资源的规则列表，见下例。 |
 
 路径遵循 JSON Pointer：`/inputs/items` 读取嵌套字段，`/inputs/0` 读取数组第一项，
-空字符串读取整个配方；字段名中的 `/` 写成 `~1`、`~` 写成 `~0`。路径必须对应源配方
-经其序列化器重新编码后的 JSON；某些序列化器会省略默认值，原始 KubeJS JSON 与编码结果可能不同。
+空字符串读取整个配方；字段名中的 `/` 写成 `~1`、`~` 写成 `~0`。Forge 读取重载时保留的
+源 JSON，包括 KubeJS 脚本完成后的新增及修改配方。仅通过 Java 替换的配方使用数据字段
+后备编码，并排除运行上下文；集成应优先注册 JSON 定义。无法编码的后备配方跳过且警告限流。
 字段值为数组时逐项读取；物品输入的可替换原料数组应放进 `ingredient`，例如
 `{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`。
 显式映射字段必须可读取、数组必须非空，数量必须是正整数。某项无法解析时整条配方跳过，
@@ -468,7 +469,7 @@ tick 功耗乘本批份数计收。
 批次保存原料所有权与配方 ID，因此未开工批次会按当前配方、权限与参数重新检查，而不是沿用
 旧数值。无法继续加工时，原料仍留在总成内，可作为待加工原料退回。
 
-### 7.1 2.0.8-forge 尚存的边界
+### 7.1 2.0.7-forge 尚存的边界
 
 - 产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。

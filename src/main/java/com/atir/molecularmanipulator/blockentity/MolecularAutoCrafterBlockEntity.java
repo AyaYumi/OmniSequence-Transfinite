@@ -246,37 +246,27 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
 
     private long flushToAdjacent(Level level) {
         if (outputSides == 0) return 0;
-        long transferred = 0;
-        for (var key : new ArrayList<>(bufferedOutputs.keySet())) {
-            long amount = bufferedOutputs.getLong(key);
-            if (amount <= 0 || !(key instanceof AEItemKey itemKey)) continue;
-            long remaining = amount;
-            for (var side : Direction.values()) {
-                if ((outputSides & 1 << side.get3DDataValue()) == 0) continue;
-                BlockPos neighbor = worldPosition.relative(side);
-                if (!level.hasChunkAt(neighbor)) continue;
-                var adjacent = level.getBlockEntity(neighbor);
-                var target = adjacent == null ? null : adjacent.getCapability(
-                        ForgeCapabilities.ITEM_HANDLER, side.getOpposite()).orElse(null);
-                if (target == null) continue;
-                while (remaining > 0) {
-                    int batch = (int) Math.min(remaining,
-                            Math.min(Integer.MAX_VALUE, itemKey.getMaxStackSize()));
-                    var remainder = ItemHandlerHelper.insertItemStacked(
-                            target, itemKey.toStack(batch), false);
-                    int accepted = batch - remainder.getCount();
-                    if (accepted <= 0) break;
-                    remaining -= accepted;
-                    transferred += accepted;
-                    if (accepted < batch) break;
-                }
-                if (remaining == 0) break;
-            }
-            if (remaining == 0) bufferedOutputs.removeLong(key);
-            else if (remaining != amount) bufferedOutputs.put(key, remaining);
-        }
-        if (transferred > 0) saveChanges();
-        return transferred;
+        var result = outputTransferScheduler.flush(bufferedOutputs, AEKeyTransferScheduler.defaultBudget(),
+                (key, amount) -> {
+                    if (!(key instanceof AEItemKey itemKey)) return 0;
+                    int requested = (int) Math.min(amount, itemKey.getMaxStackSize());
+                    int remaining = requested;
+                    for (var side : Direction.values()) {
+                        if (remaining == 0) break;
+                        if ((outputSides & 1 << side.get3DDataValue()) == 0) continue;
+                        BlockPos neighbor = worldPosition.relative(side);
+                        if (!level.hasChunkAt(neighbor)) continue;
+                        var neighborEntity = level.getBlockEntity(neighbor);
+                        var target = neighborEntity == null ? null : neighborEntity.getCapability(
+                                net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER, side.getOpposite()).orElse(null);
+                        if (target == null) continue;
+                        var remainder = ItemHandlerHelper.insertItemStacked(target, itemKey.toStack(remaining), false);
+                        remaining = remainder.getCount();
+                    }
+                    return requested - remaining;
+                });
+        if (result.changed()) saveChanges();
+        return result.transferred();
     }
 
     public boolean hasRemovalRecovery() {
@@ -357,4 +347,12 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         NETWORK,
         ADJACENT
     }
+    @Override
+    public void flushAutoCraftOutputsAfterControlChange() {
+        Level level = getLevel();
+        if (level != null && !level.isClientSide() && !assembling) {
+            flushOutputs(level);
+        }
+    }
+
 }

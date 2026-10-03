@@ -46,6 +46,7 @@ public final class MatterFabricationPortBlockEntity extends AEBaseBlockEntity {
     private final ItemStackHandler inventory = new ItemStackHandler(ITEM_SLOTS) {
         @Override
         protected void onContentsChanged(int slot) {
+            contentsRevision++;
             saveChanges();
         }
     };
@@ -78,6 +79,8 @@ public final class MatterFabricationPortBlockEntity extends AEBaseBlockEntity {
     private boolean autoOutput;
     private int outputSides;
     private long nextOutputTick;
+    private long contentsRevision;
+    public long contentsRevision() { return contentsRevision; }
 
     public MatterFabricationPortBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MATTER_FABRICATION_PORT_BE.get(), pos, state);
@@ -132,8 +135,13 @@ public final class MatterFabricationPortBlockEntity extends AEBaseBlockEntity {
         if (!(level.getBlockEntity(controllerPos) instanceof MatterFabricationBlockEntity machine) || !machine.isStructureFormed()) return null;
         var facing = machine.getBlockState().getValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING);
         // Packed interfaces can carry a previous controller coordinate; require a current physical service bay.
-        return MatterFabricationStructure.patternAssemblyBays().stream()
-                .anyMatch(bay -> MatterFabricationStructure.worldPos(controllerPos, facing, bay).equals(worldPosition)) ? machine : null;
+        int dx = worldPosition.getX() - controllerPos.getX(), dz = worldPosition.getZ() - controllerPos.getZ();
+        var right = facing.getClockWise(); var back = facing.getOpposite();
+        var part = new MatterFabricationStructure.Part(dx * right.getStepX() + dz * right.getStepZ(),
+                worldPosition.getY() - controllerPos.getY() + MatterFabricationStructure.CONTROLLER_Y,
+                dx * back.getStepX() + dz * back.getStepZ() + MatterFabricationStructure.CONTROLLER_Z,
+                MatterFabricationStructure.PartType.CASING);
+        return MatterFabricationStructure.isPatternAssemblyBay(part) ? machine : null;
     }
 
     public boolean isNetworkOnline() {
@@ -290,6 +298,7 @@ public final class MatterFabricationPortBlockEntity extends AEBaseBlockEntity {
 
     @Override
     public void loadTag(CompoundTag tag) {
+        contentsRevision++;
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag);
         inventory.deserializeNBT(tag.getCompound(INVENTORY_TAG));
@@ -388,6 +397,7 @@ public final class MatterFabricationPortBlockEntity extends AEBaseBlockEntity {
             result[index] = new FluidTank(FLUID_CAPACITY) {
                 @Override
                 protected void onContentsChanged() {
+                    contentsRevision++;
                     saveChanges();
                 }
             };

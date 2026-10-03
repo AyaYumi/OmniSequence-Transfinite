@@ -87,6 +87,9 @@ class MolecularCenter139RestoreTest {
             }
         }
         for (var part : target) {
+            if (part.partType() == MolecularCenterStructure.PartType.AIR) {
+                continue;
+            }
             expected.add(key(part));
             targetByPosition.put(key(part), part);
         }

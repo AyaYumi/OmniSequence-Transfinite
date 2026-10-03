@@ -25,6 +25,8 @@ public final class MatterFabricationMenu extends AEBaseMenu {
     private static final String ACTION_UPDATE_STRUCTURE = "update_structure";
     private static final String ACTION_RESEARCH = "toggle_research";
     private static final String ACTION_RESEARCH_ORDER = "order_research_materials";
+    private static final String ACTION_RESEARCH_ORDER_MAX = "order_research_max";
+    private static final String ACTION_RESEARCH_STOP = "stop_research_preparation";
     private static final String ACTION_RESEARCH_PAGE = "research_page";
     private static final String ACTION_RESEARCH_SELECT = "select_research";
 
@@ -107,6 +109,8 @@ public final class MatterFabricationMenu extends AEBaseMenu {
         registerClientAction(ACTION_UPDATE_STRUCTURE, this::updateStructure);
         registerClientAction(ACTION_RESEARCH, String.class, this::toggleResearch);
         registerClientAction(ACTION_RESEARCH_ORDER, String.class, this::orderResearchMaterials);
+        registerClientAction(ACTION_RESEARCH_ORDER_MAX,String.class,researchId->orderResearchMaterials(researchId,true));
+        registerClientAction(ACTION_RESEARCH_STOP,String.class,this::stopResearchPreparation);
         registerClientAction(ACTION_RESEARCH_PAGE, Boolean.class, this::showResearchPage);
         registerClientAction(ACTION_RESEARCH_SELECT, String.class, this::selectResearch);
     }
@@ -150,20 +154,23 @@ public final class MatterFabricationMenu extends AEBaseMenu {
         }
     }
 
-    public void orderResearchMaterials(String researchId) {
-        if (isClientSide()) {
-            sendClientAction(ACTION_RESEARCH_ORDER, researchId);
-        } else if (getPlayer().mayBuild()) {
-            var id = ResourceLocation.tryParse(researchId);
-            if (id != null) {
-                MatterResearchApi.orderMissing(machine, id);
-                syncResearch();
-            }
+    public void orderResearchMaterials(String researchId) { orderResearchMaterials(researchId,false); }
+    public void orderResearchMaterials(String researchId,boolean toMaximum) {
+        if(isClientSide()) {sendClientAction(toMaximum?ACTION_RESEARCH_ORDER_MAX:ACTION_RESEARCH_ORDER,researchId);}
+        else if(getPlayer().mayBuild()) {
+            var id=ResourceLocation.tryParse(researchId);
+            if(id!=null){MatterResearchApi.orderMissing(machine,id,toMaximum);syncResearch();}
         }
     }
-
-    public void requestResearchOrder(String id) {
-        if (isClientSide()) sendClientAction(ACTION_RESEARCH_ORDER, id);
+    public void stopResearchPreparation(String researchId) {
+        if(isClientSide())sendClientAction(ACTION_RESEARCH_STOP,researchId);
+        else if(getPlayer().mayBuild()) {
+            var id=ResourceLocation.tryParse(researchId);if(id!=null) {MatterResearchApi.stopPreparation(machine,id);syncResearch();}
+        }
+    }
+    public void requestResearchOrder(String id) {requestResearchOrder(id,false);}
+    public void requestResearchOrder(String id,boolean toMaximum) {
+        if(isClientSide())sendClientAction(toMaximum?ACTION_RESEARCH_ORDER_MAX:ACTION_RESEARCH_ORDER,id);
     }
 
     public void requestRefresh() {

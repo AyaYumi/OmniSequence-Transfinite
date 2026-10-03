@@ -1,0 +1,18 @@
+{
+  "replace": false,
+  "values": [
+    "molecularmanipulator:event_horizon_singularity_hub",
+    "molecularmanipulator:singularity_base_casing",
+    "molecularmanipulator:gravity_gilded_block",
+    "molecularmanipulator:spacetime_anchor_pillar",
+    "molecularmanipulator:singularity_ring_track",
+    "molecularmanipulator:event_horizon_lens",
+    "molecularmanipulator:event_horizon_flux_pillar",
+    "molecularmanipulator:black_hole_capture_node",
+    "molecularmanipulator:white_hole_resource_core",
+    "molecularmanipulator:event_horizon_stabilizer",
+    "molecularmanipulator:singularity_crystal_tower",
+    "molecularmanipulator:singularity_base_stairs",
+    "molecularmanipulator:singularity_base_slab"
+  ]
+}

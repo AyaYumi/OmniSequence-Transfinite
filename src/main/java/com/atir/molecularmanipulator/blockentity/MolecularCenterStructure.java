@@ -163,6 +163,9 @@ public final class MolecularCenterStructure {
             result.put(new LocalPos(cleanup.x(), cleanup.y(), cleanup.z()), cleanup);
         }
         for (var target : PARTS) {
+            if (target.partType() == PartType.AIR) {
+                continue;
+            }
             result.put(new LocalPos(target.x(), target.y(), target.z()), target);
         }
         return List.copyOf(result.values());
@@ -473,7 +476,12 @@ public final class MolecularCenterStructure {
             if (old.partType() != PartType.AIR) result.put(new LocalPos(old.x(), old.y(), old.z()),
                     new Part(old.x(), old.y(), old.z(), PartType.AIR));
         }
-        for (var part : PARTS) result.put(new LocalPos(part.x(), part.y(), part.z()), part);
+        for (var part : PARTS) {
+            if (part.partType() == PartType.AIR) {
+                continue;
+            }
+            result.put(new LocalPos(part.x(), part.y(), part.z()), part);
+        }
         return List.copyOf(result.values());
     }
 

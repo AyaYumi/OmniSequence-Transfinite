@@ -1,0 +1,30 @@
+{
+  "variants": {
+    "facing=up": {
+      "model": "molecularmanipulator:block/singularity_crystal_tower"
+    },
+    "facing=down": {
+      "model": "molecularmanipulator:block/singularity_crystal_tower",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "molecularmanipulator:block/singularity_crystal_tower",
+      "x": 90
+    },
+    "facing=south": {
+      "model": "molecularmanipulator:block/singularity_crystal_tower",
+      "x": 90,
+      "y": 180
+    },
+    "facing=east": {
+      "model": "molecularmanipulator:block/singularity_crystal_tower",
+      "x": 90,
+      "y": 90
+    },
+    "facing=west": {
+      "model": "molecularmanipulator:block/singularity_crystal_tower",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

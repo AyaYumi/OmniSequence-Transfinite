@@ -14,12 +14,12 @@
               "ops": [
                 {
                   "source": "fabrication_research",
-                  "target": "BlockEntityTag.fabrication_research",
+                  "target": "fabrication_research",
                   "op": "replace"
                 },
                 {
                   "source": "fabrication_owned_batch",
-                  "target": "BlockEntityTag.fabrication_owned_batch",
+                  "target": "fabrication_owned_batch",
                   "op": "replace"
                 }
               ]

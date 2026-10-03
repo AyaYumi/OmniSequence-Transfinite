@@ -40,8 +40,8 @@
   ],
   "results": [
     {
-      "count": 1,
-      "item": "molecularmanipulator:transfinite_compute_nexus"
+      "id": "molecularmanipulator:transfinite_compute_nexus",
+      "count": 1
     }
   ],
   "processing_time": 1200,

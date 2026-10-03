@@ -4,18 +4,12 @@ import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
-import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
 import com.atir.molecularmanipulator.integration.useless.UselessBigIntegerApiBridge;
-import appeng.api.upgrades.Upgrades;
-import appeng.core.definitions.AEItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import org.slf4j.Logger;
 
 @Mod(MolecularManipulator.MOD_ID)
@@ -31,20 +25,12 @@ public final class MolecularManipulator {
         modEventBus.addListener(this::commonSetup);
         PatternSearchIndexPayload.register();
         com.atir.molecularmanipulator.network.MachineRecipeJsonPayload.register();
-        MatterSequenceRegistry.loadOrCreate();
-        MinecraftForge.EVENT_BUS.addListener(this::serverAboutToStart);
-    }
-
-
-    private void serverAboutToStart(ServerAboutToStartEvent event) {
-        MatterSequenceRegistry.loadOrCreate();
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             UselessBigIntegerApiBridge.register();
             validateMixins();
-            Upgrades.add(AEItems.SPEED_CARD, ModContent.MOLECULAR_CENTER_CONTROLLER.get(), 4);
             ModContent.bindBlockEntity();
         });
     }

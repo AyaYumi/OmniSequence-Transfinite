@@ -10,6 +10,7 @@ import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputAdapterRegistry;
 import com.atir.molecularmanipulator.crafting.AdvancedAEBatchDispatch;
 import com.atir.molecularmanipulator.crafting.AdvancedAEBatchDispatch.TaskAdjustment;
@@ -43,6 +44,7 @@ import java.util.Set;
 @Pseudo
 @Mixin(targets = "net.pedroksl.advanced_ae.common.logic.AdvCraftingCPULogic", remap = false)
 public abstract class AdvancedAECraftingCpuLogicMixin {
+    @Unique private AelisBatchExecutionContext molecularmanipulator$cycleBatch;
     @Unique
     private final AdvancedAEBatchDispatch molecularmanipulator$apiDispatch = new AdvancedAEBatchDispatch();
 
@@ -142,6 +144,9 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         if (!molecularmanipulator$apiDispatch.allowExtraction()) {
             return null;
         }
+        molecularmanipulator$cycleBatch = AelisBatchExecutionContext.acquire(patternDetails.getDefinition(), inventory);
+        inventory = molecularmanipulator$cycleBatch.inventory();
+        if (inventory == null) return null;
         var firstInputs = original.call(patternDetails, inventory, level, expectedOutputs,
                 expectedContainerItems);
         if (firstInputs == null) {
@@ -154,7 +159,8 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
             return firstInputs;
         }
 
-        long remainingCrafts = molecularmanipulator$getRemainingCrafts(patternDetails);
+        long remainingCrafts = Math.min(molecularmanipulator$getRemainingCrafts(patternDetails),
+                molecularmanipulator$cycleBatch.maximumCrafts());
         long waitingLimit = AdvancedAEBatchDispatch.waitingLimit(expectedOutputs, expectedContainerItems, this::getWaitingFor);
         if (waitingLimit == 0) {
             CraftingCpuHelper.reinjectPatternInputs(inventory, firstInputs);
@@ -187,7 +193,7 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
                             craftingService, patternDetails, firstInputs);
             long reusableMaxCrafts = Math.min(
                     remainingCrafts, reusableBatchLimit);
-            if (reusableMaxCrafts > 1) {
+            if (reusableMaxCrafts > 1 && !molecularmanipulator$cycleBatch.hasCycleProtection()) {
                 extraction = MolecularBatchCraftingExtractor.expandFromFirst(
                         patternDetails, inventory, energyService, level,
                         firstInputs, expectedOutputs, expectedContainerItems,
@@ -221,6 +227,30 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
             target = "Lappeng/api/networking/crafting/ICraftingProvider;pushPattern(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;)Z"))
     private boolean molecularmanipulator$pushBatch(ICraftingProvider provider, IPatternDetails patternDetails,
+            KeyCounter[] inputs, Operation<Boolean> original) {
+        var context = molecularmanipulator$cycleBatch;
+        if (context == null || !context.hasCycleProtection()) {
+            return molecularmanipulator$pushBatchWithinCycle(provider, patternDetails, inputs, original);
+        }
+        var extraction = molecularmanipulator$batchExtraction;
+        long crafts = extraction != null && molecularmanipulator$batchPattern == patternDetails
+                && extraction.inputs() == inputs ? extraction.craftCount() : 1;
+        AelisBatchExecutionContext.Dispatch dispatch;
+        try {
+            dispatch = context.beginDispatch(inputs, crafts);
+        } catch (IllegalStateException invalidBatch) {
+            RateLimitedLog.warn("Rejected invalid cyclic AdvancedAE batch", invalidBatch);
+            return false;
+        }
+        try (dispatch) {
+            boolean accepted = molecularmanipulator$pushBatchWithinCycle(provider, patternDetails, inputs, original);
+            if (accepted) dispatch.accepted();
+            return accepted;
+        }
+    }
+
+    @Unique
+    private boolean molecularmanipulator$pushBatchWithinCycle(ICraftingProvider provider, IPatternDetails patternDetails,
             KeyCounter[] inputs, Operation<Boolean> original) {
         var extraction = molecularmanipulator$batchExtraction;
         if (extraction == null || molecularmanipulator$batchPattern != patternDetails
@@ -507,12 +537,13 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$reflectionAvailable = false;
         if (!molecularmanipulator$reflectionFailureLogged) {
             molecularmanipulator$reflectionFailureLogged = true;
-            MolecularManipulator.LOGGER.error("AdvancedAE quantum CPU batching was disabled", exception);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error("AdvancedAE quantum CPU batching was disabled", exception);
         }
     }
 
     @Unique
     private void molecularmanipulator$clearBatch() {
+        molecularmanipulator$cycleBatch = null;
         molecularmanipulator$apiDispatch.close();
         molecularmanipulator$batchPattern = null;
         molecularmanipulator$batchExtraction = null;

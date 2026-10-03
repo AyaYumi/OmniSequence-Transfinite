@@ -58,6 +58,14 @@ public final class OmniComputationStructure {
         return PARTS;
     }
 
+    public static int structureBlockCount() {
+        return structureBlockCount(PARTS);
+    }
+
+    private static int structureBlockCount(List<Part> parts) {
+        return (int) parts.stream().filter(part -> part.type() != PartType.AIR).count();
+    }
+
     public static List<Part> parts(StructureLayout layout) {
         return layout == StructureLayout.LEGACY_1_3_9 ? LEGACY_PARTS : PARTS;
     }
@@ -76,7 +84,8 @@ public final class OmniComputationStructure {
     }
 
     public static List<Part> buildParts(StructureLayout layout) {
-        return layout.requiresUpdate() ? migrationParts(layout) : PARTS;
+        return layout.requiresUpdate() ? migrationParts(layout)
+                : PARTS.stream().filter(part -> part.type() != PartType.AIR).toList();
     }
 
     public static List<Part> migrationParts(StructureLayout fromLayout) {
@@ -188,9 +197,10 @@ public final class OmniComputationStructure {
 
     private static Inspection inspectLayout(Level level, BlockPos controller, Direction facing,
             List<Part> parts, StructureLayout layout) {
+        int totalBlocks = structureBlockCount(parts);
         if (!isWithinBuildHeight(level, controller, layout)
                 || !areRequiredChunksLoaded(level, controller, facing, layout)) {
-            return new Inspection(parts.size(), 0, parts.size(), 0, false, layout);
+            return new Inspection(totalBlocks, 0, totalBlocks, 0, false, layout);
         }
         int correct = 0;
         int missing = 0;
@@ -206,11 +216,8 @@ public final class OmniComputationStructure {
                 continue;
             }
             if (part.type() == PartType.AIR) {
-                if (state.isAir()) {
-                    correct++;
-                } else {
-                    conflicts++;
-                }
+                // AIR entries are clearance hints only. They never count as
+                // structure blocks and never make a partial build conflict.
                 continue;
             }
             if (state.is(block(part.type()))) {
@@ -221,8 +228,8 @@ public final class OmniComputationStructure {
                 conflicts++;
             }
         }
-        return new Inspection(parts.size(), correct, missing, conflicts,
-                correct == parts.size(), layout);
+        return new Inspection(totalBlocks, correct, missing, conflicts,
+                correct == totalBlocks && conflicts == 0, layout);
     }
 
     public static Block block(PartType type) {
@@ -255,7 +262,13 @@ public final class OmniComputationStructure {
 
     public static int countDismantlableBlocks(Level level, BlockPos controller,
             Direction facing, StructureLayout layout) {
-        return dismantleEntries(level, controller, facing, layout).size();
+        int count = 0;
+        for (var part : parts(layout)) {
+            if (part.type() == PartType.AIR || part.type() == PartType.CONTROLLER) continue;
+            var pos = worldPos(controller, facing, part, layout);
+            if (!pos.equals(controller) && level.hasChunkAt(pos) && level.getBlockState(pos).is(block(part.type()))) count++;
+        }
+        return count;
     }
 
     public static List<DismantlePlan.Entry> dismantleEntries(Level level, BlockPos controller,
@@ -283,6 +296,9 @@ public final class OmniComputationStructure {
             }
         }
         for (var part : PARTS) {
+            if (part.type() == PartType.AIR) {
+                continue;
+            }
             result.put(new LocalPos(part.x(), part.y(), part.z()), part);
         }
         return List.copyOf(result.values());

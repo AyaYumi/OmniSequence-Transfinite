@@ -4,6 +4,14 @@
     {
       "type": "forge:mod_loaded",
       "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:concurrent_processor"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:ex_molecular_assembler"
     }
   ],
   "ingredients": [
@@ -15,13 +23,13 @@
     },
     {
       "ingredient": {
-        "item": "ae2:engineering_processor"
+        "item": "expatternprovider:concurrent_processor"
       },
       "count": 4
     },
     {
       "ingredient": {
-        "tag": "forge:dusts/fluix"
+        "tag": "c:dusts/fluix"
       },
       "count": 4
     },

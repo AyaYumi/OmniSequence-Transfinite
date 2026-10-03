@@ -66,6 +66,24 @@ public final class ResearchMaterialAllocator {
         return result;
     }
 
+    /** Exact remaining demands after maximum allocation, including overlapping tags. */
+    public static <K> List<Long> deficits(List<Long> requirements, Map<K, Long> available, BiPredicate<Integer, K> accepts) {
+        var keys = available.entrySet().stream().filter(entry -> entry.getValue() > 0).map(Map.Entry::getKey).toList();
+        int source = 0, itemStart = 1 + requirements.size(), sink = itemStart + keys.size();
+        var graph = new Flow(sink + 1);
+        var demands = new ArrayList<Edge>();
+        for (int i = 0; i < requirements.size(); i++) {
+            long needed = requirements.get(i);
+            if (needed < 0) throw new IllegalArgumentException("Negative material requirement");
+            demands.add(graph.add(source, 1 + i, needed));
+            for (int j = 0; j < keys.size(); j++) if (needed > 0 && accepts.test(i, keys.get(j)))
+                graph.add(1 + i, itemStart + j, needed);
+        }
+        for (int j = 0; j < keys.size(); j++) graph.add(itemStart + j, sink, available.get(keys.get(j)));
+        graph.run(source, sink);
+        return demands.stream().map(edge -> edge.remaining).toList();
+    }
+
     private static final class Edge {
         final int to, reverse;
         long remaining;

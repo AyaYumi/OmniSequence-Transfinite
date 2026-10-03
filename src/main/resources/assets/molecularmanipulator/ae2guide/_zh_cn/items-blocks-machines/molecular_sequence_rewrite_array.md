@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: 分子构序重写阵列
+  title: "分子构序重写阵列"
   icon: molecularmanipulator:molecular_manipulator
   position: 1000
 item_ids:
@@ -10,40 +10,42 @@ item_ids:
 
 # 分子构序重写阵列
 
-<BlockImage id="molecularmanipulator:molecular_manipulator" scale="8" />
+在方块内部执行合成、锻造和切石样板，为 ME 自动合成提供高吞吐量加工。
 
-分子构序重写阵列是一台高吞吐量[自动合成](ae2:ae2-mechanics/autocrafting.md)设备。它像 <ItemLink id="ae2:pattern_provider" /> 一样保存已编码样板，但会在方块内部执行所有分子装配室兼容配方，无需把原料发送给相邻机器。
+<Row>
+<BlockImage id="molecularmanipulator:molecular_manipulator" scale="4" />
 
-| 项目 | 数值 |
+<ItemImage id="ae2:crafting_pattern" scale="4" />
+
+<ItemImage id="ae2:smithing_table_pattern" scale="4" />
+
+<ItemImage id="ae2:stonecutting_pattern" scale="4" />
+</Row>
+
+## 接入合成网络
+
+1. 在构筑井完成**二阶：构序阵列**研究并制作本方块。
+2. 放置阵列，接入有电、有空闲频道的 ME 网络。
+3. 放入已编码的合成、锻造或切石样板，用翻页按钮管理样板库。
+4. 在 ME 终端请求产物，阵列自动收料并执行配方。
+
+| 能力 | 说明 |
 | --- | --- |
-| 样板库存 | 10 页 × 每页 36 槽 = 360 个样板槽 |
-| 接受的样板 | 已编码的合成、锻造与切石样板 |
-| 逻辑批量上限 | `Long.MAX_VALUE` |
-| 解锁方式 | 二阶：构序阵列 |
+| 样板库 | 10 页，每页 36 槽，共 360 槽 |
+| 内部执行 | 合成、锻造、切石 |
+| 外部加工 | 使用处理样板、样板供应器与对应机器 |
+| 解锁来源 | 构筑井的构序阵列研究分支 |
 
-## 使用方法
+## 大批量合成
 
-1. 先在[物质构筑井](matter_fabrication_well.md)完成“二阶：构序阵列”的首次研究，再用构筑井制作本机器。
-2. 将阵列接入有可用频道且已经供电的 [ME 网络](ae2:ae2-mechanics/me-network-connections.md)。
-3. 右键打开界面，放入已编码的合成、锻造或切石样板。
-4. 使用翻页按钮管理固定样板库存。
-5. 像平常一样在 ME 终端中发起对应产物的自动合成。
+逻辑批量上限约 **9.22E 次**。符合条件的配方可在 1 tick 内完成一批，实际份数由材料、能源和 ME 接收空间决定。
 
-> 研究提升的是本机器制作配方在构筑井中的加工能力，不改变放置后的阵列性能。
-> 阵列不能在内部执行处理样板；此类配方仍需使用普通样板供应器和外部机器。
+高并行不会省略原料、工具返还或合成能耗。构筑井深度研究的速度加成只影响构筑井配方。
 
-## 配方处理与输出
+## 网络满了怎么办
 
-逻辑批量并行上限为 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。
-
-> 实际批量受原料、能量和产物剩余容量限制；材料及产物数量的加法、乘法溢出会被拒绝。
-
-阵列使用虚拟高并行处理，受支持的配方最快可在 1 Tick 内完成。实际吞吐量仍取决于原料、ME 能量，以及网络是否能接收产物。
-
-配方产物、中间产物和容器返还会按 AE Key 聚合并送回 ME 网络。网络暂时无法接收时，阵列会把它们保存在持久化输出缓冲中并继续重试；世界重新加载后缓冲也不会丢失。
-
-正常拆下阵列时，样板、库存和待返还内容会随掉落方块保留。重新放置并恢复 ME 连接后继续处理。
+产物与返还物先保存，再尝试送回 ME。输出空间不足时保留并重试；正常拆下方块时，样板和未完成内容随方块携带。
 
 ## 配方
 
-<RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="当前整合包未提供此配方，请查看 JEI 或研究配置。" />
+<RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />

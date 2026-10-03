@@ -4,12 +4,20 @@
     {
       "type": "forge:mod_loaded",
       "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:machine_frame"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:wireless_connect"
     }
   ],
   "ingredients": [
     {
       "ingredient": {
-        "item": "expatternprovider:assembler_matrix_frame"
+        "item": "expatternprovider:machine_frame"
       },
       "count": 1
     },

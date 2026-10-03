@@ -4,6 +4,14 @@
     {
       "type": "forge:mod_loaded",
       "modid": "advanced_ae"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_alloy"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_processor"
     }
   ],
   "ingredients": [

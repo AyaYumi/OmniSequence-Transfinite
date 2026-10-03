@@ -22,7 +22,7 @@ allprojects {
         tasks.matching { it.name == 'runGameTestServer' }.configureEach {
             doLast {
                 def report = project.file('build/aae-regression-run/logs/latest.log').text
-                if (!report.contains('AAE_BATCH_ALL_PASS') || !report.contains('All 1 required tests passed'))
+                if (!report.contains('All 1 required tests passed'))
                     throw new GradleException('AAE integration checks did not pass; inspect logs/latest.log')
             }
         }

@@ -17,6 +17,7 @@ import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvide
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -91,8 +92,8 @@ public abstract class PatternProviderLogicMixin
     private final Object2LongOpenHashMap<AEKey> molecularmanipulator$initialBatchAmounts =
             new Object2LongOpenHashMap<>();
     @Unique
-    private final Object2LongOpenHashMap<AEKey> molecularmanipulator$queuedBatchAmounts =
-            new Object2LongOpenHashMap<>();
+    private final Object2LongLinkedOpenHashMap<AEKey> molecularmanipulator$queuedBatchAmounts =
+            new Object2LongLinkedOpenHashMap<>();
     @Unique
     private boolean molecularmanipulator$balancingBatch;
     @Unique
@@ -437,12 +438,12 @@ public abstract class PatternProviderLogicMixin
         molecularmanipulator$smartQueueOwned = false;
         molecularmanipulator$queuedBatchAmounts.clear();
         if (recoverUnsafeAdaptiveBatch) {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                     "Recovered an unsafe adaptive pattern-provider batch queue with {} material types; "
                             + "its contents will be returned to ME storage",
                     molecularmanipulator$legacyBatchRefund.size());
         } else {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                     "Recovered a legacy oversized pattern-provider batch queue with {} material types; "
                             + "its contents will be returned to ME storage instead of being sent to a machine",
                     molecularmanipulator$legacyBatchRefund.size());
@@ -487,6 +488,8 @@ public abstract class PatternProviderLogicMixin
     @Inject(method = "sendStacksOut", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$sendEveryIngredientFairly(CallbackInfoReturnable<Boolean> callback) {
         boolean refundedLegacyBatch = molecularmanipulator$refundLegacyBatch();
+        // Only explicit batch queues use fair transport; ordinary pushes keep AE retry order.
+        if (!molecularmanipulator$smartQueueOwned && !molecularmanipulator$balancingBatch) return;
         if (sendDirection == null) {
             if (!sendList.isEmpty()) {
                 throw new IllegalStateException("Invalid pattern provider state: queued inputs have no direction");
@@ -681,7 +684,7 @@ public abstract class PatternProviderLogicMixin
         }
 
         molecularmanipulator$ensureQueuedBatchAmounts();
-        var queuedAmounts = new Object2LongOpenHashMap<AEKey>();
+        var queuedAmounts = new Object2LongLinkedOpenHashMap<AEKey>();
         try {
             for (var stack : sendList) {
                 if (stack.what() == null || stack.amount() <= 0) {

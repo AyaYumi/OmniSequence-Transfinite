@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: Omni-Computation Core
+  title: "Omni Computation Core"
   icon: molecularmanipulator:omni_computation_controller
   position: 1020
 item_ids:
@@ -17,11 +17,11 @@ item_ids:
 - molecularmanipulator:computation_crystal_pylon
 ---
 
-# Omni-Computation Core
+# Omni Computation Core
 
-<BlockImage id="molecularmanipulator:omni_computation_controller" scale="8" />
+A large ME crafting CPU. Form the floating crown to manage multiple crafting requests at once.
 
-The Omni-Computation Core is a floating 65x65x35 end-game [crafting CPU](ae2:items-blocks-machines/crafting_cpu_multiblock.md). When formed and online, it provides effectively unlimited logical crafting storage and parallelism.
+## Structure and parts
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:omni_computation_controller" />
@@ -36,87 +36,55 @@ The Omni-Computation Core is a floating 65x65x35 end-game [crafting CPU](ae2:ite
 <ItemIcon id="molecularmanipulator:computation_crystal_pylon" />
 </ItemGrid>
 
-> This is the multiblock machine in the Omni-Computation branch. For the placeable single-block CPU in the same branch, see the [Transfinite Compute Nexus](transfinite_compute_nexus.md).
-
-## At a glance
-
-| Property | Value |
+| Preparation | Requirement |
 | --- | --- |
-| Structure | 65 × 65 × 35 |
-| Space needed | 17 blocks below and 17 above the controller; 32 to either side, 22 in front, 42 behind |
-| Unlocked by | Stage II: Omni-Computation, first completion |
-| Controller requirement | One stage-one completion; 30 seconds per stage-two round |
+| Unlock | Tier 2: Omni Computation in the well |
+| Bounds | 65 × 65 blocks, 35 blocks tall |
+| Relative to controller | 17 above/below, 32 left/right |
+| Front/rear clearance | 22 in front, 42 behind |
 
-Its controller and components are produced in the [Matter Fabrication Well](matter_fabrication_well.md).
+1. Fabricate the controller and parts. Use **Projection** and the JEI structure page to inspect the site.
+2. Clear obstructions and select **Build**. Player inventory materials are taken before ME materials.
+3. Connect a powered, online ME network and verify the formed structure.
+4. Request crafting from an ME terminal. The core creates independent CPU lanes automatically.
 
-## Building the structure
+## Crafting operation
 
-1. Place the controller facing outward.
-2. Right-click the controller and enable the projection. Ghost blocks show missing positions, while red outlines show conflicts.
-3. Use the JEI structure category for the complete layer view and material list.
-4. Clear conflicting blocks, then use **Build**. Missing materials are taken from the player's inventory first and then from the connected ME Network.
-5. Connect and power the controller, then use **Check** if the structure does not form immediately.
+<Row>
+<BlockImage id="molecularmanipulator:infinite_crafting_storage" scale="4" />
 
-### How it is shaped
+<BlockImage id="molecularmanipulator:infinite_parallel_matrix" scale="4" />
 
-The enlarged celestial crown has three distinct layers:
+<ItemImage id="ae2:crafting_terminal" scale="4" />
+</Row>
 
-| Layer | Radius |
+| Core provides | You still supply |
 | --- | --- |
-| One complete horizontal outer ring | 31 blocks centerline |
-| Two smaller complete orbital rails, inclined about 45 degrees and crossing each other | 23.5 blocks |
-| An open spherical cage at the center | 10.5-block ribs |
+| Large logical crafting storage | Required ingredients |
+| Parallel virtual CPU lanes | Providers and machines that accept inputs |
+| Accelerated planning while online | Energy and output capacity |
 
-Clear space separates these layers. Six crystal brackets belong to the outer ring; no separate front tray or broken front ring section remains.
+Cyclic recipes still need seed materials. Dispatch adapts to receiving machines and server load; logical capacity is not a fixed production rate.
 
-The controller stays on the cage's front equator, 10 blocks in front of the star, with a clear access window. The star and its small gyroscopic halos scale with the enlarged body. Light traces follow the actual three orbital tracks. The client receives the server's validated structure layout before selecting its matching visual effects.
+## Quantum access and persistence
 
-### Legacy 1.3.9
+Insert one paired Quantum Entangled Singularity into the quantum slot and the other into a remote AE2 quantum bridge. The link adds **512 AE/t and one channel**. Resolve conflicting networks before connecting.
 
-Legacy support retains only the official 1.3.9 radial core (31×31×39), labeled **Legacy 1.3.9**. Other historical and experimental layouts are no longer recognized or migrated.
-
-> This version changes the building substantially: open the projection from the legacy prompt first. Click **Update Structure**, wait briefly, then click again to confirm within five seconds.
-
-Updating recovers the old structure and builds the current layout, requiring materials and recovery space. The controller moves fifteen blocks up and five blocks behind its old position; active jobs and quantum-slot contents are retained.
-
-An AE2 wrench rotates the controller and recalculates the structure.
-
-## Autocrafting
-
-The core creates virtual CPU lanes and keeps an idle lane available. Once formed and online, crafting requests on its network can use the accelerated planner when its normal conditions are met.
-
-> Cyclic crafting still needs a valid starting seed and all other ingredients. A successful plan does not remove material or power requirements.
-
-Dispatch adapts to machine acceptance and server load. Ingredients, energy, backpressure and server tick time still limit actual throughput.
-
-## Persistence and remote access
-
-* When `sequence_array.force_load_chunks` is enabled, the core force-loads required chunks while formed and during construction, dismantling or structure updates.
-* Normal controller drops retain stored contents, active jobs and quantum-slot contents. Restore the structure and network after replacing it.
-* If part of the structure is broken or unloaded, active jobs, stored ingredients and progress are preserved. Work resumes after the complete structure is loaded and valid again.
-
-### Quantum link
-
-The quantum slot accepts one half of a paired entangled singularity. Put the other half in a powered AE2 Quantum Ring to connect the core across dimensions.
-
-| Property | Value |
+| Situation | Result |
 | --- | --- |
-| Extra power | 512 AE/t |
-| Channels | 1 |
-| Conflict | A wired connection and a conflicting remote network cannot be used at the same time |
+| Structure damage or unloading | Retain jobs, ingredients, and progress until restored |
+| Normal controller removal | Carry jobs and quantum inventory with the block |
+| Dismantle | Keep the controller; return materials to ME, then the player |
+| No recovery space | Pause and retain dismantling progress |
 
-### Dismantling
+The multiblock chunk-loading setting keeps needed chunks loaded during formation, construction, and updates. Occupied chunks have natural-spawning protection.
 
-**Dismantle** removes the structure in batches while keeping the controller. Recovered blocks go to the ME Network first, then to the player's inventory; dismantling pauses safely if both are full.
+## Update a legacy structure
 
-The queue contains only actual matching blocks of the selected layout. It completes layers from highest to lowest with serpentine rows, skips air and externally changed targets without using the removal budget, and resumes the same queue after pauses or reloads instead of scanning all historical layouts.
+The official **1.3.9** radial core supports **Update Structure**. Inspect the new projection and material requirements first. Click once to confirm, then again within five seconds to execute. The controller and jobs migrate to the new position.
 
-## Natural spawning protection
+## Controller recipe
 
-While formed or performing construction, dismantling or a structure update, this multiblock blocks natural spawning throughout the full height of its occupied chunks, including monsters, animals, aquatic mobs and bats. Patrol and reinforcement spawns are also blocked.
+<RecipeFor id="molecularmanipulator:omni_computation_controller" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
 
-Spawners, spawn eggs, breeding, commands and existing mobs are unaffected. Protection does not require AE power; when no structure or operation owns a chunk, spawning there returns to normal.
-
-## Recipe
-
-<RecipeFor id="molecularmanipulator:omni_computation_controller" fallbackText="This recipe is unavailable when the research or recipe is disabled." />
+For a single-block CPU, see [Transfinite Compute Nexus](transfinite_compute_nexus.md).

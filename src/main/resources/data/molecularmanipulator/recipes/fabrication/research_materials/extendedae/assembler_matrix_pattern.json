@@ -4,6 +4,14 @@
     {
       "type": "forge:mod_loaded",
       "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:assembler_matrix_pattern"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:assembler_matrix_wall"
     }
   ],
   "ingredients": [

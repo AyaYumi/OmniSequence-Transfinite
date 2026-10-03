@@ -4,12 +4,28 @@
     {
       "type": "forge:mod_loaded",
       "modid": "advanced_ae"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_accelerator"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_unit"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:shattered_singularity"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:concurrent_processor"
     }
   ],
   "ingredients": [
     {
       "ingredient": {
-        "item": "ae2:engineering_processor"
+        "item": "expatternprovider:concurrent_processor"
       },
       "count": 4
     },

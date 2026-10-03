@@ -13,13 +13,13 @@
   "ingredients": [
     {
       "ingredient": {
-        "tag": "forge:ingots/copper"
+        "tag": "c:ingots/copper"
       },
       "count": 2
     },
     {
       "ingredient": {
-        "tag": "forge:ingots/netherite"
+        "tag": "c:ingots/infused_entro"
       },
       "count": 4
     },
@@ -31,7 +31,7 @@
     },
     {
       "ingredient": {
-        "tag": "forge:ingots/iron"
+        "tag": "c:ingots/iron"
       },
       "count": 2
     }

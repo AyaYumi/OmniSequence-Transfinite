@@ -9,6 +9,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ICraftingInventory;
 import com.atir.molecularmanipulator.api.crafting.*;
+import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -76,11 +77,13 @@ public final class AdvancedAEBatchDispatch implements AutoCloseable {
         }
         var probe = new OmniBatchProbe(details, inputs, maximum);
         for (var candidate : providers) {
-            if (!(candidate instanceof OmniBatchCraftingProvider api)
-                    || contains(singleOnly, candidate, details)
-                    || isBackpressured(candidate, details) || candidate.isBusy()) continue;
+            if (candidate == null || contains(singleOnly, candidate, details)
+                    || isBackpressured(candidate, details)) continue;
             OmniBatchAdmission prepared = null;
             try {
+                if (!OmniBatchProviderAdapterRegistry.supports(candidate, details) || candidate.isBusy()) continue;
+                var api = OmniBatchProviderAdapterRegistry.resolve(candidate, details);
+                if (api == null) continue;
                 prepared = api.prepareOmniBatch(probe);
                 if (prepared == null) continue;
                 long limit = Math.min(maximum, prepared.maxCrafts());
@@ -124,7 +127,10 @@ public final class AdvancedAEBatchDispatch implements AutoCloseable {
             // A provider may accept ownership and then throw. Do not reinject accepted materials.
             logFailure("commit", error);
         } finally {
-            if (delivery != null) delivery.seal();
+            if (delivery != null) {
+                if (delivery.accepted()) AelisBatchExecutionContext.acceptCurrentDispatch();
+                delivery.seal();
+            }
             close();
         }
         if (delivery != null && delivery.accepted()) {

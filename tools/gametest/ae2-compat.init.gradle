@@ -1,0 +1,29 @@
+// Compare upstream AE2 and UELM using the same paired-mod runtime assertions.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def regression = sourceSets.create('ae2ServerCompatibility') {
+            java.srcDirs project.file('tools/gametest/ae2-compat'), project.file('tools/gametest/java')
+            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory project.file('build/ae2-compat-server-run')
+            mods { "${project.mod_id}" { source regression } }
+        }
+        tasks.named('compileAe2ServerCompatibilityJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def report = project.file('build/ae2-compat-server-run/logs/latest.log').text
+                if (!report.contains('All 2 required tests passed'))
+                    throw new GradleException('Paired-mod AE2 compatibility checks did not pass')
+            }
+        }
+    }
+}

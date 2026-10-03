@@ -67,16 +67,16 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
 
         // Finish emitting each pass before obtaining the next buffer: switching an
         // unfixed RenderType can flush the previous consumer in MultiBufferSource.
-        renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralDepth()),
+        renderLayoutPass(layout, poseStack, OmniRenderLayers.molecularSpectralDepth(buffers),
                 angle, visualMode, effectLevel, false, center.getFieldColor(), center.getCoreColor(),
                 center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
                 crown.activity(), completion, clockTicks);
         if (crystalFeathers) {
             FeatherResonanceEffects.renderCoreSurface(poseStack,
-                    buffers.getBuffer(OmniRenderLayers.translucentEmissiveColor()), angle,
+                    OmniRenderLayers.molecularSurface(buffers), angle,
                     center.getCoreColor(), center.getSecondaryRingColor());
         }
-        renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralGlow()),
+        renderLayoutPass(layout, poseStack, OmniRenderLayers.molecularSpectralGlow(buffers),
                 angle, visualMode, effectLevel, true, center.getFieldColor(), center.getCoreColor(),
                 center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
                 crown.activity(), completion, clockTicks);
@@ -255,17 +255,17 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
 
     @Override
     public boolean shouldRenderOffScreen(MolecularCenterBlockEntity center) {
-        return false;
+        return true;
     }
 
     @Override
     public int getViewDistance() {
-        return 384;
+        return 4096;
     }
 
     @Override
     public boolean shouldRender(MolecularCenterBlockEntity center, Vec3 cameraPos) {
-        return cameraPos.distanceToSqr(Vec3.atCenterOf(center.getBlockPos())) <= 384.0D * 384.0D;
+        return true;
     }
 
 

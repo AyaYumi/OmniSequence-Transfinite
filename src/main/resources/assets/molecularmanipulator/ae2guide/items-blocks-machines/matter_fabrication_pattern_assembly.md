@@ -1,55 +1,55 @@
 ---
 navigation:
   parent: items-blocks-machines/matter_fabrication_well.md
-  title: Matter Fabrication Pattern Assembly
+  title: "Fabrication Pattern Assembly"
   icon: molecularmanipulator:matter_fabrication_pattern_assembly
   position: 2
 item_ids:
 - molecularmanipulator:matter_fabrication_pattern_assembly
 ---
 
-# Matter Fabrication Pattern Assembly
+# Fabrication Pattern Assembly
 
-<BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="8" />
+Connect ME crafting requests to the well. Unlock it through tier 1 research, then install it in a valid service position.
 
-The pattern assembly submits AE autocrafting work to the [Matter Fabrication Well](matter_fabrication_well.md). Its well recipe unlocks after the first completion of [stage-one research](matter_fabrication_research.md).
+<Row>
+<BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
 
-## Installation and patterns
+<ItemImage id="ae2:pattern_encoding_terminal" scale="4" />
 
-1. Hold the assembly to preview valid positions and install it in a well service socket.
-2. When the controller is formed and connected, the assembly automatically joins its network. AE power and channel requirements still apply.
-3. Insert AE2 processing patterns matching well recipes, including all required resource inputs and outputs.
-4. After the relevant research unlock, request results from an ME terminal.
+<ItemImage id="ae2:pattern_access_terminal" scale="4" />
+</Row>
 
-| Property | Value |
+## From pattern to product
+
+1. Choose an unlocked fabrication recipe in JEI.
+2. Encode a **processing pattern** with exactly matching resources and amounts.
+3. Insert the pattern and connect the formed well to an online ME network.
+4. Request the product from an ME terminal. The assembly queues supplied ingredients, processes them, and returns the output.
+
+| Pattern setting | Detail |
 | --- | --- |
-| Pattern slots | 36 |
-| Accepted patterns | AE2 processing patterns matching well recipes |
-| Not used | Crafting, smithing and stonecutting patterns |
+| Capacity | 36 pattern slots |
+| Pattern type | Processing patterns matching well recipes |
+| Research bonuses | Controller's branch permissions, parallelism, and speed |
+| Multiple assemblies | Rename them to distinguish them in the Pattern Access Terminal |
 
-Rename assemblies to distinguish them in the AE pattern terminal. Pattern changes update the available crafting entries.
+## Three pages
 
-## Input and output buffers
+| Page | Contents |
+| --- | --- |
+| Patterns | Processing recipes advertised to ME |
+| Input cache | Accepted ingredients awaiting processing |
+| Output cache | Products waiting for ME storage |
 
-The interface has **Patterns**, **Input Buffer** and **Output Buffer** tabs.
+Caches support items, fluids, and other registered AE resource types. Matching resources and components are counted together using long integer quantities. Materials, power, and output space still limit actual batches.
 
-* Inputs support every registered AE2 resource type, including items, fluids and third-party AE keys.
-* Recipes must declare the required resources; custom recipes can add generic inputs with `ae_inputs` and supply them through an assembly.
-* Buffers have no fixed type-slot limit; each AE key can hold up to 9,223,372,036,854,775,807 units, about 9.22E.
-* Different resource types or component data create distinct keys. Available memory still limits the practical number of types.
+**Return Unstarted Ingredients** refunds batches that have not begun. Active work is retained, and blocked products stay in the output cache.
 
-The assembly owns incoming materials and queues their batches. Completed outputs automatically return to ME. If the network cannot accept them, the assembly retains them and retries.
+## Relocate and resume
 
-> **Return Queued Ingredients** refunds batches that have not started processing; it does not discard or falsely complete the active batch.
-
-Patterns, tasks, input/output buffers and pending refunds survive saves and normal block removal. Restore the structure and network after replacing the assembly. Removing only the controller does not transfer other assemblies' contents into it.
-
-## Parallelism and research
-
-The assembly uses its controller's research permissions and per-branch production bonuses.
-
-> Buffer capacity is not a guaranteed batch size: research limits, materials, per-key output capacity and power still apply. Deep research improves only the well recipes unlocked by that branch.
+Patterns, jobs, ingredients, outputs, and pending refunds persist and travel with the normally removed assembly. Restore the structure, network, and power to continue.
 
 ## Recipe
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_pattern_assembly" fallbackText="This modpack has no available recipe for this item. Check JEI or the research configuration." />
+<RecipeFor id="molecularmanipulator:matter_fabrication_pattern_assembly" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

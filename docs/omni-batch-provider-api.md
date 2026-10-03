@@ -2,13 +2,10 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Verified for OmniSequence 2.0.6-forge on Minecraft 1.20.1 / Forge / Java 17, with AE2 15.4.10–15.x
-and the required AppliedEnhancements 1.0.9-fix-forge. The runtime ABI remains **1**.
+Current for OmniSequence 2.0.7-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10 / UELM 15.5.4
+and the required AppliedEnhancements 1.1.0-forge. The runtime ABI remains **1**.
+Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
-
-Recompile integrations against these Forge artifacts; retaining ABI 1 does not
-make NeoForge 1.21.1 binaries compatible with AE2 15 or Java 17. This update
-does not change the provider ownership, cancellation or atomic-delivery contracts.
 
 This SPI controls provider material delivery. AppliedEnhancements owns the AELIS
 planning and cycle-execution APIs; importing Omni's internal planner/Mixin classes
@@ -18,7 +15,7 @@ embedding their classes.
 This SPI is for AE2 machines that store encoded patterns and act as
 `ICraftingProvider` implementations. A normal provider already works with AE2
 one craft at a time. Implement this SPI only when the machine wants an
-Omni-Computation Core or compatible AdvancedAE CPU to allocate several complete crafts and deliver them as
+Omni-Computation Core or Transfinite Compute Nexus to allocate several complete crafts and deliver them as
 one atomic transaction.
 
 Advanced AE quantum CPUs also use this provider contract through the optional
@@ -30,12 +27,15 @@ integration. Any pattern-provider assembly can opt in.
 ## Public types
 
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchCraftingProvider`
+- `com.atir.molecularmanipulator.api.crafting.OmniBatchProviderAdapterRegistry`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchAdmission`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchProbe`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchRequest`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchDelivery`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchCraftingApi`
 - `com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu`
+- `com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputProvider`
+- `com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputAdapterRegistry`
 
 Use `OmniBatchCraftingApi.apiVersion()` for a runtime ABI check. The matching
 source constant is `API_VERSION`; do not rely on that compile-time constant for
@@ -45,10 +45,6 @@ runtime negotiation because Java may inline it.
 
 The provider continues to advertise patterns through AE2 and implements one
 additional interface:
-
-The example below shows the Omni-specific methods. Keep the existing AE2
-`getAvailablePatterns()`, `pushPattern(...)` and `isBusy()` implementation;
-`ownsPattern`, `completeCraftCapacity` and the queue helpers belong to your machine.
 
 ```java
 public final class ExamplePatternMachine
@@ -153,6 +149,75 @@ retains material ownership and recipe IDs while using current definitions. Its
 UI buffer size is not an unconditional batch limit. See the [well API](matter-research-api.md)
 for `ae_inputs`, output isolation and the remaining same-output overlap limitations.
 
+## Optional provider adapters
+
+An optional integration can register a batch capability without adding an Omni
+interface to the target mod's provider class. Load the compatibility registration
+class only when `molecularmanipulator` is present; use a `compileOnly` dependency.
+The target provider itself continues to register with AE2 as usual.
+
+```java
+OmniBatchProviderAdapterRegistry.register(
+        "example:batch_machine", 100,
+        (provider, pattern) -> provider instanceof ExampleProvider original
+                && original.ownsPattern(pattern),
+        (provider, pattern) -> new ExampleBatchAdapter((ExampleProvider) provider));
+```
+
+The adapter implements `OmniBatchCraftingProvider` and uses the same durable
+prepare/commit/close protocol as a native implementation. The registry also offers
+a provider-only `Predicate`/`Function` overload. Entries sort by descending
+priority, then ascending ID; registering an existing ID replaces its entry.
+`unregister(id)` removes it. Resolution tries matching factories until one returns
+a non-null capability, then falls back to the original provider's direct interface.
+
+Keep the original `ICraftingProvider` identity for AE pattern publication,
+`isBusy()`, one-craft `pushPattern`, CPU selection, output accounting and
+backpressure. The CPU calls only `prepareOmniBatch` on the resolved capability.
+Post-accounting output adapters also receive the original provider. Never replace
+that object in `CraftingService.getProviders` with a capability or proxy.
+
+`supports(provider, pattern)` tests predicates without calling factories.
+Predicates must be cheap, side-effect free and narrowly matched. A matching
+predicate reserves the atomic batch path even if its factory temporarily returns
+null; ordinary one-craft dispatch remains available. Registry recursion is guarded
+per original provider. Predicate/factory failures cannot commit ownership and
+cannot authorize non-atomic scaled dispatch; admissions still close after failure.
+
+Factories run during an actual batch attempt, not every topology query. No
+capability is cached across attempts. An empty registry uses the direct-interface
+fast path, and registration changes invalidate the CPU's per-tick topology cache.
+This registry is additive; the existing API ABI remains version 1.
+
+## Post-accounting output flush
+
+An instant provider may finish a large aggregate before AE2 records its expected
+outputs in the crafting job. If it deliberately delays new outputs until the next
+tick, the job can pause whenever its `long`-sized `waitingFor` window fills.
+
+Providers that own a durable output queue can implement
+`OmniPostAccountingOutputProvider`. The CPU calls
+`flushOutputsAfterCpuAccounting()` only after AE2 has recorded the accepted
+aggregate's expected outputs. The method may retry delivery of already-produced
+output, but must never execute the recipe again. Partial delivery must leave the
+remainder in the provider's normal persistent retry queue.
+
+Optional integrations that cannot modify the provider class may register an
+adapter through `OmniPostAccountingOutputAdapterRegistry.register`. Registration
+uses a stable namespaced string ID, a priority, a provider predicate, and a flush
+consumer. Only the highest-priority matching adapter runs; if none matches, the
+native provider protocol is used. The registry prevents recursive flushes for the
+same provider identity. An adapter should be narrowly matched and should fail
+closed when the target mod's internal queue layout is unknown.
+
+Exact-count integrations must likewise preserve the `ICraftingProvider` object
+published to AE2. Register an `OmniBigIntegerCraftingProvider` capability with
+`OmniBigIntegerProviderAdapterRegistry.register` instead of replacing that
+provider with a proxy in `CraftingService.getProviders`. The registry receives a
+provider/pattern predicate and a capability factory. This keeps identity-based
+registries in AE2 addons valid while letting the CPU resolve BigInteger support
+only for the pattern being dispatched.
+
 ## Avoiding duplicate CPU batching
 
 A provider mod that already redirects AE2's `CraftingCpuLogic` should bypass
@@ -180,70 +245,9 @@ class or conditional Mixin that is loaded only when Mod ID
 `molecularmanipulator` is present. Compile against OmniSequence as
 `compileOnly`; do not embed its API classes.
 
----
 
-# 万物演算批量样板供应器 API v1
+## Exact-count capabilities
 
-自 OmniSequence: Transfinite 1.3.9 起提供。
-
-当前按 2.0.6-forge / Minecraft 1.20.1 / Forge / Java 17 核对，要求 AE2 15.4.10 至 15.x 和
-AppliedEnhancements 1.0.9-fix-forge；运行时 ABI 仍为 **1**。其他接口见 [API 索引](README.md)。
-本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
-不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。
-调用方必须针对 Forge 前置重新编译；ABI v1 并不表示 1.21.1 NeoForge 二进制可直接运行。
-本次界面修改不改变材料所有权、取消退款与原子交付契约。
-
-此 SPI 面向“机器自身保存编码样板，并作为 AE2 `ICraftingProvider` 接单”的设备。
-普通供应器本来就能按单份配方使用 AE2；只有希望由万物演算核心或超限算枢一次分配多份完整
-材料时，才需要实现 `OmniBatchCraftingProvider`。
-
-示例只展示 Omni 批量接口部分；机器仍需保留 AE2 的 `getAvailablePatterns()`、
-`pushPattern(...)` 和 `isBusy()` 实现。样板归属、完整批次容量与持久队列辅助方法由接入机器提供。
-
-接入流程为两阶段：
-
-1. `prepareOmniBatch` 根据一份真实材料与请求上限，返回当前能原子接收的完整配方数；
-2. Omni 抽取实际材料后调用 `commit`，供应器必须通过 delivery 明确接受或拒绝整批。
-
-`OmniBatchProbe.Input` 只是首份配方实际抽取结果，用于估算容量；
-`OmniBatchRequest.Input` 才是提交时具有所有权含义的最终 key 与整批总量。AE2 替代
-输入可能让最终 key 或比例发生变化，不能用“probe × craftCount”校验最终交付。
-运行时 ABI 检查应调用 `OmniBatchCraftingApi.apiVersion()`，不要依赖可能被 Java
-内联的 `API_VERSION` 常量。
-
-关键约束：
-
-- `accept` 是唯一的所有权提交点。调用前，整批材料必须已经全部进入持久目标，或先
-  写入供应器自身可保存的队列；
-- `reject` 必须保证没有留下材料或不可撤销副作用，禁止部分接收；
-- `CAPACITY_CHANGED` 只让该供应器/样板在本 tick 暂停批量探测，下个 tick 可重新
-  admission；其他拒绝原因会让该组合在当前合成作业内退回 AE2 单份发配；
-- 若供应器在 `accept` 后抛出运行时异常、链接故障或断言故障，Omni 仍按已接收处理，
-  防止回灌造成复制；其他 `Error`（包括 JVM 致命故障）不会被吞掉；
-- admission 一定会被关闭，`close` 只能释放临时预留，不能删除已接收材料；
-- 有排队或容量已满时，`isBusy()` 必须如实阻止后续 AE2 发配；
-- `RECHECK_NEXT_TICK` 与 `SATURATED` 只对当前供应器/样板施加本 tick 背压，不会
-  停止无关样板或其他机器；
-- 建议持久队列使用 `dispatchId` 去重；
-- v1 只开放纯消耗材料的批量交付，返还容器、可复用工具和耐久变化配方继续安全地
-  走单份路径。
-
-公开输入记录使用 AEKey，可表示已注册附属类型；具体可处理类型由供应器决定。
-数量沿用该 Key 的 AE 原生单位（物品个数、流体 mB 等）。数量为 long，
-接收前必须检查每种 Key 的加法和乘法溢出；Long.MAX_VALUE 上限不会绕过实际原料、
-供电、队列容量或产物计数限制。内置物质构筑井样板总成通过自身持久输入输出缓存实现
-本接口，支持构筑井配方声明的所有已注册 AEKey 输入。接收与排队任务开工前检查
-研究权限，开工时计算生产限制和加成。已开始加工的任务跨重载保留加工参数快照；
-排队任务保存原料所有权与配方 ID，并使用当前配方定义。`ae_inputs`、产物隔离和
-尚存的同产物重叠配方限制见[构筑井 API](matter-research-api.zh-CN.md)。
-
-若第三方模组自己也修改了 AE2 CPU 的材料倍增逻辑，应在其 CPU Mixin 中调用
-`OmniBatchCraftingApi.isOmniManagedCpu(this)`。返回 `true` 时跳过自身倍增，交给
-Omni 调度；普通 CPU 仍可保留该模组原来的实现。
-
-CPU 兼容 Hook 建议使用可链式的 Mixin Extras 包装，或 inject-and-cancel。若多个模组
-对同一个 `ICraftingProvider.pushPattern` 调用使用硬 `@Redirect`，可能在执行上述判断
-前就发生注入冲突；已有 Redirect 应在 Omni 加载时条件禁用，并把判断移到兼容 Hook。
-
-API 中没有任何特定模组的类名或硬编码适配。第三方应把 OmniSequence 声明为
-`compileOnly`，并仅在 Mod ID `molecularmanipulator` 已加载时启用兼容类或条件 Mixin。
+BigInteger providers and direct output receivers use a separate contract, described
+in the [exact-count API](omni-exact-provider-api.md). They do not weaken this
+SPI's prepare/commit ownership rules.

@@ -26,7 +26,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 public record MachineRecipeJsonPayload(boolean reset, boolean complete, Map<ResourceLocation, String> entries) {
     private static final int MAX_CHARS = 250_000;
     private static final int MAX_ENTRIES = 32;
-    private static final String PROTOCOL = "2.0.6-forge-1";
+    private static final String PROTOCOL = "2.0.7-forge-1";
     private static final class Channel {
         static final SimpleChannel INSTANCE = NetworkRegistry.newSimpleChannel(
                 MolecularManipulator.id("machine_recipes"), () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
@@ -58,7 +58,7 @@ public record MachineRecipeJsonPayload(boolean reset, boolean complete, Map<Reso
             if (json == null) continue;
             String encoded = json.toString();
             if (encoded.length() > MAX_CHARS) {
-                MolecularManipulator.LOGGER.warn("Machine recipe JSON exceeds sync limit: {}", recipe.getId());
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Machine recipe JSON exceeds sync limit: {}", recipe.getId());
                 continue;
             }
             if (!current.isEmpty() && (current.size() == MAX_ENTRIES || chars + encoded.length() > MAX_CHARS)) {

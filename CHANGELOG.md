@@ -1,12 +1,116 @@
-# OmniSequence: Transfinite 2.0.4-forge
+# Changelog
 
-Minecraft 1.20.1 · Forge · Java 17
+## OmniSequence: Transfinite 2.0.7-forge
 
-## English
+### Complete Forge feature synchronization and compatibility
 
-Changes from **2.0.3-forge**.
+- Synchronized the current 2.0.7 feature set to Minecraft 1.20.1 / Forge / Java 17, including Singularity Hub construction and motion, resource collection, Sequence Matter fluid and duplication, miniature holes, research ordering and batch APIs. Native Forge screens replace the newer UI framework.
+- Supported upstream AE2 15.4.10 and UELM 15.5.4 using the same paired runtime JARs. Adapted Forge capabilities, serialization, custom menus and rendering; retained inventory save callbacks and client menu locators.
+- Preserved TPS safeguards: shared research stock every 20 ticks, revision-based recipe caching, structure inspection intervals, bounded build/dismantle/passive crafting, fair output scheduling and rate-limited logs. Empty refunds return before resolving the network, with an idle-order regression covering 40,000 ticks.
+- Reduced miniature black-hole local entity queries to once per five ticks while keeping smooth per-tick attraction and validating removed/teleported targets. New arrivals begin attraction within five ticks.
+- Added maintained paired client and server verification plus dual-AE CI. Corrected duplicate miniature-hole wording in English and rebuilt the public API/configuration/development guides.
 
-### Molecular batch limit
+### Repository and documentation cleanup
+
+- Rebuilt the API index, Chinese/English project guides, configuration reference and development instructions for the current 2.0.7-forge / AppliedEnhancements 1.1.0-forge contracts. Split the batch SPI into Chinese and English pages and added the exact-count capability contract. Retained in-game task guides without expensive structure previews.
+- Removed one-off client/GPU probes, dated local test reports, obsolete generators and unused liquid/normal/specular effect textures. Kept repeatable engine/unit tests and editable animation sources outside the release JAR.
+- Throttled recurring runtime/load warnings and errors globally, throttled optional AELIS/exact dispatch traces across CPUs, removed repeated shader-registration success logs and prevented bounded fallback diagnostics from clearing their history and logging the same entries again.
+
+### Optional batch provider adapters and passive-crafting regression
+
+- Added OmniBatchProviderAdapterRegistry with provider/pattern matching, priority, factories, direct-interface fallback and recursion protection. Omni AE and AdvancedAE dispatch retain the original provider identity for busy state, delivery and backpressure; API ABI stays at version 1. Empty registries use the direct path, capability queries do not instantiate adapters, and registration changes invalidate topology caches.
+- Verified native and optional providers on transformed AE and AdvancedAE CPUs, including capacity changes, rejection, pre/post-accept failures, adapter failures and exact material/task accounting. Updated the bilingual batch API documentation.
+- Replayed issue #2 with actual Sequence Array UI clicks and an infinite-plank chest recipe. Current 2.0.7-forge stops new extraction after disabling/removal, honors changed limits, and retains disabled state through reload/controller replacement. Paid output backlogs remain bounded to 64 crafts per passive slot; the earlier unlimited-batch source could create a much larger persistent backlog. The reported 2.0.6-hotfix binary has not been reproduced directly.
+
+### Singularity Hub overview quantum input
+
+- Moved the quantum-entangled singularity slot into Hub Overview, with its hint and localized frequency/link state, using the overview background without a separate inset or border. Removed the input from the shared inventory area and hide it on collection/duplication pages.
+- Updated both the server slot coordinates and AE screen style. Actual insertion/extraction at GUI scales 2, 4 and 6, page visibility, strict quantum item filtering and unchanged duplication inputs passed isolated client/server verification.
+
+### Continuous research ordering and maximum batches
+
+- Shift changes the research order button and material list to every remaining round. Costs merge actual round ingredients with checked long counts. One ordered research run grants the selected target round; normal orders still advance one round.
+- Preparing research can stop and refund its owned cache; ordered work cannot pause or stop once admitted. Paid progress, preparation snapshots, cached outputs and native AE CPU links persist. Portable controllers requeue unfinished needs after canceling old links.
+- Orders repeatedly reconcile exact material deficits with remaining CPU output, fixing base ingredients being consumed by subsequent crafting. Delivered output belongs to the research cache rather than live ME stock. Separate research owners can cancel independently.
+- Preparations share one live stock read and item index every 20 ticks, filter irrelevant keys, and use exact allocation for overlapping requirements. Idle order ticks perform no stock enumeration; client batch costs and terms are cached, and refunds retry once per second.
+
+### Hub refinement and miniature hole animation
+
+- Unified collector tags into `singularity_hub.singularity_collection.item_tags`, supporting arbitrary item tags and an empty list. Legacy ore/log lists merge without overwriting explicit new tags or unrelated settings. Blacklist and simultaneous production remain in effect.
+- Increased ordinary ingredients for all 13 hub block recipes by 100×. Miniature Black Hole and Miniature White Hole inputs retain their original counts; standalone hole recipes remain 100K singularities and 1G matter balls. Outputs, processing time and power are unchanged.
+- Renamed hole display names without changing registry IDs. Replaced the white-hole still with the updated user artwork and rebuilt both 32-frame animations with orbiting ring details, accretion streams and outward white-halo waves. Centers and source alpha remain fixed.
+- Removed the obsolete Sequence Matter item, retaining its fluid, source block and bucket. Attached JEI information and guide hotkey access to the native fluid; the bucket opens the same guide.
+- Removed multiblock model previews from the Matter Fabrication Well, Sequence Array, Omni Computation Core and Singularity Hub guides in both languages and updated configuration/recipe documentation.
+
+### Tier 3 Event Horizon research
+
+- Added research requiring one completion each of the Sequence Array and Omni Computation branches. First-round materials match both complete current blueprints: 19 item types, 4,634 blocks including both controllers. The nine-round branch uses 600 ticks and 2048 AE/t.
+- Unlocks Miniature Black Hole, Miniature White Hole and all 13 Singularity Hub structural blocks. A Miniature Black Hole consumes 100,000 AE2 singularities; a Miniature White Hole consumes 1,000,000,000 AE2 matter balls. Hub controller and White Hole Resource Core recipes consume their respective hole items. Structural parts use both tier 2 systems, with batch outputs for common building blocks.
+- Large AE input recipes are processed by the well’s Pattern Assembly. Empty ordinary ingredient lists now serialize correctly when AE inputs are present. Pattern amount editing accepts long counts. JEI and guide recipe amounts use compact SI labels, retaining exact quantities in hover tooltips.
+- Updated bilingual research progression, hole recipes, and hub construction guides.
+
+### Removed Sequence Array Matter Rewrite
+
+- Removed Matter Sequence balances, entropy/cooling, decomposition/rewriting jobs, archive UI, associated slots/upgrades, JEI ghost targets, item tooltip augmentation and all related configuration/translation entries.
+- Existing real samples, outputs, speed cards and pending refunds migrate into persisted ME return buffers; old ghost filters create no items. Entangled singularities move to a dedicated inventory. Existing pattern storage, crafting, construction and quantum networking are preserved.
+
+### Configuration grouping and translations
+
+- Separated Singularity Hub and shared chunk-loading settings into their own groups, migrating older paths while preserving configured values. The 23 remaining options and all groups include Chinese/English names and help text. The native configuration screen supports adding list entries.
+- Corrected outdated dispatch defaults and effect/chunk-load scope descriptions.
+
+### Resource collection exclusions and energy configuration
+
+- Added singularity_hub.singularity_collection.item_blacklist for exact item IDs. Exclusions override all configured item tags and apply before production capacity checks and resource-page display. Empty lists preserve previous production.
+- Documented configurable fe_per_unit and ae_per_unit as the per-mB Sequence Matter costs, including their full-cycle calculations. Existing configured values are preserved.
+
+### Duplication energy display
+
+- The matter-duplication page shows FE and AE costs for a full production cycle, scaled by black-hole count and server configuration, alongside each source’s actual consumption in the last cycle. Interrupted or blocked production shows the energy actually extracted.
+
+### Retired Resource Confluence Port
+
+- Removed the Resource Confluence Port block and item, its assets and tags, and all four sockets from every supported Event Horizon Singularity Hub blueprint. Existing port block/item IDs load as air.
+- Migrated saved portable material counts so stair/slab refunds retain their original quantities; interrupted older construction resumes from the start and skips completed parts. Resource collection and ME connectivity remain on the hub controller.
+
+### Functional block performance fixes
+
+- Matter Fabrication Well no longer enumerates all ME stock in its idle research-order tick or toggles visual power twice per tick. Service endpoints, unchanged manual recipe selection and research definitions now reuse validated caches. Research progress stays live; the stock display refreshes once per second.
+- Automatic crafters reuse same-tick pattern decoding and limit adjacent-container output through the existing fair transfer scheduler.
+- White holes avoid redundant SavedData writes; Omni CPUs safely retire during unload and avoid a duplicate spare-lane scan. Pattern automation receives independent stack views.
+- Idle research ticks avoid full-stock enumeration; active preparation shares one inventory index per second.
+
+### Singularity Sequence Matter fluid
+
+- Added automatic sample duplication: each copied item consumes exactly 1000 mB (one bucket) of stored Sequence Matter, preserves the sample and its item components, and inserts the result into ME item storage. Missing matter or item space postpones copying. Interrupted outputs and partial fluid refunds are retained across saves and controller removal.
+
+- Added placeable source/flowing Singularity Sequence Matter and a compatible fluid bucket, with 32-frame violet/cyan animated textures.
+- Event Horizon Singularity Hub now inserts generated sequence matter directly into connected ME fluid storage in mB. Missing or full fluid storage stops production before energy is consumed; limited remaining capacity produces only the amount that fits.
+- Sequence Matter generation requires black holes, energy and ME fluid capacity, with no sample required. Production uses configurable cycles (default every 20 ticks, 20 mB per black hole per cycle); the duplication page shows the actual cycle size and interval. FE/AE priority and per-mB energy costs remain configurable.
+
+## OmniSequence: Transfinite 2.0.5-fix
+
+- Fixed Data Energistics CPU selection crashing with `Duplicate crafting CPU stable identity` when multiple Omni CPU lanes share one controller position. Each lane now uses its persistent dimension/controller/lane identity; ordinary AE2 CPU identities are unchanged.
+- Compatibility is optional and does not require Data Energistics to be installed.
+
+## OmniSequence: Transfinite 2.0.5
+
+Minecraft 1.20.1 · NeoForge · Java 17
+
+### Native UselessMod BigInteger output return
+
+- Smart-doubling batches whose UselessMod capacity changes between the probe and commit now retry at the largest complete wrapper-task boundary. This keeps successful native admissions bound to the exact CPU callback instead of falling back to thousands of segmented long inserts.
+- Added regression coverage for transient partial admissions and exact input conservation.
+
+## OmniSequence: Transfinite 2.0.4
+
+Minecraft 1.20.1 · NeoForge · Java 17
+
+### English
+
+Changes from **2.0.3**.
+
+#### Molecular batch limit
 
 - The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now accept a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; multiplication and buffer overflow are rejected without consuming inputs.
 - Consecutive batches no longer postpone the output buffer's scheduled return to the ME network. Damageable reusable tools preserve their real final use, and mixed-durability batches validate every selected damage state before committing inputs.
@@ -14,40 +118,40 @@ Changes from **2.0.3-forge**.
 - AE2's crafting-status screen sends a complete snapshot when its selected CPU starts or finishes a job, clearing completed or cancelled rows without reopening the screen.
 - Automatic CPU allocation now prefers an available Omni-Computation CPU for plans containing molecular batch-capable patterns, while preserving manually selected and explicitly preferred CPUs.
 
-### Sequence Array pattern access
+#### Sequence Array pattern access
 
 - Added a pattern-only item interface for the controller's main pattern library, available to ME Storage Buses and item automation. Every configured page accepts one valid crafting, smithing or stonecutting pattern per slot; other inventories stay closed, and external transfers are rejected while the structure is working or being restored.
 - Pattern edits immediately synchronize the affected crystal. Empty libraries, removed crystals and dismantling keep explicit ownership, so a stale controller mirror cannot restore patterns that were moved out. Bulk edits queue a shared pattern rebuild instead of decoding the whole library for each slot.
 
-### Central ring clock
+#### Central ring clock
 
 - The Sequence Array controller's central ring is now a classical clock face: twelve Roman hour numerals, four-point ornaments between them, a railway band that fills one divider per real second and resets each minute, and stepped hour, minute and second hands drawn with spade shoulders and counterweight tails.
 - The dial reads the client's local wall-clock time, so it shows the player's own time of day. It adds no saved state and no networking, and machine activity changes its brightness rather than its rate.
 
-### Documentation
+#### Documentation
 
-- Rewrote the recipe and research reference for this branch (`docs/matter-research-api.md`) and added a cross-linked Chinese edition (`docs/matter-research-api.zh-CN.md`). Both document the Forge `recipes/` directory, `forge:conditions`, `ForgeRecipeCodecs` and the recipe-object research API.
+- Rewrote the recipe and research reference (`docs/matter-research-api.md`) and added a cross-linked Chinese edition (`docs/matter-research-api.zh-CN.md`), which the JAR now ships alongside the batch-provider reference. The API index, both READMEs and the batch-provider cross-links were refreshed with it.
 - Restructured all nine in-game GuideME pages, in English and Chinese, around at-a-glance tables, bullet lists, highlighted tips, item icon grids, side-by-side recipe previews and icon-bearing sub-page lists. No fact, number or instruction changed.
 
-### AE2 crafting-CPU cluster isolation
+#### AE2 crafting-CPU cluster isolation
 
 - The Omni-Computation Controller and the Transfinite Compute Nexus are AE2 `CraftingBlockEntity` classes whose blocks are **not** crafting-unit blocks, so AE2 may only ever see them as a standalone 1×1×1 cluster containing themselves. A neighbouring AE2 crafting storage or CPU used to be merged into that cluster, and the controller into theirs, which made AE2's unit-block lookup cast a non-unit block and crash the server thread while ticking (`ClassCastException: OmniComputationControllerBlock cannot be cast to AbstractCraftingUnitBlock`) - typically right after a world or chunk load restored a previously formed controller.
 - The crafting-CPU multiblock scan now refuses to put any Omni core in a region that also holds a real AE crafting unit, in both directions, so every controller, nexus, storage and CPU keeps its own cluster.
 
-### Validation and remaining limits
+#### Validation and remaining limits
 
 - Both molecular devices accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips, and rejected multiplication and buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
-- **162 Forge unit tests passed**, including JEI 15 entry-point and coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
-- **Nine isolated Forge GameTests passed** for resource delivery and lookup, nexus cable/CPU/recovery, and natural-spawn protection for all three multiblocks.
+- **144 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
+- **All fourteen isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the guide layout and the clock effect have not received an interactive in-game visual check.
 
 ---
 
-## 中文
+### 中文
 
-相对于 **2.0.3-forge** 的更新。
+相对于 **2.0.3** 的更新。
 
-### 分子设备批量上限
+#### 分子设备批量上限
 
 - 分子构序重写阵列和装配矩阵构序重写核心的逻辑批量并行上限由 `Integer.MAX_VALUE` 提高至 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。实际批量仍受材料、能量和每种产物的剩余容量限制；乘法及缓冲叠加溢出会被拒绝，且不消耗输入。
 - 连续批次不再反复推迟缓存产物回传到 ME 网络的时间。可复用耐久工具保留真实的最后一次使用机会，混合耐久批次在接管输入前逐状态校验。
@@ -55,43 +159,42 @@ Changes from **2.0.3-forge**.
 - 所选合成 CPU 的任务开始或结束时，AE2 合成状态界面发送完整快照；完成或取消后无需重新打开界面即可清除旧任务行。
 - 自动分配 CPU 时，包含可执行分子批量样板的计划会优先选择可用的万物演算 CPU；玩家手动选择及已有明确偏好的 CPU 保持原行为。
 
-### 构序阵列样板访问
+#### 构序阵列样板访问
 
 - 新增控制器主样板库的专用物品接口，可供 ME 存储总线及物品自动化使用。全部已配置页每槽接受一个合法编码合成／锻造／切石样板；其他库存仍然不开放，施工及恢复期间拒绝外部存取。
 - 样板变更立即同步对应水晶。抽空样板库、移走水晶及拆卸时保留明确的数据所有权，控制器旧副本无法恢复已搬出的样板。批量修改统一排队刷新，不再逐槽解码整个样板库。
 
-### 中央圆环走秒
+#### 中央圆环走秒
 
 - 构序阵列控制器的中央圆环改为古典钟面：十二个罗马数字时标、数字之间的四角星饰、每现实一秒点亮一格的轨道式刻度环（满一分钟归零），以及带铲形肩部与配重尾的跳步时针、分针和秒针。
 - 钟面读取客户端本地现实时间，显示玩家自己的实际时刻；不写入存档、不新增网络同步；机器状态只影响亮度，不改变节拍。
 
-### 文档
+#### 文档
 
-- 为本分支重写配方与研究参考（`docs/matter-research-api.md`），新增互链的中文版（`docs/matter-research-api.zh-CN.md`），其中记录 Forge 的 `recipes/` 目录、`forge:conditions`、`ForgeRecipeCodecs` 以及配方对象研究接口。
+- 重写配方与研究参考（`docs/matter-research-api.md`），新增互链的中文版（`docs/matter-research-api.zh-CN.md`），并随批量投料参考一起打入 JAR。同步更新接口索引、两份 README 及批量投料参考的交叉链接。
 - 重构全部九个游戏内 GuideME 页面（中英各九页）：改为速览表格、要点列表、高亮提示、物品图标网格、并排配方预览和带图标的子页面列表。内容、数字与步骤均未改动。
 
-### AE2 合成 CPU 组隔离
+#### AE2 合成 CPU 组隔离
 
 - 全知计算控制器与超限算枢本质上是 AE2 的 `CraftingBlockEntity`，但它们的方块**不是**合成单元方块，因此 AE2 只应把它们视为仅含自身 1×1×1 的独立组。此前相邻的 AE2 合成存储／合成 CPU 会被并入该组，控制器也会被并入对方的组，导致 AE2 查询单元方块时把非单元方块强转并在线程 tick 中崩溃（`ClassCastException: OmniComputationControllerBlock cannot be cast to AbstractCraftingUnitBlock`）——通常发生在世界或区块加载恢复了先前已成立的控制器之后。
 - 合成 CPU 多方块扫描现在双向拒绝把任何全知核心放入同时含有真实 AE 合成单元的范围内，因此控制器、超限算枢、合成存储与合成 CPU 各自保持独立的组与存储统计。
 
-### 验证与现有限制
+#### 验证与现有限制
 
 - 两种分子设备在已供电装置测试中接受 **30 亿次合成／120 亿产物**，NBT 往返后产物数量精确不变，乘法与缓冲叠加溢出均被拒绝且不消耗输入；控制器存储总线与水晶数据所有权运行时检查同样通过。
-- **162 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及跨水晶分片的真实 AE2 15 库存／NBT 往返。
-- **九项隔离 Forge GameTest 通过**，覆盖资源投料／查询、算枢接线／CPU／恢复，以及三种多方块的自然生成保护。
+- **144 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
+- **十四项隔离服务端 GameTest 全部通过**，覆盖三种多方块自然生成保护、超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
 - 上述验证针对代码及坐标行为；重构后的指南排版与圆环走秒的实际画面尚未进行游戏内交互式验收。
 
----
-# OmniSequence: Transfinite 2.0.3-forge
+---## OmniSequence: Transfinite 2.0.3
 
-Minecraft 1.20.1 · Forge · Java 17
+Minecraft 1.20.1 · NeoForge · Java 17
 
-## English
+### English
 
-Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. The animation and service-bay updates were already present on the Forge branch; this sync adds the remaining 2.0.3 features.
+Changes from **2.0.2**.
 
-### Transfinite Compute Nexus
+#### Transfinite Compute Nexus
 
 - Added the **Transfinite Compute Nexus**, a single-block AE2 crafting CPU that uses the Omni-Computation Core's virtual CPU and batch-dispatch system.
 - Connects to ME cables on all six faces and requires a powered network with one available channel. Its default idle cost is **16,384 AE/t**, configurable through `transfinite_compute_nexus.idle_power`.
@@ -100,56 +203,54 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - Saved jobs and recoverable CPU contents can travel with the dropped nexus and resume after placement and reconnection. This block has no machine screen, quantum slot, pattern library or chunk-loading footprint.
 - Added its Matter Fabrication Well recipe and bilingual GuideME page. The default recipe unlocks through **Stage 2: Omni-Computation** and requires **Advanced AE**.
 
-### Sequence Array pattern storage
+#### Sequence Array pattern storage
 
 - The formed array now distributes its main pattern library across **14 quantum crystals**, while the controller continues to manage the library and expose it to the Pattern Access Terminal.
 - Crystals can retain pattern data when recovered. Automatic construction prefers crystals containing patterns before using blank crystals.
 - Changed the configurable maximum from **1,000 pages to 300 pages**: **10,800 slots** at 36 slots per page. The default remains **200 pages / 7,200 slots**; distributing patterns across crystals does not add capacity.
 
-### Matter Fabrication Well and visuals
+#### Matter Fabrication Well and visuals
 
 - Added **20 central service positions**, with five on each of the four platform-collar segments. The **24 front service positions** remain available; the nine former outer service positions are no longer accepted. These positions support item/fluid ports and pattern assemblies.
 - Added **20 animated textures** for computation components, crystals, controller faces and fabrication modules, using 24 interpolated frames at two ticks per frame: a 2.4-second loop at 20 TPS.
 - Preserved gold and fluid-port blue emissive details across animated frames, refined the controller's dark center panel, and added local purple emissive accents to the Molecular Sequence Rewrite Array.
-- Fixed connected-face filler sampling to use the interior of the casing texture in Forge texel coordinates.
-- Corrected Forge 1.20.1 sprite UV conversion: its 0–16 coordinates must be normalized before splitting emissive faces. Gold/blue well details and purple molecular-array lines now generate full-bright faces without an AE connection; ordinary shell pixels keep normal shading.
 - Removed block-light emission from the well's controller, structure parts and service blocks while retaining their local emissive texture details. Controller powered visuals now follow structure/network state and construction operations.
 
-### Multiblock spawn protection
+#### Multiblock spawn protection
 
 - The Sequence Array, Omni-Computation Core and Matter Fabrication Well now block natural spawning for **all mob categories**, including animals and bats, across the full height of their occupied chunks. The area follows their formed/construction/dismantling/upgrade footprint instead of a fixed radius around two controllers.
 - Includes natural world-generation, patrol and reinforcement spawning. Spawners, spawn eggs, breeding, commands and existing mobs are unaffected. No AE power is needed for the protection itself. Shared chunks remain protected until their last owning multiblock releases them; the standalone nexus adds no protection.
 
-### JEI and crafting compatibility
+#### JEI and crafting compatibility
 
-- Fixed the responsive-screen case where **JEI's hovered item, highlight and tooltip disagreed with the item under the mouse, while clicks still used the correct position**. JEI 15 container-foreground rendering now uses screen coordinates and restores the machine's render state afterwards. The adapter preserves the origin translation removed by JEI 15 itself; newer entry points are optional.
+- Fixed the responsive-screen case where **JEI's hovered item, highlight and tooltip disagreed with the item under the mouse, while clicks still used the correct position**. JEI foreground/background rendering now uses screen coordinates and restores the machine's render state afterwards.
 - Avoided publishing invalid zero-sized GUI properties before screen initialization. Refined visible slot lookup, disabled JEI's unscaled vanilla-slot fallback for responsive screens, and prevented external controls from receiving a second mouse-movement conversion.
 - Removed this mod's blanket reduction of non-Omni CPUs with more than 256 co-processors to a value of 255, allowing their own co-processor counts to take effect.
 - Updated English/Chinese tooltips and GuideME documentation for the new nexus, crystal storage and research unlocks.
 - Refreshed the README, API references, release notes and CurseForge description. Removed the one-off texture import script that depended on a personal Downloads folder; retained runtime assets and animation source images.
 
-### Upgrade notes
+#### Upgrade notes
 
 1. **If your 2.0.2 array uses more than 300 pages, move patterns from pages 301–1,000 elsewhere before upgrading.** Those slots are outside this version's supported inventory. Back up the world before changing the storage format.
 2. Keep pattern-bearing quantum crystals with the array when moving or rebuilding it; the formed library is no longer saved entirely in the controller.
 3. If your well uses the nine old outer service positions, move those service blocks to the front row or the new central positions and restore the vacated positions with the blocks shown by the projection.
 4. Fully stop the game/server, install the same version on both sides, and keep only one enabled OmniSequence JAR per instance. The Mod ID remains `molecularmanipulator`.
-5. This is the **Minecraft 1.20.1 Forge** build. AppliedEnhancements 1.0.6-forge remains a separate required dependency. Native Forge interfaces do not require LDLib2. Advanced AE is optional for the base mod and required for the default Omni-Computation branch and nexus recipe.
+5. This is the **Minecraft 1.20.1 NeoForge** build. AppliedEnhancements remains a separate required dependency. Advanced AE is optional for the base mod and required for the default Omni-Computation branch and nexus recipe.
 
-### Validation and remaining limits
+#### Validation and remaining limits
 
-- **152 Forge unit tests passed**, including JEI 15 entry-point/coordinate checks and a real AE2 15 inventory/NBT round trip across crystal shards.
-- **Six isolated Forge GameTests passed** for resource delivery/lookup, nexus cable/CPU/recovery, and all three multiblocks' natural spawning protection. The separate **AdvancedAE integration test passed**, including the nexus recipe and research unlock and the existing 65,536-craft batch case.
+- **134 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
+- **All eleven isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.
 
 ---
 
-## 中文
+### 中文
 
-相对于 **2.0.2-forge** 的更新，同步 NeoForge 提交 `32bc92c`。Forge 分支已具备动画与服务位更新，本次补齐其余 2.0.3 功能。
+相对于 **2.0.2** 的更新。
 
-### 超限算枢
+#### 超限算枢
 
 - 新增 **超限算枢**：采用万物演算核心的虚拟 CPU 与批量派发系统的单方块 AE2 合成 CPU。
 - 六个面均可连接 ME 线缆，需要已供电的网络和一个可用频道。默认待机消耗 **16,384 AE/t**，可通过 `transfinite_compute_nexus.idle_power` 配置。
@@ -158,293 +259,438 @@ Changes from **2.0.2-forge**, including the port of NeoForge commit `32bc92c`. T
 - 已保存任务和可恢复的 CPU 内容可以随掉落算枢保留，重新放置并接入网络后继续处理。该方块没有独立机器界面、量子槽、样板库或区块强加载范围。
 - 新增物质构筑井加工配方及中英文 GuideME 页面。默认配方由 **二阶：万物演算** 研究解锁，需要 **Advanced AE**。
 
-### 构序阵列样板存储
+#### 构序阵列样板存储
 
 - 成型阵列的大型样板库改由 **14 颗量子水晶** 分摊保存，仍由控制器统一管理，并向样板访问终端提供访问。
 - 回收水晶可以保留样板数据；自动施工优先使用带样板的水晶，再使用空白水晶。
 - 可配置上限由 **1,000 页调整为 300 页**，每页 36 槽，合计最多 **10,800 槽**。默认仍为 **200 页 / 7,200 槽**；水晶分摊存储不会额外增加容量。
 
-### 物质构筑井与视觉效果
+#### 物质构筑井与视觉效果
 
 - 新增 **20 个中央服务位置**，中央平台四个环段各五格；保留 **24 个正前方服务位置**，不再接受原先外围分散的九个位置。这些位置可安装物品／流体接口和样板总成。
 - 为演算部件、水晶、控制器正面和构筑井模块加入 **20 组动画贴图**，每组 24 帧、每帧两 Tick 并启用插值，在 20 TPS 下循环周期为 2.4 秒。
 - 保留动画中的金色、流体接口蓝色局部自发光，细化控制器中央暗色面板，并为分子构序重写阵列加入紫色局部自发光线条。
-- 同时修正连接面填充纹理的坐标，使用外壳内部区域取样。
-- 修正 Forge 1.20.1 贴图 UV 换算：其 0～16 坐标必须先归一化才能分割发光面。构筑井金／蓝纹路与分子阵列紫色线条无需 AE 连接即可生成全亮面，普通外壳仍保持正常光照。
 - 构筑井控制器、结构件和服务方块不再向环境发出方块光照，保留贴图本身的局部自发光细节。控制器亮起状态跟随结构、网络及施工操作更新。
 
-### 多方块自然生成保护
+#### 多方块自然生成保护
 
 - 构序阵列、万物演算核心和物质构筑井现在禁止占用区块整个高度内的**所有生物自然生成**，包括动物和蝙蝠。范围跟随成型、施工、拆卸及更新时的真实区块占地，替代原先两类控制器的固定半径。
 - 涵盖自然生成、世界生成、巡逻和增援。刷怪笼、刷怪蛋、繁殖、指令及已有生物保留；禁刷本身无需 AE 供电。重叠区块在最后一台多方块释放后解除保护，单方块超限算枢不产生禁刷区。
 
-### JEI 与合成兼容
+#### JEI 与合成兼容
 
-- 修复响应式界面中 **JEI 悬浮物品、高亮和提示框与鼠标指向不一致，但点击位置仍正确** 的问题。JEI 15 容器前景绘制改用屏幕坐标，保留 JEI 自身会移除的原点平移，结束后恢复机器状态；较新入口按可选兼容处理。
+- 修复响应式界面中 **JEI 悬浮物品、高亮和提示框与鼠标指向不一致，但点击位置仍正确** 的问题。JEI 前景／背景绘制改用屏幕坐标，结束后恢复机器界面的绘制状态。
 - 避免在界面初始化前向 JEI 上报宽高为零的非法区域；细化可见槽位查找，禁用响应式界面的 JEI 原始未缩放槽位回退，并防止外部控件的鼠标移动被二次换算。
 - 移除本模组对非 Omni CPU 的统一限制：协处理器超过 256 时，不再强行压为 255，使其自身的协处理器数量生效。
 - 更新超限算枢、水晶样板存储及研究解锁相关的中英文提示和 GuideME 文档。
 - 同步更新 README、API 文档、版本说明及 CurseForge 介绍；移除依赖个人 Downloads 目录的一次性贴图导入脚本，保留运行时资源与动画生成源图。
 
-### 升级说明
+#### 升级说明
 
 1. **如果 2.0.2 的阵列使用了超过 300 页，请先将第 301～1,000 页的样板迁出，再升级。** 这些槽位不在本版支持的库存范围内。变更存储格式前请备份世界。
 2. 搬迁或重建阵列时保留带样板的量子水晶；成型阵列的样板库不再全部保存在控制器中。
 3. 若构筑井使用了原先外围九个服务位置，请将服务方块迁到正前方或新增中央位置，并按投影补回原位置所需方块。
 4. 完全退出游戏／关闭服务器后替换文件，客户端和服务端使用相同版本，每个实例只保留一个启用的万象构序 JAR。Mod ID 仍为 `molecularmanipulator`。
-5. 本包适用于 **Minecraft 1.20.1 Forge**。AppliedEnhancements 1.0.6-forge 仍需单独安装，原生 Forge 界面不需要 LDLib2；Advanced AE 对基础模组为可选前置，对默认万物演算研究分支和超限算枢配方为必要条件。
+5. 本包适用于 **Minecraft 1.20.1 NeoForge**。AppliedEnhancements 仍需单独安装；Advanced AE 对基础模组为可选前置，对默认万物演算研究分支和超限算枢配方为必要条件。
 
-### 验证与现有限制
+#### 验证与现有限制
 
-- **152 项 Forge 单元测试通过**，包含 JEI 15 入口与坐标检查，以及真实 AE2 15 库存 NBT 跨水晶分片往返恢复。
-- **六项 Forge 隔离 GameTest 通过**，覆盖资源投料／查询、算枢接线与任务恢复，以及三种多方块的自然生成保护；独立 **AdvancedAE 集成测试通过**，包含算枢配方及研究解锁和原有 65,536 份批量派发场景。
+- **134 项单元测试通过**；使用复现整合包中的 **JEI 19.54.0.429** 和 **LDLib2 2.2.39.a** JAR 运行的 **12 项界面专项测试通过**。
+- **十一项隔离服务端 GameTest 全部通过**，覆盖三种多方块自然生成保护、超限算枢生命周期、真实接线、CPU 隔离、多方块拆卸、存档恢复及配方投料／查询。
 - 上述验证针对代码及坐标行为；最新 JEI 修正尚未进行游戏内交互式画面验收。
 - 构筑井仍存在原有配方限制：同产物、可替代原料重叠时，批次拆分可能使用另一条配方的耗时／能耗；重载时加入优先匹配的配方，可能使已有队列持续等待。
 
 ---
 
-## English — 2.0.2
-
-| Area | Changes |
-| --- | --- |
-| Modern UI compatibility | Fixed a crash while rendering console input fields with Modern UI's text renderer. Flush operations now use the active screen's drawing context, including after an input field is rebound to a later frame. |
-| AdvancedAE CPU | Ported the NeoForge public batch-provider API integration. Matter Fabrication assemblies can receive an entire order batch, with exact task and waiting-output counts, capacity reservations, safe rejection rollback and accepted-input ownership after provider exceptions. |
-| Dispatch budget | AAE dispatch attempts share a 2 ms soft time budget per CPU per game tick. Capacity backpressure survives repeated calls during the same tick and is retried on the next tick. |
-| Recipe matching | Single-material requirements use a direct allocation path instead of rebuilding a flow graph. Full reservations, ordered portions and long-sized quantities preserve their behavior. |
-| Default capacity | `sequence_array.pattern_pages` is 200, providing 7,200 slots. Existing saved values remain in effect. |
-| Forge GUI parity | Includes the native Forge responsive controls, JEI bounds and scaled text clipping. The platform's console UI does not require LDLib2. |
-
-An optional Forge AAE integration suite now exercises real CPU execution, reservations, rejection/exception handling, cancellation, queue persistence, time slicing and output-overflow protection. See [the test guide](tools/gametest/README.md).
-
-Install `omnisequence-transfinite-2.0.2-forge.jar` on client and server. Required dependencies and the Java 17 / AE2 15 baseline are unchanged.
-
-## 中文 — 2.0.2
-
-| 项目 | 更新 |
-| --- | --- |
-| Modern UI 兼容 | 修复启用 Modern UI 文本渲染器时，控制台输入框渲染崩溃的问题。缓冲区刷新现在转发到当前屏幕的绘制上下文，并正确跟随后续帧重新绑定。 |
-| AAE 量子 CPU | 同步 NeoForge 的公开批量供应器 API 接入，物质构筑井样板总成可整批接单；保持任务与待回产物计数、容量预留、拒收回滚和接收后异常时的材料所有权。 |
-| 派发预算 | 同一 CPU 在每个游戏 Tick 内共享 2 ms 软时间预算；容量背压不会被同 Tick 的重复调用重置，下一 Tick 再重试。 |
-| 配方匹配 | 单材料需求直接分配，避免反复建立流量图，保留完整材料预留、按顺序分批和 long 数量语义。 |
-| 默认页数 | `sequence_array.pattern_pages` 为 200，即 7,200 个样板槽位；已有配置值继续生效。 |
-| Forge 界面 | 包含原生 Forge 的响应式控件、JEI 边界和缩放文字裁剪修复，控制台界面无需 LDLib2。 |
-
-新增可选的 Forge AAE 集成测试，覆盖实际 CPU 派发、预留、拒收与异常、取消、队列存档、时间预算及待回产物溢出边界。客户端与服务端使用 `omnisequence-transfinite-2.0.2-forge.jar`。
-
----
-
-## OmniSequence: Transfinite 2.0.1-forge
+## OmniSequence: Transfinite 2.0.2
 
 Minecraft 1.20.1 / Forge / Java 17
 
+### English
+
+#### Fixed
+
+| Area | Fix |
+| --- | --- |
+| Default capacity | Increased `sequence_array.pattern_pages` from 20 to 200 (7,200 pattern slots). Existing saved configuration values remain in effect. |
+| AdvancedAE batch dispatch | AAE quantum CPUs now use the public batch-provider API, allowing matter fabrication assemblies to accept complete batches. Reservations, rejection rollback, accepted ownership after exceptions and waiting-output limits remain exact. Dispatch attempts share a 2 ms soft budget per CPU per game tick. |
+| Single-material matching | Single-requirement recipes now allocate materials directly without rebuilding a flow graph; full reservations, ordered portions and long quantities retain the existing semantics. |
+| Third-party controls | Machine panels now apply responsive scaling only to their own content. Injected controls such as the FTB sidebar and Dark Mode button retain their screen positions and size. |
+| Mouse input and focus | Routed clicks, movement, dragging, release and scrolling through the correct coordinate space. External controls keep normal focus and keyboard behavior; machine controls retain logical menu coordinates. |
+| JEI layout | Registered the fitted bounds of responsive machine screens, converted AE2 exclusion zones, and supplied the visible hit areas for normal items. This prevents layout gaps and misplaced ingredient interactions caused by unscaled bounds. |
+| LDLib2 exclusion areas | Converted the molecular-center and Omni-computation overlays' cached exclusion rectangles before JEI reads them. The original LDLib2 layout cache stays unchanged, avoiding repeated scaling on later frames. |
+| Long button captions | Fixed native AE2 button captions being completely clipped at large GUI scales. Their clipping rectangles now follow the text's render transform. The fix also covers output-direction captions beside neighbor icons and retains AE2's existing button appearance and scrolling behavior. |
+| LDLib2 text and pointer handling | Verified that LDLib2's own clipping already follows the pose matrix. Its modular widgets continue receiving raw screen mouse coordinates during rendering, so LDLib2 performs its inverse transform exactly once. |
+
+#### Validation
+
+- Verified actual AAE 1.6.11 CPU execution against a real matter fabrication assembly: 65,536 crafts use one dispatch. Integration checks also cover reservations, rollback, exceptions, cancellation, persistence, backpressure and time slicing.
+- All **122 unit tests** passed, including **14 focused UI regression tests**.
+- Re-ran those 14 UI tests using the target pack's **JEI 19.39.0.368** and **LDLib2 2.2.29** JARs; all passed.
+- Checks cover fitted bounds across machine layouts and viewport sizes, external-control input, long-caption clipping, LDLib2 exclusion areas, and raw-to-local mouse conversion.
+- These automated checks exercise code and coordinate behavior without a full interactive modpack session.
+
+#### Installation
+
+- Update both client and server to `omnisequence-transfinite-2.0.2.jar`, keeping one enabled OmniSequence JAR per instance.
+- This is the **Minecraft 1.20.1 NeoForge** build. Java 17 and the existing 2.0.1 dependencies, including LDLib2, remain required.
+- Build baseline: Forge 47.4.20, AE2 19.2.17, JEI API 19.27.0.340 and LDLib2 2.2.18. The target pack currently uses NeoForge 21.1.233.
+
+---
+
+### 中文
+
+#### 修复
+
+| 项目 | 修复内容 |
+| --- | --- |
+| 默认容量 | `sequence_array.pattern_pages` 默认值由 20 调整为 200，即 7,200 个样板槽位；已有配置中的值继续生效。 |
+| AdvancedAE 批量派发 | AAE 量子 CPU 现已接入公开批量供应器 API，物质构筑井样板总成可整批接单；保留容量预留、拒收回滚、接收后异常的材料所有权及待回产物计数边界。每个 CPU 同一游戏 Tick 内的派发尝试共享 2 ms 软时间预算。 |
+| 单材料匹配 | 单需求配方直接分配材料，不再重复建立流量图；保留完整预留、顺序分批和 long 数量语义。 |
+| 第三方控件 | 响应式缩放仅作用于机器自身内容。FTB 侧栏、Dark Mode 等注入控件保持屏幕位置和大小，避免被机器面板一起缩小或移动。 |
+| 鼠标输入与焦点 | 按正确坐标系处理点击、移动、拖动、松开及滚轮；外部控件保留正常焦点和键盘行为，机器控件继续使用菜单逻辑坐标。 |
+| JEI 布局 | 为响应式机器界面注册实际显示边界，转换 AE2 避让区域，并提供普通物品的实际命中区域，修复未缩放边界造成的异常留白和物品交互错位。 |
+| LDLib2 避让区域 | 构序阵列和万物演算界面向 JEI 上报前，转换 LDLib2 缓存的避让矩形；保留原始布局缓存，避免后续帧反复缩放。 |
+| 长按钮文字 | 修复大 GUI 缩放下原生 AE2 按钮长文字被完全裁掉的问题，裁剪框现已跟随文字绘制矩阵。相邻方块图标旁的输出方向文字也一并修复，保留 AE2 原有按钮样式及滚动行为。 |
+| LDLib2 文字与指针 | 已验证 LDLib2 自身裁剪会正确跟随矩阵；模块化控件绘制时继续接收原始屏幕鼠标坐标，由 LDLib2 恰好执行一次逆变换。 |
+
+#### 验证
+
+- 实际加载 AAE 1.6.11 验证 CPU 向真实构筑井样板总成派发：65,536 份配方只需一次操作；另覆盖预留、回滚、异常、取消、存档、背压和时间预算。
+- 全部 **122 项单元测试**通过，其中包含 **14 项界面专项回归测试**。
+- 使用目标整合包的 **JEI 19.39.0.368** 和 **LDLib2 2.2.29** JAR 重新运行这 14 项界面测试，全部通过。
+- 覆盖各机器布局与视口尺寸下的边界、外部控件输入、长文字裁剪、LDLib2 避让区域及鼠标坐标换算。
+- 自动化验证针对代码和坐标行为，未进行完整整合包内的交互式画面验收。
+
+#### 安装
+
+- 客户端与服务端更新为 `omnisequence-transfinite-2.0.2.jar`，每个实例只保留一个启用的万象构序 JAR。
+- 本包用于 **Minecraft 1.20.1 NeoForge**，仍需 Java 17 和 2.0.1 原有前置，包括 LDLib2。
+- 构建基线：Forge 47.4.20、AE2 19.2.17、JEI API 19.27.0.340、LDLib2 2.2.18；目标整合包当前使用 NeoForge 21.1.233。
+
+## 2.0.1 - 2026-09-08
+
+### English
+
+#### Changes
+
+| Area | Update |
+| --- | --- |
+| AEKey inputs | Matter Fabrication Pattern Assemblies now accept all registered AEKey input types, including resources provided by compatible AE2 addons. Custom well recipes can declare exact resources and positive long amounts through the optional `ae_inputs` field. Existing item/fluid recipes remain compatible. |
+| Recipe lookup | Added an index keyed by complete recipe outputs and quantities. Pattern delivery now searches matching output candidates instead of repeatedly scanning every well recipe. Candidate order and full input validation are preserved. |
+| Research checks | Cached research definitions and recipe ownership. Completion counts remain specific to each controller and are read live, so unlocks, revocations and loaded progress take effect immediately. Recipe snapshot replacement rebuilds the index. |
+| Queue overhead | Reused candidate lists while merging queued deliveries and removed unnecessary active-input snapshot copies from capacity checks. |
+| Interfaces and documentation | Added generic input display to JEI and GuideME recipes. Updated the English/Chinese assembly guides, recipe/API documentation and release references. |
+| Repository cleanup | Consolidated the duplicate MIT license into `LICENSE`, retaining the contributor notice. Runtime textures, models and GuideME pages remain referenced; local diagnostics and build outputs stay outside Git. |
+
+#### Performance and validation
+
+- Local lookup benchmark: 128 well recipes, 32 research definitions, 2,000 warm-up lookups, followed by three rounds of 2,000 lookups. Median time decreased from **493.08 ms to 6.21 ms**, approximately **98.7% less time**. This measures recipe lookup only, not whole-server TPS or tick performance.
+- Validated third-party AEKey delivery, long batches, queued/active/refund persistence, ME refunds, live research changes and recipe reloads.
+- Verified that patterns producing different outputs remain separate even when their inputs are identical or proportional. For `10A + 10B -> C` and `20A + 20B -> D`, ordering two C crafts produces `2C`. `10A + 10B -> C` and `10A + 10B -> D` also follow the ordered pattern's output. Single deliveries, API batches, interleaved queues and save/reload were checked.
+
+#### Upgrade notes
+
+- Update OmniSequence to **2.0.1 on both client and server**. Keep only one enabled OmniSequence JAR in each `mods` directory.
+- Requirements are unchanged from 2.0.0: Minecraft 1.20.1, Java 17, Forge 47.4.20+, AE2 15.4.10 / UELM 15.5.4, ExtendedAE 1.21-2.2.32-neoforge+, Glodium 1.21-2.2-neoforge, LDLib2 2.2.18+, and **AppliedEnhancements 1.0.6+** installed separately on both sides.
+- The technical Mod ID remains `molecularmanipulator`. Generic inputs must be declared in a well recipe; enabling an AEKey type alone does not add production recipes.
+
+#### Known limitations
+
+- Overlapping ingredient alternatives that produce the **same output** can still select a different recipe when queued work is split into smaller batches, changing processing time and power. Adding a higher-priority overlapping recipe during reload can also leave existing queued work waiting. These previously identified cases are not fixed in 2.0.1.
+
+### 中文
+
+#### 更新内容
+
+| 项目 | 更新说明 |
+| --- | --- |
+| AEKey 输入 | 物质构筑井样板总成现在支持所有已注册的 AEKey 输入类型，包括 AE2 兼容附属提供的资源。自定义构筑井配方可通过可选的 `ae_inputs` 字段声明精确资源和正 long 数量，现有物品、流体配方保持兼容。 |
+| 配方查询 | 按完整产物及数量建立索引，投料时直接查找对应候选，减少反复扫描全部构筑井配方的开销；保留候选顺序与完整输入校验。 |
+| 研究检查 | 缓存研究定义及配方归属；完成次数仍按控制器实时读取，解锁、撤销和存档恢复立即生效。配方快照替换后自动重建索引。 |
+| 队列开销 | 合并待加工投料时复用候选列表，容量检查不再复制整份加工中原料快照。 |
+| 界面与文档 | JEI 和 GuideME 配方显示通用输入；更新中英文样板总成指南、配方与 API 文档及当前版本信息。 |
+| 仓库清理 | 将重复的 MIT 许可文件合并为 `LICENSE`，保留贡献者版权声明；现有运行时纹理、模型与 GuideME 页面均有引用，临时诊断和构建产物不纳入 Git。 |
+
+#### 性能与验证
+
+- 本地配方查询基准：128 个构筑井配方、32 个研究定义，先预热 2,000 次，再测试三轮、每轮 2,000 次。中位耗时从 **493.08ms 降至 6.21ms**，减少约 **98.7%**。此结果只代表配方查询环节，不代表整个服务器的 TPS 或 Tick 提升比例。
+- 验证了第三方 AEKey 投料、long 批次、排队／加工中／退款数据持久化、原料返回 ME、研究状态即时变更及配方重载。
+- 验证了原料相同或数量成比例、但产物不同的配方隔离：`10A + 10B -> C` 与 `20A + 20B -> D` 同时存在时，下单两份 C 仍产出 `2C`；`10A + 10B -> C` 与 `10A + 10B -> D` 也按所下单样板的产物执行。覆盖单份投料、批量 API、交错排队和存档重载。
+
+#### 升级说明
+
+- **客户端和服务端同时更新至 2.0.1**，各自 `mods` 文件夹内仅保留一个启用的 OmniSequence JAR。
+- 运行要求与 2.0.0 相同：Minecraft 1.20.1、Java 17、Forge 47.4.20+、AE2 15.4.10 / UELM 15.5.4、ExtendedAE 1.21-2.2.32-neoforge+、Glodium 1.21-2.2-neoforge、LDLib2 2.2.18+；两端仍需单独安装 **AppliedEnhancements 1.0.6+**。
+- 技术 Mod ID 保持 `molecularmanipulator`。通用输入需要在构筑井配方中声明，接入 AEKey 类型本身不会自动添加加工配方。
+
+#### 已知限制
+
+- **产物相同**、可替代原料范围重叠的配方，在队列拆分成较小批次时，仍可能改选另一条配方并改变加工耗时和能耗；重载时新增更高优先级的重叠配方，也可能使已有排队任务保持等待。这两类已确认的问题尚未在 2.0.1 中修复。
+
+## 2.0.0 - 2026-09-08
+
+Release date: 2026-09-08
+
 ## English
 
-This is a cumulative update from **1.3.9-forge**, compared against [CurseForge file 8675216](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite/files/8675216).
+### Requirements
 
-### Added
+Minecraft 1.20.1, Java 17, Forge 47.4.20+, AE2 15.4.10 / UELM 15.5.4, ExtendedAE 1.21-2.2.32-neoforge+, Glodium 1.21-2.2-neoforge, and LDLib2 2.2.18+.
+**AppliedEnhancements 1.0.6 or later is required on both the client and server.** Install it as a separate mod; it is not bundled inside OmniSequence.
 
-| Feature | Changes |
+### Changes
+
+| Area | Update |
 | --- | --- |
-| Molecular Sequence Rewrite Array | Added a standalone machine with its own pattern inventory, paging and search, alongside the existing multiblock controller and assembler-matrix core. |
-| Matter Fabrication Well | Added a 41 × 27 × 41 multiblock, its structural blocks, item/fluid input and output ports, and a Pattern Assembly. Dimensions are X × Y × Z. |
-| Research progression | Added AE Foundation, Sequence Array and Omni Computation research branches. Built-in research takes 600 ticks per round and supports nine completion levels by default. Deeper research improves the production parallelism and processing time of recipes belonging to that branch. Optional-mod branches and recipes remain conditional. |
-| Pattern Assembly | Added 36 processing-pattern slots per assembly, AE2 delivery, persistent input/output/refund buffers and automatic return to ME storage. |
-| Generic AEKey inputs | Fabrication recipes can use `ae_inputs` for registered AEKey types. Inputs preserve exact key identity, NBT and long amounts. Existing item/fluid recipe forms remain supported; generic-input recipes are delivered through the Pattern Assembly. |
-| Independent automatic crafting | Added nine dedicated automatic-crafting pattern slots to the Sequence Array, with individual enable switches, output stock limits and input reserves. |
-| Modpack integration | Added fabrication/research JSON and Java/KubeJS interfaces, research administration commands, and expanded English/Chinese GuideME documentation. |
-
-### Changed
-
-| Area | Changes |
-| --- | --- |
-| Shared AE2 enhancements | AppliedEnhancements is now a required, separately installed dependency. Shared AE2 crafting, caches, infinite-storage and terminal enhancements are delegated to that mod. Omni computation uses its configured AELIS planning API instead of the former bundled MAX_FAST planner. |
-| Recipe progression | All 17 recipe IDs shipped in the 1.3.9 baseline now use research-gated fabrication recipes. The distributed data now contains 69 recipe JSON files: 56 fabrication, 10 shaped crafting and 3 research definitions. Loaded recipe counts depend on installed optional mods. |
-| Multiblock designs | Added the feather-style Sequence Array layout (61 × 29 × 61) and the new Omni Computation layout (65 × 35 × 65). Recognition and an explicit structure-update flow remain available for the supported 1.3.9 layouts. |
-| Chunk loading and construction | Added persistent controller-owned chunk tickets for formed structures and construction operations. Dismantling follows actual blocks from top to bottom in alternating rows, excludes air from progress, preserves the controller, and resumes saved work. |
-| Recipe lookup | Added complete-output indexing, cached research definitions and queue lookup reuse. Reloading recipes rebuilds the relevant index; research progress remains controller-specific. Recipes with different expected outputs and amounts stay separated during batching. |
-| Interface and visuals | Reworked machine screens, JEI cards and structure previews with a consistent native Forge console style, clearer control states, adjacent-block output previews and dedicated multiblock effects. |
-
-### Fixed
-
-- Fixed high-GUI-scale layout mismatches between machine panels, JEI and injected controls such as FTB sidebar and Dark Mode buttons; synchronized visible bounds, mouse input, item hit areas and ghost-ingredient targets.
-- Prevented the scaled machine pass from drawing a second full-screen background, which previously produced an extra dark rectangle.
-- Fixed long button captions such as **Auto Craft** disappearing because their clipping rectangle did not follow the screen transform.
-- Added the missing spectral shader `blend` definition so authored alpha participates in additive blending. Original effect opacity and crystal-surface values are retained.
-- Corrected Forge 1.20.1 controller loot serialization and added exact AEKey/NBT/long synchronization for fabrication recipes and buffers.
+| Matter Fabrication Well | Added the 41×41×27 Pearl Genesis Chamber with item/fluid processing, research progression, native 16×16 textures and production/research effects. |
+| Research | Added AE material, Sequence Array and Omni-Computation branches, repeatable deep research and branch-specific production bonuses. All three built-in stages take 30 seconds per round; data packs and KubeJS can customize research. The Omni branch requires AdvancedAE. |
+| Service modules | Added item/fluid input and output ports, dedicated port interfaces, and held-item placement previews for valid well positions. |
+| Pattern assemblies | Added 36 processing-pattern slots per assembly, rename support, item/fluid input and output buffers, queued-ingredient refunds and persistent tasks. Contents survive saves and normal block removal. |
+| Current structures | The Sequence Array uses the 61×61×29 Frost Feather Crown; the Omni-Computation Core uses a 65×65×35 floating crown. Projection, JEI views, animated effects and controller interfaces follow the current layouts. |
+| Legacy structures | Retained only the official 1.3.9 Sequence Array and Omni-Computation blueprints, labeled Legacy 1.3.9. Removed other historical and experimental layouts. The well retains only its current blueprint. |
+| Structure updates | Both supported legacy machines show a projection warning. Click Update Structure, wait at least 0.5 seconds, then click again within 5 seconds to confirm. Rapid double-clicks do not trigger an update. Fixed legacy version/size labels and saved-operation compatibility. |
+| Dismantling and storage | Dismantling follows actual matching blocks from top to bottom in serpentine rows. Pauses and reloads retain progress; capacity limits pause recovery. Machine/module contents, fluids, patterns and pending returns remain persistent. |
+| Sequence Array automation | Added nine independent passive crafting slots with per-input ME reserves and primary-output stock limits. Outputs and remainders return to ME; reusable inputs and deterministic tool pools retain cancellation/refund state. |
+| AE2 integration | Shared ordering, pattern caching, material summaries, infinite-cell handling and general terminal enhancements now use AppliedEnhancements. An active formed Omni core invokes its public AELIS planner API; existing prerequisite configuration is respected. |
+| Guides and recipes | Added English/Chinese GuideME pages for the well, research, ports and assemblies. Fixed embedded well recipes and updated ingredient quantities, fluids, time, power, research unlocks and machine behavior descriptions. |
+| World operation and APIs | Required multiblock chunks stay loaded while the structures or their operations need them. Retained the batch-provider API and added documented matter-research integration. |
 
 ### Upgrade notes
 
-1. Install **AppliedEnhancements 1.0.6-forge** separately on both client and server. This JAR does not bundle it. The declared dependency range is `[1.0.6-forge,1.1)`.
-2. Minecraft, Forge and AE2 dependency ranges remain unchanged: Minecraft `[1.20.1,1.21)`, Forge `47.4.10+`, AE2 `[15.4.10,16)`. This build was checked with Forge 47.4.20, AE2 15.4.10, ExtendedAE 1.20-1.4.19-forge, Glodium 1.20-1.5-forge and GuideME 20.1.15.
-3. **Migrate 1.3.9 configuration values explicitly.** The old global file is `config/omnisequence-transfinite-common.toml`; this build reads `config/omnisequence-transfinite-server.toml` as a COMMON config. Its migration code does not directly import the 1.3.9 common filename/grouped schema. Several client-config paths also changed. Simply renaming the file is insufficient.
-4. Restored the default to **200 pattern pages / 7,200 slots**, matching 1.3.9. Existing explicit values in valid current configurations are preserved: an existing `sequence_array.pattern_pages = 20` remains 20 unless changed manually. Migrate old custom values explicitly. Planner options now belong to AppliedEnhancements.
-5. Back up worlds and configuration before upgrading. Existing supported 1.3.9 structures have a compatibility path; changing their architecture is an explicit operation. New machine crafting progression requires the fabrication/research system.
-
-### Validation and known limitations
-
-- Passed all **131 unit tests** and **3 required Forge GameTests** for this source revision. Runtime checks cover registered custom AEKeys, exact serialization, batch delivery, persistence/refunds, output isolation and recipe/research reloads. These checks do not constitute exhaustive testing of every modpack or a whole-server performance benchmark.
-- Fabrication alternatives with identical outputs and overlapping inputs can still change the selected recipe after batch splitting. A reload that introduces an earlier overlapping recipe can leave an existing queue waiting. These limitations remain unresolved.
-- Quantum links, virtual CPU lanes, source-aware dispatch, reusable-input batches and the public Batch Provider API already existed in 1.3.9; they are retained rather than presented as new features here.
-
----
+- Install both new JARs on the client and server, replacing the corresponding older enabled files.
+- Back up your world before structural upgrades. Open the current projection to check the footprint, materials and controller destination.
+- Official 1.3.9 upgrades preserve controller contents and support save/reload. The Sequence Array controller moves 3 blocks down and 15 behind its old position; the Omni controller moves 15 blocks up and 5 behind. New materials and recovery space are required.
+- Other historical or experimental structures are no longer automatically recognized or migrated. Saved work targeting removed layouts stops instead of continuing against a different blueprint.
+- The technical Mod ID remains `molecularmanipulator`. Shared AE2 enhancement settings belong to `appliedenhancements-common.toml`.
 
 ## 中文
 
-本日志汇总 **1.3.9-forge → 2.0.1-forge** 的累计变化，基准为 [CurseForge 文件 8675216](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite/files/8675216)。
+### 运行要求
 
-### 新增
+Minecraft 1.20.1、Java 17、Forge 47.4.20+、AE2 15.4.10 / UELM 15.5.4、ExtendedAE 1.21-2.2.32-neoforge+、Glodium 1.21-2.2-neoforge、LDLib2 2.2.18+。
+**客户端和服务端均必须安装 AppliedEnhancements 1.0.6 或更高版本。** 前置以独立模组安装，不嵌入本模组安装包。
 
-| 功能 | 更新内容 |
+### 更新内容
+
+| 项目 | 更新说明 |
 | --- | --- |
-| 分子构序重写阵列 | 新增独立机器，具有自己的样板库存、分页与搜索，与已有构序阵列多方块及装配矩阵核心共同提供构序能力。 |
-| 物质构筑井 | 新增 41 × 27 × 41 多方块、结构件、物品／流体输入输出口及样板总成。尺寸统一按 X × Y × Z 表示。 |
-| 研究路线 | 新增 AE 基础、构序阵列、万物演算三条研究分支。内置研究每轮 600 tick，默认共九级；深度研究提高所属配方的生产并行和加工速度。可选模组分支及配方按条件加载。 |
-| 样板总成 | 每个总成提供 36 个加工样板槽，支持 AE2 投料、持久化输入／产物／退款缓存，以及自动返还 ME。 |
-| 通用 AEKey 输入 | 构筑井配方可用 `ae_inputs` 声明已注册 AEKey 类型，保留精确资源身份、NBT 和 long 数量。原有物品／流体配方格式继续可用，通用输入配方由样板总成投料。 |
-| 独立自动合成 | 构序阵列新增九个专用自动合成样板槽，每槽独立设置开关、成品库存上限及原料保留量。 |
-| 整合包接入 | 新增构筑／研究 JSON 与 Java/KubeJS 接口、研究管理命令，并扩充中英文 GuideME 指南。 |
-
-### 调整
-
-| 项目 | 更新内容 |
-| --- | --- |
-| AE2 通用增强 | AppliedEnhancements 改为必须单独安装的前置。通用下单、缓存、无限存储和终端增强交由前置负责；万物演算通过前置配置的 AELIS API 规划，不再内置旧 MAX_FAST 规划器。 |
-| 配方进度 | 1.3.9 中的 17 个配方 ID 全部改为需要研究解锁的构筑井配方。当前包内共有 69 份配方 JSON：56 份构筑、10 份有序合成及 3 份研究；实际加载数量受可选模组影响。 |
-| 多方块设计 | 构序阵列采用 61 × 29 × 61 羽翼布局，万物演算采用 65 × 35 × 65 新布局；保留受支持的 1.3.9 结构识别及显式更新流程。 |
-| 区块加载与施工 | 新增由控制器持有的持久区块票据，覆盖成型结构与施工操作。拆卸按实际方块从上到下、同层蛇形逐行推进，不把空气计入进度，保留控制器并支持恢复已保存的工作。 |
-| 配方查询 | 新增完整产物索引、研究定义缓存和队列查询复用。重载配方重建索引，研究进度按控制器实时读取；批量处理时区分不同预期产物及数量。 |
-| 界面与特效 | 重做机器界面、JEI 配方卡和结构预览，统一原生 Forge 控制台风格，补充控件状态、相邻方块输出预览及多方块特效。 |
-
-### 修复
-
-- 修复较大 GUI 缩放下机器面板、JEI、FTB 侧栏及 Dark Mode 等注入按钮的布局错位，同步实际边界、鼠标输入、物品命中区域及幽灵物品拖放目标。
-- 阻止缩放绘制阶段重复绘制全屏背景，消除额外的黑色矩形。
-- 修复 **Auto Craft** 等较长按钮文字因裁剪框未跟随缩放而完全消失的问题。
-- 为光谱着色器补齐 `blend` 配置，让既有 Alpha 正确参与叠加混合；保留原始特效不透明度和晶体表面数值。
-- 修正 Forge 1.20.1 控制器掉落数据，并补齐构筑配方与缓存的精确 AEKey／NBT／long 同步。
+| 物质构筑井 | 新增 41×41×27 白金创生舱，支持物品和流体加工、研究进度，配套原生 16×16 材质及生产、研究动态效果。 |
+| 研究系统 | 新增 AE 材料、构序阵列和万物演算三个研究分支，支持重复深度研究及分支生产加成。三个内置阶段每轮均为 30 秒；支持数据包和 KubeJS 自定义。万物演算分支需要 AdvancedAE。 |
+| 输入输出口 | 新增物品、流体输入输出口及独立界面；手持对应模块时显示构筑井的合法安装位置。 |
+| 样板总成 | 每个总成提供 36 个处理样板槽，支持重命名、物品和流体输入输出缓存、待处理原料退回及任务持久化；保存和正常拆装保留内容。 |
+| 当前建筑 | 构序阵列采用 61×61×29 霜晶羽冠，万物演算核心采用 65×65×35 悬浮星冠；投影、JEI、动态效果和控制器界面适配当前布局。 |
+| 旧版蓝图 | 仅保留正式 1.3.9 的构序阵列、万物演算核心蓝图，明确标记“旧版 1.3.9”；删除其他历史和试验版布局。物质构筑井只保留当前蓝图。 |
+| 结构更新 | 两台受支持的旧版机器均提示“当前版本建筑变化较大，请打开建筑投影确认”。首次点击更新后，至少等待 0.5 秒，再于 5 秒内点击确认；快速双击不会直接执行。修正旧版标记、尺寸和施工存档兼容。 |
+| 拆除与内容保存 | 只拆除实际匹配的结构方块，按从上到下、同层蛇形顺序进行；暂停或重载保留进度，回收空间不足时暂停。机器、接口中的物品、流体、样板及待返还内容持久保存。 |
+| 构序阵列自动合成 | 新增九个独立被动合成槽，可设置 ME 原料保护量和主产物库存上限；产物及余料返回 ME，可复用材料与确定性工具池支持取消退款。 |
+| AE2 前置接入 | 通用下单、样板缓存、材料汇总、无限磁盘及终端增强交由 AppliedEnhancements；在线成型的万物演算核心通过公开 API 调用 AELIS，并遵从前置已有配置。 |
+| 指南与配方 | 新增构筑井、研究、接口和样板总成的中英文 GuideME；修复内嵌构筑井配方报错，更新材料数量、流体、耗时、功耗、研究解锁及机器说明。 |
+| 世界运行与 API | 多方块及其施工需要时保持相关区块加载；保留批量投料 API，提供已文档化的物质研究扩展接口。 |
 
 ### 升级说明
 
-1. 客户端与服务端均需单独安装 **AppliedEnhancements 1.0.6-forge**，本 JAR 不内置该前置；声明兼容范围为 `[1.0.6-forge,1.1)`。
-2. Minecraft、Forge 与 AE2 的声明范围不变：Minecraft `[1.20.1,1.21)`、Forge `47.4.10+`、AE2 `[15.4.10,16)`。本次验证基线为 Forge 47.4.20、AE2 15.4.10、ExtendedAE 1.20-1.4.19-forge、Glodium 1.20-1.5-forge、GuideME 20.1.15。
-3. **请显式迁移 1.3.9 配置。** 旧全局文件为 `config/omnisequence-transfinite-common.toml`，当前版本以 COMMON 类型读取 `config/omnisequence-transfinite-server.toml`。现有迁移代码没有直接导入 1.3.9 的 common 文件名及其分组格式，客户端部分字段路径也已改变，仅重命名文件不足以完成迁移。
-4. 默认容量恢复为 **200 页／7,200 槽**，与 1.3.9 一致。已存在且有效的新格式配置保留显式值：已经设置 `sequence_array.pattern_pages = 20` 的配置仍为 20，如需增加应手动修改。旧配置中的自定义值仍需显式迁移。规划器选项改由 AppliedEnhancements 管理。
-5. 升级前备份世界和配置。受支持的 1.3.9 旧结构有兼容路径，建筑更新需要显式操作；新造机器需遵循构筑井与研究进度。
+- 客户端和服务端都安装本次两个 JAR，并替换对应的旧版启用文件。
+- 更新结构前备份世界，打开当前建筑投影确认占地、材料和控制器目标位置。
+- 正式 1.3.9 更新保留控制器内容并支持保存重载。构序阵列控制器移至原位置下方 3 格、背后 15 格；万物演算核心控制器移至上方 15 格、背后 5 格。需要新版材料和回收空间。
+- 其他历史或试验版不再自动识别、迁移；指向已删除蓝图的存档施工会停止，避免按照另一套蓝图继续执行。
+- 技术 Mod ID 保持 `molecularmanipulator`；通用 AE2 增强配置位于 `appliedenhancements-common.toml`。
 
-### 验证与已知限制
-
-- 当前源码通过全部 **131 项单元测试**及 **3 项必需 Forge GameTest**。运行测试覆盖已注册自定义 AEKey、精确序列化、批量投料、存档／退款、产物隔离及配方／研究重载；不代表所有整合包组合均已验证，也不构成整服性能提升的测量结论。
-- 产物相同且原料范围重叠的构筑配方，批量拆分后仍可能改选配方；重载时新增更靠前的重叠配方，也可能使已有队列等待。这些限制尚未修复。
-- 量子链路、虚拟 CPU、按供应器能力发配、可复用输入批次及 Batch Provider API 在 1.3.9 中已经存在，本日志将其视为延续功能。
-
----
-
-# 2.0.0-forge — Minecraft 1.20.1
-
-- Make matter deconstruction/reproduction highlights follow their synchronized enable switches; stopped operations use ordinary buttons.
-- Port the 2.0.0 feature set to Java 17 / Forge 47 with AppliedEnhancements 1.0.6-forge.
-- Adapt networking, AE2 15 inventories and recipes, Forge capabilities and persistent chunk tickets.
-- Redesign every machine and JEI page as a light sci-fi console with custom frames, buttons, text fields, slots, toggles and clear selected/disabled states; no LDLib2 or XML overlays.
-- Unify JEI recipe cards and interactive structure previews with the light console palette and custom input/output slots.
-- Deepen light-console surfaces and slot borders; move JEI structure quantities to contrasting badges below their models.
-- Use square corners for console frames, panels, buttons, text fields and JEI cards.
-- Match AE2 19.2.17's cool-grey panel materials, white slot borders, dark text fields and cyan highlights using native Forge 1.20.1 drawing; retain readable button text and quantity badges.
-- Remove default text shadows from buttons and fields while preserving vanilla caret spacing, selection and editing; use a contrasting light caret on dark text fields.
-- Synchronize total occupied pattern slots so paging and filtering cannot change the displayed machine-wide usage.
-- Refactor all six machine screens and JEI layouts against the 1.21.1 branch; restore the 332x364 Omni Computation structure/telemetry/quantum layout, horizontal actions and centered inventory.
-- Share fixed machine geometry and validate it against AE2 slot definitions; retain search, tab restoration, confirmation behavior and high-GUI-scale input handling.
-- Show adjacent-block thumbnails beside all six output directions with neighbor/status tooltips; rebuild cached previews only when block states or direction settings change.
-- Adapt vertex submission and render bounds; scale large controllers to fit the display.
-- Preserve the Forge CPU readiness safeguard and cached/bounded scheduling behavior.
-- Adapt ExtendedAE's expatternprovider namespace and gate unavailable dependency-only materials.
-- See [the API index](docs/README.md) and [dependency setup](libs/README.md) for compatibility details.
-
-# Changelog
-
-## 1.3.9-forge - 2026-08-18
-
-### Changed
-
-- Increased the default Sequence Array pattern capacity from 20 pages (720
-  slots) to 200 pages (7,200 slots). Existing explicit configurations are left
-  unchanged.
-- Removed global network-storage probing and refresh caches. Only AE2 creative
-  cells and ExtendedAE infinity cells now expose `Long.MAX_VALUE` (`9.2E`);
-  every other storage source keeps its original advertised amount.
-
-### Fixed
-
-- Prevented malformed third-party pattern candidates with no matching output
-  from dividing by zero in AE2's crafting tree, including MAX_FAST native
-  compatibility boundaries and full native fallback.
-- Restored speculative MAX_FAST tree structure before native fallback so a
-  failed optimized attempt cannot leak mutable process state into AE2.
-- Prevented Omni crafting lanes with residual inventory from being selected,
-  reused, or removed until AE2 has returned their items to network storage.
-- Fixed Forge startup failures under Mixin 0.8.5 by moving runtime helper
-  types and static utility methods out of transformed Mixin classes.
-- Restricted both Molecular Center and Omni-Computation AE2 connectivity to
-  their controllers. Structure casings and outer parts no longer expose grid
-  nodes, preventing persistent self-connection crashes after controller reloads.
-
-## 1.3.8-forge - 2026-08-11
+## 1.3.9-hotfix - 2026-08-11
 
 ### Added
 
-- Exposed the Molecular Center's large pattern inventory as segmented logical
-  containers in AE2's Pattern Access Terminal.
-- Added the public Omni Batch Provider API v1, including atomic two-phase
-  admission/commit, explicit ownership, rejection, backpressure, and an Omni CPU
-  marker for third-party provider integrations.
-- Ported transactional MAX_FAST graph planning for deterministic crafting,
-  smithing, stonecutting, and supported AdvancedAE processing patterns, with
-  reusable-input boundaries and exact native AE2 fallbacks.
-- Added persistent reusable-input batches for deterministic unchanged remainders
-  and `+1` durability tools, including mixed damage states, cancellation refunds,
-  and NBT-backed dismantling recovery.
-- Added configurable Matter Sequence capacity, entropy capacity and cooling, plus
-  independent throughput, cycle-time, and cooling multipliers for 0–4
-  Acceleration Cards.
+- Large pattern inventories in both Molecular Manipulator single-block
+  machines and the Sequence Array multiblock are exposed as multiple logical
+  containers in the AE2 Pattern Access Terminal.
+- Matter Sequence capacity, rewrite entropy capacity, base cooling, and every
+  0–4 Acceleration Card tier's parallelism, batch time, and cooling multiplier
+  are configurable. The controller displays per-item entropy, effective cooling,
+  and estimated cooldown time.
+- Matter rewrite JSON documentation now records the entropy formulas and exact
+  categorized TOML paths without replacing configured item and tag rules.
 
 ### Changed
 
-- Moved server options to the global
-  `config/omnisequence-transfinite-common.toml` file and grouped every common and
-  client option by subsystem. Existing flat/server values migrate with a backup.
-- Matter Sequence capacity now defaults to `Long.MAX_VALUE`; infinite storage
-  uses source-agnostic boundary detection and displays the numeric `9.22E` long
-  limit instead of an infinity symbol.
-- Accepted reusable batches settle their complete long-count aggregate in one
-  machine tick. Post-commit failures retain provider ownership so AE2 cannot
-  duplicate an already accepted batch.
-- Reorganized and centered the Molecular Center matter interface, expanded its
-  status information, and hid Build once the structure is formed.
+- Matter Sequence storage defaults to `Long.MAX_VALUE`; rewrite entropy defaults
+  to 1,000,000 and uses saturating `long` arithmetic throughout.
+- Server and client options are grouped by subsystem. Existing flat paths are
+  migrated with their values preserved and a `.toml.bak` backup.
+- Removed the crafting-confirmation path label and its dedicated planning-progress
+  network synchronization.
 
 ### Fixed
 
-- Added cancellation-aware MAX_FAST queueing and task-local transactional state,
-  preventing obsolete calculations and speculative state from surviving a
-  canceled request or unsafe fallback.
-- Added saturating arithmetic to network storage, matter values, output recovery,
-  and AE2 key-counter aggregation without allowing signed wraparound.
-- Plans whose required counts, recipe totals, or byte usage exceed the signed-long
-  limit are now marked incomplete and cannot be submitted, preventing apparently
-  craftable jobs from stalling forever.
-- Added precise reusable-batch cancellation lifetimes, safe late-rejection
-  fallback, invalid-NBT quarantine, and recovery drops for active batches and
-  long-count output buffers.
-- Added the production refmap declaration required by Forge's obfuscated runtime,
-  fixing the storage-cell tooltip Mixin startup crash.
-- Completed and verified matching English and Chinese labels/tooltips for every
-  grouped configuration entry.
+- Completed Molecular Center and Omni Computation structures no longer keep
+  showing their construction-progress indicator. The indicator remains visible
+  while the structure is incomplete, being built, or being dismantled.
+- Infinite storage cells are now detected by simulated over-extraction at the
+  AE2 network-storage boundary instead of hard-coding ExtendedAE and AE2
+  inventory implementations. Detection is cached per mounted cell and key,
+  periodically rechecked, and saturates network and tooltip amounts without
+  changing the cell's own advertised contents.
+- Bulk `KeyCounter` merges now use the same saturating addition as individual
+  updates. Combining an infinite cell with an existing finite stack can no
+  longer wrap `Long.MAX_VALUE` into a negative amount and disappear from the
+  terminal, regardless of storage mount order.
+- Deterministic AdvancedAE `AdvProcessingPattern` recipes now pass through the
+  same exact-input, exact-output, remainder, overflow, and runtime-template
+  verification as native AE2 processing patterns. This removes the full native
+  fallback that made large AdvancedAE processing requests expand one craft at a
+  time, while unknown AdvancedAE implementations and subclasses remain on AE2.
+- When the real attempt for a deterministic multi-candidate graph cannot use
+  its first candidate, AE2 still receives that attempt to preserve later-choice
+  priority. If every choice fails, the following missing-material simulation
+  now reuses the verified transactional graph and aggregates the first
+  candidate's shortages instead of traversing it natively a second time.
+- Background and interactive calculations waiting for an Omni execution slot
+  now honor `Future.cancel(true)`. Cancelled requester/menu jobs leave the queue
+  immediately instead of eventually acquiring a slot and performing obsolete
+  work.
+- MAX_FAST now recognizes the `fuzzy_crafted_input` state produced when AE2 has
+  already selected a valid substitute damage state for a container-returning
+  pattern. Deterministic `+1` durability recipes such as platinum dust with a
+  substitutable ore hammer can therefore use the verified bulk tool-capacity
+  path instead of returning the complete request to AE2's per-craft recursion.
+- The selected substitute is revalidated with the original pattern input before
+  aggregation. The fast boundary still requires one exact-output pattern,
+  deterministic and mutually compatible remainder behavior, a unit tool slot,
+  and no self-reference; every unproven case continues through AE2 unchanged.
+- Diagnostic mode now records successful reusable-boundary aggregation with the
+  request count, calculated pattern count, barrier type, and pattern identity.
+  General MAX_FAST decisions also include the requested key and whether the
+  attempt was a real craft or the final missing-material simulation.
 
-## 1.3.7-forge-fix - 2026-07-30
+## 1.3.9 - 2026-08-04
 
 ### Added
 
-- Added runtime compatibility with AE2-UELM 15.5.0 while retaining official
-  Applied Energistics 2 15.4.10 support. UELM uses its native long-amount
-  confirmation path and skips the incompatible `int` field Mixin.
+- Added the public Omni Batch Provider API v1 for pattern-holding AE2 machines.
+  Third-party `ICraftingProvider` implementations can advertise an atomic batch
+  admission, receive exact multi-craft material deliveries, and explicitly
+  commit or reject input ownership without any Mod-specific adapter.
+- Added a read-only Omni CPU marker so provider mods with their own AE2 CPU
+  batching hook can skip it while an Omni CPU owns material allocation.
+- Added an internal reusable-tool pool for all three molecular crafting
+  machines. One deterministic `+1` durability input can reserve multiple tools,
+  including different damage states, execute them as one persistent batch, and
+  refund every exact remaining tool state when the AE2 job is canceled.
+
+### Changed
+
+- Lowered the minimum NeoForge requirement from 21.1.230 to 21.1.220 while
+  retaining compatibility with newer NeoForge 21.1 patch releases.
+- Lowered the minimum LDLib2 requirement from 2.2.29 to 2.2.18 while retaining
+  compatibility with newer LDLib2 releases.
+- Replaced the sole MixinExtras Expressions injection with a standard Sponge
+  Mixin redirect compatible with the MixinExtras 0.5.0 bundled by NeoForge
+  21.1.220.
+- Removed the project-added `LD²` badges from the LDLib2 interfaces.
+- Restored AE2's numeric formatting for `Long.MAX_VALUE` network-storage
+  amounts instead of replacing them with an infinity symbol.
+- Made accepted machine batches retain input ownership even when a post-commit
+  save, event, or wake hook throws, preventing the same AE2 work from being
+  scheduled twice.
+- Reusable-tool candidates that fail a machine's full recipe-state validation
+  now fall back to AE2's original one-recipe dispatch for that provider instead
+  of rebuilding the same rejected aggregate indefinitely.
+- Removed the 65,536-crafts-per-tick execution slice from accepted reusable-tool
+  batches. All three molecular crafting machines now settle the complete
+  long-count aggregate in one machine tick.
+- Multi-candidate AE2 plans now transactionally aggregate the first
+  deterministic candidate in AE2 priority order instead of expanding it one
+  craft at a time, with an exact fallback whenever the full candidate cannot
+  satisfy the request.
+- Recursively nested crafting patterns that return an unchanged catalyst now
+  reuse only the physically required catalyst count while preserving AE2 input
+  order, network extraction peaks, crafting counts, and byte accounting.
+  Substitute-enabled catalyst slots are supported when the actually selected
+  stack has a stable identical remainder; non-deterministic durability, random,
+  or dynamic remainder transitions still fall back to AE2's original planner.
+- Directly requested recipes with one deterministic `+1` durability tool input
+  can now bulk-plan missing fresh tools. Existing tool capacity is consumed
+  first, then the remaining tools and their ingredients are requested in one
+  recursive batch instead of forcing the entire order through AE2's one-craft
+  container loop.
+- Deterministic `+1` durability recipes can now stay on the MAX_FAST path when
+  nested inside a larger recipe graph. Rejected nested boundaries abort the
+  speculative child transaction before AE2 reruns the complete native tree.
+- Failed or interrupted speculative boundaries now restore both AE2's
+  missing-item accounting and mutable pattern-candidate availability, avoiding
+  duplicate missing entries or leaked candidate state so a native retry or a
+  later calculation starts from clean state.
+- Exact terminal shortages now fail the real MAX_FAST attempt immediately and
+  are staged into the simulated missing-material plan in one aggregated pass.
+  Merged terminal nodes are accepted only when every recursion context confirms
+  that the input is genuinely uncraftable.
+- MAX_FAST now validates merged recipe occurrences to a fixed point, including
+  occurrences discovered after their shared graph node was first compiled.
+  Contexts that disagree about terminal status, candidate priority, or child
+  recipe structure—including occurrences with different request-unit
+  amounts—are never executed through the context-insensitive aggregate path,
+  preventing a craftable intermediate from being reported as a generic
+  terminal shortage.
+- Recursion-context conflicts now trigger a bounded recompilation that isolates
+  only the affected recipe occurrences instead of immediately abandoning the
+  complete graph. Context-sensitive graphs retain AE2's depth-first input order
+  so parent output surplus cannot satisfy its own still-unplanned descendants;
+  graphs with substitutions, reusable inputs, or unsafe boundaries continue to
+  use the native planner.
+- Exact AE2 smithing-table and stonecutting patterns now participate in
+  deterministic MAX_FAST graph compilation instead of forcing the complete
+  crafting order back to the native planner. Patterns with real input
+  substitutions still retain the existing safe local fallback.
+- Stateful molecular crafting machines now drop one NBT-backed recovery block
+  when broken with an active batch, quarantined batch, or long-count output
+  buffer. Replacing it restores the pending state without spawning an unsafe
+  number of item entities.
+
+## 1.3.8 - 2026-07-31
+
+### Changed
+
+- Added LDLib2 2.2.29 as a required dependency and migrated the Omni
+  Computation controller's status and action interface to a modular LDLib2 UI
+  while retaining the existing AE2 menu, slot, and synchronization behavior.
+- Added an animated live-telemetry drawer, smoothly interpolated structure and
+  operation progress bars, and status-change pulse animations to demonstrate
+  LDLib2's component and animation systems.
+- Migrated the Molecular Center controller's four-tab action layer to LDLib2,
+  including animated tab selection and interpolated deconstruction, rewrite,
+  and entropy meters, while preserving AE2 slots, pattern search, text input,
+  color controls, and destructive-action confirmation behavior.
+- Moved both LDLib2 controller layouts and their base styling into declarative
+  XML/LSS resources; Java now handles AE2 state binding, interaction callbacks,
+  dynamic visibility, textures, and animations.
+- Refactored the Molecular Sequence Rewrite Array screen with an XML-backed
+  LDLib2 navigation and status layer, animated pattern-capacity feedback, and
+  a shared dark transfinite visual theme while retaining native AE2 slots and
+  the existing Java search field.
+- Rebalanced all Sequence Array component recipes around ExtendedAE's
+  higher-tier progression. High-volume parts now use Assembler Matrix blocks,
+  Entro blocks, and concurrent processors, while the unique core and
+  controller require matrix cores and a wireless hub.
+
+### Fixed
+
+- Gave the Omni-Computation XML value column explicit widths so dynamically
+  populated network, storage, parallelism, job, lane, calculation, and quantum
+  states remain visible after the initial empty-label layout pass.
+- Restored the Omni-Computation Core's last validated formed state during chunk
+  loading and synchronized its powered model before AE2 cluster restoration can
+  return early, preventing an online core from retaining its inactive texture
+  after joining a world.
+- Kept LDLib2 hover and click hit-testing aligned with responsively scaled
+  controller screens by supplying raw screen mouse coordinates to its
+  pose-aware render pass instead of transforming the pointer twice.
+- Sequence Array formation now validates physical multiblock parts only. The
+  rendered center at local `(0, 29, 0)` may be occupied without unforming the
+  structure, and automatic repair, dismantling, or ghost previews leave that
+  position untouched.
+- Blocking AE2 and ExtendedAE pattern providers now retain serial dispatch
+  semantics when connected to OmniSequence batch-crafting providers.
+
+## 1.3.7 - 2026-07-30
 
 ### Changed
 
@@ -463,22 +709,34 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 - Replaced per-frame ghost-block model tessellation with reusable 16x16x16
   section VBOs for both multiblock projections. Changed sections rebuild
   incrementally, at most two per frame, while unchanged geometry is reused.
-- Item-substitution crafting patterns are now permanently eligible for compatible
-  batch dispatch. The retired `omni_batch_allow_substitution_patterns` option is
+- Item-substitution crafting patterns are now permanently eligible for
+  compatible runtime batch dispatch. AE2 still selects the actual substituted
+  input, and the retired `omni_batch_allow_substitution_patterns` option is
   removed from existing TOML files without resetting other custom values.
+- The Assembler Matrix Sequence Rewrite Core and Sequence Array now own and
+  persist accepted reusable-input batches across saves, chunk unloads, and
+  server restarts.
+- Same-key and unbreakable remainders can run as one reusable batch.
+  Finite-durability tools batch only when each craft deterministically adds
+  exactly one damage; probabilistic, contextual, and key-changing transitions
+  retain AE2's original one-craft path.
+- Reusable batch expansion now uses AE2's native pattern-power calculation
+  over the actual combined input set.
 - Matter Sequence item tooltips now default to a compact Shift-expand prompt.
-  A client setting can disable them, keep the `HOLD_SHIFT` behavior, or make
-  them `ALWAYS_VISIBLE`.
-- The Sequence Array Controller now supports debounced, cross-page
-  input/output pattern search while retaining AE2's detailed encoded-pattern
-  hover tooltip. Just Enough Characters remains optional and enables Pinyin
-  matching when installed.
+  The client setting supports `DISABLED`, `HOLD_SHIFT`, and `ALWAYS_VISIBLE`.
+- Pattern inventories now have debounced, cross-page input/output search while
+  retaining AE2's detailed encoded-pattern hover tooltip. Search uses
+  client-localized names and optionally delegates matching to Just Enough
+  Characters, enabling Pinyin queries without making JEC a required mod.
 
 ### Fixed
 
-- Restored the vanilla translucent world backdrop behind both controller
-  screens on Forge 1.20.1, drawing it before responsive GUI scaling so it
-  covers the complete viewport.
+- Canceling an AE2 job now persistently stops every remaining provider-side
+  reusable execution and refunds the exact unused materials together with the
+  reusable item's current state. Completed outputs remain valid, and canceled
+  work cannot resume after a reload.
+- Kept the vanilla translucent world backdrop behind controller screens while
+  responsive scaling is active, covering the complete viewport.
 - Sequence Array construction now honors Creative mode like Omni-Computation
   construction: materials are not consumed, and a failed placement cannot
   create a refunded block.
@@ -486,18 +744,19 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
   every English and Chinese static/dynamic translation key has a matching
   entry.
 - Reworked controller labels and values into width-aware columns and wrapped
-  rows, preventing English text overlap. The Omni-Computation fixed-capability
-  notice now renders at the normal readable font size.
+  rows, preventing English text overlap. The Sequence Array's two matter-job
+  states and counters fit independently inside their 96-pixel columns, and the
+  Omni-Computation fixed-capability notice renders at normal readable size.
 - The AE2 crafting CPU selector now renders a compact localized Omni lane name
   inside its narrow row while retaining the complete name in the tooltip.
 
-## 1.3.6-forge - 2026-07-29
+## 1.3.6 - 2026-07-29
 
 ### Added
 
-- Added AE2 GuideME documentation for the Assembler Matrix Sequence Rewrite
-  Core, Omni-Computation Core, and Sequence Array Controller. The standalone
-  Molecular Sequence Rewrite Array remains absent from the Forge 1.20.1 build.
+- Added AE2 GuideME documentation for the Molecular Sequence Rewrite Array,
+  Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, and Sequence
+  Array Controller.
 
 ### Changed
 
@@ -510,10 +769,10 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 - Restricted the Sequence Array Controller pattern inventory and advertised
   recipes to molecular-assembler-compatible AE2 crafting, smithing, and
   stonecutting patterns.
-- Kept the Minecraft 1.21.1 NeoForge-only Expanded AE 2.1.1 conflict declaration
-  out of Forge metadata because it targets a different loader and AE2 line.
+- Marked only Expanded AE 2.1.1 as incompatible in NeoForge metadata. AppliedFlux,
+  ExtendedAE, and later NeoForge 21.1 patch releases are not conflict entries.
 
-## 1.3.5-fix-forge - 2026-07-28
+## 1.3.5-fix - 2026-07-28
 
 ### Changed
 
@@ -544,7 +803,7 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
   amount widget through an application bridge, fixing startup and crafting
   amount screen class-loading crashes.
 
-## 1.3.5-forge - 2026-07-27
+## 1.3.5 - 2026-07-27
 
 ### Changed
 
@@ -554,27 +813,50 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 - Limited each provider/pattern pair to one scaled-dispatch growth step per server
   tick, preventing a single lane from probing `1, 2, 4, ...` in one tick while
   retaining the learned multiplier for the next tick.
-
-### Compatibility
-
-- This release targets Minecraft 1.20.1, Forge 47.4.10 and AE2 15.4.10.
-- The standalone Molecular Sequence Rewrite Array remains removed from the
-  Forge 1.20.1 build; its functionality remains in the Molecular Center
-  multiblock.
-
-## 1.3.4-hotfix-forge - 2026-07-27
+- Replaced the fixed 32-call compatibility throttle with an
+  `Integer.MAX_VALUE` hard ceiling plus one strict server-wide, load-aware time
+  slice. Active Omni cores share up to 20 ms while average MSPT is low and
+  automatically contract toward a rotating single-lane progress token as MSPT
+  approaches 45. Task iteration also rotates and gives each compatibility
+  pattern a short sub-slice so one huge recipe cannot starve later recipes.
+- Cached negative explicit-batch-provider topology once per job pattern and
+  server tick. Ordinary multi-input compatibility pushes now skip repeated
+  waiting-for analysis, pattern validation and provider pre-scans while retaining
+  the original complete-recipe `pushPattern` call and shared time budget.
+- Removed the obsolete `omni_unscaled_dispatch_attempts_per_tick` option from
+  the server config and configuration screen. Existing TOML files migrate by
+  deleting only that retired key, preserving every current custom value.
 
 ### Fixed
 
-- Removed the `ForgeConfigSpec` core-class mixin that could run after Forge had
-  already loaded its target and abort startup with `MixinTargetAlreadyLoadedException`.
-- Kept the Forge-specific saved-world migration hook at the beginning of
-  `ServerLifecycleHooks.handleServerAboutToStart`, before Forge selects and loads
-  the world's server config. Forge posts `ServerAboutToStartEvent` only after that
-  load, so moving migration to the event would ignore legacy world values on the
-  first startup.
+- Routed non-explicit multi-input providers through AE2-style repeated complete
+  `1x` recipe calls, bypassing the runtime-scaled-pattern context entirely. This
+  prevents one-to-many targets from routing large waves of the first, second and
+  later ingredients into different machines and deadlocking their input slots.
+  The `Integer.MAX_VALUE` parallelism remains a logical scheduling window; real
+  one-recipe calls are time-sliced by the controller-wide per-tick allowance,
+  while single-input patterns and explicit batch providers retain adaptive
+  scaling.
+- Removed helper and anonymous classes from the Mixin package so transformed
+  AE2 crafting CPU targets no longer trigger Mixin `IllegalClassLoadError`
+  during startup or adaptive provider iteration.
+- Normalized ExtendedAE Plus planning-time scaled multi-input tasks before an
+  Omni CPU executes them, so an EAP `1x` wrapper cannot conceal an already
+  multiplied ingredient batch from the atomic-dispatch guard.
+- Replaced the production-unsafe direct reference to the client accessor mixin
+  with an application bridge implemented on AE2's number entry widget. Opening
+  the long crafting amount screen no longer fails with
+  `NoClassDefFoundError: NumberEntryWidgetAccessor`.
+## 1.3.4-hotfix - 2026-07-27
 
-## 1.3.4-forge - 2026-07-27
+### Fixed
+
+- Removed the `ModConfigSpec` core-class mixin that could run after NeoForge had
+  already loaded its target and abort startup with `MixinTargetAlreadyLoadedException`.
+- Moved saved-world configuration migration to NeoForge's supported
+  `ServerAboutToStartEvent`, eliminating the remaining lifecycle core-class mixin.
+
+## 1.3.4 - 2026-07-27
 
 ### Changed
 
@@ -627,22 +909,22 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 - Added strict config-schema regeneration. If a TOML contains any option that
   no longer exists in the current server or client schema, the previous file is
   backed up and the complete configuration is atomically rebuilt from current
-  defaults. Missing current options and invalid values retain Forge's normal
+  defaults. Missing current options and invalid values retain NeoForge's normal
   targeted correction behavior.
 
 ### Compatibility
 
-- Ported the release to Minecraft 1.20.1, Forge 47.4.10 and AE2 15.4.10.
 - Existing worlds, patterns and configuration files remain compatible.
-- The standalone Molecular Sequence Rewrite Array remains removed from the
-  Forge 1.20.1 build and was not restored by this port.
 - The stable mod ID remains `molecularmanipulator`.
 - Dedicated batch-provider and machine whitelist behavior is unchanged.
 
-## 1.3.3-forge - 2026-07-26
+## 1.3.3-hotfix - 2026-07-26
 
 ### Fixed
 
+- Reacquired render buffers after every render-type switch in the Omni
+  Computation Core and separated multiblock projection model/outline passes,
+  preventing `BufferBuilder: Not building!` client crashes.
 - Replaced output-return-driven adaptive dispatch with complete-input acceptance
   feedback, so slow, high-parallel and output-less processing targets no longer
   stall material delivery while waiting for products.
@@ -651,7 +933,7 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
   accounting; rejection or provider-side queuing stops the current tick and
   contracts the dispatch window.
 - Removed the exact `PatternProviderLogic` class requirement from the standard
-  adaptive path. Third-party providers that correctly implement AE2 15.4.10's
+  adaptive path. Third-party providers that correctly implement AE2's
   `ICraftingProvider` success, rejection and busy-state contract can now use the
   same bounded high-throughput dispatch.
 - Added full-amount preflight checks and cache-aware initial windows for standard
@@ -660,23 +942,14 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 
 ### Compatibility
 
-- Ported the hotfix to Minecraft 1.20.1, Forge 47.4.10 and AE2 15.4.10.
 - Existing worlds, patterns and configuration files remain compatible.
-- The standalone Molecular Sequence Rewrite Array remains removed from the
-  Forge 1.20.1 build and was not restored by this port.
 - The stable mod ID remains `molecularmanipulator`.
+- Dedicated batch-provider and machine whitelist behavior is unchanged.
 
-### Platform
-
-- Ported the release to the clean Minecraft 1.20.1 Forge 47.4.10 MDK baseline.
-- Targeted Applied Energistics 2 15.4.10, ExtendedAE 1.20-1.4.12-forge and Glodium 1.20-1.5-forge.
-- Replaced NeoForge metadata, networking, registries, capabilities and data paths with their Forge 1.20.1 equivalents.
+## 1.3.3 - 2026-07-25
 
 ### Fixed
 
-- Reacquired render buffers after every render-type switch in the Omni
-  Computation Core and separated multiblock projection model/outline passes,
-  preventing `BufferBuilder: Not building!` client crashes.
 - Made missing-material crafting summaries use the `ICraftingPlan` result from
   the same calculation, preventing unstable missing-item lists when external
   storage providers report different results during confirmation-page probes.
@@ -718,11 +991,6 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 
 - Removed the obsolete material-calculation cache-hit statistic from the Omni
   Computation Core interface.
-- Removed the standalone Molecular Sequence Rewrite Array block, its block entity,
-  menu, recipe and client resources from the Forge 1.20.1 build. Existing placed
-  copies are removed as missing blocks when old worlds are loaded.
-- Replaced the removed block in the Assembler Matrix Sequence Rewrite Core recipe
-  with an AE2 Molecular Assembler.
 
 ## 1.3.2 - 2026-07-25
 
@@ -776,10 +1044,10 @@ This is a cumulative update from **1.3.9-forge**, compared against [CurseForge f
 ### Compatibility
 
 - Minecraft 1.20.1
-- Forge 47.4.10 or later
-- Applied Energistics 2 15.4.10
-- ExtendedAE 1.20-1.4.12-forge
-- A compatible Forge 1.20.1 release of Advanced AE is optional
+- NeoForge 21.1.230 or later
+- Applied Energistics 2 19.2.17 or later
+- ExtendedAE 1.21-2.2.32-neoforge or later
+- Advanced AE 1.6.11 or later is optional
 - ExtendedAE Plus and JEI integrations are optional
 
 ### Notes

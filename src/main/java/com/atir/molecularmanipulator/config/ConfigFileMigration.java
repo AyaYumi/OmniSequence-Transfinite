@@ -22,15 +22,21 @@ public final class ConfigFileMigration {
             "omni_batch_allow_substitution_patterns";
     private static final Map<String, String> SERVER_CATEGORY_MIGRATIONS =
             Map.ofEntries(
+                    category("sequence_array.force_load_chunks", "multiblocks.force_load_chunks"),
+                    category("force_load_chunks", "multiblocks.force_load_chunks"),
+                    category("sequence_array.singularity_collection.raw_ore_tags", "singularity_hub.singularity_collection.raw_ore_tags"),
+                    category("sequence_array.singularity_collection.log_tags", "singularity_hub.singularity_collection.log_tags"),
+                    category("sequence_array.singularity_collection.item_blacklist", "singularity_hub.singularity_collection.item_blacklist"),
+                    category("sequence_array.singularity_collection.batch_size", "singularity_hub.singularity_collection.batch_size"),
+                    category("sequence_array.singularity_collection.interval_ticks", "singularity_hub.singularity_collection.interval_ticks"),
+                    category("sequence_array.singularity_duplication.energy_priority", "singularity_hub.singularity_duplication.energy_priority"),
+                    category("sequence_array.singularity_duplication.fe_per_unit", "singularity_hub.singularity_duplication.fe_per_unit"),
+                    category("sequence_array.singularity_duplication.ae_per_unit", "singularity_hub.singularity_duplication.ae_per_unit"),
+                    category("sequence_array.singularity_duplication.matter_per_black_hole", "singularity_hub.singularity_duplication.matter_per_black_hole"),
+                    category("sequence_array.singularity_duplication.interval_ticks", "singularity_hub.singularity_duplication.interval_ticks"),
                     category("pattern_pages", "sequence_array.pattern_pages"),
                     category("build_blocks_per_tick", "sequence_array.build_blocks_per_tick"),
                     category("idle_power", "sequence_array.idle_power"),
-                    category("matter_sequence_capacity",
-                            "sequence_array.matter_rewrite.matter_sequence_capacity"),
-                    category("matter_entropy_capacity",
-                            "sequence_array.matter_rewrite.matter_entropy_capacity"),
-                    category("matter_entropy_cooling_per_second",
-                            "sequence_array.matter_rewrite.matter_entropy_cooling_per_second"),
                     category("max_crafting_order_amount",
                             "ae2_crafting.max_crafting_order_amount"),
                     category("omni_max_fast_mode",
@@ -64,24 +70,8 @@ public final class ConfigFileMigration {
                     category("omni_compat_dispatch_max_time_us",
                             "omni_computation.dispatch.omni_compat_dispatch_max_time_us"),
                     category("omni_dispatch_max_work_units",
-                            "omni_computation.dispatch.omni_dispatch_max_work_units"),
-                    speedCardCategory(0, "parallel"),
-                    speedCardCategory(0, "cycle_ticks"),
-                    speedCardCategory(0, "cooling_multiplier"),
-                    speedCardCategory(1, "parallel"),
-                    speedCardCategory(1, "cycle_ticks"),
-                    speedCardCategory(1, "cooling_multiplier"),
-                    speedCardCategory(2, "parallel"),
-                    speedCardCategory(2, "cycle_ticks"),
-                    speedCardCategory(2, "cooling_multiplier"),
-                    speedCardCategory(3, "parallel"),
-                    speedCardCategory(3, "cycle_ticks"),
-                    speedCardCategory(3, "cooling_multiplier"),
-                    speedCardCategory(4, "parallel"),
-                    speedCardCategory(4, "cycle_ticks"),
-                    speedCardCategory(4, "cooling_multiplier"));
+                            "omni_computation.dispatch.omni_dispatch_max_work_units"));
     private static final Map<String, String> CLIENT_CATEGORY_MIGRATIONS = Map.of(
-            "matter_sequence_tooltip_mode", "tooltips.matter_sequence_tooltip_mode",
             "dynamic_effect_level", "visual.dynamic_effect_level");
 
     private ConfigFileMigration() {
@@ -90,6 +80,8 @@ public final class ConfigFileMigration {
     public static void migrateGlobalConfigs() {
         migrateDirectory(FMLPaths.CONFIGDIR.get());
         migrateDirectory(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
+        removeRetiredClientOptions(FMLPaths.CONFIGDIR.get());
+        removeRetiredClientOptions(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
         categorizeDirectory(FMLPaths.CONFIGDIR.get());
         categorizeDirectory(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
         removeRetiredServerOptions(FMLPaths.CONFIGDIR.get(), "server/default");
@@ -113,6 +105,7 @@ public final class ConfigFileMigration {
     private static void categorizeDirectory(Path directory) {
         ConfigSchemaGuard.relocateOptions(
                 directory.resolve(SERVER_FILE), SERVER_CATEGORY_MIGRATIONS, "server/default");
+        ConfigSchemaGuard.mergeCollectorItemTags(directory.resolve(SERVER_FILE), "server/default");
         ConfigSchemaGuard.relocateOptions(
                 directory.resolve(CLIENT_FILE), CLIENT_CATEGORY_MIGRATIONS, "client");
     }
@@ -121,6 +114,7 @@ public final class ConfigFileMigration {
             ForgeConfigSpec serverSpec, ForgeConfigSpec clientSpec) {
         categorizeDirectory(directory);
         removeRetiredServerOptions(directory, "server/default");
+        removeRetiredClientOptions(directory);
         ConfigSchemaGuard.regenerateFileIfOutdated(
                 directory.resolve(SERVER_FILE), serverSpec, "server/default");
         ConfigSchemaGuard.regenerateFileIfOutdated(
@@ -131,11 +125,6 @@ public final class ConfigFileMigration {
         return Map.entry(oldPath, newPath);
     }
 
-    private static Map.Entry<String, String> speedCardCategory(int cards, String suffix) {
-        String option = "card_" + cards + "_" + suffix;
-        return category("matter_speed_cards." + option,
-                "sequence_array.matter_rewrite.speed_cards." + option);
-    }
 
     private static void removeRetiredServerOptions(
             Path directory, String displayName) {
@@ -144,8 +133,15 @@ public final class ConfigFileMigration {
                 java.util.List.of(RETIRED_UNSCALED_DISPATCH_LIMIT,
                         RETIRED_BATCH_SUBSTITUTION_OPTION, "ae2_crafting",
                         "omni_computation.optimizer", "omni_computation.cache",
-                        "omni_computation.execution"),
+                        "omni_computation.execution", "sequence_array.matter_rewrite",
+                        "matter_sequence_capacity", "matter_entropy_capacity",
+                        "matter_entropy_cooling_per_second", "matter_speed_cards"),
                 displayName);
+    }
+
+    private static void removeRetiredClientOptions(Path directory) {
+        ConfigSchemaGuard.removeObsoleteOptions(directory.resolve(CLIENT_FILE),
+                java.util.List.of("tooltips", "matter_sequence_tooltip_mode"), "client");
     }
 
     static void migrateFile(Path directory, String legacyFileName, String fileName) {

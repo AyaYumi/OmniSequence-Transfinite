@@ -4,6 +4,10 @@
     {
       "type": "forge:mod_loaded",
       "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:assembler_matrix_wall"
     }
   ],
   "ingredients": [
@@ -15,13 +19,13 @@
     },
     {
       "ingredient": {
-        "tag": "forge:gems/fluix"
+        "tag": "c:gems/fluix"
       },
       "count": 2
     },
     {
       "ingredient": {
-        "tag": "forge:ingots/netherite"
+        "tag": "c:ingots/infused_entro"
       },
       "count": 2
     },

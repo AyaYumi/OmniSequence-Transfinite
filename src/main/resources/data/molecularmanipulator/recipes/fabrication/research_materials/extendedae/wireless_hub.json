@@ -4,6 +4,18 @@
     {
       "type": "forge:mod_loaded",
       "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:concurrent_processor"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:wireless_connect"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:wireless_hub"
     }
   ],
   "ingredients": [
@@ -21,7 +33,7 @@
     },
     {
       "ingredient": {
-        "item": "ae2:engineering_processor"
+        "item": "expatternprovider:concurrent_processor"
       },
       "count": 4
     },

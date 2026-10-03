@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * Enforces exact option schemas for this mod's TOML files.
  *
- * <p>Missing current options and invalid current values retain NeoForge's normal
+ * <p>Missing current options and invalid current values retain Forge's normal
  * correction behavior. Any option that is not present in the current schema is
  * treated as evidence of an outdated config and resets the complete file to the
  * latest defaults.</p>
@@ -103,7 +103,10 @@ public final class ConfigSchemaGuard {
                     view.remove(path);
                     view.removeComment(path);
                 }
-                }
+                removeEmptySection(view, "sequence_array.singularity_collection");
+                removeEmptySection(view, "sequence_array.singularity_duplication");
+                removeEmptySection(view, "sequence_array");
+            }
             writeAtomically(config, file);
             MolecularManipulator.LOGGER.info(
                     "Removed retired options {} from {} configuration {}",
@@ -162,6 +165,42 @@ public final class ConfigSchemaGuard {
             MolecularManipulator.LOGGER.warn(
                     "Could not categorize {} configuration {}; the existing file was left in place",
                     displayName, file, exception);
+            return false;
+        }
+    }
+
+    /** Combines legacy collector lists without adding defaults or overwriting an explicit new list. */
+    public static boolean mergeCollectorItemTags(Path file, String displayName) {
+        if (!Files.isRegularFile(file)) return false;
+        String section = "singularity_hub.singularity_collection.";
+        List<String> oldPaths = List.of(section + "raw_ore_tags", section + "log_tags");
+        String target = section + "item_tags";
+        try {
+            var config = readToml(file);
+            var existing = oldPaths.stream().filter(config::contains).toList();
+            if (existing.isEmpty()) return false;
+            var merged = new java.util.LinkedHashMap<String, String>();
+            for (var path : existing) {
+                Object value = config.getRaw(path);
+                if (!(value instanceof List<?> entries)) throw new IllegalArgumentException("Expected tag list at " + path);
+                for (Object entry : entries) {
+                    if (!(entry instanceof String text)) throw new IllegalArgumentException("Expected item tag string");
+                    String normalized = text.trim();
+                    if (normalized.startsWith("#")) normalized = normalized.substring(1);
+                    merged.putIfAbsent(normalized, text.trim());
+                }
+            }
+            backUpConfig(file);
+            synchronized (config) {
+                var view = config;
+                if (!view.contains(target)) view.set(target, new ArrayList<>(merged.values()));
+                for (var path : existing) { view.remove(path); view.removeComment(path); }
+                }
+            new TomlWriter().write(config, file, WritingMode.REPLACE);
+            MolecularManipulator.LOGGER.info("Merged collector item tags in {} configuration {}", displayName, file);
+            return true;
+        } catch (IOException | RuntimeException exception) {
+            MolecularManipulator.LOGGER.warn("Could not merge collector tags in {}; existing file retained", file, exception);
             return false;
         }
     }

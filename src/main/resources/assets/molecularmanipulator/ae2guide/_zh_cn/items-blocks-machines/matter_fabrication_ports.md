@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: items-blocks-machines/matter_fabrication_well.md
-  title: 构筑井输入输出口
+  title: "构筑井输入输出口"
   icon: molecularmanipulator:matter_fabrication_item_input
   position: 1
 item_ids:
@@ -13,59 +13,66 @@ item_ids:
 
 # 构筑井输入输出口
 
-<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="5" />
+把材料送进构筑井，再把产物交给管道或容器。四种接口均用基础 AE2 材料制作，无需研究。
 
-四种接口分别负责物品输入、物品输出、流体输入和流体输出。它们使用 AE2 原版材料制作，不需要研究。手持接口时会高亮附近[物质构筑井](matter_fabrication_well.md)允许安装的位置。
+<Row>
+<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="4" />
+
+<BlockImage id="molecularmanipulator:matter_fabrication_item_output" scale="4" />
+
+<BlockImage id="molecularmanipulator:matter_fabrication_fluid_input" scale="4" />
+
+<BlockImage id="molecularmanipulator:matter_fabrication_fluid_output" scale="4" />
+</Row>
+
+## 选对接口
+
+| 接口 | 管道用途 | 缓存 |
+| --- | --- | --- |
+| 物品输入口 | 放入材料 | 16 槽 |
+| 物品输出口 | 取走产物 | 16 槽 |
+| 流体输入口 | 注入原料 | 4 罐 |
+| 流体输出口 | 抽取产物 | 4 罐 |
+
+每个流体罐可存 **2,147,483,647 mB**。手持接口查看合法位置；成型后由[控制器](matter_fabrication_well.md)统一处理配方。
+
+## 投料与输出
+
+1. 将配方要求的物品、流体送入对应输入口。
+2. 给每种产物准备对应输出口与剩余空间。
+3. 用管道抽取输出；或在输出口开启**自动输出**并选择相邻容器方向。
+
+| 自动输出设置 | 行为 |
+| --- | --- |
+| 初始状态 | 开关关闭，六个方向均未选 |
+| 启用条件 | 开启开关，并至少选择一个方向 |
+| 方向选择 | 上、下、北、南、西、东，可同时选多个 |
+
+方向按世界方位计算。悬停方向按钮可查看相邻方块名称。
+
+## 手动搬运流体
 
 <ItemGrid>
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_output" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_output" />
+<ItemIcon id="minecraft:bucket" />
+<ItemIcon id="minecraft:water_bucket" />
 </ItemGrid>
 
-## 缓存与管道
+鼠标拿着装液容器，**右键流体槽**注入；拿着空容器，右键取出。每次处理一个容器，数量不足、流体不匹配或空间不够时停止转移。
 
-| 接口类型 | 缓存 |
-| --- | --- |
-| 物品口 | 16 个普通物品槽 |
-| 流体口 | 4 个独立流体罐，每罐 2,147,483,647 mB |
+## 退回与拆装
 
-输入口向外部管道开放放入能力，输出口开放取出能力。普通接口缓存与[样板总成](matter_fabrication_pattern_assembly.md)的不限类型缓存不同。
-
-物品可通过界面、管道等送入对应接口。普通加工消耗输入口材料，产物交给对应输出口；请同时为配方的物品和流体产物准备空间。
-
-## 退回 AE 与自动输出
-
-控制器网络在线时，输入口的“退回 AE”按钮可把缓存材料送回控制器网络。网络放不下的部分仍留在缓存中。
-
-输出口提供“自动输出”开关：
-
-| 项目 | 行为 |
-| --- | --- |
-| 默认状态 | 关闭，六个输出方向也都未选 |
-| 开启后 | 至少选择一个方向，把物品或流体送入相邻的兼容容器 |
-| 方向 | 上、下、北、南、西、东，使用世界方向，不随控制器朝向改变 |
-| 按钮 | 显示相邻方块图标，悬停可看方块名称 |
-
-可以同时选择多个方向。
-
-## 用桶手动操作流体
-
-> 用鼠标拿起装有流体的桶或兼容容器，在目标流体缓存槽上右键，即可把容器中的流体放进去。拿着空桶或空容器右键缓存槽，可把流体装出来。
-
-一次处理一个容器；流体不匹配、数量不足或没有空间时不会强行转移。输入流体口和输出流体口都支持这种手动操作，堆叠容器的结果需要背包有接收空间。
-
-正常拆下接口后，缓存中的物品或流体随掉落方块保存。重新放回合法接口位置后继续使用。
+输入口的**退回 AE**把缓存送回控制器网络，放不下的部分留在接口中。正常拆下接口后，缓存随方块保留。
 
 ## 配方
 
 <Row>
-<RecipeFor id="molecularmanipulator:matter_fabrication_item_input" fallbackText="当前整合包未提供此配方。" />
-<RecipeFor id="molecularmanipulator:matter_fabrication_item_output" fallbackText="当前整合包未提供此配方。" />
+<RecipeFor id="molecularmanipulator:matter_fabrication_item_input" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_item_output" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
 </Row>
 
 <Row>
-<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_input" fallbackText="当前整合包未提供此配方。" />
-<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_output" fallbackText="当前整合包未提供此配方。" />
+<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_input" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_output" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
 </Row>

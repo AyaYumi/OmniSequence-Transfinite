@@ -1,0 +1,44 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:white_hole"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_core"
+      },
+      "count": 100
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:infinite_crafting_storage"
+      },
+      "count": 400
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_block"
+      },
+      "count": 1600
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:diamond"
+      },
+      "count": 800
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:white_hole_resource_core",
+      "count": 1
+    }
+  ],
+  "processing_time": 600,
+  "ae_per_tick": 4096,
+  "requires_research": true
+}

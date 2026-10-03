@@ -103,7 +103,7 @@ abstract class InteractiveStructurePreviewWidget implements IRecipeWidget, IJeiG
             RenderSystem.defaultBlendFunc();
             Lighting.setupFor3DItems();
             float scale = StructurePreviewCamera.fitScale(width, layer < 0 ? structureHeight : 1, depth,
-                    view.width(), view.height()) * (float) camera.zoom;
+                    view.width(), view.height()) * (float) camera.zoom * previewScale();
             pose.translate((view.left() + view.right()) / 2.0 + camera.panX,
                     (view.top() + view.bottom()) / 2.0 + camera.panY, 180);
             // Keep GUI depth bounded even at maximum magnification; x/y retain the full zoom.
@@ -135,6 +135,7 @@ abstract class InteractiveStructurePreviewWidget implements IRecipeWidget, IJeiG
         }
     }
 
+    protected float previewScale() { return 1.0F; }
     protected Map<BlockPos, ModelData> connectedData() { return Map.of(); }
     protected String dimensions() { return width + " × " + depth + " × " + structureHeight; }
 

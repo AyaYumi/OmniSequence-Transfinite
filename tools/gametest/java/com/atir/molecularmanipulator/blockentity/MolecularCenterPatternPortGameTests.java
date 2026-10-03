@@ -101,7 +101,7 @@ public final class MolecularCenterPatternPortGameTests {
             } finally {
                 ModConfig.PATTERN_PAGES.set(pages);
             }
-            center.getMatterInventory().setItemDirect(1, new ItemStack(Items.DIAMOND));
+            center.getQuantumInventory().setItemDirect(0, new ItemStack(Items.DIAMOND));
             center.getAutoCrafter().getPatternInventory().setItemDirect(0, patterns.get(1));
             var storage = bus.getInternalHandler();
             helper.assertTrue(storage.extract(AEItemKey.of(Items.DIAMOND), 1, Actionable.MODULATE, source) == 0,

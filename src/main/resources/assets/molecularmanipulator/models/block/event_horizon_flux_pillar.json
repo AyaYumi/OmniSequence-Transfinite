@@ -1,0 +1,131 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "textures": {
+    "conduit": "molecularmanipulator:block/singularity/conduit",
+    "conduit_end": "molecularmanipulator:block/singularity/conduit_end",
+    "conduit_glow": "molecularmanipulator:block/singularity/conduit_glow",
+    "conduit_end_glow": "molecularmanipulator:block/singularity/conduit_end_glow",
+    "particle": "molecularmanipulator:block/singularity/conduit"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#conduit",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#conduit",
+          "cullface": "south"
+        },
+        "west": {
+          "texture": "#conduit",
+          "cullface": "west"
+        },
+        "east": {
+          "texture": "#conduit",
+          "cullface": "east"
+        },
+        "up": {
+          "texture": "#conduit_end",
+          "cullface": "up"
+        },
+        "down": {
+          "texture": "#conduit_end",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "from": [
+        -0.005,
+        -0.005,
+        -0.005
+      ],
+      "to": [
+        16.005,
+        16.005,
+        16.005
+      ],
+      "faces": {
+        "north": {
+          "texture": "#conduit_glow",
+          "cullface": "north",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#conduit_glow",
+          "cullface": "south",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#conduit_glow",
+          "cullface": "west",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#conduit_glow",
+          "cullface": "east",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#conduit_end_glow",
+          "cullface": "up",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#conduit_end_glow",
+          "cullface": "down",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      },
+      "shade": false,
+      "forge_data": {
+        "block_light": 15,
+        "sky_light": 15,
+        "ambient_occlusion": false
+      }
+    }
+  ]
+}

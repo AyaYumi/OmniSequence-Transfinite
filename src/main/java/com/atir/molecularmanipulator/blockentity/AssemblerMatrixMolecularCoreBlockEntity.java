@@ -367,7 +367,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
                     jobTag);
             if (activeReusableBatch == null) {
                 quarantinedReusableBatchTag = jobTag.copy();
-                MolecularManipulator.LOGGER.error(
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
                         "Invalid assembler-matrix reusable batch at {}; preserving its NBT and locking the core",
                         getBlockPos());
             }

@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: 装配矩阵构序重写核心
+  title: "装配矩阵构序重写核心"
   icon: molecularmanipulator:assembler_matrix_molecular_core
   position: 1010
 item_ids:
@@ -10,48 +10,46 @@ item_ids:
 
 # 装配矩阵构序重写核心
 
-<BlockImage id="molecularmanipulator:assembler_matrix_molecular_core" scale="8" />
+安装在 ExtendedAE 装配矩阵内的加工核心，为矩阵提供大批量配方执行能力。
 
-装配矩阵构序重写核心是装配矩阵的升级组件。它以高吞吐量内部配方执行器的形式，取代普通合成核心与速度核心。
+<Row>
+<BlockImage id="molecularmanipulator:assembler_matrix_molecular_core" scale="4" />
 
-| 项目 | 数值 |
+<BlockImage id="molecularmanipulator:molecular_manipulator" scale="4" />
+</Row>
+
+## 装进矩阵
+
+1. 在构筑井完成**二阶：构序阵列**研究并制作核心。
+2. 按 ExtendedAE 的结构规则搭建有效装配矩阵。
+3. 把核心安装到矩阵功能核心位置，成型并接通 ME 网络。
+4. 向矩阵提供兼容分子装配室的样板，从 ME 终端发起合成。
+
+| 准备条件 | 说明 |
 | --- | --- |
-| 前置 | 一套有效的装配矩阵 |
-| 能否独立工作 | 不能；样板、网络连接和结构校验均由完整装配矩阵提供 |
-| 逻辑批量上限 | `Long.MAX_VALUE` |
-| 解锁方式 | 二阶：构序阵列 |
+| 完整装配矩阵 | 提供结构、样板与网络连接 |
+| 独立放置 | 不能单独工作 |
+| 批量能力 | 逻辑上限约 9.22E 次，受实际材料与输出限制 |
 
-## 使用方法
+## 工具与容器返还
 
-1. 先在[物质构筑井](matter_fabrication_well.md)完成“二阶：构序阵列”首次研究，再由构筑井加工制作本核心。
-2. 搭建有效的装配矩阵，并将本方块作为功能核心装入结构。
-3. 矩阵成型并联机后，矩阵中的分子装配室兼容样板会自动分配给本核心执行。
+核心按真实配方执行，保留容器、可复用物品与工具状态。适合批量的配方合并执行；需要随机耐久或特殊上下文的配方按 AE2 常规路径逐份处理。
 
-## 配方处理与兼容性
+<ItemGrid>
+<ItemIcon id="minecraft:bucket" />
+<ItemIcon id="minecraft:iron_pickaxe" />
+<ItemIcon id="ae2:crafting_pattern" />
+</ItemGrid>
 
-逻辑批量并行上限为 `Long.MAX_VALUE`（9,223,372,036,854,775,807 次）。
+| 情况 | 处理方式 |
+| --- | --- |
+| 产物暂时无法写入 ME | 保存在输出缓存，等待接收 |
+| 取消合成 | 停止未执行部分，退回未用材料及当前工具 |
+| 保存或重载 | 保留任务、材料和执行进度 |
+| 正常拆下核心 | 内容随核心携带，装回有效矩阵后继续 |
 
-> 实际批量受原料、能量和产物剩余容量限制；材料及产物数量的加法、乘法溢出会被拒绝。
-
-核心会调用真实配方装配逻辑，而不是简单倍增产物堆叠，因此能够正确保留：
-
-* 空容器等配方返还；
-* 工具耐久及其他带耐久原料；
-* 配方需要但不会消耗的输入；
-* 产生多种 AE Key 的配方结果。
-
-产物会按 AE Key 聚合后批量返回 ME 网络。输出受阻时，持久化缓冲会安全保存产物，直到网络能够接收。
-
-## 可复用输入与取消
-
-核心可将同键返还物品作为一个可复用批次执行，其中也包括物品数据判定为不可损坏的物品。有限耐久工具仅在每次合成都确定增加恰好 1 点损伤时才会批量执行；带耐久附魔、随机变化或依赖上下文的工具会回退 AE2 原生逐份路径。水桶变为空桶等换键返还也继续逐份执行。
-
-核心接受可复用批次后会持有并持久化完整执行状态，保存、区块卸载或服务器重启不会丢失或重复剩余工作。取消 AE2 合成任务会写入持久取消标记、停止所有尚未执行的合成，并精确退回未使用材料以及可复用物品的当前状态；取消前已经完成的产物仍然有效。
-
-批量执行会对实际合并后的输入调用 AE2 原生样板能耗计算，保持 AE2 原版合成能耗行为。
-
-正常拆下核心时，内部保存的材料、产物与执行状态随掉落方块保留；重新安装后仍需要有效装配矩阵与网络才能工作。
+取消前已完成的产物仍然保留。合成能耗按 AE2 样板规则计算。
 
 ## 配方
 
-<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" fallbackText="当前整合包未提供此配方，请查看 JEI 或研究配置。" />
+<RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />

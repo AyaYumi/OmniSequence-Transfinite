@@ -210,15 +210,20 @@ public final class MatterFabricationStructure {
     }
 
     public static Inspection inspect(Level level, BlockPos controller, Direction facing) {
+        return inspect(level, PARTS.stream().map(part -> worldPos(controller, facing, part)).toList());
+    }
+
+    public static Inspection inspect(Level level, List<BlockPos> positions) {
         int correct = 0;
         int missing = 0;
         int conflicts = 0;
-        for (var part : PARTS) {
+        for (int index = 0; index < PARTS.size(); index++) {
+            var part = PARTS.get(index);
             if (isController(part)) {
                 correct++;
                 continue;
             }
-            var pos = worldPos(controller, facing, part);
+            var pos = positions.get(index);
             if (!level.hasChunkAt(pos)) {
                 missing++;
                 continue;

@@ -55,13 +55,17 @@ class MatterMachineImportRecipeTest {
         assertEquals(MatterRecipeBridge.machines().size(), MatterRecipeBridge.machines(List.of()).size());
         var roundTrip = MatterMachineImportRecipe.CODEC.codec().encodeStart(JsonOps.INSTANCE, declaration)
                 .getOrThrow(false, message -> {});
-        assertEquals(declaration, MatterMachineImportRecipe.CODEC.codec().parse(JsonOps.INSTANCE, roundTrip)
+        assertEquals(roundTrip, MatterMachineImportRecipe.CODEC.codec().encodeStart(JsonOps.INSTANCE,
+                MatterMachineImportRecipe.CODEC.codec().parse(JsonOps.INSTANCE, roundTrip).getOrThrow(false, message -> {}))
                 .getOrThrow(false, message -> {}));
         var buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {
             var serializer = new MatterMachineImportRecipe.Serializer();
             serializer.toNetwork(buffer, declaration);
-            assertEquals(declaration.withId(id), serializer.fromNetwork(id, buffer));
+            var decoded = serializer.fromNetwork(id, buffer);
+            assertEquals(id, decoded.id());
+            assertEquals(roundTrip, MatterMachineImportRecipe.CODEC.codec().encodeStart(JsonOps.INSTANCE, decoded)
+                    .getOrThrow(false, message -> {}));
         } finally { buffer.release(); }
     }
 

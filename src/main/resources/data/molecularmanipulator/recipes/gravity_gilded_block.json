@@ -1,0 +1,32 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:singularity_base_casing"
+      },
+      "count": 800
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:gold_ingot"
+      },
+      "count": 3200
+    },
+    {
+      "ingredient": {
+        "item": "ae2:singularity"
+      },
+      "count": 400
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:gravity_gilded_block",
+      "count": 8
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 2048,
+  "requires_research": true
+}

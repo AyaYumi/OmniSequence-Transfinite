@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "molecularmanipulator:block/singularity_base_slab"
+    },
+    "type=top": {
+      "model": "molecularmanipulator:block/singularity_base_slab_top"
+    },
+    "type=double": {
+      "model": "molecularmanipulator:block/singularity_base_casing"
+    }
+  }
+}

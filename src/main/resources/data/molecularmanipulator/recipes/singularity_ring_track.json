@@ -1,0 +1,32 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_coil"
+      },
+      "count": 400
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:singularity_base_casing"
+      },
+      "count": 800
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_block"
+      },
+      "count": 800
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:singularity_ring_track",
+      "count": 8
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 2048,
+  "requires_research": true
+}

@@ -32,6 +32,7 @@ public final class MatterRecipeIndex {
     private final List<MatterFabricationRecipe> fabrication;
     private final Map<ResourceLocation, MatterFabricationRecipe> fabricationById = new HashMap<>();
     private final List<MatterResearchRecipe> research;
+    private final Map<ResourceLocation, MatterResearchRecipe> researchById = new HashMap<>();
     private final Map<Map<AEKey, Long>, List<MatterFabricationRecipe>> byOutput = new HashMap<>();
     private final Map<ResourceLocation, List<MatterResearchRecipe>> researchByRecipe = new HashMap<>();
     private final Map<ResourceLocation, List<MatterResearchRecipe>> dynamicResearchByRecipe = new HashMap<>();
@@ -98,9 +99,11 @@ public final class MatterRecipeIndex {
             }
             researchOutputBranchCounts.put(id, counts);
         }
+        definitions.forEach(holder -> researchById.put(holder.id(), holder));
         research = definitions.stream().sorted(Comparator.<MatterResearchRecipe>comparingInt(holder -> holder.value().sortOrder())
                 .thenComparing(holder -> holder.id().toString())).toList();
         for (var holder : research) {
+            researchById.put(holder.id(), holder);
             for (var recipe : holder.value().unlocks()) {
                 researchByRecipe.computeIfAbsent(recipe, ignored -> new ArrayList<>()).add(holder);
             }
@@ -140,6 +143,7 @@ public final class MatterRecipeIndex {
     public MatterFabricationRecipe fabrication(ResourceLocation id) { return fabricationById.get(id); }
 
     public List<MatterResearchRecipe> research() { return research; }
+    public MatterResearchRecipe research(ResourceLocation id) { return researchById.get(id); }
 
     public List<MatterResearchRecipe> researchFor(ResourceLocation recipe) {
         var result = new ArrayList<MatterResearchRecipe>();

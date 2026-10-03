@@ -43,6 +43,7 @@ public final class ForgeMenuTypeFactory {
             }
 
             var menu = factory.create(containerId, inventory, host);
+            menu.setLocator(locator);
             menu.setReturnedFromSubScreen(buffer.readBoolean());
             return menu;
         });

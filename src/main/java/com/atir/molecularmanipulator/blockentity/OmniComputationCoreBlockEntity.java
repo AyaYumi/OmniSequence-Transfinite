@@ -105,8 +105,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private final boolean singleBlock;
     private final AppEngInternalInventory quantumInventory;
     private OmniComputationStructure.Inspection inspection =
-            new OmniComputationStructure.Inspection(OmniComputationStructure.parts().size(), 0,
-                    OmniComputationStructure.parts().size(), 0, false,
+            new OmniComputationStructure.Inspection(OmniComputationStructure.structureBlockCount(), 0,
+                    OmniComputationStructure.structureBlockCount(), 0, false,
                     OmniComputationStructure.StructureLayout.INCOMPLETE);
     private boolean structureFormed;
     private boolean legacyStructureUpdateDismissed;
@@ -353,6 +353,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void onChangeInventory(appeng.api.inventories.InternalInventory inventory, int slot) {
+        saveChanges();
         if (inventory == quantumInventory && level != null && !level.isClientSide()) {
             disconnectQuantumLink(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
             updateQuantumLink();
@@ -362,7 +363,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void updateSubType(boolean updateFormed) {
         syncVisualStructure();
-        if (level == null || notLoaded() || isRemoved()) {
+        if (level == null || notLoaded() || isRemoved() || retiringStoredCpus) {
             return;
         }
         var current = level.getBlockState(worldPosition);
@@ -814,7 +815,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private void registerCpusWithGrid() {
         var grid = getMainNode().isActive() ? getMainNode().getGrid() : null;
         if (grid != null && grid.getCraftingService() instanceof OmniCraftingServiceBridge bridge) {
-            ensureSpareAndRegister(bridge);
+            for (var cpu : allCpus()) {
+                CPU_OWNERS.put(cpu, this);
+                bridge.molecularmanipulator$registerOmniCpu(cpu);
+            }
         }
     }
 

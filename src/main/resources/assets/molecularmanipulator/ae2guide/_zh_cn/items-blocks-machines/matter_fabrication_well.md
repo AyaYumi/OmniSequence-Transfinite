@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: 物质构筑井
+  title: "物质构筑井"
   icon: molecularmanipulator:matter_fabrication_controller
   position: 900
 item_ids:
@@ -15,9 +15,9 @@ item_ids:
 
 # 物质构筑井
 
-<BlockImage id="molecularmanipulator:matter_fabrication_controller" scale="8" />
+材料加工、研究与 AE 自动合成的起点。先建成构筑井，再通过研究开放后续设备。
 
-物质构筑井是一座集材料加工、AE 自动合成和研究于一体的多方块机器，也是本模组的研究起点。先用 AE2 原版材料制作控制器、结构部件和输入输出口，再通过研究解锁后续机器与加工配方。
+## 施工准备
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:matter_fabrication_controller" />
@@ -26,97 +26,65 @@ item_ids:
 <ItemIcon id="molecularmanipulator:matter_fabrication_coil" />
 <ItemIcon id="molecularmanipulator:matter_fabrication_stabilizer" />
 <ItemIcon id="molecularmanipulator:matter_fabrication_core" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_output" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_output" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_pattern_assembly" />
 </ItemGrid>
 
-> [样板总成](matter_fabrication_pattern_assembly.md)需要完成一阶研究后，才能在构筑井内制作。
-
-## 概览
-
-| 项目 | 数值 |
+| 准备项 | 要求 |
 | --- | --- |
-| **占地** | 41 × 41，高 27 格 |
-| **初始阶段** | 0 阶，无需研究 |
-| **服务接口位** | 正前方 24 格 + 中央平台 20 格 |
-| **研究取材** | 控制器所在 ME 网络中的物品 |
+| 空间 | 41 × 41，高 27 格 |
+| 初始阶段 | 0 阶，控制器与基础接口无需研究 |
+| 材料清单 | JEI 结构页与控制器投影 |
 
-## 搭建与连接
+## 从控制器到完整建筑
 
-1. 当前结构为占地 41×41、高 27 格的珍珠白构筑舱。控制器正面朝向操作侧，预留完整施工空间。
-2. 打开控制器，使用“投影”检查缺失位置和冲突方块；JEI 的物质构筑井结构页可查看各层和材料清单。
-3. 清理冲突后点击“一键搭建”。施工优先取用玩家背包材料，再从连接的 ME 网络取材。
-4. 将[输入输出口](matter_fabrication_ports.md)或样板总成放入允许的接口位置。手持这些方块时，附近构筑井会显示安装位置。
-5. 结构成型后给控制器连接并供应 ME 能量。材料加工通过接口或样板总成进行，研究从控制器网络取材。
+1. 放置控制器，正面朝向操作侧，打开**投影**检查缺块和冲突。
+2. 按 JEI 清单备齐材料，清理冲突后点击**一键搭建**。
+3. 施工优先取玩家背包，再取控制器连接的 ME 网络。
+4. 在高亮的服务位置安装[输入输出口](matter_fabrication_ports.md)，成型后接通 ME 电源。
 
-### 服务接口位
+服务位置共 **44 格**：前方台阶 24 格，中央平台四段各 5 格。手持接口可查看安装位置。
 
-2.0.3 的合法服务位置为**正前方台阶 24 格**和**中央平台四个环段各五格（共 20 格）**，合计 44 格。
+## 选择工作方式
 
-| | 数量 | 位置 |
-| --- | --- | --- |
-| 正前方台阶 | 24 | 构筑舱前方那一排 |
-| 中央平台 | 20 | 四个环段各五格 |
-| 原外围位置 | 0 | 九个旧外围服务位已停用 |
+<Row>
+<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="4" />
 
-> 升级旧构筑井时，请迁移这些服务方块，并根据投影补回原位置所需方块。
+<BlockImage id="molecularmanipulator:matter_fabrication_fluid_input" scale="4" />
 
-### 量子链路
+<BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
+</Row>
 
-控制器的量子槽可以放入配对的缠绕态奇点，将另一枚放在已供电的 AE2 量子环内。
-
-* 未成型时可用于取用远端施工材料。
-* 成型后可连接工作网络。
-* 量子连接额外消耗 512 AE/t 和一个频道。
-
-连接不同网络产生冲突时，需要先处理原有连接。
-
-## 加工与研究
-
-新控制器为 0 阶。[一阶研究](matter_fabrication_research.md)首次完成后开放 AE 材料加工、后续研究所需的材料加工和样板总成配方。二阶分成构序阵列与万物演算两个分支，默认只要求一阶完成一次，可同时研究。
-
-| 用途 | 投料方式 |
+| 工作 | 如何开始 |
 | --- | --- |
-| 普通加工 | 送入对应的物品、流体输入口，并为产物准备输出口 |
-| AE 自动合成 | 在样板总成内放入与构筑井配方匹配的处理样板 |
+| [材料加工](matter_fabrication_ports.md) | 经物品、流体输入口投料，输出口接收产物 |
+| [研究](matter_fabrication_research.md) | 在研究页选择分支，材料放入控制器的 ME 网络 |
+| [AE 自动合成](matter_fabrication_pattern_assembly.md) | 一阶解锁样板总成后，放入匹配加工配方的处理样板 |
 
-JEI 和本指南内的加工配方会标明对应研究阶段；研究只决定本控制器的配方权限与加工加成。
+研究和加工可以同时进行。配方的实际材料、耗时、功率和研究条件以 JEI 与下方配方图为准。
 
-## 运行与保存
+## 远程施工与回收
 
-合成中会显示旋转星环、材料汇聚光流和制造扫描层；研究星图在上方独立显示，支持多个分支同时研究。
+<ItemGrid>
+<ItemIcon id="ae2:quantum_entangled_singularity" />
+<ItemIcon id="ae2:quantum_ring" />
+<ItemIcon id="ae2:quantum_link" />
+</ItemGrid>
 
-> 暂停、前置条件不满足、网络或供能不足时，研究光脉冲会停止。第三方研究会自动选取星图样式。
+量子槽放入一枚**缠绕态奇点**，配对的另一枚放入已供电的 AE2 量子环。未成型时也可取用远端施工材料；链路额外需要 **512 AE/t、1 个频道**。
 
-* 物质构筑井只保留当前蓝图，不再识别开发过程中的试验版建筑。
-* 当 `sequence_array.force_load_chunks` 开启时，成型、搭建或拆除期间控制器自动强加载所需区块；停止需要强加载的工作并失去有效结构后会释放相应区块。
-* 强加载不会提供额外材料或能量。
+**一键拆除**从上到下回收并保留控制器。材料先回 ME，再进背包；空间不足时暂停，腾出空间后继续。
 
-“一键拆除”按层从上到下回收结构并保留控制器，优先返还 ME 网络，其次进入玩家背包；空间不足时暂停并保存进度。
-
-正常拆下有存储内容的本模组方块时，内容会随掉落方块保存：
-
-| 方块 | 保存内容 |
+| 拆下的方块 | 随方块保存 |
 | --- | --- |
-| 控制器 | 研究进度与已接收任务 |
-| 接口 | 各自缓存 |
-| 样板总成 | 样板及其批次 |
+| 控制器 | 研究进度、已接收任务和量子槽内容 |
+| 输入输出口 | 各自物品或流体缓存 |
+| 样板总成 | 样板、材料与加工批次 |
 
-重新放置后仍需恢复有效结构、网络和供能才能继续。
-
-## 自然生成保护
-
-成型及施工、拆卸或结构更新期间，本多方块占用区块的整个高度禁止自然生成生物，包括怪物、动物、水生生物和蝙蝠，同时拦截巡逻和增援生成。
-
-刷怪笼、刷怪蛋、繁殖、指令及已有生物不受影响。禁刷本身无需 AE 供电；当没有结构或作业占用该区块时恢复正常生成。
+重新安装后，恢复完整结构、网络与供电即可继续。启用多方块强加载配置时，成型和施工期间会保持所需区块加载；占用区块受到自然生成保护，刷怪笼、繁殖与已有生物不受影响。
 
 ## 控制器配方
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="当前整合包没有此物品的可用配方，请查看 JEI 或整合包说明。" />
+<RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
 
-## 详细说明
+## 继续阅读
 
-<SubPages icons="true" />
+<SubPages icons={true} />

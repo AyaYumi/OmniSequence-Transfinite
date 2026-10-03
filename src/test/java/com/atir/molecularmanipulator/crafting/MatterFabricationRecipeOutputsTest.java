@@ -17,6 +17,14 @@ import net.minecraftforge.fluids.FluidStack;
 import org.junit.jupiter.api.Test;
 
 class MatterFabricationRecipeOutputsTest {
+    static {
+        if (net.minecraftforge.fml.loading.LoadingModList.get() == null) {
+            net.minecraftforge.fml.loading.LoadingModList.of(List.of(), List.of(), null);
+        }
+        net.minecraft.SharedConstants.tryDetectVersion();
+        net.minecraft.server.Bootstrap.bootStrap();
+    }
+
     @Test
     void readsEveryResultFromAConvertedMachineRecipe() {
         var json = JsonParser.parseString("""

@@ -1,0 +1,35 @@
+{
+  "$schema": "schema.json",
+  "includes": [
+    "common/common.json"
+  ],
+  "generatedBackground": {
+    "width": 332,
+    "height": 368
+  },
+  "slots": {
+    "molecularmanipulator:SINGULARITY_QUANTUM_INPUT": {
+      "left": 26,
+      "top": 190
+    },
+    "molecularmanipulator:SINGULARITY_DUPLICATION_SAMPLE": {
+      "left": 22,
+      "top": 150
+    },
+    "molecularmanipulator:SINGULARITY_BLACK_HOLE_INPUT": {
+      "left": 166,
+      "top": 150
+    },
+    "PLAYER_INVENTORY": {
+      "left": 85,
+      "top": 282,
+      "grid": "BREAK_AFTER_9COLS"
+    },
+    "PLAYER_HOTBAR": {
+      "left": 85,
+      "top": 340,
+      "grid": "HORIZONTAL"
+    }
+  },
+  "text": {}
+}

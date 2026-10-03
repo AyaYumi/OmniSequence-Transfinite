@@ -39,14 +39,15 @@ import java.util.UUID;
  * Quantum-crafter style passive crafting shared by the sequence-array controller
  * and its standalone single-block host.
  *
- * <p>Every configured pattern is evaluated independently. A single evaluation may
- * represent up to {@link Long#MAX_VALUE} recipe executions; the implementation
+ * <p>Every configured pattern is evaluated independently. Each accepted passive
+ * batch is bounded by {@link #MAX_BATCH_CRAFTS} for responsive controls; the implementation
  * delegates actual-key selection, substitution and reusable-input validation to
  * AE2 and the same molecular batch helpers used by crafting CPUs.</p>
  */
 public final class MolecularAutoCrafter implements InternalInventoryHost {
     public static final int PATTERN_SLOTS = MolecularAutoCraftSchema.PATTERN_SLOTS;
     public static final int MAX_INPUTS = 9;
+    static final long MAX_BATCH_CRAFTS = 64;
     private static final String ROOT_TAG = "molecular_auto_crafter";
     private static final String VERSION_TAG = "version";
     static final int SCHEMA_VERSION = MolecularAutoCraftSchema.VERSION;
@@ -68,6 +69,11 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private boolean scheduleDirty = true;
     private int scheduleCursor;
     private boolean suppressInventoryEvents;
+    private long decodedTick = Long.MIN_VALUE;
+    private Level decodedLevel;
+    private java.util.Collection<?> decodedRecipes;
+    private final java.util.Map<Integer, DecodedPattern> decodedPatterns = new java.util.HashMap<>();
+    private record DecodedPattern(AEItemKey definition, IPatternDetails details) {}
 
     public MolecularAutoCrafter(MolecularAutoCrafterHost host) {
         this.host = host;
@@ -108,6 +114,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         if (decoded == null) {
             if (configs.remove(slot) != null) {
                 scheduleDirty = true;
+                host.flushAutoCraftOutputsAfterControlChange();
             }
             host.saveChanges();
             return;
@@ -117,6 +124,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         config.state = enabled ? AutoCraftState.READY : AutoCraftState.DISABLED;
         config.lastBatch = 0;
         host.saveChanges();
+        if (!enabled) host.flushAutoCraftOutputsAfterControlChange();
     }
 
     public void setProtection(int slot, int inputIndex, long amount) {
@@ -148,10 +156,12 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
     @Override
     public void onChangeInventory(appeng.api.inventories.InternalInventory inventory, int slot) {
+        if (inventory == patternInventory) decodedPatterns.remove(slot);
         if (!suppressInventoryEvents && inventory == patternInventory
                 && isIndependentSlot(slot)) {
             if (configs.remove(slot) != null) {
                 scheduleDirty = true;
+                host.flushAutoCraftOutputsAfterControlChange();
             }
         }
     }
@@ -170,6 +180,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     }
 
     void clear() {
+        decodedPatterns.clear();
         configs.clear();
         scheduledSlots = new int[0];
         scheduleDirty = false;
@@ -198,9 +209,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             return;
         }
 
-        // Stable slot order makes two identical controllers deterministic. No fixed
-        // craft-count or pattern-count throttle is applied: each slot may aggregate a
-        // Long.MAX_VALUE batch in this tick.
+        // Stable slot order and rotation keep every enabled slot progressing fairly.
+        // Each evaluation uses MAX_BATCH_CRAFTS so virtual inputs remain interruptible.
         int[] slots = scheduledSlots();
         int start = slots.length == 0 ? 0 : Math.floorMod(scheduleCursor, slots.length);
         for (int offset = 0; offset < slots.length; offset++) {
@@ -296,7 +306,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             return;
         }
         var outputAllowance = outputAllowance(details, config, storage, source);
-        long maxCrafts = outputAllowance.maxCrafts();
+        long maxCrafts = Math.min(outputAllowance.maxCrafts(), MAX_BATCH_CRAFTS);
         if (maxCrafts <= 0) {
             config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
             return;
@@ -573,20 +583,22 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
     @Nullable
     private IPatternDetails decode(int slot) {
-        if (!isIndependentSlot(slot)) {
-            return null;
-        }
+        if (!isIndependentSlot(slot)) return null;
         ItemStack stack = patternInventory.getStackInSlot(slot);
         Level level = host.getLevel();
-        if (stack.isEmpty() || level == null
-                || !MolecularCenterLogic.isSupportedPattern(stack)) {
-            return null;
+        if (stack.isEmpty() || level == null || !MolecularCenterLogic.isSupportedPattern(stack)) return null;
+        var recipes = level.getRecipeManager().getRecipes();
+        if (decodedLevel != level || decodedTick != level.getGameTime() || decodedRecipes != recipes) {
+            decodedLevel = level; decodedTick = level.getGameTime(); decodedRecipes = recipes; decodedPatterns.clear();
         }
-        try {
-            return PatternDetailsHelper.decodePattern(stack, level);
-        } catch (RuntimeException exception) {
-            return null;
-        }
+        var definition = AEItemKey.of(stack);
+        var cached = decodedPatterns.get(slot);
+        if (cached != null && cached.definition().equals(definition)) return cached.details();
+        IPatternDetails details;
+        try { details = PatternDetailsHelper.decodePattern(stack, level); }
+        catch (RuntimeException exception) { details = null; }
+        decodedPatterns.put(slot, new DecodedPattern(definition, details));
+        return details;
     }
 
     private PatternConfig ensureConfig(int slot, IPatternDetails details) {
@@ -643,7 +655,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         int version = root.contains(VERSION_TAG, Tag.TAG_INT)
                 ? root.getInt(VERSION_TAG) : 0;
         if (!shouldLoadConfig(version)) {
-            MolecularManipulator.LOGGER.warn(
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                     "Discarding incompatible auto-crafter schema version {} at {}; "
                             + "independent pattern slots remain empty and disabled",
                     version, host.getBlockPos());
@@ -677,7 +689,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                 config.state = config.enabled ? AutoCraftState.READY : AutoCraftState.DISABLED;
                 configs.put(slot, config);
             } catch (RuntimeException exception) {
-                MolecularManipulator.LOGGER.warn("Skipping invalid auto-crafter pattern configuration at {}",
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Skipping invalid auto-crafter pattern configuration at {}",
                         host.getBlockPos(), exception);
             }
         }

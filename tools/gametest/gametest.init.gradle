@@ -3,6 +3,7 @@ allprojects {
         if (project != rootProject) return
         def regression = sourceSets.create('forgeRegression') {
             java.srcDir project.file('tools/gametest/java')
+            java.include '**/VerificationAEKey.java', '**/Forge206GameTests.java', '**/MatterAEKeyGameTests.java', '**/MatterRecipeLookupGameTests.java', '**/MolecularCenterPatternPortGameTests.java', '**/MolecularLongBatchGameTests.java', '**/TransfiniteComputeNexusGameTests.java', '**/MultiblockSpawnGameTests.java'
             resources.srcDir project.file('tools/gametest/resources')
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
             runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output

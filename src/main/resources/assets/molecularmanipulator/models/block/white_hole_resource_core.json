@@ -1,0 +1,380 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "textures": {
+    "gilded": "molecularmanipulator:block/singularity/gilded",
+    "pillar": "molecularmanipulator:block/singularity/pillar",
+    "crystal": "molecularmanipulator:block/singularity/crystal",
+    "particle": "molecularmanipulator:block/singularity/gilded",
+    "crystal_glow": "molecularmanipulator:block/singularity/crystal_glow"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        2,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gilded"
+        },
+        "south": {
+          "texture": "#gilded"
+        },
+        "west": {
+          "texture": "#gilded"
+        },
+        "east": {
+          "texture": "#gilded"
+        },
+        "up": {
+          "texture": "#gilded"
+        },
+        "down": {
+          "texture": "#gilded"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        14,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gilded"
+        },
+        "south": {
+          "texture": "#gilded"
+        },
+        "west": {
+          "texture": "#gilded"
+        },
+        "east": {
+          "texture": "#gilded"
+        },
+        "up": {
+          "texture": "#gilded"
+        },
+        "down": {
+          "texture": "#gilded"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        2,
+        0
+      ],
+      "to": [
+        2,
+        14,
+        2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pillar"
+        },
+        "south": {
+          "texture": "#pillar"
+        },
+        "west": {
+          "texture": "#pillar"
+        },
+        "east": {
+          "texture": "#pillar"
+        },
+        "up": {
+          "texture": "#pillar"
+        },
+        "down": {
+          "texture": "#pillar"
+        }
+      }
+    },
+    {
+      "from": [
+        14,
+        2,
+        0
+      ],
+      "to": [
+        16,
+        14,
+        2
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pillar"
+        },
+        "south": {
+          "texture": "#pillar"
+        },
+        "west": {
+          "texture": "#pillar"
+        },
+        "east": {
+          "texture": "#pillar"
+        },
+        "up": {
+          "texture": "#pillar"
+        },
+        "down": {
+          "texture": "#pillar"
+        }
+      }
+    },
+    {
+      "from": [
+        0,
+        2,
+        14
+      ],
+      "to": [
+        2,
+        14,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pillar"
+        },
+        "south": {
+          "texture": "#pillar"
+        },
+        "west": {
+          "texture": "#pillar"
+        },
+        "east": {
+          "texture": "#pillar"
+        },
+        "up": {
+          "texture": "#pillar"
+        },
+        "down": {
+          "texture": "#pillar"
+        }
+      }
+    },
+    {
+      "from": [
+        14,
+        2,
+        14
+      ],
+      "to": [
+        16,
+        14,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pillar"
+        },
+        "south": {
+          "texture": "#pillar"
+        },
+        "west": {
+          "texture": "#pillar"
+        },
+        "east": {
+          "texture": "#pillar"
+        },
+        "up": {
+          "texture": "#pillar"
+        },
+        "down": {
+          "texture": "#pillar"
+        }
+      }
+    },
+    {
+      "from": [
+        7,
+        5,
+        7
+      ],
+      "to": [
+        9,
+        11,
+        9
+      ],
+      "faces": {
+        "north": {
+          "texture": "#crystal"
+        },
+        "south": {
+          "texture": "#crystal"
+        },
+        "west": {
+          "texture": "#crystal"
+        },
+        "east": {
+          "texture": "#crystal"
+        },
+        "up": {
+          "texture": "#crystal"
+        },
+        "down": {
+          "texture": "#crystal"
+        }
+      },
+      "forge_data": {
+        "block_light": 15,
+        "sky_light": 15,
+        "ambient_occlusion": false
+      }
+    },
+    {
+      "from": [
+        6,
+        2,
+        6
+      ],
+      "to": [
+        10,
+        3,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gilded"
+        },
+        "south": {
+          "texture": "#gilded"
+        },
+        "west": {
+          "texture": "#gilded"
+        },
+        "east": {
+          "texture": "#gilded"
+        },
+        "up": {
+          "texture": "#gilded"
+        },
+        "down": {
+          "texture": "#gilded"
+        }
+      }
+    },
+    {
+      "from": [
+        6,
+        13,
+        6
+      ],
+      "to": [
+        10,
+        14,
+        10
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gilded"
+        },
+        "south": {
+          "texture": "#gilded"
+        },
+        "west": {
+          "texture": "#gilded"
+        },
+        "east": {
+          "texture": "#gilded"
+        },
+        "up": {
+          "texture": "#gilded"
+        },
+        "down": {
+          "texture": "#gilded"
+        }
+      }
+    },
+    {
+      "from": [
+        6.995,
+        4.995,
+        6.995
+      ],
+      "to": [
+        9.005,
+        11.005,
+        9.005
+      ],
+      "faces": {
+        "north": {
+          "texture": "#crystal_glow",
+          "uv": [
+            7,
+            5,
+            9,
+            11
+          ]
+        },
+        "south": {
+          "texture": "#crystal_glow",
+          "uv": [
+            7,
+            5,
+            9,
+            11
+          ]
+        },
+        "west": {
+          "texture": "#crystal_glow",
+          "uv": [
+            7,
+            5,
+            9,
+            11
+          ]
+        },
+        "east": {
+          "texture": "#crystal_glow",
+          "uv": [
+            7,
+            5,
+            9,
+            11
+          ]
+        },
+        "up": {
+          "texture": "#crystal_glow",
+          "uv": [
+            7,
+            7,
+            9,
+            9
+          ]
+        },
+        "down": {
+          "texture": "#crystal_glow",
+          "uv": [
+            7,
+            7,
+            9,
+            9
+          ]
+        }
+      },
+      "forge_data": {
+        "block_light": 15,
+        "sky_light": 15,
+        "ambient_occlusion": false
+      },
+      "shade": false
+    }
+  ]
+}

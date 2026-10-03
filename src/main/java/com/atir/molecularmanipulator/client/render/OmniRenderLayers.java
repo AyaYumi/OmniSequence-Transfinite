@@ -2,6 +2,8 @@ package com.atir.molecularmanipulator.client.render;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -23,6 +25,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @OnlyIn(Dist.CLIENT)
 public final class OmniRenderLayers extends RenderType {
+
+    private static final ResourceLocation EFFECT_TEXTURE = new ResourceLocation(
+            "molecularmanipulator", "textures/effect/singularity_white.png");
+    private static final RenderType SHADER_EFFECT_DEPTH = createShaderEffect("omni_shader_effect_depth", true);
+    private static final RenderType SHADER_EFFECT_GLOW = createShaderEffect("omni_shader_effect_glow", false);
+    private static final RenderType SHADER_EFFECT_SOLID = RenderType.create(
+            "omni_shader_effect_solid", DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS,
+            4096, false, false, CompositeState.builder()
+                    .setShaderState(RENDERTYPE_ENTITY_SOLID_SHADER)
+                    .setTextureState(new TextureStateShard(EFFECT_TEXTURE, false, false))
+                    .setTransparencyState(NO_TRANSPARENCY).setDepthTestState(LEQUAL_DEPTH_TEST)
+                    .setCullState(NO_CULL).setLightmapState(LIGHTMAP).setOverlayState(OVERLAY)
+                    .setWriteMaskState(COLOR_DEPTH_WRITE).createCompositeState(false));
 
     private static final Map<ResourceLocation, RenderType> ADDITIVE_TEXTURE_CACHE =
             new ConcurrentHashMap<>();
@@ -116,8 +131,20 @@ public final class OmniRenderLayers extends RenderType {
         return MOLECULAR_SPECTRAL_DEPTH;
     }
 
+    public static VertexConsumer molecularSpectralDepth(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, MOLECULAR_SPECTRAL_DEPTH, SHADER_EFFECT_DEPTH);
+    }
+
+    public static VertexConsumer molecularSurface(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, TRANSLUCENT_EMISSIVE_COLOR, SHADER_EFFECT_DEPTH);
+    }
+
     public static RenderType molecularSpectralGlow() {
         return MOLECULAR_SPECTRAL_GLOW;
+    }
+
+    public static VertexConsumer molecularSpectralGlow(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, MOLECULAR_SPECTRAL_GLOW, SHADER_EFFECT_GLOW);
     }
 
     public static RenderType matterCondensationDepth() {
@@ -132,8 +159,38 @@ public final class OmniRenderLayers extends RenderType {
         return SINGULARITY_COMPUTE_DEPTH;
     }
 
+    public static VertexConsumer singularityComputeDepth(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, SINGULARITY_COMPUTE_DEPTH, SHADER_EFFECT_DEPTH);
+    }
+
     public static RenderType singularityComputeGlow() {
         return SINGULARITY_COMPUTE_GLOW;
+    }
+
+    public static VertexConsumer singularityComputeGlow(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, SINGULARITY_COMPUTE_GLOW, SHADER_EFFECT_GLOW);
+    }
+
+    public static VertexConsumer singularityOccluder(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, SOLID_EMISSIVE_COLOR, SHADER_EFFECT_SOLID);
+    }
+
+    private static VertexConsumer shaderCompatible(MultiBufferSource buffers, RenderType vanilla, RenderType shader) {
+        return SingularityEffectLayers.shadersActive()
+                ? new SingularityShaderVertices(buffers.getBuffer(shader)) : buffers.getBuffer(vanilla);
+    }
+
+    private static RenderType createShaderEffect(String name, boolean writeDepth) {
+        return RenderType.create(name, DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS,
+                4096, false, true, CompositeState.builder()
+                        .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                        .setTextureState(new TextureStateShard(EFFECT_TEXTURE, false, false))
+                        .setTransparencyState(writeDepth ? TRANSLUCENT_TRANSPARENCY : LIGHTNING_TRANSPARENCY)
+                        .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                        .setLightmapState(LIGHTMAP).setOverlayState(OVERLAY)
+                        // Deferred packs locate translucent effects using depthtex0.
+                        .setWriteMaskState(COLOR_DEPTH_WRITE)
+                        .createCompositeState(false));
     }
 
     private static RenderType createSolidEmissiveColor() {

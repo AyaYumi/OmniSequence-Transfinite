@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
+import java.math.BigInteger;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -100,10 +102,10 @@ public final class MolecularScaledPattern implements IPatternDetails,
     }
 
     /**
-     * A scaled processing pattern cannot delegate this method to
-     * {@code AEProcessingPattern}: that implementation uses the encoded sparse recipe amounts,
-     * which are intentionally unscaled. Forward the actual extracted counters instead, ensuring
-     * that every accepted material remains owned by the provider and reaches its sink.
+     * Preserve the base pattern's sparse input sequence (including repeated entries),
+     * while distributing the actual extracted totals over that sequence. AEProcessingPattern
+     * emits unscaled amounts for sparse recipes, so forwarding its callback directly would
+     * lose batch materials; iterating condensed holders would instead lose recipe order.
      */
     @Override
     public void pushInputsToExternalInventory(KeyCounter[] inputHolder, PatternInputSink inputSink) {
@@ -112,6 +114,8 @@ public final class MolecularScaledPattern implements IPatternDetails,
 
         // Validate the complete holder before sending anything so malformed input cannot result
         // in a partially transferred recipe.
+        var actual = new LinkedHashMap<AEKey, Long>();
+        var copies = new KeyCounter[inputHolder.length];
         for (int index = 0; index < inputHolder.length; index++) {
             var counter = Objects.requireNonNull(inputHolder[index],
                     "inputHolder[" + index + "]");
@@ -121,14 +125,40 @@ public final class MolecularScaledPattern implements IPatternDetails,
                     throw new IllegalArgumentException(
                             "Pattern input amount must be positive: " + entry.getLongValue());
                 }
+                actual.merge(entry.getKey(), entry.getLongValue(), Math::addExact);
             }
+            copies[index] = new KeyCounter();
+            copies[index].addAll(counter);
         }
 
-        for (var counter : inputHolder) {
-            for (var entry : counter) {
-                inputSink.pushInput(entry.getKey(), entry.getLongValue());
+        var sequence = new ArrayList<GenericStack>();
+        var recipeTotals = new LinkedHashMap<AEKey, Long>();
+        base.pushInputsToExternalInventory(copies, (key, amount) -> {
+            if (key == null || amount <= 0 || !actual.containsKey(key)) {
+                throw new IllegalArgumentException("Base pattern emitted an invalid input");
             }
+            sequence.add(new GenericStack(key, amount));
+            recipeTotals.merge(key, amount, Math::addExact);
+        });
+
+        var consumedRecipe = new LinkedHashMap<AEKey, Long>();
+        var delivered = new LinkedHashMap<AEKey, Long>();
+        var ordered = new ArrayList<GenericStack>();
+        for (var entry : sequence) {
+            var key = entry.what();
+            long cumulative = consumedRecipe.merge(key, entry.amount(), Math::addExact);
+            long scaled = BigInteger.valueOf(actual.get(key)).multiply(BigInteger.valueOf(cumulative))
+                    .divide(BigInteger.valueOf(recipeTotals.get(key))).longValueExact();
+            long amount = scaled - delivered.getOrDefault(key, 0L);
+            delivered.put(key, scaled);
+            if (amount > 0) ordered.add(new GenericStack(key, amount));
         }
+        // Custom patterns may omit a holder from their ordering callback. Its materials
+        // still belong to the accepted batch and must reach the provider's queue.
+        actual.forEach((key, amount) -> {
+            if (!delivered.containsKey(key)) ordered.add(new GenericStack(key, amount));
+        });
+        for (var entry : ordered) inputSink.pushInput(entry.what(), entry.amount());
     }
 
     @Override

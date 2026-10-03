@@ -26,7 +26,7 @@ public abstract class NbtTearPatternMatchHelperMixin {
             return original.call(input, template);
         } catch (NoSuchElementException exception) {
             if (MOLECULARMANIPULATOR_LOGGED_EMPTY_PROVIDER.compareAndSet(false, true)) {
-                MolecularManipulator.LOGGER.warn(
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                         "AE2Utility NBT Tear queried a pattern without an available provider; using exact matching instead",
                         exception);
             }

@@ -66,7 +66,7 @@ class MatterGoldMaskTest {
 
     @Test
     void molecularManipulatorSelectsPurpleFrameLinesOnly() throws Exception {
-        var texture = ResourceLocation.parse("molecularmanipulator:block/molecular_manipulator");
+        var texture = new ResourceLocation("molecularmanipulator:block/molecular_manipulator");
         var image = ImageIO.read(Path.of(
                 "src/main/resources/assets/molecularmanipulator/textures/block/molecular_manipulator.png").toFile());
         int selected = 0;

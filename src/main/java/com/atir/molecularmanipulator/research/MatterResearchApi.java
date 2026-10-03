@@ -27,6 +27,13 @@ public final class MatterResearchApi {
         return id != null && machine.getResearch().orderMissing(machine, id);
     }
 
+    public static boolean orderMissing(MatterFabricationBlockEntity machine,ResourceLocation id,boolean toMaximum) {
+        requireServer(machine);return id!=null && machine.getResearch().orderMissing(machine,id,toMaximum);
+    }
+    public static boolean stopPreparation(MatterFabricationBlockEntity machine,ResourceLocation id) {
+        requireServer(machine);return id!=null && machine.getResearch().stopPreparation(machine,id);
+    }
+
     public static boolean setPaused(MatterFabricationBlockEntity machine, String researchId, boolean paused) {
         requireServer(machine);
         var id = ResourceLocation.tryParse(researchId);
@@ -66,7 +73,7 @@ public final class MatterResearchApi {
                 .filter(holder -> holder.id().toString().equals(researchId)).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unknown or unavailable research: " + researchId));
         int count = (int) Math.min(requested, definition.value().depths().size());
-        machine.getResearch().setCompletionCount(definition.id(), count);
+        machine.getResearch().setCompletionCount(machine, definition.id(), count);
         machine.saveChanges();
         return count;
     }
@@ -78,7 +85,7 @@ public final class MatterResearchApi {
     public static int unlockAll(MatterFabricationBlockEntity machine) {
         requireServer(machine);
         var definitions = definitions(machine.getLevel());
-        for (var holder : definitions) machine.getResearch().setCompletionCount(holder.id(), holder.value().depths().size());
+        for (var holder : definitions) machine.getResearch().setCompletionCount(machine, holder.id(), holder.value().depths().size());
         machine.saveChanges();
         return definitions.size();
     }

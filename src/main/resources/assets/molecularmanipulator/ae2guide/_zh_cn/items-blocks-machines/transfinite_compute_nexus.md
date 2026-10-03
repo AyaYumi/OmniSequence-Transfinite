@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: 超限算枢
+  title: "超限算枢"
   icon: molecularmanipulator:transfinite_compute_nexus
   position: 1025
 item_ids:
@@ -10,42 +10,38 @@ item_ids:
 
 # 超限算枢
 
-<BlockImage id="molecularmanipulator:transfinite_compute_nexus" scale="8" />
+一块方块即可提供万物演算分支的 ME 合成 CPU 能力，适合紧凑的合成网络。
 
-超限算枢是万物演算分支使用的单方块 AE2 合成 CPU。它不需要多方块结构，也没有独立机器界面。
+<Row>
+<BlockImage id="molecularmanipulator:transfinite_compute_nexus" scale="4" />
 
-| 项目 | 数值 |
+<ItemImage id="ae2:fluix_glass_cable" scale="4" />
+
+<ItemImage id="ae2:crafting_terminal" scale="4" />
+</Row>
+
+## 放置、连接、请求
+
+1. 在构筑井完成**二阶：万物演算**研究并制作算枢。
+2. 放置算枢，六个面均可连接 ME 线缆。
+3. 给网络供电并分配 **1 个频道**。
+4. 在 ME 终端发起合成，算枢自动创建独立虚拟 CPU 通道并保留备用通道。
+
+| 项目 | 说明 |
 | --- | --- |
-| 结构 | 无，像普通方块一样放置 |
-| 机器界面 | 无 |
-| 频道 | 1 个 |
-| 待机耗电 | 默认 16,384 AE/t |
-| 量子槽 | 无 |
+| 结构需求 | 单方块 |
+| 基础耗电 | 默认 16,384 AE/t，可配置 |
+| 查看任务 | 使用 AE2 合成状态界面 |
+| 网络要求 | 有真实的外部 ME 连接 |
 
-## 解锁与配方
+仅有互相相邻的算枢、没有线缆或其他外部 ME 设备时，不会进入工作状态。
 
-超限算枢由“二阶：万物演算”研究解锁，并在[物质构筑井](matter_fabrication_well.md)中加工制作。整合包可以修改或移除对应研究和配方。
+## 工作与搬迁
 
-<RecipeFor id="molecularmanipulator:transfinite_compute_nexus" fallbackText="研究或配方被禁用时无法制作此方块。" />
+逻辑存储和并行能力与万物演算核心相同。实际吞吐量取决于材料、供电、输出空间、供应器和服务器运行情况。
 
-> 默认构筑井配方耗时 1,200 tick、功耗 4,096 AE/t。整合包修改配方后，以上实时配方面板的内容优先。
+正常拆下带任务的算枢会保存可恢复状态；重新放置并接入在线 ME 网络后继续。算枢不会强加载区块，需要持续工作时请保持所在区块加载。
 
-## 使用超限算枢
+## 配方
 
-1. 像普通方块一样放置超限算枢；方块朝向只影响正面纹理，可用 AE2 扳手旋转。
-2. 接入 ME 线缆。六个面都可以接入网络；网络必须供电并提供 1 个频道。
-3. 在 AE2 终端提交合成请求。超限算枢会按任务需求创建相互独立的虚拟 CPU 通道，并保留一个备用通道。
-
-联机后，超限算枢提供与万物演算核心相同的近似无限逻辑合成存储和并行能力。实际吞吐量仍受原料、能源、输出容量、供应器接收能力和服务器 Tick 时间限制；满足正常条件时，也可以使用加速规划器。
-
-待机耗电位于配置 `transfinite_compute_nexus.idle_power`。ME 网络未供电、没有频道，或失去所有外部网络连接时，方块会停止工作。
-
-> 超限算枢没有量子槽、样板库、多方块施工队列，也不会强加载区块。
-> 相邻的超限算枢可以彼此接入同一个 AE 网络，但每个方块独立管理自己的虚拟 CPU 通道；只有超限算枢而没有线缆或其他外部 ME 设备时，网络不会进入工作状态。
-
-## 持久化
-
-运行中和排队中的任务、CPU 通道状态以及可恢复的合成内容都会随方块保存。
-
-* 当超限算枢存在可恢复状态时将其拆下，会得到携带这些状态的便携式超限算枢；重新放置并接入在线 ME 网络后即可继续处理。
-* 没有可恢复内容的超限算枢会正常掉落。
+<RecipeFor id="molecularmanipulator:transfinite_compute_nexus" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />

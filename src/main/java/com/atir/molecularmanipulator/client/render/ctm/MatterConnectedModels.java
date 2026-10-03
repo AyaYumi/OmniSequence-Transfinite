@@ -25,16 +25,19 @@ public final class MatterConnectedModels {
     public static void modifyBakingResult(ModelEvent.ModifyBakingResult event) {
         pendingContext = null;
         var top = new ResourceLocation(MolecularManipulator.MOD_ID, "block/matter_fabrication_casing_top");
+        var jade = new ResourceLocation(MolecularManipulator.MOD_ID, "block/singularity/jade");
         // The Minecraft lookup is deferred until chunk/preview rendering; baking reads only its event registry.
         var context = new MatterConnectedModel.LookupContext(
                 state -> Minecraft.getInstance().getBlockRenderer().getBlockModel(state),
                 sprite -> Minecraft.getInstance().getTextureAtlas(TextureAtlas.LOCATION_BLOCKS).apply(sprite));
         Map<BakedModel, MatterConnectedModel> wrappers = new IdentityHashMap<>();
         event.getModels().replaceAll((location, model) -> {
-            if (!(location instanceof ModelResourceLocation modelLocation) || !location.getNamespace().equals(MolecularManipulator.MOD_ID)
+            if (!location.getNamespace().equals(MolecularManipulator.MOD_ID)
                     || !(location.getPath().startsWith("matter_fabrication_")
+                    || location.getPath().startsWith("singularity_")
                     || location.getPath().equals("molecular_manipulator"))
-                    || modelLocation.getVariant().equals("inventory")
+                    || (location instanceof ModelResourceLocation modelLocation && modelLocation.getVariant().equals("inventory"))
+                    || !(location instanceof ModelResourceLocation)
                     || model instanceof MatterConnectedModel) return model;
             return wrappers.computeIfAbsent(model, original -> new MatterConnectedModel(original, context));
         });

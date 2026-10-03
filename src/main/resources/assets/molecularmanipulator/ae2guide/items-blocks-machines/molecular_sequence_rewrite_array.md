@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: Molecular Sequence Rewrite Array
+  title: "Molecular Sequence Rewrite Array"
   icon: molecularmanipulator:molecular_manipulator
   position: 1000
 item_ids:
@@ -10,40 +10,42 @@ item_ids:
 
 # Molecular Sequence Rewrite Array
 
-<BlockImage id="molecularmanipulator:molecular_manipulator" scale="8" />
+Execute crafting, smithing, and stonecutting patterns inside one block for high-throughput ME autocrafting.
 
-The Molecular Sequence Rewrite Array is a high-throughput [autocrafting](ae2:ae2-mechanics/autocrafting.md) machine. It stores encoded patterns like a <ItemLink id="ae2:pattern_provider" />, but performs every molecular-assembler-compatible recipe inside the block instead of sending ingredients to adjacent machines.
+<Row>
+<BlockImage id="molecularmanipulator:molecular_manipulator" scale="4" />
 
-| Property | Value |
+<ItemImage id="ae2:crafting_pattern" scale="4" />
+
+<ItemImage id="ae2:smithing_table_pattern" scale="4" />
+
+<ItemImage id="ae2:stonecutting_pattern" scale="4" />
+</Row>
+
+## Connect it
+
+1. Complete **Tier 2: Sequence Array** research and fabricate the block in the well.
+2. Connect the array to a powered ME network with an available channel.
+3. Insert encoded crafting, smithing, or stonecutting patterns. Use page buttons to manage them.
+4. Request products in an ME terminal. The array accepts ingredients and executes the recipes.
+
+| Capability | Detail |
 | --- | --- |
-| Pattern inventory | 10 pages × 36 slots = 360 pattern slots |
-| Accepted patterns | Encoded crafting, smithing and stonecutting patterns |
-| Logical batch limit | `Long.MAX_VALUE` |
-| Unlocked by | Stage II: Sequence Array |
+| Pattern library | 10 pages × 36 slots = 360 slots |
+| Internal execution | Crafting, smithing, stonecutting |
+| External processing | Use processing patterns, providers, and the required machine |
+| Unlock | Sequence Array research branch |
 
-## Setup
+## Large batches
 
-1. Complete **Stage II: Sequence Array** once in the [Matter Fabrication Well](matter_fabrication_well.md), then produce this machine there.
-2. Connect the array to a powered [ME Network](ae2:ae2-mechanics/me-network-connections.md) with an available channel.
-3. Right-click it and insert encoded crafting, smithing, or stonecutting patterns.
-4. Use the page buttons to move through the fixed pattern inventory.
-5. Request one of the encoded results from an ME terminal as usual.
+The logical batch ceiling is about **9.22E crafts**. Eligible recipes can finish a batch in one tick; available materials, energy, and ME output space determine actual size.
 
-> Deep research improves its well manufacturing recipe, not the performance of the placed array.
-> Processing patterns are not executed internally. Use a normal pattern provider and an external machine for those.
+Parallelism preserves ingredient costs, tool returns, and crafting energy. Fabrication deep-research speed bonuses apply to well recipes only.
 
-## Processing and outputs
+## Blocked outputs
 
-The logical batch limit is `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts).
-
-> Ingredients, energy and remaining output capacity bound each batch; input/output arithmetic overflow is rejected.
-
-The array uses virtual parallel processing and can finish supported recipes in as little as one tick. Actual throughput still depends on available ingredients, ME power, and whether the network can accept the results.
-
-Recipe results, intermediate products, and container remainders are aggregated by AE key and returned to the ME Network. If the network cannot accept them immediately, the array keeps them in a persistent output buffer and retries later, including after a world reload.
-
-Normal block drops retain patterns, inventory and pending returns. Replace the array and restore its ME connection to continue.
+Products and returns are retained before insertion into ME. Full storage delays delivery and triggers retries. Normal removal carries patterns and unfinished contents with the block.
 
 ## Recipe
 
-<RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="This modpack has no available recipe for this item. Check JEI or the research configuration." />
+<RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

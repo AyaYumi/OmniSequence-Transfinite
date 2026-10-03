@@ -1,0 +1,44 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:black_hole"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:omni_computation_controller"
+      },
+      "count": 100
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_core"
+      },
+      "count": 100
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 1600
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:spacetime_anchor_pillar"
+      },
+      "count": 800
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:event_horizon_singularity_hub",
+      "count": 1
+    }
+  ],
+  "processing_time": 600,
+  "ae_per_tick": 4096,
+  "requires_research": true
+}

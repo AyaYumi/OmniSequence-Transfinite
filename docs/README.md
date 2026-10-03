@@ -1,50 +1,36 @@
-# Integration APIs / 接口索引
+# Integration APIs / 接口文档
 
-Target: OmniSequence: Transfinite **2.0.6-forge**, Minecraft **1.20.1**, Forge,
-Java **17**, AE2 **15.4.10 through 15.x**, AppliedEnhancements **1.0.9-fix-forge**.
-The Mod ID remains `molecularmanipulator`.
+Current source: OmniSequence **2.0.7-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
+Java **17**, AE2 **15.4.10 / UELM 15.5.4**, revised AppliedEnhancements **1.1.0-forge**.
+Mod ID: `molecularmanipulator`.
 
-The well recipe and research page also has a [Chinese version](matter-research-api.zh-CN.md).
-
-| Integration | Contract | Documentation |
+| Contract | English | 中文 |
 | --- | --- | --- |
-| Atomic AEKey delivery to a pattern provider | `com.atir.molecularmanipulator.api.crafting`, runtime ABI 1; supported resource types depend on the provider | [Omni Batch Provider API](omni-batch-provider-api.md) |
-| Generic well inputs and pattern output isolation | `MatterFabricationRecipe.aeInputs`, JSON `ae_inputs`, assembly-owned queues | [Well recipe format and limitations](matter-research-api.md) |
-| Well research, prerequisites, progress administration and production bonuses | `com.atir.molecularmanipulator.research.MatterResearchApi` and data recipes | [Matter Research / KubeJS API](matter-research-api.md) |
-| AELIS planning, cyclic execution and shared AE2 enhancements | Separate AppliedEnhancements mod | [AppliedEnhancements API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/API_INTEGRATION.md) |
+| Atomic long-count pattern delivery, admission, optional adapters and output flush; runtime ABI 1 | [Batch provider SPI](omni-batch-provider-api.md) | [批量供应器 SPI](omni-batch-provider-api.zh-CN.md) |
+| Exact BigInteger provider/output capabilities and original-provider identity | [Exact-count API](omni-exact-provider-api.md) | 同页中文说明 |
+| Well recipe JSON, generic AEKey inputs, research, machine imports and KubeJS | [Well and research API](matter-research-api.md) | [构筑井与研究 API](matter-research-api.zh-CN.md) |
+| Configuration paths, defaults, migration and resource production | [Configuration](configuration.md) | 同页中文说明 |
+| Dependency setup, builds, release checks, isolated tests and asset maintenance | [Development](development.md) | 同页中文说明 |
+| Tick budgets, research/recipe caches, idle paths and performance regressions | [Performance maintenance](performance.md) | 同页中文说明 |
 
-Use `compileOnly` against the relevant mod JARs, install required mods separately
-at runtime, and do not shade their packages. Optional integrations must isolate
-class loading until the corresponding Mod ID is present. Research mutations run
-on the owning server thread; caller integrations must enforce their own permissions.
-Internal `blockentity`, `mixin` and renderer implementation details are not a
-general compatibility promise; use only the documented entry points.
+AELIS planning, cycle execution and shared AE enhancements belong to the separate
+AppliedEnhancements mod. Use its matching 1.1.0 API documentation. Omni's internal
+planner/Mixin classes are not integration entry points.
 
-Forge consumers must recompile for Java 17 and AE2 15. Batch ABI 1 is retained,
-but NeoForge 1.21.1 binaries and `RecipeHolder`-based examples are not a binary
-compatibility promise. The research API uses recipe objects directly on this branch;
-see the version-specific signatures and NBT examples in the research reference.
-UI enabled/highlight state is presentation data, not a new crafting or research API.
+Use `compileOnly` with the separate JARs and install each mod at runtime. Do not
+shade or copy their API packages. Optional compatibility classes must load only
+when the corresponding mod is present. Keep the original AE provider object when
+registering a capability. Mutate research on the owning server thread; integrations
+must enforce their own permissions. Live game-state queries also belong on that
+thread unless the caller has obtained an immutable snapshot.
 
-## 中文
+## 选择接口
 
-本文档对应 2.0.6-forge，批量投料 API 保持 v1；研究接口从 2.0.0 提供。模组 ID
-仍为 `molecularmanipulator`，客户端和服务端都需要 AppliedEnhancements 1.0.9-fix-forge。
+- 接收完整批次：使用两阶段批量供应器 SPI，或注册可选适配器。
+- 接收超出 long 的逻辑次数：使用大数能力与精确输出接口。
+- 添加配方、研究和整机导入：使用数据包/KubeJS 格式及 MatterResearchApi。
+- 修改采集和能源参数：使用统一配置参考，不访问内部字段。
 
-构筑井配方与研究文档同时提供[英文版](matter-research-api.md)。
-
-| 需求 | 使用接口 |
-| --- | --- |
-| 第三方样板机器接收完整 AEKey 批次，资源类型由供应器决定 | [批量供应器 API](omni-batch-provider-api.md) |
-| 构筑井通用输入、样板产物隔离与当前限制 | [配方格式与已知限制](matter-research-api.zh-CN.md) |
-| 数据包／KubeJS 研究与配方、前置等级、进度管理 | [研究 API](matter-research-api.zh-CN.md) |
-| 调用 AELIS、管理循环合成执行 | [前置独立 API](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/API_INTEGRATION_ZH.md) |
-
-开发时使用 `compileOnly`，运行时单独安装前置，不复制或嵌入 API 类。
-可选兼容需延迟到目标模组存在后加载。研究修改在控制器所属服务端线程执行；
-Java 调用方需自行校验权限。批量供应器的长期材料所有权、研究进度和 AELIS 计划
-是不同契约，不能用其中一个接口替代另一个。
-
-Forge 调用方需按 Java 17 / AE2 15 重新编译。研究接口直接接收配方对象；
-1.21.1 的 `RecipeHolder`、数据组件和网络注册代码不能直接复制到本分支。
-客户端按钮的开启高亮不会改变批量接口 ABI 或配方执行权限。
+`blockentity`、`mixin` 和渲染内部类不承诺通用二进制兼容。研究权限、长期材料
+所有权和 AELIS 计划是不同契约，不能相互替代。文档采用当前实现，不保留依赖
+个人机器路径的历史验证报告。

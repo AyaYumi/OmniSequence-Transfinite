@@ -4,6 +4,14 @@
     {
       "type": "forge:mod_loaded",
       "modid": "advanced_ae"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_infused_dust"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_infusion_source"
     }
   ],
   "ingredients": [

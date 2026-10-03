@@ -1,27 +1,49 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: 构序自动合成器
+  title: "分子自动合成器"
   icon: molecularmanipulator:molecular_auto_crafter
-  position: 1015
+  position: 1040
 item_ids:
 - molecularmanipulator:molecular_auto_crafter
 ---
 
-# 构序自动合成器
+# 分子自动合成器
 
-<BlockImage id="molecularmanipulator:molecular_auto_crafter" scale="8" />
+按库存目标持续补货的单方块设备。九个样板位置分别设置、分别运行。
 
-构序自动合成器是构序阵列被动自动合成功能的单方块版本。它接入 ME 网络后，会按专用样板槽中的配置持续合成物品，并把产物和余料写回同一个网络。
+<Row>
+<BlockImage id="molecularmanipulator:molecular_auto_crafter" scale="4" />
 
-## 使用方法
+<ItemImage id="ae2:crafting_pattern" scale="4" />
 
-1. 放下方块并接入已供电、拥有频道的 ME 网络。
-2. 在界面中放入最多 9 个编码的合成、锻造或切石样板。
-3. 点击样板上方的齿轮（或右键样板）进入设置页，设置成品库存上限与各原料的保留量；点击“设定”、按 Enter，或点击“保存全部”提交。
-4. 原料超过五种时，用设置页右下角的箭头翻页。点击“返回”后，通过样板下方的按钮启动或停止该槽位。
-5. 成品上限设为 `0` 时持续生产，直到原料保护量或网络能量不再允许下一批。
+<ItemImage id="ae2:smithing_table_pattern" scale="4" />
 
-每个样板独立调度；缺料、缺电、输出暂时阻塞或达到库存上限时会等待，并在条件恢复后自动重试。它不提供普通样板供应器的外部推送槽，也不包含构序阵列的物质重写和量子链路功能。
+<ItemImage id="ae2:stonecutting_pattern" scale="4" />
+</Row>
 
-<RecipeFor id="molecularmanipulator:molecular_auto_crafter" fallbackText="研究或配方被禁用时无法制作此方块。" />
+## 让库存保持充足
+
+1. 接入有电、有频道的 ME 网络，放入最多 **9 张**合成、锻造或切石样板。
+2. 点击样板上方的齿轮，或右键样板，打开该位置的设置。
+3. 填写**成品库存上限**和各项**原料保留量**，按 Enter 或失去焦点提交。
+4. 启用该位置，机器开始从同一 ME 网络取料并返还产物。
+
+| 设置 | 用途 |
+| --- | --- |
+| 成品库存上限 | 达到目标后暂停补货 |
+| 上限设为 0 | 持续合成，直到原料保留量或其他条件限制 |
+| 原料保留量 | 为网络留下指定数量，避免全部用完 |
+| 独立启停 | 单独启用或停止每个样板位置 |
+
+## 缺料与缓存
+
+原料不足、缺电、网络断开或输出无法接收时自动等待，条件恢复后继续。原料与产物条目较多时，可用设置页箭头翻页。
+
+此处执行合成、锻造和切石配方。需要外部机器的处理配方，请使用样板供应器。
+
+构序阵列的**自动合成**页使用相同的九槽补货方式，设置方法一致。
+
+## 配方
+
+<RecipeFor id="molecularmanipulator:molecular_auto_crafter" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />

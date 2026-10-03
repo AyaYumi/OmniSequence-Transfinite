@@ -1,0 +1,29 @@
+// Material retention, research state and legacy blueprint maintenance regressions.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def regression = sourceSets.create('maintenanceRegression') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/MatterDismantleGameTests.java', '**/MolecularDismantleGameTests.java', '**/OmniDismantleGameTests.java', '**/Legacy139MigrationGameTests.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory project.file('build/maintenance-regression-run')
+            mods { "${project.mod_id}" { source regression } }
+        }
+        tasks.named('compileMaintenanceRegressionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def report = project.file('build/maintenance-regression-run/logs/latest.log').text
+                if (!report.contains('All 5 required tests passed'))
+                    throw new GradleException('Maintenance regressions did not all pass')
+            }
+        }
+    }
+}

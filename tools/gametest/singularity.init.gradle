@@ -1,0 +1,27 @@
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def regression = sourceSets.create('singularityVerification') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/SingularityPaletteGameTests.java', '**/SingularityConstructionGameTests.java', '**/SingularityMotionGameTests.java', '**/SingularityEmbeddingGameTests.java', '**/SingularitySuspendedGameTests.java', '**/CosmicSingularityGameTests.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.gameTestServer {
+            workingDirectory project.file(project.findProperty('singularityRegressionDirectory') ?: 'build/singularity-regression-run')
+            mods { "${project.mod_id}" { source regression } }
+        }
+        tasks.named('compileSingularityVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def report = project.file(project.findProperty('singularityRegressionDirectory') ?: 'build/singularity-regression-run').toPath().resolve('logs/latest.log').toFile().text
+                if (!report.contains('All 11 required tests passed')) throw new GradleException('Singularity runtime checks did not all pass')
+            }
+        }
+    }
+}

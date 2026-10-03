@@ -12,6 +12,10 @@ import org.jetbrains.annotations.Nullable;
  * take durable ownership of an entire multi-craft delivery without partial
  * insertion.</p>
  *
+ * <p>Optional integrations can instead register a separate capability in
+ * {@link OmniBatchProviderAdapterRegistry}; AE2 keeps the original provider
+ * object for identity, busy state and one-craft dispatch.</p>
+ *
  * @since 1.3.9 (API version 1)
  */
 public interface OmniBatchCraftingProvider extends ICraftingProvider {

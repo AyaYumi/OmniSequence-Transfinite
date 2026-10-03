@@ -1,33 +1,22 @@
-# Forge 1.20.1 development dependencies
+# AppliedEnhancements dependency / 开发前置
 
-The Forge build uses Java 17. Install these runtime mods separately on both client and server; they are not embedded in OmniSequence.
+Current source requires the revised **1.1.0-forge** build on client and server.
 
-For **AE2 Unofficial Extended Life Modern**, copy its Forge 1.20.1 jar to
-build with the published UELM Maven artifact:
+1. Obtain or build the independent AppliedEnhancements 1.1.0-forge revision.
+2. Copy `appliedenhancements-1.1.0-forge.jar` into this directory.
+3. Run the normal Gradle build. The API validation fails clearly if the file or
+   `AelisBatchExecutionContext` is missing.
 
-```text
-gradlew build -Pae2_uelm_version=15.5.4-uelm
-```
+The runtime and compile-time declarations use `gradle.properties`. JARs under
+`libs/` are ignored by Git and never shaded into the mod. Install each prerequisite
+separately. Do not rename an old 1.0.x file to 1.1.0.
 
-The UELM profile was checked against UELM `15.5.4-uelm`; the normal profile
-remains compatible with AE2 `15.4.x`. Do not install both AE2 jars together.
+Remote CI builds the matching prerequisite from AppliedEnhancements commit
+`ee50e7c40d7bd162d8d1ca4bc4989c488e647e7d`. The shared API is checked before compilation, and CI tests the upstream-built prerequisite JAR with both AE implementations. See
+[development](../docs/development.md).
 
-| Local artifact | Source |
-| --- | --- |
-| `appliedenhancements-1.0.9-fix-forge.jar` | Build the AppliedEnhancements `1.20.1-forge` branch with `gradlew build`; use the full reobfuscated JAR. |
-| `extended-ae-1.20-1.4.19-forge.jar` | Copy the tested pack's `ExtendedAE-1.20-1.4.19-forge.jar` under this development filename. This version was not available in the Modrinth Maven index when the port was validated. |
-| `guideme-20.1.15.jar` | GuideME 20.1.15 for Minecraft 1.20.1. Maven is also configured. |
+## 中文
 
-
-ForgeGradle deobfuscates these released artifacts for development. Keep all local JAR files out of Git. The existing 1.21.1 AppliedEnhancements JAR is not used by this branch.
-
-The dependency checkout must declare `minecraft_version=1.20.1` and its
-`mod_version` must match `applied_enhancements_version` in the root
-`gradle.properties`; a branch name alone does not establish loader compatibility.
-CI checks both values before building and reports an explicit error for an
-incompatible source branch or version. Do not substitute a NeoForge dependency JAR
-in the Forge build.
-
-The CI compile baseline uses the published ExtendedAE `1.20-1.4.18-forge` artifact. Local compilation against that version was also verified; gameplay validation uses the pack's 1.4.19 build.
-
-The exact crafting API requires protocol 9 from AppliedEnhancements 1.0.9-fix-forge. For AE2 UELM, use the AppliedEnhancements build from commit `715972a7f33d9d6e9fab52e22ae8bf19191f129f` or later.
+需要修订版 1.1.0；将实际构建放入此目录，两端使用相同版本。前置构建独立维护，
+不在本仓库发布，也不嵌入 OmniSequence。旧 1.0.x 缺少共享事务类型，改文件名
+不能替代接口更新。远程 CI 默认构建固定 Git 提交的匹配前置，用同一份原版 AE 构建的前置分别验证两套 AE 实现。

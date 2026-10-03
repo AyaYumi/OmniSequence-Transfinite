@@ -8,12 +8,16 @@
     {
       "type": "forge:item_exists",
       "item": "expatternprovider:concurrent_processor"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "expatternprovider:entro_ingot"
     }
   ],
   "ingredients": [
     {
       "ingredient": {
-        "item": "minecraft:netherite_ingot"
+        "item": "expatternprovider:entro_ingot"
       },
       "count": 4
     },

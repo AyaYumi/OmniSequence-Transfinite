@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:omni_computation_glass"
+      },
+      "count": 800
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_glass"
+      },
+      "count": 800
+    },
+    {
+      "ingredient": {
+        "item": "ae2:quartz_vibrant_glass"
+      },
+      "count": 800
+    },
+    {
+      "ingredient": {
+        "item": "ae2:singularity"
+      },
+      "count": 200
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:event_horizon_lens",
+      "count": 8
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 2048,
+  "requires_research": true
+}

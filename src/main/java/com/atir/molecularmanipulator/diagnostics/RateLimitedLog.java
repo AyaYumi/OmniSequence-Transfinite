@@ -24,6 +24,13 @@ public final class RateLimitedLog {
         }
     }
 
+    /** Opt-in informational diagnostics share the same server-wide throttle. */
+    public static void info(String message, Object... arguments) {
+        if (MolecularManipulator.LOGGER.isInfoEnabled() && GATE.allow(message)) {
+            MolecularManipulator.LOGGER.info(message, arguments);
+        }
+    }
+
     public static void debug(String message, Object... arguments) {
         if (MolecularManipulator.LOGGER.isDebugEnabled() && GATE.allow(message)) {
             MolecularManipulator.LOGGER.debug(message, arguments);

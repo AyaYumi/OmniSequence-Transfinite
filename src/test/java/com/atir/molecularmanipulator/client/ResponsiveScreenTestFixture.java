@@ -18,7 +18,16 @@ public final class ResponsiveScreenTestFixture {
         Class.forName(UiRenderRecorder.class.getName());
         Field field = Unsafe.class.getDeclaredField("theUnsafe");
         field.setAccessible(true);
-        var screen = (ProbeScreen) ((Unsafe) field.get(null)).allocateInstance(ProbeScreen.class);
+        var allocator = (Unsafe) field.get(null);
+        var screen = (ProbeScreen) allocator.allocateInstance(ProbeScreen.class);
+        // UELM checks the configured pick-item binding before dispatching any click.
+        // Supply the real options shape without opening a window or starting a game.
+        var minecraft = (net.minecraft.client.Minecraft) allocator.allocateInstance(net.minecraft.client.Minecraft.class);
+        var options = (net.minecraft.client.Options) allocator.allocateInstance(net.minecraft.client.Options.class);
+        set(options, "keyPickItem", new net.minecraft.client.KeyMapping("test.pick_item",
+                com.mojang.blaze3d.platform.InputConstants.Type.MOUSE, 2, "test"));
+        set(minecraft, "options", options);
+        set(screen, "minecraft", minecraft);
         set(screen, "children", new ArrayList<>());
         set(screen, "renderables", new ArrayList<>());
         set(screen, "narratables", new ArrayList<>());

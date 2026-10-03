@@ -4,6 +4,26 @@
     {
       "type": "forge:mod_loaded",
       "modid": "advanced_ae"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_accelerator"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_core"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_storage_256"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:quantum_unit"
+    },
+    {
+      "type": "forge:item_exists",
+      "item": "advanced_ae:shattered_singularity"
     }
   ],
   "ingredients": [

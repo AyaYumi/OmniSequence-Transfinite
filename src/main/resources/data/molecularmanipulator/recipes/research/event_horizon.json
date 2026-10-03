@@ -1,0 +1,207 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.event_horizon",
+  "prerequisites": [
+    "molecularmanipulator:research/sequence_array",
+    "molecularmanipulator:research/omni_computation"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:fluix_block"
+      },
+      "count": 1002
+    },
+    {
+      "ingredient": {
+        "item": "ae2:quartz_block"
+      },
+      "count": 1374
+    },
+    {
+      "ingredient": {
+        "item": "ae2:quartz_vibrant_glass"
+      },
+      "count": 109
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_crystal_pylon"
+      },
+      "count": 24
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_data_entangler"
+      },
+      "count": 7
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_energy_stabilizer"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_output_node"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:infinite_crafting_storage"
+      },
+      "count": 7
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:infinite_parallel_matrix"
+      },
+      "count": 7
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_casing"
+      },
+      "count": 393
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_coil"
+      },
+      "count": 14
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_controller"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_core"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_glass"
+      },
+      "count": 96
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_stabilizer"
+      },
+      "count": 41
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:omni_computation_casing"
+      },
+      "count": 1452
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:omni_computation_controller"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:omni_computation_glass"
+      },
+      "count": 16
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:universal_pattern_matrix"
+      },
+      "count": 56
+    }
+  ],
+  "duration": 600,
+  "ae_per_tick": 2048,
+  "unlocks": [
+    "molecularmanipulator:black_hole",
+    "molecularmanipulator:white_hole",
+    "molecularmanipulator:event_horizon_singularity_hub",
+    "molecularmanipulator:white_hole_resource_core",
+    "molecularmanipulator:singularity_base_casing",
+    "molecularmanipulator:gravity_gilded_block",
+    "molecularmanipulator:spacetime_anchor_pillar",
+    "molecularmanipulator:singularity_ring_track",
+    "molecularmanipulator:event_horizon_lens",
+    "molecularmanipulator:event_horizon_flux_pillar",
+    "molecularmanipulator:black_hole_capture_node",
+    "molecularmanipulator:event_horizon_stabilizer",
+    "molecularmanipulator:singularity_crystal_tower",
+    "molecularmanipulator:singularity_base_stairs",
+    "molecularmanipulator:singularity_base_slab"
+  ],
+  "required_mods": [
+    "expatternprovider",
+    "advanced_ae"
+  ],
+  "sort_order": 30,
+  "stage": 3,
+  "depths": [
+    {
+      "material_multiplier": "1",
+      "parallel": "1",
+      "speed_multiplier": "1"
+    },
+    {
+      "material_multiplier": "2",
+      "parallel": "256",
+      "speed_multiplier": "2"
+    },
+    {
+      "material_multiplier": "4",
+      "parallel": "65536",
+      "speed_multiplier": "4"
+    },
+    {
+      "material_multiplier": "8",
+      "parallel": "16777216",
+      "speed_multiplier": "8"
+    },
+    {
+      "material_multiplier": "16",
+      "parallel": "4294967296",
+      "speed_multiplier": "16"
+    },
+    {
+      "material_multiplier": "32",
+      "parallel": "1099511627776",
+      "speed_multiplier": "32"
+    },
+    {
+      "material_multiplier": "64",
+      "parallel": "281474976710656",
+      "speed_multiplier": "64"
+    },
+    {
+      "material_multiplier": "128",
+      "parallel": "72057594037927936",
+      "speed_multiplier": "128"
+    },
+    {
+      "material_multiplier": "256",
+      "parallel": "9223372036854775807",
+      "speed_multiplier": "256",
+      "processing_ticks": 1
+    }
+  ],
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ]
+}

@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.registry;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
+import com.atir.molecularmanipulator.block.CosmicSingularityBlock;
 import com.atir.molecularmanipulator.block.MolecularManipulatorBlock;
 import com.atir.molecularmanipulator.block.MolecularAutoCrafterBlock;
 import com.atir.molecularmanipulator.block.MatterFabricationControllerBlock;
@@ -18,6 +19,7 @@ import com.atir.molecularmanipulator.block.OmniComputationGlassBlock;
 import com.atir.molecularmanipulator.block.OmniComputationPartBlock;
 import com.atir.molecularmanipulator.block.TransfiniteComputeNexusBlock;
 import com.atir.molecularmanipulator.blockentity.AssemblerMatrixMolecularCoreBlockEntity;
+import com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternAssemblyBlockEntity;
@@ -28,6 +30,7 @@ import com.atir.molecularmanipulator.blockentity.MolecularCenterCrystalBlockEnti
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
+import com.atir.molecularmanipulator.item.SingularityCosmicItem;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterMachineImportRecipe;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
@@ -40,6 +43,7 @@ import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterConfigMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
@@ -247,6 +251,23 @@ public final class ModContent {
     public static final RegistryObject<BlockItem> COMPUTATION_CRYSTAL_PYLON_ITEM =
             registerBlockItem("computation_crystal_pylon", COMPUTATION_CRYSTAL_PYLON);
 
+    public static final RegistryObject<CosmicSingularityBlock> BLACK_HOLE_BLOCK = BLOCKS.register("black_hole",
+            () -> new CosmicSingularityBlock(cosmicProperties(4), CosmicSingularityBlock.Kind.BLACK_HOLE));
+    public static final RegistryObject<CosmicSingularityBlock> WHITE_HOLE_BLOCK = BLOCKS.register("white_hole",
+            () -> new CosmicSingularityBlock(cosmicProperties(15), CosmicSingularityBlock.Kind.WHITE_HOLE));
+    public static final RegistryObject<BlockItem> BLACK_HOLE = ITEMS.register("black_hole",
+            () -> new SingularityCosmicItem(BLACK_HOLE_BLOCK.get(), "black_hole",
+                    net.minecraft.ChatFormatting.DARK_GRAY, new Item.Properties()));
+    public static final RegistryObject<BlockItem> WHITE_HOLE = ITEMS.register("white_hole",
+            () -> new SingularityCosmicItem(WHITE_HOLE_BLOCK.get(), "white_hole",
+                    net.minecraft.ChatFormatting.AQUA, new Item.Properties()));
+    static {
+
+    }
+    public static final RegistryObject<BlockEntityType<CosmicSingularityBlockEntity>> COSMIC_SINGULARITY_BE =
+            BLOCK_ENTITIES.register("cosmic_singularity", () -> BlockEntityType.Builder.of(
+                    CosmicSingularityBlockEntity::new, BLACK_HOLE_BLOCK.get(), WHITE_HOLE_BLOCK.get()).build(null));
+
     public static final RegistryObject<BlockEntityType<MolecularManipulatorBlockEntity>>
             MOLECULAR_MANIPULATOR_BLOCK_ENTITY = BLOCK_ENTITIES.register("molecular_manipulator",
                     () -> BlockEntityType.Builder.of(MolecularManipulatorBlockEntity::new,
@@ -350,6 +371,10 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_FLUID_INPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_FLUID_OUTPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
+                        SingularityContent.displayItems(output);
+                        output.accept(BLACK_HOLE.get());
+                        output.accept(WHITE_HOLE.get());
+                        output.accept(ModFluids.SEQUENCE_MATTER_BUCKET.get());
                         if (AdvancedAEIntegration.isLoaded()) {
                             output.accept(TRANSFINITE_COMPUTE_NEXUS_ITEM.get());
                             output.accept(OMNI_COMPUTATION_CONTROLLER_ITEM.get());
@@ -376,6 +401,14 @@ public final class ModContent {
                         .lightLevel(state -> lightLevel)));
     }
 
+    private static net.minecraft.world.level.block.state.BlockBehaviour.Properties cosmicProperties(int light) {
+        return net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                .strength(2.0F, 60.0F).noOcclusion().noCollission()
+                .isViewBlocking((state, level, pos) -> false)
+                .isSuffocating((state, level, pos) -> false)
+                .lightLevel(state -> light);
+    }
+
     private static RegistryObject<OmniComputationPartBlock> registerTranslucentOmniPart(String id, int lightLevel) {
         return BLOCKS.register(id, () -> new OmniComputationPartBlock(
                 net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
@@ -397,6 +430,9 @@ public final class ModContent {
     }
 
     public static void register(IEventBus eventBus) {
+        ModFluids.register(eventBus);
+        SingularityContent.init();
+        SingularityContent.registerEntities(eventBus);
         BLOCKS.register(eventBus);
         ITEMS.register(eventBus);
         BLOCK_ENTITIES.register(eventBus);
@@ -407,6 +443,7 @@ public final class ModContent {
     }
 
     public static void bindBlockEntity() {
+        SingularityContent.bindBlockEntity();
         TRANSFINITE_COMPUTE_NEXUS.get().setBlockEntity(
                 OmniComputationCoreBlockEntity.class, OMNI_COMPUTATION_CONTROLLER_BE.get(), null, null);
         MOLECULAR_AUTO_CRAFTER.get().setBlockEntity(

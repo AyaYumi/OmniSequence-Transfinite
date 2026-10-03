@@ -7,13 +7,17 @@
     },
     {
       "type": "forge:item_exists",
+      "item": "expatternprovider:entro_crystal"
+    },
+    {
+      "type": "forge:item_exists",
       "item": "expatternprovider:entro_dust"
     }
   ],
   "ingredients": [
     {
       "ingredient": {
-        "item": "ae2:fluix_crystal"
+        "item": "expatternprovider:entro_crystal"
       },
       "count": 4
     }

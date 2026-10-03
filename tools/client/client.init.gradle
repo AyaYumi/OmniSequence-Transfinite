@@ -1,0 +1,27 @@
+// Optional real-client gate; never included by the normal release build.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('clientVerification') {
+            java.srcDir project.file('tools/client/java')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.client {
+            workingDirectory project.file('build/client-verification-run')
+            mods { "${project.mod_id}" { source verification } }
+            args '--width', '1280', '--height', '800'
+        }
+        tasks.named('compileClientVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+        }
+        tasks.matching { it.name == 'runClient' }.configureEach {
+            doLast {
+                def report = project.file('build/client-verification-run/logs/latest.log').text
+                if (!report.contains('PAIRED_CLIENT_ALL_PASS'))
+                    throw new GradleException('Real-client verification did not complete')
+            }
+        }
+    }
+}

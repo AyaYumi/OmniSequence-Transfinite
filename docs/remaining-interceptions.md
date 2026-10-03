@@ -1,17 +1,17 @@
 # Remaining interceptions / 两模组剩余拦截清单
 
-Audit date: 2026-10-04. Covers Applied Enhancements 1.1.0-forge / 1.1.1 and OmniSequence Transfinite 2.0.7-forge / 2.0.8. IDs group checks by one user decision, rather than listing every repeated conditional. No remaining check in this inventory has been removed. English release changelogs accompany the builds; the detailed decision table below is in Chinese.
+Audit date: 2026-10-04. Covers Applied Enhancements 1.1.0-forge / 1.1.1 and OmniSequence Transfinite 2.0.7-forge / 2.0.8. IDs group checks by one user decision, rather than listing every repeated conditional. Selected A02/A03/A07/A11/A19 rejection paths have now been removed at the user's request; other checks remain. English release changelogs accompany the builds; the detailed decision table below is in Chinese.
 
-The removed Applied native 64-bit arithmetic rejection is **A00 (removed)**. Five rejection Mixins, the exception/helper and its rejection message are gone. Exact native task accumulation was retained. Omni's separate **O01 shared KeyCounter saturation remains**. A03 is a separate ordered-choice complexity rejection; A07 is a cycle CPU capability rejection; A11 rejects inconsistent exact smart-doubling metadata. A19 separately forbids selected native fallback; A20/O34 cancel invalid running states. These are not the deleted native overflow exception.
+The removed Applied native 64-bit arithmetic rejection is **A00 (removed)**. Five rejection Mixins, the exception/helper and its rejection message are gone. Exact native task accumulation was retained. Omni's separate **O01 shared KeyCounter saturation remains**. A02/A03/A07/A11/A19 no longer reject requests; A11 now repairs projections or restores original tasks; A20/O34 cancel invalid running states. These are not the deleted native overflow exception.
 
 ## 最先确认的项目
 
 | 编号 | 日常表现 |
 | --- | --- |
-| A03 | 特定有序配方编译失败后，大额原生重放被直接拒绝 |
-| A19 | AELIS 优化失败后，精确请求或指定大额／溢出原因被拒绝回退原生 |
-| A07 | 指定不支持循环的 CPU，循环任务不能提交 |
-| A11 / O08 | 外部智能倍增改写或规范化不可信，报错或暂停受影响任务 |
+| A03 | 已按要求移除拒绝，详情见当前规则表 |
+| A19 | 已按要求移除拒绝，详情见当前规则表 |
+| A07 | 已按要求移除拒绝，详情见当前规则表 |
+| A11 / O08 | A11 已改恢复原计划；O08 异常规范化暂停仍保留 |
 | A08 / O14 | 材料为已确认／研究订单预留，其他订单暂时不能抽取 |
 | A20 / O34 | 循环／精确运行状态损坏或初始化失败，主动取消任务 |
 | O01 | 共享 AE 计数超过 long 时饱和保留上限，不拒绝下单 |
@@ -19,32 +19,32 @@ The removed Applied native 64-bit arithmetic rejection is **A00 (removed)**. Fiv
 
 ## 阅读和确认方法
 
-本清单共 **60 组**，覆盖两个模组的服务端玩法、AE Mixin、批量／精确 API、网络载荷、持久化和 TPS 控制。重复的空值检查、同一机制的多条分支合为一个编号；界面排版、格式化和普通 setter 没有逐行当成拦截。源码链接分别对应两个分支，便于核对，分支链接会随后续更新移动。
+本清单保留 **60 组编号，其中 5 组拒绝已按要求移除**，覆盖两个模组的服务端玩法、AE Mixin、批量／精确 API、网络载荷、持久化和 TPS 控制。重复的空值检查、同一机制的多条分支合为一个编号；界面排版、格式化和普通 setter 没有逐行当成拦截。源码链接分别对应两个分支，便于核对，分支链接会随后续更新移动。
 
 - **拒绝**：本次操作不成立或返回异常。
 - **回退**：不使用这条优化路径，改由原生／普通路径处理；不代表整单被取消。
 - **等待／背压**：材料、能量、容量或工作预算不足，后续可继续。
 - **过滤／饱和／展示**：改变允许对象、数值投影或客户端展示，不是下单拒绝。
 
-可回复“删除 A03、A07；保留 A08、O01；O29 调成……”。这些编号仅供选择，未选项保持当前行为。TPS 预算、缓存和日志限流按你之前的要求仍保留。
+可回复“删除 O08；保留 A08、O01；O29 调成……”。A02、A03、A07、A11、A19 已按选择移除拒绝；其他未选项保持当前行为。TPS 预算、缓存和日志限流按你之前的要求仍保留。
 
-**已删除 A00**：Applied 原生 AE2 64 位规划算术溢出拒绝。没有开关，因为代码已删除；不会再生成截图里的 `UnsafeNativeCraftingRequestException`。A19 的 AELIS 优化失败拒绝、A18 的投影和 O01 的饱和仍在，取消 A00 拒绝并不使所有外部原生 long 算术自动具备任意精度。
+**已删除 A00**：Applied 原生 AE2 64 位规划算术溢出拒绝。没有开关，因为代码已删除；不会再生成截图里的 `UnsafeNativeCraftingRequestException`。A19 拒绝也已移除；A18 的投影和 O01 的饱和仍在，取消 A00 拒绝并不使所有外部原生 long 算术自动具备任意精度。
 
 ## Applied Enhancements
 
 | 编号 | 检查 | 触发条件与作用 | 结果 | 开关／默认值 |
 | --- | --- | --- | --- | --- |
 | A01 | 订单模式与正数输入 | 关闭增强模式时，增强入口不接受超过原生菜单范围的订单；LONG_MAX 接 long，BIG_INTEGER 才接超 long；零、负数不下单。 | 拒绝增强入口／委托原生 | `crafting.max_crafting_order_amount=DISABLED` |
-| A02 | 精确订单 256 位及策略 | 精确请求只能是 ≤256 位正十进制整数，目前只接受 REPORT_MISSING_ITEMS，拒绝 CRAFT_LESS；大整数规划关闭时也不能开始。 | 抛出参数错误／拒绝精确规划 | `crafting.aelis.enable_big_integer_planning=true；256 位与策略固定` |
-| A03 | 大额有序候选配方拒绝 | AELIS 的编译执行失败后，有序候选需要回到原生逐项重放，折算需求超过 1,000,000 时可触发 CONTROLLED_REJECT。不是所有百万订单都拒绝。 | 直接终止本次规划并提示 | `固定 1,000,000；AELIS 路径` |
-| A04 | 原生边界、重放与递归限额 | AELIS 内部原生边界上限 8,192；模拟有序重放 64 步；事务递归深度 256。达到限额停止该优化路径。 | 主要回退；A03 特例会拒绝 | `固定；AELIS 路径` |
+| A02 | 已移除：精确订单拒绝 | 不再限制 256 位、拒绝 CRAFT_LESS 或被大整数偏好开关阻止；非正数按空订单，输入仍按 A01 订单模式，网络传输有 1,048,576 字符边界。 | 不再因此抛异常阻止；精确 API 可继续 | `显式精确请求独立于 enable_big_integer_planning` |
+| A03 | 已移除：有序候选／重放拒绝 | 优化不能批量处理时允许回退原生，不再因百万需求或超过 64 步而抛终止异常；64 步仍用于选择优化重放策略。 | 原生继续计算 | `拒绝代码已删除；A04/A15 优化预算保留` |
+| A04 | 原生边界、重放与递归限额 | AELIS 内部原生边界上限 8,192；模拟有序重放 64 步；事务递归深度 256。达到限额停止该优化路径。 | 优化回退；不再以 A03/A19 终止 | `固定；AELIS 路径` |
 | A05 | 配方语义与内部算术检查 | 空／无效输入输出、动态布局、候选身份改变、数量反馈不匹配、容器返还／工具状态无法证明，以及优化内部 long 乘加超范围，均不能按原聚合结果继续。 | 回退原生／当前候选失败；部分 CraftBranchFailure 直接报告失败 | `没有单独总开关；自动 AELIS 默认 false` |
 | A06 | 循环启动料和种子保护 | 循环执行只能使用已证明的启动料；保护最低种子量，不允许其他阶段或非当前循环步骤抢用；不足时等待。 | 限制抽取／延后派发 | `cycle_solver.seed_policy=PRESERVE_MINIMUM；另一值 MAX_THROUGHPUT` |
-| A07 | 循环任务 CPU 兼容检查 | 指定 CPU 且计划 requiresCycleAwareCpu=true，但 CPU 未实现循环支持时，submitJob 返回 noSuitableCpu。普通大整数计划没有统一 CPU 白名单。 | 拒绝这次指定 CPU 提交 | `无独立开关；只针对需循环能力的计划` |
+| A07 | 已移除：指定 CPU 循环能力拒绝 | Applied 不再因指定 CPU 未声明循环能力而返回 noSuitableCpu；CPU 自身在线、忙碌和容量结果仍有效。 | 交由 AE/目标 CPU 提交 | `能力查询保留，拒绝入口删除` |
 | A08 | 手工确认材料预留锁 | 其他打开的确认菜单已预留的有限材料，从规划库存扣除并限制实际／模拟抽取；抢锁失败会重新规划。 | 限制其他请求取料／重算 | `跟随 crafting.aelis.enable_automatic_planner=false` |
 | A09 | 无限来源识别和回流处理 | 只有明确标记且当前可访问的无限来源才无限供给；普通 Long.MAX_VALUE 不自动当无限。命中无限键时绕过有限抽取、忽略模拟回流，并单独合并精确消耗。 | 覆盖模拟取料／取消模拟插入；不拒绝整张订单 | `storage.infinite.enable_listing_limit_bypass=false` |
 | A10 | 原生智能倍增跳过本地倍率 | 识别 EAEP eap$allowScaling 开关、已知 EAEP／无用之物倍率包装和原生供应器；已托管任务不再套 Applied 的倍率接口。未知第三方开关并非自动识别。 | 跳过本地改写／保留原生任务 | `已启用兼容行为；无开关` |
-| A11 | 智能倍增 ABI 与数量守恒 | 读不到外部倍率、倍率非正数、递归包装、来源不唯一、未知改写任务、改写改变可验证的原始工作量时，不接受该精确元数据重建。 | 异常／拒绝元数据改写；调用方可能终止规划 | `固定` |
+| A11 | 已移除：倍率元数据拒绝 | 可读倍率数量不一致时用精确需求修复批次和尾数；未知、非法、递归、溢出或不可读倍率改写恢复原始精确任务；可选改写调用失败返回原计划。 | 恢复／修复后继续，不抛本组拒绝 | `按类缓存与原生倍增绕过仍保留` |
 | A12 | 无任务确认页自动关闭 | 确认页面连续 100 tick 没有 job、result 或 plan 时返回上页，避免永久显示计算中；关页或新下单取消旧计算。 | 关闭界面／取消旧请求；不是有效研究强制超时 | `固定 100 tick` |
 | A13 | 终端批量移动样板检查 | 来源最多 512、目标最多 128；来源必须存在且为一张已编码样板；不能同源同目标；无效样板跳过；目标空间不足、预检后拒收则整次回滚。 | 拒绝移动／跳过无效项／回滚 | `固定` |
 | A14 | ME 菜单取物与 JEI 获取检查 | 包须对应当前菜单；资源序号有效且是物品、网络在线、数量正数；抽取受玩家背包容量、实际能源与 IActionSource 限制。JEI 获取沿用 JEI 自身作弊权限。 | 忽略失效请求／减少实际取出量 | `无独立开关；原生权限` |
@@ -52,7 +52,7 @@ The removed Applied native 64-bit arithmetic rejection is **A00 (removed)**. Fiv
 | A16 | 计算并发和取消检查 | AELIS 后台并发为 clamp(处理器数/2,1,8)，另有 1 个交互保留位；没有空位会排队；线程被中断才取消。 | 排队／响应取消 | `固定；自动或精确 AELIS 接管时生效` |
 | A17 | 物品身份复检与缓存限额 | 外部库存每次抽取复查物品 key；槽位改变类型则停止取原请求物品。样板缓存默认每样板 32 项，超量淘汰／回退。 | 停止错误物品抽取／缓存淘汰 | `performance.storage_bus.enable_slot_index=true；io_bus.enable_slot_routing=true；pattern_cache.enabled=true` |
 | A18 | CPU 进度和 long 投影饱和 | CPU 任务／物品汇总及时间跟踪使用精确值或 Long.MAX_VALUE 饱和显示。CraftingAmountProjection 对负数参数仍抛异常。保留 LongSafety 名的 accessor／进度 Mixin 不等于拒绝计划。 | 替换进度统计／饱和；不拒绝正数超限计划 | `固定` |
-| A19 | AELIS 优化失败后禁止回退原生 | 自动 AELIS 的执行没有成功时：显式 ExactRequestScope 总是拒绝回退；否则大整数规划开关=true 且请求>1,000,000，或回退原因包含 overflow/native_boundary_work_limit，也抛 AelisPlanningLimitException。与 A03 有序候选拒绝是两套入口。 | 直接终止规划，提示 planning_path_limit | `无独立开关；依赖 AELIS 路径与 enable_big_integer_planning=true` |
+| A19 | 已移除：优化失败后禁止原生回退 | 包括精确请求、大额数量和 overflow/native_boundary_work_limit 原因，均不再抛 AelisPlanningLimitException。 | 原生继续；最终数量记录实际 long 结果 | `拒绝类和提示已删除` |
 | A20 | 循环运行存档无效时取消合成 | AE 原生或 AdvancedAE CPU 正在运行且带循环运行标签，读取标签却不能恢复有效 runtime 时调用 cancel；旧缺 phase 状态则尝试恢复，失败可保留旧 runtime。 | 主动取消损坏的循环任务 | `固定；与 C02 具体恢复分支相关` |
 | A21 | 精确 CPU 状态网络包大小 | 精确状态读包每个数字 byte array 上限 65,536，总数字预算 262,144；索引／条数须属于当前 entries，数字不可负，批次输入最多 64 且必须为正。规划结果同步也有有界数字／映射读取。 | 解码拒绝；不限制服务端总订单数量 | `固定` |
 
@@ -107,13 +107,13 @@ The removed Applied native 64-bit arithmetic rejection is **A00 (removed)**. Fiv
 
 ## 两版本差异与范围
 
-绝大部分上述规则在两个版本一致。A01 在 Forge 关闭增强模式时按实际原生菜单 ABI 判断：原版 AE 15 为 int 菜单，UELM 可为 long；Neo 使用 AE 19 原生 int 菜单。A17 的每次取物身份复检分别适配 AE 15 和 AE 19。O33 只存在 Forge，Neo 配方由其原生 codec／同步体系处理。A19 属于 Applied 的自动／精确 AELIS Mixin 入口；Omni 自动 AELIS 关闭时调用的显式公共 API 有自己的回退流程，不把所有回退统一当 A19。
+绝大部分上述规则在两个版本一致。A01 在 Forge 关闭增强模式时按实际原生菜单 ABI 判断：原版 AE 15 为 int 菜单，UELM 可为 long；Neo 使用 AE 19 原生 int 菜单。A17 的每次取物身份复检分别适配 AE 15 和 AE 19。O33 只存在 Forge，Neo 配方由其原生 codec／同步体系处理。原 A19 位于 Applied 自动／精确 Mixin 入口，现已移除；Omni 原有显式 API 回退流程继续保留。
 
 Forge 微型黑洞每 5 tick 查询一次实体，随后每 tick 复查并施加吸力；Neo 当前每 tick 查询实体。两版都排除玩家、要求同维度白洞，这是扫描节奏差异，未在本次审计中擅自更改。运动碰撞在 Forge 另适配 Radium 查询，Neo 使用其 Level 碰撞入口；都属于增加可碰撞表面，不是阻止下单。
 
 Neo 的 LDLib XML 布局缺失／缺所需元素会抛 UI 初始化错误；Forge 使用另一套布局。可选 AE2CT 精确树布局 ABI 不兼容也会抛错；这些属于界面集成失败，并非服务端材料／数量拒绝。
 
-重复样板筛选按钮只改变终端显示，O28 才是重复上传的服务端操作过滤。`projectionSaturated`／旧 `previewOnly` 标记和精确能力查询用于告知投影状态，并不单独强制拒绝 CPU；A07 是特定循环能力的实际拒绝。第三方模组自己的限制、AE 原生安全权限和磁盘行为不由此清单授权删除。
+重复样板筛选按钮只改变终端显示，O28 才是重复上传的服务端操作过滤。`projectionSaturated`／旧 `previewOnly` 标记和精确能力查询用于告知投影状态，并不单独强制拒绝 CPU；A07 的循环 CPU 提交拒绝已移除，能力查询仅供实现参考。第三方模组自己的限制、AE 原生安全权限和磁盘行为不由此清单授权删除。
 
 ## 源码核对
 
@@ -122,12 +122,12 @@ Neo 的 LDLib XML 布局缺失／缺所需元素会抛 UI 初始化错误；Forg
 | 编号 | 1.20.1 Forge | 1.21.1 NeoForge |
 | --- | --- | --- |
 | A01 | [CraftAmountMenuMixin.java:39](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/mixin/CraftAmountMenuMixin.java#L39) | [CraftAmountMenuMixin.java:38](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/mixin/CraftAmountMenuMixin.java#L38) |
-| A02 | [AelisCraftingRequest.java:20](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/api/AelisCraftingRequest.java#L20) | [AelisCraftingRequest.java:20](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/api/AelisCraftingRequest.java#L20) |
+| A02 | 已移除拒绝，见当前规则表 | 已移除拒绝，见当前规则表 |
 | A03 | [AelisPlanner.java:50](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/github/appliedenhancements/crafting/aelis/AelisPlanner.java#L50) | [AelisPlanner.java:50](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/github/appliedenhancements/crafting/aelis/AelisPlanner.java#L50) |
 | A04 | [AelisPlanner.java:51](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/github/appliedenhancements/crafting/aelis/AelisPlanner.java#L51) | [AelisPlanner.java:51](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/github/appliedenhancements/crafting/aelis/AelisPlanner.java#L51) |
 | A05 | [AelisPlanner.java:461](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/github/appliedenhancements/crafting/aelis/AelisPlanner.java#L461) | [AelisPlanner.java:461](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/github/appliedenhancements/crafting/aelis/AelisPlanner.java#L461) |
 | A06 | [AelisCycleRuntimeController.java:136](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/api/AelisCycleRuntimeController.java#L136) | [AelisCycleRuntimeController.java:136](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/api/AelisCycleRuntimeController.java#L136) |
-| A07 | [CraftingServiceCycleSafetyMixin.java:31](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/mixin/CraftingServiceCycleSafetyMixin.java#L31) | [CraftingServiceCycleSafetyMixin.java:31](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/mixin/CraftingServiceCycleSafetyMixin.java#L31) |
+| A07 | 已移除拒绝，见当前规则表 | 已移除拒绝，见当前规则表 |
 | A08 | [ManualCraftingInventoryLock.java:72](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/runtime/ManualCraftingInventoryLock.java#L72) | [ManualCraftingInventoryLock.java:72](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/runtime/ManualCraftingInventoryLock.java#L72) |
 | A09 | [InfiniteCraftingSimulationMixin.java:60](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/mixin/InfiniteCraftingSimulationMixin.java#L60) | [InfiniteCraftingSimulationMixin.java:60](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/mixin/InfiniteCraftingSimulationMixin.java#L60) |
 | A10 | [SmartDoublingPatternAccess.java:50](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/runtime/SmartDoublingPatternAccess.java#L50) | [SmartDoublingPatternAccess.java:50](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/runtime/SmartDoublingPatternAccess.java#L50) |
@@ -175,7 +175,7 @@ Neo 的 LDLib XML 布局缺失／缺所需元素会抛 UI 初始化错误；Forg
 | C01 | [AelisExactCraftingService.java:32](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/api/AelisExactCraftingService.java#L32) | [AelisExactCraftingService.java:32](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/api/AelisExactCraftingService.java#L32) |
 | C02 | [AelisCycleExecutionNbt.java:16](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/runtime/AelisCycleExecutionNbt.java#L16) | [AelisCycleExecutionNbt.java:17](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/runtime/AelisCycleExecutionNbt.java#L17) |
 | C03 | [AelisPlanningLog.java:13](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/runtime/AelisPlanningLog.java#L13) | [AelisPlanningLog.java:13](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/runtime/AelisPlanningLog.java#L13) |
-| A19 | [AelisCraftingCalculationMixin.java:308](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/mixin/AelisCraftingCalculationMixin.java#L308) | [AelisCraftingCalculationMixin.java:304](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/mixin/AelisCraftingCalculationMixin.java#L304) |
+| A19 | 已移除拒绝，见当前规则表 | 已移除拒绝，见当前规则表 |
 | A20 | [CraftingCpuLogicBatchMixin.java:379](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/mixin/CraftingCpuLogicBatchMixin.java#L379) | [CraftingCpuLogicBatchMixin.java:384](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/mixin/CraftingCpuLogicBatchMixin.java#L384) |
 | A21 | [CraftingStatusExactMixin.java:74](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/src/main/java/com/appliedenhancements/mixin/CraftingStatusExactMixin.java#L74) | [CraftingStatusExactMixin.java:74](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/src/main/java/com/appliedenhancements/mixin/CraftingStatusExactMixin.java#L74) |
 | O34 | [CraftingCpuLogicMixin.java:372](https://github.com/AyaYumi/OmniSequence-Transfinite/blob/1.20.1-forge/src/main/java/com/atir/molecularmanipulator/mixin/CraftingCpuLogicMixin.java#L372) | [CraftingCpuLogicMixin.java:372](https://github.com/AyaYumi/OmniSequence-Transfinite/blob/1.21.1-neoforge/src/main/java/com/atir/molecularmanipulator/mixin/CraftingCpuLogicMixin.java#L372) |
@@ -184,8 +184,12 @@ Neo 的 LDLib XML 布局缺失／缺所需元素会抛 UI 初始化错误；Forg
 
 Omni 内部状态／持久化另见 `MolecularOmniBatchDelivery`、`OmniExactCraftingState`、`MatterPatternBuffer`、`MolecularReusableBatchJob`、`MatterResearchProgress`，日志见 `diagnostics/RateLimitedLog`。Applied 的 A04 深度见 `AelisRecursionGuard.MAX_TRANSACTIONAL_DEPTH=256`；A11 的外部 ABI 读取见 `SmartDoublingPatternAccess`；A18 进度见 `ExecutingCraftingJobLongSafetyMixin` 和 `CraftingCpuLogicBatchMixin`。
 
-## 本次验证记录
+## 此前原生算术拒绝删除验证
 
 两模组配套加载的变换后游戏测试在 AE2 15.4.10、UELM 15.5.4、AE2 19.2.18 和 AE2 19.2.17 各通过 4 项。新用例验证圆石／水 `Long.MAX_VALUE + 80000` 不再被 Applied 拒绝、有限库存不会无限供给、已标记无限回流与跨 long 消耗精确记账，以及 native addCrafting 精确累计。原有用例验证错误物品复检、原生智能倍增混合任务、30 亿次批量与 120 亿输出持久化。
 
 19.2.17 最初复用旧夹具世界时长期批量输出断言失败；新建隔离世界后全部通过。测试启动器现允许指定新的 build 下目录。此处是受影响路径的回归，不把之前整合包的 37 项完整流程和 MSPT 记录当成本次重新实测结果。1.21.1 UELM 未在此次环境中取得对应运行件，本次只明确报告 AE 19.2.17／19.2.18 的实测。
+
+## 本次指定删除验证（2026-10-04）
+
+A02/A03/A07/A11/A19 拒绝已从 Forge 与 NeoForge 删除。配套加载的真实变换后游戏测试在 AE2 15.4.10、UELM 15.5.4-uelm、AE2 19.2.18 和 AE2 19.2.17 各通过 7 项。新增用例验证百万以上显式精确请求在大整数偏好关闭时原生回退成功、指定 CPU 提交交给 AE 本身处理、倍率不一致修复尾数、未知任务恢复原始工作量，以及请求 100 个而库存只够 23 个时 CRAFT_LESS 的最终数量为 23。Applied 单元测试 NeoForge 412 项／Forge 421 项通过。其余编号仍保留。原生 AE 回退及未适配 CPU 本身仍使用 long，接受操作不代表任意精度执行；本次没有持续整合包 TPS 实测。

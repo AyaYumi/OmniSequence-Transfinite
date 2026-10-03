@@ -6,7 +6,7 @@ allprojects {
         if (!(compatibilityRun ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid compatibility run directory')
         def regression = sourceSets.create('ae2ServerCompatibility') {
             java.srcDirs file('tools/gametest/ae2-compat'), file('tools/gametest/java')
-            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java', '**/SmartDoublingGameTests.java', '**/NativeArithmeticGameTests.java', 'com/extendedae_plus/**/*.java', 'com/sorrowmist/**/*.java'
+            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java', '**/SmartDoublingGameTests.java', '**/NativeArithmeticGameTests.java', '**/SelectedInterceptionGameTests.java', 'com/extendedae_plus/**/*.java', 'com/sorrowmist/**/*.java'
             resources.srcDir file('tools/gametest/resources')
             resources.exclude 'data/molecularmanipulator/recipe/**'
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
@@ -20,7 +20,7 @@ allprojects {
         tasks.named('runGameTestServer').configure {
             doLast {
                 def report = compatibilityLog.text
-                if (!report.contains('All 4 required tests passed'))
+                if (!report.contains('All 7 required tests passed'))
                     throw new GradleException('Paired-mod AE2 compatibility checks did not pass')
             }
         }

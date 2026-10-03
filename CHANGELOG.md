@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.8 — selected interception removal / 指定拦截移除
+
+- Refresh Applied Enhancements with A02/A03/A07/A11/A19 rejection paths removed. Failed optimization may continue native calculation; unreadable rewrites restore original exact tasks and finite mismatches retain their exact remainder.
+- Extend paired AE regressions with large native fallback under a disabled exact preference, rewritten-task continuation and finite CRAFT_LESS calculation. Seven required tests must pass; other Omni gameplay/runtime checks and TPS controls remain.
+- Mark the five removed rejection groups in the shared inventory and update current API guidance.
+
+中文
+
+- 更新 Applied 前置，移除 A02、A03、A07、A11、A19 拒绝入口。优化失败可继续原生计算；不可读改写恢复原始精确任务，有限数量不一致时保留精确尾数。
+- 双模组回归增加偏好关闭时的大额原生回退、倍率任务继续和有限库存尽量合成，七项必需用例全部通过才算成功。其他 Omni 玩法／运行检查及 TPS 控制继续保留。
+- 共享清单标记五组已移除拒绝，同步当前 API 说明。
+
 ## 2.0.8 — dependency refresh and interception audit / 前置更新与拦截清单
 
 - Refresh the matching Applied Enhancements build to remove its native AE2 arithmetic rejection. Omni gameplay and dispatch checks are unchanged; shared KeyCounter saturation remains.

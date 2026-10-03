@@ -11,7 +11,7 @@ AppliedEnhancements build and install the same version on both sides. Dependency
 JARs are ignored and never embedded in OmniSequence.
 
 CI builds the prerequisite from published AppliedEnhancements commit
-`f7636700cfd8f821f84de7283720bf08f185f2c5`, which provides the 1.1.1 shared
+`b42bbfaf53ecb15add0a88f8d036ce750bdc381b`, which provides the 1.1.1 shared
 API. Every push validates documents/resources and performs the Java build/test.
 Repository variable `APPLIED_ENHANCEMENTS_JAR_URL` or workflow-dispatch input
 `applied_enhancements_jar_url` can override the pinned source with a trusted

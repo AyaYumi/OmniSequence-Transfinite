@@ -294,9 +294,10 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
         private Direction[] directions() {
             var facing = menu.getMachine().getBlockState()
                     .getValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING);
+            // The panel is viewed from the machine's front, looking against its facing.
             return new Direction[] {
-                    Direction.UP, Direction.DOWN, facing.getCounterClockWise(),
-                    facing.getClockWise(), facing, facing.getOpposite()
+                    Direction.UP, Direction.DOWN, facing.getClockWise(),
+                    facing.getCounterClockWise(), facing, facing.getOpposite()
             };
         }
 

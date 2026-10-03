@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.7-forge — auto crafter output direction correction / 自动合成器输出方向修正
+
+- Correct the left/right mapping in the auto crafter's Output Directions panel to use the view from the machine's front. Neighbour icons, selection highlights and click targets now refer to the same physical side for every horizontal facing.
+- Update the English and Chinese auto crafter guides. Stored world-side selections, output transfer logic and TPS budgets remain unchanged. Minecraft 1.20.1 only.
+
+中文
+
+- 修正自动合成器输出方向面板左右颠倒的问题，以机器正面视角显示邻接方块；四种水平朝向下，图标、高亮和点击均对应同一实际输出面。
+- 同步中英自动合成器文档；已有世界方向设置、输出传输逻辑和 TPS 预算保留，仅修改 1.20.1。
+
 ## 2.0.7-forge — Singularity Hub ingredient costs ×10,000 / 天枢配方投入再乘一万
 
 - Multiply all 44 ingredient quantities in the 13 Singularity Hub block recipes by 10,000 relative to the previous build, including the miniature-hole inputs. The controller and White Hole Resource Core each require 10,000 miniature holes.

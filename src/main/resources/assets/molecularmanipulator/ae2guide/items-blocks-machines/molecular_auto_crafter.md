@@ -36,6 +36,12 @@ Keep products stocked automatically. Nine independent pattern positions each hav
 | Ingredient reserve | Keep the specified amount available in ME |
 | Per-position switch | Enable or stop each pattern independently |
 
+## Output to nearby containers
+
+Switch the output mode to **Nearby Containers**, then open **Output Directions**.
+The left and right cells show neighbours as seen from the machine's front.
+Select each desired output side; multiple sides can be enabled.
+
 ## Waiting and caches
 
 Missing ingredients, insufficient power, disconnection, or blocked outputs cause the position to wait. It resumes when conditions recover. Use the arrows for additional ingredient and output entries.

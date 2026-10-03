@@ -1,5 +1,85 @@
 # Changelog
 
+## OmniSequence: Transfinite 2.0.7
+
+### Repository and documentation cleanup
+
+- Rebuilt the API index, Chinese/English project guides, configuration reference and development instructions for the current 2.0.7 / AppliedEnhancements 1.1.0 contracts. Split the batch SPI into Chinese and English pages and added the exact-count capability contract. Retained in-game task guides without expensive structure previews.
+- Removed one-off client/GPU probes, dated local test reports, obsolete generators and unused liquid/normal/specular effect textures. Kept repeatable engine/unit tests and editable animation sources outside the release JAR.
+- Throttled recurring runtime/load warnings and errors globally, throttled optional AELIS/exact dispatch traces across CPUs, removed repeated shader-registration success logs and prevented bounded fallback diagnostics from clearing their history and logging the same entries again.
+
+### Optional batch provider adapters and passive-crafting regression
+
+- Added OmniBatchProviderAdapterRegistry with provider/pattern matching, priority, factories, direct-interface fallback and recursion protection. Omni AE and AdvancedAE dispatch retain the original provider identity for busy state, delivery and backpressure; API ABI stays at version 1. Empty registries use the direct path, capability queries do not instantiate adapters, and registration changes invalidate topology caches.
+- Verified native and optional providers on transformed AE and AdvancedAE CPUs, including capacity changes, rejection, pre/post-accept failures, adapter failures and exact material/task accounting. Updated the bilingual batch API documentation.
+- Replayed issue #2 with actual Sequence Array UI clicks and an infinite-plank chest recipe. Current 2.0.7 stops new extraction after disabling/removal, honors changed limits, and retains disabled state through reload/controller replacement. Paid output backlogs remain bounded to 64 crafts per passive slot; the earlier unlimited-batch source could create a much larger persistent backlog. The reported 2.0.6-hotfix binary has not been reproduced directly.
+
+### Singularity Hub overview quantum input
+
+- Moved the quantum-entangled singularity slot into Hub Overview, with its hint and localized frequency/link state, using the overview background without a separate inset or border. Removed the input from the shared inventory area and hide it on collection/duplication pages.
+- Updated both the server slot coordinates and AE screen style. Actual insertion/extraction at GUI scales 2, 4 and 6, page visibility, strict quantum item filtering and unchanged duplication inputs passed isolated client/server verification.
+
+### Continuous research ordering and maximum batches
+
+- Shift changes the research order button and material list to every remaining round. Costs merge actual round ingredients with checked long counts. One ordered research run grants the selected target round; normal orders still advance one round.
+- Preparing research can stop and refund its owned cache; ordered work cannot pause or stop once admitted. Paid progress, preparation snapshots, cached outputs and native AE CPU links persist. Portable controllers requeue unfinished needs after canceling old links.
+- Orders repeatedly reconcile exact material deficits with remaining CPU output, fixing base ingredients being consumed by subsequent crafting. Delivered output belongs to the research cache rather than live ME stock. Separate research owners can cancel independently.
+- Preparations share one live stock read and item index every 20 ticks, filter irrelevant keys, and use exact allocation for overlapping requirements. Idle order ticks perform no stock enumeration; client batch costs and terms are cached, and refunds retry once per second.
+
+### Hub refinement and miniature hole animation
+
+- Unified collector tags into `singularity_hub.singularity_collection.item_tags`, supporting arbitrary item tags and an empty list. Legacy ore/log lists merge without overwriting explicit new tags or unrelated settings. Blacklist and simultaneous production remain in effect.
+- Increased ordinary ingredients for all 13 hub block recipes by 100×. Miniature Black Hole and Miniature White Hole inputs retain their original counts; standalone hole recipes remain 100K singularities and 1G matter balls. Outputs, processing time and power are unchanged.
+- Renamed hole display names without changing registry IDs. Replaced the white-hole still with the updated user artwork and rebuilt both 32-frame animations with orbiting ring details, accretion streams and outward white-halo waves. Centers and source alpha remain fixed.
+- Removed the obsolete Sequence Matter item, retaining its fluid, source block and bucket. Attached JEI information and guide hotkey access to the native fluid; the bucket opens the same guide.
+- Removed multiblock model previews from the Matter Fabrication Well, Sequence Array, Omni Computation Core and Singularity Hub guides in both languages and updated configuration/recipe documentation.
+
+### Tier 3 Event Horizon research
+
+- Added research requiring one completion each of the Sequence Array and Omni Computation branches. First-round materials match both complete current blueprints: 19 item types, 4,634 blocks including both controllers. The nine-round branch uses 600 ticks and 2048 AE/t.
+- Unlocks Miniature Black Hole, Miniature White Hole and all 13 Singularity Hub structural blocks. A Miniature Black Hole consumes 100,000 AE2 singularities; a Miniature White Hole consumes 1,000,000,000 AE2 matter balls. Hub controller and White Hole Resource Core recipes consume their respective hole items. Structural parts use both tier 2 systems, with batch outputs for common building blocks.
+- Large AE input recipes are processed by the well’s Pattern Assembly. Empty ordinary ingredient lists now serialize correctly when AE inputs are present. Pattern amount editing accepts long counts. JEI and guide recipe amounts use compact SI labels, retaining exact quantities in hover tooltips.
+- Updated bilingual research progression, hole recipes, and hub construction guides.
+
+### Removed Sequence Array Matter Rewrite
+
+- Removed Matter Sequence balances, entropy/cooling, decomposition/rewriting jobs, archive UI, associated slots/upgrades, JEI ghost targets, item tooltip augmentation and all related configuration/translation entries.
+- Existing real samples, outputs, speed cards and pending refunds migrate into persisted ME return buffers; old ghost filters create no items. Entangled singularities move to a dedicated inventory. Existing pattern storage, crafting, construction and quantum networking are preserved.
+
+### Configuration grouping and translations
+
+- Separated Singularity Hub and shared chunk-loading settings into their own groups, migrating older paths while preserving configured values. The 23 remaining options and all groups include Chinese/English names and help text. The native configuration screen supports adding list entries.
+- Corrected outdated dispatch defaults and effect/chunk-load scope descriptions.
+
+### Resource collection exclusions and energy configuration
+
+- Added singularity_hub.singularity_collection.item_blacklist for exact item IDs. Exclusions override all configured item tags and apply before production capacity checks and resource-page display. Empty lists preserve previous production.
+- Documented configurable fe_per_unit and ae_per_unit as the per-mB Sequence Matter costs, including their full-cycle calculations. Existing configured values are preserved.
+
+### Duplication energy display
+
+- The matter-duplication page shows FE and AE costs for a full production cycle, scaled by black-hole count and server configuration, alongside each source’s actual consumption in the last cycle. Interrupted or blocked production shows the energy actually extracted.
+
+### Retired Resource Confluence Port
+
+- Removed the Resource Confluence Port block and item, its assets and tags, and all four sockets from every supported Event Horizon Singularity Hub blueprint. Existing port block/item IDs load as air.
+- Migrated saved portable material counts so stair/slab refunds retain their original quantities; interrupted older construction resumes from the start and skips completed parts. Resource collection and ME connectivity remain on the hub controller.
+
+### Functional block performance fixes
+
+- Matter Fabrication Well no longer enumerates all ME stock in its idle research-order tick or toggles visual power twice per tick. Service endpoints, unchanged manual recipe selection and research definitions now reuse validated caches. Research progress stays live; the stock display refreshes once per second.
+- Automatic crafters reuse same-tick pattern decoding and limit adjacent-container output through the existing fair transfer scheduler.
+- White holes avoid redundant SavedData writes; Omni CPUs safely retire during unload and avoid a duplicate spare-lane scan. Pattern automation receives independent stack views.
+- Idle research ticks avoid full-stock enumeration; active preparation shares one inventory index per second.
+
+### Singularity Sequence Matter fluid
+
+- Added automatic sample duplication: each copied item consumes exactly 1000 mB (one bucket) of stored Sequence Matter, preserves the sample and its item components, and inserts the result into ME item storage. Missing matter or item space postpones copying. Interrupted outputs and partial fluid refunds are retained across saves and controller removal.
+
+- Added placeable source/flowing Singularity Sequence Matter and a compatible fluid bucket, with 32-frame violet/cyan animated textures.
+- Event Horizon Singularity Hub now inserts generated sequence matter directly into connected ME fluid storage in mB. Missing or full fluid storage stops production before energy is consumed; limited remaining capacity produces only the amount that fits.
+- Sequence Matter generation requires black holes, energy and ME fluid capacity, with no sample required. Production uses configurable cycles (default every 20 ticks, 20 mB per black hole per cycle); the duplication page shows the actual cycle size and interval. FE/AE priority and per-mB energy costs remain configurable.
+
 ## OmniSequence: Transfinite 2.0.5-fix
 
 - Fixed Data Energistics CPU selection crashing with `Duplicate crafting CPU stable identity` when multiple Omni CPU lanes share one controller position. Each lane now uses its persistent dimension/controller/lane identity; ordinary AE2 CPU identities are unchanged.

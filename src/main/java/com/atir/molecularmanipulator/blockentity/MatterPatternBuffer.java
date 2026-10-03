@@ -219,7 +219,7 @@ public final class MatterPatternBuffer {
             contents(false); contents(true); // Validate totals across queued, refunded and active ownership.
         } catch (RuntimeException error) {
             clear(); unavailable = tag.copy();
-            MolecularManipulator.LOGGER.warn("Preserving unavailable pattern buffer at {}: {}", assembly.getBlockPos(), error.getMessage());
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Preserving unavailable pattern buffer at {}: {}", assembly.getBlockPos(), error.getMessage());
         }
         reconcilePatterns = true;
     }

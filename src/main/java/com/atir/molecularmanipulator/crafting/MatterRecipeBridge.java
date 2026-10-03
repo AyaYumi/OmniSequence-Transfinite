@@ -151,7 +151,7 @@ public final class MatterRecipeBridge {
             grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(branch);
             info.putIfAbsent(key, new GroupInfo(machine, output, branch.signature));
         }
-        failures.forEach((machine, ids) -> MolecularManipulator.LOGGER.warn(
+        failures.forEach((machine, ids) -> com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                 "Matter machine import {} skipped {} recipes with unreadable fields/resources or unsupported slot counts: {}",
                 machine, ids.size(), ids));
         var byMachineOutput = new LinkedHashMap<String, List<Map.Entry<String, List<Branch>>>>();

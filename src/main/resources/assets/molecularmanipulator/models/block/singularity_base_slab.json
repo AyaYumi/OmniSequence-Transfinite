@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/slab",
+  "textures": {
+    "bottom": "molecularmanipulator:block/singularity/jade",
+    "top": "molecularmanipulator:block/singularity/jade",
+    "side": "molecularmanipulator:block/singularity/jade"
+  }
+}

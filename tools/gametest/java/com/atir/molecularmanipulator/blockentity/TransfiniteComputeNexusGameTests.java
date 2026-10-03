@@ -60,7 +60,7 @@ public final class TransfiniteComputeNexusGameTests {
                     "Real AE smart cable must be installed: " + side);
             level.setBlock(ORIGIN.relative(side, 2), AEBlocks.CREATIVE_ENERGY_CELL.block().defaultBlockState(), 3);
         }
-        helper.runAfterDelay(60, () -> {
+        delay(helper,60, () -> {
             var core = core(helper);
             helper.assertTrue(core.isSingleBlock() && core.isFormed() && core.isNetworkOnline(),
                     "A standalone nexus must form and come online through real cables");
@@ -86,7 +86,7 @@ public final class TransfiniteComputeNexusGameTests {
             level.setBlock(ORIGIN.east(), ModContent.TRANSFINITE_COMPUTE_NEXUS.get().defaultBlockState(), 3);
             level.setBlock(ORIGIN.west(), AEBlocks.CRAFTING_STORAGE_1K.block().defaultBlockState(), 3);
         });
-        helper.runAfterDelay(110, () -> {
+        delay(helper,110, () -> {
             var core = core(helper);
             var adjacent = (OmniComputationCoreBlockEntity) level.getBlockEntity(ORIGIN.east());
             var ordinary = (CraftingBlockEntity) level.getBlockEntity(ORIGIN.west());
@@ -122,7 +122,7 @@ public final class TransfiniteComputeNexusGameTests {
             helper.assertTrue(loaded instanceof OmniComputationCoreBlockEntity, "Shared entity type must restore nexus state");
             level.setBlockEntity(loaded);
         });
-        helper.runAfterDelay(165, () -> {
+        delay(helper,165, () -> {
             verifyJobs(helper);
             level.getEntitiesOfClass(ItemEntity.class, new AABB(ORIGIN).inflate(2)).forEach(ItemEntity::discard);
             level.destroyBlock(ORIGIN, true);
@@ -135,24 +135,31 @@ public final class TransfiniteComputeNexusGameTests {
             level.setBlock(ORIGIN, ModContent.TRANSFINITE_COMPUTE_NEXUS.get().defaultBlockState(), 3);
             core(helper).loadTag(portable.copyTag(), level.registryAccess());
         });
-        helper.runAfterDelay(220, () -> {
+        delay(helper,220, () -> {
             verifyJobs(helper);
             for (var side : Direction.values()) level.setBlock(ORIGIN.relative(side, 2), Blocks.AIR.defaultBlockState(), 3);
         });
-        helper.runAfterDelay(275, () -> {
+        delay(helper,275, () -> {
             var core = core(helper);
             helper.assertTrue(!core.isNetworkOnline() && !core.isMaterialCalculationEnabled()
                             && !core.getCluster().isActive(), "Losing cable power must stop computation");
-            helper.assertTrue(!level.getBlockState(ORIGIN).getValue(BlockStateProperties.POWERED),
+            helper.assertTrue(!level.getBlockState(ORIGIN).getValue(appeng.block.crafting.AbstractCraftingUnitBlock.POWERED),
                     "Offline nexus must use the inactive model");
             verifyStoredJobs(helper);
             level.setBlock(ORIGIN.above(2), AEBlocks.CREATIVE_ENERGY_CELL.block().defaultBlockState(), 3);
         });
-        helper.runAfterDelay(335, () -> {
+        delay(helper,335, () -> {
             verifyJobs(helper);
             core(helper).clearContent();
             System.out.println("TRANSFINITE_NEXUS_PASS: six real cables, independent CPU clusters, virtual jobs, long materials, world reload, portable drop and power recovery");
             helper.succeed();
+        });
+    }
+
+    private static void delay(GameTestHelper helper, int ticks, Runnable action) {
+        helper.runAfterDelay(ticks, () -> {
+            try { action.run(); }
+            catch (RuntimeException | Error failure) { failure.printStackTrace(); throw failure; }
         });
     }
 
@@ -162,7 +169,7 @@ public final class TransfiniteComputeNexusGameTests {
 
     private static void verifyJobs(GameTestHelper helper) {
         helper.assertTrue(core(helper).isNetworkOnline(), "Restored nexus must reconnect to its cable grid");
-        helper.assertTrue(helper.getLevel().getBlockState(ORIGIN).getValue(BlockStateProperties.POWERED),
+        helper.assertTrue(helper.getLevel().getBlockState(ORIGIN).getValue(appeng.block.crafting.AbstractCraftingUnitBlock.POWERED),
                 "Online nexus must use the powered model");
         verifyStoredJobs(helper);
     }

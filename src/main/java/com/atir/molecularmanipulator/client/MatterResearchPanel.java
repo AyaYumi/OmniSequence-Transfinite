@@ -5,6 +5,8 @@ import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
 import com.atir.molecularmanipulator.research.ResearchDepth;
+import com.atir.molecularmanipulator.research.ResearchBatch;
+import net.minecraft.client.gui.screens.Screen;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
@@ -40,16 +42,20 @@ final class MatterResearchPanel {
     private final Button previous, next, action, order, bookmark, orderDetails;
     private List<RecipeHolder<MatterResearchRecipe>> definitions = List.of();
     private Set<String> completed = Set.of();
-    private JsonObject tasks = new JsonObject();
+    private JsonObject tasks = new JsonObject(), preparations = new JsonObject();
     private JsonObject counts = new JsonObject(), live = new JsonObject();
     private String notice = "";
     private String orderStatus = "idle";
     private int orderQueued;
     private int orderActive;
-    private List<OrderEntry> orderEntries = List.of();
+    private List<OrderEntry> orderEntries = List.of(), allOrderEntries = List.of();
     private boolean showOrderDetails;
     private String lastState = "";
     private final Map<ResourceLocation, MatterResearchRecipe> taskTerms = new HashMap<>();
+    private final Map<ResourceLocation, String> termSources = new HashMap<>();
+    private MatterResearchRecipe costDefinition;
+    private int costFirst, costLast;
+    private List<MatterResearchRecipe.Cost> cachedCosts = List.of();
     private ResourceLocation selected;
     private int page;
     private double scroll;
@@ -77,8 +83,9 @@ final class MatterResearchPanel {
         order = AeUiTheme.button(left + 228, top + 244, 84, 16,
                 text("order"), clicked -> {
                     if (selected != null) {
-                        menu.requestResearchOrder(selected.toString());
-                        showOrderDetails = true;
+                        if (preparations.has(selected.toString())) menu.stopResearchPreparation(selected.toString());
+                        else menu.requestResearchOrder(selected.toString(), Screen.hasShiftDown());
+                        showOrderDetails = false;
                         scroll = 0;
                     }
                 });
@@ -104,6 +111,7 @@ final class MatterResearchPanel {
             for (var id : state.getAsJsonArray("completed")) done.add(id.getAsString());
             completed = done;
             tasks = state.getAsJsonObject("tasks");
+            preparations=state.has("preparations")?state.getAsJsonObject("preparations"):new JsonObject();
             counts = state.has("counts") ? state.getAsJsonObject("counts") : new JsonObject();
             live = state.has("live") ? state.getAsJsonObject("live") : new JsonObject();
             notice = state.has("notice") ? state.get("notice").getAsString() : "";
@@ -125,21 +133,35 @@ final class MatterResearchPanel {
                         }
                         parsed.add(new OrderEntry(target.get(), entry.get("queued").getAsLong(),
                                 entry.get("active").getAsLong(), entry.get("status").getAsString(),
-                                List.copyOf(missing)));
+                                List.copyOf(missing), entry.has("owner") ? ResourceLocation.tryParse(entry.get("owner").getAsString()) : null));
                     }
                 }
-                orderEntries = List.copyOf(parsed);
+                allOrderEntries = List.copyOf(parsed);
             }
-            taskTerms.clear();
-            if (level != null) tasks.entrySet().forEach(entry -> MatterResearchRecipe.CODEC.codec()
-                    .parse(level.registryAccess().createSerializationContext(JsonOps.INSTANCE), entry.getValue().getAsJsonObject().get("terms"))
-                    .result().ifPresent(value -> taskTerms.put(ResourceLocation.parse(entry.getKey()), value)));
+            var allTerms = new JsonObject();
+            tasks.entrySet().forEach(entry -> allTerms.add(entry.getKey(), entry.getValue()));
+            preparations.entrySet().forEach(entry -> allTerms.add(entry.getKey(), entry.getValue()));
+            var retained = new HashSet<ResourceLocation>();
+            if (level != null) allTerms.entrySet().forEach(entry -> {
+                var id = ResourceLocation.parse(entry.getKey());
+                retained.add(id);
+                String source = entry.getValue().getAsJsonObject().get("terms").toString();
+                if (!source.equals(termSources.get(id))) MatterResearchRecipe.CODEC.codec()
+                        .parse(level.registryAccess().createSerializationContext(JsonOps.INSTANCE), JsonParser.parseString(source))
+                        .result().ifPresent(value -> { taskTerms.put(id, value); termSources.put(id, source); });
+            });
+            taskTerms.keySet().retainAll(retained);
+            termSources.keySet().retainAll(retained);
         }
         page = Math.max(0, Math.min(page, Math.max(0, (definitions.size() - 1) / ROWS)));
         if (definitions.stream().noneMatch(holder -> holder.id().equals(selected))) {
             selected = definitions.isEmpty() ? null : definitions.getFirst().id();
             scroll = 0;
         }
+        orderEntries = allOrderEntries.stream().filter(entry -> entry.owner() == null || entry.owner().equals(selected)).toList();
+        orderQueued = (int) orderEntries.stream().filter(entry -> entry.queued() > 0).count();
+        orderActive = (int) orderEntries.stream().filter(entry -> entry.active() > 0).count();
+        orderStatus = orderEntries.isEmpty() ? "idle" : orderEntries.getFirst().status();
         if (visible && selected != null) menu.selectResearch(selected.toString());
         for (int row = 0; row < ROWS; row++) {
             int position = page * ROWS + row;
@@ -164,16 +186,20 @@ final class MatterResearchPanel {
         orderDetails.setMessage(text(showOrderDetails ? "order_materials" : "order_details"));
         bookmark.visible = visible && holder != null;
         if (holder != null) {
-            var task = task(holder);
+            var task=task(holder);
+            boolean preparing=preparation(holder)!=null;
+            boolean ordered=task!=null && task.has("ordered") && task.get("ordered").getAsBoolean();
             boolean paused = task != null && task.get("paused").getAsBoolean();
             boolean maxed = count(holder) >= holder.value().depths().size();
-            action.setMessage(text(task == null ? maxed ? "maxed" : count(holder) == 0 ? "start" : "deepen" : paused ? "resume" : "pause"));
+            action.setMessage(text(ordered ? "research_locked" : task == null ? maxed ? "maxed" : count(holder) == 0 ? "start" : "deepen" : paused ? "resume" : "pause"));
             action.setTooltip(Tooltip.create(text(!notice.isEmpty() ? notice : "action_hint")));
-            action.active = (task != null || !maxed)
+            action.active = !ordered && !preparing && (task != null || !maxed)
                     && prerequisitesMet(holder.value())
                     && (task != null && !paused || menu.formed && !menu.building && !menu.dismantling && !menu.updatingStructure
                         && liveForSelected() && live.get("online").getAsBoolean() && live.has("affordable") && live.get("affordable").getAsBoolean());
-            order.active = !maxed && prerequisitesMet(holder.value()) && liveForSelected();
+            order.setMessage(text(preparing ? "stop_current" : task!=null ? "research_locked" : Screen.hasShiftDown() ? "order_max" : "order"));
+            order.setTooltip(Tooltip.create(text(preparing?"stop_current_hint":task!=null?"research_locked_hint":Screen.hasShiftDown()?"order_max_hint":"order_hint")));
+            order.active = task==null && (preparing || !maxed && prerequisitesMet(holder.value()) && liveForSelected());
         }
     }
 
@@ -202,10 +228,16 @@ final class MatterResearchPanel {
         fitted(graphics, status(holder).copy().append(" · ").append(Component.translatable("gui.molecularmanipulator.research.depth_count", count(holder), holder.value().depths().size())), 136, 63, 176,
                 completed.contains(holder.id().toString()) ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
         var task = task(holder);
-        var definition = terms(holder, task);
+        var preparation=preparation(holder);
+        var definition = terms(holder,task!=null?task:preparation);
         int count = count(holder), max = definition.depths().size();
         boolean maxed = task == null && count >= max;
-        int round = task != null ? task.get("round").getAsInt() : Math.min(count + 1, max);
+        boolean batch=task!=null && task.has("ordered") && task.get("ordered").getAsBoolean()
+                || preparation!=null || task==null && Screen.hasShiftDown();
+        int firstRound=task!=null && task.has("first_round")?task.get("first_round").getAsInt()
+                : preparation!=null?preparation.get("first_round").getAsInt():Math.min(count+1,max);
+        int round = task != null ? task.get("round").getAsInt() : preparation!=null?preparation.get("round").getAsInt()
+                : batch?max:Math.min(count+1,max);
         int progress = task == null ? count >= max ? definition.duration() : 0 : task.get("progress").getAsInt();
         var current = holder.value().depths().get(Math.max(0, Math.min(count - 1, holder.value().depths().size() - 1)));
         fitted(graphics, count == 0 ? text("no_benefit") : Component.translatable("gui.molecularmanipulator.research.current_benefit",
@@ -237,7 +269,7 @@ final class MatterResearchPanel {
             return;
         }
         List<MatterResearchRecipe.Cost> costs;
-        try { costs = maxed ? List.of() : definition.costsFor(round); } catch (ArithmeticException error) { costs = List.of(); }
+        try { costs = maxed ? List.of() : batch ? batchCosts(definition, firstRound, round) : definition.costsFor(round); } catch (ArithmeticException error) { costs = List.of(); }
         var level = Minecraft.getInstance().level;
         var recipeIndex = MatterRecipeIndex.get(level);
         var unlocks = recipeIndex.unlocksForResearch(holder).stream()
@@ -266,24 +298,29 @@ final class MatterResearchPanel {
                     y += 16;
                 }
             }
-            fitted(graphics, text(maxed ? "max_hint" : task == null ? "materials" : "materials_committed"), 136, y, 176, AeUiTheme.PRIMARY_TEXT); y += 17;
+            fitted(graphics, text(maxed ? "max_hint" : batch ? "materials_max" : task == null ? "materials" : "materials_committed"), 136, y, 176, AeUiTheme.PRIMARY_TEXT); y += 17;
             for (int index = 0; index < costs.size(); index++) {
                 var cost = costs.get(index);
                 var examples = cost.ingredient().getItems();
                 var stack = examples.length == 0 ? ItemStack.EMPTY : examples[0];
                 long paid = task == null ? 0 : task.getAsJsonArray("paid").get(index).getAsLong();
                 long required = cost.count() - paid;
-                long available = liveForSelected() && live.has("available") && index < live.getAsJsonArray("available").size()
-                        ? live.getAsJsonArray("available").get(index).getAsLong() : 0;
+                String availableField=batch && preparation==null && task==null ? "batch_available" : "available";
+                long available=liveForSelected() && live.has(availableField) && index<live.getAsJsonArray(availableField).size()
+                        ?live.getAsJsonArray(availableField).get(index).getAsLong():0;
+                long reserved=preparation!=null && liveForSelected() && live.has("reserved") && index<live.getAsJsonArray("reserved").size()
+                        ?live.getAsJsonArray("reserved").get(index).getAsLong():0;
+                long supplied=available>Long.MAX_VALUE-reserved?Long.MAX_VALUE:available+reserved;
                 if (y > 104 && y < 237) {
                     graphics.renderItem(stack, 136, y);
                     fitted(graphics, stack.getHoverName(), 156, y, 152, AeUiTheme.PRIMARY_TEXT);
-                    fitted(graphics, Component.literal(number(available) + " / " + number(required)), 156, y + 11, 152,
-                            available >= required ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
+                    fitted(graphics, Component.literal(number(supplied) + " / " + number(required)), 156, y + 11, 152,
+                            supplied >= required ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
                     var details = new ArrayList<Component>();
                     details.add(stack.getHoverName());
                     details.add(quantity("available", available));
                     details.add(quantity("required", cost.count()));
+                    if(preparation!=null)details.add(quantity("reserved",reserved));
                     if (task != null) {
                         details.add(quantity("committed", paid));
                         details.add(quantity("remaining", required));
@@ -418,6 +455,7 @@ final class MatterResearchPanel {
         }
         ResearchJeiBookmarks.addItems(stacks);
     }
+    private JsonObject preparation(RecipeHolder<MatterResearchRecipe> holder) {return preparations.getAsJsonObject(holder.id().toString());}
     private JsonObject task(RecipeHolder<MatterResearchRecipe> holder) { return tasks.getAsJsonObject(holder.id().toString()); }
     private MatterResearchRecipe terms(RecipeHolder<MatterResearchRecipe> holder, JsonObject task) {
         if (task == null) return holder.value();
@@ -432,6 +470,7 @@ final class MatterResearchPanel {
     private Component status(RecipeHolder<MatterResearchRecipe> holder) {
         var task = task(holder);
         if (task != null) return text(task.get("status").getAsString());
+        if(preparation(holder)!=null)return text("preparing");
         if (count(holder) >= holder.value().depths().size()) return text("maxed");
         if (!prerequisitesMet(holder.value())) return text("prerequisite");
         if (holder.id().equals(selected) && liveForSelected()) {
@@ -473,8 +512,16 @@ final class MatterResearchPanel {
     private static Component orderState(String key) {
         return Component.translatable("gui.molecularmanipulator.research.order_state." + key);
     }
+    private List<MatterResearchRecipe.Cost> batchCosts(MatterResearchRecipe definition, int first, int last) {
+        if (definition != costDefinition || first != costFirst || last != costLast) {
+            cachedCosts = ResearchBatch.costs(definition, first, last);
+            costDefinition = definition; costFirst = first; costLast = last;
+        }
+        return cachedCosts;
+    }
+
     private record OrderEntry(GenericStack target, long queued, long active, String status,
-                              List<GenericStack> missing) { }
+                              List<GenericStack> missing, ResourceLocation owner) { }
     private void fitted(GuiGraphics graphics, Component text, int x, int y, int width, int color) {
         float scale = Math.min(1, width / (float) Math.max(1, font.width(text)));
         graphics.pose().pushPose();

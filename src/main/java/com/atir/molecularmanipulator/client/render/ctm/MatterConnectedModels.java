@@ -25,7 +25,7 @@ public final class MatterConnectedModels {
     public static void modifyBakingResult(ModelEvent.ModifyBakingResult event) {
         pendingContext = null;
         var top = ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "block/matter_fabrication_casing_top");
-        var jade = ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "block/taixu/jade");
+        var jade = ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "block/singularity/jade");
         var fillerSprites = Map.of(top, event.getTextureGetter().apply(new Material(TextureAtlas.LOCATION_BLOCKS, top)),
                 jade, event.getTextureGetter().apply(new Material(TextureAtlas.LOCATION_BLOCKS, jade)));
         // The Minecraft lookup is deferred until chunk/preview rendering; baking reads only its event registry.
@@ -36,7 +36,7 @@ public final class MatterConnectedModels {
         event.getModels().replaceAll((location, model) -> {
             if (!location.id().getNamespace().equals(MolecularManipulator.MOD_ID)
                     || !(location.id().getPath().startsWith("matter_fabrication_")
-                    || location.id().getPath().startsWith("taixu_")
+                    || location.id().getPath().startsWith("singularity_")
                     || location.id().getPath().equals("molecular_manipulator"))
                     || location.variant().equals(ModelResourceLocation.INVENTORY_VARIANT)
                     || location.variant().equals(ModelResourceLocation.STANDALONE_VARIANT)

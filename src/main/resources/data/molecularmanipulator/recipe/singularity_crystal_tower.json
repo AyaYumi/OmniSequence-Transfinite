@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_crystal_pylon"
+      },
+      "count": 400
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_crystal"
+      },
+      "count": 3200
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:amethyst_shard"
+      },
+      "count": 3200
+    },
+    {
+      "ingredient": {
+        "item": "ae2:singularity"
+      },
+      "count": 1600
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:singularity_crystal_tower",
+      "count": 1
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 2048,
+  "requires_research": true
+}

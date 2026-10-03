@@ -537,7 +537,7 @@ public abstract class AdvancedAECraftingCpuLogicMixin {
         molecularmanipulator$reflectionAvailable = false;
         if (!molecularmanipulator$reflectionFailureLogged) {
             molecularmanipulator$reflectionFailureLogged = true;
-            MolecularManipulator.LOGGER.error("AdvancedAE quantum CPU batching was disabled", exception);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error("AdvancedAE quantum CPU batching was disabled", exception);
         }
     }
 

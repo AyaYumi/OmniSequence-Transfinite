@@ -181,7 +181,7 @@ public record MatterFabricationRecipe(
     public static final class Serializer implements RecipeSerializer<MatterFabricationRecipe> {
         private static final MapCodec<MatterFabricationRecipe> CODEC = RecordCodecBuilder.mapCodec(instance ->
                 instance.group(
-                        CountedIngredient.CODEC.codec().listOf(1, MAX_INPUTS)
+                        CountedIngredient.CODEC.codec().listOf(0, MAX_INPUTS)
                                 .optionalFieldOf("ingredients", List.of()).forGetter(MatterFabricationRecipe::ingredients),
                         ItemStack.STRICT_CODEC.listOf(0, MAX_OUTPUTS)
                                 .optionalFieldOf("results", List.of()).forGetter(MatterFabricationRecipe::results),

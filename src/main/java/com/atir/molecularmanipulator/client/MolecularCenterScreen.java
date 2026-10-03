@@ -33,7 +33,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     static final int TAB_OVERVIEW = 0;
     static final int TAB_AUTO_CRAFT = 1;
     static final int TAB_COLORS = 2;
-    static final int TAB_ARCHIVE = 3;
     private static final int PANEL_LEFT = 198;
     private static final int PANEL_RIGHT = 426;
     private static final int LEFT_CONTENT_LEFT = 8;
@@ -246,7 +245,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     }
 
     void selectTab(int tab) {
-        detailTab = Math.max(TAB_OVERVIEW, Math.min(TAB_ARCHIVE, tab));
+        detailTab = Math.max(TAB_OVERVIEW, Math.min(TAB_COLORS, tab));
         boolean autoCraftVisible = detailTab == TAB_AUTO_CRAFT;
         boolean autoCraftSelected = menu.autoCraftSelectedSlot >= 0
                 && menu.autoCraftState != MolecularAutoCrafter.AutoCraftState.EMPTY;
@@ -254,12 +253,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         for (int input = 0; input < autoCraftInputReserves.length; input++) {
             autoCraftInputReserves[input].visible = autoCraftVisible
                     && input < menu.autoCraftInputCount;
-        }
-        for (var slot : menu.getSequenceSlots()) {
-            slot.setActive(detailTab == TAB_ARCHIVE);
-        }
-        for (var slot : menu.getSpeedSlots()) {
-            slot.setActive(detailTab == TAB_ARCHIVE);
         }
         for (var slot : menu.getAutoCraftPatternSlots()) {
             slot.setActive(autoCraftVisible);
@@ -343,21 +336,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         return detailTab;
     }
 
-    boolean hasArchivedMatter() {
-        if (menu.metalSequence > 0 || menu.mineralSequence > 0
-                || menu.crystalSequence > 0 || menu.organicSequence > 0
-                || menu.entropy > 0 || menu.deconstructEnabled || menu.rewriteEnabled) {
-            return true;
-        }
-        for (var slot : menu.getSequenceSlots()) {
-            if (!slot.getItem().isEmpty()) return true;
-        }
-        for (var slot : menu.getSpeedSlots()) {
-            if (!slot.getItem().isEmpty()) return true;
-        }
-        return false;
-    }
-
     boolean patternSearchWaiting() {
         return !patternSearchQuery.isBlank() && patternSearchIndexPending;
     }
@@ -434,17 +412,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                         MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_Y, 0xFF8B70C4);
             }
             graphics.fill(x + 207, y + 148, x + 418, y + 149, AeUiTheme.SHADOW);
-        } else if (detailTab == TAB_ARCHIVE) {
-            drawPlainSlotFrame(graphics,
-                    MolecularCenterMenu.SEQUENCE_INPUT_X, MolecularCenterMenu.SEQUENCE_SLOT_Y);
-            drawPlainSlotFrame(graphics,
-                    MolecularCenterMenu.SEQUENCE_SAMPLE_X, MolecularCenterMenu.SEQUENCE_SLOT_Y);
-            drawPlainSlotFrame(graphics,
-                    MolecularCenterMenu.SEQUENCE_OUTPUT_X, MolecularCenterMenu.SEQUENCE_SLOT_Y);
-            for (int slot = 0; slot < menu.getSpeedSlots().size(); slot++) {
-                drawPlainSlotFrame(graphics, MolecularCenterMenu.SPEED_SLOT_X + slot * 18,
-                        MolecularCenterMenu.SPEED_SLOT_Y);
-            }
         }
     }
 
@@ -464,6 +431,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         AeUiTheme.slot(graphics, x - 1, y - 1);
         graphics.fill(x - 1, y - 1, x + 17, y, borderColor);
     }
+
 
     private void drawPlainSlotFrame(GuiGraphics graphics, int slotX, int slotY) {
         AeUiTheme.slot(graphics, leftPos + slotX - 1, topPos + slotY - 1);
@@ -493,9 +461,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
             case TAB_OVERVIEW -> renderOverview(graphics);
             case TAB_AUTO_CRAFT -> renderAutoCraftTab(graphics);
             case TAB_COLORS -> renderColorsTab(graphics);
-            case TAB_ARCHIVE -> renderArchive(graphics);
-            default -> {
-            }
         }
         if (menu.legacyStructure && detailTab == TAB_COLORS) {
             drawFittedString(graphics, Component.translatable(
@@ -508,7 +473,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         int width = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.overview_title"),
-                DETAIL_CONTENT_LEFT, 36, hasArchivedMatter() ? 140 : width, AeUiTheme.ACCENT);
+                DETAIL_CONTENT_LEFT, 36, width, AeUiTheme.ACCENT);
 
         Component structure = menu.legacyStructure
                 ? Component.translatable("gui.molecularmanipulator.structure_legacy_139")
@@ -594,40 +559,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 AeUiTheme.MUTED_TEXT, valueColor);
     }
 
-    private void renderArchive(GuiGraphics graphics) {
-        int width = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.archive_title"),
-                DETAIL_CONTENT_LEFT, 31, width, AeUiTheme.WARNING);
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.archive_stopped"),
-                DETAIL_CONTENT_LEFT, 48, width, AeUiTheme.MUTED_TEXT);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.sequence_input"),
-                MolecularCenterMenu.SEQUENCE_INPUT_X + 8, 58, 64, AeUiTheme.PRIMARY_TEXT);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.sequence_blueprint"),
-                MolecularCenterMenu.SEQUENCE_SAMPLE_X + 8, 58, 64, AeUiTheme.PRIMARY_TEXT);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.sequence_output"),
-                MolecularCenterMenu.SEQUENCE_OUTPUT_X + 8, 58, 64, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "sequence_metal", Component.literal(formatAmount(menu.metalSequence)),
-                104, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "sequence_mineral", Component.literal(formatAmount(menu.mineralSequence)),
-                120, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "sequence_crystal", Component.literal(formatAmount(menu.crystalSequence)),
-                136, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "sequence_organic", Component.literal(formatAmount(menu.organicSequence)),
-                152, AeUiTheme.PRIMARY_TEXT);
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.archive_speed_cards"),
-                DETAIL_CONTENT_LEFT, 175, 120, AeUiTheme.MUTED_TEXT);
-        drawOverviewRow(graphics, "sequence_entropy", Component.literal(formatAmount(menu.entropy)),
-                203, AeUiTheme.MUTED_TEXT);
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.archive_note"),
-                DETAIL_CONTENT_LEFT, 230, width, AeUiTheme.WARNING);
-    }
 
     private void renderAutoCraftTab(GuiGraphics graphics) {
         int contentWidth = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;

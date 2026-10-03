@@ -2,8 +2,9 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.0.5 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
-and the required AppliedEnhancements 1.0.6+. The runtime ABI remains **1**.
+Current for OmniSequence 2.0.7 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
+and the required AppliedEnhancements 1.1.0. The runtime ABI remains **1**.
+Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
 This SPI controls provider material delivery. AppliedEnhancements owns the AELIS
@@ -26,6 +27,7 @@ integration. Any pattern-provider assembly can opt in.
 ## Public types
 
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchCraftingProvider`
+- `com.atir.molecularmanipulator.api.crafting.OmniBatchProviderAdapterRegistry`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchAdmission`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchProbe`
 - `com.atir.molecularmanipulator.api.crafting.OmniBatchRequest`
@@ -147,6 +149,46 @@ retains material ownership and recipe IDs while using current definitions. Its
 UI buffer size is not an unconditional batch limit. See the [well API](matter-research-api.md)
 for `ae_inputs`, output isolation and the remaining same-output overlap limitations.
 
+## Optional provider adapters
+
+An optional integration can register a batch capability without adding an Omni
+interface to the target mod's provider class. Load the compatibility registration
+class only when `molecularmanipulator` is present; use a `compileOnly` dependency.
+The target provider itself continues to register with AE2 as usual.
+
+```java
+OmniBatchProviderAdapterRegistry.register(
+        "example:batch_machine", 100,
+        (provider, pattern) -> provider instanceof ExampleProvider original
+                && original.ownsPattern(pattern),
+        (provider, pattern) -> new ExampleBatchAdapter((ExampleProvider) provider));
+```
+
+The adapter implements `OmniBatchCraftingProvider` and uses the same durable
+prepare/commit/close protocol as a native implementation. The registry also offers
+a provider-only `Predicate`/`Function` overload. Entries sort by descending
+priority, then ascending ID; registering an existing ID replaces its entry.
+`unregister(id)` removes it. Resolution tries matching factories until one returns
+a non-null capability, then falls back to the original provider's direct interface.
+
+Keep the original `ICraftingProvider` identity for AE pattern publication,
+`isBusy()`, one-craft `pushPattern`, CPU selection, output accounting and
+backpressure. The CPU calls only `prepareOmniBatch` on the resolved capability.
+Post-accounting output adapters also receive the original provider. Never replace
+that object in `CraftingService.getProviders` with a capability or proxy.
+
+`supports(provider, pattern)` tests predicates without calling factories.
+Predicates must be cheap, side-effect free and narrowly matched. A matching
+predicate reserves the atomic batch path even if its factory temporarily returns
+null; ordinary one-craft dispatch remains available. Registry recursion is guarded
+per original provider. Predicate/factory failures cannot commit ownership and
+cannot authorize non-atomic scaled dispatch; admissions still close after failure.
+
+Factories run during an actual batch attempt, not every topology query. No
+capability is cached across attempts. An empty registry uses the direct-interface
+fast path, and registration changes invalidate the CPU's per-tick topology cache.
+This registry is additive; the existing API ABI remains version 1.
+
 ## Post-accounting output flush
 
 An instant provider may finish a large aggregate before AE2 records its expected
@@ -203,89 +245,9 @@ class or conditional Mixin that is loaded only when Mod ID
 `molecularmanipulator` is present. Compile against OmniSequence as
 `compileOnly`; do not embed its API classes.
 
----
 
-# 万物演算批量样板供应器 API v1
+## Exact-count capabilities
 
-自 OmniSequence: Transfinite 1.3.9 起提供。
-
-本文对应 2.0.5 / Minecraft 1.21.1 / Java 21，要求 AE2 19.2.17+ 和
-AppliedEnhancements 1.0.6+；运行时 ABI 仍为 **1**。其他接口见 [API 索引](README.md)。
-本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
-不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。
-
-此 SPI 面向“机器自身保存编码样板，并作为 AE2 `ICraftingProvider` 接单”的设备。
-普通供应器本来就能按单份配方使用 AE2；只有希望由万物演算核心或超限算枢一次分配多份完整
-材料时，才需要实现 `OmniBatchCraftingProvider`。
-
-Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算枢没有新增供应器 ABI 或资源格式。
-
-接入流程为两阶段：
-
-1. `prepareOmniBatch` 根据一份真实材料与请求上限，返回当前能原子接收的完整配方数；
-2. Omni 抽取实际材料后调用 `commit`，供应器必须通过 delivery 明确接受或拒绝整批。
-
-`OmniBatchProbe.Input` 只是首份配方实际抽取结果，用于估算容量；
-`OmniBatchRequest.Input` 才是提交时具有所有权含义的最终 key 与整批总量。AE2 替代
-输入可能让最终 key 或比例发生变化，不能用“probe × craftCount”校验最终交付。
-运行时 ABI 检查应调用 `OmniBatchCraftingApi.apiVersion()`，不要依赖可能被 Java
-内联的 `API_VERSION` 常量。
-
-关键约束：
-
-- `accept` 是唯一的所有权提交点。调用前，整批材料必须已经全部进入持久目标，或先
-  写入供应器自身可保存的队列；
-- `reject` 必须保证没有留下材料或不可撤销副作用，禁止部分接收；
-- `CAPACITY_CHANGED` 只让该供应器/样板在本 tick 暂停批量探测，下个 tick 可重新
-  admission；其他拒绝原因会让该组合在当前合成作业内退回 AE2 单份发配；
-- 若供应器在 `accept` 后抛出运行时异常、链接故障或断言故障，Omni 仍按已接收处理，
-  防止回灌造成复制；其他 `Error`（包括 JVM 致命故障）不会被吞掉；
-- admission 一定会被关闭，`close` 只能释放临时预留，不能删除已接收材料；
-- 有排队或容量已满时，`isBusy()` 必须如实阻止后续 AE2 发配；
-- `RECHECK_NEXT_TICK` 与 `SATURATED` 只对当前供应器/样板施加本 tick 背压，不会
-  停止无关样板或其他机器；
-- 建议持久队列使用 `dispatchId` 去重；
-- v1 只开放纯消耗材料的批量交付，返还容器、可复用工具和耐久变化配方继续安全地
-  走单份路径。
-
-公开输入记录使用 AEKey，可表示已注册附属类型；具体可处理类型由供应器决定。
-数量沿用该 Key 的 AE 原生单位（物品个数、流体 mB 等）。数量为 long，
-接收前必须检查每种 Key 的加法和乘法溢出；Long.MAX_VALUE 上限不会绕过实际原料、
-供电、队列容量或产物计数限制。内置物质构筑井样板总成通过自身持久输入输出缓存实现
-本接口，支持构筑井配方声明的所有已注册 AEKey 输入。接收与排队任务开工前检查
-研究权限，开工时计算生产限制和加成。已开始加工的任务跨重载保留加工参数快照；
-排队任务保存原料所有权与配方 ID，并使用当前配方定义。`ae_inputs`、产物隔离和
-尚存的同产物重叠配方限制见[构筑井 API](matter-research-api.zh-CN.md)。
-
-## CPU 记账后同步排空
-
-瞬时加工供应器可能在 AE2 将预计产物登记进合成任务前就完成整批加工。如果供应器
-刻意把本 tick 新产物延迟到下一 tick，任务的 `long` 容量 `waitingFor` 窗口填满时
-就会产生停顿。
-
-拥有持久输出队列的供应器可直接实现 `OmniPostAccountingOutputProvider`。CPU 只有在
-AE2 完成已接收批次的预计产物记账后，才调用
-`flushOutputsAfterCpuAccounting()`。该方法只能重试交付已经产出的内容，不能再次执行
-配方；若 ME 网络只接受一部分，剩余量必须继续保存在供应器原有的持久重试队列中。
-
-无法修改供应器类的可选兼容模组，可以通过
-`OmniPostAccountingOutputAdapterRegistry.register` 注册适配器。注册参数包括稳定的
-命名空间 ID、优先级、供应器识别条件和排空函数。系统只执行优先级最高的首个匹配项；
-没有适配器时才调用机器原生协议。同一供应器身份不能递归排空。适配器必须精确识别
-目标机器；无法确认第三方模组内部队列结构时应拒绝匹配并保留原本的下一 tick 重试。
-
-BigInteger 精确数量兼容也必须保留 AE2 发布的原始 `ICraftingProvider` 对象。第三方应
-通过 `OmniBigIntegerProviderAdapterRegistry.register` 注册“供应器/样板识别条件”和
-能力工厂，不要在 `CraftingService.getProviders` 中用代理替换供应器。这样既可按具体
-样板解析大数能力，又不会破坏 AE2 附属模组按对象身份保存的适配器映射。
-
-若第三方模组自己也修改了 AE2 CPU 的材料倍增逻辑，应在其 CPU Mixin 中调用
-`OmniBatchCraftingApi.isOmniManagedCpu(this)`。返回 `true` 时跳过自身倍增，交给
-Omni 调度；普通 CPU 仍可保留该模组原来的实现。
-
-CPU 兼容 Hook 建议使用可链式的 Mixin Extras 包装，或 inject-and-cancel。若多个模组
-对同一个 `ICraftingProvider.pushPattern` 调用使用硬 `@Redirect`，可能在执行上述判断
-前就发生注入冲突；已有 Redirect 应在 Omni 加载时条件禁用，并把判断移到兼容 Hook。
-
-API 中没有任何特定模组的类名或硬编码适配。第三方应把 OmniSequence 声明为
-`compileOnly`，并仅在 Mod ID `molecularmanipulator` 已加载时启用兼容类或条件 Mixin。
+BigInteger providers and direct output receivers use a separate contract, described
+in the [exact-count API](omni-exact-provider-api.md). They do not weaken this
+SPI's prepare/commit ownership rules.

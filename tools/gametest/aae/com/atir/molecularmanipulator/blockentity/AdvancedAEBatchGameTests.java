@@ -99,17 +99,26 @@ public final class AdvancedAEBatchGameTests {
         assembly.getBuffer().clear();
         System.out.println("AAE_BATCH_REAL_PASS: crafts=65536 operations=" + operations + " executeMs=" + elapsed);
 
-        for (Mode mode : Mode.values()) {
+        OmniBatchProviderAdapterRegistry.register("test:optional_batch", 100,
+                endpoint -> {
+                    if (endpoint instanceof AdaptedProvider a && a.delegate.mode == Mode.PREDICATE_THROW)
+                        throw new IllegalStateException("Expected predicate failure");
+                    return endpoint instanceof AdaptedProvider;
+                },
+                endpoint -> ((AdaptedProvider) endpoint).capability());
+        for (boolean adapted : new boolean[] {false, true}) for (Mode mode : Mode.values()) {
+            if (!adapted && (mode == Mode.PREDICATE_THROW || mode == Mode.FACTORY_THROW)) continue;
             var provider = new ProbeProvider(pattern, mode);
             var isolated = new CraftingService(grid, grid.getStorageService(), grid.getEnergyService());
-            isolated.addGlobalCraftingProvider(provider);
+            var published = adapted ? new AdaptedProvider(provider) : provider;
+            isolated.addGlobalCraftingProvider(published);
             var testCpu = createCpu(controller, pattern, 128, key, output);
             testCpu.craftingLogic.executeCrafting(Integer.MAX_VALUE, isolated, grid.getEnergyService(), level);
             if (mode == Mode.ACCEPT_THEN_THROW || mode == Mode.RESERVE_BUSY) {
                 check(helper, provider.commits == 1 && provider.owned == 2048 && remaining(testCpu, pattern) == 0,
                         "Accepted ownership survives " + mode);
                 check(helper, testCpu.getInventory().list.isEmpty() && testCpu.craftingLogic.getWaitingFor(output) == 2048, "Accepted counts " + mode);
-            } else if (mode == Mode.REJECT || mode == Mode.THROW_BEFORE_ACCEPT) {
+            } else if (mode == Mode.REJECT || mode == Mode.THROW_BEFORE_ACCEPT || mode == Mode.PREDICATE_THROW || mode == Mode.FACTORY_THROW) {
                 check(helper, provider.owned == 0 && remaining(testCpu, pattern) == 128
                         && testCpu.getInventory().list.get(key) == 2048 && testCpu.craftingLogic.getWaitingFor(output) == 0,
                         "Rejected aggregate restores task and all materials " + mode);
@@ -130,7 +139,8 @@ public final class AdvancedAEBatchGameTests {
                 check(helper, testCpu.getInventory().list.get(key) + provider.owned == 2048, "Time slicing does not lose input");
             }
             check(helper, provider.closes == provider.prepares, "Every admission is closed exactly once " + mode);
-            System.out.println("AAE_BATCH_CASE_PASS: " + mode);
+            System.out.println("AAE_BATCH_CASE_PASS: adapted=" + adapted + " " + mode);
+            verifyOmniCpu(helper, controller, pattern, mode, key, output, adapted);
         }
         var nearFull = createCpu(controller, pattern, 128, key, output);
         var job = field(AdvCraftingCPULogic.class, "job").get(nearFull.craftingLogic);
@@ -140,7 +150,75 @@ public final class AdvancedAEBatchGameTests {
         check(helper, nearFull.craftingLogic.getWaitingFor(output) == Long.MAX_VALUE - 15
                 && remaining(nearFull, pattern) == 127, "Waiting-for headroom prevents long overflow even on one-craft fallback");
         assembly.getBuffer().clear();
-        helper.runAfterDelay(2, () -> { System.out.println("AAE_BATCH_ALL_PASS"); helper.succeed(); });
+        helper.runAfterDelay(2, () -> { OmniBatchProviderAdapterRegistry.unregister("test:optional_batch"); System.out.println("AAE_AND_OMNI_ADAPTER_ALL_PASS"); helper.succeed(); });
+    }
+
+    /** Runs the transformed AE CPU dispatch against the same optional provider. */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void verifyOmniCpu(GameTestHelper helper, MatterFabricationBlockEntity controller,
+            IPatternDetails pattern, Mode mode, AEKey key, AEKey output, boolean adapted)
+            throws ReflectiveOperationException {
+        if (mode == Mode.SLOW_SINGLE) return; // AAE's separate fallback time-slice case above.
+        var level=helper.getLevel();
+        var core=new OmniComputationCoreBlockEntity(ORIGIN.east(60), ModContent.TRANSFINITE_COMPUTE_NEXUS.get().defaultBlockState());
+        core.setLevel(level);
+        var cpu=new appeng.me.cluster.implementations.CraftingCPUCluster(ORIGIN.east(60),ORIGIN.east(60));
+        var accessor=(com.atir.molecularmanipulator.mixin.CraftingCPUClusterAccessor)(Object)cpu;
+        accessor.molecularmanipulator$addBlockEntity(core);accessor.molecularmanipulator$finishCluster();
+        var owners=field(OmniComputationCoreBlockEntity.class,"CPU_OWNERS");
+        ((Map)owners.get(null)).put(cpu,core);
+        try {
+            var plan=new appeng.crafting.CraftingPlan(new GenericStack(output,2048),1,false,false,
+                    new KeyCounter(),new KeyCounter(),new KeyCounter(),Map.of(pattern,128L));
+            var tag=new CompoundTag();tag.putUUID("craftId",UUID.randomUUID());tag.putBoolean("req",false);tag.putBoolean("standalone",true);
+            var link=new CraftingLink(tag,cpu);
+            var constructor=Arrays.stream(appeng.crafting.execution.ExecutingCraftingJob.class.getDeclaredConstructors())
+                    .filter(c->c.getParameterTypes()[0]==ICraftingPlan.class).findFirst().orElseThrow();
+            constructor.setAccessible(true);var listenerType=constructor.getParameterTypes()[1];
+            var listener=Proxy.newProxyInstance(listenerType.getClassLoader(),new Class<?>[]{listenerType},(p,m,a)->null);
+            var logic=cpu.craftingLogic;field(logic.getClass(),"job").set(logic,constructor.newInstance(plan,listener,link,null));
+            field(logic.getClass(),"molecularmanipulator$dispatchOwner").set(logic,core);
+            field(logic.getClass(),"molecularmanipulator$dispatchAllowance").setLong(logic,1000000);
+            field(logic.getClass(),"molecularmanipulator$unscaledDispatchAllowance").setInt(logic,100);
+            field(logic.getClass(),"molecularmanipulator$compatDispatchDeadlineNanos").setLong(logic,Long.MAX_VALUE);
+            logic.getInventory().insert(key,2048,Actionable.MODULATE);
+            var provider=new ProbeProvider(pattern,mode);
+            var published=adapted?new AdaptedProvider(provider):provider;
+            var grid=controller.getMainNode().getGrid();
+            var service=new CraftingService(grid,grid.getStorageService(),grid.getEnergyService());service.addGlobalCraftingProvider(published);
+            logic.executeCrafting(Integer.MAX_VALUE,service,grid.getEnergyService(),level);
+            var job=field(logic.getClass(),"job").get(logic);var tasks=(Map<?,?>)field(job.getClass(),"tasks").get(job);
+            var task=tasks.get(pattern);long remaining=task==null?0:field(task.getClass(),"value").getLong(task);
+            if(mode==Mode.RESERVE_BUSY||mode==Mode.ACCEPT_THEN_THROW){
+                check(helper,provider.commits==1&&provider.owned==2048&&remaining==0,"Omni accepted ownership "+mode);
+                check(helper,logic.getInventory().list.isEmpty()&&logic.getWaitingFor(output)==2048,"Omni accepted accounting "+mode);
+            } else if(mode==Mode.REJECT||mode==Mode.THROW_BEFORE_ACCEPT||mode==Mode.PREDICATE_THROW||mode==Mode.FACTORY_THROW){
+                check(helper,provider.owned==0&&remaining==128&&logic.getInventory().list.get(key)==2048&&logic.getWaitingFor(output)==0,"Omni rejection restores materials/task "+mode);
+            } else {
+                check(helper,provider.owned==128&&remaining==120&&logic.getInventory().list.get(key)==1920,"Omni adapter capacity limit");
+                logic.executeCrafting(Integer.MAX_VALUE,service,grid.getEnergyService(),level);
+                check(helper,provider.commits==1,"Omni original-identity backpressure on repeated call");
+            }
+            check(helper,provider.closes==provider.prepares,"Omni closes admissions exactly once "+mode);
+            System.out.println("OMNI_BATCH_CASE_PASS: adapted="+adapted+" "+mode);
+        } finally {((Map)owners.get(null)).remove(cpu);}
+    }
+
+    /** Original AE provider deliberately does not implement the Omni API. */
+    private static final class AdaptedProvider implements ICraftingProvider {
+        private final ProbeProvider delegate;
+        AdaptedProvider(ProbeProvider delegate){this.delegate=delegate;}
+        public List<IPatternDetails> getAvailablePatterns(){return delegate.getAvailablePatterns();}
+        public boolean isBusy(){return delegate.isBusy();}
+        public boolean pushPattern(IPatternDetails pattern,KeyCounter[] inputs){return delegate.pushPattern(pattern,inputs);}
+        OmniBatchCraftingProvider capability(){
+            if(delegate.mode==Mode.FACTORY_THROW)throw new IllegalStateException("Expected adapter factory failure");
+            return new OmniBatchCraftingProvider(){
+            public OmniBatchAdmission prepareOmniBatch(OmniBatchProbe probe){return delegate.prepareOmniBatch(probe);}
+            public List<IPatternDetails> getAvailablePatterns(){throw new AssertionError("Capability must not replace original patterns");}
+            public boolean isBusy(){throw new AssertionError("Capability must not replace original busy identity");}
+            public boolean pushPattern(IPatternDetails pattern,KeyCounter[] inputs){throw new AssertionError("Capability must not replace original single dispatch");}
+        };}
     }
 
     private static void check(GameTestHelper helper, boolean valid, String message) { helper.assertTrue(valid, message); }
@@ -194,7 +272,7 @@ public final class AdvancedAEBatchGameTests {
         @Override public void updateOutput(GenericStack output) { finalOutput = output; }
     }
 
-    private enum Mode { RESERVE_BUSY, ACCEPT_THEN_THROW, REJECT, THROW_BEFORE_ACCEPT, LIMIT_AND_BACKPRESSURE, SLOW_SINGLE }
+    private enum Mode { RESERVE_BUSY, ACCEPT_THEN_THROW, REJECT, THROW_BEFORE_ACCEPT, LIMIT_AND_BACKPRESSURE, SLOW_SINGLE, PREDICATE_THROW, FACTORY_THROW }
 
     private static final class ProbeProvider implements OmniBatchCraftingProvider {
         final IPatternDetails pattern;

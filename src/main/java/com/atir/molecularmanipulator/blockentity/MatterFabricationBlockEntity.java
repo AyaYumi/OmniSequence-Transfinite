@@ -132,10 +132,22 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private ResourceLocation patternRecipeId;
     private BlockPos processingAssembly;
     private int nextAssembly;
+    private long serviceCacheTick = Long.MIN_VALUE;
+    private Direction serviceCacheFacing;
+    private final Map<net.minecraft.world.level.block.Block, MatterFabricationPortBlockEntity> servicePorts = new HashMap<>();
+    private final List<MatterFabricationPatternAssemblyBlockEntity> serviceAssemblies = new ArrayList<>();
+    private com.atir.molecularmanipulator.crafting.MatterRecipeIndex selectionIndex;
+    private MatterFabricationPortBlockEntity selectionItems, selectionFluids;
+    private long selectionItemRevision, selectionFluidRevision, selectionResearchRevision;
+    private ResourceLocation selectionPattern;
+    private RecipeSelection cachedSelection;
+    private boolean selectionCached;
     private ProcessingState processingState = ProcessingState.STRUCTURE_INCOMPLETE;
     private int currentProcessingTime;
     private double currentAePerTick;
     private long nextStructureCheck;
+    private Direction inspectionFacing;
+    private List<BlockPos> inspectionPositions = List.of();
     private boolean building;
     private boolean dismantling;
     private int buildCursor;
@@ -231,7 +243,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         contents.put("inv", payload.getCompound("inv"));
         quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG, registries);
         if (research.hasProgress()) contents.put(RESEARCH_TAG, research.save());
-        if (researchOrders.hasPending()) contents.put(RESEARCH_ORDERS_TAG, researchOrders.save(registries));
+        if (researchOrders.hasPending()) contents.put(RESEARCH_ORDERS_TAG, researchOrders.save(registries, false));
         if (batch.hasWork()) contents.put(BATCH_TAG, batch.save(registries));
         if (!pendingDismantleRecovery.isEmpty()) contents.put(DISMANTLE_RECOVERY_TAG, pendingDismantleRecovery.save(registries));
         var services = new ListTag();
@@ -425,7 +437,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             var tag = new CompoundTag();
             if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
             if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(level.registryAccess()));
-            if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(level.registryAccess()));
+            if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(level.registryAccess(), false));
             builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         }
     }
@@ -521,12 +533,18 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             return;
         }
         Direction facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        var nextInspection = MatterFabricationStructure.inspect(level, worldPosition, facing);
+        if (inspectionFacing != facing || inspectionPositions.isEmpty()) {
+            inspectionFacing = facing;
+            inspectionPositions = MatterFabricationStructure.parts().stream()
+                    .map(part -> MatterFabricationStructure.worldPos(worldPosition, facing, part)).toList();
+        }
+        var nextInspection = MatterFabricationStructure.inspect(level, inspectionPositions);
         var nextLayout = nextInspection.formed()
                 ? MatterFabricationStructure.StructureLayout.CURRENT
-                : MatterFabricationStructure.detectLayout(level, worldPosition, facing);
+                : MatterFabricationStructure.StructureLayout.NONE;
         boolean changed = structureFormed != nextInspection.formed()
                 || structureLayout != nextLayout;
+        boolean inspectionChanged = !inspection.equals(nextInspection);
         inspection = nextInspection;
         structureFormed = nextInspection.formed();
         structureLayout = nextLayout;
@@ -542,7 +560,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             onGridConnectableSidesChanged();
             markForClientUpdate();
         }
-        saveChanges();
+        if (changed || inspectionChanged) saveChanges();
         MultiblockChunkLoading.maintain(this);
     }
 
@@ -1283,12 +1301,10 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private void processRecipe() {
         if (!structureFormed) {
             setState(ProcessingState.STRUCTURE_INCOMPLETE);
-            updatePoweredState(false);
             return;
         }
         if (!getMainNode().isActive()) {
             setState(ProcessingState.NETWORK_OFFLINE);
-            updatePoweredState(false);
             return;
         }
 
@@ -1296,7 +1312,6 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         if (selection == null) {
             resetProgress();
             setState(ProcessingState.NO_RECIPE);
-            updatePoweredState(false);
             return;
         }
 
@@ -1311,26 +1326,22 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         currentProcessingTime = profile.ticks();
         if (progress == 0) manualCrafts = manualBatchLimit(recipe, input, profile.parallel());
         if (manualCrafts <= 0) {
-            setState(outputsFit(recipe, 1) ? ProcessingState.WAITING_POWER : ProcessingState.OUTPUT_BLOCKED);
-            updatePoweredState(false); return;
+            setState(outputsFit(recipe, 1) ? ProcessingState.WAITING_POWER : ProcessingState.OUTPUT_BLOCKED); return;
         }
         if (recipe.consumptionPlan(input, manualCrafts) == null) { resetProgress(); return; }
         currentAePerTick = recipe.aePerTick() * manualCrafts;
 
         if (!outputsFit(recipe, manualCrafts)) {
             setState(ProcessingState.OUTPUT_BLOCKED);
-            updatePoweredState(false);
             return;
         }
         if (!Double.isFinite(currentAePerTick) || !consumePower(currentAePerTick)) {
             setState(ProcessingState.WAITING_POWER);
-            updatePoweredState(false);
             return;
         }
 
         progress++;
         setState(ProcessingState.RUNNING);
-        updatePoweredState(true);
         if (progress >= currentProcessingTime) {
             completeRecipe(recipe, input);
         }
@@ -1339,16 +1350,35 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     }
 
     private RecipeSelection findRecipe() {
-        if (patternRecipeId != null && inputsAreEmpty()) patternRecipeId = null;
-        for (var input : snapshotInputs()) {
-            var match = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level).fabrication().stream()
-                    .filter(holder -> patternRecipeId == null || holder.id().equals(patternRecipeId))
-                    .filter(holder -> holder.value().matches(input, level) && MatterResearchApi.canUseRecipe(this, holder)).findFirst();
-            if (match.isPresent()) {
-                return new RecipeSelection(input, match.get());
+        var items = getPort(MatterFabricationStructure.ITEM_INPUT);
+        var fluids = getPort(MatterFabricationStructure.FLUID_INPUT);
+        long itemRevision = items == null ? 0 : items.contentsRevision();
+        long fluidRevision = fluids == null ? 0 : fluids.contentsRevision();
+        var index = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level);
+        long researchRevision = research.permissionRevision();
+        if (selectionCached && selectionIndex == index && selectionItems == items && selectionFluids == fluids
+                && selectionItemRevision == itemRevision && selectionFluidRevision == fluidRevision
+                && selectionResearchRevision == researchRevision && java.util.Objects.equals(selectionPattern, patternRecipeId)) {
+            return cachedSelection;
+        }
+        cachedSelection = null;
+        if (inputsAreEmpty()) {
+            patternRecipeId = null;
+        } else {
+            outer: for (var input : snapshotInputs()) {
+                for (var holder : index.fabrication()) {
+                    if ((patternRecipeId == null || holder.id().equals(patternRecipeId))
+                            && holder.value().matches(input, level) && MatterResearchApi.canUseRecipe(this, holder)) {
+                        cachedSelection = new RecipeSelection(input, holder);
+                        break outer;
+                    }
+                }
             }
         }
-        return null;
+        selectionCached = true; selectionIndex = index; selectionItems = items; selectionFluids = fluids;
+        selectionItemRevision = itemRevision; selectionFluidRevision = fluidRevision;
+        selectionResearchRevision = researchRevision; selectionPattern = patternRecipeId;
+        return cachedSelection;
     }
 
     private List<MatterFabricationRecipeInput> snapshotInputs() {
@@ -1524,7 +1554,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private void processBatch() {
         var result = batch.tick(this);
         progress = result.progress(); currentProcessingTime = result.duration(); currentAePerTick = result.power();
-        setState(result.state()); updatePoweredState(result.state() == ProcessingState.RUNNING);
+        setState(result.state());
         if (result.completed()) { completionTick = level.getGameTime(); markForClientUpdate(); }
         else if (progress % 5 == 0) markForClientUpdate();
     }
@@ -1533,12 +1563,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         if (!structureFormed || !getMainNode().isActive()) { processingAssembly = null; return false; }
         // Do not interrupt a manual recipe that is already consuming processing time.
         if (processingAssembly == null && activeRecipeId != null && progress > 0) return false;
-        var assemblies = new ArrayList<MatterFabricationPatternAssemblyBlockEntity>();
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        for (var bay : MatterFabricationStructure.patternAssemblyBays()) {
-            if (level.getBlockEntity(MatterFabricationStructure.worldPos(worldPosition, facing, bay)) instanceof MatterFabricationPatternAssemblyBlockEntity assembly
-                    && assembly.getController() == this) assemblies.add(assembly);
-        }
+        refreshServiceCache();
+        var assemblies = serviceAssemblies;
         if (assemblies.isEmpty()) { processingAssembly = null; return false; }
         int start = Math.floorMod(nextAssembly, assemblies.size());
         for (int i = 0; i < assemblies.size(); i++) if (assemblies.get(i).getBlockPos().equals(processingAssembly)) { start = i; break; }
@@ -1552,7 +1578,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             nextAssembly = update.completed() ? index + 1 : index;
             activeRecipeId = null;
             progress = update.progress(); currentProcessingTime = update.duration(); currentAePerTick = update.power();
-            setState(update.state()); updatePoweredState(update.state() == ProcessingState.RUNNING);
+            setState(update.state());
             if (update.completed()) { completionTick = level.getGameTime(); markForClientUpdate(); }
             else if (progress % 5 == 0) markForClientUpdate();
             return true;
@@ -1560,7 +1586,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         processingAssembly = null;
         if (waiting != null) {
             activeRecipeId = null; progress = waiting.progress(); currentProcessingTime = waiting.duration(); currentAePerTick = waiting.power();
-            setState(waiting.state()); updatePoweredState(false); return true;
+            setState(waiting.state()); return true;
         }
         return false;
     }
@@ -1654,26 +1680,38 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         return remainder;
     }
 
-    private MatterFabricationPortBlockEntity getPort(MatterFabricationStructure.OptionalPart part) {
-        if (level == null) {
-            return null;
-        }
+    private void refreshServiceCache() {
+        if (level == null) return;
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        for (var host : MatterFabricationStructure.patternAssemblyBays()) {
-            var pos = MatterFabricationStructure.worldPos(worldPosition, facing, host);
-            if (!level.getBlockState(pos).is(part.block())) {
-                continue;
-            }
-            var blockEntity = level.getBlockEntity(pos);
-            if (blockEntity instanceof MatterFabricationPortBlockEntity port
-                    && port.isLinkedTo(worldPosition)) {
-                return port;
+        if (serviceCacheTick == level.getGameTime() && serviceCacheFacing == facing) return;
+        serviceCacheTick = level.getGameTime(); serviceCacheFacing = facing;
+        servicePorts.clear(); serviceAssemblies.clear();
+        for (var bay : MatterFabricationStructure.patternAssemblyBays()) {
+            var pos = MatterFabricationStructure.worldPos(worldPosition, facing, bay);
+            if (!level.hasChunkAt(pos)) continue;
+            var entity = level.getBlockEntity(pos);
+            if (entity instanceof MatterFabricationPortBlockEntity port && port.isLinkedTo(worldPosition)) {
+                servicePorts.putIfAbsent(port.getBlockState().getBlock(), port);
+            } else if (entity instanceof MatterFabricationPatternAssemblyBlockEntity assembly && assembly.getController() == this) {
+                serviceAssemblies.add(assembly);
             }
         }
-        return null;
+    }
+
+    private MatterFabricationPortBlockEntity getPort(MatterFabricationStructure.OptionalPart part) {
+        refreshServiceCache();
+        var port = servicePorts.get(part.block());
+        if (port != null && (port.isRemoved() || !level.hasChunkAt(port.getBlockPos())
+                || level.getBlockEntity(port.getBlockPos()) != port)) {
+            serviceCacheTick = Long.MIN_VALUE;
+            refreshServiceCache();
+            port = servicePorts.get(part.block());
+        }
+        return port;
     }
 
     private void updateOptionalLinks() {
+        serviceCacheTick = Long.MIN_VALUE;
         if (level == null) {
             return;
         }
@@ -1707,7 +1745,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         var state = getBlockState();
         if (state.hasProperty(BlockStateProperties.POWERED)
                 && state.getValue(BlockStateProperties.POWERED) != powered) {
-            level.setBlock(worldPosition, state.setValue(BlockStateProperties.POWERED, powered), 3);
+            level.setBlock(worldPosition, state.setValue(BlockStateProperties.POWERED, powered), net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
             markForClientUpdate();
         }
     }

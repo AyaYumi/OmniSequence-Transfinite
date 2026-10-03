@@ -77,11 +77,13 @@ public final class AdvancedAEBatchDispatch implements AutoCloseable {
         }
         var probe = new OmniBatchProbe(details, inputs, maximum);
         for (var candidate : providers) {
-            if (!(candidate instanceof OmniBatchCraftingProvider api)
-                    || contains(singleOnly, candidate, details)
-                    || isBackpressured(candidate, details) || candidate.isBusy()) continue;
+            if (candidate == null || contains(singleOnly, candidate, details)
+                    || isBackpressured(candidate, details)) continue;
             OmniBatchAdmission prepared = null;
             try {
+                if (!OmniBatchProviderAdapterRegistry.supports(candidate, details) || candidate.isBusy()) continue;
+                var api = OmniBatchProviderAdapterRegistry.resolve(candidate, details);
+                if (api == null) continue;
                 prepared = api.prepareOmniBatch(probe);
                 if (prepared == null) continue;
                 long limit = Math.min(maximum, prepared.maxCrafts());

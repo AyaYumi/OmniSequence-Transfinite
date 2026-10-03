@@ -1,0 +1,20 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:singularity_base_casing"
+      },
+      "count": 400
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:singularity_base_slab",
+      "count": 16
+    }
+  ],
+  "processing_time": 100,
+  "ae_per_tick": 512,
+  "requires_research": true
+}

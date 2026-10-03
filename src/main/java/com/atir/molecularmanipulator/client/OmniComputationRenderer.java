@@ -67,15 +67,15 @@ public final class OmniComputationRenderer
                 visualCenter.z - core.getBlockPos().getZ());
         poseStack.mulPose(Axis.YP.rotationDegrees(facingRotation(facing)));
         if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
-            renderCrownLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeDepth()),
+            renderCrownLayoutPass(layout, poseStack, OmniRenderLayers.singularityComputeDepth(buffers),
                     core.getClientOrreryAngle(), strength, completion, detailed, false);
-            renderCrownLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeGlow()),
+            renderCrownLayoutPass(layout, poseStack, OmniRenderLayers.singularityComputeGlow(buffers),
                     core.getClientOrreryAngle(), strength, completion, detailed, true);
         } else {
-            drawComputationAnomalyOccluder(poseStack.last(), buffers.getBuffer(OmniRenderLayers.solidEmissiveColor()), detailed);
-            drawGate(poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeDepth()), angle, pulse, strength,
+            drawComputationAnomalyOccluder(poseStack.last(), OmniRenderLayers.singularityOccluder(buffers), detailed);
+            drawGate(poseStack, OmniRenderLayers.singularityComputeDepth(buffers), angle, pulse, strength,
                     activity, completion, segments, detailed, true, false);
-            drawGate(poseStack, buffers.getBuffer(OmniRenderLayers.singularityComputeGlow()), angle, pulse, strength,
+            drawGate(poseStack, OmniRenderLayers.singularityComputeGlow(buffers), angle, pulse, strength,
                     activity, completion, segments, detailed, true, true);
         }
         poseStack.popPose();

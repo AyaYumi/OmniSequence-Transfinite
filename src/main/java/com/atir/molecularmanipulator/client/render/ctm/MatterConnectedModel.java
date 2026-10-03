@@ -172,7 +172,7 @@ public final class MatterConnectedModel extends BakedModelWrapper<BakedModel> {
         var texture = sprite.contents().name();
         if (!texture.getNamespace().equals("molecularmanipulator")
                 || !(texture.getPath().startsWith("block/matter_fabrication_")
-                || texture.getPath().startsWith("block/taixu/"))) return null;
+                || texture.getPath().startsWith("block/singularity/"))) return null;
         int[] data = quad.getVertices();
         if (data.length != 4 * IQuadTransformer.STRIDE) return null;
         Vec3[] positions = new Vec3[4];

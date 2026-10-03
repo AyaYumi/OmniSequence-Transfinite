@@ -1,0 +1,5 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": { "particle": "molecularmanipulator:item/white_hole" },
+  "elements": []
+}

@@ -46,10 +46,9 @@ final class MolecularCenterPatternItemHandler implements IItemHandler {
     public ItemStack getStackInSlot(int slot) {
         if (!available(slot)) return ItemStack.EMPTY;
         refreshSnapshotIfNeeded();
-        // StorageBus only reads this value. Returning the cached immutable view
-        // avoids a second deep NBT copy for every slot poll; all mutations still
-        // go through insertItem/extractItem and invalidate via patternRevision.
-        return snapshot[slot];
+        // ItemStack is mutable even though its components are shared. Protect the
+        // cached snapshot from callers changing the returned stack's count.
+        return snapshot[slot].copy();
     }
 
     @Override

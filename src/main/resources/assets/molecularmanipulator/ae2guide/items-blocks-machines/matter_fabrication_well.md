@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: Matter Fabrication Well
+  title: "Matter Fabrication Well"
   icon: molecularmanipulator:matter_fabrication_controller
   position: 900
 item_ids:
@@ -15,10 +15,9 @@ item_ids:
 
 # Matter Fabrication Well
 
-<BlockImage id="molecularmanipulator:matter_fabrication_controller" scale="8" />
+The starting point for material processing, research, and ME autocrafting. Build the well, then research the machines that follow.
 
-The Matter Fabrication Well combines material processing, AE autocrafting and research, and it starts this mod's progression.
-Craft its controller, structural blocks and ports from base AE2 materials, then research advanced materials and machines.
+## Prepare the site
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:matter_fabrication_controller" />
@@ -27,97 +26,65 @@ Craft its controller, structural blocks and ports from base AE2 materials, then 
 <ItemIcon id="molecularmanipulator:matter_fabrication_coil" />
 <ItemIcon id="molecularmanipulator:matter_fabrication_stabilizer" />
 <ItemIcon id="molecularmanipulator:matter_fabrication_core" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_output" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_output" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_pattern_assembly" />
 </ItemGrid>
 
-> The [Pattern Assembly](matter_fabrication_pattern_assembly.md) is produced in the well after the first research unlock.
-
-## At a glance
-
-| Property | Value |
+| Preparation | Requirement |
 | --- | --- |
-| **Footprint** | 41 × 41, 27 blocks tall |
-| **Starts at** | Stage 0 — no research required |
-| **Service sockets** | 24 front terrace + 20 central collar |
-| **Supplies research with** | Items in the controller's ME network |
+| Space | 41 × 41 blocks, 27 blocks tall |
+| Starting tier | Tier 0; controller and basic ports need no research |
+| Materials | JEI structure page and controller projection |
 
-## Construction and connection
+## Build the well
 
-1. Reserve a 41×41 footprint and 27 blocks of height for the current pearl-white fabrication chamber. Face the controller toward the operating side.
-2. Open the controller and enable its projection to inspect missing or conflicting blocks. The JEI structure page provides layers and a material list.
-3. Clear conflicts and use **Build**. Construction takes materials from the player's inventory first, then the connected ME Network.
-4. Install [ports](matter_fabrication_ports.md) or pattern assemblies in valid service sockets. Holding one highlights permitted positions on nearby wells, including the usable front terrace row.
-5. Connect the formed controller to a powered ME Network. Processing uses ports or pattern assemblies; research draws materials from the controller's network.
+1. Place the controller facing your work area. Enable **Projection** to find missing blocks and obstructions.
+2. Gather the JEI material list, clear obstructions, and select **Build**.
+3. Construction takes player inventory materials first, then materials from the connected ME network.
+4. Install [input and output ports](matter_fabrication_ports.md) in highlighted service positions. Power the completed well through ME.
 
-### Service sockets
+There are **44 service positions**: 24 on the front steps and four groups of five around the central platform. Hold a port to see them.
 
-In 2.0.3 a service block fits **24 front terrace** positions and **20 central collar** positions (five on each of four sides) — 44 in total.
+## Choose a workflow
 
-| | Count | Where |
-| --- | --- | --- |
-| Front terrace | 24 | The row in front of the chamber |
-| Central collar | 20 | Five positions on each of the four collar sides |
-| Former outer positions | 0 | The nine old outer service positions are no longer accepted |
+<Row>
+<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="4" />
 
-> Upgrading an older well? Move those service blocks and restore the vacated positions according to the projection.
+<BlockImage id="molecularmanipulator:matter_fabrication_fluid_input" scale="4" />
 
-### Quantum link
+<BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
+</Row>
 
-The quantum slot accepts one half of a paired entangled singularity; place the other half in a powered AE2 Quantum Ring.
-
-* Before formation, the link can retrieve remote construction materials.
-* After formation, it can connect the working network.
-* The link adds 512 AE/t of power use and requires a channel.
-
-Resolve conflicting wired and remote networks before using the link.
-
-## Processing and research
-
-A new controller starts at stage 0. The [first research](matter_fabrication_research.md) unlocks AE material processing, materials used by later research, and the pattern assembly recipe. Stage two has separate Sequence Array and Omni-Computation branches. By default, one completion of stage one is sufficient, and both branches may run together.
-
-| Use case | How to feed it |
+| Work | Start here |
 | --- | --- |
-| Ordinary processing | Appropriate item/fluid input ports, plus output ports for the results |
-| AE autocrafting | Matching processing patterns in a pattern assembly |
+| [Processing](matter_fabrication_ports.md) | Supply item/fluid inputs and leave output capacity |
+| [Research](matter_fabrication_research.md) | Select a branch; put its materials in the controller's ME network |
+| [ME autocrafting](matter_fabrication_pattern_assembly.md) | Unlock the Pattern Assembly at tier 1 and insert matching processing patterns |
 
-JEI and guide recipe panels show the research that unlocks each processing recipe. Research permissions and bonuses belong to this controller.
+Research and processing can run together. JEI and the live recipe panels show the current ingredients, duration, power, and research requirements.
 
-## Operation and persistence
+## Remote access and recovery
 
-Production displays rotating star rings, converging material streams and manufacturing scan layers. Independent research constellations appear above them, including simultaneous branches.
+<ItemGrid>
+<ItemIcon id="ae2:quantum_entangled_singularity" />
+<ItemIcon id="ae2:quantum_ring" />
+<ItemIcon id="ae2:quantum_link" />
+</ItemGrid>
 
-> Paused, prerequisite-blocked, offline or unpowered research stops sending light pulses. Custom stages receive an automatic visual preset.
+Insert one **Quantum Entangled Singularity** in the quantum slot and its partner in a powered AE2 quantum bridge. The connection also works for construction before formation. It costs an additional **512 AE/t and one channel**.
 
-* Only the current well blueprint is retained; experimental development layouts are no longer recognized.
-* When `sequence_array.force_load_chunks` is enabled, the controller force-loads the required chunks while formed or during construction and dismantling. Tickets are released when no valid structure or operation needs them.
-* Chunk loading does not supply materials or energy.
+**Dismantle** recovers the structure from top to bottom and keeps the controller. Returns go to ME first, then the player; recovery pauses when both are full.
 
-**Dismantle** recovers the structure from top to bottom while keeping the controller. Materials go to ME first and then the player's inventory; full destinations pause the saved operation.
-
-Normal block drops retain stored contents:
-
-| Block | Keeps |
+| Removed block | Contents carried with it |
 | --- | --- |
-| Controller | Research progress and owned tasks |
-| Ports | Their buffers |
-| Pattern assemblies | Their own patterns and batches |
+| Controller | Research, accepted jobs, and quantum slot |
+| Ports | Their item or fluid caches |
+| Pattern Assembly | Patterns, ingredients, and processing batches |
 
-Replaced machines still need a valid structure, network and power to resume.
-
-## Natural spawning protection
-
-While formed or performing construction, dismantling or a structure update, this multiblock blocks natural spawning throughout the full height of its occupied chunks, including monsters, animals, aquatic mobs and bats. Patrol and reinforcement spawns are also blocked.
-
-Spawners, spawn eggs, breeding, commands and existing mobs are unaffected. Protection does not require AE power; when no structure or operation owns a chunk, spawning there returns to normal.
+Restore the structure, network, and power to resume. The multiblock chunk-loading setting keeps required chunks loaded while formed or under construction. Occupied chunks block natural spawning; spawners, breeding, and existing mobs are unaffected.
 
 ## Controller recipe
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="This modpack has no available recipe for this item. Check JEI or the pack's instructions." />
+<RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
 
-## Further reading
+## Related pages
 
-<SubPages icons="true" />
+<SubPages icons={true} />

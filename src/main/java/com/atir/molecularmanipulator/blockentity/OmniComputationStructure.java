@@ -262,7 +262,13 @@ public final class OmniComputationStructure {
 
     public static int countDismantlableBlocks(Level level, BlockPos controller,
             Direction facing, StructureLayout layout) {
-        return dismantleEntries(level, controller, facing, layout).size();
+        int count = 0;
+        for (var part : parts(layout)) {
+            if (part.type() == PartType.AIR || part.type() == PartType.CONTROLLER) continue;
+            var pos = worldPos(controller, facing, part, layout);
+            if (!pos.equals(controller) && level.hasChunkAt(pos) && level.getBlockState(pos).is(block(part.type()))) count++;
+        }
+        return count;
     }
 
     public static List<DismantlePlan.Entry> dismantleEntries(Level level, BlockPos controller,

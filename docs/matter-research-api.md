@@ -1,8 +1,8 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.6-config-fix**.
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.7**.
 Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.17+**, and the
-required prerequisite AppliedEnhancements **1.0.6+**. The Mod ID stays
+required prerequisite AppliedEnhancements **1.1.0**. The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
@@ -393,10 +393,14 @@ block other machines, and already-built multiblocks keep working.
 
 ## 5. Materials, admission and persistence
 
-- The interface polls the selected research's live AE stock every 5 server ticks.
+- Progress syncs every 5 ticks; selected research stock is sampled every 20 ticks.
   Starting a round re-reads the storage providers, revalidates and extracts the
   whole round cost. Only items in the controller's AE network are used — player
   inventories and port buffers are not research supplies.
+- Normal orders continuously prepare the next round. Shift orders sum the actual costs of every remaining round, including replacement ingredients, then reach the maximum in one run. Preparation snapshots its definition; maximum tasks use one research duration and its normal power per tick.
+- Every 20 ticks, exact joint allocation compares stock and owned reserves. Desired quantities replace the queue and subtract remaining CPU deliveries. Multiple preparations share one stock scan and item index; ordinary items/tags visit candidate keys, while custom ingredients retain their predicate.
+- Ordered output goes directly into the research cache. Other crafts consuming previously stocked base materials trigger automatic replenishment. Stopping preparation cancels only its own jobs and persists refunds. Ordered tasks reject stopping and pausing after admission.
+- Native AE CPU links and remaining deliveries persist and reconnect on world reload. Portable controllers queue unfinished needs and cancel old links before being placed again.
 - All materials must be present before a round starts. Overlapping item/tag
   requirements are solved as one joint allocation, so a single stock is never
   counted twice and declaration order does not matter.
@@ -434,11 +438,14 @@ block other machines, and already-built multiblocks keep working.
 | `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, pattern assembly |
 | `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
 | `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
+| `event_horizon` | 600 ticks / 30 s | 2048 AE/t | Miniature Black Hole, Miniature White Hole and all 13 Singularity Hub structural blocks |
 | `machine/<machine_key>` | 600 ticks / 30 s | 512 AE/t | Recipes imported from that addon machine (when the mod and machine are present) |
 
 The 30 seconds applies to the first unlock and to every later deep-research round
 of the built-in researches. Custom `duration` values stay free in ticks and still
 default to 1200; a started round keeps the duration snapshot from its start.
+
+Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 100,000 `ae2:singularity`; the Miniature White Hole uses 1,000,000,000 `ae2:matter_ball`. Both use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller consumes one Miniature Black Hole; the White Hole Resource Core consumes one Miniature White Hole. All 13 hub block recipes use 100× ordinary ingredient quantities, retaining hole input counts, outputs, duration and power.
 
 These stage-two branches require **one** `ae_foundation` completion by default.
 Built-in additions use IDs under
@@ -530,7 +537,7 @@ the recipe ID, so unstarted batches re-check the current recipe, permission and
 profile instead of reusing old figures. Work that can no longer proceed keeps its
 materials inside the assembly and can be returned as pending input.
 
-### 7.1 Known limitations in 2.0.5
+### 7.1 Known limitations in 2.0.7
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.
@@ -649,16 +656,17 @@ API; the separate batch API stays at v1.
 | Entry point | Contract |
 | --- | --- |
 | `definitions(Level)` | Available definitions sorted by `sort_order`, then ID; definitions whose `required_mods` are missing are filtered out. |
-| `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. `setPaused(..., false)` re-checks the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
+| `orderMissing(controller, resourceId, toMaximum)`, `stopPreparation(controller, resourceId)` | Server owner-thread operations returning whether the request was accepted. Ordering continuously prepares materials; `true` targets all remaining rounds. Stop accepts preparation only and returns `false` once research starts. |
+| `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; ordinary manual tasks using `setPaused(..., false)` re-check the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
 | `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
 | `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
 | `productionProfile` | `(parallel, ticks)` for the current completed branches of that recipe: highest parallel, shortest time; an unowned recipe returns parallel `1` and its raw processing time. |
-| `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end the affected active attempts without refunding. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
+| `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
 | `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
 
 Mutations throw `IllegalStateException` when called off the owning server thread;
-read queries may be used from any thread. Complete progress can be read with
-`controller.getResearch().save()`.
+live queries should also run on the owning server thread unless the caller holds an immutable snapshot. Complete progress can be read on the server thread with
+`controller.getResearch().save(serverLevel.registryAccess())`.
 
 Java mods can build modified definitions through the copy API:
 

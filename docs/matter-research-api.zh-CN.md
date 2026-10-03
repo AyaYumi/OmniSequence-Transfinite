@@ -1,11 +1,11 @@
 # 物质构筑井：配方与研究 API
 
-自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.6-config-fix**。
+自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.7**。
 目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.17+**，以及必需前置
-AppliedEnhancements **1.0.6+**。模组 ID 仍为 `molecularmanipulator`。
+AppliedEnhancements **1.1.0**。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
-另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.md)。
+另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.zh-CN.md)。
 
 本文档覆盖构筑井的三类配方：
 
@@ -364,9 +364,13 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 
 ## 5. 材料、扣料与保存
 
-- 界面每 5 个服务器 tick 同步所选研究的当前 AE 实际库存。开始研究时再次直接读取存储提供者，
+- 界面进度每 5 tick 同步，所选研究的 AE 库存每 20 tick 采样一次。开始研究时再次直接读取存储提供者，
   重新校验并一次性提取整轮费用。研究仅消耗控制器所在 AE 网络中的**物品**，玩家背包和接口
   缓存都不是研究材料。
+- 普通下单持续备齐下一轮材料；Shift 下单汇总所有剩余轮次的实际费用（包括各轮替换材料），完成一次直接到最高次数。备料时保存定义快照，满阶任务使用一次研究的耗时与功耗。
+- 每 20 tick 对库存与本研究缓存进行联合分配，按缺口替换订单量，扣除在途剩余产物，避免重复下单。多个备料任务共享一次库存扫描与物品索引；普通物品/标签只匹配候选物品，定制 Ingredient 保留原谓词。
+- 下单产物直接进入本研究缓存。其他合成消耗已存基础材料后自动补单；停止备料只取消本研究的订单，并持久化缓存退款。已正式开始的下单研究拒绝停止和暂停。
+- 原生 AE CPU 连接与剩余产物一起保存，世界重载重新连接原任务；便携控制器保存未完成需求并取消旧连接，放回后重新备料。
 - 所有材料必须齐全才能开始。重叠的物品/标签要求通过一次联合分配求解，同一份库存不会重复
   计入两个需求，也不需要手工调整材料声明顺序。
 - 若提供者在核验与实际提取之间发生变化，研究不启动，已提取材料退回；网络暂不接收的退款由
@@ -393,10 +397,13 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 | `ae_foundation` | 600 tick / 30 秒 | 256 AE/t | 7 条 AE 材料配方、27 条二阶材料与中间材料配方、样板总成 |
 | `sequence_array` | 600 tick / 30 秒 | 512 AE/t | 构序阵列 6 类部件、分子构序重写阵列、装配矩阵构序重写核心 |
 | `omni_computation` | 600 tick / 30 秒 | 1024 AE/t | 万物演算 10 类部件与超限算枢 |
+| `event_horizon` | 600 tick / 30 秒 | 2048 AE/t | 微型黑洞、微型白洞与天枢全部 13 类建筑部件 |
 | `machine/<machine_key>` | 600 tick / 30 秒 | 512 AE/t | 对应附属机器导入的配方（加载模组且机器存在时） |
 
 30 秒适用于内置研究的首次解锁及后续每轮深度研究。自定义 `duration` 仍按 tick 自由配置，
 省略时默认 1200；已开始的轮次保留开工时的耗时快照。
+
+三阶 `event_horizon` 要求 `sequence_array` 与 `omni_computation` 各完成一次。首轮耗材等于当前构序阵列与万物演算核心的完整搭建材料（含主控）：共 19 类、4,634 个方块。沿用九轮深度研究倍率；消耗 ME 库存中的方块，不会拆除现有建筑。微型黑洞配方为 100,000 个 `ae2:singularity`，微型白洞配方为 1,000,000,000 个 `ae2:matter_ball`，两者用 `ae_inputs` 数字 long 编码，通过构筑井样板总成执行。天枢主控消耗一个微型黑洞，白洞资源核心消耗一个微型白洞。天枢全部 13 类方块的其他材料数量增加为原来的 100 倍，微型黑洞和微型白洞的投入数量保持不变；产出数量、耗时和功率不变。
 
 这些二阶分支默认都需要一阶完成 **1 次**。内置材料配方 ID 位于
 `molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`；附属机器配方 ID 位于
@@ -461,7 +468,7 @@ tick 功耗乘本批份数计收。
 批次保存原料所有权与配方 ID，因此未开工批次会按当前配方、权限与参数重新检查，而不是沿用
 旧数值。无法继续加工时，原料仍留在总成内，可作为待加工原料退回。
 
-### 7.1 2.0.5 尚存的边界
+### 7.1 2.0.7 尚存的边界
 
 - 产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。
@@ -558,15 +565,16 @@ var definitions = MatterResearchApi.definitions(serverLevel);
 | 入口 | 契约 |
 | --- | --- |
 | `definitions(Level)` | 可用定义，按 `sort_order` 其次按 ID 排序；`required_mods` 未加载的定义会被过滤掉。 |
-| `start(controller, id)`、`setPaused(controller, id, paused)` | 返回操作是否被接受。`start` 对已存在的任务执行恢复而不是失败；研究不存在、不可用、已满级、有待退款或不满足前置时返回 `false`。`setPaused(..., false)` 会重新检查结构、网络、退款与前置并补扣未支付部分，因此也可能返回 `false`。 |
+| `orderMissing(controller, resourceId, toMaximum)`、`stopPreparation(controller, resourceId)` | 在服务端所有者线程调用，返回操作是否被接受。前者持续备料；`true` 选择所有剩余轮次。后者只允许停止备料，正式研究开始后返回 `false`。 |
+| `start(controller, id)`、`setPaused(controller, id, paused)` | 返回操作是否被接受。`start` 对已存在的任务执行恢复而不是失败；研究不存在、不可用、已满级、有待退款或不满足前置时返回 `false`。下单启动的任务拒绝 `setPaused`；普通手动任务的 `setPaused(..., false)` 会重新检查结构、网络、退款与前置并补扣未支付部分，因此也可能返回 `false`。 |
 | `completionCount`、`isCompleted` | 查询完成次数；`isCompleted` 表示至少完成 1 次，不是满级。 |
 | `canUseRecipe`、`isRecipeUnlocked` | 供其他配方执行器使用的权限检查，调用方需自行调用以实施自己的规则。`canUseRecipe` 接收 `RecipeHolder<MatterFabricationRecipe>`。 |
 | `productionProfile` | 返回该配方当前已完成分支的 `(parallel, ticks)`：取最高并行、最短耗时；无归属研究时并行为 `1`、耗时为基础值。 |
-| `setCompletionCount`、`setCompleted`、`unlockAll` | 管理性修改，按当前最大深度钳制并结束受影响的在研任务，不返还已投入材料。负数会抛异常；次数为 `int`，`unlockAll` 返回处理过的定义数量。三者都不检查权限——由调用方负责。 |
+| `setCompletionCount`、`setCompleted`、`unlockAll` | 管理性修改，按当前最大深度钳制并结束受影响的在研任务；退回备料缓存，已开始研究的费用仍被消耗。负数会抛异常；次数为 `int`，`unlockAll` 返回处理过的定义数量。三者都不检查权限——由调用方负责。 |
 | `prerequisitesMet`、`requiredPrerequisiteLevel` | 每个前置默认要求 1 次；前置不在传入的 `available` 列表中时返回 `false`，因此应传入 `definitions(level)`。Java 映射值 `0` 对应数据包中的 `"max"`。 |
 
-在非属主服务端线程调用变更方法会抛出 `IllegalStateException`；读取类查询可在任意线程使用。
-完整进度可通过 `controller.getResearch().save()` 读取。
+在非属主服务端线程调用变更方法会抛出 `IllegalStateException`；实时查询也应在所属服务端线程使用；跨线程只使用调用方取得的不可变快照。
+完整进度可通过 `controller.getResearch().save(serverLevel.registryAccess())` 读取。
 
 Java 模组可用复制 API 生成修改后的定义：
 

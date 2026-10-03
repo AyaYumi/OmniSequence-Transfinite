@@ -440,12 +440,12 @@ public abstract class PatternProviderLogicMixin
         molecularmanipulator$smartQueueOwned = false;
         molecularmanipulator$queuedBatchAmounts.clear();
         if (recoverUnsafeAdaptiveBatch) {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                     "Recovered an unsafe adaptive pattern-provider batch queue with {} material types; "
                             + "its contents will be returned to ME storage",
                     molecularmanipulator$legacyBatchRefund.size());
         } else {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                     "Recovered a legacy oversized pattern-provider batch queue with {} material types; "
                             + "its contents will be returned to ME storage instead of being sent to a machine",
                     molecularmanipulator$legacyBatchRefund.size());

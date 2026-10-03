@@ -2,7 +2,6 @@ package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.config.Actionable;
-import appeng.api.config.PowerMultiplier;
 import appeng.api.features.Locatables;
 import appeng.api.ids.AEComponents;
 import appeng.api.networking.GridHelper;
@@ -16,8 +15,6 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.MEStorage;
-import appeng.api.upgrades.IUpgradeInventory;
-import appeng.api.upgrades.UpgradeInventories;
 import appeng.api.util.AECableType;
 import appeng.block.crafting.PatternProviderBlock;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
@@ -39,8 +36,6 @@ import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHo
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
-import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
-import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry.MatterValue;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
@@ -111,34 +106,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final String CONTROLLER_MOVE_RECOVERY_TAG = "molecular_center_controller_move_recovery";
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "molecular_center_legacy_structure_update_dismissed";
-    private static final String MATTER_INVENTORY_TAG = "matter_sequence_inventory";
     private static final String MATRIX_UPLOAD_CORE_TAG = "matrix_upload_core_inventory";
-    private static final String METAL_SEQUENCE_TAG = "matter_sequence_metal";
-    private static final String MINERAL_SEQUENCE_TAG = "matter_sequence_mineral";
-    private static final String CRYSTAL_SEQUENCE_TAG = "matter_sequence_crystal";
-    private static final String ORGANIC_SEQUENCE_TAG = "matter_sequence_organic";
-    private static final String ENTROPY_TAG = "matter_sequence_entropy";
-    private static final String MATTER_UPGRADES_TAG = "matter_sequence_upgrades";
-    private static final String MATTER_JOB_MODE_TAG = "matter_job_mode";
-    private static final String MATTER_JOB_DISPLAY_MODE_TAG = "matter_job_display_mode";
-    private static final String MATTER_JOB_STATE_TAG = "matter_job_state";
-    private static final String MATTER_JOB_PROGRESS_TAG = "matter_job_progress";
-    private static final String MATTER_JOB_PROCESSED_TAG = "matter_job_processed";
-    private static final String DECONSTRUCT_ENABLED_TAG = "matter_deconstruct_enabled";
-    private static final String DECONSTRUCT_STATE_TAG = "matter_deconstruct_state";
-    private static final String DECONSTRUCT_PROGRESS_TAG = "matter_deconstruct_progress";
-    private static final String DECONSTRUCT_PROCESSED_TAG = "matter_deconstruct_processed";
-    private static final String REWRITE_ENABLED_TAG = "matter_rewrite_enabled";
-    private static final String REWRITE_STATE_TAG = "matter_rewrite_state";
-    private static final String REWRITE_PROGRESS_TAG = "matter_rewrite_progress";
-    private static final String REWRITE_PROCESSED_TAG = "matter_rewrite_processed";
-    private static final String DECONSTRUCT_TARGET_TAG = "matter_deconstruct_target";
-    private static final String REWRITE_TARGET_TAG = "matter_rewrite_target";
-    private static final String DECONSTRUCT_TEMPLATE_TAG = "matter_deconstruct_template";
-    private static final String REWRITE_TEMPLATE_TAG = "matter_rewrite_template";
-    private static final String REWRITE_OUTPUT_MODE_TAG = "matter_rewrite_output_mode";
-    private static final String DECONSTRUCT_MARKER_FORMAT_TAG = "matter_deconstruct_marker_format";
-    private static final String LEGACY_DECONSTRUCT_REFUND_TAG = "matter_deconstruct_legacy_refund";
+    private static final String QUANTUM_INVENTORY_TAG = "molecular_center_quantum_inventory";
     private static final String FIELD_COLOR_TAG = "visual_field_color";
     private static final String CORE_COLOR_TAG = "visual_core_color";
     private static final String PRIMARY_RING_COLOR_TAG = "visual_primary_ring_color";
@@ -147,8 +116,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final int VISUAL_ACTIVITY_EVENT = 91;
     private static final int CROWN_ACTIVITY_EVENT = 92;
     public static final double QUANTUM_LINK_POWER = 512.0;
-    public static final long MAX_JOB_TARGET = 1_000_000_000_000L;
-    public static final int MAX_SPEED_CARDS = 4;
     public static final int DEFAULT_FIELD_COLOR = 0xB6AEFF;
     public static final int DEFAULT_CORE_COLOR = 0xDFFFFF;
     public static final int DEFAULT_PRIMARY_RING_COLOR = 0x90EAFF;
@@ -158,10 +125,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final MachineSource actionSource = new MachineSource(this);
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
-    private final AppEngInternalInventory matterInventory = new AppEngInternalInventory(this, 4);
+    private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
     private final AppEngInternalInventory matrixUploadCoreInventory = new AppEngInternalInventory(this, 1);
-    private final IUpgradeInventory matterUpgrades = UpgradeInventories.forMachine(
-            ModContent.MOLECULAR_CENTER_CONTROLLER.get(), MAX_SPEED_CARDS, this::onMatterUpgradesChanged);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final Object2LongOpenHashMap<AEKey> pendingPrimaryOutputs = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> pendingByproducts = new Object2LongOpenHashMap<>();
@@ -191,25 +156,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private int primaryRingColor = DEFAULT_PRIMARY_RING_COLOR;
     private int secondaryRingColor = DEFAULT_SECONDARY_RING_COLOR;
     private int latticeColor = DEFAULT_LATTICE_COLOR;
-    private long metalSequence;
-    private long mineralSequence;
-    private long crystalSequence;
-    private long organicSequence;
-    private long entropy;
-    private boolean deconstructEnabled;
-    private MatterJobState deconstructJobState = MatterJobState.IDLE;
-    private int deconstructJobProgress;
-    private long deconstructJobProcessed;
-    private boolean rewriteEnabled;
-    private MatterJobState rewriteJobState = MatterJobState.IDLE;
-    private int rewriteJobProgress;
-    private long rewriteJobProcessed;
-    private long deconstructTarget;
-    private long rewriteTarget;
-    private ItemStack deconstructTemplate = ItemStack.EMPTY;
-    private ItemStack rewriteTemplate = ItemStack.EMPTY;
-    private ItemStack legacyDeconstructRefund = ItemStack.EMPTY;
-    private RewriteOutputMode rewriteOutputMode = RewriteOutputMode.NETWORK;
     private IGridConnection quantumConnection;
     private IGridNode quantumRemoteNode;
     private long quantumConnectionFrequency;
@@ -245,9 +191,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     public MolecularCenterBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MOLECULAR_CENTER_CONTROLLER_BE.get(), pos, state);
-        matterInventory.setMaxStackSize(0, 1);
-        matterInventory.setMaxStackSize(1, 1);
-        matterInventory.setMaxStackSize(3, 1);
+        quantumInventory.setMaxStackSize(0, 1);
         matrixUploadCoreInventory.setMaxStackSize(0, 1);
         getMainNode()
                 .setFlags(GridFlags.REQUIRE_CHANNEL)
@@ -315,8 +259,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return AEItemKey.of(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get());
     }
 
-    public AppEngInternalInventory getMatterInventory() {
-        return matterInventory;
+    public AppEngInternalInventory getQuantumInventory() {
+        return quantumInventory;
     }
 
     public AppEngInternalInventory getMatrixUploadCoreInventory() {
@@ -332,19 +276,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return isOperational() && canMutateExternalPatterns();
     }
 
-    public IUpgradeInventory getMatterUpgrades() {
-        return matterUpgrades;
-    }
 
     public MolecularAutoCrafter getAutoCrafter() {
         return autoCrafter;
     }
 
-    private void onMatterUpgradesChanged() {
-        deconstructJobProgress = Math.min(deconstructJobProgress, getMatterCycleTicks());
-        rewriteJobProgress = Math.min(rewriteJobProgress, getMatterCycleTicks());
-        saveChanges();
-    }
 
     @Override
     public void saveChangedInventory(AppEngInternalInventory inventory) {
@@ -353,7 +289,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
-        if (inventory == matterInventory && slot == 3 && level != null && !level.isClientSide()) {
+        if (inventory == quantumInventory && slot == 0 && level != null && !level.isClientSide()) {
             disconnectQuantumLink(QuantumLinkState.SEARCHING);
             updateQuantumLink();
         }
@@ -409,11 +345,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || !pendingByproducts.isEmpty()
                 || !reusableBatchRefunds.isEmpty()
                 || RetainedBlockContents.hasPatternContents(this)
-                || !matterInventory.isEmpty() || !matrixUploadCoreInventory.isEmpty()
-                || !matterUpgrades.isEmpty()
-                || !autoCrafter.getPatternInventory().isEmpty()
-                || !legacyDeconstructRefund.isEmpty()
-                || metalSequence > 0 || mineralSequence > 0 || crystalSequence > 0 || organicSequence > 0;
+                || !quantumInventory.isEmpty() || !matrixUploadCoreInventory.isEmpty()
+                || !autoCrafter.getPatternInventory().isEmpty();
     }
 
     @Override
@@ -430,11 +363,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         // must not empty crystals that remain in the world or in recovered block items.
         patternStorageReady = false;
         super.clearContent();
-        matterInventory.clear();
+        quantumInventory.clear();
         matrixUploadCoreInventory.clear();
-        matterUpgrades.clear();
-        metalSequence = mineralSequence = crystalSequence = organicSequence = entropy = 0;
-        legacyDeconstructRefund = ItemStack.EMPTY;
         pendingPrimaryOutputs.clear();
         pendingByproducts.clear();
         reusableBatchRefunds.clear();
@@ -509,35 +439,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
         autoCrafter.save(tag, registries);
-        matterInventory.writeToNBT(tag, MATTER_INVENTORY_TAG, registries);
+        quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         matrixUploadCoreInventory.writeToNBT(tag, MATRIX_UPLOAD_CORE_TAG, registries);
-        matterUpgrades.writeToNBT(tag, MATTER_UPGRADES_TAG, registries);
-        tag.putLong(METAL_SEQUENCE_TAG, metalSequence);
-        tag.putLong(MINERAL_SEQUENCE_TAG, mineralSequence);
-        tag.putLong(CRYSTAL_SEQUENCE_TAG, crystalSequence);
-        tag.putLong(ORGANIC_SEQUENCE_TAG, organicSequence);
-        tag.putLong(ENTROPY_TAG, entropy);
-        tag.putBoolean(DECONSTRUCT_ENABLED_TAG, deconstructEnabled);
-        tag.putString(DECONSTRUCT_STATE_TAG, deconstructJobState.name());
-        tag.putInt(DECONSTRUCT_PROGRESS_TAG, deconstructJobProgress);
-        tag.putLong(DECONSTRUCT_PROCESSED_TAG, deconstructJobProcessed);
-        tag.putBoolean(REWRITE_ENABLED_TAG, rewriteEnabled);
-        tag.putString(REWRITE_STATE_TAG, rewriteJobState.name());
-        tag.putInt(REWRITE_PROGRESS_TAG, rewriteJobProgress);
-        tag.putLong(REWRITE_PROCESSED_TAG, rewriteJobProcessed);
-        tag.putLong(DECONSTRUCT_TARGET_TAG, deconstructTarget);
-        tag.putLong(REWRITE_TARGET_TAG, rewriteTarget);
-        tag.putString(REWRITE_OUTPUT_MODE_TAG, rewriteOutputMode.name());
-        tag.putBoolean(DECONSTRUCT_MARKER_FORMAT_TAG, true);
-        if (!legacyDeconstructRefund.isEmpty()) {
-            tag.put(LEGACY_DECONSTRUCT_REFUND_TAG, legacyDeconstructRefund.save(registries));
-        }
-        if (!deconstructTemplate.isEmpty()) {
-            tag.put(DECONSTRUCT_TEMPLATE_TAG, deconstructTemplate.save(registries));
-        }
-        if (!rewriteTemplate.isEmpty()) {
-            tag.put(REWRITE_TEMPLATE_TAG, rewriteTemplate.save(registries));
-        }
         writeVisualColors(tag);
     }
 
@@ -630,7 +533,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             activeReusableBatch = MolecularReusableBatchJob.readFromTag(jobTag, registries);
             if (activeReusableBatch == null) {
                 quarantinedReusableBatchTag = jobTag.copy();
-                MolecularManipulator.LOGGER.error(
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
                         "Invalid sequence-array reusable batch at {}; preserving its NBT and locking the controller",
                         getBlockPos());
             }
@@ -640,60 +543,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
-        matterInventory.readFromNBT(tag, MATTER_INVENTORY_TAG, registries);
         matrixUploadCoreInventory.readFromNBT(tag, MATRIX_UPLOAD_CORE_TAG, registries);
-        legacyDeconstructRefund = tag.contains(LEGACY_DECONSTRUCT_REFUND_TAG, Tag.TAG_COMPOUND)
-                ? ItemStack.parseOptional(registries, tag.getCompound(LEGACY_DECONSTRUCT_REFUND_TAG))
-                : ItemStack.EMPTY;
-        if (!tag.getBoolean(DECONSTRUCT_MARKER_FORMAT_TAG)
-                && legacyDeconstructRefund.isEmpty()
-                && !matterInventory.getStackInSlot(0).isEmpty()) {
-            legacyDeconstructRefund = matterInventory.getStackInSlot(0).copy();
-            matterInventory.setItemDirect(0, legacyDeconstructRefund.copyWithCount(1));
-        }
-        matterUpgrades.readFromNBT(tag, MATTER_UPGRADES_TAG, registries);
-        long sequenceCapacity = getMatterSequenceCapacity();
-        metalSequence = readStoredAmount(tag, METAL_SEQUENCE_TAG, sequenceCapacity);
-        mineralSequence = readStoredAmount(tag, MINERAL_SEQUENCE_TAG, sequenceCapacity);
-        crystalSequence = readStoredAmount(tag, CRYSTAL_SEQUENCE_TAG, sequenceCapacity);
-        organicSequence = readStoredAmount(tag, ORGANIC_SEQUENCE_TAG, sequenceCapacity);
-        entropy = readStoredAmount(tag, ENTROPY_TAG, getMatterEntropyCapacity());
-        if (tag.contains(DECONSTRUCT_ENABLED_TAG, Tag.TAG_BYTE)) {
-            deconstructEnabled = tag.getBoolean(DECONSTRUCT_ENABLED_TAG);
-            deconstructJobState = readEnum(tag.getString(DECONSTRUCT_STATE_TAG), MatterJobState.IDLE);
-            deconstructJobProgress = readJobProgress(tag, DECONSTRUCT_PROGRESS_TAG);
-            deconstructJobProcessed = readStoredAmount(tag, DECONSTRUCT_PROCESSED_TAG, MAX_JOB_TARGET);
-            rewriteEnabled = tag.getBoolean(REWRITE_ENABLED_TAG);
-            rewriteJobState = readEnum(tag.getString(REWRITE_STATE_TAG), MatterJobState.IDLE);
-            rewriteJobProgress = readJobProgress(tag, REWRITE_PROGRESS_TAG);
-            rewriteJobProcessed = readStoredAmount(tag, REWRITE_PROCESSED_TAG, MAX_JOB_TARGET);
-        } else {
-            var legacyMode = readEnum(tag.getString(MATTER_JOB_MODE_TAG), MatterJobMode.IDLE);
-            var legacyDisplayMode = readEnum(tag.getString(MATTER_JOB_DISPLAY_MODE_TAG),
-                    legacyMode == MatterJobMode.REWRITE ? MatterJobMode.REWRITE : MatterJobMode.DECONSTRUCT);
-            var legacyState = readEnum(tag.getString(MATTER_JOB_STATE_TAG), MatterJobState.IDLE);
-            int legacyProgress = readJobProgress(tag, MATTER_JOB_PROGRESS_TAG);
-            long legacyProcessed = readStoredAmount(tag, MATTER_JOB_PROCESSED_TAG, MAX_JOB_TARGET);
-            deconstructEnabled = legacyMode == MatterJobMode.DECONSTRUCT;
-            rewriteEnabled = legacyMode == MatterJobMode.REWRITE;
-            boolean deconstructWasLast = legacyMode == MatterJobMode.DECONSTRUCT
-                    || legacyMode == MatterJobMode.IDLE && legacyDisplayMode == MatterJobMode.DECONSTRUCT;
-            deconstructJobState = deconstructWasLast ? legacyState : MatterJobState.IDLE;
-            rewriteJobState = deconstructWasLast ? MatterJobState.IDLE : legacyState;
-            deconstructJobProgress = deconstructEnabled ? legacyProgress : 0;
-            rewriteJobProgress = rewriteEnabled ? legacyProgress : 0;
-            deconstructJobProcessed = deconstructWasLast ? legacyProcessed : 0;
-            rewriteJobProcessed = deconstructWasLast ? 0 : legacyProcessed;
-        }
-        deconstructTarget = readStoredAmount(tag, DECONSTRUCT_TARGET_TAG, MAX_JOB_TARGET);
-        rewriteTarget = readStoredAmount(tag, REWRITE_TARGET_TAG, MAX_JOB_TARGET);
-        rewriteOutputMode = readEnum(tag.getString(REWRITE_OUTPUT_MODE_TAG), RewriteOutputMode.NETWORK);
-        deconstructTemplate = tag.contains(DECONSTRUCT_TEMPLATE_TAG, Tag.TAG_COMPOUND)
-                ? ItemStack.parseOptional(registries, tag.getCompound(DECONSTRUCT_TEMPLATE_TAG))
-                : ItemStack.EMPTY;
-        rewriteTemplate = tag.contains(REWRITE_TEMPLATE_TAG, Tag.TAG_COMPOUND)
-                ? ItemStack.parseOptional(registries, tag.getCompound(REWRITE_TEMPLATE_TAG))
-                : ItemStack.EMPTY;
+        quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
+        RetiredMatterRewriteContents.migrate(tag, registries, quantumInventory, pendingPrimaryOutputs);
         fieldColor = readColor(tag, FIELD_COLOR_TAG, DEFAULT_FIELD_COLOR);
         coreColor = readColor(tag, CORE_COLOR_TAG, DEFAULT_CORE_COLOR);
         primaryRingColor = readColor(tag, PRIMARY_RING_COLOR_TAG, DEFAULT_PRIMARY_RING_COLOR);
@@ -714,13 +566,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return tag.contains(key, Tag.TAG_INT) ? tag.getInt(key) & 0xFFFFFF : fallback;
     }
 
-    private static long readStoredAmount(CompoundTag tag, String key, long maximum) {
-        return Math.max(0, Math.min(maximum, tag.getLong(key)));
-    }
 
-    private int readJobProgress(CompoundTag tag, String key) {
-        return Math.max(0, Math.min(getMatterCycleTicks(), tag.getInt(key)));
-    }
 
     private static <E extends Enum<E>> E readEnum(String name, E fallback) {
         if (name == null || name.isEmpty()) {
@@ -930,46 +776,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
-    public long getMetalSequence() {
-        return metalSequence;
-    }
-
-    public long getMineralSequence() {
-        return mineralSequence;
-    }
-
-    public long getCrystalSequence() {
-        return crystalSequence;
-    }
-
-    public long getOrganicSequence() {
-        return organicSequence;
-    }
-
-    public long getEntropy() {
-        return entropy;
-    }
-
-    public long getMatterSequenceCapacity() {
-        return ModConfig.MATTER_SEQUENCE_CAPACITY.get();
-    }
-
-    public long getMatterEntropyCapacity() {
-        return ModConfig.MATTER_ENTROPY_CAPACITY.get();
-    }
-
-    public long getMatterEntropyCoolingPerSecond() {
-        return saturatedMultiply(
-                ModConfig.MATTER_ENTROPY_COOLING_PER_SECOND.get(),
-                getMatterEntropyCoolingMultiplier());
-    }
-
-    public long getMatterEntropyCoolingMultiplier() {
-        return ModConfig.matterEntropyCoolingMultiplier(getInstalledSpeedCards());
-    }
-
     public long getQuantumFrequency() {
-        var stack = matterInventory.getStackInSlot(3);
+        var stack = quantumInventory.getStackInSlot(0);
         if (!isValidQuantumSingularity(stack)) {
             return 0;
         }
@@ -1114,537 +922,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             EntangledQuantumFrequencyRegistry.release(serverLevel, worldPosition, claimedQuantumFrequency);
         }
         claimedQuantumFrequency = 0;
-    }
-
-    public boolean isDeconstructEnabled() {
-        return deconstructEnabled;
-    }
-
-    public MatterJobState getDeconstructJobState() {
-        return deconstructJobState;
-    }
-
-    public int getDeconstructJobProgress() {
-        return scaledJobProgress(deconstructJobProgress);
-    }
-
-    public long getDeconstructJobProcessed() {
-        return deconstructJobProcessed;
-    }
-
-    public boolean isRewriteEnabled() {
-        return rewriteEnabled;
-    }
-
-    public MatterJobState getRewriteJobState() {
-        return rewriteJobState;
-    }
-
-    public int getRewriteJobProgress() {
-        return scaledJobProgress(rewriteJobProgress);
-    }
-
-    public long getRewriteJobProcessed() {
-        return rewriteJobProcessed;
-    }
-
-    private int scaledJobProgress(int progress) {
-        int cycleTicks = getMatterCycleTicks();
-        return cycleTicks <= 0 ? 0 : Math.min(1000, progress * 1000 / cycleTicks);
-    }
-
-    public long getDeconstructTarget() {
-        return deconstructTarget;
-    }
-
-    public long getRewriteTarget() {
-        return rewriteTarget;
-    }
-
-    public RewriteOutputMode getRewriteOutputMode() {
-        return rewriteOutputMode;
-    }
-
-    public void cycleRewriteOutputMode() {
-        rewriteOutputMode = rewriteOutputMode.next();
-        saveChanges();
-    }
-
-    public int getInstalledSpeedCards() {
-        return matterUpgrades.getInstalledUpgrades(AEItems.SPEED_CARD);
-    }
-
-    public int getMatterCycleTicks() {
-        return ModConfig.matterCycleTicks(getInstalledSpeedCards());
-    }
-
-    public int getMatterParallelOperations() {
-        return ModConfig.matterParallelOperations(getInstalledSpeedCards());
-    }
-
-    public long getDeconstructionEntropyPerItem() {
-        var value = MatterSequenceRegistry.deconstructionOf(matterInventory.getStackInSlot(0));
-        return value == null ? 0 : entropyPerItem(value, 64);
-    }
-
-    public long getRewriteEntropyPerItem() {
-        var value = MatterSequenceRegistry.rewriteCostOf(matterInventory.getStackInSlot(1));
-        return value == null ? 0 : entropyPerItem(value, 16);
-    }
-
-    public long getDeconstructionCoolingSeconds() {
-        return estimatedCoolingSeconds(getDeconstructionEntropyPerItem());
-    }
-
-    public long getRewriteCoolingSeconds() {
-        return estimatedCoolingSeconds(getRewriteEntropyPerItem());
-    }
-
-    private long estimatedCoolingSeconds(long entropyPerItem) {
-        if (entropyPerItem <= 0) {
-            return -1;
-        }
-        long capacity = getMatterEntropyCapacity();
-        if (entropyPerItem > capacity) {
-            return Long.MAX_VALUE;
-        }
-        long availableCapacity = Math.max(0, capacity - Math.min(entropy, capacity));
-        if (entropyPerItem <= availableCapacity) {
-            return 0;
-        }
-        long requiredCooling = entropyPerItem - availableCapacity;
-        long coolingPerSecond = getMatterEntropyCoolingPerSecond();
-        return requiredCooling <= coolingPerSecond
-                ? 1
-                : 1 + (requiredCooling - 1) / coolingPerSecond;
-    }
-
-    public void setDeconstructTarget(long target) {
-        deconstructTarget = sanitizeJobTarget(target);
-        if (deconstructEnabled && deconstructTarget > 0
-                && deconstructJobProcessed >= deconstructTarget) {
-            stopDeconstruction(MatterJobState.TARGET_REACHED);
-        }
-        saveChanges();
-    }
-
-    public void setRewriteTarget(long target) {
-        rewriteTarget = sanitizeJobTarget(target);
-        if (rewriteEnabled && rewriteTarget > 0 && rewriteJobProcessed >= rewriteTarget) {
-            stopRewrite(MatterJobState.TARGET_REACHED);
-        }
-        saveChanges();
-    }
-
-    private static long sanitizeJobTarget(long target) {
-        return Math.max(0, Math.min(MAX_JOB_TARGET, target));
-    }
-
-    public void toggleDeconstruction(ServerPlayer player) {
-        if (deconstructEnabled) {
-            stopDeconstruction(MatterJobState.STOPPED);
-            return;
-        }
-        var input = matterInventory.getStackInSlot(0);
-        if (input.isEmpty()) {
-            deconstructJobState = MatterJobState.INPUT_EMPTY;
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.sequence_input_empty"), false);
-            saveChanges();
-            return;
-        }
-        if (MatterSequenceRegistry.deconstructionOf(input) == null) {
-            deconstructJobState = MatterJobState.UNSUPPORTED;
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.sequence_unsupported"), false);
-            saveChanges();
-            return;
-        }
-        deconstructTemplate = input.copyWithCount(1);
-        deconstructEnabled = true;
-        deconstructJobState = isOperational() ? MatterJobState.RUNNING : MatterJobState.WAITING_NETWORK;
-        deconstructJobProgress = 0;
-        deconstructJobProcessed = 0;
-        onMatterJobToggleChanged();
-    }
-
-    public void toggleRewrite(ServerPlayer player) {
-        if (rewriteEnabled) {
-            stopRewrite(MatterJobState.STOPPED);
-            return;
-        }
-        var blueprint = matterInventory.getStackInSlot(1);
-        if (blueprint.isEmpty()) {
-            rewriteJobState = MatterJobState.BLUEPRINT_EMPTY;
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.sequence_blueprint_empty"), false);
-            saveChanges();
-            return;
-        }
-        if (MatterSequenceRegistry.rewriteCostOf(blueprint) == null) {
-            rewriteJobState = MatterJobState.UNSUPPORTED;
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.sequence_unsupported"), false);
-            saveChanges();
-            return;
-        }
-        rewriteTemplate = blueprint.copyWithCount(1);
-        rewriteEnabled = true;
-        rewriteJobState = isOperational() ? MatterJobState.RUNNING : MatterJobState.WAITING_NETWORK;
-        rewriteJobProgress = 0;
-        rewriteJobProcessed = 0;
-        onMatterJobToggleChanged();
-    }
-
-    private void stopDeconstruction(MatterJobState state) {
-        deconstructEnabled = false;
-        deconstructJobState = state;
-        deconstructJobProgress = 0;
-        onMatterJobToggleChanged();
-    }
-
-    private void stopRewrite(MatterJobState state) {
-        rewriteEnabled = false;
-        rewriteJobState = state;
-        rewriteJobProgress = 0;
-        onMatterJobToggleChanged();
-    }
-
-    private void onMatterJobToggleChanged() {
-        saveChanges();
-        if (level != null && !level.isClientSide()) {
-            syncVisualActivity(level.getGameTime(), true);
-        }
-    }
-
-    private void processMatterJobs() {
-        processDeconstructionJob();
-        processRewriteJob();
-    }
-
-    private void processDeconstructionJob() {
-        if (!deconstructEnabled) {
-            return;
-        }
-        var marker = matterInventory.getStackInSlot(0);
-        if (marker.isEmpty()) {
-            stopDeconstruction(MatterJobState.INPUT_EMPTY);
-            return;
-        }
-        if (!ItemStack.isSameItemSameComponents(marker, deconstructTemplate)) {
-            if (MatterSequenceRegistry.deconstructionOf(marker) == null) {
-                stopDeconstruction(MatterJobState.UNSUPPORTED);
-                return;
-            }
-            deconstructTemplate = marker.copyWithCount(1);
-            deconstructJobProgress = 0;
-            deconstructJobProcessed = 0;
-            setDeconstructJobState(isOperational()
-                    ? MatterJobState.RUNNING
-                    : MatterJobState.WAITING_NETWORK);
-        }
-        if (deconstructTarget > 0 && deconstructJobProcessed >= deconstructTarget) {
-            stopDeconstruction(MatterJobState.TARGET_REACHED);
-            return;
-        }
-        if (!isOperational()) {
-            setDeconstructJobState(MatterJobState.WAITING_NETWORK);
-            return;
-        }
-        if (++deconstructJobProgress < getMatterCycleTicks()) {
-            return;
-        }
-        deconstructJobProgress = 0;
-
-        int completed = 0;
-        int parallelOperations = batchLimit(deconstructTarget, deconstructJobProcessed);
-        MatterJobState result = MatterJobState.RUNNING;
-        while (completed < parallelOperations) {
-            result = processOneDeconstruction();
-            if (result != MatterJobState.RUNNING) {
-                break;
-            }
-            completed++;
-        }
-        if (completed > 0) {
-            deconstructJobProcessed = Math.min(
-                    MAX_JOB_TARGET, deconstructJobProcessed + completed);
-            finishMatterOperations();
-        }
-        if (deconstructTarget > 0 && deconstructJobProcessed >= deconstructTarget) {
-            stopDeconstruction(MatterJobState.TARGET_REACHED);
-        } else if (result == MatterJobState.RUNNING) {
-            setDeconstructJobState(MatterJobState.RUNNING);
-        } else if (isRetryableMatterState(result, false)) {
-            setDeconstructJobState(result);
-        } else {
-            stopDeconstruction(result);
-        }
-    }
-
-    private void processRewriteJob() {
-        if (!rewriteEnabled) {
-            return;
-        }
-        if (rewriteTarget > 0 && rewriteJobProcessed >= rewriteTarget) {
-            stopRewrite(MatterJobState.TARGET_REACHED);
-            return;
-        }
-        if (!isOperational()) {
-            setRewriteJobState(MatterJobState.WAITING_NETWORK);
-            return;
-        }
-        if (++rewriteJobProgress < getMatterCycleTicks()) {
-            return;
-        }
-        rewriteJobProgress = 0;
-
-        int completed = 0;
-        int parallelOperations = batchLimit(rewriteTarget, rewriteJobProcessed);
-        MatterJobState result = MatterJobState.RUNNING;
-        while (completed < parallelOperations) {
-            result = processOneRewrite();
-            if (result != MatterJobState.RUNNING) {
-                break;
-            }
-            completed++;
-        }
-        if (completed > 0) {
-            rewriteJobProcessed = Math.min(MAX_JOB_TARGET, rewriteJobProcessed + completed);
-            finishMatterOperations();
-        }
-        if (rewriteTarget > 0 && rewriteJobProcessed >= rewriteTarget) {
-            stopRewrite(MatterJobState.TARGET_REACHED);
-        } else if (result == MatterJobState.RUNNING
-                && rewriteOutputMode == RewriteOutputMode.OUTPUT_SLOT
-                && !canAcceptMatterOutput(rewriteTemplate)) {
-            stopRewrite(MatterJobState.OUTPUT_FULL);
-        } else if (result == MatterJobState.RUNNING) {
-            setRewriteJobState(MatterJobState.RUNNING);
-        } else if (isRetryableMatterState(result, true)) {
-            setRewriteJobState(result);
-        } else {
-            stopRewrite(result);
-        }
-    }
-
-    private int batchLimit(long target, long processed) {
-        int parallelOperations = getMatterParallelOperations();
-        if (target <= 0) {
-            return parallelOperations;
-        }
-        return (int) Math.min(parallelOperations, Math.max(0, target - processed));
-    }
-
-    private static boolean isRetryableMatterState(MatterJobState state, boolean rewrite) {
-        return state == MatterJobState.WAITING_NETWORK
-                || state == MatterJobState.WAITING_POWER
-                || state == MatterJobState.COOLING
-                || state == MatterJobState.INPUT_EMPTY
-                || rewrite && state == MatterJobState.INSUFFICIENT_SEQUENCE;
-    }
-
-    private MatterJobState processOneDeconstruction() {
-        var value = MatterSequenceRegistry.deconstructionOf(deconstructTemplate);
-        if (value == null) {
-            return MatterJobState.UNSUPPORTED;
-        }
-        if (capacityFor(metalSequence, value.metal()) < 1
-                || capacityFor(mineralSequence, value.mineral()) < 1
-                || capacityFor(crystalSequence, value.crystal()) < 1
-                || capacityFor(organicSequence, value.organic()) < 1) {
-            return MatterJobState.SEQUENCE_STORAGE_FULL;
-        }
-        long entropyPerItem = entropyPerItem(value, 64);
-        long entropyCapacity = getMatterEntropyCapacity();
-        if (entropyPerItem > entropyCapacity) {
-            return MatterJobState.ENTROPY_COST_TOO_HIGH;
-        }
-        if (entropy > entropyCapacity - entropyPerItem) {
-            return MatterJobState.COOLING;
-        }
-        var grid = getMainNode().getGrid();
-        if (grid == null) {
-            return MatterJobState.WAITING_NETWORK;
-        }
-        var storage = grid.getStorageService().getInventory();
-        var key = AEItemKey.of(deconstructTemplate);
-        if (key == null) {
-            return MatterJobState.UNSUPPORTED;
-        }
-        if (storage.extract(key, 1, Actionable.SIMULATE, actionSource) < 1) {
-            return MatterJobState.INPUT_EMPTY;
-        }
-        double powerPerItem = Math.max(256, value.total() * 2.0);
-        if (availablePowerOperations(powerPerItem) < 1) {
-            return MatterJobState.WAITING_POWER;
-        }
-
-        if (storage.extract(key, 1, Actionable.MODULATE, actionSource) < 1) {
-            return MatterJobState.INPUT_EMPTY;
-        }
-        if (!consumePower(powerPerItem)) {
-            refundDeconstructionInput(storage);
-            return MatterJobState.WAITING_POWER;
-        }
-
-        metalSequence += value.metal();
-        mineralSequence += value.mineral();
-        crystalSequence += value.crystal();
-        organicSequence += value.organic();
-        entropy += entropyPerItem;
-        return MatterJobState.RUNNING;
-    }
-
-    private void refundDeconstructionInput(MEStorage storage) {
-        var key = AEItemKey.of(deconstructTemplate);
-        if (key != null) {
-            storage.insert(key, 1, Actionable.MODULATE, actionSource);
-        }
-    }
-
-    private MatterJobState processOneRewrite() {
-        var blueprint = matterInventory.getStackInSlot(1);
-        if (blueprint.isEmpty()
-                || !ItemStack.isSameItemSameComponents(blueprint, rewriteTemplate)) {
-            return MatterJobState.BLUEPRINT_CHANGED;
-        }
-        var value = MatterSequenceRegistry.rewriteCostOf(rewriteTemplate);
-        if (value == null) {
-            return MatterJobState.UNSUPPORTED;
-        }
-        if (affordableOperations(value) < 1) {
-            return MatterJobState.INSUFFICIENT_SEQUENCE;
-        }
-        long entropyPerItem = entropyPerItem(value, 16);
-        long entropyCapacity = getMatterEntropyCapacity();
-        if (entropyPerItem > entropyCapacity) {
-            return MatterJobState.ENTROPY_COST_TOO_HIGH;
-        }
-        if (entropy > entropyCapacity - entropyPerItem) {
-            return MatterJobState.COOLING;
-        }
-        var grid = getMainNode().getGrid();
-        if (grid == null) {
-            return MatterJobState.WAITING_NETWORK;
-        }
-        var storage = grid.getStorageService().getInventory();
-        var key = AEItemKey.of(rewriteTemplate);
-        if (key == null) {
-            return MatterJobState.UNSUPPORTED;
-        }
-        boolean outputAvailable = rewriteOutputMode == RewriteOutputMode.NETWORK
-                ? storage.insert(key, 1, Actionable.SIMULATE, actionSource) >= 1
-                : canAcceptMatterOutput(rewriteTemplate);
-        if (!outputAvailable) {
-            return MatterJobState.OUTPUT_FULL;
-        }
-        double powerPerItem = Math.max(1024, value.total() * 8.0);
-        if (availablePowerOperations(powerPerItem) < 1 || !consumePower(powerPerItem)) {
-            return MatterJobState.WAITING_POWER;
-        }
-
-        metalSequence -= value.metal();
-        mineralSequence -= value.mineral();
-        crystalSequence -= value.crystal();
-        organicSequence -= value.organic();
-        entropy += entropyPerItem;
-
-        boolean stored = rewriteOutputMode == RewriteOutputMode.NETWORK
-                ? storage.insert(key, 1, Actionable.MODULATE, actionSource) >= 1
-                : insertMatterOutput(rewriteTemplate);
-        if (!stored) {
-            metalSequence += value.metal();
-            mineralSequence += value.mineral();
-            crystalSequence += value.crystal();
-            organicSequence += value.organic();
-            entropy -= entropyPerItem;
-            return MatterJobState.OUTPUT_FULL;
-        }
-        return MatterJobState.RUNNING;
-    }
-
-    private boolean canAcceptMatterOutput(ItemStack stack) {
-        var output = matterInventory.getStackInSlot(2);
-        return output.isEmpty()
-                || ItemStack.isSameItemSameComponents(output, stack)
-                && output.getCount() < output.getMaxStackSize();
-    }
-
-    private boolean insertMatterOutput(ItemStack stack) {
-        if (!canAcceptMatterOutput(stack)) {
-            return false;
-        }
-        var output = matterInventory.getStackInSlot(2);
-        if (output.isEmpty()) {
-            matterInventory.setItemDirect(2, stack.copyWithCount(1));
-        } else {
-            output.grow(1);
-        }
-        return true;
-    }
-
-    private void setDeconstructJobState(MatterJobState state) {
-        if (deconstructJobState != state) {
-            deconstructJobState = state;
-            saveChanges();
-        }
-    }
-
-    private void setRewriteJobState(MatterJobState state) {
-        if (rewriteJobState != state) {
-            rewriteJobState = state;
-            saveChanges();
-        }
-    }
-
-    private long availablePowerOperations(double powerPerItem) {
-        var grid = getMainNode().getGrid();
-        if (grid == null || powerPerItem <= 0) {
-            return 0;
-        }
-        double available = grid.getEnergyService().extractAEPower(
-                powerPerItem * 64.0, Actionable.SIMULATE, PowerMultiplier.CONFIG);
-        return Math.max(0, (long) Math.floor((available + 0.001) / powerPerItem));
-    }
-
-    private boolean consumePower(double amount) {
-        var grid = getMainNode().getGrid();
-        if (grid == null) {
-            return false;
-        }
-        var energy = grid.getEnergyService();
-        if (energy.extractAEPower(amount, Actionable.SIMULATE, PowerMultiplier.CONFIG) < amount - 0.01) {
-            return false;
-        }
-        return energy.extractAEPower(amount, Actionable.MODULATE, PowerMultiplier.CONFIG) >= amount - 0.01;
-    }
-
-    private long affordableOperations(MatterValue value) {
-        long amount = Long.MAX_VALUE;
-        if (value.metal() > 0) amount = Math.min(amount, metalSequence / value.metal());
-        if (value.mineral() > 0) amount = Math.min(amount, mineralSequence / value.mineral());
-        if (value.crystal() > 0) amount = Math.min(amount, crystalSequence / value.crystal());
-        if (value.organic() > 0) amount = Math.min(amount, organicSequence / value.organic());
-        return amount == Long.MAX_VALUE ? 0 : amount;
-    }
-
-    private long capacityFor(long stored, long perItem) {
-        if (perItem <= 0) {
-            return Long.MAX_VALUE;
-        }
-        long capacity = getMatterSequenceCapacity();
-        return stored >= capacity ? 0 : (capacity - stored) / perItem;
-    }
-
-    private static long entropyPerItem(MatterValue value, long divisor) {
-        return Math.max(1, value.total() / divisor);
-    }
-
-    private void finishMatterOperations() {
-        visualSuccessTick = level.getGameTime();
-        saveChanges();
-        markForUpdate();
     }
 
     public int getFieldColor() {
@@ -1858,45 +1135,17 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         processReusableBatch(gameTime);
         flushBufferedOutputs(gameTime);
         autoCrafter.tick(gameTime);
-        flushLegacyDeconstructRefund();
-        if (deconstructEnabled) stopDeconstruction(MatterJobState.STOPPED);
-        if (rewriteEnabled) stopRewrite(MatterJobState.STOPPED);
         syncVisualActivity(gameTime, false);
         if (structureCheckTick != gameTime && gameTime % 20 == 0) {
             structureCheckTick = gameTime;
             refreshStructure();
             updateQuantumLink();
-            if (entropy > 0) {
-                long coolingPerSecond = getMatterEntropyCoolingPerSecond();
-                entropy = entropy <= coolingPerSecond ? 0 : entropy - coolingPerSecond;
-                saveChanges();
-            }
         }
     }
 
-    private void flushLegacyDeconstructRefund() {
-        if (legacyDeconstructRefund.isEmpty()) {
-            return;
-        }
-        var grid = getMainNode().getGrid();
-        var key = AEItemKey.of(legacyDeconstructRefund);
-        if (grid == null || key == null) {
-            return;
-        }
-        long inserted = grid.getStorageService().getInventory().insert(
-                key, legacyDeconstructRefund.getCount(), Actionable.MODULATE, actionSource);
-        if (inserted > 0) {
-            legacyDeconstructRefund.shrink((int) Math.min(inserted, legacyDeconstructRefund.getCount()));
-            if (legacyDeconstructRefund.isEmpty()) {
-                legacyDeconstructRefund = ItemStack.EMPTY;
-            }
-            saveChanges();
-        }
-    }
 
     private void syncVisualActivity(long gameTime, boolean force) {
-        boolean working = (deconstructEnabled && deconstructJobState == MatterJobState.RUNNING)
-                || (rewriteEnabled && rewriteJobState == MatterJobState.RUNNING) || isRecentPipelineActivity();
+        boolean working = isRecentPipelineActivity();
         boolean completed = visualSuccessTick != Long.MIN_VALUE && gameTime - visualSuccessTick <= 1
                 && (visualPulseTick == Long.MIN_VALUE || gameTime - visualPulseTick >= 40);
         int work = working ? 1 : 0;
@@ -1906,10 +1155,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             level.blockEvent(worldPosition, getBlockState().getBlock(),
                     CROWN_ACTIVITY_EVENT, work | (completed ? 2 : 0));
         }
-        int mode = (deconstructEnabled ? 1 : 0) | (rewriteEnabled ? 2 : 0);
-        if (mode == 0 && isRecentPipelineActivity()) {
-            mode = 4;
-        }
+        int mode = working ? 4 : 0;
         if (force || mode != visualModeAnnounced || mode != 0 && gameTime % 20 == 0) {
             visualModeAnnounced = mode;
             level.blockEvent(worldPosition, getBlockState().getBlock(),
@@ -2108,22 +1354,22 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         try {
             level.setBlock(upperCorePos, upperCoreState, 3);
             if (!level.getBlockState(upperCorePos).equals(upperCoreState)) {
-                com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
                         "Failed to restore the molecular center upper stabilizer at {}", upperCorePos);
             }
         } catch (RuntimeException exception) {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
                     "Exception while restoring the molecular center upper stabilizer at {}",
                     upperCorePos, exception);
         }
         try {
             level.setBlock(visualCenterPos, visualCenterState, 3);
             if (!level.getBlockState(visualCenterPos).equals(visualCenterState)) {
-                com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
                         "Failed to restore the molecular center visual core at {}", visualCenterPos);
             }
         } catch (RuntimeException exception) {
-            com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error(
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
                     "Exception while restoring the molecular center visual core at {}",
                     visualCenterPos, exception);
         }
@@ -2491,7 +1737,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             relocated = new MolecularCenterBlockEntity(destination, controllerState);
             relocated.loadWithComponents(transferData, registries);
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.error("Unable to prepare molecular controller relocation at {}", worldPosition, exception);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error("Unable to prepare molecular controller relocation at {}", worldPosition, exception);
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.controller_move_failed"), false);
             saveChanges();
@@ -2539,7 +1785,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 throw new IllegalStateException("Relocated controller failed final structure validation");
             }
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.error("Molecular controller relocation {} failed; restoring both positions",
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error("Molecular controller relocation {} failed; restoring both positions",
                     transaction, exception);
             boolean targetRestored = restoreRelocationBlock(destination, destinationState, destinationData);
             boolean detached = detachRelocatedController(destination, relocated);
@@ -2555,7 +1801,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             } else {
                 // Keep the full, non-itemized payload in persistent player data;
                 // never spawn a second usable controller during failed recovery.
-                MolecularManipulator.LOGGER.error("Controller recovery retained in player {} tag {} transaction {}",
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error("Controller recovery retained in player {} tag {} transaction {}",
                         player.getUUID(), CONTROLLER_MOVE_RECOVERY_TAG, transaction);
                 player.displayClientMessage(Component.translatable(
                         "message.molecularmanipulator.controller_move_recovery_failed"), false);
@@ -2593,7 +1839,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             return relocated.isRemoved();
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.error("Cannot detach the failed relocated controller at {}", pos, exception);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error("Cannot detach the failed relocated controller at {}", pos, exception);
             // Do not create another controller from the same payload while this
             // node might still be alive. The persistent recovery journal remains.
             return false;
@@ -2627,7 +1873,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             return true;
         } catch (RuntimeException exception) {
-            MolecularManipulator.LOGGER.error("Unable to restore controller relocation position {}", pos, exception);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error("Unable to restore controller relocation position {}", pos, exception);
             return false;
         }
     }
@@ -3448,39 +2694,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         CONNECTED,
         CONNECTION_ERROR,
         CONNECTED_BUILD_ONLY
-    }
-
-    public enum MatterJobMode {
-        IDLE,
-        DECONSTRUCT,
-        REWRITE
-    }
-
-    public enum RewriteOutputMode {
-        NETWORK,
-        OUTPUT_SLOT;
-
-        public RewriteOutputMode next() {
-            return this == NETWORK ? OUTPUT_SLOT : NETWORK;
-        }
-    }
-
-    public enum MatterJobState {
-        IDLE,
-        RUNNING,
-        STOPPED,
-        WAITING_NETWORK,
-        WAITING_POWER,
-        COOLING,
-        ENTROPY_COST_TOO_HIGH,
-        TARGET_REACHED,
-        INPUT_EMPTY,
-        BLUEPRINT_EMPTY,
-        BLUEPRINT_CHANGED,
-        UNSUPPORTED,
-        SEQUENCE_STORAGE_FULL,
-        INSUFFICIENT_SEQUENCE,
-        OUTPUT_FULL
     }
 
     private record FlushResult(boolean changed, boolean blocked, long transferred) {

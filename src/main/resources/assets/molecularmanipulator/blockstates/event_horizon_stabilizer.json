@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "molecularmanipulator:block/event_horizon_stabilizer"
+    },
+    "facing=east": {
+      "model": "molecularmanipulator:block/event_horizon_stabilizer",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "molecularmanipulator:block/event_horizon_stabilizer",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "molecularmanipulator:block/event_horizon_stabilizer",
+      "y": 270
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+    "vertex": "molecularmanipulator:singularity_lens",
+    "fragment": "molecularmanipulator:singularity_lens",
+    "samplers": [
+        {
+            "name": "SceneColor"
+        },
+        {
+            "name": "SceneDepth"
+        }
+    ],
+    "uniforms": [
+        {
+            "name": "LensProjection",
+            "type": "matrix4x4",
+            "count": 16,
+            "values": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+            ]
+        },
+        {
+            "name": "InverseProjection",
+            "type": "matrix4x4",
+            "count": 16,
+            "values": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+            ]
+        },
+        {
+            "name": "SceneSize",
+            "type": "float",
+            "count": 2,
+            "values": [
+                1,
+                1
+            ]
+        },
+        {
+            "name": "CoreCenter",
+            "type": "float",
+            "count": 3,
+            "values": [
+                0,
+                0,
+                -10
+            ]
+        },
+        {
+            "name": "CoreRadius",
+            "type": "float",
+            "count": 1,
+            "values": [
+                1.9
+            ]
+        },
+        {
+            "name": "FieldRadius",
+            "type": "float",
+            "count": 1,
+            "values": [
+                6.5
+            ]
+        },
+        {
+            "name": "LensTime",
+            "type": "float",
+            "count": 1,
+            "values": [
+                0
+            ]
+        }
+    ]
+}

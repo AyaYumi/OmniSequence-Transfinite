@@ -222,7 +222,7 @@ final class MatterFabricationBatch {
             if (crafts < 0 || !Double.isFinite(powerPerCraft) || powerPerCraft < 0
                     || crafts > 0 && (recipeId == null || inputs.isEmpty() || outputsPerCraft.isEmpty() || duration < 1 || progress < 0 || progress >= duration)) throw new IllegalArgumentException("Invalid batch state");
         } catch (RuntimeException error) {
-            clear(); unavailable = tag.copy(); MolecularManipulator.LOGGER.warn("Preserving unavailable fabrication batch: {}", error.getMessage());
+            clear(); unavailable = tag.copy(); com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Preserving unavailable fabrication batch: {}", error.getMessage());
         }
     }
     private static ListTag saveMap(Map<AEKey, Long> map, HolderLookup.Provider registries) {

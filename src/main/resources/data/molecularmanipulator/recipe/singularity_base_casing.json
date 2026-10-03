@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:omni_computation_casing"
+      },
+      "count": 800
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_casing"
+      },
+      "count": 800
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_block"
+      },
+      "count": 400
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 200
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:singularity_base_casing",
+      "count": 16
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 2048,
+  "requires_research": true
+}

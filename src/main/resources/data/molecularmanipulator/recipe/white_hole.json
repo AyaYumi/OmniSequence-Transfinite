@@ -1,0 +1,20 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [],
+  "results": [
+    {
+      "id": "molecularmanipulator:white_hole",
+      "count": 1
+    }
+  ],
+  "processing_time": 600,
+  "ae_per_tick": 4096,
+  "requires_research": true,
+  "ae_inputs": [
+    {
+      "#t": "ae2:i",
+      "id": "ae2:matter_ball",
+      "#": 1000000000
+    }
+  ]
+}

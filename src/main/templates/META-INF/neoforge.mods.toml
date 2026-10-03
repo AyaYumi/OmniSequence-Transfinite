@@ -44,9 +44,9 @@ authors="HibikiShino"
 
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-OmniSequence: Transfinite is an endgame AE2 and ExtendedAE expansion featuring research-driven matter fabrication, molecular rewriting, virtual crafting CPUs, the single-block Transfinite Compute Nexus and quantum-linked multiblocks. Requires AppliedEnhancements.
+OmniSequence: Transfinite is an endgame AE2 and ExtendedAE expansion featuring research-driven matter fabrication, long-count pattern crafting, virtual crafting CPUs, the Transfinite Compute Nexus and quantum-linked Singularity Hub resource collection and matter duplication. Requires AppliedEnhancements.
 
-万象构序：超限是面向大型自动化网络的 AE2 / ExtendedAE 后期附属模组，提供物质构筑与研究、构序重写、虚拟合成 CPU、单方块超限算枢和量子跨维多方块。需要独立前置 AppliedEnhancements。
+万象构序：超限是面向大型自动化网络的 AE2 / ExtendedAE 后期附属模组，提供物质构筑与研究、大数量样板合成、虚拟合成 CPU、超限算枢，以及量子连接天枢的资源采集和物质复制。需要独立前置 AppliedEnhancements。
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.

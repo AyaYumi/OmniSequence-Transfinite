@@ -1,50 +1,24 @@
-# AppliedEnhancements development dependency / 开发前置
+# AppliedEnhancements dependency / 开发前置
 
-## Current exact API build
+Current source requires the revised **1.1.0** build on client and server.
 
-The current source requires **appliedenhancements-1.1.0.jar** for
-compilation and runtime (exact protocol 9 plus the shared cycle batch API).
-Copy the revised AppliedEnhancements build to `libs/`.
-Both client and server must use that same build. Automatic AELIS integration
-may remain disabled: an online Omni core or nexus explicitly invokes the planner.
-The revised API manages its own explicit-call scope.
+1. Obtain or build the independent AppliedEnhancements 1.1.0 revision.
+2. Copy `appliedenhancements-1.1.0.jar` into this directory.
+3. Run the normal Gradle build. The API validation fails clearly if the file or
+   `AelisBatchExecutionContext` is missing.
 
-当前源码编译和运行均须使用修订版 **1.1.0**，两端使用同一构建。
-将独立前置构建产物 `appliedenhancements-1.1.0.jar` 放入本目录。
-此版本增加共享循环取料和派发事务接口，Omni 的新旧批量供应器均使用它。
-此构建还兼容 AE2 19.2.18 的 CPU 列表显示改动，并继续支持 AE2 19.2.17。
-自动规划开关可以保持关闭，在线核心／算枢主动调用公开 API。
-旧 CI 固定提交不含本次尚未提交的前置修订；前置发布后须更新 CI 的固定提交。
+The runtime and compile-time declarations use `gradle.properties`. JARs under
+`libs/` are ignored by Git and never shaded into the mod. Install each prerequisite
+separately. Do not rename an old 1.0.x file to 1.1.0.
 
-## Historical 2.0.0 dependency setup
-
-OmniSequence 2.0.0 requires **AppliedEnhancements 1.0.6+** on both sides.
-The source build is pinned to 1.0.6 through `gradle.properties`.
-
-The prerequisite is maintained in [AyaYumi/AppliedEnhancements](https://github.com/AyaYumi/AppliedEnhancements).
-Build its release commit `3f63fa2908f0ba2693ebbb0bf4134b54bd38d31d` with Java 21:
-
-```sh
-git clone https://github.com/AyaYumi/AppliedEnhancements.git
-git -C AppliedEnhancements checkout 3f63fa2908f0ba2693ebbb0bf4134b54bd38d31d
-cd AppliedEnhancements
-./gradlew --no-configuration-cache build
-```
-
-Copy `build/libs/appliedenhancements-1.0.6.jar` from that checkout into this
-repository's `libs/` directory. On Windows, use `gradlew.bat`.
-GitHub Actions performs the same source checkout and build automatically.
-
-`compileOnly` supplies the public types and `localRuntime` supplies development
-runs. The JAR is ignored by Git and is never embedded in the OmniSequence JAR.
-Players install the prerequisite separately. Its source and release are not
-published from this repository.
+Remote CI builds the matching prerequisite from AppliedEnhancements commit
+`d70f2c0351cc9d9a690bc5f288bca019d0741b9d`. A trusted matching artifact URL
+can override this through `APPLIED_ENHANCEMENTS_JAR_URL` or workflow-dispatch
+input. The shared API is checked before compilation. See
+[development](../docs/development.md).
 
 ## 中文
 
-本项目客户端和服务端均要求 AppliedEnhancements 1.0.6 或更高版本。
-源码编译固定使用 1.0.6：从上方独立仓库检出指定提交，以 Java 21 构建，
-将产物复制到本目录。远程 CI 自动执行相同步骤。
-
-前置安装包被 Git 忽略，不重复提交、不嵌入 OmniSequence。
-更新前置时同步 `gradle.properties`、CI 固定提交及本说明，并重新核对 API 兼容性。
+需要修订版 1.1.0；将实际构建放入此目录，两端使用相同版本。前置构建独立维护，
+不在本仓库发布，也不嵌入 OmniSequence。旧 1.0.x 缺少共享事务类型，改文件名
+不能替代接口更新。远程 CI 默认构建固定 Git 提交的匹配前置，也支持显式构建地址覆盖。

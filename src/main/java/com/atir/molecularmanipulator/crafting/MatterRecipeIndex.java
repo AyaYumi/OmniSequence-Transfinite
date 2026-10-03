@@ -30,6 +30,7 @@ public final class MatterRecipeIndex {
     private final List<RecipeHolder<MatterFabricationRecipe>> fabrication;
     private final Map<ResourceLocation, RecipeHolder<MatterFabricationRecipe>> fabricationById = new HashMap<>();
     private final List<RecipeHolder<MatterResearchRecipe>> research;
+    private final Map<ResourceLocation, RecipeHolder<MatterResearchRecipe>> researchById = new HashMap<>();
     private final Map<Map<AEKey, Long>, List<RecipeHolder<MatterFabricationRecipe>>> byOutput = new HashMap<>();
     private final Map<ResourceLocation, List<RecipeHolder<MatterResearchRecipe>>> researchByRecipe = new HashMap<>();
     private final Map<ResourceLocation, List<RecipeHolder<MatterResearchRecipe>>> dynamicResearchByRecipe = new HashMap<>();
@@ -99,6 +100,7 @@ public final class MatterRecipeIndex {
         research = definitions.stream().sorted(Comparator.<RecipeHolder<MatterResearchRecipe>>comparingInt(holder -> holder.value().sortOrder())
                 .thenComparing(holder -> holder.id().toString())).toList();
         for (var holder : research) {
+            researchById.put(holder.id(), holder);
             for (var recipe : holder.value().unlocks()) {
                 researchByRecipe.computeIfAbsent(recipe, ignored -> new ArrayList<>()).add(holder);
             }
@@ -132,6 +134,7 @@ public final class MatterRecipeIndex {
     public RecipeHolder<MatterFabricationRecipe> fabrication(ResourceLocation id) { return fabricationById.get(id); }
 
     public List<RecipeHolder<MatterResearchRecipe>> research() { return research; }
+    public RecipeHolder<MatterResearchRecipe> research(ResourceLocation id) { return researchById.get(id); }
 
     public List<RecipeHolder<MatterResearchRecipe>> researchFor(ResourceLocation recipe) {
         var result = new ArrayList<RecipeHolder<MatterResearchRecipe>>();

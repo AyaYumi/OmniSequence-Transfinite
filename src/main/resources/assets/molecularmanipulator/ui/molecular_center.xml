@@ -28,10 +28,7 @@
                 style="left: 352; top: 4; width: 68"/>
         <element id="tab-indicator" class="placed"
                  style="left: 216; top: 23; width: 66"/>
-        <button id="archived-matter" class="placed compact-button"
-                style="left: 354; top: 30; width: 64"/>
-
-        <button id="auto-craft-apply-limit" class="placed auto-craft-control"
+<button id="auto-craft-apply-limit" class="placed auto-craft-control"
                 style="left: 371; top: 90; width: 43; height: 16"/>
         <button id="auto-craft-apply-reserve-0" class="placed auto-craft-control" style="left: 277; top: 123; width: 32; height: 16"/>
         <button id="auto-craft-apply-reserve-1" class="placed auto-craft-control" style="left: 383; top: 123; width: 32; height: 16"/>

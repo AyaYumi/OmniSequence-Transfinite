@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "molecularmanipulator:block/white_hole_resource_core"
+    }
+  }
+}

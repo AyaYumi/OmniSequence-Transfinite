@@ -5,6 +5,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ResearchMaterialAllocatorTest {
+    @Test void partialAllocationReroutesOverlappingTagsWithoutFalseDeficits() {
+        // Equal candidate counts defeat the old greedy "fewest matches first" heuristic.
+        var stock = new LinkedHashMap<String, Long>(); stock.put("a", 1L); stock.put("b", 1L); stock.put("c", 1L);
+        assertEquals(List.of(0L, 0L, 0L), ResearchMaterialAllocator.deficits(List.of(1L, 1L, 1L), stock,
+                (row, key) -> row == 0 ? key.equals("a") || key.equals("b") : key.equals("a") || key.equals("c")));
+    }
+    @Test void partialAllocationFindsOnlyActualShortfallWithLongCapacities() {
+        assertEquals(List.of(0L, 3L), ResearchMaterialAllocator.deficits(List.of(Long.MAX_VALUE, 3L),
+                Map.of("a", Long.MAX_VALUE), (row, key) -> true));
+        assertEquals(List.of(), ResearchMaterialAllocator.deficits(List.of(), Map.of("a", 1L), (row, key) -> true));
+    }
     @Test void singleDemandReservesWholeBeforeTakingOrderedPortion() {
         var stock = new LinkedHashMap<String, Long>();
         stock.put("ignored", 100L); stock.put("oak", 3L); stock.put("birch", 5L);

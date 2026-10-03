@@ -1,0 +1,6 @@
+{
+  "parent": "neoforge:item/bucket",
+  "loader": "neoforge:fluid_container",
+  "fluid": "molecularmanipulator:singularity_sequence_matter",
+  "apply_fluid_luminosity": true
+}

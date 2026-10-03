@@ -341,7 +341,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
                     jobTag, registries);
             if (activeReusableBatch == null) {
                 quarantinedReusableBatchTag = jobTag.copy();
-                MolecularManipulator.LOGGER.error(
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
                         "Invalid molecular-manipulator reusable batch at {}; preserving its NBT and locking the machine",
                         getBlockPos());
             }

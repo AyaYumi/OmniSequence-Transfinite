@@ -39,7 +39,6 @@ final class MolecularCenterLdUi {
     private final Button overviewTabButton;
     private final Button autoCraftTabButton;
     private final Button colorsTabButton;
-    private final Button archiveButton;
     private final Button autoCraftApplyLimitButton;
     private final List<Button> autoCraftReserveButtons;
     private final Button resetColorsButton;
@@ -85,10 +84,6 @@ final class MolecularCenterLdUi {
                 "gui.molecularmanipulator.tab_auto_craft", MolecularCenterScreen.TAB_AUTO_CRAFT);
         colorsTabButton = tab(ui, "tab-colors",
                 "gui.molecularmanipulator.tab_colors", MolecularCenterScreen.TAB_COLORS);
-        archiveButton = button(ui, "archived-matter",
-                Component.translatable("gui.molecularmanipulator.archive_button"),
-                Component.translatable("gui.molecularmanipulator.archive_note"),
-                event -> selectTab(MolecularCenterScreen.TAB_ARCHIVE));
         tabIndicator = LdUiXml.require(ui, "tab-indicator", UIElement.class);
         tabIndicator.setDisplay(false);
 
@@ -183,7 +178,6 @@ final class MolecularCenterLdUi {
         setDisplay(autoCraftControls, autoCraftVisible);
         setDisplay(colorsControls, colorsVisible);
         setDisplay(legacyControls, menu.legacyStructure && colorsVisible);
-        archiveButton.setDisplay(tab == MolecularCenterScreen.TAB_OVERVIEW && screen.hasArchivedMatter());
         resetColorsButton.setDisplay(colorsVisible && !menu.legacyStructure);
         keepLegacyStructureButton.setDisplay(
                 menu.legacyStructure && colorsVisible
@@ -214,8 +208,7 @@ final class MolecularCenterLdUi {
         dismantleButton.textStyle(style -> style.textColor(
                 screen.dismantleConfirming() ? RED : 0xFFFFFFFF));
         if (previousTab != tab) {
-            setTabSelected(overviewTabButton, tab == MolecularCenterScreen.TAB_OVERVIEW
-                    || tab == MolecularCenterScreen.TAB_ARCHIVE);
+            setTabSelected(overviewTabButton, tab == MolecularCenterScreen.TAB_OVERVIEW);
             setTabSelected(autoCraftTabButton, autoCraftVisible);
             setTabSelected(colorsTabButton, colorsVisible);
             previousTab = tab;

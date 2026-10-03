@@ -4,6 +4,11 @@ import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
+import appeng.api.client.AEKeyRendering;
+import com.atir.molecularmanipulator.client.AEStackIcon;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.ingredients.IIngredientRenderer;
+import net.minecraft.world.item.TooltipFlag;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.client.AeUiTheme;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
@@ -63,7 +68,8 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
             var counted = recipe.ingredients().get(i);
             builder.addInputSlot(inputX(inputCount, i), inputY(inputCount, i))
                     .setBackground(slot, -1, -1)
-                    .addItemStacks(Arrays.stream(counted.ingredient().getItems()).map(s -> s.copyWithCount(counted.count())).toList());
+                    .addItemStacks(Arrays.stream(counted.ingredient().getItems()).map(s -> s.copyWithCount(counted.count())).toList())
+                    .setCustomRenderer(VanillaTypes.ITEM_STACK, new CountedItemRenderer(counted.count()));
         }
         for (int i = 0; i < recipe.aeInputs().size(); i++) {
             int index = recipe.ingredients().size() + i;
@@ -93,17 +99,47 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
     private static void addAeStack(IRecipeSlotBuilder slot, GenericStack stack) {
         int visibleAmount = (int) Math.min(Integer.MAX_VALUE, stack.amount());
         if (stack.what() instanceof AEItemKey item) {
-            slot.addItemStack(item.toStack(visibleAmount));
+            slot.addItemStack(item.toStack(visibleAmount))
+                    .setCustomRenderer(VanillaTypes.ITEM_STACK, new AeResourceRenderer<ItemStack>(stack));
         } else if (stack.what() instanceof AEFluidKey fluid) {
             slot.addIngredient(NeoForgeTypes.FLUID_STACK, fluid.toStack(visibleAmount))
                     .setFluidRenderer(visibleAmount, false, 16, 16);
         } else if (!ModList.get().isLoaded("ae2jeiintegration")
                 || !MatterFabricationJeiIngredients.add(slot, stack)) {
             if (MISSING_CONVERTERS.add(stack.what().getType())) {
-                MolecularManipulator.LOGGER.warn("No native JEI ingredient converter for AE key {}", stack.what());
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("No native JEI ingredient converter for AE key {}", stack.what());
             }
         }
     }
+    /** Keep ordinary counted ingredients readable after large recipe-cost increases. */
+    private record CountedItemRenderer(long amount) implements IIngredientRenderer<ItemStack> {
+        @Override public void render(GuiGraphics graphics, ItemStack ingredient) {
+            AEStackIcon.draw(graphics, new GenericStack(AEItemKey.of(ingredient), amount), 0, 0);
+        }
+
+        @Override public List<Component> getTooltip(ItemStack ingredient, TooltipFlag flag) {
+            var mc = Minecraft.getInstance();
+            var lines = new ArrayList<>(ingredient.getTooltipLines(
+                    net.minecraft.world.item.Item.TooltipContext.of(mc.level), mc.player, flag));
+            lines.add(Component.translatable("gui.molecularmanipulator.jei_required_count", DisplayNumbers.exact(amount)));
+            return lines;
+        }
+    }
+
+    /** Uses SI labels in the recipe and retains the full long quantity in hover text. */
+    private record AeResourceRenderer<T>(GenericStack stack) implements IIngredientRenderer<T> {
+        @Override public void render(GuiGraphics graphics, T ingredient) {
+            AEStackIcon.draw(graphics, stack, 0, 0);
+        }
+
+        @Override public List<Component> getTooltip(T ingredient, TooltipFlag flag) {
+            var lines = new ArrayList<>(AEKeyRendering.getTooltip(stack.what()));
+            lines.add(Component.translatable("gui.molecularmanipulator.jei_required_count",
+                    DisplayNumbers.exact(stack.amount())));
+            return lines;
+        }
+    }
+
     private static int outputX(int count, int index) { return Math.min(2, count - index / 2 * 2) == 1 ? 146 : 136 + index % 2 * 20; }
     private static int outputY(int count, int index) {
         return count <= 2 ? 42 : count <= 4 ? 33 + index / 2 * 20 : 24 + index / 2 * 18;

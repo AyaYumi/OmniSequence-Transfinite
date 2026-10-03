@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:molecular_center_core"
+      },
+      "count": 100
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_data_entangler"
+      },
+      "count": 100
+    },
+    {
+      "ingredient": {
+        "item": "ae2:singularity"
+      },
+      "count": 6400
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 800
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:black_hole_capture_node",
+      "count": 1
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 2048,
+  "requires_research": true
+}

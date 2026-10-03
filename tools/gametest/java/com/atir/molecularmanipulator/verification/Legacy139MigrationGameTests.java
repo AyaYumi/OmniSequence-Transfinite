@@ -28,7 +28,7 @@ public final class Legacy139MigrationGameTests {
         var level=helper.getLevel();var origin=new BlockPos(BASE_X,100,6200);force(level,origin);
         level.setBlock(origin,ModContent.MOLECULAR_CENTER_CONTROLLER.get().defaultBlockState(),3);
         var sequence=(MolecularCenterBlockEntity)level.getBlockEntity(origin);
-        var contents=new ItemStack(Items.DIAMOND,7);sequence.getMatterInventory().setItemDirect(0,contents.copy());
+        var contents=new ItemStack(Items.DIAMOND,7);sequence.getQuantumInventory().setItemDirect(0,contents.copy());
         var saved=sequence.saveWithFullMetadata(level.registryAccess());
         saved.putBoolean("molecular_center_building",true);
         saved.putBoolean("molecular_center_structure_updating",false);
@@ -40,7 +40,7 @@ public final class Legacy139MigrationGameTests {
         saved.putString("molecular_center_structure_update_source","DECORATED_FEATHER");
         sequence.loadTag(saved,level.registryAccess());
         helper.assertTrue(!sequence.isBuilding(),"Removed sequence upgrade must not become a current build");
-        helper.assertTrue(ItemStack.matches(contents,sequence.getMatterInventory().getStackInSlot(0)),"Stopping a retired sequence upgrade preserves contents");
+        helper.assertTrue(ItemStack.matches(contents,sequence.getQuantumInventory().getStackInSlot(0)),"Stopping a retired sequence upgrade preserves contents");
 
         var omniPos=origin.east(2);level.setBlock(omniPos,ModContent.OMNI_COMPUTATION_CONTROLLER.get().defaultBlockState(),3);
         var omni=(OmniComputationCoreBlockEntity)level.getBlockEntity(omniPos);
@@ -94,7 +94,7 @@ public final class Legacy139MigrationGameTests {
         h.assertTrue(machine.getStructureLayout()==legacy,"Sequence must recognize exact 1.3.9");
         var contents=new ItemStack(Items.DIAMOND,7);
         var pattern=PatternDetailsHelper.encodeProcessingPattern(List.of(new GenericStack(AEItemKey.of(Items.COBBLESTONE),1)),List.of(new GenericStack(AEItemKey.of(Items.STONE),1)));
-        machine.getMatterInventory().setItemDirect(0,contents.copy());machine.getLogic().getFullPatternInventory().setItemDirect(0,pattern.copy());
+        machine.getQuantumInventory().setItemDirect(0,contents.copy());machine.getLogic().getFullPatternInventory().setItemDirect(0,pattern.copy());
         machine.setDeconstructTarget(12345);
         var target=MolecularCenterStructure.relocatedControllerPos(origin,facing,legacy);
         h.assertTrue(target.equals(origin.below(3).relative(facing.getOpposite(),15)),"Sequence projection anchor must match migration");
@@ -110,7 +110,7 @@ public final class Legacy139MigrationGameTests {
         var moved=(MolecularCenterBlockEntity)level.getBlockEntity(target);
         h.assertTrue(moved!=null,"Sequence controller must move to current socket");moved.refreshStructure();
         h.assertTrue(moved.getStructureLayout()==MolecularCenterStructure.StructureLayout.CURRENT&&!moved.isBuilding(),"Sequence upgrade must finish as current");
-        h.assertTrue(ItemStack.matches(contents,moved.getMatterInventory().getStackInSlot(0))&&ItemStack.matches(pattern,moved.getLogic().getFullPatternInventory().getStackInSlot(0)),"Sequence inventory and encoded pattern preserved");
+        h.assertTrue(ItemStack.matches(contents,moved.getQuantumInventory().getStackInSlot(0))&&ItemStack.matches(pattern,moved.getLogic().getFullPatternInventory().getStackInSlot(0)),"Sequence inventory and encoded pattern preserved");
         h.assertTrue(moved.getDeconstructTarget()==12345,"Sequence job settings preserved");
     }
 

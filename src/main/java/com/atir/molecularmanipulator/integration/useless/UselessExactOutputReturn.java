@@ -49,7 +49,7 @@ public final class UselessExactOutputReturn {
         @Override protected Optional<Layout> computeValue(Class<?> type) {
             try { return Optional.of(new Layout(type)); }
             catch (ReflectiveOperationException | RuntimeException failure) {
-                MolecularManipulator.LOGGER.warn("Native exact output queue layout unavailable; using ordinary network return: {}", type.getName());
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Native exact output queue layout unavailable; using ordinary network return: {}", type.getName());
                 return Optional.empty();
             }
         }

@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "axis=y": {
+      "model": "molecularmanipulator:block/spacetime_anchor_pillar"
+    },
+    "axis=x": {
+      "model": "molecularmanipulator:block/spacetime_anchor_pillar",
+      "x": 90,
+      "y": 90
+    },
+    "axis=z": {
+      "model": "molecularmanipulator:block/spacetime_anchor_pillar",
+      "x": 90
+    }
+  }
+}

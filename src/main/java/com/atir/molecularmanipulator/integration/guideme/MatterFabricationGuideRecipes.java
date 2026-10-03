@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.integration.guideme;
 
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -39,13 +40,14 @@ public final class MatterFabricationGuideRecipes implements RecipeTypeMappingSup
             for (int i = 0; i < recipe.ingredients().size(); i++) {
                 var counted = recipe.ingredients().get(i);
                 inputs.setIngredient(i % columns, i / columns, Ingredient.of(Arrays.stream(counted.ingredient().getItems())
-                        .map(stack -> stack.copyWithCount(counted.count()))));
+                        .map(stack -> GenericStack.wrapInItemStack(
+                                new GenericStack(AEItemKey.of(stack), counted.count())))));
             }
             int index = recipe.ingredients().size();
             for (var input : recipe.aeInputs()) {
                 if (input.what() instanceof AEItemKey item) {
                     inputs.setItem(index % columns, index / columns,
-                            item.toStack((int) Math.min(Integer.MAX_VALUE, input.amount())));
+                            GenericStack.wrapInItemStack(input));
                     index++;
                 }
             }
@@ -68,7 +70,7 @@ public final class MatterFabricationGuideRecipes implements RecipeTypeMappingSup
         if (!recipe.fluidInput().isEmpty()) box.addBottom(paragraph(text("fluid_input",
                 recipe.fluidInput().getHoverName().getString(), DisplayNumbers.exact(recipe.fluidInput().getAmount()))));
         for (var input : recipe.aeInputs()) box.addBottom(paragraph(text("ae_input",
-                input.what().getDisplayName().getString(), DisplayNumbers.exact(input.amount()))));
+                input.what().getDisplayName().getString(), DisplayNumbers.compact(input.amount()))));
         if (!recipe.fluidResult().isEmpty()) box.addBottom(paragraph(text("fluid_output",
                 recipe.fluidResult().getHoverName().getString(), DisplayNumbers.exact(recipe.fluidResult().getAmount()))));
         for (var output : recipe.aeOutputs()) box.addBottom(paragraph(text("ae_output",

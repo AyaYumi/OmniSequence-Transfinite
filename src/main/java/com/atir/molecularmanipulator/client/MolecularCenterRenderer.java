@@ -67,16 +67,16 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
 
         // Finish emitting each pass before obtaining the next buffer: switching an
         // unfixed RenderType can flush the previous consumer in MultiBufferSource.
-        renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralDepth()),
+        renderLayoutPass(layout, poseStack, OmniRenderLayers.molecularSpectralDepth(buffers),
                 angle, visualMode, effectLevel, false, center.getFieldColor(), center.getCoreColor(),
                 center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
                 crown.activity(), completion, clockTicks);
         if (crystalFeathers) {
             FeatherResonanceEffects.renderCoreSurface(poseStack,
-                    buffers.getBuffer(OmniRenderLayers.translucentEmissiveColor()), angle,
+                    OmniRenderLayers.molecularSurface(buffers), angle,
                     center.getCoreColor(), center.getSecondaryRingColor());
         }
-        renderLayoutPass(layout, poseStack, buffers.getBuffer(OmniRenderLayers.molecularSpectralGlow()),
+        renderLayoutPass(layout, poseStack, OmniRenderLayers.molecularSpectralGlow(buffers),
                 angle, visualMode, effectLevel, true, center.getFieldColor(), center.getCoreColor(),
                 center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
                 crown.activity(), completion, clockTicks);

@@ -16,6 +16,8 @@ public final class OmniShaders {
     private static volatile ShaderInstance molecularSpectral;
     private static volatile ShaderInstance matterCondensation;
     private static volatile ShaderInstance singularityCompute;
+    private static volatile ShaderInstance singularityLens;
+    private static volatile ShaderInstance cosmicLens;
 
     private OmniShaders() {
     }
@@ -33,8 +35,12 @@ public final class OmniShaders {
                         MolecularManipulator.id("singularity_compute"),
                         DefaultVertexFormat.POSITION_COLOR),
                 shader -> singularityCompute = shader);
-        MolecularManipulator.LOGGER.info(
-                "Registered dedicated multiblock shaders: molecular_spectral, matter_condensation, singularity_compute");
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("singularity_lens"), DefaultVertexFormat.POSITION),
+                shader -> singularityLens = shader);
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("cosmic_lens"), DefaultVertexFormat.POSITION),
+                shader -> cosmicLens = shader);
     }
 
     public static ShaderInstance molecularSpectral() {
@@ -51,4 +57,8 @@ public final class OmniShaders {
         ShaderInstance shader = singularityCompute;
         return shader != null ? shader : GameRenderer.getPositionColorShader();
     }
+
+    public static ShaderInstance singularityLens() { return singularityLens; }
+
+    public static ShaderInstance cosmicLens() { return cosmicLens; }
 }

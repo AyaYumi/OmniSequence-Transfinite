@@ -60,3 +60,11 @@ libs/*.jar
 /y-*.log
 /codex-backups/
 /libs/_codex_backups/
+
+### Generated previews and local cleanup archives ###
+/cleanup-backups/
+*.hprof
+*.jfr
+
+# CI-only prerequisite checkout
+/.build-dependencies/

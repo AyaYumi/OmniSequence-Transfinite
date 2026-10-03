@@ -4,11 +4,8 @@ import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
-import com.atir.molecularmanipulator.sequence.MatterSequenceRegistry;
 import com.atir.molecularmanipulator.integration.useless.UselessBigIntegerApiBridge;
 import appeng.api.AECapabilities;
-import appeng.api.upgrades.Upgrades;
-import appeng.core.definitions.AEItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
@@ -17,8 +14,6 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import org.slf4j.Logger;
 
 @Mod(MolecularManipulator.MOD_ID)
@@ -33,13 +28,11 @@ public final class MolecularManipulator {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(PatternSearchIndexPayload::register);
-        MatterSequenceRegistry.loadOrCreate();
-        NeoForge.EVENT_BUS.addListener(this::serverAboutToStart);
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
-                com.atir.molecularmanipulator.registry.TaixuContent.CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
+                com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.MOLECULAR_CENTER_SHELL_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
@@ -67,15 +60,11 @@ public final class MolecularManipulator {
                 (blockEntity, side) -> blockEntity.getExternalFluidHandler());
     }
 
-    private void serverAboutToStart(ServerAboutToStartEvent event) {
-        MatterSequenceRegistry.loadOrCreate();
-    }
 
     private void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             UselessBigIntegerApiBridge.register();
             validateMixins();
-            Upgrades.add(AEItems.SPEED_CARD, ModContent.MOLECULAR_CENTER_CONTROLLER.get(), 4);
             ModContent.bindBlockEntity();
         });
     }

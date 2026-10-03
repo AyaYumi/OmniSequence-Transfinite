@@ -92,7 +92,7 @@ public final class MolecularDismantleGameTests {
         retain(level, all, keep);
         center.refreshStructure();
         helper.assertTrue(!center.isFormed(), "Sparse fixture must rely on remembered layout, not a complete match");
-        center.getMatterInventory().setItemDirect(0, new ItemStack(Items.DIAMOND, 7));
+        center.getQuantumInventory().setItemDirect(0, new ItemStack(Items.DIAMOND, 7));
         var decoration = ORIGIN.offset(45, 8, 0);
         touched.add(decoration);
         level.setBlock(decoration, ModContent.MOLECULAR_CENTER_CASING.get().defaultBlockState(), 2);
@@ -125,7 +125,7 @@ public final class MolecularDismantleGameTests {
                 "Foreign BE and contents must survive");
         helper.assertTrue(level.getBlockState(decoration).is(ModContent.MOLECULAR_CENTER_CASING.get()),
                 "Nearby same-material decoration must survive");
-        helper.assertTrue(center.getMatterInventory().getStackInSlot(0).getCount() == 7,
+        helper.assertTrue(center.getQuantumInventory().getStackInSlot(0).getCount() == 7,
                 "Retained controller inventory must stay untouched");
         clear(level, touched);
     }

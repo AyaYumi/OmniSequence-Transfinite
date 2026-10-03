@@ -55,11 +55,6 @@ base {
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-// Explicit development-only transformed execution verification; never in a normal release.
-if (project.hasProperty('exactSmoke')) {
-    sourceSets.main.java.srcDir 'src/exactSmoke/java'
-}
-
 neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version
@@ -217,16 +212,8 @@ tasks.named('jar', Jar).configure {
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
-    from('docs/omni-batch-provider-api.md') {
-        into 'docs'
-    }
-    from('docs/matter-research-api.md') {
-        into 'docs'
-    }
-    from('docs/matter-research-api.zh-CN.md') {
-        into 'docs'
-    }
-    from('docs/README.md') {
+    from('docs') {
+        include '*.md'
         into 'docs'
     }
 }
@@ -248,4 +235,41 @@ idea {
         downloadSources = true
         downloadJavadoc = true
     }
+}
+
+// Validate the separately installed shared transaction API before compiling.
+var verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi') {
+    def dependencyJar = layout.projectDirectory.file("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
+    inputs.file(dependencyJar)
+    doLast {
+        def jarFile = dependencyJar.asFile
+        if (!jarFile.isFile()) {
+            throw new GradleException("Missing revised AppliedEnhancements dependency: " + jarFile + ". See libs/README.md")
+        }
+        new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
+            if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null) {
+                throw new GradleException('The AppliedEnhancements JAR lacks the 1.1.0 shared transaction API. See libs/README.md')
+            }
+        }
+    }
+}
+tasks.named('compileJava').configure { dependsOn verifyAppliedEnhancementsApi }
+
+tasks.register('apiJavadoc', Javadoc) {
+    group = 'documentation'
+    description = 'Generate public crafting and research Java API documentation.'
+    dependsOn tasks.named('classes')
+    source = sourceSets.main.java.matching {
+        include 'com/atir/molecularmanipulator/api/**/*.java'
+        include 'com/atir/molecularmanipulator/research/MatterResearchApi.java'
+        include 'com/atir/molecularmanipulator/research/MatterResearchRecipe.java'
+        include 'com/atir/molecularmanipulator/research/ResearchDepth.java'
+    }
+    classpath = sourceSets.main.compileClasspath + sourceSets.main.output
+    destinationDir = layout.buildDirectory.dir('docs/api').get().asFile
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.memberLevel = JavadocMemberLevel.PUBLIC
+    options.addBooleanOption('Xdoclint:none', true)
+    options.windowTitle = 'OmniSequence 2.0.7 API'
 }

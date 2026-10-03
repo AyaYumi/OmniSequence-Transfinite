@@ -1,8 +1,0 @@
-{
-  "parent": "minecraft:block/slab",
-  "textures": {
-    "bottom": "molecularmanipulator:block/taixu/jade",
-    "top": "molecularmanipulator:block/taixu/jade",
-    "side": "molecularmanipulator:block/taixu/jade"
-  }
-}

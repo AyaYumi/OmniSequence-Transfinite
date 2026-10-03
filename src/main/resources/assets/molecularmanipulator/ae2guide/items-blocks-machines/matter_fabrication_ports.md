@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: items-blocks-machines/matter_fabrication_well.md
-  title: Well Input and Output Ports
+  title: "Fabrication Input and Output Ports"
   icon: molecularmanipulator:matter_fabrication_item_input
   position: 1
 item_ids:
@@ -11,61 +11,68 @@ item_ids:
 - molecularmanipulator:matter_fabrication_fluid_output
 ---
 
-# Well Input and Output Ports
+# Fabrication Input and Output Ports
 
-<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="5" />
+Feed the well and move its products into pipes or containers. All four ports use basic AE2 materials and need no research.
 
-The four ports handle item input, item output, fluid input and fluid output. Their crafting recipes use base AE2 materials and require no research. Hold a port to highlight valid sockets on nearby [wells](matter_fabrication_well.md).
+<Row>
+<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="4" />
+
+<BlockImage id="molecularmanipulator:matter_fabrication_item_output" scale="4" />
+
+<BlockImage id="molecularmanipulator:matter_fabrication_fluid_input" scale="4" />
+
+<BlockImage id="molecularmanipulator:matter_fabrication_fluid_output" scale="4" />
+</Row>
+
+## Choose a port
+
+| Port | Pipe access | Cache |
+| --- | --- | --- |
+| Item input | Insert ingredients | 16 slots |
+| Item output | Extract products | 16 slots |
+| Fluid input | Insert fluids | 4 tanks |
+| Fluid output | Extract fluids | 4 tanks |
+
+Each fluid tank holds **2,147,483,647 mB**. Hold a port to see valid positions. The formed [controller](matter_fabrication_well.md) runs the processing recipes.
+
+## Supply and collect
+
+1. Supply each recipe's item and fluid ingredients to the correct inputs.
+2. Reserve output space for every product type.
+3. Extract with pipes, or enable **Auto Output** and select adjacent destinations.
+
+| Auto Output setting | Behavior |
+| --- | --- |
+| Default | Disabled; all six directions unselected |
+| To start | Enable the switch and select at least one direction |
+| Destinations | Up, down, north, south, west, east; multiple selections allowed |
+
+Directions follow the world axes. Hover a direction button to identify its neighboring block.
+
+## Move fluids by hand
 
 <ItemGrid>
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_item_output" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_input" />
-<ItemIcon id="molecularmanipulator:matter_fabrication_fluid_output" />
+<ItemIcon id="minecraft:bucket" />
+<ItemIcon id="minecraft:water_bucket" />
 </ItemGrid>
 
-## Buffers and pipes
+Carry a filled container with the cursor and **right-click a fluid slot** to fill it. Carry an empty container to drain it. Each action handles one container; insufficient fluid, incompatible fluid, or insufficient space prevents the transfer.
 
-| Port type | Buffer |
-| --- | --- |
-| Item ports | 16 ordinary slots |
-| Fluid ports | 4 independent tanks, each holding up to 2,147,483,647 mB |
+## Return and relocate
 
-External automation may insert into input ports and extract from output ports. These fixed port buffers are separate from the [pattern assembly's](matter_fabrication_pattern_assembly.md) unrestricted-type buffers.
-
-Supply item/fluid ingredients through the interface or pipes and provide output capacity for every result type.
-
-## Return to ME and automatic output
-
-When the controller's network is online, the input port's **Return to ME** button returns buffered materials to it. Anything the network cannot accept stays in the port.
-
-Output ports have an **Auto Output** toggle:
-
-| Setting | Behavior |
-| --- | --- |
-| Default state | Disabled, with no directions selected |
-| When enabled | Choose at least one direction to send items or fluids into adjacent compatible containers |
-| Directions | Up, down, north, south, west and east — world directions, independent of the controller's facing |
-| Buttons | Show neighboring block icons; hover for names |
-
-Multiple directions may be selected at the same time.
-
-## Manual fluid containers
-
-> Pick up a filled bucket or compatible container with the mouse and right-click the desired tank slot to empty it into that tank. Right-click with an empty container to fill it.
-
-One container is handled per interaction. Incompatible fluids, insufficient fluid or insufficient space prevent the transfer. Both fluid input and output ports support this operation; results from stacked containers need room in the player inventory.
-
-Normal port drops retain their item or fluid contents. Replace them in valid sockets to continue using them.
+**Return to ME** sends input cache contents into the controller's network. Unaccepted amounts remain in the port. Removing a port normally preserves its contents in the dropped block.
 
 ## Recipes
 
 <Row>
-<RecipeFor id="molecularmanipulator:matter_fabrication_item_input" fallbackText="This modpack has no available recipe for this item." />
-<RecipeFor id="molecularmanipulator:matter_fabrication_item_output" fallbackText="This modpack has no available recipe for this item." />
+<RecipeFor id="molecularmanipulator:matter_fabrication_item_input" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_item_output" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
 </Row>
 
 <Row>
-<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_input" fallbackText="This modpack has no available recipe for this item." />
-<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_output" fallbackText="This modpack has no available recipe for this item." />
+<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_input" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_output" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
 </Row>

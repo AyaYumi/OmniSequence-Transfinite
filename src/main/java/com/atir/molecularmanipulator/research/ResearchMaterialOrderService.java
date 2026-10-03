@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.resources.ResourceLocation;
 
 /** Queues missing research materials through the connected AE2 crafting service. */
 public final class ResearchMaterialOrderService implements ICraftingRequester {
@@ -37,13 +38,13 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
             .thenComparing(AEKey::toString);
     private final MatterFabricationBlockEntity machine;
     private final MachineSource source;
-    private final Map<AEItemKey, Long> requested = new LinkedHashMap<>();
-    private final Map<AEItemKey, Diagnostic> diagnostics = new LinkedHashMap<>();
+    private final Map<Target, Long> requested = new LinkedHashMap<>();
+    private final Map<Target, Diagnostic> diagnostics = new LinkedHashMap<>();
     private final Set<ICraftingLink> links = new LinkedHashSet<>();
-    /** Amounts submitted to a CPU; re-queued if the controller is saved before completion. */
+    /** Remaining CPU deliveries; native links reconnect after world reload. */
     private final Map<ICraftingLink, Request> inFlight = new LinkedHashMap<>();
     private Future<ICraftingPlan> calculation;
-    private AEItemKey calculating;
+    private Target calculating;
     private long calculatingAmount;
     private long retryAt;
     private String status = "idle";
@@ -53,15 +54,37 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
         this.source = new MachineSource(machine);
     }
 
-    public void request(Map<AEItemKey, Long> missing) {
+    public void request(Map<AEItemKey, Long> missing) { request(null, missing); }
+
+    public void request(ResourceLocation owner, Map<AEItemKey, Long> missing) {
         if (missing == null) return;
         missing.forEach((key, amount) -> {
             if (key != null && amount != null && amount > 0) {
-                requested.merge(key, amount, ResearchMaterialOrderService::saturatedAdd);
-                diagnostics.remove(key);
+                var target = new Target(owner, key);
+                requested.merge(target, amount, ResearchMaterialOrderService::saturatedAdd);
+                diagnostics.remove(target);
             }
         });
         if (!requested.isEmpty()) status = "queued";
+    }
+
+    /** Replace outstanding needs using current stock; submitted outputs are counted only once. */
+    public void reconcile(ResourceLocation owner, Map<AEItemKey, Long> deficits) {
+        var next = new LinkedHashMap<Target, Long>();
+        deficits.forEach((key, amount) -> {
+            long remaining = Math.max(0L, amount - Math.min(amount, activeAmount(owner, key)));
+            if (remaining > 0) next.put(new Target(owner, key), remaining);
+        });
+        boolean changed = requested.entrySet().removeIf(entry -> java.util.Objects.equals(owner, entry.getKey().owner())
+                && !next.containsKey(entry.getKey()));
+        for (var entry : next.entrySet()) {
+            var previous = requested.put(entry.getKey(), entry.getValue());
+            changed |= !java.util.Objects.equals(previous, entry.getValue());
+        }
+        diagnostics.keySet().removeIf(target -> java.util.Objects.equals(owner, target.owner())
+                && !deficits.containsKey(target.key()));
+        if (!requested.isEmpty()) status = "queued";
+        if (changed) machine.saveChanges();
     }
 
     public boolean hasPending() {
@@ -69,61 +92,70 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
     }
 
     public long pendingAmount(AEItemKey key) {
-        if (key == null) return 0;
-        long total = requested.getOrDefault(key, 0L);
-        for (var request : inFlight.values()) {
-            if (key.equals(request.key())) total = saturatedAdd(total, request.amount());
-        }
+        long total = 0;
+        for (var entry : requested.entrySet()) if (entry.getKey().key().equals(key)) total = saturatedAdd(total, entry.getValue());
+        for (var request : inFlight.values()) if (request.key().equals(key)) total = saturatedAdd(total, request.amount());
         return total;
+    }
+
+    private long activeAmount(ResourceLocation owner, AEItemKey key) {
+        long total = 0;
+        for (var request : inFlight.values()) if (java.util.Objects.equals(owner, request.owner()) && key.equals(request.key()))
+            total = saturatedAdd(total, request.amount());
+        return total;
+    }
+
+    /** Cancel only this research's CPU requests, leaving other research orders intact. */
+    public void cancel(ResourceLocation owner) {
+        requested.keySet().removeIf(target -> java.util.Objects.equals(owner, target.owner()));
+        diagnostics.keySet().removeIf(target -> java.util.Objects.equals(owner, target.owner()));
+        if (calculating != null && java.util.Objects.equals(owner, calculating.owner())) {
+            if (calculation != null) calculation.cancel(true);
+            calculation = null; calculating = null; calculatingAmount = 0;
+        }
+        var canceled = inFlight.entrySet().stream().filter(entry -> java.util.Objects.equals(owner, entry.getValue().owner()))
+                .map(Map.Entry::getKey).toList();
+        for (var link : canceled) { inFlight.remove(link); links.remove(link); link.cancel(); }
+        if (!hasPending()) status = "idle";
+        machine.saveChanges();
+    }
+
+    public void adoptLegacyOwner(ResourceLocation owner) {
+        var old=new LinkedHashMap<>(requested);requested.clear();
+        old.forEach((target,amount)->requested.merge(target.owner()==null?new Target(owner,target.key()):target,amount,ResearchMaterialOrderService::saturatedAdd));
+        inFlight.replaceAll((link,request)->request.owner()==null?new Request(owner,request.key(),request.amount()):request);
     }
 
     public String status() { return status; }
     public int queuedTypes() { return requested.size(); }
     public int activeJobs() { return links.size() + (calculation == null ? 0 : 1); }
 
-    public void reportUncraftable(AEItemKey key, long amount) {
-        if (key != null && amount > 0) {
-            diagnostics.put(key, new Diagnostic("not_craftable", amount, List.of()));
-            status = "not_craftable";
-        }
+    public void reportUncraftable(AEItemKey key, long amount) { reportUncraftable(null, key, amount); }
+    public void reportUncraftable(ResourceLocation owner, AEItemKey key, long amount) {
+        if (key != null && amount > 0) { diagnostics.put(new Target(owner, key), new Diagnostic("not_craftable", amount, List.of())); status = "not_craftable"; }
     }
 
     public JsonObject clientState(HolderLookup.Provider registries) {
         var result = new JsonObject();
-        result.addProperty("status", status);
-        result.addProperty("queued", queuedTypes());
-        result.addProperty("active", activeJobs());
-        var entries = new JsonArray();
-        var amounts = new LinkedHashMap<AEItemKey, Long>(requested);
-        var activeAmounts = new LinkedHashMap<AEItemKey, Long>();
-        inFlight.values().forEach(request -> {
-            if (request.amount() > 0) activeAmounts.merge(request.key(), request.amount(),
-                    ResearchMaterialOrderService::saturatedAdd);
-        });
-        activeAmounts.forEach((key, amount) -> amounts.merge(key, amount,
-                ResearchMaterialOrderService::saturatedAdd));
-        diagnostics.forEach((key, diagnostic) -> amounts.putIfAbsent(key, diagnostic.amount()));
+        result.addProperty("status", status); result.addProperty("queued", queuedTypes()); result.addProperty("active", activeJobs());
+        var entries = new JsonArray(); var targets = new LinkedHashSet<Target>(requested.keySet());
+        inFlight.values().forEach(request -> targets.add(request.target())); targets.addAll(diagnostics.keySet());
         var ops = registries.createSerializationContext(JsonOps.INSTANCE);
-        displayOrder(amounts.keySet()).forEach(key -> {
-            long amount = amounts.get(key);
-            var encoded = GenericStack.CODEC.encodeStart(ops, new GenericStack(key, Math.max(1, amount))).result();
+        targets.stream().sorted(Comparator.comparing(Target::key, DISPLAY_ORDER)
+                .thenComparing(target -> String.valueOf(target.owner()))).forEach(target -> {
+            long active = activeAmount(target.owner(), target.key());
+            long amount = saturatedAdd(requested.getOrDefault(target,0L), active);
+            var diagnostic = diagnostics.get(target); if (amount == 0 && diagnostic != null) amount = diagnostic.amount();
+            var encoded = GenericStack.CODEC.encodeStart(ops,new GenericStack(target.key(),Math.max(1,amount))).result();
             if (encoded.isEmpty()) return;
-            var entry = new JsonObject();
-            entry.add("target", encoded.get());
-            entry.addProperty("queued", requested.getOrDefault(key, 0L));
-            entry.addProperty("active", activeAmounts.getOrDefault(key, 0L));
-            var diagnostic = diagnostics.get(key);
-            entry.addProperty("status", diagnostic != null ? diagnostic.status()
-                    : key.equals(calculating) ? "calculating"
-                    : requested.containsKey(key) ? "queued" : "submitted");
-            var missing = new JsonArray();
-            if (diagnostic != null) diagnostic.missing().forEach(stack -> GenericStack.CODEC
-                    .encodeStart(ops, stack).result().ifPresent(missing::add));
-            entry.add("missing", missing);
-            entries.add(entry);
+            var entry = new JsonObject(); entry.add("target",encoded.get());
+            if (target.owner() != null) entry.addProperty("owner",target.owner().toString());
+            entry.addProperty("queued", requested.getOrDefault(target,0L)); entry.addProperty("active",active);
+            entry.addProperty("status", diagnostic != null ? diagnostic.status() : target.equals(calculating) ? "calculating" : requested.containsKey(target) ? "queued" : "submitted");
+            var missing = new JsonArray(); if (diagnostic != null) diagnostic.missing().forEach(stack -> GenericStack.CODEC.encodeStart(ops,stack).result().ifPresent(missing::add));
+            entry.add("missing",missing); entries.add(entry);
         });
-        result.add("items", entries);
-        return result;
+        result.add("items",entries); return result;
     }
 
     static List<AEItemKey> displayOrder(Set<AEItemKey> keys) {
@@ -131,6 +163,9 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
     }
 
     public void clear() {
+        if(calculation!=null)calculation.cancel(true);
+        var active=List.copyOf(links);inFlight.clear();links.clear();
+        active.forEach(ICraftingLink::cancel);
         requested.clear();
         diagnostics.clear();
         links.clear();
@@ -142,14 +177,18 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
     }
 
     public void tick() {
+        if(!hasPending() && diagnostics.isEmpty()) {status="idle";return;}
         var level = machine.getLevel();
         var grid = machine.getMainNode().getGrid();
         if (level == null || grid == null || !machine.getMainNode().isActive()) return;
         cleanupLinks();
-        var available = grid.getStorageService().getInventory().getAvailableStacks();
-        diagnostics.entrySet().removeIf(entry -> !requested.containsKey(entry.getKey())
-                && pendingAmount(entry.getKey()) == 0
-                && available.get(entry.getKey()) >= entry.getValue().amount());
+        if (!diagnostics.isEmpty() && level.getGameTime() % 20 == 0) {
+            var storage = grid.getStorageService().getInventory();
+            diagnostics.entrySet().removeIf(entry -> !requested.containsKey(entry.getKey())
+                    && activeAmount(entry.getKey().owner(), entry.getKey().key()) == 0
+                    && storage.extract(entry.getKey().key(), entry.getValue().amount(), Actionable.SIMULATE, source)
+                            >= entry.getValue().amount());
+        }
         if (requested.isEmpty() && calculation == null && links.isEmpty() && diagnostics.isEmpty()) {
             status = "idle";
         }
@@ -160,6 +199,8 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
                 var plan = calculation.get();
                 if (plan == null) {
                     fail("plan_failed", List.of());
+                } else if (plan.finalOutput().amount() > requested.getOrDefault(calculating, 0L)) {
+                    status = "queued";
                 } else if (plan.simulation()) {
                     fail("incomplete_plan", missingItems(plan));
                 } else {
@@ -167,7 +208,7 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
                     if (result.successful() && result.link() != null) {
                         long submittedAmount = plan.finalOutput().amount();
                         links.add(result.link());
-                        inFlight.put(result.link(), new Request(calculating, submittedAmount));
+                        inFlight.put(result.link(), new Request(calculating.owner(), calculating.key(), submittedAmount));
                         diagnostics.remove(calculating);
                         status = "submitted";
                         requested.computeIfPresent(calculating, (key, old) -> {
@@ -187,7 +228,7 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
             } catch (Exception error) {
                 var previous = diagnostics.get(calculating);
                 if (previous == null || !previous.status().equals("plan_failed")) {
-                    com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+                    com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                             "Research crafting order failed at {} for {}", machine.getBlockPos(), calculating, error);
                 }
                 fail("plan_failed", List.of());
@@ -206,7 +247,7 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
         if (requested.isEmpty() || level.getGameTime() < retryAt) return;
         var crafting = grid.getCraftingService();
         var entry = requested.entrySet().iterator().next();
-        if (!crafting.isCraftable(entry.getKey())) {
+        if (!crafting.isCraftable(entry.getKey().key())) {
             var key = entry.getKey();
             long amount = requested.remove(key);
             requested.put(key, amount);
@@ -223,7 +264,7 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
             calculation = crafting.beginCraftingCalculation(level, new ICraftingSimulationRequester() {
                 @Override public IActionSource getActionSource() { return source; }
                 @Override public IGridNode getGridNode() { return machine.getMainNode().getNode(); }
-            }, calculating, amount, CalculationStrategy.CRAFT_LESS);
+            }, calculating.key(), amount, CalculationStrategy.CRAFT_LESS);
             if (calculation == null) {
                 fail("plan_failed", List.of());
                 calculating = null;
@@ -234,7 +275,7 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
             var previous = diagnostics.get(calculating);
             fail("plan_failed", List.of());
             if (previous == null || !previous.status().equals("plan_failed")) {
-                com.atir.molecularmanipulator.MolecularManipulator.LOGGER.warn(
+                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                         "Could not start research crafting calculation at {} for {}",
                         machine.getBlockPos(), calculating, error);
             }
@@ -253,8 +294,8 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
                 var request = inFlight.remove(link);
                 machine.saveChanges();
                 if (link.isCanceled() && request != null && request.amount() > 0) {
-                    requested.merge(request.key(), request.amount(), ResearchMaterialOrderService::saturatedAdd);
-                    diagnostics.put(request.key(), new Diagnostic("canceled", request.amount(), List.of()));
+                    requested.merge(request.target(), request.amount(), ResearchMaterialOrderService::saturatedAdd);
+                    diagnostics.put(request.target(), new Diagnostic("canceled", request.amount(), List.of()));
                 }
             }
         }
@@ -268,10 +309,14 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
                                              long amount, Actionable mode) {
         var grid = machine.getMainNode().getGrid();
         if (grid == null || amount <= 0) return 0;
-        long inserted = grid.getStorageService().getInventory().insert(key, amount, mode, source);
+        var request = inFlight.get(link);
+        long inserted = request != null && request.owner() != null && key instanceof AEItemKey item
+                && machine.getResearch().isPreparing(request.owner())
+                ? machine.getResearch().acceptOrderedMaterial(machine, request.owner(), item, amount, mode)
+                : grid.getStorageService().getInventory().insert(key, amount, mode, source);
         if (mode == Actionable.MODULATE && inserted > 0 && link != null) {
-            inFlight.computeIfPresent(link, (ignored, request) -> key.equals(request.key())
-                    ? new Request(request.key(), Math.max(0, request.amount() - inserted)) : request);
+            inFlight.computeIfPresent(link, (ignored, current) -> key.equals(current.key())
+                    ? new Request(current.owner(),current.key(),Math.max(0,current.amount()-inserted)) : current);
             machine.saveChanges();
         }
         return inserted;
@@ -283,8 +328,8 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
             var request = inFlight.remove(link);
             machine.saveChanges();
             if (link.isCanceled() && request != null && request.amount() > 0) {
-                requested.merge(request.key(), request.amount(), ResearchMaterialOrderService::saturatedAdd);
-                diagnostics.put(request.key(), new Diagnostic("canceled", request.amount(), List.of()));
+                requested.merge(request.target(), request.amount(), ResearchMaterialOrderService::saturatedAdd);
+                diagnostics.put(request.target(), new Diagnostic("canceled", request.amount(), List.of()));
             }
         }
     }
@@ -315,58 +360,55 @@ public final class ResearchMaterialOrderService implements ICraftingRequester {
         return first + second;
     }
 
-    public CompoundTag save(HolderLookup.Provider registries) {
-        var tag = new CompoundTag();
-        tag.put("requested", encode(requested, registries));
+    public CompoundTag save(HolderLookup.Provider registries) { return save(registries, true); }
+
+    /** Portable controllers queue unfinished amounts because their old CPU links are canceled. */
+    public CompoundTag save(HolderLookup.Provider registries, boolean reconnect) {
+        var tag = new CompoundTag(); var queued = new ListTag();
+        requested.forEach((target,amount) -> queued.add(encode(new Request(target.owner(),target.key(),amount),registries)));
+        tag.put("requested",queued);
         var submitted = new ListTag();
-        inFlight.values().forEach(request -> {
-            if (request.amount() > 0) {
-                submitted.add(GenericStack.writeTag(registries, new GenericStack(request.key(), request.amount())));
+        inFlight.forEach((link, request) -> {
+            if (request.amount() <= 0) return;
+            var value = encode(request, registries);
+            if (reconnect) {
+                var savedLink = new CompoundTag(); link.writeToNBT(savedLink); value.put("link", savedLink);
             }
+            submitted.add(value);
         });
-        tag.put("submitted", submitted);
-        return tag;
+        tag.put("submitted",submitted); return tag;
     }
 
     public void load(CompoundTag tag, HolderLookup.Provider registries) {
-        requested.clear();
-        diagnostics.clear();
-        links.clear();
-        inFlight.clear();
-        calculation = null;
-        calculating = null;
-        calculatingAmount = 0;
-        status = "queued";
-        retryAt = 0;
-        for (var stack : decode(tag.getList("requested", 10), registries)) {
-            requested.merge(stack.key(), stack.amount(), ResearchMaterialOrderService::saturatedAdd);
-        }
-        for (var stack : decode(tag.getList("submitted", 10), registries)) {
-            requested.merge(stack.key(), stack.amount(), ResearchMaterialOrderService::saturatedAdd);
-        }
-    }
-
-    private static ListTag encode(Map<AEItemKey, Long> values, HolderLookup.Provider registries) {
-        var list = new ListTag();
-        values.forEach((key, amount) -> {
-            if (amount > 0) list.add(GenericStack.writeTag(registries, new GenericStack(key, amount)));
-        });
-        return list;
-    }
-
-    private static List<Request> decode(ListTag list, HolderLookup.Provider registries) {
-        var values = new java.util.ArrayList<Request>();
-        for (int i = 0; i < list.size(); i++) {
+        requested.clear(); diagnostics.clear(); links.clear(); inFlight.clear();
+        calculation = null; calculating = null; calculatingAmount = 0; status = "queued"; retryAt = 0;
+        for (var field : List.of("requested","submitted")) for (var value : tag.getList(field,10)) {
             try {
-                var stack = GenericStack.readTag(registries, list.getCompound(i));
+                var raw = (CompoundTag)value; var stack = GenericStack.readTag(registries,raw);
+                ResourceLocation owner = raw.contains("owner") ? ResourceLocation.tryParse(raw.getString("owner")) : null;
                 if (stack != null && stack.what() instanceof AEItemKey key && stack.amount() > 0) {
-                    values.add(new Request(key, stack.amount()));
+                    var request = new Request(owner, key, stack.amount());
+                    if (field.equals("submitted") && raw.contains("link")) {
+                        var link = new appeng.crafting.CraftingLink(raw.getCompound("link"), this);
+                        if (!link.isDone() && !link.isCanceled()) { links.add(link); inFlight.put(link, request); }
+                        else if (link.isCanceled()) requested.merge(request.target(), request.amount(), ResearchMaterialOrderService::saturatedAdd);
+                    } else requested.merge(request.target(), request.amount(), ResearchMaterialOrderService::saturatedAdd);
                 }
-            } catch (RuntimeException ignored) { }
+            } catch(RuntimeException ignored) { }
         }
-        return values;
+        var grid = machine.getMainNode().getGrid();
+        if (grid != null && grid.getCraftingService() instanceof appeng.me.service.CraftingService crafting)
+            for (var link : links) if (link instanceof appeng.crafting.CraftingLink nativeLink) crafting.addLink(nativeLink);
     }
 
-    private record Request(AEItemKey key, long amount) { }
+    private static CompoundTag encode(Request request, HolderLookup.Provider registries) {
+        var tag = GenericStack.writeTag(registries,new GenericStack(request.key(),request.amount()));
+        if(request.owner()!=null)tag.putString("owner",request.owner().toString());
+        return tag;
+    }
+    private record Target(ResourceLocation owner, AEItemKey key) { }
+    private record Request(ResourceLocation owner, AEItemKey key, long amount) {
+        Target target() { return new Target(owner,key); }
+    }
     private record Diagnostic(String status, long amount, List<GenericStack> missing) { }
 }

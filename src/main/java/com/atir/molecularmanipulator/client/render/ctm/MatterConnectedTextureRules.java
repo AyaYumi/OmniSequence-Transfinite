@@ -67,7 +67,7 @@ public final class MatterConnectedTextureRules {
 
     public static Mode mode(String texture) {
         String name = textureName(texture);
-        if (isTaixu(texture)) {
+        if (isSingularity(texture)) {
             return switch (name) {
                 case "jade", "glass" -> Mode.ISOTROPIC;
                 case "pillar", "conduit" -> Mode.V_ONLY;
@@ -85,7 +85,7 @@ public final class MatterConnectedTextureRules {
     }
 
     public static float edgeBand(Face face) {
-        if (isTaixu(face.texture())) {
+        if (isSingularity(face.texture())) {
             // Glass corner mounts reach three texels; jade has a one-texel seam.
             return switch (textureName(face.texture())) {
                 case "glass" -> 3.0F / 16;
@@ -110,12 +110,12 @@ public final class MatterConnectedTextureRules {
         return texture.substring(Math.max(texture.lastIndexOf('/'), texture.lastIndexOf(':')) + 1);
     }
 
-    public static boolean isTaixu(String texture) {
-        return texture.startsWith("molecularmanipulator:block/taixu/");
+    public static boolean isSingularity(String texture) {
+        return texture.startsWith("molecularmanipulator:block/singularity/");
     }
 
     public static String fillerTexture(Face face) {
-        return isTaixu(face.texture()) ? "block/taixu/jade" : "block/matter_fabrication_casing_top";
+        return isSingularity(face.texture()) ? "block/singularity/jade" : "block/matter_fabrication_casing_top";
     }
 
     /**
@@ -185,7 +185,7 @@ public final class MatterConnectedTextureRules {
     private static List<Patch> iconPatches(Face face, int mask, float border, float outline) {
         mask = normalizedMask(mask);
         boolean assembly = textureName(face.texture()).equals("matter_fabrication_pattern_assembly");
-        boolean gilded = isTaixu(face.texture()) && textureName(face.texture()).equals("gilded");
+        boolean gilded = isSingularity(face.texture()) && textureName(face.texture()).equals("gilded");
         // Assembly corner fasteners reach pixel 3, but its central frame reaches pixel 2.
         // Extend cleanup only inside the four corner squares, never along the whole glyph edge.
         float corner = assembly ? 4.0F / 16 : gilded ? 5.0F / 16 : outline;

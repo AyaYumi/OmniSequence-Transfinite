@@ -188,18 +188,18 @@ public final class MolecularBatchDispatchSafety {
         String pattern = describePattern(patternDetails);
         String diagnosticKey = pattern + ':' + reason;
         if (LOGGED_DIAGNOSTICS.size() >= MAX_LOGGED_DIAGNOSTICS) {
-            LOGGED_DIAGNOSTICS.clear();
+            return;
         }
         if (!LOGGED_DIAGNOSTICS.add(diagnosticKey)) {
             return;
         }
 
         if (exception == null) {
-            MolecularManipulator.LOGGER.debug("Molecular batch dispatch fallback: pattern={}, reason={}",
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.debug("Molecular batch dispatch fallback: pattern={}, reason={}",
                     pattern, reason);
             return;
         }
-        MolecularManipulator.LOGGER.warn(
+        com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                 "Molecular batch dispatch provider scan failed: pattern={}, reason={}",
                 pattern, reason, exception);
     }

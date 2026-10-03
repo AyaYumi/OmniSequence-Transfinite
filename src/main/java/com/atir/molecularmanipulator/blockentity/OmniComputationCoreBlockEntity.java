@@ -368,7 +368,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void updateSubType(boolean updateFormed) {
         syncVisualStructure();
-        if (level == null || notLoaded() || isRemoved()) {
+        if (level == null || notLoaded() || isRemoved() || retiringStoredCpus) {
             return;
         }
         var current = level.getBlockState(worldPosition);
@@ -810,7 +810,10 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private void registerCpusWithGrid() {
         var grid = getMainNode().isActive() ? getMainNode().getGrid() : null;
         if (grid != null && grid.getCraftingService() instanceof OmniCraftingServiceBridge bridge) {
-            ensureSpareAndRegister(bridge);
+            for (var cpu : allCpus()) {
+                CPU_OWNERS.put(cpu, this);
+                bridge.molecularmanipulator$registerOmniCpu(cpu);
+            }
         }
     }
 

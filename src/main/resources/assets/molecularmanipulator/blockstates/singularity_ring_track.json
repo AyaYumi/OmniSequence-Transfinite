@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "molecularmanipulator:block/singularity_ring_track"
+    },
+    "facing=east": {
+      "model": "molecularmanipulator:block/singularity_ring_track",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "molecularmanipulator:block/singularity_ring_track",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "molecularmanipulator:block/singularity_ring_track",
+      "y": 270
+    }
+  }
+}

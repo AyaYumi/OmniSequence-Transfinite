@@ -1,247 +1,132 @@
 # OmniSequence: Transfinite
 
-English | [简体中文](README.zh-CN.md)
+[简体中文](README.zh-CN.md) · [API documentation](docs/README.md) · [Changelog](CHANGELOG.md)
 
-An end-game Applied Energistics 2 / ExtendedAE addon for Minecraft 1.21.1 on NeoForge. It provides massive-scale autocrafting, feedback-driven material dispatch, quantum-linked ME access, and large multiblock systems.
+An endgame AE2 and ExtendedAE expansion for research, large crafting jobs and
+quantum-linked multiblocks. Mod ID: `molecularmanipulator`.
 
-> To preserve compatibility with existing worlds, configurations, and modpack scripts, the technical namespace and Mod ID remain `molecularmanipulator`.
+## Version and dependencies
 
-## Versions and Compatibility
-
-| Component | Version |
+| Component | Current requirement |
 | --- | --- |
-| Minecraft | 1.21.1 |
-| NeoForge | 21.1.220 or later in the 21.1 line |
-| Applied Energistics 2 | 19.2.17 or later |
-| AppliedEnhancements | 1.0.6 or later (required on both sides) |
+| OmniSequence | 2.0.7, branch `1.21.1-neoforge` |
+| Minecraft / Java | 1.21.1 / Java 21 |
+| NeoForge | 21.1.220 or later |
+| AppliedEnhancements | Revised 1.1.0 build, client and server |
+| AE2 | 19.2.17 or later; tested with 19.2.17 |
 | ExtendedAE | 1.21-2.2.32-neoforge or later |
-| Glodium | 1.21-2.2-neoforge |
 | LDLib2 | 2.2.18 or later |
-| Optional integrations | Advanced AE, ExtendedAE Plus, JEI, AE2WTLib |
+| ExpandedAE | Version 2.1.1 is incompatible with the pattern-provider Mixin |
+| JEI / AdvancedAE | Optional; AdvancedAE enables its research/integration |
 
-Current release: `2.0.5`
+Install dependencies separately. OmniSequence does not embed their classes.
+The revised AppliedEnhancements build provides the shared cycle transaction
+API used by this source; older 1.0.x builds are insufficient.
 
-See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
+## Machines and progression
 
-Advanced AE 1.6.11+ is optional for the base mod and required for the default
-Omni-Computation research branch, including the Transfinite Compute Nexus recipe.
-
-Third-party pattern-holding machines can opt into atomic material batching
-through the [Omni Batch Provider API v1](docs/omni-batch-provider-api.md).
-The [API index](docs/README.md) also covers
-[well research and KubeJS](docs/matter-research-api.md)
-([中文](docs/matter-research-api.zh-CN.md)) and the separate AppliedEnhancements
-planning API.
-
-> Known incompatibility: the only currently declared conflict is `Expanded AE 2.1.1`
-> (`expandedae-2.1.1.jar`, not ExtendedAE). The conflicting code is Expanded AE's
-> bundled AppliedFlux compatibility Mixin. AppliedFlux itself, ExtendedAE, and later
-> NeoForge 21.1 patch releases are not marked as conflicts.
-
-## Highlights
-
-- Delegates shared AE2 ordering, pattern caching, material summaries, infinite cells and terminal enhancements to the required AppliedEnhancements mod and its configuration.
-- Adds the Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core, Omni-Computation Core, Transfinite Compute Nexus, and the Sequence Array multiblock managed by the Sequence Array Controller.
-- Provides structure projection, automatic construction and dismantling, chunk-aware pause and resume, and dynamic visual effects.
-- The Matter Fabrication Well uses a 41×41 footprint and 27-block-high Pearl Genesis Chamber with animated 16×16 pearl-white, light-silver and champagne-gold textures. Service blocks fit 24 front positions and 20 central collar positions; the former nine outer positions are retired.
-- All three multiblocks dismantle actual matching blocks from highest to lowest, with serpentine rows inside each layer. Air does not inflate progress, paused or reloaded work retains its queue, and the controller is kept.
-- Retains the current structures and only the official 1.3.9 Sequence Array/Omni-Computation legacy layouts. Their controllers provide a projection warning and timed two-click update confirmation.
-- Supports wired ME access and cross-dimensional entangled quantum links.
-- All three large multiblocks suppress natural mob spawning throughout the full height of their occupied chunks, including monsters, animals, aquatic mobs and bats. Protection follows formed structures and active construction/dismantling; spawners, spawn eggs and commands are unaffected. It does not remove existing mobs.
-- Provides modpack-configurable matter deconstruction, sequence storage, and blueprint reproduction.
-- Adds bilingual AE2 GuideME pages for the main machines, Matter Fabrication Well, research, ports and pattern assembly, with live well recipe displays and research unlock labels.
-
-## Autocrafting and Material Dispatch
-
-A formed Omni-Computation Core or an online Transfinite Compute Nexus invokes the public `AelisCraftingPlanner` API using AppliedEnhancements budgets. Without an available Omni CPU, the native path remains. If the prerequisite already enables AELIS globally, it owns the calculation and Omni does not invoke the planner twice. The prerequisite handles cyclic planning, execution order and seed retention; this mod retains machine batching and virtual CPU management.
-
-Material dispatch uses three execution modes:
-
-- Targets that explicitly implement atomic batch handling retain direct `long`-sized logical batches. Their throughput is limited only by available task inputs, energy, and the target's real acceptance capacity.
-- Ordinary AE crafting providers use runtime-scaled patterns only for single-ingredient recipes. Their multiplier probes across server ticks as `1 → 2 → 4 → 8 → …`, growing by at most one level per provider-and-pattern pair per tick. Successful batches keep the doubled multiplier for the next tick; rejection retains the last successful multiplier as the next baseline.
-- Multi-ingredient and other non-scalable paths bypass scaled wrappers entirely. AE2 repeatedly sends the original complete `1×` recipe, preventing one-to-many routing from splitting different ingredient waves across different machines.
-
-Provider compatibility and scheduling preserve the surrounding mods' behavior:
-
-- Native AE2 and ExtendedAE providers use precise feedback from complete insertion and internal queues. AE2LT, Advanced AE, and other third-party providers use the public AE acceptance and busy-state contracts. Busy providers wait; rejecting providers reduce their multiplier.
-- Single-ingredient scaled patterns retain ExtendedAE Plus wrapper identity, Advanced AE directional-input data, and AE2LT overloaded-provider metadata. Multi-ingredient jobs first unwrap EAP planning-time scaling and then dispatch complete recipes one at a time.
-- If a target accepts `1×` but rejects `2×`, that provider-and-pattern pair remains on complete single-recipe dispatch for the rest of the order. AE2 re-extracts and accounts for every successful recipe independently.
-
-All active Omni-Computation Cores and Transfinite Compute Nexuses share one server-wide compatibility deadline. After it is reached, one rotating lane receives a guaranteed progress attempt per tick. Jobs within the same CPU also rotate their starting point and receive short per-pattern slices, preventing the first massive task from starving later work. Explicitly scalable or atomic `long` batch tasks can continue after the compatibility limit is reached.
-
-Only providers that explicitly implement this project's atomic batch protocol receive a complete `N×` input for multi-ingredient patterns. `Integer.MAX_VALUE` remains AE2's logical per-tick parallel window, not an unconditional real loop count. Ordinary `1×` calls continue over later ticks under a server-load-adaptive time slice, while an explicit final atomic batch is not accidentally blocked by that compatibility budget.
-
-Provider-owned remainder queues that already belong to an in-flight CPU task retain that ownership, preventing reinjection from leaving the CPU waiting forever for outputs that can no longer be produced. AE2's crafting-in-progress accounting uses the actual expected output, and every dispatch is capped by the remaining `waitingFor` output headroom to prevent pending output from overflowing `Long.MAX_VALUE`. The scheduler distributes work fairly across virtual CPUs and patterns, with a work-unit ceiling for extreme jobs.
-
-The Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core, and Sequence Array use a persistent execution model for reusable inputs. Same-key remainders, including items marked as unbreakable, can be reused across a whole batch. Finite-durability tools are batched only when each craft deterministically adds exactly one point of damage. A single tool input may reserve a pool of multiple tools, including different current damage states, and consume that pool inside one provider-owned batch instead of dispatching every craft separately. Unbreaking-enchanted and other probabilistic or context-dependent transitions fall back to AE2's original one-craft path. Key-changing remainders, such as a water bucket becoming an empty bucket, also stay on that native path. This reusable tool-pool path is exclusive to this mod's three molecular crafting machines and is not part of the public third-party batch-provider API.
-
-Accepted reusable batches remain owned by the provider across saves, chunk unloads, and server restarts. Canceling the AE2 crafting job persistently stops the remaining executions and refunds the exact unconsumed materials together with the reusable item's current state; completed outputs remain valid and canceled work cannot resume after reload. Breaking a molecular crafting machine while it owns a batch or long-count output buffer drops one state-bearing recovery machine instead of materializing an unsafe number of item entities; placing that machine restores the pending state. Batch expansion uses AE2's native pattern-power calculation over the actual combined inputs, preserving the original crafting-energy semantics.
-
-## Core Machines
-
-### Molecular Sequence Rewrite Array
-
-- The Molecular Sequence Rewrite Array and Assembler Matrix Sequence Rewrite Core now support a logical batch limit of `Long.MAX_VALUE` (9,223,372,036,854,775,807 crafts), raised from `Integer.MAX_VALUE`. Materials, energy and per-key output headroom still bound each accepted batch; overflow is rejected without consuming inputs.
-
-- Provides a fixed 360 pattern slots: 10 pages with 36 slots each.
-- Exposes its pattern inventory as logical containers in the Pattern Access Terminal instead of one oversized entry.
-- Supports virtual high parallelism and recipe processing in as little as one tick.
-- Persists deterministic reusable-tool pools and returns their exact current states when an AE2 job is canceled.
-- Returns intermediate results and container remainders to the ME Network through a persistent safety buffer.
-
-### Assembler Matrix Sequence Rewrite Core
-
-- Installs inside an ExtendedAE Assembler Matrix in place of ordinary crafting and speed cores.
-- Runs real recipe assembly and remainder logic, preserving and batching deterministic tool durability across multiple stored tools.
-- Persists reusable-input batches and provides exact cancellation refunds across unloads and restarts.
-- Aggregates outputs by `AEKey` and returns them to the ME Network in batches.
-
-### Omni-Computation Core
-
-- Uses a floating 65×65×35 celestial crown with `Long.MAX_VALUE`-scale logical crafting storage and parallelism.
-- Creates virtual CPU lanes for active requests while reserving idle capacity for new jobs.
-- Preserves tasks, internal materials, and progress while the structure is damaged or its chunks are unavailable.
-- Supports projection, automatic construction, automatic dismantling, and suppression of natural spawning for all mob categories in its occupied chunks.
-
-### Transfinite Compute Nexus
-
-- A single-block Omni crafting CPU with six-sided cable access, independent virtual CPU lanes and `Long.MAX_VALUE` logical storage.
-- Requires a powered ME network and one channel; idle power defaults to 16,384 AE/t.
-- Adjacent nexuses retain separate CPUs. Recoverable tasks and internal materials remain with the dropped nexus and resume after placement and reconnection.
-- Uses AE2 terminals instead of a machine screen. It has no quantum slot, pattern library or automatic chunk loading.
-- Manufactured in the Matter Fabrication Well after the default Omni-Computation research unlock, with Advanced AE installed.
-
-### Sequence Array Controller (Sequence Array Multiblock)
-
-- Defaults to 200 pages / 7,200 pattern slots, configurable up to 300 pages / 10,800 slots. The formed library is saved across 14 quantum crystals; keep patterned crystals when moving the structure. Construction prefers patterned crystals over blank ones.
-- Attach an ME Storage Bus to an accessible controller face to insert or extract main-library patterns. The external inventory accepts valid crafting, smithing and stonecutting patterns only, one per slot, across all configured pages. Material, quantum, upgrade and the nine passive-crafting slots are excluded. New unformed controllers can be prefilled; construction, dismantling and restoration temporarily lock external transfers.
-
-- Forms a baseless Frost Feather Crown within a 61×61 footprint and a 29-block height: one horizontal ring, four layered crystal-feather fans, a central controller and a short four-prong amethyst pendant. Logical autocrafting parallelism remains up to `Long.MAX_VALUE`.
-- Eight phase-glass window panels and crystal/rune nodes decorate the ring, with four low focusing seats along the inner ribs. The central controller and front ME casing retain clear access.
-- Legacy support retains only the official 1.3.9 palace array. Updating recovers its blocks and builds the current structure, moving the controller three blocks down and fifteen blocks behind its old position while retaining its contents. Check the projection and prepare materials and recovery space before confirming.
-- Pattern slots accept encoded AE2 crafting, smithing-table, and stonecutting patterns. Processing, blank, and invalid patterns are rejected.
-- The Auto Crafting tab provides nine dedicated pattern slots independent of the large AE pattern library. Each slot can be enabled separately, configures an ME reserve for every logical input, and caps the primary output's ME stock. An output limit of `0` keeps crafting until ingredients run out, in interruptible batches of at most 64 recipe executions per server tick.
-- Passive crafts extract directly from the attached ME Network and return primary outputs, byproducts, containers, and reusable inputs exclusively to ME. Adjacent output and acceleration cards are not used.
-- Supports deterministic reusable-input and multi-tool durability-pool batches with persistent cancellation and refund state.
-- Shift-moving a supported pattern fills the current pattern page first, then continues into later pages.
-- Exposes configured pattern pages as multiple logical Pattern Access Terminal containers, with the combined library managed by the controller.
-- One-click dismantling uses a timed two-step confirmation. Rapid double-clicks, clicking another control, or waiting for the timeout will not trigger accidental removal.
-- Provides independent RGB effects for the energy field, core, rings, and lattice. Crafting accelerates the animation only; visual settings do not change processing speed.
-- Automatically force-loads required chunks while formed or during construction, dismantling and structure updates when `sequence_array.force_load_chunks` is enabled; structural damage pauses work while preserving progress.
-
-### Matter Fabrication Well and Pattern Assembly
-
-- Each assembly holds 36 AE2 processing patterns and receives complete recipe inputs from AE autocrafting.
-- Version 2.0.1 supports all registered AEKey input types through the optional `ae_inputs` field, including compatible addon resources. Existing item/fluid recipes remain valid. Generic-input recipes use the assembly; manual ports retain their item/fluid workflow.
-- Lookup uses the pattern's complete output and quantity before validating materials. Recipes such as `10A + 10B -> C` and `10A + 10B -> D` remain separate; two C crafts also remain `2C` when their combined inputs equal one D recipe. Queues retain their pattern definitions and recipe IDs.
-- Input, output and refund buffers retain exact AE keys and long amounts across saves. Finished products and queued refunds return to ME. Research permissions and production bonuses belong to the connected controller.
-- Output indexes and cached research definitions reduce repeated lookup work. Recipe reloads rebuild the indexes; controller research progress is read live. See the [recipe and research API](docs/matter-research-api.md) ([中文](docs/matter-research-api.zh-CN.md)) for JSON and Java integration.
-
-Current limitations: when overlapping ingredient alternatives produce the same output, splitting a queue can select a different recipe's time and power. A reload that adds a higher-priority overlapping recipe can also leave an existing queue waiting. These cases are distinct from recipes that produce different outputs and remain unresolved in 2.0.5.
-
-Use the in-game projection and JEI structure information as the authoritative material list and orientation reference.
-
-## In-Game Guide
-
-Responsive machine panels use fitted bounds for JEI layout and ingredient hit areas. In 2.0.3, JEI foreground/background drawing also receives raw screen mouse coordinates, fixing displaced highlights and tooltips while clicks remain at the actual pointer.
-
-AE2 GuideME pages are available for the following blocks. Hover the item in an inventory or JEI and press `G` to view its purpose, structure instructions, network requirements, supported patterns, and controls:
-
-- Molecular Sequence Rewrite Array
-- Assembler Matrix Sequence Rewrite Core
-- Omni-Computation Core
-- Transfinite Compute Nexus
-- Sequence Array Controller
-- Matter Fabrication Well and structural blocks
-- Well item/fluid input and output ports
-- Matter Fabrication Pattern Assembly
-
-The well guide includes the 30-second research progression, per-branch deep-research bonuses and KubeJS duration behavior.
-GuideME renders the well's processing recipes directly, including quantities, fluids, base time/power and research unlocks.
-
-## Entangled Quantum Link
-
-Large controllers include a quantum endpoint. Place one half of a paired Entangled Singularity in the controller and the other in a powered remote AE2 Quantum Ring to access that ME Network across dimensions.
-
-- An unformed controller can use the remote network to retrieve automatic-construction materials.
-- Once formed, patterns, crafting jobs, storage access, energy, and dismantled blocks can all travel through the remote network.
-- The link consumes an additional 512 AE/t and one AE channel.
-- It disconnects safely when the remote side unloads, loses power, or has a frequency conflict, then reconnects automatically when conditions recover.
-- A wired connection and a conflicting remote network cannot operate at the same time.
-
-## Assembly Overview And Legacy Matter Data
-
-The Sequence Array now opens on an assembly overview showing structure and ME status, active pattern capacity, enabled stocking slots, recent assembly throughput, buffered output, and the quantum link. The quantum singularity and optional upload-core slots are on this page.
-
-Legacy deconstruction and rewriting stop on upgrade. Existing metal, mineral, crystal, and organic balances remain saved on the controller for future migration. If the controller holds legacy matter data or items, an **Old Data** button appears on the overview. Its recovery page allows stored items and speed cards to be withdrawn; it does not resume production. The old item-value tooltip is disabled while this system is retired.
-
-## Core Configuration
-
-The server configuration is `omnisequence-transfinite-server.toml`; the client configuration is `omnisequence-transfinite-client.toml`. Legacy `molecularmanipulator-*.toml` files are copied forward automatically when the new file does not yet exist.
-
-Server options are grouped by subsystem:
-
-| Category | Contents |
+| Machine | Role |
 | --- | --- |
-| `sequence_array` | Pattern pages, construction speed, and idle power |
-| `sequence_array.matter_rewrite` | Sequence capacity, entropy capacity, and base cooling |
-| `sequence_array.matter_rewrite.speed_cards` | Parallel operations, batch ticks, and cooling multiplier for each 0–4 card tier |
-| `omni_computation.dispatch` | Batch dispatch and main-thread work budgets |
-| `transfinite_compute_nexus` | Single-block nexus idle power |
+| Molecular Sequence Rewrite Array | 360 encoded-pattern slots, long-count crafting and deterministic reusable inputs |
+| Assembler Matrix Sequence Rewrite Core | Crafting core for an ExtendedAE Assembler Matrix; persistent inputs, outputs and cancellation refunds |
+| Sequence Array | Quantum-connected pattern storage, ME/player-assisted assembly and 9 independent passive crafting slots |
+| Omni-Computation Core | Virtual CPU lanes, fair dispatch and exact output accounting |
+| Transfinite Compute Nexus | Single-block CPU equivalent with one powered channel |
+| Matter Fabrication Well | Data-driven recipes, controller-owned research and pattern assemblies |
+| Event Horizon Singularity Hub | Simultaneous tagged resource collection and fluid-backed sample duplication |
+| Miniature Black Hole / White Hole | Transfer nearby items and non-player entities to the unique white hole |
 
-Client options are grouped under `tooltips` and `visual`.
+The two molecular crafting machines and the Sequence Array retain accepted
+reusable-tool work across saves. Deterministic same-key and one-damage-per-craft
+tool transitions can batch; probabilistic transitions and key-changing containers
+use the safe native path. Material, power and per-key capacity checks still apply.
 
-| Option | Default | Purpose |
-| --- | ---: | --- |
-| `sequence_array.pattern_pages` | 200 | Pattern pages available to the Sequence Array Controller; 36 slots per page, range 1-300; fourteen quantum crystals share the formed library |
-| `sequence_array.build_blocks_per_tick` | 32 | Blocks placed or dismantled per tick |
-| `sequence_array.idle_power` | 128 | Sequence Array Controller idle power in AE/t |
-| `sequence_array.force_load_chunks` | `true` | Keep the Sequence Array, Omni-Computation Core, and Matter Fabrication Well chunks loaded while formed or being built |
-| `transfinite_compute_nexus.idle_power` | 16384 | Nexus idle power in AE/t; requires one powered ME channel |
-| `omni_computation.dispatch.omni_batch_dispatch_enabled` | `true` | Enables batch material dispatch for compatible providers |
-| `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | Per-core, per-tick emergency ceiling for complete `1×` calls to ordinary providers |
-| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 20000 | Server-wide budget shared by all active Omni-Computation Cores; contracts as average MSPT approaches 45 |
-| `omni_computation.dispatch.omni_dispatch_max_work_units` | 2147483647 | Maximum scheduler work units per core and tick |
-| `tooltips.matter_sequence_tooltip_mode` | `HOLD_SHIFT` | Client-only Matter Sequence tooltip mode |
-| `visual.dynamic_effect_level` | 2 | Client-only visual effects: 0 off, 1 reduced, 2 full |
+The Sequence Array no longer exposes Matter Rewrite balances, decomposition,
+entropy or the old Shift tooltip. Its passive slots accept bounded batches of up
+to 64 crafts per evaluation so disabling/removing a pattern stops new work promptly.
+Already-paid output stays owned by the controller until storage accepts it.
 
-Ordinary and unknown providers receive adaptive runtime-scaled patterns only for safe single-ingredient recipes. Multi-ingredient and other non-scalable paths send complete original recipes one at a time, preserving machine rotation and back-pressure behavior. A server-wide adaptive time slice replaces the old fixed 32-call limit: dispatch accelerates while the server has headroom and contracts as average MSPT approaches 45. Multiple cores, CPUs, and patterns do not each claim a separate full time budget. Only providers that explicitly declare atomic batch support receive complete multiplied multi-ingredient inputs.
+Well research has nine configurable rounds. Normal ordering prepares the next
+round; Shift prepares the remaining rounds and completes directly to the selected
+maximum after one research run. Preparation can stop and refund its cache; an
+ordered research run cannot stop or pause after starting. Delivered order output
+belongs to that research cache, preventing downstream recipes from stealing base
+ingredients. Idle ticks do not enumerate ME stock; active preparations share one
+stock/index refresh every 20 ticks.
 
-Existing flat options and the previous `matter_speed_cards` section are moved into the categorized paths while preserving their values. The mod creates a `.toml.bak` backup before migration. The retired `omni_batch_allow_substitution_patterns` key is removed without resetting other custom values. If another unsupported option is found, the mod keeps up to five backups and atomically rebuilds the file from the current schema; missing or out-of-range known values are repaired without resetting other valid settings.
+Tier 3 requires the two stage-2 branches and unlocks miniature holes and Hub
+blocks. Miniature Black Hole uses 100,000 AE singularities; Miniature White Hole
+uses 1,000,000,000 matter balls. Hub ordinary material costs are 100× their base
+recipe amounts, while the controller/core retain one black/white hole input.
 
-## Installation and Build
+## Singularity collection and duplication
 
-Install the required dependencies above and place the built JAR in both the client and server `mods` directories. Before upgrading, fully stop the game, use the same version on both sides, and keep exactly one active `omnisequence-transfinite-*.jar` in each `mods` directory to avoid duplicate Mod IDs.
+The Hub overview contains the quantum-entangled singularity slot and running
+state. Its collection page lists every eligible item from configurable tags after
+blacklist exclusions. All eligible types are produced simultaneously: default
+1,000 items each every 20 ticks. Resource collection controls the running animation.
 
-Before upgrading from 2.0.2, move any patterns beyond page 300 out of the array;
-the former 1,000-page maximum is no longer supported. Retain a world backup before
-the crystal-storage migration. Move well service blocks from the nine retired outer
-positions to the front row or central collar, and restore the vacated blueprint blocks.
+The duplication page accepts one sample and up to 64 miniature black holes.
+Black holes generate Singularity Sequence Matter into connected ME fluid storage
+using the configured FE/AE priority. Default output is 20 mB per black hole every
+20 ticks. Copying one sample item consumes 1,000 mB; the sample is preserved.
+The page shows both possible energy costs and the actual previous-cycle usage.
+Generation requires energy and fluid space. The standalone Sequence Matter item
+was removed; its source/flowing fluid and bucket remain.
 
-Source maintenance for 2.0.5 continues on `1.21.1-neoforge`.
-For a source build, first place the separately built AppliedEnhancements 1.0.6 JAR
-in `libs/`, following [the dependency setup](libs/README.md). Its binary is ignored
-by Git and is not embedded in this mod. CI builds the prerequisite from its fixed
-1.0.6 source commit before compiling OmniSequence.
+Only one miniature white hole can be placed per dimension; its chunk is forced
+while present. Black holes pull items and eligible entities gradually, exclude
+players and deliver captured contents to that white hole.
+
+## Networking and crafting safety
+
+Linked multiblocks use matching quantum-entangled singularities. Assembly consumes
+player inventory first, then ME storage; dismantling returns to ME first and retains
+overflow safely. Structure damage/unloading retains owned work for recovery.
+
+Omni dispatch preserves original AE provider identity. Explicit atomic providers
+receive aggregate inputs; ordinary providers use complete single recipes under
+fair per-tick budgets. `OmniBatchProviderAdapterRegistry` lets optional integrations
+register atomic capabilities without modifying the provider class. BigInteger
+adapters use a separate contract. See the [API index](docs/README.md).
+
+Supported deterministic batching does not bypass recipe permissions, storage,
+power or output headroom. Same-output recipes with overlapping alternatives may
+still select different time/power during a queue split; newly added higher-priority
+overlaps can leave queued work waiting. See the well API limitations.
+
+## Guides and configuration
+
+The bilingual in-game guide uses task pages, resource tables and recipe panels.
+Multiblock model previews were removed from the large machine pages to reduce
+rendering cost. JEI includes the well recipes and Sequence Matter fluid information.
+
+Global files: `config/omnisequence-transfinite-server.toml` and
+`config/omnisequence-transfinite-client.toml`. Both names and help text are localized.
+See the complete [configuration reference](docs/configuration.md) for paths,
+defaults, bounds, energy units and migration behavior. Repeated failures share a
+global one-minute log window; optional profiler summaries remain disabled by default.
+
+## Installation and build
+
+Use Java 21 and provide `libs/appliedenhancements-1.1.0.jar` as described in
+[libs/README.md](libs/README.md). Then:
 
 ```powershell
-./gradlew.bat clean build --no-configuration-cache
+.\gradlew.bat clean build --no-configuration-cache
 ```
 
-Build artifact:
+Output: `build/libs/omnisequence-transfinite-2.0.7.jar`. Unit tests run with `build`.
+[Development instructions](docs/development.md) cover isolated engine regressions,
+API/JAR validation and source cleanup. Test code and previews are outside the
+normal release source set.
 
-```text
-build/libs/omnisequence-transfinite-2.0.5.jar
-```
+CI builds the matching AppliedEnhancements 1.1.0 dependency from a published fixed
+Git commit. A trusted matching JAR can override that source; see development
+instructions. Older 1.0.x builds cannot substitute for the shared transaction API.
 
-See [CHANGELOG.md](CHANGELOG.md) for version history, installation, and upgrade
-notes. This project is licensed under the [MIT License](LICENSE).
+Back up worlds before upgrading. Existing recipes, research progress, owned
+buffers and quantum links migrate through supported saved-state paths. The old
+1,000-page pattern layout is retired; the current configurable maximum is 300 pages.
 
-`build` includes unit tests. Additional isolated-world upgrade, saved-state and
-dismantling checks are documented in [the regression test guide](tools/gametest/README.md).
-The [UI test guide](tools/ui/README.md) explains how to run the JEI coordinate tests
-against a modpack's actual JEI and LDLib2 JARs without opening the game.
-Runtime textures, shaders, GuideME pages and the two official 1.3.9 blueprints are
-kept in `src/main/resources`; design drafts and generated screenshots are not source dependencies.
-
-Shared feature settings belong to `appliedenhancements-common.toml`, including order limits, material summaries, infinite-cell handling and AELIS budgets. Omni does not override existing prerequisite settings or add terminal filtering/cut-and-paste integrations. Retired local planner, cache, precompilation and order-limit options are removed without resetting machine settings. Batch API v1, research APIs and legacy batch interfaces remain unchanged.
+Licensed under the [MIT License](LICENSE).

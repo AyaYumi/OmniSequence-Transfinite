@@ -5,6 +5,10 @@ import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.registry.ModFluids;
+import mezz.jei.api.neoforge.NeoForgeTypes;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.minecraft.network.chat.Component;
 import appeng.core.definitions.AEBlocks;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
@@ -36,7 +40,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
-        registration.addRecipeCategories(new TaixuStructureJeiCategory(registration.getJeiHelpers().getGuiHelper()));
+        registration.addRecipeCategories(new SingularityStructureJeiCategory(registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MolecularCenterJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MatterFabricationJeiCategory(
@@ -51,9 +55,11 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
-        registration.addRecipes(TaixuStructureJeiCategory.TYPE, List.of(new TaixuStructureJeiRecipe(
-                com.atir.molecularmanipulator.blockentity.TaixuStructure.materials(),
-                new ItemStack(com.atir.molecularmanipulator.registry.TaixuContent.CONTROLLER.get()))));
+        registration.addIngredientInfo(new FluidStack(ModFluids.SEQUENCE_MATTER.get(), 1000),
+                NeoForgeTypes.FLUID_STACK, Component.translatable("guide.molecularmanipulator.sequence_matter.jei"));
+        registration.addRecipes(SingularityStructureJeiCategory.TYPE, List.of(new SingularityStructureJeiRecipe(
+                com.atir.molecularmanipulator.blockentity.SingularityStructure.materials(),
+                new ItemStack(com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER.get()))));
         registration.addRecipes(MolecularCenterJeiCategory.TYPE, List.of(new MolecularCenterJeiRecipe(
                 createStructureMaterials(), new ItemStack(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get()))));
         var level = net.minecraft.client.Minecraft.getInstance().level;
@@ -75,7 +81,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
-        registration.addRecipeCatalyst(new ItemStack(com.atir.molecularmanipulator.registry.TaixuContent.CONTROLLER.get()), TaixuStructureJeiCategory.TYPE);
+        registration.addRecipeCatalyst(new ItemStack(com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER.get()), SingularityStructureJeiCategory.TYPE);
         registration.addRecipeCatalyst(
                 new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()),
                 MatterFabricationJeiCategory.TYPE,
@@ -84,7 +90,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
-        registration.addGuiScreenHandler(com.atir.molecularmanipulator.client.TaixuScreen.class, ResponsiveScreenJeiProperties.screenHandler());
+        registration.addGuiScreenHandler(com.atir.molecularmanipulator.client.SingularityScreen.class, ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiScreenHandler(ResponsiveContainerScreen.class, ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiScreenHandler(MolecularCenterScreen.class, ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiScreenHandler(OmniComputationScreen.class, ResponsiveScreenJeiProperties.screenHandler());
@@ -94,14 +100,12 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                 ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiContainerHandler(ResponsiveContainerScreen.class,
                 ResponsiveScreenJeiProperties.containerHandler());
-        registration.addGhostIngredientHandler(
-                MolecularCenterScreen.class,
-                new MolecularCenterGhostIngredientHandler());
     }
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
         ResearchJeiBookmarks.setRuntime(jeiRuntime);
+        SequenceMatterGuide.setRuntime(jeiRuntime);
         if (!AdvancedAEIntegration.isLoaded()) {
             jeiRuntime.getIngredientManager().removeIngredientsAtRuntime(
                     VanillaTypes.ITEM_STACK,

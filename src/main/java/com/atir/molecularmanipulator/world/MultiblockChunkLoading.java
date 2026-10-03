@@ -48,7 +48,9 @@ public final class MultiblockChunkLoading {
     }
 
     public static Set<ChunkPos> requiredChunks(BlockEntity machine) {
-        if (machine instanceof com.atir.molecularmanipulator.blockentity.TaixuBlockEntity taixu) return taixu.getChunkLoadingChunks();
+        if (machine instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity cosmic
+                && cosmic.isWhiteHole()) return Set.of(new ChunkPos(machine.getBlockPos()));
+        if (machine instanceof com.atir.molecularmanipulator.blockentity.SingularityBlockEntity singularity) return singularity.getChunkLoadingChunks();
         if (machine instanceof MolecularCenterBlockEntity center) return center.getChunkLoadingChunks();
         if (machine instanceof OmniComputationCoreBlockEntity omni) return omni.getChunkLoadingChunks();
         if (machine instanceof MatterFabricationBlockEntity matter) return matter.getChunkLoadingChunks();
@@ -57,7 +59,8 @@ public final class MultiblockChunkLoading {
 
     public static void maintain(BlockEntity machine) {
         if (!(machine.getLevel() instanceof ServerLevel level) || machine.isRemoved()) return;
-        var required = ModConfig.FORCE_LOAD_CHUNKS.get()
+        var required = (machine instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity cosmic
+                && cosmic.isWhiteHole()) || ModConfig.FORCE_LOAD_CHUNKS.get()
                 ? requiredChunks(machine) : Set.<ChunkPos>of();
         var owner = machine.getBlockPos();
         if (!required.isEmpty()) {
@@ -120,7 +123,8 @@ public final class MultiblockChunkLoading {
             if (!(machine instanceof MolecularCenterBlockEntity
                     || machine instanceof OmniComputationCoreBlockEntity
                     || machine instanceof MatterFabricationBlockEntity
-                    || machine instanceof com.atir.molecularmanipulator.blockentity.TaixuBlockEntity)) {
+                    || machine instanceof com.atir.molecularmanipulator.blockentity.SingularityBlockEntity
+                    || machine instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity)) {
                 helper.removeAllTickets(entry.getKey());
             } else {
                 // Runtime formation has not been checked yet. Keep the saved ticking

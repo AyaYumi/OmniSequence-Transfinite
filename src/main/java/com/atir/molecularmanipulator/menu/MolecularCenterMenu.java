@@ -2,7 +2,6 @@ package com.atir.molecularmanipulator.menu;
 
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
-import appeng.client.gui.Icon;
 import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
 import appeng.menu.AEBaseMenu;
@@ -11,8 +10,6 @@ import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.AppEngSlot;
-import appeng.menu.slot.FakeSlot;
-import appeng.menu.slot.OutputSlot;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.util.inv.AppEngInternalInventory;
 import com.atir.molecularmanipulator.MolecularManipulator;
@@ -42,11 +39,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     private static final String ACTION_DISMANTLE = "dismantle";
     private static final String ACTION_ADJUST_VISUAL_COLOR = "adjust_visual_color";
     private static final String ACTION_RESET_VISUAL_COLORS = "reset_visual_colors";
-    private static final String ACTION_DECONSTRUCT_MATTER = "deconstruct_matter";
-    private static final String ACTION_REWRITE_MATTER = "rewrite_matter";
-    private static final String ACTION_SET_DECONSTRUCT_TARGET = "set_deconstruct_target";
-    private static final String ACTION_SET_REWRITE_TARGET = "set_rewrite_target";
-    private static final String ACTION_CYCLE_REWRITE_OUTPUT = "cycle_rewrite_output";
     private static final String ACTION_UPDATE_STRUCTURE = "update_structure";
     private static final String ACTION_KEEP_LEGACY_STRUCTURE = "keep_legacy_structure";
     private static final String ACTION_REQUEST_PATTERN_SEARCH_INDEX = "request_pattern_search_index";
@@ -60,16 +52,10 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public static final int PLAYER_X = 17;
     public static final int PLAYER_MAIN_Y = 188;
     public static final int PLAYER_HOTBAR_Y = 246;
-    public static final int SEQUENCE_INPUT_X = 232;
-    public static final int SEQUENCE_SAMPLE_X = 304;
-    public static final int SEQUENCE_OUTPUT_X = 376;
-    public static final int SEQUENCE_SLOT_Y = 76;
     public static final int QUANTUM_SLOT_X = 252;
     public static final int QUANTUM_SLOT_Y = 210;
     public static final int MATRIX_UPLOAD_CORE_SLOT_X = 358;
     public static final int MATRIX_UPLOAD_CORE_SLOT_Y = 210;
-    public static final int SPEED_SLOT_X = 337;
-    public static final int SPEED_SLOT_Y = 169;
     public static final int AUTO_CRAFT_PATTERN_X = 233;
     public static final int AUTO_CRAFT_PATTERN_Y = 50;
     public static final SlotSemantic AUTO_CRAFT_PATTERN_SEMANTIC = SlotSemantics.register(
@@ -95,50 +81,11 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public int secondaryRingColor = MolecularCenterBlockEntity.DEFAULT_SECONDARY_RING_COLOR;
     @GuiSync(27)
     public int latticeColor = MolecularCenterBlockEntity.DEFAULT_LATTICE_COLOR;
-    @GuiSync(28)
-    public long metalSequence;
-    @GuiSync(29)
-    public long mineralSequence;
-    @GuiSync(30)
-    public long crystalSequence;
-    @GuiSync(31)
-    public long organicSequence;
-    @GuiSync(32)
-    public long entropy;
     @GuiSync(33)
     public MolecularCenterBlockEntity.QuantumLinkState quantumLinkState =
             MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
     @GuiSync(34)
     public long quantumFrequency;
-    @GuiSync(35)
-    public boolean deconstructEnabled;
-    @GuiSync(36)
-    public MolecularCenterBlockEntity.MatterJobState deconstructJobState =
-            MolecularCenterBlockEntity.MatterJobState.IDLE;
-    @GuiSync(37)
-    public int deconstructJobProgress;
-    @GuiSync(38)
-    public long deconstructJobProcessed;
-    @GuiSync(39)
-    public long deconstructTarget;
-    @GuiSync(40)
-    public long rewriteTarget;
-    @GuiSync(41)
-    public int speedCards;
-    @GuiSync(42)
-    public int matterCycleTicks = 20;
-    @GuiSync(43)
-    public MolecularCenterBlockEntity.RewriteOutputMode rewriteOutputMode =
-            MolecularCenterBlockEntity.RewriteOutputMode.NETWORK;
-    @GuiSync(44)
-    public boolean rewriteEnabled;
-    @GuiSync(45)
-    public MolecularCenterBlockEntity.MatterJobState rewriteJobState =
-            MolecularCenterBlockEntity.MatterJobState.IDLE;
-    @GuiSync(46)
-    public int rewriteJobProgress;
-    @GuiSync(47)
-    public long rewriteJobProcessed;
     @GuiSync(48)
     public boolean legacyStructure;
     @GuiSync(49)
@@ -155,20 +102,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public int patternSearchResultCount;
     @GuiSync(55)
     public boolean patternSearchActive;
-    @GuiSync(56)
-    public int matterParallelOperations = 1;
-    @GuiSync(57)
-    public long entropyCapacity = 1_000_000L;
-    @GuiSync(58)
-    public long entropyCoolingPerSecond = 25L;
-    @GuiSync(59)
-    public long deconstructEntropyPerItem;
-    @GuiSync(60)
-    public long rewriteEntropyPerItem;
-    @GuiSync(61)
-    public long deconstructCoolingSeconds = -1;
-    @GuiSync(62)
-    public long rewriteCoolingSeconds = -1;
     @GuiSync(63)
     public int autoCraftSelectedSlot = -1;
     @GuiSync(64)
@@ -222,10 +155,8 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
     private final List<Slot> patternSlots;
-    private final List<AppEngSlot> sequenceSlots;
     private final AppEngSlot quantumSlot;
     private final AppEngSlot matrixUploadCoreSlot;
-    private final List<AppEngSlot> speedSlots;
     private final List<AppEngSlot> autoCraftPatternSlots;
     private long patternSearchIndexGeneration;
     private int countedPatternRevision = -1;
@@ -236,12 +167,9 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         super(TYPE, id, playerInventory, host);
         this.center = (MolecularCenterBlockEntity) host.getBlockEntity();
         createPlayerSlots(playerInventory);
-        this.sequenceSlots = new java.util.ArrayList<>(3);
-        addSequenceSlots();
         this.quantumSlot = addQuantumSlot();
         this.matrixUploadCoreSlot = MatrixUploadCoreIntegration.isLoaded()
                 ? addMatrixUploadCoreSlot() : null;
-        this.speedSlots = addSpeedSlots();
         this.autoCraftPatternSlots = addAutoCraftPatternSlots();
         this.pageInventory = isClientSide()
                 ? PagedInventory.clientView()
@@ -283,42 +211,9 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         }
     }
 
-    private void addSequenceSlots() {
-        var inventory = center.getMatterInventory();
-        var input = new FakeSlot(inventory, 0) {
-            @Override
-            public void set(ItemStack stack) {
-                super.set(stack.isEmpty() ? ItemStack.EMPTY : stack.copyWithCount(1));
-            }
-
-            @Override
-            public boolean canSetFilterTo(ItemStack stack) {
-                return (stack.isEmpty()
-                        || com.atir.molecularmanipulator.sequence.MatterSequenceRegistry
-                                .deconstructionOf(stack) != null)
-                        && super.canSetFilterTo(stack);
-            }
-        };
-        addSlot(input, SlotSemantics.CONFIG);
-        input.x = SEQUENCE_INPUT_X;
-        input.y = SEQUENCE_SLOT_Y;
-        sequenceSlots.add(input);
-
-        var sample = new AppEngSlot(inventory, 1);
-        addSlot(sample, SlotSemantics.CONFIG);
-        sample.x = SEQUENCE_SAMPLE_X;
-        sample.y = SEQUENCE_SLOT_Y;
-        sequenceSlots.add(sample);
-
-        var output = new OutputSlot(inventory, 2, Icon.BACKGROUND_PRIMARY_OUTPUT);
-        addSlot(output, SlotSemantics.MACHINE_OUTPUT);
-        output.x = SEQUENCE_OUTPUT_X;
-        output.y = SEQUENCE_SLOT_Y;
-        sequenceSlots.add(output);
-    }
 
     private AppEngSlot addQuantumSlot() {
-        var slot = new AppEngSlot(center.getMatterInventory(), 3) {
+        var slot = new AppEngSlot(center.getQuantumInventory(), 0) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return MolecularCenterBlockEntity.isValidQuantumSingularity(stack)
@@ -344,17 +239,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         return slot;
     }
 
-    private List<AppEngSlot> addSpeedSlots() {
-        var result = new java.util.ArrayList<AppEngSlot>(MolecularCenterBlockEntity.MAX_SPEED_CARDS);
-        for (int index = 0; index < MolecularCenterBlockEntity.MAX_SPEED_CARDS; index++) {
-            var slot = new AppEngSlot(center.getMatterUpgrades(), index);
-            addSlot(slot, SlotSemantics.UPGRADE);
-            slot.x = SPEED_SLOT_X + index * 18;
-            slot.y = SPEED_SLOT_Y;
-            result.add(slot);
-        }
-        return result;
-    }
 
     private List<AppEngSlot> addAutoCraftPatternSlots() {
         var result = new java.util.ArrayList<AppEngSlot>(MolecularAutoCrafter.PATTERN_SLOTS);
@@ -388,9 +272,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         }
     }
 
-    public List<AppEngSlot> getSequenceSlots() {
-        return sequenceSlots;
-    }
 
     public AppEngSlot getQuantumSlot() {
         return quantumSlot;
@@ -400,9 +281,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         return matrixUploadCoreSlot;
     }
 
-    public List<AppEngSlot> getSpeedSlots() {
-        return speedSlots;
-    }
 
     public List<AppEngSlot> getAutoCraftPatternSlots() {
         return autoCraftPatternSlots;
@@ -534,25 +412,10 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         if (isClientSide()) sendClientAction(ACTION_RESET_VISUAL_COLORS);
     }
 
-    public void requestDeconstructMatter() {
-        if (isClientSide()) sendClientAction(ACTION_DECONSTRUCT_MATTER);
-    }
 
-    public void requestRewriteMatter() {
-        if (isClientSide()) sendClientAction(ACTION_REWRITE_MATTER);
-    }
 
-    public void requestSetDeconstructTarget(long target) {
-        if (isClientSide()) sendClientAction(ACTION_SET_DECONSTRUCT_TARGET, target);
-    }
 
-    public void requestSetRewriteTarget(long target) {
-        if (isClientSide()) sendClientAction(ACTION_SET_REWRITE_TARGET, target);
-    }
 
-    public void requestCycleRewriteOutput() {
-        if (isClientSide()) sendClientAction(ACTION_CYCLE_REWRITE_OUTPUT);
-    }
 
     public void requestStructureUpdate() {
         if (isClientSide()) sendClientAction(ACTION_UPDATE_STRUCTURE);
@@ -859,35 +722,10 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         }
     }
 
-    private void deconstructMatter() {
-        if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
-            center.toggleDeconstruction(player);
-        }
-    }
 
-    private void rewriteMatter() {
-        if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
-            center.toggleRewrite(player);
-        }
-    }
 
-    private void setDeconstructTarget(long target) {
-        if (!isClientSide()) {
-            center.setDeconstructTarget(target);
-        }
-    }
 
-    private void setRewriteTarget(long target) {
-        if (!isClientSide()) {
-            center.setRewriteTarget(target);
-        }
-    }
 
-    private void cycleRewriteOutput() {
-        if (!isClientSide()) {
-            center.cycleRewriteOutputMode();
-        }
-    }
 
     private void updateStructure() {
         if (!isClientSide() && getPlayer() instanceof ServerPlayer player) {
@@ -912,33 +750,8 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             primaryRingColor = center.getPrimaryRingColor();
             secondaryRingColor = center.getSecondaryRingColor();
             latticeColor = center.getLatticeColor();
-            metalSequence = center.getMetalSequence();
-            mineralSequence = center.getMineralSequence();
-            crystalSequence = center.getCrystalSequence();
-            organicSequence = center.getOrganicSequence();
-            entropy = center.getEntropy();
             quantumLinkState = center.getQuantumLinkState();
             quantumFrequency = center.getQuantumFrequency();
-            deconstructEnabled = center.isDeconstructEnabled();
-            deconstructJobState = center.getDeconstructJobState();
-            deconstructJobProgress = center.getDeconstructJobProgress();
-            deconstructJobProcessed = center.getDeconstructJobProcessed();
-            deconstructTarget = center.getDeconstructTarget();
-            rewriteTarget = center.getRewriteTarget();
-            speedCards = center.getInstalledSpeedCards();
-            matterCycleTicks = center.getMatterCycleTicks();
-            matterParallelOperations = center.getMatterParallelOperations();
-            entropyCapacity = center.getMatterEntropyCapacity();
-            entropyCoolingPerSecond = center.getMatterEntropyCoolingPerSecond();
-            deconstructEntropyPerItem = center.getDeconstructionEntropyPerItem();
-            rewriteEntropyPerItem = center.getRewriteEntropyPerItem();
-            deconstructCoolingSeconds = center.getDeconstructionCoolingSeconds();
-            rewriteCoolingSeconds = center.getRewriteCoolingSeconds();
-            rewriteOutputMode = center.getRewriteOutputMode();
-            rewriteEnabled = center.isRewriteEnabled();
-            rewriteJobState = center.getRewriteJobState();
-            rewriteJobProgress = center.getRewriteJobProgress();
-            rewriteJobProcessed = center.getRewriteJobProcessed();
             legacyStructure = center.hasLegacyStructure();
             legacyStructureUpdateDismissed = center.isLegacyStructureUpdateDismissed();
             building = center.isBuilding();

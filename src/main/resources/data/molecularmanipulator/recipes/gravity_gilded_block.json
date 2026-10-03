@@ -5,19 +5,19 @@
       "ingredient": {
         "item": "molecularmanipulator:singularity_base_casing"
       },
-      "count": 800
+      "count": 8000000
     },
     {
       "ingredient": {
         "item": "minecraft:gold_ingot"
       },
-      "count": 3200
+      "count": 32000000
     },
     {
       "ingredient": {
         "item": "ae2:singularity"
       },
-      "count": 400
+      "count": 4000000
     }
   ],
   "results": [

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.7-forge — Singularity Hub ingredient costs ×10,000 / 天枢配方投入再乘一万
+
+- Multiply all 44 ingredient quantities in the 13 Singularity Hub block recipes by 10,000 relative to the previous build, including the miniature-hole inputs. The controller and White Hole Resource Core each require 10,000 miniature holes.
+- Keep the standalone Miniature Black Hole and Miniature White Hole recipes at 100,000 AE2 Singularities and 1,000,000,000 AE2 Matter Balls. Research requirements, batch outputs, recipe duration and AE/t are unchanged.
+- Update English and Chinese in-game guides and API recipe documentation. This is a recipe-data change; cached pattern lookup, tick budgets and runtime behavior are retained. Minecraft 1.20.1 only.
+
+中文
+
+- 天枢 13 种方块配方中的 44 项材料投入，在当前基础上全部再乘 10,000，包括微型洞投入；主控与白洞资源核心各需要 10,000 个微型洞。
+- 微型黑洞自身仍消耗 10 万 AE2 奇点，微型白洞自身仍消耗 10 亿 AE2 物质球；研究耗材、批量产出、耗时和 AE/t 保持不变。
+- 同步中英游戏文档和 API 配方说明。仅修改 1.20.1 配方数据，沿用样板缓存与 tick 预算。
+
 ## 2.0.7-forge — hole, moving Hub and research bookmark fixes / 洞效果、天枢运动与研究收藏修复
 
 - Correct Forge 1.20.1 lens composition: queued block-render poses already contain the camera view, while AFTER_LEVEL supplies a projection pose. Remove the second transform so placed miniature holes and the Hub white horizon appear in the correct location and retain depth occlusion.

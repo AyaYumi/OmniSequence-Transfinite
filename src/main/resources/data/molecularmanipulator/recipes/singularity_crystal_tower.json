@@ -5,25 +5,25 @@
       "ingredient": {
         "item": "molecularmanipulator:computation_crystal_pylon"
       },
-      "count": 400
+      "count": 4000000
     },
     {
       "ingredient": {
         "item": "ae2:fluix_crystal"
       },
-      "count": 3200
+      "count": 32000000
     },
     {
       "ingredient": {
         "item": "minecraft:amethyst_shard"
       },
-      "count": 3200
+      "count": 32000000
     },
     {
       "ingredient": {
         "item": "ae2:singularity"
       },
-      "count": 1600
+      "count": 16000000
     }
   ],
   "results": [

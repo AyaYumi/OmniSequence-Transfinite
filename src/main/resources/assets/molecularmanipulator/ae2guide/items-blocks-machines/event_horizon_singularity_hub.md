@@ -35,13 +35,15 @@ Harvest basic resources simultaneously and generate Sequence Matter with miniatu
 <ItemIcon id="molecularmanipulator:singularity_crystal_tower" />
 </ItemGrid>
 
-1. Complete **Tier 3: Event Horizon** in the well and fabricate the parts. The controller requires one Miniature Black Hole; the resource core requires one Miniature White Hole.
+1. Complete **Tier 3: Event Horizon** in the well and fabricate the parts. The controller requires 10,000 Miniature Black Holes; the resource core requires 10,000 Miniature White Holes.
 2. Gather the JEI structure materials, place the controller, and enable **Projection**.
 3. Clear obstructions and select **Build**. Player inventory is used before ME materials.
 4. Connect a powered ME network with channels and check structure and network status in Overview.
 5. Prepare item storage for harvested products and fluid storage for Sequence Matter.
 
 The quantum slot inside **Hub Overview** accepts only a **Quantum Entangled Singularity**. Put its partner in a powered AE2 quantum bridge to access remote construction materials before formation. The quantum link adds 512 AE/t and one channel.
+
+All 13 hub part recipes now require **10,000 times the previous input quantities**, including miniature holes. Batch outputs, duration and power remain the same. The miniature holes’ own recipes still cost 100K AE2 Singularities and 1G AE2 Matter Balls respectively.
 
 ## Three pages
 

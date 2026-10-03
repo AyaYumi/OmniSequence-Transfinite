@@ -5,19 +5,19 @@
       "ingredient": {
         "item": "molecularmanipulator:molecular_center_coil"
       },
-      "count": 400
+      "count": 4000000
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:singularity_base_casing"
       },
-      "count": 800
+      "count": 8000000
     },
     {
       "ingredient": {
         "item": "ae2:fluix_block"
       },
-      "count": 800
+      "count": 8000000
     }
   ],
   "results": [

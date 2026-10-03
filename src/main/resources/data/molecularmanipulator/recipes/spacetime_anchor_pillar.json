@@ -5,25 +5,25 @@
       "ingredient": {
         "item": "molecularmanipulator:molecular_center_stabilizer"
       },
-      "count": 400
+      "count": 4000000
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:computation_energy_stabilizer"
       },
-      "count": 400
+      "count": 4000000
     },
     {
       "ingredient": {
         "item": "minecraft:netherite_ingot"
       },
-      "count": 400
+      "count": 4000000
     },
     {
       "ingredient": {
         "item": "ae2:fluix_block"
       },
-      "count": 800
+      "count": 8000000
     }
   ],
   "results": [

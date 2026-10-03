@@ -5,31 +5,31 @@
       "ingredient": {
         "item": "molecularmanipulator:black_hole"
       },
-      "count": 1
+      "count": 10000
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:omni_computation_controller"
       },
-      "count": 100
+      "count": 1000000
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:molecular_center_core"
       },
-      "count": 100
+      "count": 1000000
     },
     {
       "ingredient": {
         "item": "ae2:engineering_processor"
       },
-      "count": 1600
+      "count": 16000000
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:spacetime_anchor_pillar"
       },
-      "count": 800
+      "count": 8000000
     }
   ],
   "results": [

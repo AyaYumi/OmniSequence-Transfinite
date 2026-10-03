@@ -5,31 +5,31 @@
       "ingredient": {
         "item": "molecularmanipulator:white_hole"
       },
-      "count": 1
+      "count": 10000
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:molecular_center_core"
       },
-      "count": 100
+      "count": 1000000
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:infinite_crafting_storage"
       },
-      "count": 400
+      "count": 4000000
     },
     {
       "ingredient": {
         "item": "ae2:fluix_block"
       },
-      "count": 1600
+      "count": 16000000
     },
     {
       "ingredient": {
         "item": "minecraft:diamond"
       },
-      "count": 800
+      "count": 8000000
     }
   ],
   "results": [

@@ -60,8 +60,8 @@ Both controllers and every required structure block are included; shared materia
 | --- | --- |
 | Miniature Black Hole ×1 | AE2 Singularity ×100K |
 | Miniature White Hole ×1 | AE2 Matter Ball ×1G |
-| Singularity Hub controller | Consumes Miniature Black Hole ×1 |
-| White Hole Resource Core | Consumes Miniature White Hole ×1 |
+| Singularity Hub controller | Consumes Miniature Black Hole ×10K |
+| White Hole Resource Core | Consumes Miniature White Hole ×10K |
 
 Miniature Black Hole and Miniature White Hole recipes use the well's **Pattern Assembly** for large AE inputs. Other parts build on both tier 2 branches; structural casings, tracks, stairs, and slabs have batch outputs. Recipe diagrams show full ingredients.
 

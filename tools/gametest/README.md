@@ -37,3 +37,5 @@ classes; they are not a full modpack TPS benchmark or client visual test.
 截图、生成文档和测试世界不进入正式 JAR。
 
 The AE compatibility suite includes native maximum-inventory/byproduct non-rejection, finite supply, exact infinite consumption and native task accumulation checks. Set `-Pae2CompatibilityRunName=ae2-compat-fresh-run` to a new name for a disposable directory directly under `build/`. Do not reuse old fixture worlds when comparing runs.
+
+The paired AE suite now requires seven tests, including selected interception removal, unknown rewrite restoration, finite multiplier remainder repair, native fallback with the exact preference disabled, and finite-stock CRAFT_LESS output accounting.

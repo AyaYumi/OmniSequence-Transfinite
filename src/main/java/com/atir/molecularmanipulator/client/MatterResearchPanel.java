@@ -92,7 +92,7 @@ final class MatterResearchPanel {
         orderDetails = AeUiTheme.button(left + 262, top + 121, 50, 14,
                 text("order_details"), clicked -> { showOrderDetails = !showOrderDetails; scroll = 0; });
         orderDetails.setTooltip(Tooltip.create(text("order_details_hint")));
-        bookmark = AeUiTheme.button(left + 292, top + 48, 20, 16, Component.literal("★"), clicked -> bookmarkSelected());
+        bookmark = new ResearchBookmarkButton(left + 292, top + 48, clicked -> bookmarkSelected());
         bookmark.setTooltip(Tooltip.create(text("bookmark_hint")));
         add.accept(previous); add.accept(next); add.accept(action); add.accept(order);
         add.accept(bookmark); add.accept(orderDetails);
@@ -445,10 +445,19 @@ final class MatterResearchPanel {
     private void bookmarkSelected() {
         var holder = selected();
         if (holder == null || Minecraft.getInstance().level == null) return;
-        int completedCount = count(holder);
-        int round = Math.min(completedCount + 1, holder.value().depths().size());
+        var task = task(holder);
+        var preparation = preparation(holder);
+        var definition = terms(holder, task != null ? task : preparation);
+        int completedCount = count(holder), maximum = definition.depths().size();
+        if (completedCount >= maximum) return;
+        boolean batch = task != null && task.has("ordered") && task.get("ordered").getAsBoolean()
+                || preparation != null || task == null && Screen.hasShiftDown();
+        int first = task != null && task.has("first_round") ? task.get("first_round").getAsInt()
+                : preparation != null ? preparation.get("first_round").getAsInt() : completedCount + 1;
+        int last = task != null ? task.get("round").getAsInt() : preparation != null ? preparation.get("round").getAsInt()
+                : batch ? maximum : Math.min(completedCount + 1, maximum);
         List<ItemStack> stacks = new ArrayList<>();
-        for (var cost : holder.value().costsFor(round)) {
+        for (var cost : batch ? batchCosts(definition, first, last) : definition.costsFor(last)) {
             var examples = cost.ingredient().getItems();
             if (examples.length > 0) stacks.add(examples[0]);
         }

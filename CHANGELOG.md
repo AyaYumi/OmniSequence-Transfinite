@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.7-forge — hole, moving Hub and research bookmark fixes / 洞效果、天枢运动与研究收藏修复
+
+- Correct Forge 1.20.1 lens composition: queued block-render poses already contain the camera view, while AFTER_LEVEL supplies a projection pose. Remove the second transform so placed miniature holes and the Hub white horizon appear in the correct location and retain depth occlusion.
+- Bake moving Hub meshes without using an entity draw layer to filter block-model quads. Keep cached static meshes, ordinary depth-tested atlas rendering, ownership/collision logic and the 20-tick synchronization interval.
+- Register only the Hub, its moving assemblies, miniature holes and resource core with Xenon / Sodium Extras distance culling; add optional Entity Culling callbacks. Measure Hub visibility from its whole bounds, track assemblies across 32 chunks and allow loaded miniature holes within 256 blocks.
+- Repair research material bookmarks for JEI's public bookmark manager, with older addIngredientBookmark / factory fallbacks. Show the bookmark overlay after a valid click, use the same current/remaining-round material list as the research page, and center a font-independent pixel star in the button.
+- Add a disposable installed-pack visual runner covering actual bookmark clicks, near/far holes, idle/running Hub, eleven nonempty assembly meshes and side views. The 1.21.1 branch and Applied Enhancements are unchanged.
+
+中文
+
+- 修复 Forge 1.20.1 洞透镜坐标：方块渲染姿态已包含相机变换，AFTER_LEVEL 提供的又是投影姿态；取消二次变换，放置的微型黑洞／白洞和天枢白洞恢复到正确位置，保留深度遮挡。
+- 天枢运动网格不再用实体绘制层过滤方块模型面片。静态网格缓存、普通贴图／深度绘制、材质所有权和碰撞、20 tick 同步间隔继续保留。
+- 补上 Xenon／Sodium Extras 距离剔除及 Entity Culling 的专用兼容，只豁免天枢、运动部件、微型洞和资源核心。天枢按整座建筑包围盒判断可见距离；运动实体跟踪范围为 32 区块，已加载微型洞在 256 格内显示。
+- 研究收藏适配 JEI 公共书签管理接口，同时保留旧版接口回退；有效点击后显示书签栏，材料与当前／剩余满阶列表一致。按钮使用不依赖字体字形的居中像素星形。
+- 新增实际整合包隔离视觉回归，覆盖真实按钮点击、近远微型洞、静止／运动天枢、11 个非空部件网格和侧面视角。本次只修改 1.20.1，1.21.1 与 Applied Enhancements 保持原状。
+
 ## 2.0.7-forge — selected interception removal / 指定拦截移除
 
 - Refresh Applied Enhancements with A02/A03/A07/A11/A19 rejection paths removed. Failed optimization may continue native calculation; unreadable rewrites restore original exact tasks and finite mismatches retain their exact remainder.

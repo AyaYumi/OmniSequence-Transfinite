@@ -59,8 +59,10 @@ public final class SingularityAssemblyRenderer extends EntityRenderer<Singularit
                 var pos = part.pos(); var state = states.get(pos);
                 long masks = MatterConnectedModel.connectionMasks(p -> states.getOrDefault(p, Blocks.AIR.defaultBlockState()), pos, state);
                 poses.pushPose(); poses.translate(part.x(), part.y(), part.z());
+                // Geometry is baked from block models; the entity draw layer must not
+                // be used to filter their block-layer quads.
                 dispatcher.getModelRenderer().renderModel(poses.last(), builder, state, dispatcher.getBlockModel(state),
-                        1, 1, 1, LightTexture.pack(0, 15), OverlayTexture.NO_OVERLAY, MatterConnectedModel.modelData(masks), type);
+                        1, 1, 1, LightTexture.pack(0, 15), OverlayTexture.NO_OVERLAY, MatterConnectedModel.modelData(masks), null);
                 poses.popPose();
             }
             var data = builder.endOrDiscardIfEmpty();

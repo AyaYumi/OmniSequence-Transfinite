@@ -61,6 +61,13 @@ public final class SingularityRenderer implements BlockEntityRenderer<Singularit
         SingularityStructureEffects.render(poses, out, time, detailed, null);
     }
     @Override public int getViewDistance() { return 256; }
+    @Override public boolean shouldRender(SingularityBlockEntity machine, Vec3 camera) {
+        var bounds = machine.getRenderBoundingBox();
+        double x = Math.max(bounds.minX, Math.min(camera.x, bounds.maxX));
+        double y = Math.max(bounds.minY, Math.min(camera.y, bounds.maxY));
+        double z = Math.max(bounds.minZ, Math.min(camera.z, bounds.maxZ));
+        return camera.distanceToSqr(new Vec3(x, y, z)) < 256.0D * 256.0D;
+    }
     @Override public boolean shouldRenderOffScreen(SingularityBlockEntity machine) { return true; }
 
 }

@@ -18,7 +18,7 @@ public final class CosmicSingularityRenderer implements BlockEntityRenderer<Cosm
         if (singularity.getLevel() == null) return;
         double distance = Vec3.atCenterOf(singularity.getBlockPos()).distanceToSqr(
                 Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
-        if (distance > 64.0D * 64.0D) return;
+        if (distance > 256.0D * 256.0D) return;
         poses.pushPose();
         poses.translate(0.5D, 0.5D, 0.5D);
         CosmicSingularityPostRenderer.enqueue(poses, singularity.isWhiteHole(),
@@ -27,7 +27,7 @@ public final class CosmicSingularityRenderer implements BlockEntityRenderer<Cosm
     }
 
     @Override
-    public int getViewDistance() { return 64; }
+    public int getViewDistance() { return 256; }
 
     @Override
     public boolean shouldRenderOffScreen(CosmicSingularityBlockEntity singularity) { return true; }

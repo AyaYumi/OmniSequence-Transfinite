@@ -92,9 +92,13 @@ public final class PairedClientVerification {
                 int page = step / 2;
                 if (page == NAMES.length) {
                     if (!hubSlotsPassed) throw new IllegalStateException("Server menu checks did not pass");
+                    if (Boolean.getBoolean("omni.visualVerification") && !Boolean.getBoolean("omni.menusOnlyVerification")) {
+                        if (!ForgeVisualVerification.tick(mc)) return;
+                    }
                     com.mojang.logging.LogUtils.getLogger().info("PAIRED_CLIENT_ALL_PASS: shaders/resources, 8 real screen pages, menu packets");
                     done = true;
-                    if (Boolean.getBoolean("omni.packVerification")) {
+                    if (Boolean.getBoolean("omni.packVerification") && !Boolean.getBoolean("omni.visualVerification")
+                            && !Boolean.getBoolean("omni.menusOnlyVerification")) {
                         Class.forName("com.atir.molecularmanipulator.verification.PackFlowVerification")
                                 .getField("menusFinished").setBoolean(null, true);
                     } else mc.stop();
@@ -125,6 +129,7 @@ public final class PairedClientVerification {
                             || menu.getSlots(SingularityMenu.QUANTUM_INPUT).get(0).isActive())
                         throw new IllegalStateException("Duplication page slot visibility is wrong");
                 }
+                if (step / 2 == 4 && Boolean.getBoolean("omni.visualVerification")) ForgeVisualVerification.bookmark(mc, screen);
                 Screenshot.grab(mc.gameDirectory, NAMES[step / 2] + ".png", mc.getMainRenderTarget(), message -> {});
                 System.out.println("PAIRED_CLIENT_PAGE_PASS=" + NAMES[step / 2] + " " + screen.getClass().getSimpleName());
                 step++; wait = 20;

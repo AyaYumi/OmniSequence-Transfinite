@@ -66,7 +66,7 @@ public final class SingularityWhiteHoleRenderer {
             // AFTER_LEVEL follows Fabulous composition and Iris finalization. The separate
             // snapshot prevents reading from the framebuffer we are drawing into.
             ensureTarget(target);
-            modelView.last().pose().set(event.getPoseStack().last().pose());
+            modelView.setIdentity();
             RenderSystem.applyModelViewMatrix();
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
@@ -76,7 +76,7 @@ public final class SingularityWhiteHoleRenderer {
             PENDING.sort(Comparator.comparingDouble((Lens lens) -> lens.eye.subtract(0, 12.5, 0).lengthSqr()).reversed());
             for (var lens : PENDING) {
                 copyScene(target);
-                draw(lens, event.getPoseStack().last().pose(), event.getProjectionMatrix());
+                draw(lens, event.getProjectionMatrix());
             }
         } finally {
             PENDING.clear();
@@ -113,10 +113,11 @@ public final class SingularityWhiteHoleRenderer {
         target.bindWrite(false);
     }
 
-    private static void draw(Lens lens, Matrix4f view, Matrix4f projection) {
+    private static void draw(Lens lens, Matrix4f projection) {
         var shader = OmniShaders.singularityLens();
         var center = lens.pose.transformPosition(0, 12.5F, 0, new Vector3f());
-        view.transformPosition(center);
+        // Forge BER poses already contain the camera view rotation. AFTER_LEVEL
+        // supplies a projection pose, so applying it here projects the center twice.
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);

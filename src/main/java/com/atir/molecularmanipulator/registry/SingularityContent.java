@@ -58,7 +58,7 @@ public final class SingularityContent {
     public static final RegistryObject<net.minecraft.world.entity.EntityType<com.atir.molecularmanipulator.entity.SingularityAssemblyEntity>> ASSEMBLY =
             ENTITIES.register("singularity_assembly", () -> net.minecraft.world.entity.EntityType.Builder.<com.atir.molecularmanipulator.entity.SingularityAssemblyEntity>of(
                     com.atir.molecularmanipulator.entity.SingularityAssemblyEntity::new, net.minecraft.world.entity.MobCategory.MISC)
-                    .sized(1, 1).noSave().fireImmune().clientTrackingRange(16).updateInterval(20).build("molecularmanipulator:singularity_assembly"));
+                    .sized(1, 1).noSave().fireImmune().clientTrackingRange(32).updateInterval(20).build("molecularmanipulator:singularity_assembly"));
     public static void registerEntities(net.minecraftforge.eventbus.api.IEventBus bus) { ENTITIES.register(bus); }
 
     public static final RegistryObject<BlockEntityType<com.atir.molecularmanipulator.blockentity.SingularityBlockEntity>> CONTROLLER_BE =

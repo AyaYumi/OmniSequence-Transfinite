@@ -63,7 +63,7 @@ public final class CosmicSingularityPostRenderer {
         modelView.pushPose();
         try {
             ensureTarget(target);
-            modelView.last().pose().set(event.getPoseStack().last().pose());
+            modelView.setIdentity();
             RenderSystem.applyModelViewMatrix();
             RenderSystem.disableDepthTest();
             RenderSystem.depthMask(false);
@@ -73,7 +73,7 @@ public final class CosmicSingularityPostRenderer {
             PENDING.sort(Comparator.comparingDouble(Hole::distanceSqr).reversed());
             for (var hole : PENDING) {
                 copyScene(target);
-                draw(hole, event.getPoseStack().last().pose(), event.getProjectionMatrix());
+                draw(hole, event.getProjectionMatrix());
             }
         } finally {
             PENDING.clear();
@@ -110,10 +110,11 @@ public final class CosmicSingularityPostRenderer {
         target.bindWrite(false);
     }
 
-    private static void draw(Hole hole, Matrix4f view, Matrix4f projection) {
+    private static void draw(Hole hole, Matrix4f projection) {
         var shader = OmniShaders.cosmicLens();
         var center = hole.pose.transformPosition(0, 0, 0, new Vector3f());
-        view.transformPosition(center);
+        // Forge BER poses already contain the camera view rotation. AFTER_LEVEL
+        // supplies a projection pose, so applying it here projects the center twice.
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);

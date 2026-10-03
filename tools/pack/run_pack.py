@@ -34,6 +34,8 @@ def main():
     parser.add_argument("--applied-jar", required=True, type=Path)
     parser.add_argument("--run-name", default="pack-verification-" + time.strftime("%Y%m%d-%H%M%S"))
     parser.add_argument("--tests", default="", help="Optional lowercase test-name substring")
+    parser.add_argument("--visual", action="store_true", help="Run Forge lens, motion and JEI visual regressions after menus")
+    parser.add_argument("--menus-only", action="store_true", help="Stop after menu and bookmark verification")
     options = parser.parse_args()
     if os.name != "nt":
         parser.error("This launcher reads a Windows launcher batch file")
@@ -77,6 +79,8 @@ def main():
     for directory in ["config", "defaultconfigs", "kubejs", "scripts"]:
         if (pack / directory).exists():
             shutil.copytree(pack / directory, run / directory)
+    if options.visual:
+        (run / "options.txt").write_text("lang:zh_cn\nguiScale:2\nrenderDistance:24\n", encoding="utf-8")
     replacements = {
         "--gameDir": str(run), "--username": "CompatibilityTest",
         "--uuid": "00000000000000000000000000000001", "--accessToken": "0",
@@ -98,6 +102,12 @@ def main():
             args.append("-Xmx8G" if value.startswith("-Xmx") else "-Xms1G" if value.startswith("-Xms") else value)
             index += 1
     args.insert(1, "-Domni.packVerification=true")
+    if options.visual:
+        args.insert(1, "-Domni.visualVerification=true")
+        for flag, value in [("--width", "1700"), ("--height", "900")]:
+            args[args.index(flag) + 1] = value
+    if options.menus_only:
+        args.insert(1, "-Domni.menusOnlyVerification=true")
     if options.tests:
         args.insert(1, "-Domni.packTestFilter=" + options.tests)
     if "--gameDir" not in args or args[args.index("--gameDir") + 1] != str(run) or (run / "saves").exists():

@@ -76,3 +76,24 @@ temporarily increased production values from unit tests.
 与 600 tick 同时研究、采集、64 黑洞生产、复制和运动用于观察持续运行；单次同步
 测试计时与大量搭建夹具引起的卡顿不能代表日常 TPS。原版 AE／UELM 的独立回归分别
 运行，实际整合包结果只涵盖记录的版本、配方和负载。
+
+## Forge visual regression / Forge 视觉回归
+
+Add `--visual` to `run_pack.py` to test the installed pack's Xenon, Entity Culling,
+Modern UI and JEI together. The runner opens the eight real pages, clicks the
+research bookmark button through screen coordinates, checks JEI's saved materials,
+then captures placed holes at 7/70 blocks and the idle/running Hub from several
+views. All eleven client assembly entities must be tracked and have nonempty
+cached meshes. Success requires both `FORGE_VISUAL_ALL_PASS` and
+`PAIRED_CLIENT_ALL_PASS`, plus manual inspection of the PNGs. Add `--menus-only`
+to stop after menu/bookmark validation and check that the bookmark overlay opens.
+
+Visual mode uses a 1700×900 Chinese client, render distance 24, and disposable
+fixtures only. It tests distance culling while keeping unrelated optimization
+settings. It does not change a player's options, copy their saves, or constitute
+a sustained TPS benchmark. A frame with terrain or clouds in front must still
+occlude the actual moving geometry. Normal release builds exclude all fixtures.
+
+使用 `--visual` 验证实际整合包渲染与研究收藏；`--menus-only` 仅验收八个页面和
+收藏后的书签栏。游戏窗口与配置只属于 build 下隔离实例，所有截图仍需人工检查。
+近／远／侧面测试保留普通遮挡与其他模组优化，本模式不代替持续 TPS 实测。

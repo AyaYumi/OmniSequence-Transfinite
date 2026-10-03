@@ -11,7 +11,7 @@ AppliedEnhancements build and install the same version on both sides. Dependency
 JARs are ignored and never embedded in OmniSequence.
 
 CI builds the prerequisite from published AppliedEnhancements commit
-`40d3abe5a9373d3ecb6ebbab8e1279a160f56cbb`, which provides the 1.1.0-forge shared
+`7a15a9bd434de1362a75a72aa93a010c8332d8a4`, which provides the 1.1.0-forge shared
 API. Every push validates documents/resources and performs the Java build/test.
 CI uses the same upstream-built prerequisite JAR with both AE implementations. The API is validated before compilation. Dependencies remain
 separately installed and are never shaded into the mod.

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.7-forge — dependency refresh and interception audit / 前置更新与拦截清单
+
+- Refresh the matching Applied Enhancements build to remove its native AE2 arithmetic rejection. Omni gameplay and dispatch checks are unchanged; shared KeyCounter saturation remains.
+- Add transformed sentinel/byproduct, finite supply, exact infinite consumption and native task accounting regressions. Compatibility suites can use a fresh named disposable directory to prevent old fixture interference.
+- Document remaining rejections, fallbacks, gameplay rules and TPS limits in [the interception inventory](docs/remaining-interceptions.md).
+
+中文
+
+- 更新匹配的 Applied 前置，删除其原生 AE2 算术拒绝。Omni 玩法与派发检查保持原状，共用 KeyCounter 数量饱和处理仍保留。
+- 增加真实 Mixin 环境下库存上限／副产物、有限供应、无限精确消耗与任务累计回归，允许测试使用新建隔离目录，避免旧夹具干扰。
+- 整理剩余拦截、回退、玩法规则与 TPS 限额，等用户按编号确认。
+
 ## OmniSequence: Transfinite 2.0.7-forge — updated build / 更新构建
 
 - Fixed production startup failure in `SingularityEntityCollisionMixin`: the Mixin configuration now references the packaged Forge refmap, so Minecraft method/field targets resolve in installed JARs.

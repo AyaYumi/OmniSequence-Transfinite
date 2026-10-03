@@ -106,7 +106,7 @@ public final class MolecularLongBatchGameTests {
         helper.assertTrue(list.size() == 1, "Exactly one buffered output key");
         var stack = GenericStack.readTag(list.getCompound(0));
         helper.assertTrue(stack != null && stack.what().equals(AEItemKey.of(Items.OAK_PLANKS)) && stack.amount() == amount,
-                "Persistent output count must not truncate or wrap");
+                "Persistent output count must not truncate or wrap: expected=" + amount + ", saved=" + list);
     }
 
     private static KeyCounter[] inputs(long count) {

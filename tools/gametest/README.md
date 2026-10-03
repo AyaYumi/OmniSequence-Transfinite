@@ -35,3 +35,5 @@ classes; they are not a full modpack TPS benchmark or client visual test.
 通过才算该套验收完成。测试会搭建大结构、强制加载测试区块并改写夹具配方，
 只使用 build 下的独立世界。源码中的动画原图和测试夹具是维护资源，临时日志、
 截图、生成文档和测试世界不进入正式 JAR。
+
+The AE compatibility suite includes native maximum-inventory/byproduct non-rejection, finite supply, exact infinite consumption and native task accumulation checks. Set `-Pae2CompatibilityRunName=ae2-compat-fresh-run` to a new name for a disposable directory directly under `build/`. Do not reuse old fixture worlds when comparing runs.

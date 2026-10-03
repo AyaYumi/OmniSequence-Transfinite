@@ -12,7 +12,7 @@ The runtime and compile-time declarations use `gradle.properties`. JARs under
 separately. Do not rename an old 1.0.x file to 1.1.1.
 
 Remote CI builds the matching prerequisite from AppliedEnhancements commit
-`4bf82cabc9e2caa30ddb7731f0ec5458c2f10c7a`. A trusted matching artifact URL
+`f7636700cfd8f821f84de7283720bf08f185f2c5`. A trusted matching artifact URL
 can override this through `APPLIED_ENHANCEMENTS_JAR_URL` or workflow-dispatch
 input. The shared API is checked before compilation. See
 [development](../docs/development.md).

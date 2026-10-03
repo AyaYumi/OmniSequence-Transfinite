@@ -2,9 +2,11 @@
 allprojects {
     afterEvaluate { project ->
         if (project != rootProject) return
+        def compatibilityRun = (project.findProperty('ae2CompatibilityRunName') ?: 'ae2-compat-server-run').toString()
+        if (!(compatibilityRun ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid compatibility run directory')
         def regression = sourceSets.create('ae2ServerCompatibility') {
             java.srcDirs file('tools/gametest/ae2-compat'), file('tools/gametest/java')
-            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java', '**/SmartDoublingGameTests.java', 'com/extendedae_plus/**/*.java', 'com/sorrowmist/**/*.java'
+            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java', '**/SmartDoublingGameTests.java', '**/NativeArithmeticGameTests.java', 'com/extendedae_plus/**/*.java', 'com/sorrowmist/**/*.java'
             resources.srcDir file('tools/gametest/resources')
             resources.exclude 'data/molecularmanipulator/recipe/**'
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
@@ -12,8 +14,16 @@ allprojects {
         }
         neoForge.mods.getByName(project.mod_id).sourceSet(regression)
         def server = neoForge.runs.getByName('gameTestServer')
-        server.gameDirectory = file('build/ae2-compat-server-run')
+        server.gameDirectory = file('build/' + compatibilityRun)
         server.logLevel = org.slf4j.event.Level.INFO
+        def compatibilityLog = project.file('build/' + compatibilityRun + '/logs/latest.log')
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                def report = compatibilityLog.text
+                if (!report.contains('All 4 required tests passed'))
+                    throw new GradleException('Paired-mod AE2 compatibility checks did not pass')
+            }
+        }
         tasks.named('compileAe2ServerCompatibilityJava', JavaCompile) {
             dependsOn tasks.named('classes')
             options.encoding = 'UTF-8'

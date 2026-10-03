@@ -33,3 +33,5 @@ thread unless the caller has obtained an immutable snapshot.
 `blockentity`、`mixin` 和渲染内部类不承诺通用二进制兼容。研究权限、长期材料
 所有权和 AELIS 计划是不同契约，不能相互替代。文档采用当前实现，不保留依赖
 个人机器路径的历史验证报告。
+
+[Remaining interceptions / 剩余拦截清单](remaining-interceptions.md) — numbered operation checks, fallbacks and TPS limits across both maintained Minecraft versions.

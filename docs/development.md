@@ -1,17 +1,17 @@
 # Development and release / 开发与发布
 
-Current source: 2.0.7, Java 21, Minecraft 1.21.1, NeoForge 21.1.220.
+Current source: 2.0.8, Java 21, Minecraft 1.21.1, NeoForge 21.1.220.
 [API index](README.md) · [Dependency setup](../libs/README.md)
 
 ## Dependency input
 
-The source requires `libs/appliedenhancements-1.1.0.jar`, including
-`com.appliedenhancements.api.AelisBatchExecutionContext`. Obtain the revised
+The source requires `libs/appliedenhancements-1.1.1.jar`, including
+`AelisBatchExecutionContext` and `AelisSmartDoublingApi`. Obtain the revised
 AppliedEnhancements build and install the same version on both sides. Dependency
 JARs are ignored and never embedded in OmniSequence.
 
 CI builds the prerequisite from published AppliedEnhancements commit
-`d70f2c0351cc9d9a690bc5f288bca019d0741b9d`, which provides the 1.1.0 shared
+`4bf82cabc9e2caa30ddb7731f0ec5458c2f10c7a`, which provides the 1.1.1 shared
 API. Every push validates documents/resources and performs the Java build/test.
 Repository variable `APPLIED_ENHANCEMENTS_JAR_URL` or workflow-dispatch input
 `applied_enhancements_jar_url` can override the pinned source with a trusted
@@ -31,7 +31,7 @@ AE2 minor version, add `-Pae2_version=19.2.17`.
 
 | Output | Purpose |
 | --- | --- |
-| `build/libs/omnisequence-transfinite-2.0.7.jar` | Runtime mod |
+| `build/libs/omnisequence-transfinite-2.0.8.jar` | Runtime mod |
 | `build/docs/api/index.html` | Generated public Java API documentation |
 | `build/reports/tests/test/index.html` | Unit test results |
 
@@ -84,7 +84,7 @@ may describe a real file change.
 
 ## 中文
 
-构建使用修订版 AppliedEnhancements 1.1.0，前置 JAR 不入库也不嵌入产物。远程
+构建使用修订版 AppliedEnhancements 1.1.1，前置 JAR 不入库也不嵌入产物。远程
 构建默认使用已发布的固定 Git 提交，可通过受信任的 JAR 地址覆盖。不能将旧前置
 改名当作新版 API。JavaDoc 可重新生成到 build/docs/api。
 

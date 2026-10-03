@@ -1,5 +1,16 @@
 # Changelog
 
+## OmniSequence: Transfinite 2.0.8
+
+- Enabled native smart doubling and existing external scaled tasks bypass Omni's second multiplier wrapper, runtime batch expansion and multi-input task normalization. Disabled native patterns still use ordinary local batching.
+- Native smart providers take priority over local batching. Local optional proxies retain only Omni's own scale; the factory no longer borrows EAEP's wrapper for local tasks.
+- Require Applied Enhancements 1.1.1 for cached native enabled-state queries and exact mixed-task reconciliation. Added unit and transformed engine regressions; retained per-tick dispatch budgets and existing TPS caches.
+
+中文
+
+- 已开启原生智能倍增的样板及外部倍率任务，跳过 Omni 二次包装、运行时批量扩展和多输入任务拆解；关闭倍增的样板仍可普通批量处理。
+- 原生智能供应器优先，本地倍率仅使用自身包装；需要 Applied Enhancements 1.1.1，保留数量校验、每 tick 工作预算及 TPS 缓存。
+
 ## OmniSequence: Transfinite 2.0.7
 
 ### Repository and documentation cleanup

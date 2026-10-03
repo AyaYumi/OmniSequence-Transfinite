@@ -1,6 +1,6 @@
 # Isolated engine regressions / 隔离游戏测试
 
-Current source: 2.0.7. Test source sets are excluded from a normal runtime JAR.
+Current source: 2.0.8. Test source sets are excluded from a normal runtime JAR.
 [Development guide](../../docs/development.md) · [Dependency setup](../../libs/README.md)
 
 ## Suites
@@ -47,3 +47,5 @@ were removed; release checks use the maintained tests and resource validation.
 测试只操作 build 下的隔离世界，夹具配方和测试类型不进入正式 JAR。长数量、
 保存/取消、实际 ME 存储总线、第三方能力适配和回压使用可重复测试；图形预览和
 一次性探针已清理。检查 GameTest 全部必需用例通过，不能只看 Gradle 返回成功。
+
+The AE compatibility suite also validates native smart-doubling bypass, mixed exact tasks, preserved wrapper identity and both optional submission overloads.

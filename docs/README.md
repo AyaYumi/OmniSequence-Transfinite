@@ -1,7 +1,7 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.7**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
-Java **21**, AE2 **19.2.17+**, revised AppliedEnhancements **1.1.0**.
+Current source: OmniSequence **2.0.8**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
+Java **21**, AE2 **19.2.17+**, revised AppliedEnhancements **1.1.1**.
 Mod ID: `molecularmanipulator`.
 
 | Contract | English | 中文 |
@@ -13,7 +13,7 @@ Mod ID: `molecularmanipulator`.
 | Dependency setup, builds, release checks, isolated tests and asset maintenance | [Development](development.md) | 同页中文说明 |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
-AppliedEnhancements mod. Use its matching 1.1.0 API documentation. Omni's internal
+AppliedEnhancements mod. Use its matching 1.1.1 API documentation. Omni's internal
 planner/Mixin classes are not integration entry points.
 
 Use `compileOnly` with the separate JARs and install each mod at runtime. Do not

@@ -1,24 +1,24 @@
 # AppliedEnhancements dependency / 开发前置
 
-Current source requires the revised **1.1.0** build on client and server.
+Current source requires the revised **1.1.1** build on client and server.
 
-1. Obtain or build the independent AppliedEnhancements 1.1.0 revision.
-2. Copy `appliedenhancements-1.1.0.jar` into this directory.
+1. Obtain or build the independent AppliedEnhancements 1.1.1 revision.
+2. Copy `appliedenhancements-1.1.1.jar` into this directory.
 3. Run the normal Gradle build. The API validation fails clearly if the file or
-   `AelisBatchExecutionContext` is missing.
+   `AelisBatchExecutionContext` or `AelisSmartDoublingApi` is missing.
 
 The runtime and compile-time declarations use `gradle.properties`. JARs under
 `libs/` are ignored by Git and never shaded into the mod. Install each prerequisite
-separately. Do not rename an old 1.0.x file to 1.1.0.
+separately. Do not rename an old 1.0.x file to 1.1.1.
 
 Remote CI builds the matching prerequisite from AppliedEnhancements commit
-`d70f2c0351cc9d9a690bc5f288bca019d0741b9d`. A trusted matching artifact URL
+`4bf82cabc9e2caa30ddb7731f0ec5458c2f10c7a`. A trusted matching artifact URL
 can override this through `APPLIED_ENHANCEMENTS_JAR_URL` or workflow-dispatch
 input. The shared API is checked before compilation. See
 [development](../docs/development.md).
 
 ## 中文
 
-需要修订版 1.1.0；将实际构建放入此目录，两端使用相同版本。前置构建独立维护，
+需要修订版 1.1.1；将实际构建放入此目录，两端使用相同版本。前置构建独立维护，
 不在本仓库发布，也不嵌入 OmniSequence。旧 1.0.x 缺少共享事务类型，改文件名
 不能替代接口更新。远程 CI 默认构建固定 Git 提交的匹配前置，也支持显式构建地址覆盖。

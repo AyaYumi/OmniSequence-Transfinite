@@ -1,8 +1,8 @@
 # 物质构筑井：配方与研究 API
 
-自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.7**。
+自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.8**。
 目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.17+**，以及必需前置
-AppliedEnhancements **1.1.0**。模组 ID 仍为 `molecularmanipulator`。
+AppliedEnhancements **1.1.1**。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.zh-CN.md)。
@@ -468,7 +468,7 @@ tick 功耗乘本批份数计收。
 批次保存原料所有权与配方 ID，因此未开工批次会按当前配方、权限与参数重新检查，而不是沿用
 旧数值。无法继续加工时，原料仍留在总成内，可作为待加工原料退回。
 
-### 7.1 2.0.7 尚存的边界
+### 7.1 2.0.8 尚存的边界
 
 - 产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。

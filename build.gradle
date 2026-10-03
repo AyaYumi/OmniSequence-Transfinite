@@ -247,8 +247,9 @@ var verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi'
             throw new GradleException("Missing revised AppliedEnhancements dependency: " + jarFile + ". See libs/README.md")
         }
         new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
-            if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null) {
-                throw new GradleException('The AppliedEnhancements JAR lacks the 1.1.0 shared transaction API. See libs/README.md')
+            if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null
+                    || archive.getEntry('com/appliedenhancements/api/AelisSmartDoublingApi.class') == null) {
+                throw new GradleException('The AppliedEnhancements JAR lacks the required 1.1.1 transaction/smart-doubling API. See libs/README.md')
             }
         }
     }
@@ -271,5 +272,5 @@ tasks.register('apiJavadoc', Javadoc) {
     options.charSet = 'UTF-8'
     options.memberLevel = JavadocMemberLevel.PUBLIC
     options.addBooleanOption('Xdoclint:none', true)
-    options.windowTitle = 'OmniSequence 2.0.7 API'
+    options.windowTitle = 'OmniSequence 2.0.8 API'
 }

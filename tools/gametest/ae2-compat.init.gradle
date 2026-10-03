@@ -4,7 +4,7 @@ allprojects {
         if (project != rootProject) return
         def regression = sourceSets.create('ae2ServerCompatibility') {
             java.srcDirs file('tools/gametest/ae2-compat'), file('tools/gametest/java')
-            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java'
+            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java', '**/SmartDoublingGameTests.java', 'com/extendedae_plus/**/*.java', 'com/sorrowmist/**/*.java'
             resources.srcDir file('tools/gametest/resources')
             resources.exclude 'data/molecularmanipulator/recipe/**'
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output

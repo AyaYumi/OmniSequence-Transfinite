@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: AyaYumi/AppliedEnhancements
-          ref: 83c9052851487172fd75b4fd45dc3b168d05e74f
+          ref: d8c7c18f49ed260b74350bc9a524c54a112c3039
           path: .dependencies/appliedenhancements
       - name: Build shared prerequisite against upstream AE2
         run: |

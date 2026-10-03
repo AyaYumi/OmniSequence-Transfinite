@@ -36,8 +36,9 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder("molecularmanipulator")
 @PrefixGameTestTemplate(false)
 public final class MolecularCenterPatternPortGameTests {
-    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 500)
+    @GameTest(template = "multiblock_dismantle_empty", batch = "pattern_storage_bus", timeoutTicks = 500)
     public static void storageBusExposesOnlySupportedMainPatterns(GameTestHelper helper) {
+        com.atir.molecularmanipulator.verification.RegressionConfigFixture.isolate();
         var level = helper.getLevel();
         var pos = new BlockPos(400_008 + (int) (level.getGameTime() % 100_000) * 16, 100, 408);
         level.setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, true);
@@ -123,7 +124,7 @@ public final class MolecularCenterPatternPortGameTests {
         }).thenSucceed();
     }
 
-    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 500)
+    @GameTest(template = "multiblock_dismantle_empty", batch = "pattern_crystal_ownership", timeoutTicks = 500)
     public static void externalTransfersKeepCrystalOwnershipAcrossEmptyReloadAndDismantling(GameTestHelper helper) {
         var level = helper.getLevel();
         var pos = new BlockPos(-400_009 - (int) (level.getGameTime() % 100_000) * 128, 100, -409);

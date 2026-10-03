@@ -12,7 +12,7 @@ The runtime and compile-time declarations use `gradle.properties`. JARs under
 separately. Do not rename an older prerequisite to 1.1.0-forge.
 
 Remote CI builds the matching prerequisite from AppliedEnhancements commit
-`85ffae11dc2c33ba8ccb82b1ef91ba3b1604cab9`. The shared API is checked before compilation, and CI tests the upstream-built prerequisite JAR with both AE implementations. See
+`d8c7c18f49ed260b74350bc9a524c54a112c3039`. The shared API is checked before compilation, and CI tests the upstream-built prerequisite JAR with both AE implementations. See
 [development](../docs/development.md).
 
 ## 中文

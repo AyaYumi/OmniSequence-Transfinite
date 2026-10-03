@@ -1,4 +1,12 @@
 pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == 'org.spongepowered.mixin') {
+                // The plugin marker is POM-only; resolve the published implementation directly.
+                useModule("org.spongepowered:mixingradle:${requested.version}")
+            }
+        }
+    }
     repositories {
         maven { url = "https://maven.minecraftforge.net/" }
         gradlePluginPortal()

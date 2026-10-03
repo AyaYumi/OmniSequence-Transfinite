@@ -11,7 +11,7 @@ AppliedEnhancements build and install the same version on both sides. Dependency
 JARs are ignored and never embedded in OmniSequence.
 
 CI builds the prerequisite from published AppliedEnhancements commit
-`83c9052851487172fd75b4fd45dc3b168d05e74f`, which provides the 1.1.0-forge shared
+`d8c7c18f49ed260b74350bc9a524c54a112c3039`, which provides the 1.1.0-forge shared
 API. Every push validates documents/resources and performs the Java build/test.
 CI uses the same upstream-built prerequisite JAR with both AE implementations. The API is validated before compilation. Dependencies remain
 separately installed and are never shaded into the mod.
@@ -21,6 +21,14 @@ and the split 1.6.x MatrixUploadUtil (void menu upload and both boolean direct
 overloads). Hooks are enabled only when EAEP is installed. Run the installed-pack
 runner with `--tests matrixupload` for the real encoding-menu upload regression.
 GuideME resolves from published Modrinth Maven coordinates without a local JAR.
+
+MixinGradle resolves the published `org.spongepowered:mixingradle:0.7.38`
+implementation directly, using the Forge Maven mirror first. The snapshot plugin
+marker is POM-only and must not be treated as a downloadable plugin JAR. The
+matching Applied prerequisite uses the same pinned implementation. Config-changing
+engine tests use an in-memory copy after disabling their disposable config watcher,
+and pattern/spawn fixtures have separate batches; production config behavior and
+test assertions are unchanged.
 
 ## Build and API documentation
 

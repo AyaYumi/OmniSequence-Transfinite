@@ -34,8 +34,9 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder("molecularmanipulator")
 @PrefixGameTestTemplate(false)
 public final class MultiblockSpawnGameTests {
-    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 240)
+    @GameTest(template = "multiblock_dismantle_empty", batch = "spawn_formed_footprints", timeoutTicks = 240)
     public static void threeStructuresBlockAllNaturalMobsAcrossTheirFullChunks(GameTestHelper helper) {
+        com.atir.molecularmanipulator.verification.RegressionConfigFixture.isolate();
         var level = helper.getLevel();
         int offset = (int) (level.getGameTime() % 100_000) * 256;
         var directions = new Direction[] {Direction.NORTH, Direction.WEST, Direction.SOUTH};
@@ -91,8 +92,9 @@ public final class MultiblockSpawnGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 240)
+    @GameTest(template = "multiblock_dismantle_empty", batch = "spawn_construction_ownership", timeoutTicks = 240)
     public static void constructionOverlapAndStandaloneNexusUseTheCorrectOwnership(GameTestHelper helper) {
+        com.atir.molecularmanipulator.verification.RegressionConfigFixture.isolate();
         var level = helper.getLevel();
         int offset = (int) (level.getGameTime() % 100_000) * 256;
         var player = FakePlayerFactory.getMinecraft(level);

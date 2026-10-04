@@ -815,7 +815,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         }
         // Native smart doubling already defines one atomic task. Retain its extracted
         // vector and per-tick work accounting without expanding it through Omni again.
-        if (com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManaged(patternDetails)) return firstInputs;
+        if (com.atir.molecularmanipulator.crafting.OmniNativeSmartDoubling.isExternallyManaged(patternDetails)) return firstInputs;
         molecularmanipulator$exactPrototypeHasContainers = !expectedContainerItems.isEmpty();
         if (molecularmanipulator$dispatchOwner != null) {
             // Until a verified aggregate context is established, this extraction is

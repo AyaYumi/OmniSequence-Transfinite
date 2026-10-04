@@ -3,7 +3,7 @@ allprojects {
         if (project != rootProject) return
         def regression = sourceSets.create('performanceRegression') {
             java.srcDir file('tools/gametest/java')
-            java.include '**/MatterRecipeLookupGameTests.java', '**/MatterAEKeyGameTests.java', '**/MatterDismantleGameTests.java', '**/VerificationAEKey.java', '**/MolecularLongBatchGameTests.java', '**/TransfiniteComputeNexusGameTests.java', '**/MolecularCenterPatternPortGameTests.java'
+            java.include '**/MatterRecipeLookupGameTests.java', '**/MatterAEKeyGameTests.java', '**/MatterDismantleGameTests.java', '**/VerificationAEKey.java', '**/MolecularLongBatchGameTests.java', '**/TransfiniteComputeNexusGameTests.java', '**/MolecularCenterPatternPortGameTests.java', '**/ResearchStockGameTests.java'
             resources.srcDir file('tools/gametest/resources')
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
             runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output

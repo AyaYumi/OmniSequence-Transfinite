@@ -1,0 +1,35 @@
+// Baseline compatibility against the original AppliedEnhancements 1.1.0 release.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def runName = (project.findProperty('applied110RunName') ?: 'applied-110-compat').toString()
+        if (!(runName ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid compatibility run directory')
+        def regression = sourceSets.create('applied110Compatibility') {
+            java.srcDirs file('tools/gametest/ae2-compat'), file('tools/gametest/java')
+            java.include '**/Ae2CompatibilityGameTests.java', '**/MolecularLongBatchGameTests.java',
+                    '**/Applied110GameTests.java', 'com/extendedae_plus/**/*.java',
+                    'com/sorrowmist/useless/api/**/*.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        server.gameDirectory = file('build/' + runName)
+        server.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                if (!project.file('build/' + runName + '/logs/latest.log').text
+                        .contains('All 3 required tests passed')) {
+                    throw new GradleException('Original Applied 1.1.0 compatibility checks did not pass')
+                }
+            }
+        }
+        tasks.named('compileApplied110CompatibilityJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

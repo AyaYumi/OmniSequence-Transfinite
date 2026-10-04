@@ -1,24 +1,9 @@
-# AppliedEnhancements dependency / 开发前置
+# AppliedEnhancements dependency / 编译依赖
 
-Current source requires the revised **1.1.1** build on client and server.
+This branch compiles against `appliedenhancements-1.1.0.jar` in this directory.
+The separate prerequisite must include `AelisBatchExecutionContext` and `AelisExactCraftingPlanApi`.
+Its classes are not embedded in OmniSequence. Install the same dependency build on
+client and server. JARs under `libs/` are ignored by Git.
 
-1. Obtain or build the independent AppliedEnhancements 1.1.1 revision.
-2. Copy `appliedenhancements-1.1.1.jar` into this directory.
-3. Run the normal Gradle build. The API validation fails clearly if the file or
-   `AelisBatchExecutionContext` or `AelisSmartDoublingApi` is missing.
-
-The runtime and compile-time declarations use `gradle.properties`. JARs under
-`libs/` are ignored by Git and never shaded into the mod. Install each prerequisite
-separately. Do not rename an old 1.0.x file to 1.1.1.
-
-Remote CI builds the matching prerequisite from AppliedEnhancements commit
-`b42bbfaf53ecb15add0a88f8d036ce750bdc381b`. A trusted matching artifact URL
-can override this through `APPLIED_ENHANCEMENTS_JAR_URL` or workflow-dispatch
-input. The shared API is checked before compilation. See
-[development](../docs/development.md).
-
-## 中文
-
-需要修订版 1.1.1；将实际构建放入此目录，两端使用相同版本。前置构建独立维护，
-不在本仓库发布，也不嵌入 OmniSequence。旧 1.0.x 缺少共享事务类型，改文件名
-不能替代接口更新。远程 CI 默认构建固定 Git 提交的匹配前置，也支持显式构建地址覆盖。
+本分支使用独立的 AppliedEnhancements 1.1.0 JAR 编译，所需接口见上文。
+前置单独安装，客户端和服务端使用相同构建，不嵌入本模组产物。

@@ -1,6 +1,6 @@
 # Texture maintenance / 贴图维护
 
-Current source: 2.0.7. Runtime textures and metadata live in
+Current source: 2.0.8. Runtime textures and metadata live in
 `src/main/resources/assets/molecularmanipulator/textures/`. Editable source images
 under `static/` are required to regenerate animations; they are not unused assets.
 
@@ -20,12 +20,10 @@ python tools/textures/generate_sequence_matter_fluid.py
 
 Use Python, Pillow and NumPy as required by the selected script. Preview PNG/GIF
 outputs stay under ignored `build/`. Do not use generated animation strips as
-source originals. The retired initial Hub/items redraw generators and GPU probe
-code were removed.
+source originals.
 
 The Nexus textures, formed-panel artwork, current native models/shaders and
-effect sprites used by the renderer are production assets. Unreferenced liquid,
-normal/specular experiments were removed. Item/fluid atlas animations remain
+effect sprites used by the renderer are production assets. Item/fluid atlas animations remain
 independent of the large-world dynamic-effect setting.
 
 ## 中文

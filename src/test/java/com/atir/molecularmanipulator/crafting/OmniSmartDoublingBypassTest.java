@@ -46,6 +46,28 @@ class OmniSmartDoublingBypassTest {
         assertEquals(1, lookups[0]);
     }
 
+    @Test void cachedContractReadsChangedNativeEnabledState() {
+        boolean[] enabled = {true};
+        var pattern = (IPatternDetails) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IPatternDetails.class, ISmartDoublingAwarePattern.class},
+                (p, m, a) -> {
+                    if (m.getName().equals("eap$allowScaling")) return enabled[0];
+                    throw new AssertionError(m.getName());
+                });
+        assertTrue(OmniNativeSmartDoubling.isExternallyManaged(pattern));
+        enabled[0] = false;
+        assertFalse(OmniNativeSmartDoubling.isExternallyManaged(pattern));
+        enabled[0] = true;
+        assertTrue(OmniNativeSmartDoubling.isExternallyManaged(pattern));
+    }
+
+    @Test void failingNativeEnabledQueryRetainsExternalOwnership() {
+        var pattern = (IPatternDetails) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IPatternDetails.class, ISmartDoublingAwarePattern.class},
+                (p, m, a) -> { throw new IllegalStateException("Optional API unavailable"); });
+        assertTrue(OmniNativeSmartDoubling.isExternallyManaged(pattern));
+    }
+
     private static IPatternDetails pattern(boolean enabled, boolean scaled) {
         Class<?>[] contracts = scaled ? new Class<?>[]{IPatternDetails.class, AelisScaledPattern.class}
                 : new Class<?>[]{IPatternDetails.class, ISmartDoublingAwarePattern.class};

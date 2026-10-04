@@ -1,7 +1,7 @@
 # Integration APIs / 接口文档
 
 Current source: OmniSequence **2.0.8**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
-Java **21**, AE2 **19.2.17+**, revised AppliedEnhancements **1.1.1**.
+Java **21**, AE2 **19.2.17+**, AppliedEnhancements **1.1.0**.
 Mod ID: `molecularmanipulator`.
 
 | Contract | English | 中文 |
@@ -10,10 +10,9 @@ Mod ID: `molecularmanipulator`.
 | Exact BigInteger provider/output capabilities and original-provider identity | [Exact-count API](omni-exact-provider-api.md) | 同页中文说明 |
 | Well recipe JSON, generic AEKey inputs, research, machine imports and KubeJS | [Well and research API](matter-research-api.md) | [构筑井与研究 API](matter-research-api.zh-CN.md) |
 | Configuration paths, defaults, migration and resource production | [Configuration](configuration.md) | 同页中文说明 |
-| Dependency setup, builds, release checks, isolated tests and asset maintenance | [Development](development.md) | 同页中文说明 |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
-AppliedEnhancements mod. Use its matching 1.1.1 API documentation. Omni's internal
+AppliedEnhancements mod. Use its matching 1.1.0 API documentation. Omni's internal
 planner/Mixin classes are not integration entry points.
 
 Use `compileOnly` with the separate JARs and install each mod at runtime. Do not
@@ -32,6 +31,4 @@ thread unless the caller has obtained an immutable snapshot.
 
 `blockentity`、`mixin` 和渲染内部类不承诺通用二进制兼容。研究权限、长期材料
 所有权和 AELIS 计划是不同契约，不能相互替代。文档采用当前实现，不保留依赖
-个人机器路径的历史验证报告。
-
-[Remaining interceptions / 剩余拦截清单](remaining-interceptions.md) — numbered operation checks, fallbacks and TPS limits across both maintained Minecraft versions.
+个人机器路径的验证过程。

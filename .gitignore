@@ -68,3 +68,16 @@ libs/*.jar
 
 # CI-only prerequisite checkout
 /.build-dependencies/
+
+# Local investigation notes and generated verification tools
+/docs/remaining-interceptions.md
+/docs/development.md
+/docs/DEVELOPMENT.md
+/docs/performance.md
+/tools/client/
+/tools/pack/
+/tools/ui/
+/.claude/
+*.sparkprofile
+*.tmp
+*.bak

@@ -128,9 +128,7 @@ public final class MatterResearchProgress {
         failures.forEach((key,amount)->machine.getResearchOrders().reportUncraftable(id,key,amount));
         lastError=uncraftable ? "not_craftable" : "orders_submitted";
         // Pay only after all requirements can be allocated simultaneously, including reserved output.
-        if (deficits.stream().allMatch(amount -> amount == 0) && start(machine, id)) {
-            sharedStock.clear(); sharedStock.putAll(livePreparationStock(machine));
-        }
+        if (deficits.stream().allMatch(amount -> amount == 0)) start(machine, id, sharedStock);
     }
 
     public long acceptOrderedMaterial(MatterFabricationBlockEntity machine, ResourceLocation id, AEItemKey key,
@@ -157,6 +155,10 @@ public final class MatterResearchProgress {
     }
 
     public boolean start(MatterFabricationBlockEntity machine, ResourceLocation id) {
+        return start(machine, id, null);
+    }
+
+    private boolean start(MatterFabricationBlockEntity machine, ResourceLocation id, Map<AEItemKey, Long> sharedStock) {
         if (tasks.containsKey(id)) return resume(machine, id);
         if (!ready(machine) || unavailableTasks.containsKey(id) || unavailablePreparations.containsKey(id) || hasRefunds()) return false;
         var definition = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(machine.getLevel()).research(id);
@@ -168,12 +170,13 @@ public final class MatterResearchProgress {
             var prep=preparations.get(id);
             var task=prep==null ? new Task(definition.value(),encode(definition.value(),registries),count+1)
                     :new Task(prep.definition,prep.terms,prep.firstRound,prep.round,true);
-            if (!pay(machine,task,prep)) return false;
+            if (!pay(machine, task, prep, sharedStock)) return false;
             tasks.put(id, task);
             autoStart.remove(id);
             preparations.remove(id);
             if(prep!=null)machine.getResearchOrders().cancel(id);
-            cachedLive=null; preparationStock=null;
+            cachedLive = null;
+            if (sharedStock == null) preparationStock = null;
             lastError = "";
             machine.saveChanges();
             return true;
@@ -240,10 +243,12 @@ public final class MatterResearchProgress {
         return ResearchMaterialAllocator.plan(required, relevant, (index, key) -> matches.get(key).get(index));
     }
 
-    private boolean pay(MatterFabricationBlockEntity machine, Task task) { return pay(machine,task,null); }
-    private boolean pay(MatterFabricationBlockEntity machine, Task task, Preparation prep) {
+    private boolean pay(MatterFabricationBlockEntity machine, Task task) { return pay(machine, task, null, null); }
+    private boolean pay(MatterFabricationBlockEntity machine, Task task, Preparation prep, Map<AEItemKey, Long> sharedStock) {
         registries = machine.getLevel().registryAccess();
-        var stock=liveInventory(machine);
+        // Preparation already read the providers this tick. Reuse its snapshot for planning;
+        // exact SIMULATE/MODULATE calls below still validate every withdrawal against live stock.
+        var stock = sharedStock == null ? liveInventory(machine) : new LinkedHashMap<>(sharedStock);
         if(prep!=null)prep.reserved.forEach((key,amount)->stock.merge(key,amount,MatterResearchProgress::saturatedAdd));
         var allocation = plan(task.costs, task.paid, stock);
         var requested = allocation == null ? null : new LinkedHashMap<>(allocation);
@@ -251,13 +256,17 @@ public final class MatterResearchProgress {
         if (requested == null) { lastError = "insufficient"; return false; }
         var storage = machine.getMainNode().getGrid().getStorageService().getInventory();
         var source = new MachineSource(machine);
-        for (var entry : requested.entrySet()) {
-            if (storage.extract(entry.getKey(), entry.getValue(), Actionable.SIMULATE, source) != entry.getValue()) {
-                lastError = "stock_changed"; return false;
-            }
-        }
         try {
+            // A partial extraction or callback may change stock even if admission later fails.
+            preparationStock = null;
             for (var entry : requested.entrySet()) {
+                if (entry.getValue() == 0) continue;
+                if (storage.extract(entry.getKey(), entry.getValue(), Actionable.SIMULATE, source) != entry.getValue()) {
+                    lastError = "stock_changed"; return false;
+                }
+            }
+            for (var entry : requested.entrySet()) {
+                if (entry.getValue() == 0) continue;
                 long taken = storage.extract(entry.getKey(), entry.getValue(), Actionable.MODULATE, source);
                 if (taken > 0) { refunds.put(entry.getKey(), taken); machine.saveChanges(); }
                 if (taken != entry.getValue()) { lastError = "stock_changed"; refund(machine); return false; }
@@ -268,6 +277,12 @@ public final class MatterResearchProgress {
             refund(machine); return false;
         }
         refunds.clear();
+        if (sharedStock != null) {
+            requested.forEach((key, amount) -> sharedStock.computeIfPresent(key,
+                    (ignored, available) -> available - Math.min(available, amount)));
+            // Keys stay in the index until the next live read; zero amounts no longer match.
+            preparationStock = sharedStock;
+        }
         if(prep!=null) {
             prep.reserved.forEach((key,amount)-> {long extra=amount-Math.min(amount,allocation.getOrDefault(key,0L));if(extra>0)refunds.merge(key,extra,Math::addExact);});
             prep.reserved.clear();
@@ -287,6 +302,8 @@ public final class MatterResearchProgress {
             try { returned = storage.insert(entry.getKey(), entry.getValue(), Actionable.MODULATE, source); }
             catch (RuntimeException error) { continue; } // Keep ownership until a compatible provider accepts it.
             if (returned > 0) {
+                preparationStock = null;
+                cachedLive = null;
                 long left = entry.getValue() - returned;
                 if (left == 0) iterator.remove(); else entry.setValue(left);
                 machine.saveChanges();
@@ -297,7 +314,6 @@ public final class MatterResearchProgress {
     public void tick(MatterFabricationBlockEntity machine) {
         if (machine.getLevel().getGameTime() % 20 == 0) refund(machine);
         if (!autoStart.isEmpty() && machine.getLevel().getGameTime()%20==0 && ready(machine)) {
-            var sharedStock=livePreparationStock(machine);
             for (var id : List.copyOf(autoStart)) {
                 if (machine.getLevel().getGameTime() % 20 == 0) {
                     if(!preparations.containsKey(id)) {
@@ -305,7 +321,7 @@ public final class MatterResearchProgress {
                         else machine.getResearchOrders().cancel(null);
                         orderMissing(machine,id,false);
                     }
-                    else replenish(machine,id,sharedStock);
+                    else replenish(machine, id);
                 }
             }
         }
@@ -460,7 +476,8 @@ public final class MatterResearchProgress {
         var index = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(machine.getLevel());
         var grid = machine.getMainNode().getGrid();
         // Progress still syncs every five ticks; the stock-only presentation is sampled once a second.
-        // Material admission and extraction always read providers afresh.
+        // Explicit admission reads providers afresh; automatic admission reuses only this tick's
+        // preparation snapshot and validates exact withdrawals against the providers.
         if (cachedLive != null && selected.equals(cachedLiveId) && cachedLiveTask == task
                 && cachedLiveRound == round && cachedLiveIndex == index && cachedLiveGrid == grid
                 && now >= cachedLiveTick && now - cachedLiveTick < 20) {

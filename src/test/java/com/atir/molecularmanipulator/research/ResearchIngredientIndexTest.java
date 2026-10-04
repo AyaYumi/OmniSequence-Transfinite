@@ -34,4 +34,19 @@ class ResearchIngredientIndexTest {
         var matcher = new ResearchIngredientIndex(List.of(new MatterResearchRecipe.Cost(ingredient, 3)));
         assertEquals(java.util.Set.of(exact), matcher.matches(stock, ResearchIngredientIndex.indexStock(stock)).keySet());
     }
+
+    @Test void sharedIndexIgnoresStockConsumedByEarlierResearch() {
+        var plain = AEItemKey.of(Items.QUARTZ);
+        var named = Items.QUARTZ.getDefaultInstance();
+        named.set(DataComponents.CUSTOM_NAME, Component.literal("remaining"));
+        var variant = AEItemKey.of(named);
+        var stock = new java.util.LinkedHashMap<>(Map.of(plain, 3L, variant, 4L));
+        var indexed = ResearchIngredientIndex.indexStock(stock);
+        var matcher = new ResearchIngredientIndex(List.of(new MatterResearchRecipe.Cost(Ingredient.of(Items.QUARTZ), 4)));
+
+        stock.put(plain, 0L);
+        assertEquals(java.util.Set.of(variant), matcher.matches(stock, indexed).keySet());
+        stock.remove(plain);
+        assertEquals(java.util.Set.of(variant), matcher.matches(stock, indexed).keySet());
+    }
 }

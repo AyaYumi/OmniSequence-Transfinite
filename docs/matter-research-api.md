@@ -2,7 +2,7 @@
 
 Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.8**.
 Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.17+**, and the
-required prerequisite AppliedEnhancements **1.1.1**. The Mod ID stays
+required prerequisite AppliedEnhancements **1.1.0**. The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).

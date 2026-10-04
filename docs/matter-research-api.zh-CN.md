@@ -2,7 +2,7 @@
 
 自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.8**。
 目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.17+**，以及必需前置
-AppliedEnhancements **1.1.1**。模组 ID 仍为 `molecularmanipulator`。
+AppliedEnhancements **1.1.0**。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.zh-CN.md)。

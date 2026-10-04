@@ -12,7 +12,7 @@ quantum-linked multiblocks. Mod ID: `molecularmanipulator`.
 | OmniSequence | 2.0.8, branch `1.21.1-neoforge` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 or later |
-| AppliedEnhancements | Revised 1.1.1 build, client and server |
+| AppliedEnhancements | 1.1.0 or later, client and server |
 | AE2 | 19.2.17 or later; tested with 19.2.17 and 19.2.18 |
 | ExtendedAE | 1.21-2.2.32-neoforge or later |
 | LDLib2 | 2.2.18 or later |
@@ -20,8 +20,10 @@ quantum-linked multiblocks. Mod ID: `molecularmanipulator`.
 | JEI / AdvancedAE | Optional; AdvancedAE enables its research/integration |
 
 Install dependencies separately. OmniSequence does not embed their classes.
-The revised AppliedEnhancements build provides the shared cycle transaction
+AppliedEnhancements 1.1.0 provides the shared cycle transaction
 API used by this source; older 1.0.x builds are insufficient.
+
+OmniSequence caches native smart-doubling detection and preserves external pattern ownership.
 
 ## Machines and progression
 
@@ -109,24 +111,16 @@ global one-minute log window; optional profiler summaries remain disabled by def
 
 ## Installation and build
 
-Use Java 21 and provide `libs/appliedenhancements-1.1.1.jar` as described in
-[libs/README.md](libs/README.md). Then:
+Install the dependencies listed above in the client and server `mods/` folders.
+Use matching mod builds on both sides. To build from source, use Java 21 and
+place `appliedenhancements-1.1.0.jar` in `libs/`.
+The prerequisite must provide `AelisBatchExecutionContext` and `AelisExactCraftingPlanApi`.
 
-```powershell
-.\gradlew.bat clean build --no-configuration-cache
+```sh
+./gradlew build apiJavadoc
 ```
 
-Output: `build/libs/omnisequence-transfinite-2.0.8.jar`. Unit tests run with `build`.
-[Development instructions](docs/development.md) cover isolated engine regressions,
-API/JAR validation and source cleanup. Test code and previews are outside the
-normal release source set.
-
-CI builds the matching AppliedEnhancements 1.1.1 dependency from a published fixed
-Git commit. A trusted matching JAR can override that source; see development
-instructions. Older 1.0.x builds cannot substitute for the shared transaction API.
-
-Back up worlds before upgrading. Existing recipes, research progress, owned
-buffers and quantum links migrate through supported saved-state paths. The old
-1,000-page pattern layout is retired; the current configurable maximum is 300 pages.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.8.jar`.
+Public Java API documentation is generated under `build/docs/api/`.
 
 Licensed under the [MIT License](LICENSE).

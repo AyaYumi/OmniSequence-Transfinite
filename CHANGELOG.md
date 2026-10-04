@@ -1,47 +1,18 @@
 # Changelog
 
-## 2.0.8 — selected interception removal / 指定拦截移除
-
-- Refresh Applied Enhancements with A02/A03/A07/A11/A19 rejection paths removed. Failed optimization may continue native calculation; unreadable rewrites restore original exact tasks and finite mismatches retain their exact remainder.
-- Extend paired AE regressions with large native fallback under a disabled exact preference, rewritten-task continuation and finite CRAFT_LESS calculation. Seven required tests must pass; other Omni gameplay/runtime checks and TPS controls remain.
-- Mark the five removed rejection groups in the shared inventory and update current API guidance.
-
-中文
-
-- 更新 Applied 前置，移除 A02、A03、A07、A11、A19 拒绝入口。优化失败可继续原生计算；不可读改写恢复原始精确任务，有限数量不一致时保留精确尾数。
-- 双模组回归增加偏好关闭时的大额原生回退、倍率任务继续和有限库存尽量合成，七项必需用例全部通过才算成功。其他 Omni 玩法／运行检查及 TPS 控制继续保留。
-- 共享清单标记五组已移除拒绝，同步当前 API 说明。
-
-## 2.0.8 — dependency refresh and interception audit / 前置更新与拦截清单
-
-- Refresh the matching Applied Enhancements build to remove its native AE2 arithmetic rejection. Omni gameplay and dispatch checks are unchanged; shared KeyCounter saturation remains.
-- Add transformed sentinel/byproduct, finite supply, exact infinite consumption and native task accounting regressions. Compatibility suites can use a fresh named disposable directory to prevent old fixture interference.
-- Document remaining rejections, fallbacks, gameplay rules and TPS limits in [the interception inventory](docs/remaining-interceptions.md).
-
-中文
-
-- 更新匹配的 Applied 前置，删除其原生 AE2 算术拒绝。Omni 玩法与派发检查保持原状，共用 KeyCounter 数量饱和处理仍保留。
-- 增加真实 Mixin 环境下库存上限／副产物、有限供应、无限精确消耗与任务累计回归，允许测试使用新建隔离目录，避免旧夹具干扰。
-- 整理剩余拦截、回退、玩法规则与 TPS 限额，等用户按编号确认。
-
 ## OmniSequence: Transfinite 2.0.8
 
-- Enabled native smart doubling and existing external scaled tasks bypass Omni's second multiplier wrapper, runtime batch expansion and multi-input task normalization. Disabled native patterns still use ordinary local batching.
-- Native smart providers take priority over local batching. Local optional proxies retain only Omni's own scale; the factory no longer borrows EAEP's wrapper for local tasks.
-- Require Applied Enhancements 1.1.1 for cached native enabled-state queries and exact mixed-task reconciliation. Added unit and transformed engine regressions; retained per-tick dispatch budgets and existing TPS caches.
+- Reuse one inventory snapshot across research preparation and automatic admission in the same tick. Update shared amounts after payment and invalidate on failed validation, partial extraction or refunds; actual payment still checks live storage.
+- Keep native smart-doubling patterns and existing external batches under their provider's ownership, preventing a second local multiplier. Read changing enabled flags through cached optional contract discovery.
+- Require Applied Enhancements 1.1.0. Keep ordinary local batching and exact task metadata; incompatible metadata rewrites retain the original complete plan.
 
 中文
 
-- 已开启原生智能倍增的样板及外部倍率任务，跳过 Omni 二次包装、运行时批量扩展和多输入任务拆解；关闭倍增的样板仍可普通批量处理。
-- 原生智能供应器优先，本地倍率仅使用自身包装；需要 Applied Enhancements 1.1.1，保留数量校验、每 tick 工作预算及 TPS 缓存。
+- 同一 Tick 的研究备料和自动启动共享库存快照；成功扣料后更新数量，校验失败、部分提取或退款时使快照失效，实际扣料仍检查实时库存。
+- 原生智能倍增及外部批次保留供应器所有权，避免第二次本地倍率；缓存接口发现并实时读取启用状态。
+- Applied 最低依赖为 1.1.0，保留本地批量和精确数量元数据；无法兼容改写时保留原始完整计划。
 
 ## OmniSequence: Transfinite 2.0.7
-
-### Repository and documentation cleanup
-
-- Rebuilt the API index, Chinese/English project guides, configuration reference and development instructions for the current 2.0.7 / AppliedEnhancements 1.1.0 contracts. Split the batch SPI into Chinese and English pages and added the exact-count capability contract. Retained in-game task guides without expensive structure previews.
-- Removed one-off client/GPU probes, dated local test reports, obsolete generators and unused liquid/normal/specular effect textures. Kept repeatable engine/unit tests and editable animation sources outside the release JAR.
-- Throttled recurring runtime/load warnings and errors globally, throttled optional AELIS/exact dispatch traces across CPUs, removed repeated shader-registration success logs and prevented bounded fallback diagnostics from clearing their history and logging the same entries again.
 
 ### Optional batch provider adapters and passive-crafting regression
 
@@ -168,7 +139,6 @@ Changes from **2.0.3**.
 #### Validation and remaining limits
 
 - Both molecular devices accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips, and rejected multiplication and buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
-- **144 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
 - **All fourteen isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the guide layout and the clock effect have not received an interactive in-game visual check.
 
@@ -266,7 +236,6 @@ Changes from **2.0.2**.
 
 #### Validation and remaining limits
 
-- **134 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
 - **All eleven isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.

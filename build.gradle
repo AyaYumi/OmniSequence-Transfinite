@@ -213,7 +213,8 @@ tasks.named('jar', Jar).configure {
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
     from('docs') {
-        include '*.md'
+        include 'README.md', 'configuration.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
+                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
         into 'docs'
     }
 }
@@ -244,12 +245,12 @@ var verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi'
     doLast {
         def jarFile = dependencyJar.asFile
         if (!jarFile.isFile()) {
-            throw new GradleException("Missing revised AppliedEnhancements dependency: " + jarFile + ". See libs/README.md")
+            throw new GradleException("Missing AppliedEnhancements dependency: " + jarFile + ". See libs/README.md")
         }
         new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
             if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null
-                    || archive.getEntry('com/appliedenhancements/api/AelisSmartDoublingApi.class') == null) {
-                throw new GradleException('The AppliedEnhancements JAR lacks the required 1.1.1 transaction/smart-doubling API. See libs/README.md')
+                    || archive.getEntry('com/appliedenhancements/api/AelisExactCraftingPlanApi.class') == null) {
+                throw new GradleException('The AppliedEnhancements JAR lacks the required 1.1.0 transaction/exact-plan API. See libs/README.md')
             }
         }
     }
@@ -272,5 +273,5 @@ tasks.register('apiJavadoc', Javadoc) {
     options.charSet = 'UTF-8'
     options.memberLevel = JavadocMemberLevel.PUBLIC
     options.addBooleanOption('Xdoclint:none', true)
-    options.windowTitle = 'OmniSequence 2.0.8 API'
+    options.windowTitle = "OmniSequence ${mod_version} API"
 }

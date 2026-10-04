@@ -49,3 +49,18 @@ logs/
 
 # Local Forge dependency artifacts
 /libs/*.jar
+
+# Local investigation notes and generated verification tools
+/docs/remaining-interceptions.md
+/docs/development.md
+/docs/DEVELOPMENT.md
+/docs/performance.md
+/tools/client/
+/tools/pack/
+/tools/ui/
+/.claude/
+*.sparkprofile
+*.tmp
+*.bak
+
+/.dependencies/

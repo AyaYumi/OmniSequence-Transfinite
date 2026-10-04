@@ -304,7 +304,8 @@ ServerEvents.recipes(event => {
 ### 4.1 通用输入（`ae_inputs`）
 
 `ae_inputs` 接受所有已注册的 AEKey 类型，气体、化学品等第三方资源由此输入。每项使用 AE2
-的 `GenericStack.CODEC`：`#t` 是已注册的 AEKey 类型 ID，`#` 是每份配方的原始数量。
+的 Forge 配方编码格式：`#t` 是已注册的 AEKey 类型 ID，`#` 是每份配方的原始数量，
+`key_nbt` 由 AE2 15 的 NBT 接口读取。
 
 | 字段 | 含义 |
 | --- | --- |
@@ -404,7 +405,7 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 30 秒适用于内置研究的首次解锁及后续每轮深度研究。自定义 `duration` 仍按 tick 自由配置，
 省略时默认 1200；已开始的轮次保留开工时的耗时快照。
 
-三阶 `event_horizon` 要求 `sequence_array` 与 `omni_computation` 各完成一次。首轮耗材等于当前构序阵列与万物演算核心的完整搭建材料（含主控）：共 19 类、4,634 个方块。沿用九轮深度研究倍率；消耗 ME 库存中的方块，不会拆除现有建筑。微型黑洞配方为 100,000 个 `ae2:singularity`，微型白洞配方为 1,000,000,000 个 `ae2:matter_ball`，两者用 `ae_inputs` 数字 long 编码，通过构筑井样板总成执行。天枢全部 13 类方块配方的所有投入，在上次普通材料提高 100 倍的基础上再乘 10,000；天枢主控现在消耗 10,000 个微型黑洞，白洞资源核心消耗 10,000 个微型白洞。微型洞自身配方、研究耗材、产出数量、耗时和功率不变。
+三阶 `event_horizon` 要求 `sequence_array` 与 `omni_computation` 各完成一次。首轮耗材等于当前构序阵列与万物演算核心的完整搭建材料（含主控）：共 19 类、4,634 个方块。沿用九轮深度研究倍率；消耗 ME 库存中的方块，不会拆除现有建筑。微型黑洞配方为 100,000 个 `ae2:singularity`，微型白洞配方为 1,000,000,000 个 `ae2:matter_ball`，两者用 `ae_inputs` 数字 long 编码，通过构筑井样板总成执行。天枢全部 13 类方块配方的普通材料投入为基础数量的 1,000,000 倍；天枢主控现在消耗 10,000 个微型黑洞，白洞资源核心消耗 10,000 个微型白洞。
 
 这些二阶分支默认都需要一阶完成 **1 次**。内置材料配方 ID 位于
 `molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`；附属机器配方 ID 位于

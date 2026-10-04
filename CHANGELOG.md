@@ -5,14 +5,12 @@
 - Restore automatic encoded-pattern upload to a powered, formed Sequence Array equipped with EAEP's Upload Core. EAEP 1.6.x moved the entry points to MatrixUploadUtil, changed the menu return type to void and added a silent direct-upload overload; retain the older EAEP entry points as well.
 - Share source-slot transfer and duplicate blank-pattern refunds across both APIs, use a localized duplicate message independent of EAEP's renamed keys, and avoid copying the incoming pattern once per library slot. Upload scans run only when encoding/uploading, with no added tick scans or recurring logs. Minecraft 1.20.1 only.
 - Add an installed-pack regression for the real encoding-menu hook, exact source ownership, duplicate refunds, both direct overloads, changed encoder names, missing-core fallback and processing patterns.
-- Validation: 281 unit tests and build/API JavaDoc/release Mixin checks passed against both upstream AE2 15.4.10 and UELM 15.5.4. The isolated 366-mod Project Infinity 0.1 regression passed with EAEP 1.6.2, including eight actual menu pages. No sustained TPS benchmark was repeated for this event-driven fix.
 
 中文
 
 - 修复装有 EAEP 上传核心、已成型且联网的构序矩阵无法自动接收编码样板。适配 EAEP 1.6.x 的 MatrixUploadUtil、无返回值菜单入口与静默上传重载，同时保留旧版接口。
 - 新旧入口共用源槽位转移和重复样板空白返还，重复提示使用本模组中英翻译；传入样板只预处理一次。只在编码／上传时查询，不新增 tick 扫描或重复日志。仅修改 1.20.1。
 - 新增实际整合包回归，覆盖真实编码菜单、源物品只扣一次、重复返还、两种直接上传入口、不同编码玩家、无核心回退及处理样板行为。
-- 验证：原版 AE2 15.4.10 与 UELM 15.5.4 下各 281 项单元测试及构建／API JavaDoc／正式 Mixin 检查通过；366 模组 Project Infinity 0.1 隔离回归使用 EAEP 1.6.2 通过，包括八个真实菜单页面。本次事件触发的修复未重测持续 TPS。
 
 ## 2.0.7-forge — auto crafter output direction correction / 自动合成器输出方向修正
 
@@ -42,7 +40,6 @@
 - Bake moving Hub meshes without using an entity draw layer to filter block-model quads. Keep cached static meshes, ordinary depth-tested atlas rendering, ownership/collision logic and the 20-tick synchronization interval.
 - Register only the Hub, its moving assemblies, miniature holes and resource core with Xenon / Sodium Extras distance culling; add optional Entity Culling callbacks. Measure Hub visibility from its whole bounds, track assemblies across 32 chunks and allow loaded miniature holes within 256 blocks.
 - Repair research material bookmarks for JEI's public bookmark manager, with older addIngredientBookmark / factory fallbacks. Show the bookmark overlay after a valid click, use the same current/remaining-round material list as the research page, and center a font-independent pixel star in the button.
-- Add a disposable installed-pack visual runner covering actual bookmark clicks, near/far holes, idle/running Hub, eleven nonempty assembly meshes and side views. The 1.21.1 branch and Applied Enhancements are unchanged.
 
 中文
 
@@ -50,7 +47,6 @@
 - 天枢运动网格不再用实体绘制层过滤方块模型面片。静态网格缓存、普通贴图／深度绘制、材质所有权和碰撞、20 tick 同步间隔继续保留。
 - 补上 Xenon／Sodium Extras 距离剔除及 Entity Culling 的专用兼容，只豁免天枢、运动部件、微型洞和资源核心。天枢按整座建筑包围盒判断可见距离；运动实体跟踪范围为 32 区块，已加载微型洞在 256 格内显示。
 - 研究收藏适配 JEI 公共书签管理接口，同时保留旧版接口回退；有效点击后显示书签栏，材料与当前／剩余满阶列表一致。按钮使用不依赖字体字形的居中像素星形。
-- 新增实际整合包隔离视觉回归，覆盖真实按钮点击、近远微型洞、静止／运动天枢、11 个非空部件网格和侧面视角。本次只修改 1.20.1，1.21.1 与 Applied Enhancements 保持原状。
 
 ## 2.0.7-forge — selected interception removal / 指定拦截移除
 
@@ -68,7 +64,6 @@
 
 - Refresh the matching Applied Enhancements build to remove its native AE2 arithmetic rejection. Omni gameplay and dispatch checks are unchanged; shared KeyCounter saturation remains.
 - Add transformed sentinel/byproduct, finite supply, exact infinite consumption and native task accounting regressions. Compatibility suites can use a fresh named disposable directory to prevent old fixture interference.
-- Document remaining rejections, fallbacks, gameplay rules and TPS limits in [the interception inventory](docs/remaining-interceptions.md).
 
 中文
 
@@ -83,8 +78,6 @@
 - Restore moving Hub collision surfaces when Radium bypasses vanilla entity collision queries. Empty and distant body queries retain Radium's existing fast path.
 - Added release-JAR validation for the refmap link and entity, carriage, recipe, screen and recipe-accessor mappings. Development tests alone cannot validate production names.
 - Retained native smart-doubling bypass, exact quantities and all TPS work budgets/caches.
-- Verified 36 workflows and eight real menu pages in the installed 366-JAR Project Infinity 0.1 environment, plus paired upstream AE2 15.4.10 / UELM 15.5.4 regressions. Includes continuous dependent-material research, quantum grid ownership, native EAEP scaling, full craft completion, fluid/copy energy and Radium carriage. See [the pack runner](tools/pack/README.md) for repeatable verification and measurement limits.
-- A separate sustained flow passed 600 idle and 600 active server ticks. Active research, all 189 configured resources, 64 black holes, copying and moving Hub bodies averaged 7.93 ms/tick (p95 21.06 ms, max 32.54 ms) on the validation machine. This measured workload does not establish TPS for other saves or machine counts.
 
 中文
 
@@ -93,19 +86,6 @@
 - 修复 Radium 绕过原版碰撞查询后天枢环带失去碰撞的问题；没有移动建筑或建筑不在附近时保留原有快速路径。
 - 增加正式 JAR 检查，验证映射文件引用，以及实体、玩家携带、配方、界面和配方字段映射，防止开发环境测试掩盖打包问题。
 - 保留原生智能倍增绕过、精确数量及全部 TPS 工作预算与缓存。
-- 在包含 366 个 JAR 的 Project Infinity 0.1 实际环境中通过 36 项流程及八个真实菜单页面，并分别通过原版 AE2 15.4.10／UELM 15.5.4 双模组回归。覆盖依赖材料持续研究、量子连接所有权、EAEP 倍增、完整合成、流体与复制能耗、Radium 携带。可重复验收及计时范围见整合包测试说明。
-- 单独持续运行测试通过 600 tick 空闲及 600 tick 同时运行；研究、189 种配置资源、64 黑洞、复制和天枢运动同时运行时，平均 7.93 ms/tick，p95 21.06 ms，最大 32.54 ms。该结果仅代表本机测试负载，不能代替其他存档和机器数量的测量。
-
-## OmniSequence: Transfinite 2.0.8-forge
-
-- Native smart doubling bypasses Omni's second multiplier, runtime batch expansion and multi-input normalization. Disabled native tasks still receive ordinary local batching.
-- Require Applied Enhancements 1.1.1-forge for cached optional enabled-state queries and exact mixed-task reconciliation. Keep native wrappers, provider splits and remainders; retain tick budgets and TPS caches.
-- Added unit and transformed engine regressions for enabled tasks, mixed exact quantities, existing wrappers and both optional native submit overloads.
-
-中文
-
-- 已开启智能倍增的外部样板跳过 Omni 二次倍率包装、运行时批量扩展和多输入拆解；关闭倍增的普通样板仍可走本地批量。
-- 需要 Applied Enhancements 1.1.1-forge，保留外部包装、供应器分配、余量、工作预算和 TPS 缓存，加入混合任务及两种提交入口回归。
 
 ## OmniSequence: Transfinite 2.0.7-forge
 
@@ -115,13 +95,6 @@
 - Supported upstream AE2 15.4.10 and UELM 15.5.4 using the same paired runtime JARs. Adapted Forge capabilities, serialization, custom menus and rendering; retained inventory save callbacks and client menu locators.
 - Preserved TPS safeguards: shared research stock every 20 ticks, revision-based recipe caching, structure inspection intervals, bounded build/dismantle/passive crafting, fair output scheduling and rate-limited logs. Empty refunds return before resolving the network, with an idle-order regression covering 40,000 ticks.
 - Reduced miniature black-hole local entity queries to once per five ticks while keeping smooth per-tick attraction and validating removed/teleported targets. New arrivals begin attraction within five ticks.
-- Added maintained paired client and server verification plus dual-AE CI. Corrected duplicate miniature-hole wording in English and rebuilt the public API/configuration/development guides.
-
-### Repository and documentation cleanup
-
-- Rebuilt the API index, Chinese/English project guides, configuration reference and development instructions for the current 2.0.7-forge / AppliedEnhancements 1.1.0-forge contracts. Split the batch SPI into Chinese and English pages and added the exact-count capability contract. Retained in-game task guides without expensive structure previews.
-- Removed one-off client/GPU probes, dated local test reports, obsolete generators and unused liquid/normal/specular effect textures. Kept repeatable engine/unit tests and editable animation sources outside the release JAR.
-- Throttled recurring runtime/load warnings and errors globally, throttled optional AELIS/exact dispatch traces across CPUs, removed repeated shader-registration success logs and prevented bounded fallback diagnostics from clearing their history and logging the same entries again.
 
 ### Optional batch provider adapters and passive-crafting regression
 
@@ -248,7 +221,6 @@ Changes from **2.0.3**.
 #### Validation and remaining limits
 
 - Both molecular devices accepted **3 billion crafts / 12 billion outputs** in the powered-device fixture, retained exact output counts across NBT round trips, and rejected multiplication and buffer overflow without consuming inputs. The controller storage-bus and crystal-ownership runtime checks also passed.
-- **144 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
 - **All fourteen isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the guide layout and the clock effect have not received an interactive in-game visual check.
 
@@ -346,7 +318,6 @@ Changes from **2.0.2**.
 
 #### Validation and remaining limits
 
-- **134 unit tests passed.** A further **12 focused UI tests passed** using the reproduction pack's **JEI 19.54.0.429** and **LDLib2 2.2.39.a** JARs.
 - **All eleven isolated server GameTests passed**, covering natural-spawn protection for all three multiblocks, the nexus lifecycle, real cable connections, CPU isolation, multiblock dismantling, saved-state recovery and recipe delivery/lookup.
 - These checks cover code and coordinate behavior; the latest JEI correction has not received an interactive in-game visual check.
 - Existing well-recipe limitations remain: overlapping ingredient alternatives with identical outputs may select different time/power during batch splitting, and adding an earlier matching recipe during reload may leave an existing queue waiting.

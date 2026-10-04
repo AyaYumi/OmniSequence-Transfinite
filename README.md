@@ -12,14 +12,14 @@ quantum-linked multiblocks. Mod ID: `molecularmanipulator`.
 | OmniSequence | 2.0.7-forge, branch `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 |
-| AppliedEnhancements | Revised 1.1.0-forge build, client and server |
+| AppliedEnhancements | 1.1.0-forge build, client and server |
 | AE2 | 15.4.10 / UELM 15.5.4 |
 | ExtendedAE | 1.20-1.4.19-forge or later |
 | ExpandedAE | Version 2.1.1 is incompatible with the pattern-provider Mixin |
 | JEI / AdvancedAE | Optional; AdvancedAE enables its research/integration |
 
 Install dependencies separately. OmniSequence does not embed their classes.
-The revised AppliedEnhancements build provides the shared cycle transaction
+AppliedEnhancements provides the shared cycle transaction
 API used by this source; older 1.0.x builds are insufficient.
 
 ## Machines and progression
@@ -55,8 +55,9 @@ stock/index refresh every 20 ticks.
 
 Tier 3 requires the two stage-2 branches and unlocks miniature holes and Hub
 blocks. Miniature Black Hole uses 100,000 AE singularities; Miniature White Hole
-uses 1,000,000,000 matter balls. Hub ordinary material costs are 100× their base
-recipe amounts, while the controller/core retain one black/white hole input.
+uses 1,000,000,000 matter balls. Hub ordinary material costs are 1,000,000× their base
+recipe amounts. The controller and White Hole Resource Core each require 10,000
+Miniature Black Holes or Miniature White Holes respectively.
 
 ## Singularity collection and duplication
 
@@ -108,24 +109,16 @@ global one-minute log window; optional profiler summaries remain disabled by def
 
 ## Installation and build
 
-Use Java 17 and provide `libs/appliedenhancements-1.1.0-forge.jar` as described in
-[libs/README.md](libs/README.md). Then:
+Install the dependencies listed above in the client and server `mods/` folders.
+Use matching mod builds on both sides. To build from source, use Java 17 and
+place `appliedenhancements-1.1.0-forge.jar` in `libs/`.
+The Forge prerequisite must provide `AelisBatchExecutionContext` and `AelisSmartDoublingApi`.
 
-```powershell
-.\gradlew.bat clean build --no-configuration-cache
+```sh
+./gradlew build apiJavadoc
 ```
 
-Output: `build/libs/omnisequence-transfinite-2.0.7-forge.jar`. Unit tests run with `build`.
-[Development instructions](docs/development.md) cover isolated engine regressions,
-API/JAR validation and source cleanup. Test code and previews are outside the
-normal release source set.
-
-CI builds the matching AppliedEnhancements 1.1.0-forge dependency from a published fixed
-Git commit. A trusted matching JAR can override that source; see development
-instructions. Older 1.0.x builds cannot substitute for the shared transaction API.
-
-Back up worlds before upgrading. Existing recipes, research progress, owned
-buffers and quantum links migrate through supported saved-state paths. The old
-1,000-page pattern layout is retired; the current configurable maximum is 300 pages.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.7-forge.jar`.
+Public Java API documentation is generated under `build/docs/api/`.
 
 Licensed under the [MIT License](LICENSE).

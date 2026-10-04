@@ -12,7 +12,7 @@
 | 本模组 | 2.0.7-forge，源码分支 `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 |
-| AppliedEnhancements | 修订版 1.1.0-forge，客户端和服务端都需要 |
+| AppliedEnhancements | 1.1.0-forge，客户端和服务端都需要 |
 | AE2 | 15.4.10 / UELM 15.5.4 |
 | ExtendedAE | 1.20-1.4.19-forge 或更高 |
 | ExpandedAE | 2.1.1 与样板供应器 Mixin 冲突，不兼容 |
@@ -47,8 +47,8 @@
 不扫描全网库存，多个备料任务每 20 Tick 共享一次库存与物品索引。
 
 三阶段研究以前两个二阶段分支为前置，解锁微型黑洞、微型白洞和天枢方块。微型
-黑洞消耗 10 万奇点，微型白洞消耗 10 亿物质球；天枢普通材料在基础配方上为 100
-倍，主控中枢/白洞资源核心仍分别使用一个微型黑洞/白洞。
+黑洞消耗 10 万奇点，微型白洞消耗 10 亿物质球；天枢普通材料为基础配方的
+1,000,000 倍，主控中枢与白洞资源核心分别需要 10,000 个微型黑洞和微型白洞。
 
 ## 天枢采集与复制
 
@@ -89,21 +89,15 @@ JEI 展示构筑配方与奇点序质流体说明。
 
 ## 安装与构建
 
-使用 Java 17，按 [libs/README.md](libs/README.md) 准备独立前置
-`libs/appliedenhancements-1.1.0-forge.jar`，随后执行：
+按上表安装客户端和服务端所需的依赖，两端使用相同构建。源码构建使用 Java
+17，将 `appliedenhancements-1.1.0-forge.jar` 放入 `libs/`。
+Forge 前置须包含 `AelisBatchExecutionContext` 和 `AelisSmartDoublingApi`。
 
-```powershell
-.\gradlew.bat clean build --no-configuration-cache
+```sh
+./gradlew build apiJavadoc
 ```
 
-产物：`build/libs/omnisequence-transfinite-2.0.7-forge.jar`。`build` 包含单元测试。
-隔离游戏测试、API/JAR 校验和贴图维护见[开发说明](docs/development.md)；测试代码
-和预览不进入正式 JAR。
-
-CI 默认从已发布的固定 Git 提交构建 AppliedEnhancements 1.1.0-forge，也可用匹配
-JAR 地址覆盖；旧 1.0.x 不能替代共享事务接口。配置方式见开发说明。
-
-升级前备份存档。已支持的迁移保留配方、研究、已持有缓存和量子连接。原 1,000
-页样板布局已停用，当前配置最大为 300 页。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.7-forge.jar`，公开 Java API
+文档生成于 `build/docs/api/`。
 
 使用 [MIT 许可证](LICENSE)。

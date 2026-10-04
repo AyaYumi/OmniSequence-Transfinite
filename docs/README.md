@@ -1,11 +1,7 @@
 # Integration APIs / 接口文档
 
-Current updated build keeps the 2.0.7-forge version requested by the maintainer and includes subsequent fixes. Use matching JAR contents on both sides, rather than relying on the version string alone.
-
-当前更新构建按维护者要求保留 2.0.7-forge 版本号，并包含后续修复。两端使用相同 JAR 内容，不能仅凭版本字符串判定构建一致。
-
 Current source: OmniSequence **2.0.7-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
-Java **17**, AE2 **15.4.10 / UELM 15.5.4**, revised AppliedEnhancements **1.1.0-forge**.
+Java **17**, AE2 **15.4.10 / UELM 15.5.4**, AppliedEnhancements **1.1.0-forge**.
 Mod ID: `molecularmanipulator`.
 
 | Contract | English | 中文 |
@@ -14,8 +10,6 @@ Mod ID: `molecularmanipulator`.
 | Exact BigInteger provider/output capabilities and original-provider identity | [Exact-count API](omni-exact-provider-api.md) | 同页中文说明 |
 | Well recipe JSON, generic AEKey inputs, research, machine imports and KubeJS | [Well and research API](matter-research-api.md) | [构筑井与研究 API](matter-research-api.zh-CN.md) |
 | Configuration paths, defaults, migration and resource production | [Configuration](configuration.md) | 同页中文说明 |
-| Dependency setup, builds, release checks, isolated tests and asset maintenance | [Development](development.md) | 同页中文说明 |
-| Tick budgets, research/recipe caches, idle paths and performance regressions | [Performance maintenance](performance.md) | 同页中文说明 |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
 AppliedEnhancements mod. Use its matching 1.1.0-forge API documentation. Omni's internal
@@ -37,6 +31,4 @@ thread unless the caller has obtained an immutable snapshot.
 
 `blockentity`、`mixin` 和渲染内部类不承诺通用二进制兼容。研究权限、长期材料
 所有权和 AELIS 计划是不同契约，不能相互替代。文档采用当前实现，不保留依赖
-个人机器路径的历史验证报告。
-
-[Remaining interceptions / 剩余拦截清单](remaining-interceptions.md) — numbered operation checks, fallbacks and TPS limits across both maintained Minecraft versions.
+个人机器路径的验证过程。

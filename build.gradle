@@ -86,7 +86,11 @@ tasks.named('jarJar', Jar).configure {
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
-    from('docs') { into 'docs' }
+    from('docs') {
+        include 'README.md', 'configuration.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
+                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
+        into 'docs'
+    }
 }
 
 sourceSets.main.resources {
@@ -217,7 +221,11 @@ tasks.named('jar', Jar).configure {
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
-    from('docs') { into 'docs' }
+    from('docs') {
+        include 'README.md', 'configuration.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
+                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
+        into 'docs'
+    }
     finalizedBy 'reobfJar'
 }
 

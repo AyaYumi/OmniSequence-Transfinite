@@ -1,7 +1,7 @@
 # Forge engine regressions / Forge 隔离游戏测试
 
 Current source: 2.0.7-forge, Minecraft 1.20.1, Java 17.
-[Development guide](../../docs/development.md) · [Dependency setup](../../libs/README.md)
+[Dependency setup](../../libs/README.md)
 
 | Init script | Coverage |
 | --- | --- |

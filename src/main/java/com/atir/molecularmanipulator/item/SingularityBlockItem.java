@@ -19,6 +19,11 @@ public final class SingularityBlockItem extends BlockItem {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
+        if (getBlock() == com.atir.molecularmanipulator.registry.SingularityContent.COMPACT.get()) {
+            tooltip.add(Component.translatable("tooltip.molecularmanipulator.singularity.compact").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.molecularmanipulator.singularity.compact_network").withStyle(ChatFormatting.GRAY));
+            return;
+        }
         if (controller) {
             tooltip.add(Component.translatable("tooltip.molecularmanipulator.singularity.lore").withStyle(ChatFormatting.GOLD));
         }

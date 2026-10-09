@@ -60,6 +60,28 @@ class MolecularAutoCraftMathTest {
     }
 
     @Test
+    void adjacentOutputStockCountsOnlyMatchingItemsAndStopsAtTheLimit() {
+        long stored = MolecularAutoCraftMath.addMatchingOutputAmount(
+                12, 70, "oak_planks", "oak_planks", 50);
+        stored = MolecularAutoCraftMath.addMatchingOutputAmount(
+                stored, 70, "oak_planks", "diamond", 64);
+        stored = MolecularAutoCraftMath.addMatchingOutputAmount(
+                stored, 70, "oak_planks", "oak_planks", 30);
+
+        assertEquals(70, stored);
+    }
+
+    @Test
+    void outputLimitSourceDefaultsToDestinationForExistingConfigs() {
+        assertEquals(MolecularAutoCrafter.OutputLimitMode.DESTINATION,
+                MolecularAutoCrafter.parseOutputLimitMode(""));
+        assertEquals(MolecularAutoCrafter.OutputLimitMode.DESTINATION,
+                MolecularAutoCrafter.parseOutputLimitMode("unknown"));
+        assertEquals(MolecularAutoCrafter.OutputLimitMode.NETWORK,
+                MolecularAutoCrafter.parseOutputLimitMode("NETWORK"));
+    }
+
+    @Test
     void aggregateArithmeticSaturatesInsteadOfWrapping() {
         assertEquals(Long.MAX_VALUE,
                 MolecularAutoCraftMath.saturatedAdd(Long.MAX_VALUE - 1, 2));

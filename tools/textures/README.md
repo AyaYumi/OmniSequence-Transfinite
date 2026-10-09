@@ -6,10 +6,11 @@ under `static/` are required to regenerate animations; they are not unused asset
 
 | Generator | Maintained input and output |
 | --- | --- |
-| `generate_animation.py` | 20 original block PNGs in `static/`; 24-frame strips and interpolation metadata |
-| `animate_hole_items.py` | 32×32 `static/items/black_hole.png` / `white_hole.png`; 32-frame orbit/halo item animations |
-| `rebuild_singularity.py` | Current 16×16 Hub block art; rebuild emissive overlays without repainting base texels |
-| `generate_sequence_matter_fluid.py` | Tiled source/flowing Sequence Matter animation; 32 frames |
+| `../generate_ghost_matter.py` | `../assets/ghost_matter_base.png`; current ghost-matter item, mesh and fog resources |
+| `generate_animation.py` | Block source images in `static/`; runtime textures and metadata |
+| `animate_hole_items.py` | `static/items/black_hole.png` / `white_hole.png`; runtime item textures |
+| `rebuild_singularity.py` | Hub source images; rebuild emissive overlays |
+| `generate_sequence_matter_fluid.py` | Sequence Matter source and flowing fluid textures |
 
 ```powershell
 python tools/textures/generate_animation.py

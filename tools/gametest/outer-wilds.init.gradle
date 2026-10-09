@@ -1,0 +1,36 @@
+// Functional field tests and real client OBJ baking in disposable game directories.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        boolean gravityClient = project.hasProperty('gravityWalkingClient')
+        boolean ghostClient = project.hasProperty('ghostMatterClient')
+        boolean clientModels = project.hasProperty('outerWildsClientModels') || gravityClient || ghostClient
+        def verification = sourceSets.create('outerWildsVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include clientModels ? '**/OuterWildsModelChecks.java' : '**/OuterWildsGameTests.java'
+            if (gravityClient) java.include '**/GravityWalkingClientChecks.java'
+            if (ghostClient) java.include '**/GhostMatterClientChecks.java'
+            resources.srcDir file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def run = neoForge.runs.getByName(clientModels ? 'client' : 'gameTestServer')
+        run.gameDirectory = file('build/' + (ghostClient ? 'ghost-matter-client' : gravityClient ? 'gravity-walking-client' : clientModels ? 'outer-wilds-model-check' : 'outer-wilds-gametest'))
+        if (gravityClient) run.systemProperty 'omnisequence.gravity_client_check', 'true'
+        if (ghostClient) run.systemProperty 'omnisequence.ghost_client_check', 'true'
+        run.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileOuterWildsVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named(clientModels ? 'runClient' : 'runGameTestServer').configure {
+            doLast {
+                def marker = ghostClient ? 'GHOST_MATTER_CLIENT_PASS' : gravityClient ? 'GRAVITY_WALKING_CLIENT_PASS' : clientModels ? 'OUTER_WILDS_MODELS_PASS' : 'All 7 required tests passed'
+                if (!new File(run.gameDirectory.get().asFile, 'logs/latest.log').text.contains(marker))
+                    throw new GradleException('Outer Wilds verification did not pass: ' + marker)
+            }
+        }
+    }
+}

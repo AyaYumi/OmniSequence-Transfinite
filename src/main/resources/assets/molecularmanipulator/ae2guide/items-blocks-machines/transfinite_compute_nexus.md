@@ -10,7 +10,7 @@ item_ids:
 
 # Transfinite Compute Nexus
 
-Bring Omni Computation's ME crafting CPU capability into one block for compact crafting networks.
+The Transfinite Compute Nexus provides the Omni Computation Core's crafting CPU functions in a single block. It can manage multiple ME crafting requests at once.
 
 <Row>
 <BlockImage id="molecularmanipulator:transfinite_compute_nexus" scale="4" />
@@ -20,28 +20,25 @@ Bring Omni Computation's ME crafting CPU capability into one block for compact c
 <ItemImage id="ae2:crafting_terminal" scale="4" />
 </Row>
 
-## Place, connect, request
+## Network connection
 
-1. Complete **Tier 2: Omni Computation** research and fabricate the nexus.
-2. Place it; all six faces connect to ME cables.
-3. Power the network and provide **one channel**.
-4. Request a craft in ME. The nexus creates independent virtual CPU lanes and keeps a spare lane available.
+1. Complete **Tier 2: Omni Computation** in the well and fabricate the nexus.
+2. Place it and connect ME cables to any of its six faces.
+3. Provide **one channel** and sufficient ME power. Default base consumption is **16,384 AE/t**.
+4. Request crafting from an ME terminal and monitor it through AE2's crafting status interface.
 
-| Property | Detail |
-| --- | --- |
-| Structure | Single block |
-| Base power | Default 16,384 AE/t; configurable |
-| Job monitoring | AE2 crafting status interface |
-| Network | A real external ME connection is required |
+The nexus needs a cable or another external ME device. A group of adjacent nexuses with no external connection does not operate.
 
-Adjacent nexuses alone, with no cable or other external ME device, do not become operational.
+## Operation
 
-## Work and relocation
+The nexus provides the same crafting storage and parallelism as the [Omni Computation Core](omni_computation_core.md). Pattern Providers and machines still execute recipes. Ingredients, power, machines and output acceptance determine the actual rate.
 
-Logical storage and parallelism match the Omni Computation Core. Actual throughput depends on ingredients, energy, output capacity, providers, and server performance.
+## Relocation
 
-Normal removal carries recoverable job state with the nexus. Place it again and restore an online ME connection to resume. It does not force-load chunks; keep its chunk loaded for continuous operation.
+Normal removal retains recoverable tasks and contents. Place it again and restore an online ME connection to continue.
 
-## Recipe
+The nexus does not force-load chunks. Keep its chunk loaded for continuous crafting.
+
+## Recipes
 
 <RecipeFor id="molecularmanipulator:transfinite_compute_nexus" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

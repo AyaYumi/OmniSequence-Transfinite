@@ -5,10 +5,12 @@ import appeng.api.networking.GridHelper;
 import appeng.api.networking.IGridConnection;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.KeyCounter;
+import appeng.util.inv.AppEngInternalInventory;
 import appeng.blockentity.crafting.PatternProviderBlockEntity;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuHostLocator;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.integration.MatterFabricationPatternUpload;
 import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import net.minecraft.core.BlockPos;
@@ -21,12 +23,17 @@ import java.util.List;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
-public final class MatterFabricationPatternAssemblyBlockEntity extends PatternProviderBlockEntity {
+public final class MatterFabricationPatternAssemblyBlockEntity extends PatternProviderBlockEntity
+        implements appeng.util.inv.InternalInventoryHost {
     public static final int PATTERN_SLOTS = 36;
+    public static final int CATALYST_SLOTS = 36;
+    private static final String CATALYST_TAG = "fabrication_catalysts";
     private static final String CONTROLLER_TAG = "fabrication_controller";
     private BlockPos controllerPos;
     private IGridConnection controllerConnection;
+    private Runnable dataCpuRegistration;
     private final MatterPatternBuffer buffer = new MatterPatternBuffer(this);
+    private final AppEngInternalInventory catalystInventory = new AppEngInternalInventory(this, CATALYST_SLOTS);
 
     public MatterFabricationPatternAssemblyBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY_BE.get(), pos, state);
@@ -72,7 +79,7 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     }
 
     public boolean hasRemovalRecovery() {
-        return buffer.hasContents() || RetainedBlockContents.hasPatternContents(this);
+        return !catalystInventory.isEmpty() || buffer.hasContents() || RetainedBlockContents.hasPatternContents(this);
     }
 
     @Override
@@ -81,10 +88,30 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
         var contents = new CompoundTag();
         getLogic().writeToNBT(contents, level.registryAccess());
         buffer.save(contents, level.registryAccess());
+        catalystInventory.writeToNBT(contents, CATALYST_TAG, level.registryAccess());
         drops.add(RetainedBlockContents.createDrop(this, contents));
     }
 
     public MatterPatternBuffer getBuffer() { return buffer; }
+    public AppEngInternalInventory getCatalystInventory() { return catalystInventory; }
+
+    @Override
+    public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
+        if (inventory == catalystInventory) {
+            invalidateControllerCatalysts();
+            saveChanges();
+        }
+    }
+
+    @Override
+    public void saveChangedInventory(AppEngInternalInventory inventory) { saveChanges(); }
+
+    private void invalidateControllerCatalysts() {
+        if (level != null && !level.isClientSide() && controllerPos != null && level.hasChunkAt(controllerPos)
+                && level.getBlockEntity(controllerPos) instanceof MatterFabricationBlockEntity controller) {
+            controller.invalidateCatalysts();
+        }
+    }
     void patternsChanged() { if (buffer != null) buffer.patternsChanged(); }
     public void serverTick() { buffer.serverTick(); }
 
@@ -92,6 +119,8 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     public void clearContent() {
         super.clearContent();
         buffer.clear();
+        catalystInventory.clear();
+        invalidateControllerCatalysts();
         saveChanges();
     }
 
@@ -101,7 +130,9 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
             return;
         }
         destroyControllerConnection();
+        invalidateControllerCatalysts();
         this.controllerPos = controllerPos == null ? null : controllerPos.immutable();
+        invalidateControllerCatalysts();
         saveChanges();
         getLogic().updatePatterns();
         ensureControllerConnection();
@@ -129,13 +160,14 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
         return true;
     }
 
-    MatterFabricationBlockEntity getController() {
-        if (controllerPos == null || level == null) {
+    public MatterFabricationBlockEntity getController() {
+        if (isRemoved() || controllerPos == null || level == null) {
             return null;
         }
+        if (!level.hasChunkAt(controllerPos)) return null;
         var blockEntity = level.getBlockEntity(controllerPos);
         if (blockEntity instanceof MatterFabricationBlockEntity controller
-                && controller.isStructureFormed()) {
+                && !controller.isRemoved() && controller.isStructureFormed()) {
             return controller;
         }
         return null;
@@ -144,19 +176,36 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     @Override
     public void onReady() {
         super.onReady();
+        if (level != null && !level.isClientSide() && dataCpuRegistration == null) {
+            dataCpuRegistration = com.atir.molecularmanipulator.integration.cpu.MatterFabricationCpuCompat.registerDataProvider(getLogic());
+        }
+        MatterFabricationPatternUpload.register(this);
         ensureControllerConnection();
     }
 
     @Override
     public void setRemoved() {
+        invalidateControllerCatalysts();
+        unregisterDataCpu();
+        MatterFabricationPatternUpload.unregister(this);
         destroyControllerConnection();
         super.setRemoved();
     }
 
     @Override
     public void onChunkUnloaded() {
+        invalidateControllerCatalysts();
+        unregisterDataCpu();
+        MatterFabricationPatternUpload.unregister(this);
         destroyControllerConnection();
         super.onChunkUnloaded();
+    }
+
+    private void unregisterDataCpu() {
+        if (dataCpuRegistration != null) {
+            dataCpuRegistration.run();
+            dataCpuRegistration = null;
+        }
     }
 
     private void ensureControllerConnection() {
@@ -208,6 +257,7 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
         buffer.save(tag, registries);
+        catalystInventory.writeToNBT(tag, CATALYST_TAG, registries);
         if (controllerPos != null) {
             tag.putLong(CONTROLLER_TAG, controllerPos.asLong());
         }
@@ -218,6 +268,8 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
         buffer.load(tag, registries);
+        catalystInventory.readFromNBT(tag, CATALYST_TAG, registries);
         controllerPos = tag.contains(CONTROLLER_TAG) ? BlockPos.of(tag.getLong(CONTROLLER_TAG)) : null;
+        invalidateControllerCatalysts();
     }
 }

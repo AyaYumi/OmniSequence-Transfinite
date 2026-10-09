@@ -66,7 +66,11 @@ jobs:
           curl --fail --location --retry 3 "$APPLIED_ENHANCEMENTS_JAR_URL" -o libs/appliedenhancements-1.1.0.jar
 
       - name: Build and generate API docs
-        run: bash gradlew --no-configuration-cache build apiJavadoc
+        # Fetch compile-only optional APIs; these are not bundled or needed by players.
+        # Existing local copies are preserved by the helper.
+        run: |
+          python .github/scripts/prepare_cpu_apis.py
+          bash gradlew --no-configuration-cache build apiJavadoc
 
       - name: Save build artifacts
         uses: actions/upload-artifact@v4

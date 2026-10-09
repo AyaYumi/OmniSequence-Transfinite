@@ -15,9 +15,7 @@ item_ids:
 
 # Sequence Array Controller
 
-Combine a large pattern library with passive stock-maintenance crafting in the Frost Feather Crown.
-
-## Build the array
+The Sequence Array is a multiblock machine for pattern management and automatic restocking. It provides a large pattern inventory and nine independent autocrafting positions.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:molecular_center_controller" />
@@ -28,49 +26,40 @@ Combine a large pattern library with passive stock-maintenance crafting in the F
 <ItemIcon id="molecularmanipulator:molecular_center_core" />
 </ItemGrid>
 
-| Preparation | Requirement |
+## Structure and construction
+
+Complete **Tier 2: Sequence Array** in the well to fabricate its parts. The structure occupies **61 × 61 blocks**, is **29 blocks tall**, and uses a central controller with no solid foundation.
+
+1. Check JEI's structure material list, place the controller and enable **Block Projection**.
+2. Clear obstructions, gather materials and select **Build**. Construction uses your inventory before ME storage.
+3. Connect ME power and channels, then verify formation.
+
+## Pattern inventory
+
+The default inventory has **200 pages of 36 slots**, totaling 7200 patterns. Server configuration allows up to 300 pages. The formed structure's **14 quantum crystals** hold its patterns, which can be managed through a Pattern Access Terminal.
+
+Storage Buses access only the main pattern inventory. Autocrafting, quantum and upload-core slots have separate uses.
+
+External pattern editing pauses during construction, dismantling and quantum crystal recovery. Finish these operations before rearranging patterns.
+
+## Controller interface
+
+| Page | Use |
 | --- | --- |
-| Unlock | Tier 2: Sequence Array in the well |
-| Space | 61 × 61 blocks, 29 blocks tall |
-| Layout | Central controller, no solid base |
-| Library | Default 200 pages × 36 slots; configurable up to 300 pages |
+| Assembly Overview | Structure and network status; projection, construction and dismantling |
+| Auto Crafting | Restock using product targets and ingredient reserves |
+| Colors | Set the building's colors |
 
-1. Gather the JEI material list, place the controller, and enable **Block Projection**.
-2. Clear highlighted obstructions and select **Build**. Player inventory is used before ME.
-3. Supply power and a channel. Verify the completed structure to use patterns and automatic crafting.
+Autocrafting supports nine independent patterns. See [Molecular Auto Crafter](molecular_auto_crafter.md) for settings. When ExtendedAE Plus is installed, its upload core uses a dedicated slot.
 
-## Three interface pages
+## Quantum connection and recovery
 
-| Page | Purpose |
-| --- | --- |
-| Assembly overview | Status, projection, construction, and dismantling |
-| Auto crafting | Nine independent patterns with stock targets and ingredient reserves |
-| Colors | Customize the building's appearance |
+The quantum slot accepts only a **Quantum Entangled Singularity**. Put its partner in a powered AE2 quantum bridge to connect a remote network, including for construction before formation. The link requires an additional **512 AE/t and one channel**.
 
-See [Molecular Auto Crafter](molecular_auto_crafter.md) for passive-crafting settings.
+**Dismantle** keeps the controller and returns materials to ME before your inventory. Recovery pauses when there is no room. Normal controller removal retains patterns, tasks and dedicated slot contents.
 
-## Pattern library
+When enabled by the server, multiblock chunk loading keeps required chunks loaded while formed or under construction.
 
-<Row>
-<BlockImage id="molecularmanipulator:molecular_center_core" scale="4" />
-
-<ItemImage id="ae2:pattern_access_terminal" scale="4" />
-
-<ItemImage id="ae2:storage_bus" scale="4" />
-</Row>
-
-After formation, **14 quantum crystals** share the main library, which can be managed through a Pattern Access Terminal. A storage bus accesses only the main encoded-pattern library. Passive-crafting, quantum, and upload-core slots remain dedicated slots.
-
-Construction, dismantling, and crystal recovery pause external pattern changes. Resume pattern management after recovery completes.
-
-## Remote access and recovery
-
-The quantum slot accepts only a **Quantum Entangled Singularity**. Place its partner in a powered AE2 quantum bridge to access the remote network, including construction materials before formation. The connection costs **512 AE/t and one channel** extra.
-
-The optional ExtendedAE Plus upload core has its own slot. **Dismantle** recovers from the top, returning to ME first and the player second; full destinations pause recovery.
-
-Normal controller removal preserves patterns, jobs, and dedicated inventory contents. With multiblock chunk loading enabled, the formed structure and construction keep required chunks loaded.
-
-## Controller recipe
+## Recipes
 
 <RecipeFor id="molecularmanipulator:molecular_center_controller" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

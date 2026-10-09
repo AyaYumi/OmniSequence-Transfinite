@@ -30,6 +30,7 @@ import com.atir.molecularmanipulator.research.MatterResearchProgress;
 import com.atir.molecularmanipulator.research.ResearchMaterialOrderService;
 import com.atir.molecularmanipulator.research.ResearchVisualState;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
+import com.atir.molecularmanipulator.integration.FtbTeamOwnership;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import java.util.Set;
@@ -81,6 +82,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private static final String DISMANTLING_TAG = "fabrication_dismantling";
     private static final String BUILD_CURSOR_TAG = "fabrication_build_cursor";
     private static final String BUILD_OWNER_TAG = "fabrication_build_owner";
+    private static final String TEAM_TAG = "fabrication_bound_team";
+    private static final String TEAM_BOUND_TAG = "fabrication_team_bound";
     private static final String STRUCTURE_UPDATE_TAG = "fabrication_structure_update";
     private static final String UPDATE_SOURCE_LAYOUT_TAG = "fabrication_update_source_layout";
     private static final String UPDATE_BUILDING_PHASE_TAG = "fabrication_update_building_phase";
@@ -142,6 +145,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private ResourceLocation selectionPattern;
     private RecipeSelection cachedSelection;
     private boolean selectionCached;
+    private long catalystCacheTick = Long.MIN_VALUE;
+    private Map<AEItemKey, Long> sharedCatalysts = Map.of();
     private ProcessingState processingState = ProcessingState.STRUCTURE_INCOMPLETE;
     private int currentProcessingTime;
     private double currentAePerTick;
@@ -152,6 +157,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private boolean dismantling;
     private int buildCursor;
     private UUID buildOwner;
+    private UUID boundTeam;
+    private boolean teamBindingInitialized;
     private MatterFabricationStructure.StructureLayout structureLayout =
             MatterFabricationStructure.StructureLayout.NONE;
     private MatterFabricationStructure.StructureLayout updateSourceLayout =
@@ -170,6 +177,30 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         quantumInventory.setMaxStackSize(0, 1);
         getMainNode().setFlags(GridFlags.REQUIRE_CHANNEL).setIdlePowerUsage(IDLE_POWER)
                 .addService(appeng.api.networking.crafting.ICraftingRequester.class, researchOrders);
+    }
+
+    /** Placement snapshots the current team, including when a portable controller is placed again. */
+    public void bindToPlayerTeam(ServerPlayer player) {
+        boundTeam = FtbTeamOwnership.forPlayer(player);
+        teamBindingInitialized = true;
+        saveChanges();
+    }
+
+    public UUID getBoundTeam() {
+        migrateTeamBinding();
+        return boundTeam;
+    }
+
+    private void migrateTeamBinding() {
+        if (teamBindingInitialized || level == null || level.isClientSide()) return;
+        var node = getMainNode().getNode();
+        var placer = node == null ? null : node.getOwningPlayerProfileId();
+        var team = FtbTeamOwnership.forPlayerId(placer);
+        if (team != null) {
+            boundTeam = team;
+            teamBindingInitialized = true;
+            saveChanges();
+        }
     }
 
     @Override
@@ -207,6 +238,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void onReady() {
         super.onReady();
+        migrateTeamBinding();
         scheduleStructureCheck();
         updateQuantumLink();
     }
@@ -1322,6 +1354,10 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             progress = 0;
             activeRecipeId = holder.id();
         }
+        if (!hasCatalysts(recipe)) {
+            setState(ProcessingState.WAITING_CATALYST);
+            return;
+        }
         var profile = MatterResearchApi.productionProfile(this, holder);
         currentProcessingTime = profile.ticks();
         if (progress == 0) manualCrafts = manualBatchLimit(recipe, input, profile.parallel());
@@ -1473,7 +1509,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
 
     private void completeRecipe(MatterFabricationRecipe recipe, MatterFabricationRecipeInput input) {
         int[] consumption = recipe.consumptionPlan(input, manualCrafts);
-        if (consumption == null || !outputsFit(recipe, manualCrafts)) {
+        if (consumption == null || !hasCatalysts(recipe) || !outputsFit(recipe, manualCrafts)) {
             resetProgress();
             return;
         }
@@ -1680,6 +1716,39 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         return remainder;
     }
 
+    /** Catalyst quantities are prerequisites for the whole well, independent of batch size. */
+    public boolean hasCatalysts(MatterFabricationRecipe recipe) {
+        if (recipe.catalysts().isEmpty()) return true;
+        var available = getSharedCatalysts();
+        return com.atir.molecularmanipulator.research.ResearchMaterialAllocator.plan(
+                recipe.catalysts().stream().map(value -> (long) value.count()).toList(), available,
+                (index, key) -> recipe.catalysts().get(index).ingredient().test(key.toStack())) != null;
+    }
+
+    public Map<AEItemKey, Long> getSharedCatalysts() {
+        if (level == null || !structureFormed) return Map.of();
+        if (catalystCacheTick != level.getGameTime()) {
+            refreshServiceCache();
+            var amounts = new HashMap<AEItemKey, Long>();
+            for (var assembly : serviceAssemblies) {
+                if (assembly.isRemoved() || !level.hasChunkAt(assembly.getBlockPos())
+                        || level.getBlockEntity(assembly.getBlockPos()) != assembly || assembly.getController() != this) continue;
+                for (var stack : assembly.getCatalystInventory()) {
+                    if (!stack.isEmpty()) amounts.merge(AEItemKey.of(stack), (long) stack.getCount(), Math::addExact);
+                }
+            }
+            sharedCatalysts = Map.copyOf(amounts);
+            catalystCacheTick = level.getGameTime();
+        }
+        return sharedCatalysts;
+    }
+
+    public void invalidateCatalysts() {
+        catalystCacheTick = Long.MIN_VALUE;
+        serviceCacheTick = Long.MIN_VALUE;
+        selectionCached = false;
+    }
+
     private void refreshServiceCache() {
         if (level == null) return;
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
@@ -1865,6 +1934,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        tag.putBoolean(TEAM_BOUND_TAG, teamBindingInitialized);
+        if (boundTeam != null) tag.putUUID(TEAM_TAG, boundTeam); else tag.remove(TEAM_TAG);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
         else tag.remove(RESEARCH_TAG);
@@ -1911,6 +1982,8 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
+        boundTeam = tag.hasUUID(TEAM_TAG) ? tag.getUUID(TEAM_TAG) : null;
+        teamBindingInitialized = tag.getBoolean(TEAM_BOUND_TAG) || boundTeam != null;
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         research.load(tag.getCompound(RESEARCH_TAG), registries);
         researchOrders.load(tag.getCompound(RESEARCH_ORDERS_TAG), registries);
@@ -2034,6 +2107,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         WAITING_POWER,
         BUILDING,
         DISMANTLING,
-        RUNNING
+        RUNNING,
+        WAITING_CATALYST
     }
 }

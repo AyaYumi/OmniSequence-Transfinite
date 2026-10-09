@@ -42,7 +42,7 @@ public final class MatterPatternBuffer {
         if (isUnavailable() || !assembly.isOperational() || unitInputs.isEmpty()) return 0;
         var controller = assembly.getController();
         var recipe = MatterFabricationBatch.match(controller, pattern, unitInputs, 1);
-        if (recipe == null) return 0;
+        if (recipe == null || !controller.hasCatalysts(recipe.value())) return 0;
         long limit = Long.MAX_VALUE;
         for (var entry : unitInputs.entrySet()) {
             if (entry.getKey() == null || entry.getValue() <= 0) return 0;
@@ -64,7 +64,7 @@ public final class MatterPatternBuffer {
             var controller = assembly.getController();
             var candidates = MatterFabricationBatch.candidates(controller, pattern);
             var recipe = MatterFabricationBatch.match(controller, candidates, supplied, crafts);
-            if (recipe == null) return false;
+            if (recipe == null || !controller.hasCatalysts(recipe.value())) return false;
             for (var entry : supplied.entrySet()) {
                 if (entry.getKey() == null || entry.getValue() <= 0) return false;
                 long stored = Math.addExact(Math.addExact(inputs.getLong(entry.getKey()), refunds.getLong(entry.getKey())), active.storedInputAmount(entry.getKey()));
@@ -96,8 +96,15 @@ public final class MatterPatternBuffer {
             for (var work : List.copyOf(queued)) {
                 var pattern = PatternDetailsHelper.decodePattern(work.pattern.toStack(), controller.getLevel());
                 if (pattern == null) continue;
-                var recipe = MatterFabricationBatch.match(controller, pattern, work.inputs, work.crafts);
-                if (recipe == null || !recipe.id().equals(work.recipe)) continue;
+                var storedRecipe = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(controller.getLevel()).fabrication(work.recipe);
+                if (storedRecipe == null || !MatterFabricationBatch.outputs(storedRecipe.value()).equals(MatterFabricationBatch.patternOutputs(pattern))) continue;
+                // Preserve the admitted branch when catalyst availability changes between enqueue and processing.
+                var recipe = MatterFabricationBatch.match(controller, List.of(storedRecipe), work.inputs, work.crafts);
+                if (recipe == null) continue;
+                if (!controller.hasCatalysts(recipe.value())) {
+                    waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.WAITING_CATALYST, 0, 0, 0, false);
+                    continue;
+                }
                 long count = Math.min(work.crafts, active.capacity(controller, recipe, Map.of()));
                 if (count <= 0) { waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.WAITING_POWER, 0, 0, 0, false); continue; }
                 var unitOutputs = MatterFabricationBatch.outputs(recipe.value());
@@ -105,7 +112,7 @@ public final class MatterPatternBuffer {
                 if (count <= 0) { waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.OUTPUT_BLOCKED, 0, 0, 0, false); continue; }
                 var supplied = MatterFabricationBatch.takeInputs(recipe.value(), work.inputs, work.crafts, count);
                 if (supplied == null) continue;
-                if (!active.accept(controller, pattern, supplied, count, scaled(unitOutputs, count))) continue;
+                if (!active.accept(controller, recipe, supplied, count, scaled(unitOutputs, count))) continue;
                 queued.remove(work);
                 work.crafts -= count;
                 supplied.forEach((item, amount) -> {
@@ -132,6 +139,18 @@ public final class MatterPatternBuffer {
     }
 
     void serverTick() { reconcile(); flushToNetwork(); }
+
+    public boolean waitingForCatalyst() {
+        var controller = assembly.getController();
+        if (controller == null) return false;
+        if (active.waitingForCatalyst(controller)) return true;
+        var index = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(controller.getLevel());
+        for (var work : queued) {
+            var recipe = index.fabrication(work.recipe);
+            if (recipe != null && !controller.hasCatalysts(recipe.value())) return true;
+        }
+        return false;
+    }
 
     private void reconcile() {
         if (!reconcilePatterns || isUnavailable()) return;

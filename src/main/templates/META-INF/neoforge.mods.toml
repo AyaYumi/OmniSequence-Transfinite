@@ -126,6 +126,13 @@ file="META-INF/accesstransformer.cfg"
     side="BOTH"
 
 [[dependencies.${mod_id}]]
+    modId="ftbteams"
+    type="optional"
+    versionRange="[2101.1.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
     modId="advanced_ae"
     type="optional"
     versionRange="[1.6.11,)"

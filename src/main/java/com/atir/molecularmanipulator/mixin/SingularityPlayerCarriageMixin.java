@@ -14,6 +14,9 @@ public abstract class SingularityPlayerCarriageMixin {
     @Shadow private boolean clientIsFloating;
     @Inject(method = "tick", at = @At("HEAD"))
     private void singularity$supportedPlatform(CallbackInfo ci) {
-        if (SingularityMotionWorld.supported(player)) { aboveGroundTickCount = 0; clientIsFloating = false; }
+        if (SingularityMotionWorld.supported(player)
+                || com.atir.molecularmanipulator.world.gravity.GravityController.rotated(player)) {
+            aboveGroundTickCount = 0; clientIsFloating = false;
+        }
     }
 }

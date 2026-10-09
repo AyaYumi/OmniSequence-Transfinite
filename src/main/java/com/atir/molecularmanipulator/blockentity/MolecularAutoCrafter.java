@@ -41,7 +41,7 @@ import java.util.UUID;
  * and its standalone single-block host.
  *
  * <p>Every configured pattern is evaluated independently. Each accepted passive
- * batch is bounded by {@link #MAX_BATCH_CRAFTS} for responsive controls; the implementation
+     * batch is bounded by {@link #MAX_BATCH_CRAFTS} for responsive controls; the implementation
  * delegates actual-key selection, substitution and reusable-input validation to
  * AE2 and the same molecular batch helpers used by crafting CPUs.</p>
  */
@@ -54,7 +54,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
      * into an uninterruptible Long.MAX_VALUE output escrow. The next tick can
      * continue the same recipe, while disabling a slot remains responsive.
      */
-    static final long MAX_BATCH_CRAFTS = 64;
+    static final long MAX_BATCH_CRAFTS = Integer.MAX_VALUE;
     private static final String ROOT_TAG = "molecular_auto_crafter";
     private static final String VERSION_TAG = "version";
     static final int SCHEMA_VERSION = MolecularAutoCraftSchema.VERSION;
@@ -64,6 +64,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private static final String DEFINITION_TAG = "definition";
     private static final String ENABLED_TAG = "enabled";
     private static final String OUTPUT_LIMIT_TAG = "output_limit";
+    private static final String OUTPUT_LIMIT_MODE_TAG = "output_limit_mode";
     private static final String PROTECTIONS_TAG = "protections";
     private static final String TOTAL_CRAFTS_TAG = "total_crafts";
     private static final double POWER_EPSILON = 0.01;
@@ -108,12 +109,13 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
         if (config == null) {
             return new PatternView(false, 0, new long[MAX_INPUTS],
-                    AutoCraftState.DISABLED, 0, 0, decoded.getInputs().length);
+                    AutoCraftState.DISABLED, 0, 0, decoded.getInputs().length,
+                    OutputLimitMode.DESTINATION);
         }
         return new PatternView(config.enabled, config.outputLimit,
                 Arrays.copyOf(config.protections, config.protections.length),
                 config.state, config.lastBatch, config.totalCrafts,
-                decoded.getInputs().length);
+                decoded.getInputs().length, config.outputLimitMode);
     }
 
     public void setEnabled(int slot, boolean enabled) {
@@ -156,6 +158,20 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
         var config = ensureConfig(slot, decoded);
         config.outputLimit = Math.max(0, amount);
+        if (config.enabled) {
+            config.state = AutoCraftState.READY;
+        }
+        host.saveChanges();
+    }
+
+    public void toggleOutputLimitMode(int slot) {
+        var decoded = decode(slot);
+        if (decoded == null) {
+            return;
+        }
+        var config = ensureConfig(slot, decoded);
+        config.outputLimitMode = config.outputLimitMode == OutputLimitMode.DESTINATION
+                ? OutputLimitMode.NETWORK : OutputLimitMode.DESTINATION;
         if (config.enabled) {
             config.state = AutoCraftState.READY;
         }
@@ -313,7 +329,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             config.state = AutoCraftState.OUTPUT_BLOCKED;
             return;
         }
-        var outputAllowance = outputAllowance(details, config, storage, source);
+        var outputAllowance = outputAllowance(details, config);
         long maxCrafts = Math.min(outputAllowance.maxCrafts(), MAX_BATCH_CRAFTS);
         if (maxCrafts <= 0) {
             config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
@@ -464,8 +480,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                 : batcher.prepare(details, inputs, level, 1);
     }
 
-    private OutputAllowance outputAllowance(IPatternDetails details, PatternConfig config,
-            MEStorage storage, IActionSource source) {
+    private OutputAllowance outputAllowance(IPatternDetails details, PatternConfig config) {
         long result = Long.MAX_VALUE;
         for (var output : details.getOutputs()) {
             if (output == null || output.what() == null || output.amount() <= 0) {
@@ -478,8 +493,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
 
         var primary = details.getOutputs().getFirst();
-        long stored = storage.extract(primary.what(), config.outputLimit,
-                Actionable.SIMULATE, source);
+        long stored = host.getAutoCraftOutputStock(primary.what(),
+                config.outputLimit, config.outputLimitMode);
         long buffered = host.getBufferedAutoCraftAmount(primary.what());
         long occupied = MolecularAutoCraftMath.saturatedAdd(stored, buffered);
         if (occupied >= config.outputLimit) {
@@ -645,6 +660,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             tag.put(DEFINITION_TAG, config.definition.toTag(registries));
             tag.putBoolean(ENABLED_TAG, config.enabled);
             tag.putLong(OUTPUT_LIMIT_TAG, config.outputLimit);
+            tag.putString(OUTPUT_LIMIT_MODE_TAG, config.outputLimitMode.name());
             tag.putLongArray(PROTECTIONS_TAG, config.protections);
             tag.putLong(TOTAL_CRAFTS_TAG, config.totalCrafts);
             list.add(tag);
@@ -690,6 +706,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                 var config = new PatternConfig(definition);
                 config.enabled = tag.getBoolean(ENABLED_TAG);
                 config.outputLimit = Math.max(0, tag.getLong(OUTPUT_LIMIT_TAG));
+                config.outputLimitMode = parseOutputLimitMode(
+                        tag.getString(OUTPUT_LIMIT_MODE_TAG));
                 long[] storedProtections = tag.getLongArray(PROTECTIONS_TAG);
                 for (int index = 0; index < Math.min(MAX_INPUTS, storedProtections.length); index++) {
                     config.protections[index] = Math.max(0, storedProtections[index]);
@@ -710,6 +728,15 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
     static boolean shouldLoadConfig(int version) {
         return MolecularAutoCraftSchema.shouldLoadConfig(version);
+    }
+
+    static OutputLimitMode parseOutputLimitMode(String value) {
+        try {
+            return value == null || value.isBlank()
+                    ? OutputLimitMode.DESTINATION : OutputLimitMode.valueOf(value);
+        } catch (IllegalArgumentException exception) {
+            return OutputLimitMode.DESTINATION;
+        }
     }
 
     private void sanitizePatternInventory() {
@@ -749,10 +776,17 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         INVALID_PATTERN
     }
 
+    public enum OutputLimitMode {
+        NETWORK,
+        DESTINATION
+    }
+
     public record PatternView(boolean enabled, long outputLimit, long[] protections,
-            AutoCraftState state, long lastBatch, long totalCrafts, int inputCount) {
+            AutoCraftState state, long lastBatch, long totalCrafts, int inputCount,
+            OutputLimitMode outputLimitMode) {
         private static final PatternView EMPTY = new PatternView(false, 0,
-                new long[MAX_INPUTS], AutoCraftState.EMPTY, 0, 0, 0);
+                new long[MAX_INPUTS], AutoCraftState.EMPTY, 0, 0, 0,
+                OutputLimitMode.DESTINATION);
 
         public PatternView {
             protections = protections == null
@@ -775,6 +809,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         private final long[] protections = new long[MAX_INPUTS];
         private boolean enabled;
         private long outputLimit;
+        private OutputLimitMode outputLimitMode = OutputLimitMode.DESTINATION;
         private AutoCraftState state = AutoCraftState.DISABLED;
         private long lastBatch;
         private long totalCrafts;

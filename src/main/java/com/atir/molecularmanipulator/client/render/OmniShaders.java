@@ -18,6 +18,7 @@ public final class OmniShaders {
     private static volatile ShaderInstance singularityCompute;
     private static volatile ShaderInstance singularityLens;
     private static volatile ShaderInstance cosmicLens;
+    private static volatile ShaderInstance ghostExposure;
 
     private OmniShaders() {
     }
@@ -41,6 +42,9 @@ public final class OmniShaders {
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
                         MolecularManipulator.id("cosmic_lens"), DefaultVertexFormat.POSITION),
                 shader -> cosmicLens = shader);
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("ghost_exposure"), DefaultVertexFormat.POSITION),
+                shader -> ghostExposure = shader);
     }
 
     public static ShaderInstance molecularSpectral() {
@@ -61,4 +65,5 @@ public final class OmniShaders {
     public static ShaderInstance singularityLens() { return singularityLens; }
 
     public static ShaderInstance cosmicLens() { return cosmicLens; }
+    public static ShaderInstance ghostExposure() { return ghostExposure; }
 }

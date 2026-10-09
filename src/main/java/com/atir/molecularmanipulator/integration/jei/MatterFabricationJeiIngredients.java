@@ -25,11 +25,13 @@ final class MatterFabricationJeiIngredients {
         return false;
     }
 
-    private static <T> boolean addWithConverter(IRecipeSlotBuilder slot, GenericStack stack,
+    static <T> boolean addWithConverter(IRecipeSlotBuilder slot, GenericStack stack,
             IngredientConverter<T> converter) {
         T ingredient = converter.getIngredientFromStack(stack);
         if (ingredient == null) return false;
         var type = converter.getIngredientType();
+        // Key-only ingredients (including lightning) cannot carry their recipe quantity.
+        slot.setSlotName(JeiAeStackAmounts.slotName(stack.amount()));
         slot.addIngredient(type, ingredient);
         slot.setCustomRenderer(type, new KeyRenderer<>(stack));
         return true;

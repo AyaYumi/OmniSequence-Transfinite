@@ -28,6 +28,17 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         var loadingModList = FMLLoader.getLoadingModList();
+        if (mixinClassName.endsWith(".LegacyAelisTaskReconciliationMixin")) {
+            var applied = loadingModList == null ? null : loadingModList.getModFileById("appliedenhancements");
+            return applied != null && applied.getMods().stream().anyMatch(mod ->
+                    mod.getModId().equals("appliedenhancements") && mod.getVersion().toString().equals("1.1.0"));
+        }
+        if (mixinClassName.endsWith(".EcoMatterPatternBatchMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
+        }
+        if (mixinClassName.endsWith(".ThunderboltMatterPatternBatchMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("thunderbolt") != null;
+        }
         if (mixinClassName.endsWith(".DataEnergisticsCpuIdentityMixin")) {
             return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;
         }
@@ -42,6 +53,15 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         }
         if (JEI_RESPONSIVE_SLOT_MIXIN.equals(mixinClassName) || JEI_RESPONSIVE_RENDER_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("jei") != null;
+        }
+        if (mixinClassName.endsWith(".JeiAeStackAmountMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("jei") != null
+                    && loadingModList.getModFileById("ae2jeiintegration") != null;
+        }
+        if (mixinClassName.endsWith(".Ae2UtilityJeiAmountMixin")
+                || mixinClassName.endsWith(".Ae2UtilityJeiKeyMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("jei") != null
+                    && loadingModList.getModFileById("ae2utility") != null;
         }
         if (EXTENDEDAE_PLUS_UPLOAD_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("extendedae_plus") != null;

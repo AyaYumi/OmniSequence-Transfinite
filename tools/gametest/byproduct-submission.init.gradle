@@ -1,0 +1,63 @@
+// Isolated real planning/submission/completion for processing patterns with secondary outputs.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        if (project.hasProperty('byproductAppliedJar')) {
+            def applied = file(project.property('byproductAppliedJar'))
+            if (!applied.isFile()) throw new GradleException('Patched Applied runtime JAR is required')
+            def runtime = configurations.getByName('localRuntime')
+            runtime.dependencies.findAll { dep ->
+                dep instanceof org.gradle.api.artifacts.FileCollectionDependency &&
+                        dep.files.files.any { it.name.startsWith('appliedenhancements-') }
+            }.each { runtime.dependencies.remove(it) }
+            dependencies.add('localRuntime', files(applied))
+        }
+        if (project.hasProperty('byproductUselessJar')) {
+            def addon = file(project.property('byproductUselessJar'))
+            if (!addon.isFile()) throw new GradleException('Useless runtime JAR is required')
+            dependencies.add('localRuntime', files(addon))
+        }
+        if (project.hasProperty('byproductEapJar')) {
+            def addon = file(project.property('byproductEapJar'))
+            if (!addon.isFile()) throw new GradleException('ExtendedAE Plus runtime JAR is required')
+            dependencies.add('localRuntime', files(addon))
+        }
+        for (def property : ['byproductAaeJar', 'byproductGeckoJar']) {
+            if (project.hasProperty(property)) {
+                def addon = file(project.property(property))
+                if (!addon.isFile()) throw new GradleException(property + ' JAR is required')
+                dependencies.add('localRuntime', files(addon))
+            }
+        }
+        def runName = (project.findProperty('byproductRunName') ?: 'byproduct-submission').toString()
+        if (!(runName ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid byproduct run directory')
+        def regression = sourceSets.create('byproductSubmission') {
+            java.srcDir file('tools/gametest/ae2-compat')
+            java.include '**/MixedByproductGameTests.java'
+            if (project.hasProperty('planningFallbackChecks')) java.include '**/PlanningFallbackGameTests.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        server.gameDirectory = file('build/' + runName)
+        server.logLevel = org.slf4j.event.Level.INFO
+        server.systemProperty 'molecularmanipulator.byproductAutomatic', project.hasProperty('byproductAutomatic').toString()
+        server.systemProperty 'molecularmanipulator.byproductNative', project.hasProperty('byproductUselessJar').toString()
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                if (!project.file('build/' + runName + '/logs/latest.log').text
+                        .contains('All ' + (project.hasProperty('planningFallbackChecks') ? 6 : 5) + ' required tests passed')) {
+                    throw new GradleException('Byproduct calculation/submission checks did not pass')
+                }
+            }
+        }
+        tasks.named('compileByproductSubmissionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

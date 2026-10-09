@@ -8,7 +8,7 @@ navigation:
 
 # Fabrication Research
 
-Research unlocks recipes and machines. Branch completion counts and active jobs belong to this well's controller.
+Research unlocks fabrication recipes and later machines. Progress belongs to the current [Fabrication Well](matter_fabrication_well.md); another well needs its own research.
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_controller" scale="4" />
@@ -20,77 +20,46 @@ Research unlocks recipes and machines. Branch completion counts and active jobs 
 <BlockImage id="molecularmanipulator:event_horizon_singularity_hub" scale="4" />
 </Row>
 
-## Default progression
+## Progression
 
-| Stage | First completion unlocks |
+| Research | Prerequisite | First completion unlocks | Default power |
+| --- | --- | --- | --- |
+| Tier 1: AE materials | None | AE processing, Pattern Assembly and later research materials | 256 AE/t |
+| Tier 2: Sequence Array | Tier 1 once | Sequence Array, Rewrite Array and Matrix Rewrite Core | 512 AE/t |
+| Tier 2: Omni Computation | Tier 1 once | Omni Computation Core, Compute Nexus and their parts | 1024 AE/t |
+| Tier 3: Event Horizon | Both tier 2 branches once | Miniature Black Hole, White Hole, Supernova and hub parts | 2048 AE/t |
+| Special: Exotic Matter Studies | Tier 1 once | [Gravity Crystals and Ghost Matter](nomai_materials.md) | 256 AE/t |
+
+Each default research round takes **30 seconds**. Both tier 2 branches can progress together; maximum depth is not needed for tier 3. Exotic Matter Studies is optional, has only one round and does not require tier 3.
+
+## Starting research
+
+1. Form the well and connect a powered ME network with storage.
+2. Open **Research**, select a branch and check prerequisites and available ME stock against the round's cost.
+3. Store ingredients in that ME network. Your inventory and input ports do not supply research.
+4. With all materials available, select **Start** to pay the round's cost, then supply power until completion.
+
+Each branch runs one round at a time; different branches can run independently. Power loss, disconnection and structure damage retain materials and progress until conditions recover.
+
+## Ordering materials
+
+ME autocrafting can prepare missing materials. The network needs the required patterns, ingredients and an available crafting CPU.
+
+| Action | Effect |
 | --- | --- |
-| Tier 1: AE materials | AE processing, tier 2 materials, Pattern Assembly |
-| Tier 2: Sequence Array | Sequence Array, Rewrite Array, Matrix Rewrite Core |
-| Tier 2: Omni Computation | Omni Computation Core, Transfinite Compute Nexus, parts |
-| Tier 3: Event Horizon | Miniature Black Hole, Miniature White Hole, all 13 Singularity Hub parts |
+| Select **Order** | Prepare the next round's materials and start automatically when ready |
+| Hold **Shift** and select **Order to maximum** | Prepare every remaining round and reach maximum depth in one research run |
+| Select **Stop current research** during preparation | Cancel unfinished orders and return cached materials to ME |
 
-**Complete tier 1 once → unlock both tier 2 branches.** The tier 2 branches can run together.
+Holding Shift also changes the material list and displayed rewards to the maximum target. Hover counts for exact amounts.
 
-| Default round | Duration | Sustained power |
-| --- | --- | --- |
-| Tier 1 | 30 seconds | 256 AE/t |
-| Sequence Array | 30 seconds | 512 AE/t |
-| Omni Computation | 30 seconds | 1024 AE/t |
-| Event Horizon | 30 seconds | 2048 AE/t |
+Preparation continues to replenish shortages. Ordered products are reserved for the current research. Refunds wait if ME storage cannot accept them.
 
-## Tier 3 materials
-
-Complete **Sequence Array and Omni Computation at least once each** to begin Event Horizon research. Maximum tier 2 depth is not required.
-
-| Structure | First-round cost |
-| --- | --- |
-| One Sequence Array | All 2,345 blueprint blocks |
-| One Omni Computation Core | All 2,289 blueprint blocks |
-| Combined | 19 material types; 4,634 blocks |
-
-Both controllers and every required structure block are included; shared materials are combined. Research takes items from ME storage. Placed structures are not dismantled or credited. Later rounds multiply these costs.
-
-<Row>
-<ItemImage id="molecularmanipulator:black_hole" scale="4" />
-
-<ItemImage id="molecularmanipulator:white_hole" scale="4" />
-</Row>
-
-| Unlocked recipe | Key ingredient |
-| --- | --- |
-| Miniature Black Hole ×1 | AE2 Singularity ×100K |
-| Miniature White Hole ×1 | AE2 Matter Ball ×1G |
-| Singularity Hub controller | Consumes Miniature Black Hole ×1 |
-| White Hole Resource Core | Consumes Miniature White Hole ×1 |
-
-Miniature Black Hole and Miniature White Hole recipes use the well's **Pattern Assembly** for large AE inputs. Other parts build on both tier 2 branches; structural casings, tracks, stairs, and slabs have batch outputs. Recipe diagrams show full ingredients.
-
-## Start a round
-
-1. Form the [well](matter_fabrication_well.md) and connect an online ME network with storage.
-2. Open **Research** and compare available ME stock with the round's requirements.
-3. Put ingredients in that network. Player inventory and port caches are not research inputs.
-4. Select **Start**. Materials are paid once; supply power until completion.
-
-Pausing, power loss, disconnection, or structure damage retains paid materials and progress. Resuming does not charge again. Each branch runs one round at a time; different branches run independently.
-
-## Continuous orders and maximum research
-
-| Action | Material target | Result |
-| --- | --- | --- |
-| Select **Order** | All materials for the next round | Starts automatically and adds one completion |
-| Hold **Shift** and select **Order to maximum** | Every remaining round through the maximum | Starts automatically and reaches the maximum in one run |
-| Select **Stop current research** while preparing | Cancels this research's unfinished orders | Returns cached materials to ME; full storage retains refunds for later |
-
-Holding **Shift** changes the material list and target bonus to the maximum. Counts use K, M, G and larger units; hover for exact amounts.
-
-**Preparation keeps ordering.** Shortages are checked once per second. If another craft consumes a required base material, the order replenishes it. Ordered outputs enter a cache owned by that research so other crafting cannot consume them. Material tooltips show cached amounts.
-
-**Ordered research cannot stop or pause once it starts.** Power loss, disconnection or an incomplete structure retains paid materials and progress until conditions recover. Maximum orders pay every remaining round but use one research duration and its normal power per tick.
+**Research started through ordering cannot stop or pause once running.** A maximum order consumes every remaining round's materials, but uses one research duration and that research's power per tick.
 
 ## Deep research
 
-Each default stage allows **nine completions**, including the first unlock. Later rounds cost 2, 4, 8, 16, 32, 64, 128, and 256 times the base materials.
+The four ordinary research branches each allow **nine completions** by default. The first unlocks recipes; later completions improve parallelism and speed for that branch's fabrication recipes. Later rounds cost 2, 4, 8, 16, 32, 64, 128 and 256 times the base materials.
 
 | Completions | Parallel limit | Processing time |
 | --- | --- | --- |
@@ -104,8 +73,18 @@ Each default stage allows **nine completions**, including the first unlock. Late
 | 8 | 72.06P | 1/128 |
 | 9 | 9.22E | 1 tick |
 
-Bonuses affect only **fabrication recipes unlocked by this branch**. Research itself still takes 30 seconds per default round. Materials, power, and output space limit actual batches; processing never takes less than one tick.
+Ingredients, power and output capacity limit actual batches. Processing takes at least one tick. Speed bonuses do not shorten research itself or improve processing in other machines.
 
-## Your pack's rules
+## Tier 3 materials
 
-The Research page shows next-round or maximum costs, duration, prerequisites, and rewards. Datapacks or KubeJS can change research. Preparing and running tasks retain their target and cost snapshots; new tasks use updated rules. Preparation caches, CPU links and research progress persist with the controller.
+The first Event Horizon round consumes one complete Sequence Array material set and one complete Omni Computation Core material set, including controllers and structure blocks.
+
+| Material set | Count |
+| --- | --- |
+| Sequence Array | 2,345 blocks |
+| Omni Computation Core | 2,289 blocks |
+| Combined | 19 material types; 4,634 blocks |
+
+Ingredients come from ME storage. Placed buildings are neither dismantled nor credited toward the cost. See [Black and White Holes](black_and_white_holes.md) and [Singularity Hub](event_horizon_singularity_hub.md) for tier 3 recipes and uses.
+
+Modpacks can adjust prerequisites, depth and rewards. Check the Research page's materials, duration and power before starting.

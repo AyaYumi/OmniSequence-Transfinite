@@ -33,6 +33,9 @@ public interface MolecularAutoCrafterHost {
 
     long getBufferedAutoCraftAmount(AEKey key);
 
+    long getAutoCraftOutputStock(AEKey key, long limit,
+            MolecularAutoCrafter.OutputLimitMode mode);
+
     /**
      * Flushes already completed passive-crafting outputs after a slot is stopped
      * or its pattern is removed. This is a delivery operation only; it never

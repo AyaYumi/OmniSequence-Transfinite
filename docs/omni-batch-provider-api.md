@@ -3,7 +3,7 @@
 Available since OmniSequence: Transfinite 1.3.9.
 
 Current for OmniSequence 2.0.8 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
-and the required AppliedEnhancements 1.1.0. The runtime ABI remains **1**.
+and Applied Enhancements 1.1.0+ (paired release 1.1.1). The runtime ABI remains **1**.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -245,6 +245,31 @@ class or conditional Mixin that is loaded only when Mod ID
 `molecularmanipulator` is present. Compile against OmniSequence as
 `compileOnly`; do not embed its API classes.
 
+
+## Cycle transactions, byproducts and native doubling
+
+An independent CPU acquires one
+`AelisBatchExecutionContext.acquire(runtime, pattern.getDefinition(), source)`
+before the first extraction. Use its inventory for the first craft, extra batch
+inputs and refunds. Open `beginDispatch(actualInputs, actualCrafts)` before
+provider delivery; call `accepted()` at durable ownership transfer. Closing a
+rejected dispatch restores cycle accounting, while the CPU refunds still-owned
+physical inputs. A null inventory declines this attempt; `maximumCrafts()` is a
+phase bound and does not promise materials or queue capacity. The shared context
+is available in AES 1.1.0+ and must not be reacquired after the first extraction.
+
+Retain every expected output, including item/fluid byproducts. Unsupported
+optimization or an unreadable external batch wrapper must preserve the complete
+original task ledger and permit ordinary planning/dispatch. It must not turn a
+secondary output into a planning exception or truncate work to a long preview.
+Providers still enforce actual material ownership and capacity.
+
+For new integrations using AES 1.1.1, query
+`AelisSmartDoublingApi.isExternallyManaged(pattern)` before adding a local scale.
+Preserve native enabled patterns, existing external wrappers, provider splits
+and the original-pattern remainder. An installed addon alone does not enable
+this bypass. The query describes external management, not ownership or exact
+execution support; load 1.1.1-only types only with that runtime present.
 
 ## Exact-count capabilities
 

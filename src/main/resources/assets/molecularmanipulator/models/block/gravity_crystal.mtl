@@ -1,0 +1,23 @@
+newmtl mount
+Ka 0 0 0
+Kd 1 1 1
+d 1
+map_Kd #mount
+
+newmtl trim
+Ka 0 0 0
+Kd 1 1 1
+d 1
+map_Kd #trim
+
+newmtl crystal
+Ka 1 1 1
+Kd 1 1 1
+d 1
+map_Kd #crystal
+
+newmtl indicator
+Ka 1 1 1
+Kd 1 1 1
+d 1
+map_Kd #indicator

@@ -22,9 +22,7 @@ item_ids:
 
 # Event Horizon Singularity Hub
 
-Harvest basic resources simultaneously and generate Sequence Matter with miniature black holes to duplicate items. Both workflows use the hub's ME network.
-
-## Build and connect
+The Event Horizon Singularity Hub collects resources continuously and duplicates items using Sequence Matter. Collection and duplication share its ME network and can operate independently.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:event_horizon_singularity_hub" />
@@ -35,30 +33,40 @@ Harvest basic resources simultaneously and generate Sequence Matter with miniatu
 <ItemIcon id="molecularmanipulator:singularity_crystal_tower" />
 </ItemGrid>
 
-1. Complete **Tier 3: Event Horizon** in the well and fabricate the parts. The controller requires one Miniature Black Hole; the resource core requires one Miniature White Hole.
-2. Gather the JEI structure materials, place the controller, and enable **Projection**.
-3. Clear obstructions and select **Build**. Player inventory is used before ME materials.
-4. Connect a powered ME network with channels and check structure and network status in Overview.
-5. Prepare item storage for harvested products and fluid storage for Sequence Matter.
+## Construction and connection
 
-The quantum slot inside **Hub Overview** accepts only a **Quantum Entangled Singularity**. Put its partner in a powered AE2 quantum bridge to access remote construction materials before formation. The quantum link adds 512 AE/t and one channel.
+1. Complete **Tier 3: Event Horizon** in the well and fabricate the hub parts. The controller and White Hole Resource Core each require a [Miniature Supernova](black_and_white_holes.md).
+2. Gather JEI's structure materials, place the controller and enable **Projection**.
+3. Clear obstructions and select **Build**. Construction uses your inventory before ME storage.
+4. Connect ME power and channels, then check formation and network status in Overview.
+5. Provide ME item storage for collected and copied products, and ME fluid storage for Sequence Matter.
 
-## Three pages
+Base Stairs and Slabs are crafted at a crafting table: six Base Casings in the stair shape yield four stairs; three casings in a row yield six slabs.
 
-| Page | Purpose |
+## Controller interface
+
+| Page | Function |
 | --- | --- |
-| Overview | Building and operating status; projection, build, and dismantle |
-| [Resource Collection](singularity_resource_collection.md) | Full resource list; start and stop harvesting |
-| [Matter Duplication](singularity_matter_duplication.md) | Sample and black-hole slots, matter stock, FE / AE usage |
+| Overview | Operating status; projection, construction and dismantling |
+| [Resource Collection](singularity_resource_collection.md) | Resource list; start and stop collection |
+| [Matter Duplication](singularity_matter_duplication.md) | Sample and miniature black-hole slots; matter stock and energy use |
 
-Starting resource collection initiates startup and building motion. Stopping collection docks the rings. Sequence Matter generation works independently according to the black-hole and network conditions.
+Start collection and wait for startup, then products enter ME. Stopping collection docks the structure. Black-hole matter generation and sample duplication do not require active resource collection.
 
-## Recover and relocate
+## Quantum connection
 
-**Dismantle** keeps the controller and returns materials to ME first, then the player. Full destinations pause recovery. Stop collection and let the building finish docking before proceeding.
+Overview's quantum slot accepts only a **Quantum Entangled Singularity**. Put its partner in a powered AE2 quantum bridge to connect a remote network, including construction materials before formation. The link requires an additional **512 AE/t and one channel**.
 
-Normal controller removal preserves the quantum slot, sample, miniature black holes, and pending recovery contents. The multiblock chunk-loading setting controls the building's required chunks.
+## Dismantling and relocation
 
-## Related pages
+Stop collection and wait for docking before selecting **Dismantle**. The controller stays in place. Materials return to ME before your inventory, pausing if there is no room.
+
+Normal controller removal retains the quantum slot, sample, miniature black holes and pending recovery contents. Continuous production needs loaded chunks; the server's multiblock chunk-loading setting can keep the structure's required chunks loaded.
+
+## Recipes
+
+<RecipeFor id="molecularmanipulator:event_horizon_singularity_hub" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+
+<RecipeFor id="molecularmanipulator:white_hole_resource_core" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
 
 <SubPages icons={true} />

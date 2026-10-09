@@ -46,6 +46,14 @@ class OmniSmartDoublingBypassTest {
         assertEquals(1, lookups[0]);
     }
 
+    @Test void failingProviderDiscoveryPreservesTheCompleteOriginalPlan() {
+        var plan = plan(pattern(false, false));
+        assertSame(plan, assertDoesNotThrow(() -> OmniSmartDoublingPlanner.rewriteForSubmission(plan,
+                ignored -> { throw new IllegalStateException("Optional provider unavailable"); })));
+        assertSame(plan, assertDoesNotThrow(() -> OmniSmartDoublingPlanner.rewriteForSubmission(plan,
+                ignored -> { throw new NoClassDefFoundError("Optional provider ABI"); })));
+    }
+
     @Test void cachedContractReadsChangedNativeEnabledState() {
         boolean[] enabled = {true};
         var pattern = (IPatternDetails) Proxy.newProxyInstance(getClass().getClassLoader(),

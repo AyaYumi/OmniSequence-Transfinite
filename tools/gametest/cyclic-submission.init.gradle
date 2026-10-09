@@ -1,0 +1,44 @@
+// Terminal-style cyclic calculation and submission with the actual Omni CPU.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        if (project.hasProperty('cyclicAppliedJar')) {
+            def applied = file(project.property('cyclicAppliedJar'))
+            if (!applied.isFile()) throw new GradleException('Patched Applied runtime JAR is required')
+            def runtime = configurations.getByName('localRuntime')
+            runtime.dependencies.findAll { dep ->
+                dep instanceof org.gradle.api.artifacts.FileCollectionDependency &&
+                        dep.files.files.any { it.name.startsWith('appliedenhancements-') }
+            }.each { runtime.dependencies.remove(it) }
+            dependencies.add('localRuntime', files(applied))
+        }
+        def runName = (project.findProperty('cyclicRunName') ?: 'cyclic-submission').toString()
+        if (!(runName ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid cyclic run directory')
+        def regression = sourceSets.create('cyclicSubmission') {
+            java.srcDir file('tools/gametest/ae2-compat')
+            java.include '**/CyclicSubmissionGameTests.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        server.gameDirectory = file('build/' + runName)
+        server.logLevel = org.slf4j.event.Level.INFO
+        server.systemProperty 'molecularmanipulator.cyclicAutomatic', project.hasProperty('cyclicAutomatic').toString()
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                if (!project.file('build/' + runName + '/logs/latest.log').text
+                        .contains('All 4 required tests passed')) {
+                    throw new GradleException('Cyclic calculation/submission checks did not pass')
+                }
+            }
+        }
+        tasks.named('compileCyclicSubmissionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

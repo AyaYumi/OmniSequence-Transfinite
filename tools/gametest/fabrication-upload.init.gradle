@@ -1,0 +1,29 @@
+// Full upload transactions and placement team binding in disposable server worlds.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('fabricationUploadVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/MatterFabricationUploadGameTests.java', '**/VerificationAEKey.java'
+            resources.srcDir file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        dependencies.add(verification.compileOnlyConfigurationName, 'curse.maven:ftb-library-forge-404465:8858846')
+        if (project.hasProperty('fabricationFtbTests')) {
+            repositories.maven { url = 'https://maven.architectury.dev/' }
+            dependencies.add('localRuntime', 'curse.maven:ftb-teams-forge-404468:8724782')
+            dependencies.add('localRuntime', 'curse.maven:ftb-library-forge-404465:8858846')
+            dependencies.add('localRuntime', 'dev.architectury:architectury-neoforge:13.0.8')
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        neoForge.runs.getByName('gameTestServer').gameDirectory = file(
+                project.hasProperty('fabricationFtbTests') ? 'build/fabrication-upload-ftb-run' : 'build/fabrication-upload-run')
+        neoForge.runs.getByName('gameTestServer').logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileFabricationUploadVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

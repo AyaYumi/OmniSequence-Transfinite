@@ -13,8 +13,8 @@
   "ae_inputs": [
     {
       "#t": "ae2:i",
-      "id": "ae2:matter_ball",
-      "#": 1000000000
+      "id": "molecularmanipulator:black_hole",
+      "#": 10
     }
   ]
 }

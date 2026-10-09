@@ -9,6 +9,7 @@ allprojects {
             java.include '**/SingularityMotionGameTests.java'
             java.include '**/SingularityEmbeddingGameTests.java'
             java.include '**/SingularitySuspendedGameTests.java'
+            java.include '**/CompactSingularityGameTests.java'
             resources.srcDir file('tools/gametest/resources')
             compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
             runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output

@@ -7,7 +7,7 @@ navigation:
 
 # OmniSequence: Transfinite
 
-Start with material research, build an ME crafting system, then harvest and duplicate resources with singularity devices.
+OmniSequence: Transfinite adds material processing, research, large pattern libraries and crafting CPUs to ME networks. Singularity devices provide resource collection and item duplication.
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_controller" scale="4" />
@@ -19,35 +19,29 @@ Start with material research, build an ME crafting system, then harvest and dupl
 <BlockImage id="molecularmanipulator:event_horizon_singularity_hub" scale="4" />
 </Row>
 
-## Choose a goal
+## Getting started
 
-| Goal | Read these pages |
+Build a [Matter Fabrication Well](items-blocks-machines/matter_fabrication_well.md) with basic AE2 materials, connect it to ME, and complete tier 1 research. Research unlocks processing recipes and materials for later machines.
+
+After tier 1, research Sequence Array and Omni Computation independently. Complete both tier 2 branches once to unlock Tier 3: Event Horizon. The optional **Special: Exotic Matter Studies** also becomes available after tier 1 and unlocks Gravity Crystals and Ghost Matter.
+
+## Devices and uses
+
+| Use | Devices |
 | --- | --- |
-| Start processing and unlock machines | [Fabrication Well](items-blocks-machines/matter_fabrication_well.md) · [Research](items-blocks-machines/matter_fabrication_research.md) |
-| Connect processing to ME autocrafting | [Ports](items-blocks-machines/matter_fabrication_ports.md) · [Pattern Assembly](items-blocks-machines/matter_fabrication_pattern_assembly.md) |
-| Large pattern library and restocking | [Sequence Array](items-blocks-machines/sequence_array_controller.md) · [Auto Crafter](items-blocks-machines/molecular_auto_crafter.md) |
-| Execute internal crafting recipes | [Rewrite Array](items-blocks-machines/molecular_sequence_rewrite_array.md) · [Matrix Rewrite Core](items-blocks-machines/assembler_matrix_sequence_rewrite_core.md) |
-| Manage many crafting requests | [Omni Computation Core](items-blocks-machines/omni_computation_core.md) · [Compute Nexus](items-blocks-machines/transfinite_compute_nexus.md) |
-| Harvest ores/logs and duplicate items | [Singularity Hub](items-blocks-machines/event_horizon_singularity_hub.md) |
-| Transfer items and entities | [Black and White Holes](items-blocks-machines/black_and_white_holes.md) |
+| Material processing and research | [Fabrication Well](items-blocks-machines/matter_fabrication_well.md), [Research](items-blocks-machines/matter_fabrication_research.md) |
+| Automate fabrication recipes | [Input and Output Ports](items-blocks-machines/matter_fabrication_ports.md), [Pattern Assembly](items-blocks-machines/matter_fabrication_pattern_assembly.md) |
+| Manage patterns and maintain stock | [Sequence Array](items-blocks-machines/sequence_array_controller.md), [Molecular Auto Crafter](items-blocks-machines/molecular_auto_crafter.md) |
+| Batch crafting, smithing and stonecutting | [Rewrite Array](items-blocks-machines/molecular_sequence_rewrite_array.md), [Matrix Rewrite Core](items-blocks-machines/assembler_matrix_sequence_rewrite_core.md) |
+| Run multiple crafting requests | [Omni Computation Core](items-blocks-machines/omni_computation_core.md), [Compute Nexus](items-blocks-machines/transfinite_compute_nexus.md) |
+| Collect resources and duplicate items | [Singularity Hub](items-blocks-machines/event_horizon_singularity_hub.md), [Compact Hub](items-blocks-machines/compact_singularity_hub.md) |
+| Transfer dropped items and creatures | [Black and White Holes](items-blocks-machines/black_and_white_holes.md) |
+| Walk on walls or build lifts | [Gravity Crystals and Ghost Matter](items-blocks-machines/nomai_materials.md) |
 
-## Start the research route
+## Using this guide
 
-1. Build the **Fabrication Well** from basic AE2 materials.
-2. Complete **tier 1 research** to unlock processing recipes and the Pattern Assembly.
-3. Research the **Sequence Array** and **Omni Computation** branches; both can progress together.
-4. Complete both tier 2 branches once, then spend both full structure material sets on **Tier 3: Event Horizon** to unlock the holes and hub.
+Use the guide hotkey (default **G**) on an item, JEI entry or associated block to open its page. Click item icons for related pages or recipes.
 
-## Open and explore
-
-<ItemGrid>
-<ItemIcon id="ae2:guide" />
-<ItemIcon id="ae2:pattern_access_terminal" />
-<ItemIcon id="ae2:quantum_entangled_singularity" />
-</ItemGrid>
-
-Use the guide hotkey (default **G**) on an item, JEI entry, or associated block to open its page. Browse the left-hand contents and follow item icons or links.
-
-Drag and zoom interactive building views. Recipe panels use the current pack's recipes; research and machine pages show their operating requirements.
+Numbers in this guide describe default settings. Modpacks can change recipes, research and machine configuration; check JEI, the Research page and machine status for your pack's requirements.
 
 <SubPages icons={true} />

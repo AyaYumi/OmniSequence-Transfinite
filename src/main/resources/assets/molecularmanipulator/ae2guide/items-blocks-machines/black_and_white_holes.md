@@ -7,53 +7,55 @@ navigation:
 item_ids:
 - molecularmanipulator:black_hole
 - molecularmanipulator:white_hole
+- molecularmanipulator:miniature_supernova
 ---
 
 # Black Holes and White Holes
 
-Move nearby items and non-player entities from a black hole to a white-hole exit in the same dimension.
+Miniature Black Holes transfer nearby dropped items and non-player entities to the nearest same-team Miniature White Hole in the same dimension. They provide item and creature transport and are ingredients for hub components.
 
 <Row>
 <ItemImage id="molecularmanipulator:black_hole" scale="6" />
 
 <ItemImage id="molecularmanipulator:white_hole" scale="6" />
+
+<ItemImage id="molecularmanipulator:miniature_supernova" scale="6" />
 </Row>
 
-## Fabricate the holes
+## Fabrication
 
-Complete **Tier 3: Event Horizon** in the well. Run these large-input recipes through the Pattern Assembly. Each produces one item in 30 seconds at 4096 AE/t after the first unlock.
+Complete **Tier 3: Event Horizon** and process these recipes through the well's [Pattern Assembly](matter_fabrication_pattern_assembly.md). After the first unlock, each recipe takes **30 seconds at 4096 AE/t**.
 
-| Result | Only ingredient |
+| Result | Ingredients |
 | --- | --- |
-| Miniature Black Hole ×1 | AE2 Singularity ×100K |
-| Miniature White Hole ×1 | AE2 Matter Ball ×1G |
+| Miniature Black Hole ×1 | AE2 Singularity ×10,000 |
+| Miniature White Hole ×1 | Miniature Black Hole ×10 |
+| Miniature Supernova ×1 | Miniature Black Hole ×100, Miniature White Hole ×100 |
 
-<RecipeFor id="molecularmanipulator:black_hole" />
+The hub controller and White Hole Resource Core each need one Miniature Supernova.
 
-<RecipeFor id="molecularmanipulator:white_hole" />
+## Setting up transport
 
-## Set up an entrance and exit
+1. Place a **Miniature White Hole** and leave clear exit space above it.
+2. Have a member of the same FTB team place a **Miniature Black Hole** in the same dimension.
+3. Nearby dropped items and non-player entities are pulled toward the black hole. Reaching its center transfers them above the nearest white hole.
 
-1. Place a **white hole** and leave clear space above the exit.
-2. Place a **black hole** in the same dimension. Nearby dropped items and non-player entities are pulled gradually toward it.
-3. On reaching its center, entities teleport above the white hole with a small upward push.
+Players are neither pulled nor transferred. Without a matching white hole, the black hole does not begin pulling. Multiple black holes each choose their nearest exit; there is no white-hole placement limit.
 
-| Rule | Behavior |
-| --- | --- |
-| Players | Never pulled or transferred |
-| White-hole limit | One per dimension; remove it before placing another |
-| Multiple miniature black holes | Share that dimension's white-hole exit |
-| No white hole | No black-hole suction |
-| White-hole chunk | Force-loaded while placed; released on removal |
+## Teams and chunks
 
-The black hole's own chunk must remain loaded to operate. Entities are transferred intact rather than converted into resources or Sequence Matter.
+Placement binds a hole to the placer's FTB team, or to the individual without FTB Teams. Re-place holes after changing teams to update their ownership.
 
-## Use inside the hub
+A white hole keeps its chunk loaded until removal. A black hole operates only while its own chunk is loaded. Transport preserves the entities and items themselves.
 
-<ItemGrid>
-<ItemIcon id="molecularmanipulator:event_horizon_singularity_hub" />
-<ItemIcon id="molecularmanipulator:black_hole" />
-<ItemIcon id="molecularmanipulator:singularity_sequence_matter_bucket" />
-</ItemGrid>
+## Use in the hub
 
-Black-hole items in the hub's dedicated slot increase **Sequence Matter** production. The slot holds up to 64. See [Matter Duplication](singularity_matter_duplication.md).
+Miniature Black Hole items can also go into the hub's dedicated slot, up to **64**, to increase Sequence Matter production. See [Matter Duplication](singularity_matter_duplication.md).
+
+## Recipes
+
+<RecipeFor id="molecularmanipulator:black_hole" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+
+<RecipeFor id="molecularmanipulator:white_hole" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+
+<RecipeFor id="molecularmanipulator:miniature_supernova" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

@@ -10,7 +10,7 @@ item_ids:
 
 # Assembler Matrix Sequence Rewrite Core
 
-An execution core installed inside an ExtendedAE Assembler Matrix, providing large-batch recipe processing.
+The Assembler Matrix Sequence Rewrite Core is an execution component for ExtendedAE's Assembler Matrix. It performs large crafting batches using the matrix's patterns and cannot operate on its own.
 
 <Row>
 <BlockImage id="molecularmanipulator:assembler_matrix_molecular_core" scale="4" />
@@ -18,38 +18,27 @@ An execution core installed inside an ExtendedAE Assembler Matrix, providing lar
 <BlockImage id="molecularmanipulator:molecular_manipulator" scale="4" />
 </Row>
 
-## Install in a matrix
+## Installation
 
-1. Complete **Tier 2: Sequence Array** research and fabricate the core.
-2. Build a valid matrix according to ExtendedAE's structure rules.
-3. Install the core in a functional core position, form the matrix, and connect ME.
-4. Supply Molecular Assembler-compatible patterns and request products from ME.
+1. Complete **Tier 2: Sequence Array** in the well and fabricate the core.
+2. Build an Assembler Matrix using ExtendedAE's rules, placing the rewrite core in an interior functional core position.
+3. Insert Molecular Assembler-compatible patterns in the matrix's pattern cores.
+4. Check formation and ME connectivity, then request products from a terminal.
 
-| Requirement | Detail |
-| --- | --- |
-| Complete matrix | Supplies structure, patterns, and networking |
-| Standalone placement | Cannot operate independently |
-| Batch capability | Logical ceiling around 9.22E crafts; actual inputs and outputs limit it |
+The matrix still needs its structure blocks and pattern cores. The rewrite core supplies execution; the formed matrix supplies ingredients and networking.
 
-## Reusable inputs
+## Tools and containers
 
-Recipes preserve containers, reusable inputs, and tool state. Eligible recipes execute in batches. Random durability or context-sensitive recipes use AE2's normal per-craft path.
+Processing consumes the recipe's ingredients and preserves returned containers, reusable items and tool durability. Eligible recipes run in batches; recipes requiring individual handling run one craft at a time.
 
-<ItemGrid>
-<ItemIcon id="minecraft:bucket" />
-<ItemIcon id="minecraft:iron_pickaxe" />
-<ItemIcon id="ae2:crafting_pattern" />
-</ItemGrid>
+Batch crafting still requires enough materials, crafting energy and output capacity.
 
-| Situation | Result |
-| --- | --- |
-| ME cannot accept output | Retain it until storage accepts it |
-| Job canceled | Stop unexecuted work; return unused materials and current tools |
-| Save or reload | Retain work, materials, and progress |
-| Core removed normally | Carry contents with it; resume in a valid matrix |
+## Tasks and output
 
-Products completed before cancellation remain valid. Crafting energy follows AE2 pattern rules.
+If ME cannot accept products, the core retains them until space is available. Canceling a craft stops unexecuted work and returns unused ingredients and current tools. Completed products are retained.
 
-## Recipe
+Normal core removal carries materials, products and unfinished work with it. Reinstall it in a valid matrix and restore ME to continue.
+
+## Recipes
 
 <RecipeFor id="molecularmanipulator:assembler_matrix_molecular_core" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

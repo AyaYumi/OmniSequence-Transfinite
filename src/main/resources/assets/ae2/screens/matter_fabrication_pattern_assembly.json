@@ -8,6 +8,11 @@
     "height": 325
   },
   "slots": {
+    "MACHINE_INPUT": {
+      "left": 44,
+      "top": 111,
+      "grid": "BREAK_AFTER_9COLS"
+    },
     "ENCODED_PATTERN": {
       "left": 44,
       "top": 111,

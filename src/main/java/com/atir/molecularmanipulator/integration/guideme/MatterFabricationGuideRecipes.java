@@ -71,6 +71,9 @@ public final class MatterFabricationGuideRecipes implements RecipeTypeMappingSup
                 recipe.fluidInput().getHoverName().getString(), DisplayNumbers.exact(recipe.fluidInput().getAmount()))));
         for (var input : recipe.aeInputs()) box.addBottom(paragraph(text("ae_input",
                 input.what().getDisplayName().getString(), DisplayNumbers.compact(input.amount()))));
+        for (var catalyst : recipe.catalysts()) box.addBottom(paragraph(text("catalyst",
+                Arrays.stream(catalyst.ingredient().getItems()).map(stack -> stack.getHoverName().getString()).collect(Collectors.joining(" / ")),
+                DisplayNumbers.exact(catalyst.count()))));
         if (!recipe.fluidResult().isEmpty()) box.addBottom(paragraph(text("fluid_output",
                 recipe.fluidResult().getHoverName().getString(), DisplayNumbers.exact(recipe.fluidResult().getAmount()))));
         for (var output : recipe.aeOutputs()) box.addBottom(paragraph(text("ae_output",

@@ -15,6 +15,12 @@ public final class OmniSmartDoublingPlanner {
 
     public static ICraftingPlan rewriteForSubmission(ICraftingPlan plan,
             Function<IPatternDetails, Iterable<ICraftingProvider>> providerLookup) {
+        try { return rewriteKnownPlan(plan, providerLookup); }
+        catch (RuntimeException | LinkageError unavailable) { return plan; }
+    }
+
+    private static ICraftingPlan rewriteKnownPlan(ICraftingPlan plan,
+            Function<IPatternDetails, Iterable<ICraftingProvider>> providerLookup) {
         if (plan == null || plan.simulation()) return plan;
         var rewritten = new LinkedHashMap<IPatternDetails, Long>();
         boolean changed = false;

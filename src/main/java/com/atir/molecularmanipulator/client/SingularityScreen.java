@@ -118,6 +118,9 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
                 : menu.collectionActive ? "collection_stop" : "collection_start"));
         collectionToggle.active = collectionPage && menu.formed && !operationActive && !menu.embedRequested
                 && menu.motionMode != 3 && (menu.collectionActive || menu.networkOnline);
+        if (menu.getMachine().isSingleBlock()) {
+            build.visible = preview.visible = refresh.visible = dismantle.visible = cancel.visible = embed.visible = false;
+        }
     }
 
     @Override
@@ -147,7 +150,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
 
     @Override
     public void drawFG(GuiGraphics g, int ox, int oy, int mx, int my) {
-        text(g, Component.translatable("block.molecularmanipulator.event_horizon_singularity_hub"), 12, 10, 308, AeUiTheme.PRIMARY_TEXT);
+        text(g, menu.getMachine().getBlockState().getBlock().getName(), 12, 10, 308, AeUiTheme.PRIMARY_TEXT);
         if (collectionPage) drawCollection(g);
         else if (duplicationPage) drawDuplication(g);
         else drawOverview(g);
@@ -155,6 +158,18 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     }
 
     private void drawOverview(GuiGraphics g) {
+        if (menu.getMachine().isSingleBlock()) {
+            text(g, tr("compact_ready"), 20, 55, 140, AeUiTheme.SUCCESS);
+            text(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 172, 55, 140,
+                    menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
+            text(g, tr("running_status", overviewStatus()), 20, 76, 292, AeUiTheme.PRIMARY_TEXT);
+            text(g, tr("compact_collection"), 20, 100, 292, AeUiTheme.MUTED_TEXT);
+            text(g, tr("compact_duplication"), 20, 122, 292, AeUiTheme.MUTED_TEXT);
+            text(g, tr("compact_network"), 20, 145, 292, AeUiTheme.ACCENT);
+            text(g, tr("compact_chunks"), 20, 164, 292, AeUiTheme.MUTED_TEXT);
+            drawQuantumInput(g);
+            return;
+        }
         text(g, tr(menu.formed ? "formed" : "incomplete"), 20, 55, 140,
                 menu.formed ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
         text(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 172, 55, 140,
@@ -181,6 +196,10 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
             text(g, tr(menu.structureVersion == SingularityStructure.EMBEDDED_VERSION
                     ? "upgrade_available" : "embed_available"), 20, 135, 292, AeUiTheme.MUTED_TEXT);
         }
+        drawQuantumInput(g);
+    }
+
+    private void drawQuantumInput(GuiGraphics g) {
         text(g, tr("quantum_input"), 50, 181, 254, AeUiTheme.PRIMARY_TEXT);
         text(g, tr("quantum_input_hint"), 50, 192, 254, AeUiTheme.MUTED_TEXT);
         text(g, tr("quantum_state", menu.quantumFrequency, Component.translatable("gui.molecularmanipulator.quantum_state." + quantumStateKey())), 50, 203, 254,
@@ -189,6 +208,11 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
 
     private Component overviewStatus() {
         if (!menu.formed) return tr("status.not_formed");
+        if (menu.getMachine().isSingleBlock()) {
+            if (!menu.networkOnline) return tr("network_offline");
+            if (menu.status == SingularityBlockEntity.Status.STORAGE_FULL) return tr("status.storage_full");
+            if (menu.collectionActive) return tr("status.running");
+        }
         if (menu.collectionStarting) return tr("collection_starting_status");
         if (menu.collectionActive && menu.motionMode == 1) return tr("status.running");
         if (menu.collectionActive) return tr("status.collection_paused");
@@ -198,7 +222,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     private void drawCollection(GuiGraphics g) {
         text(g, tr("collection_title"), 20, 54, 292, AeUiTheme.PRIMARY_TEXT);
         boolean storageFull = menu.status == SingularityBlockEntity.Status.STORAGE_FULL;
-        text(g, tr(menu.collectionStarting ? "collection_starting_status"
+        text(g, tr(menu.getMachine().isSingleBlock() && menu.collectionActive && !menu.networkOnline ? "status.collection_paused"
+                : menu.collectionStarting ? "collection_starting_status"
                 : storageFull ? "status.storage_full"
                 : menu.collectionActive ? "collection_running" : "collection_stopped"),
                 20, 74, 292, storageFull ? AeUiTheme.ERROR
@@ -207,7 +232,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
                 20, 92, 292, menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
         text(g, tr("quantum_state", menu.quantumFrequency, quantumStateKey()), 20, 110, 292,
                 quantumConnected() ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-        text(g, tr("collection_hint"), 20, 128, 292, AeUiTheme.MUTED_TEXT);
+        text(g, tr(menu.getMachine().isSingleBlock() ? "compact_collection_hint" : "collection_hint"), 20, 128, 292, AeUiTheme.MUTED_TEXT);
 
         List<ItemStack> resources = collectionResources();
         text(g, tr("collection_resources", resources.size(), menu.collectionBatchSize),

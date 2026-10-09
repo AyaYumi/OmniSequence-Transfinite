@@ -89,6 +89,7 @@ public final class MatterRecipeBridge {
     record LightningRequirement(String tier, long amount) {}
     private record Branch(Output output,
             List<MatterFabricationRecipe.CountedIngredient> ingredients,
+            List<MatterFabricationRecipe.CountedIngredient> catalysts,
             FluidStack fluid, List<appeng.api.stacks.GenericStack> aeInputs, String signature) {}
 
     public static List<MachineSpec> machines() { return MACHINES; }
@@ -191,7 +192,7 @@ public final class MatterRecipeBridge {
                     aeOutputs.add(new appeng.api.stacks.GenericStack(appeng.api.stacks.AEFluidKey.of(extra), extra.getAmount()));
                 }
                 var declaration = group.machine.declaration;
-                var fabrication = new MatterFabricationRecipe(branch.ingredients(),
+                var fabrication = new MatterFabricationRecipe(branch.ingredients(), branch.catalysts(),
                         branch.output().items(), branch.fluid(),
                         outputFluids.isEmpty() ? FluidStack.EMPTY : outputFluids.getFirst(),
                         branch.aeInputs(), aeOutputs, declaration == null ? 200 : declaration.processingTime(),
@@ -576,6 +577,7 @@ public final class MatterRecipeBridge {
             MachineSpec machine) {
         try {
             var parsed = new ArrayList<Input>();
+            var catalysts = new ArrayList<MatterFabricationRecipe.CountedIngredient>();
             var aeInputs = new ArrayList<appeng.api.stacks.GenericStack>();
             var mapped = machine.declaration != null && machine.declaration.inputs().isPresent()
                     ? mappedInputs(level, encoded, machine.declaration.inputs().get()) : null;
@@ -586,9 +588,12 @@ public final class MatterRecipeBridge {
             } else if (encoded != null) {
                 if (type.equals("ae2lt:crystal_catalyzer") && encoded instanceof JsonObject object) {
                     var catalyst = object.get("catalyst");
-                    if (catalyst != null) parseIngredient(level, catalyst, 1).ifPresent(ingredient ->
-                            parsed.add(new Input(ingredient, (int) Math.min(Integer.MAX_VALUE,
-                                    Math.max(1, number(object, "catalystCount", 1))))));
+                    if (catalyst != null && !catalyst.isJsonNull()) {
+                        var ingredient = parseIngredient(level, catalyst, 1).orElse(null);
+                        long count = number(object, "catalystCount", 1);
+                        if (ingredient == null || count < 1 || count > Integer.MAX_VALUE) return null;
+                        catalysts.add(new MatterFabricationRecipe.CountedIngredient(ingredient, (int) count));
+                    }
                 } else {
                     parsed.addAll(readItemInputs(level.registryAccess().createSerializationContext(JsonOps.INSTANCE), encoded));
                 }
@@ -606,7 +611,7 @@ public final class MatterRecipeBridge {
                     aeInputs.add(dataFlow);
                 }
             }
-            if (parsed.isEmpty() && mapped == null) {
+            if (parsed.isEmpty() && mapped == null && !type.equals("ae2lt:crystal_catalyzer")) {
                 for (var ingredient : recipe.getIngredients()) if (ingredient != null && !ingredient.isEmpty()) {
                     parsed.add(new Input(ingredient, 1));
                 }
@@ -625,6 +630,10 @@ public final class MatterRecipeBridge {
                         examples.get(entry.getKey()), entry.getValue().intValue()));
             }
             var fluids = mapped == null ? findFluidInputs(encoded) : mapped.fluids();
+            // The catalyzer's fixed water cost is machine logic, absent from its recipe codec.
+            if (mapped == null && type.equals("ae2lt:crystal_catalyzer") && fluids.isEmpty()) {
+                fluids = List.of(new FluidStack(net.minecraft.world.level.material.Fluids.WATER, 1000));
+            }
             if (mapped == null && type.equals("data_energistics:data_charge_press") && encoded instanceof JsonObject object
                     && fluids.isEmpty() && number(object, "fluid_amount", 0) > 0) {
                 var fluidId = ResourceLocation.parse("data_energistics:data_corrosion_liquid");
@@ -638,13 +647,15 @@ public final class MatterRecipeBridge {
                 var key = appeng.api.stacks.AEFluidKey.of(extra);
                 aeInputs.add(new appeng.api.stacks.GenericStack(key, extra.getAmount()));
             }
-            if (ingredients.size() + aeInputs.size() > MatterFabricationRecipe.MAX_INPUTS
+            if (ingredients.size() + catalysts.size() + aeInputs.size() > MatterFabricationRecipe.MAX_INPUTS
                     || (ingredients.isEmpty() && aeInputs.isEmpty() && fluid.isEmpty())) return null;
             var signature = ingredients.stream().map(value -> ingredientKey(value.ingredient()) + "=" + value.count())
                     .sorted().reduce("", (a, b) -> a + ";" + b);
             signature += "|fluid=" + fluidKey(fluid) + "|ae=" + aeInputs.stream()
                     .map(value -> value.what().toString() + "#" + value.amount()).sorted().reduce("", (a,b) -> a + ";" + b);
-            return new Branch(output, List.copyOf(ingredients), fluid,
+            if (!catalysts.isEmpty()) signature += "|catalysts=" + catalysts.stream()
+                    .map(value -> ingredientKey(value.ingredient()) + "=" + value.count()).sorted().reduce("", (a,b) -> a + ";" + b);
+            return new Branch(output, List.copyOf(ingredients), List.copyOf(catalysts), fluid,
                     List.copyOf(aeInputs), signature);
         } catch (RuntimeException ignored) { return null; }
     }

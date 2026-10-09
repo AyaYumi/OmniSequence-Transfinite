@@ -24,6 +24,7 @@ import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.Util;
@@ -34,13 +35,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.fml.ModList;
 
-/** Compact AE recipe sheet: research banner, centered material flow, base time/power footer. */
+/** Compact AE recipe sheet with labeled reusable catalysts in the material flow. */
 public final class MatterFabricationJeiCategory implements IRecipeCategory<MatterFabricationRecipe> {
     public static final RecipeType<MatterFabricationRecipe> TYPE = new RecipeType<>(
             MolecularManipulator.id("matter_fabrication_processing"), MatterFabricationRecipe.class);
     private final IDrawable icon, slot;
     private final Map<MatterFabricationRecipe, StageInfo> stages = new WeakHashMap<>();
     private static final Set<AEKeyType> MISSING_CONVERTERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final int FOOTER_TOP = 81;
 
     public MatterFabricationJeiCategory(IGuiHelper helper) {
         icon = helper.createDrawableItemStack(new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()));
@@ -63,10 +65,11 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
 
     @Override public void setRecipe(IRecipeLayoutBuilder builder, MatterFabricationRecipe recipe, IFocusGroup focuses) {
         stages.put(recipe, resolveStage(recipe));
-        int inputCount = recipe.ingredients().size() + recipe.aeInputs().size();
+        int inputCount = recipe.ingredients().size() + recipe.aeInputs().size() + recipe.catalysts().size();
         for (int i = 0; i < recipe.ingredients().size(); i++) {
             var counted = recipe.ingredients().get(i);
             builder.addInputSlot(inputX(inputCount, i), inputY(inputCount, i))
+                    .setSlotName("fabrication_input_" + i)
                     .setBackground(slot, -1, -1)
                     .addItemStacks(Arrays.stream(counted.ingredient().getItems()).map(s -> s.copyWithCount(counted.count())).toList())
                     .setCustomRenderer(VanillaTypes.ITEM_STACK, new CountedItemRenderer(counted.count()));
@@ -75,6 +78,16 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
             int index = recipe.ingredients().size() + i;
             addAeStack(builder.addInputSlot(inputX(inputCount, index), inputY(inputCount, index))
                     .setBackground(slot, -1, -1), recipe.aeInputs().get(i));
+        }
+        for (int i = 0; i < recipe.catalysts().size(); i++) {
+            var counted = recipe.catalysts().get(i);
+            int index = recipe.ingredients().size() + recipe.aeInputs().size() + i;
+            builder.addSlot(RecipeIngredientRole.CATALYST, inputX(inputCount, index), inputY(inputCount, index))
+                    .setSlotName("fabrication_catalyst_" + i)
+                    .setBackground(slot, -1, -1)
+                    .addItemStacks(Arrays.stream(counted.ingredient().getItems()).map(s -> s.copyWithCount(counted.count())).toList())
+                    .setCustomRenderer(VanillaTypes.ITEM_STACK, new CountedItemRenderer(counted.count(), true))
+                    .addRichTooltipCallback((view, tooltip) -> tooltip.add(text("catalyst")));
         }
         if (!recipe.fluidInput().isEmpty()) builder.addInputSlot(inputCount == 0 ? 35 : inputCount > 9 ? 80 : 72, 42)
                 .setBackground(slot, -1, -1).addFluidStack(recipe.fluidInput().getFluid(), recipe.fluidInput().getAmount())
@@ -112,9 +125,30 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
         }
     }
     /** Keep ordinary counted ingredients readable after large recipe-cost increases. */
-    private record CountedItemRenderer(long amount) implements IIngredientRenderer<ItemStack> {
+    private record CountedItemRenderer(long amount, boolean catalyst) implements IIngredientRenderer<ItemStack> {
+        private CountedItemRenderer(long amount) { this(amount, false); }
+
         @Override public void render(GuiGraphics graphics, ItemStack ingredient) {
-            AEStackIcon.draw(graphics, new GenericStack(AEItemKey.of(ingredient), amount), 0, 0);
+            AEStackIcon.draw(graphics, new GenericStack(AEItemKey.of(ingredient), catalyst ? 1 : amount), 0, 0);
+            if (catalyst) {
+                var font = Minecraft.getInstance().font;
+                var label = text("catalysts").getString();
+                float scale = Math.min(0.5F, 16.0F / Math.max(1, font.width(label)));
+                graphics.pose().pushPose();
+                graphics.pose().translate(16, 15, 200);
+                graphics.pose().scale(scale, scale, 1);
+                graphics.drawString(font, label, -font.width(label), -8, 0xFFFFFF, true);
+                graphics.pose().popPose();
+                if (amount > 1) {
+                    var count = DisplayNumbers.compact(amount);
+                    float countScale = Math.min(0.5F, 16.0F / Math.max(1, font.width(count)));
+                    graphics.pose().pushPose();
+                    graphics.pose().translate(16, 0, 200);
+                    graphics.pose().scale(countScale, countScale, 1);
+                    graphics.drawString(font, count, -font.width(count), 0, 0xFFFFFF, true);
+                    graphics.pose().popPose();
+                }
+            }
         }
 
         @Override public List<Component> getTooltip(ItemStack ingredient, TooltipFlag flag) {
@@ -147,7 +181,7 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
 
     @Override public void draw(MatterFabricationRecipe recipe, IRecipeSlotsView slots, GuiGraphics graphics, double mouseX, double mouseY) {
         var font = Minecraft.getInstance().font;
-        graphics.fill(0, 0, 184, 100, AeUiTheme.PANEL);
+        graphics.fill(0, 0, getWidth(), getHeight(), AeUiTheme.PANEL);
         graphics.fill(0, 0, 184, 19, AeUiTheme.PANEL_INSET);
         var info = stages.getOrDefault(recipe, new StageInfo(text("unassigned"), List.of(), AeUiTheme.WARNING));
         graphics.fill(0, 0, 3, 19, info.color());
@@ -159,10 +193,10 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
         int duration = Math.max(20, recipe.processingTime());
         int progress = (int) (18 * (Util.getMillis() / 50 % duration) / duration);
         graphics.fill(98, 50, 98 + progress, 51, AeUiTheme.CYAN);
-        graphics.fill(8, 81, 176, 82, AeUiTheme.PANEL_INSET);
-        AeUiTheme.label(graphics, font, text("time", format(recipe.processingTime() / 20.0)), 8, 87, 74, AeUiTheme.PRIMARY_TEXT);
+        graphics.fill(8, FOOTER_TOP, 176, FOOTER_TOP + 1, AeUiTheme.PANEL_INSET);
+        AeUiTheme.label(graphics, font, text("time", format(recipe.processingTime() / 20.0)), 8, FOOTER_TOP + 6, 74, AeUiTheme.PRIMARY_TEXT);
         var power = Component.literal(format(recipe.aePerTick()) + " AE/t");
-        AeUiTheme.label(graphics, font, power, 176 - Math.min(90, font.width(power)), 87, 90, AeUiTheme.PRIMARY_TEXT);
+        AeUiTheme.label(graphics, font, power, 176 - Math.min(90, font.width(power)), FOOTER_TOP + 6, 90, AeUiTheme.PRIMARY_TEXT);
     }
 
     @Override public void getTooltip(ITooltipBuilder tooltip, MatterFabricationRecipe recipe, IRecipeSlotsView slots, double mouseX, double mouseY) {
@@ -170,7 +204,7 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
     }
     List<Component> tooltipLines(MatterFabricationRecipe recipe, double mouseY) {
         if (mouseY < 19) return stages.getOrDefault(recipe, resolveStage(recipe)).tooltip();
-        if (mouseY >= 81) return List.of(text("base_stats"), text("time", DisplayNumbers.exact(recipe.processingTime() / 20.0)),
+        if (mouseY >= FOOTER_TOP) return List.of(text("base_stats"), text("time", DisplayNumbers.exact(recipe.processingTime() / 20.0)),
                 Component.literal(DisplayNumbers.exact(recipe.aePerTick()) + " AE/t"));
         return List.of();
     }
@@ -189,7 +223,8 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
                     var name = Component.translatable(holder.value().title());
                     if (!label.getSiblings().isEmpty()) label.append(" / ");
                     label.append(name);
-                    tips.add(text("stage_detail", holder.value().stage(), name));
+                    tips.add(holder.value().stage() > 0
+                            ? text("stage_detail", holder.value().stage(), name) : name);
                 }
                 tips.add(text("initial_unlock")); tips.add(text("base_stats"));
                 return new StageInfo(label, List.copyOf(tips), AeUiTheme.ACCENT);

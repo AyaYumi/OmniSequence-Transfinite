@@ -5,6 +5,7 @@ import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.RestrictedInputSlot;
+import appeng.menu.slot.AppEngSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternAssemblyBlockEntity;
 import net.minecraft.world.entity.player.Inventory;
@@ -28,6 +29,8 @@ public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
     @GuiSync(54) public MatterPatternBufferMenuState bufferState = MatterPatternBufferMenuState.EMPTY;
     @GuiSync(55) public boolean canRefund;
     @GuiSync(56) public boolean controllerReady;
+    @GuiSync(57) public int sharedCatalystTypes;
+    @GuiSync(58) public boolean waitingForCatalyst;
     private int bufferPage;
     private long nextBufferSync;
 
@@ -48,6 +51,13 @@ public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
             patternSlot.y = 111 + slot / 9 * 18;
             addSlot(patternSlot, SlotSemantics.ENCODED_PATTERN);
         }
+        for (int slot = 0; slot < MatterFabricationPatternAssemblyBlockEntity.CATALYST_SLOTS; slot++) {
+            var catalystSlot = new AppEngSlot(assembly.getCatalystInventory(), slot);
+            catalystSlot.x = 44 + slot % 9 * 18;
+            catalystSlot.y = 111 + slot / 9 * 18;
+            addSlot(catalystSlot, SlotSemantics.MACHINE_INPUT);
+        }
+        updatePatternSlots();
         registerClientAction(ACTION_RENAME, String.class, this::rename);
         registerClientAction(ACTION_VIEW, Integer.class, this::setView);
         registerClientAction(ACTION_PAGE, Integer.class, this::setPage);
@@ -57,10 +67,17 @@ public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
     public void requestView(int selected) { if (isClientSide()) sendClientAction(ACTION_VIEW, selected); }
     public void requestPage(int page) { if (isClientSide()) sendClientAction(ACTION_PAGE, page); }
     public void requestRefund() { if (isClientSide()) sendClientAction(ACTION_REFUND); }
-    private void setView(int selected) { view = Math.clamp(selected, 0, 2); bufferPage = 0; nextBufferSync = 0; updatePatternSlots(); }
+    private void setView(int selected) { view = Math.clamp(selected, 0, 3); bufferPage = 0; nextBufferSync = 0; updatePatternSlots(); }
     private void setPage(int page) { bufferPage = Math.max(0, page); nextBufferSync = 0; }
     private void refund() { if (isServerSide() && getPlayer().mayBuild()) { assembly.getBuffer().refundQueuedInputs(); nextBufferSync = 0; } }
-    public void updatePatternSlots() { for (var slot : getSlots(SlotSemantics.ENCODED_PATTERN)) ((appeng.menu.slot.AppEngSlot) slot).setActive(view == 0); }
+    public void updatePatternSlots() {
+        for (var slot : getSlots(SlotSemantics.ENCODED_PATTERN)) setPageSlot((AppEngSlot) slot, view == 0);
+        for (var slot : getSlots(SlotSemantics.MACHINE_INPUT)) setPageSlot((AppEngSlot) slot, view == 3);
+    }
+    private static void setPageSlot(AppEngSlot slot, boolean enabled) {
+        slot.setActive(enabled);
+        slot.setSlotEnabled(enabled);
+    }
 
     public void requestRename(String name) {
         if (isClientSide()) {
@@ -93,6 +110,8 @@ public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
             assemblyName = assembly.getName().getString();
             networkOnline = assembly.getMainNode().isActive();
             controllerReady = assembly.isOperational();
+            var controller = assembly.getController();
+            sharedCatalystTypes = controller == null ? 0 : controller.getSharedCatalysts().size();
             occupied = 0;
             for (var stack : assembly.getLogic().getPatternInv()) if (!stack.isEmpty()) occupied++;
             var buffer = assembly.getBuffer();
@@ -100,7 +119,8 @@ public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
             long now = getPlayer().level().getGameTime();
             if (now >= nextBufferSync) {
                 nextBufferSync = now + 5;
-                var contents = view == 0 ? java.util.List.<appeng.api.stacks.GenericStack>of() : buffer.contents(view == 2);
+                waitingForCatalyst = buffer.waitingForCatalyst() || assembly.getLogic().hasMissingCatalysts();
+                var contents = view == 1 || view == 2 ? buffer.contents(view == 2) : java.util.List.<appeng.api.stacks.GenericStack>of();
                 int pages = Math.max(1, Math.ceilDiv(contents.size(), MatterPatternBufferMenuState.PAGE_SIZE));
                 bufferPage = Math.min(bufferPage, pages - 1);
                 int start = bufferPage * MatterPatternBufferMenuState.PAGE_SIZE;

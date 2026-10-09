@@ -6,12 +6,16 @@ import com.appliedenhancements.api.AelisCraftingPlanner;
 import appeng.api.networking.crafting.CalculationStrategy;
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingSimulationRequester;
+import appeng.api.config.Actionable;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.CraftBranchFailure;
 import appeng.crafting.CraftingCalculation;
 import appeng.crafting.CraftingTreeNode;
 import appeng.crafting.inv.CraftingSimulationState;
+import appeng.crafting.inv.ChildCraftingSimulationState;
+import com.github.appliedenhancements.integration.ae2.AelisIgnoredSeedInventory;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -147,6 +151,23 @@ public abstract class OmniCraftingCalculationMixin {
         }
     }
 
+
+    @WrapOperation(method = "runCraftAttempt", at = @At(value = "INVOKE",
+            target = "Lappeng/crafting/inv/ChildCraftingSimulationState;ignore(Lappeng/api/stacks/AEKey;)V"))
+    private void omnisequence$rememberCycleSeedBeforeIgnoringOutput(
+            ChildCraftingSimulationState inventory, AEKey output, Operation<Void> original) {
+        var controller = omnisequence$omniController;
+        if (!omnisequence$automaticAelis && controller != null
+                && controller.isMaterialCalculationEnabled()) {
+            // AE2 hides existing output stock before the explicit planner API is
+            // entered. Applied 1.1.0 only records that stock inside an active
+            // planning scope, so preserve it here for its transactional seed lease.
+            // The solver still decides whether any hidden stock is a required seed.
+            ((AelisIgnoredSeedInventory) inventory).appliedenhancements$ignoredSeeds()
+                    .put(output, inventory.extract(output, Long.MAX_VALUE, Actionable.SIMULATE));
+        }
+        original.call(inventory, output);
+    }
 
     @WrapOperation(method = "runCraftAttempt", at = @At(value = "INVOKE",
             target = "Lappeng/crafting/CraftingTreeNode;request(Lappeng/crafting/inv/CraftingSimulationState;JLappeng/api/stacks/KeyCounter;)V"))

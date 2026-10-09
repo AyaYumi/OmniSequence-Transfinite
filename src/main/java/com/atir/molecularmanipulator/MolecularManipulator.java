@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
+import com.atir.molecularmanipulator.network.MatterFabricationUploadPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.integration.useless.UselessBigIntegerApiBridge;
 import appeng.api.AECapabilities;
@@ -28,6 +29,7 @@ public final class MolecularManipulator {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(PatternSearchIndexPayload::register);
+        modEventBus.addListener(MatterFabricationUploadPayload::register);
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {

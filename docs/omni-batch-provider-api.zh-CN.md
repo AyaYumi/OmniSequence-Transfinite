@@ -1,6 +1,6 @@
 # 万物演算批量样板供应器 API v1
 
-对应 2.0.8，Minecraft 1.21.1 / Java 21 / AE2 19.2.17+ / AppliedEnhancements 1.1.0。
+对应 2.0.8，Minecraft 1.21.1 / Java 21 / AE2 19.2.17+ / Applied Enhancements 1.1.0+（本次配套 1.1.1）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 
@@ -117,6 +117,25 @@ CPU 兼容 Hook 建议使用可链式的 Mixin Extras 包装，或 inject-and-ca
 
 API 中没有任何特定模组的类名或硬编码适配。第三方应把 OmniSequence 声明为
 `compileOnly`，并仅在 Mod ID `molecularmanipulator` 已加载时启用兼容类或条件 Mixin。
+
+## 循环事务、副产物与原生倍增
+
+独立 CPU 在首次抽料前调用
+`AelisBatchExecutionContext.acquire(runtime, pattern.getDefinition(), source)`，
+首份、追加批量和退款始终使用同一个库存视图。交付前打开
+`beginDispatch(actualInputs, actualCrafts)`，持久所有权移交时确认 `accepted()`。
+拒绝后关闭事务会恢复循环记账；CPU 仍负责退回自己持有的实物。库存为 null 时
+本次不可发配，`maximumCrafts()` 只表示当前阶段上限，不保证材料或队列容量。
+该共享接口支持 AES 1.1.0+，不要在首次抽料后重新获取上下文。
+
+完整记录主产物与所有物品、流体副产物。优化或外部批量包装不可识别时，保留
+原始完整任务账本并回退普通规划/发配，不能因副产物直接中断规划，也不能将
+long 预览窗口当成完整订单。供应器仍须满足真实材料、容量和持久所有权契约。
+
+AES 1.1.1 新接入可通过 `AelisSmartDoublingApi.isExternallyManaged(pattern)`
+判断是否已由外部管理倍率。保留原生样板包装、供应器分配与原样板尾数，避免
+再次倍增；仅安装附属不会让全部样板绕过本地处理。该查询不代表所有权或大数执行能力，
+仅在 1.1.1 运行时存在时加载这些新增类型。
 
 ## 大数能力
 

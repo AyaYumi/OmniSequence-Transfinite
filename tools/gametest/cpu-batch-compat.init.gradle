@@ -1,0 +1,47 @@
+// Real optional CPU APIs, isolated from production and the player's pack.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def enabled = (project.findProperty('cpuCompatMods') ?: '').toString().split(',').toList()
+        def pack = project.findProperty('cpuCompatPackMods')
+        def runtime = []
+        if (enabled.contains('eco')) runtime += file('libs/neoecoae-21.2.0.jar')
+        if (enabled.contains('thunderbolt')) runtime += file('libs/thunderbolt-2.0.0-beta.4.jar')
+        if (enabled.contains('data')) runtime += file('libs/data_energistics-3.3.0-api.jar')
+        if (enabled.contains('data') || enabled.contains('lightning')) {
+            if (!pack) throw new GradleException('cpuCompatPackMods is required for the matching runtime dependencies')
+            if (enabled.contains('data')) {
+                def ldlib = fileTree(pack).matching { include 'ldlib2-neoforge-1.21.1-2.2.40-all.jar' }.singleFile
+                configurations.implementation.dependencies.removeAll { it.group == 'com.lowdragmc.ldlib2' }
+                dependencies.add('implementation', files(ldlib))
+            }
+            if (enabled.contains('lightning')) runtime += fileTree(pack).matching { include 'ae2lt-2.1.0-beta.6.jar' }.singleFile
+        }
+        runtime.each { if (!it.isFile()) throw new GradleException('Missing CPU runtime: ' + it) }
+        dependencies.add('localRuntime', files(runtime))
+        def regression = sourceSets.create('cpuBatchCompatibility') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/MatterCpuBatchGameTests.java', '**/MatterNativeCpuChecks.java', '**/VerificationAEKey.java'
+            resources.srcDir file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        def runName = (project.findProperty('cpuCompatRunName') ?: 'cpu-batch-compat').toString()
+        if (!(runName ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid CPU compatibility run name')
+        server.gameDirectory = file('build/' + runName)
+        server.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileCpuBatchCompatibilityJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                if (!file('build/' + runName + '/logs/latest.log').text.contains('All 1 required tests passed'))
+                    throw new GradleException('Matter CPU batch compatibility checks did not pass')
+            }
+        }
+    }
+}

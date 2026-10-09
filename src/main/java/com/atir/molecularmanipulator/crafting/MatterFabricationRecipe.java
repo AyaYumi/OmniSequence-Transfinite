@@ -21,6 +21,7 @@ import java.util.List;
 
 public record MatterFabricationRecipe(
         List<CountedIngredient> ingredients,
+        List<CountedIngredient> catalysts,
         List<ItemStack> results,
         FluidStack fluidInput,
         FluidStack fluidResult,
@@ -31,6 +32,13 @@ public record MatterFabricationRecipe(
         boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
     public static final int MAX_INPUTS = 12;
     public static final int MAX_OUTPUTS = 6;
+
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
+            FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            List<GenericStack> aeOutputs, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(ingredients, List.of(), results, fluidInput, fluidResult, aeInputs, aeOutputs,
+                processingTime, aePerTick, requiresResearch);
+    }
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
             FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick) {
@@ -50,12 +58,13 @@ public record MatterFabricationRecipe(
 
     public MatterFabricationRecipe {
         ingredients = List.copyOf(ingredients);
+        catalysts = List.copyOf(catalysts);
         results = results.stream().map(ItemStack::copy).toList();
         fluidInput = fluidInput.copy();
         fluidResult = fluidResult.copy();
         aeInputs = List.copyOf(aeInputs);
         aeOutputs = List.copyOf(aeOutputs);
-        if (ingredients.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
+        if (ingredients.size() + catalysts.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
             throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 12 item/AE inputs or a fluid input");
         }
         if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)
@@ -183,6 +192,8 @@ public record MatterFabricationRecipe(
                 instance.group(
                         CountedIngredient.CODEC.codec().listOf(0, MAX_INPUTS)
                                 .optionalFieldOf("ingredients", List.of()).forGetter(MatterFabricationRecipe::ingredients),
+                        CountedIngredient.CODEC.codec().listOf(0, MAX_INPUTS)
+                                .optionalFieldOf("catalysts", List.of()).forGetter(MatterFabricationRecipe::catalysts),
                         ItemStack.STRICT_CODEC.listOf(0, MAX_OUTPUTS)
                                 .optionalFieldOf("results", List.of()).forGetter(MatterFabricationRecipe::results),
                         FluidStack.OPTIONAL_CODEC.optionalFieldOf("fluid_input", FluidStack.EMPTY)
@@ -206,12 +217,20 @@ public record MatterFabricationRecipe(
                     @Override
                     public MatterFabricationRecipe decode(RegistryFriendlyByteBuf buffer) {
                         int ingredientCount = buffer.readVarInt();
+                        if (ingredientCount < 0 || ingredientCount > MAX_INPUTS) throw new IllegalArgumentException("Invalid ingredient count");
                         var ingredients = new ArrayList<CountedIngredient>(ingredientCount);
                         for (int index = 0; index < ingredientCount; index++) {
                             var ingredient = Ingredient.CONTENTS_STREAM_CODEC.decode(buffer);
                             ingredients.add(new CountedIngredient(ingredient, buffer.readVarInt()));
                         }
+                        int catalystCount = buffer.readVarInt();
+                        if (catalystCount < 0 || catalystCount > MAX_INPUTS) throw new IllegalArgumentException("Invalid catalyst count");
+                        var catalysts = new ArrayList<CountedIngredient>(catalystCount);
+                        for (int index = 0; index < catalystCount; index++) {
+                            catalysts.add(new CountedIngredient(Ingredient.CONTENTS_STREAM_CODEC.decode(buffer), buffer.readVarInt()));
+                        }
                         int resultCount = buffer.readVarInt();
+                        if (resultCount < 0 || resultCount > MAX_OUTPUTS) throw new IllegalArgumentException("Invalid result count");
                         var results = new ArrayList<ItemStack>(resultCount);
                         for (int index = 0; index < resultCount; index++) {
                             results.add(ItemStack.STREAM_CODEC.decode(buffer));
@@ -226,7 +245,7 @@ public record MatterFabricationRecipe(
                         if (aeOutputCount < 0 || aeOutputCount > MAX_OUTPUTS) throw new IllegalArgumentException("Invalid AE output count");
                         var aeOutputs = new ArrayList<GenericStack>(aeOutputCount);
                         for (int index = 0; index < aeOutputCount; index++) aeOutputs.add(GenericStack.STREAM_CODEC.decode(buffer));
-                        return new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult, aeInputs, aeOutputs,
+                        return new MatterFabricationRecipe(ingredients, catalysts, results, fluidInput, fluidResult, aeInputs, aeOutputs,
                                 buffer.readVarInt(), buffer.readDouble(), buffer.readBoolean());
                     }
 
@@ -234,6 +253,11 @@ public record MatterFabricationRecipe(
                     public void encode(RegistryFriendlyByteBuf buffer, MatterFabricationRecipe recipe) {
                         buffer.writeVarInt(recipe.ingredients.size());
                         for (var counted : recipe.ingredients) {
+                            Ingredient.CONTENTS_STREAM_CODEC.encode(buffer, counted.ingredient);
+                            buffer.writeVarInt(counted.count);
+                        }
+                        buffer.writeVarInt(recipe.catalysts.size());
+                        for (var counted : recipe.catalysts) {
                             Ingredient.CONTENTS_STREAM_CODEC.encode(buffer, counted.ingredient);
                             buffer.writeVarInt(counted.count);
                         }

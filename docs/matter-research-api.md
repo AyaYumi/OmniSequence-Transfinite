@@ -2,7 +2,7 @@
 
 Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.8**.
 Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.17+**, and the
-required prerequisite AppliedEnhancements **1.1.0**. The Mod ID stays
+required prerequisite Applied Enhancements **1.1.0+** (paired release **1.1.1**). The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
@@ -240,7 +240,7 @@ Location: `data/<namespace>/recipe/<path>.json`.
 | Field | Meaning |
 | --- | --- |
 | `title` | Display name or translation key. Required, must not be blank. |
-| `stage` | Displayed tier, default `1`. Ordering and gating come from the prerequisite list, not from this number. |
+| `stage` | Non-negative display tier, default `1`; `0` omits the numeric tier prefix for special research. List order uses `sort_order`; gating uses prerequisites. |
 | `sort_order` | Navigation order, default `0`. Definitions are sorted by `sort_order`, then by ID. |
 | `prerequisites` | List of research IDs; each defaults to one required completion. Self-references and cycles are invalid. |
 | `prerequisite_levels` | Optional map `{research ID: required completions or "max"}` overriding individual thresholds. Keys are added to `prerequisites`. |
@@ -306,6 +306,7 @@ multiplied.
 | Field | Meaning |
 | --- | --- |
 | `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: ...}` with a positive integer count. Defaults to empty. |
+| `catalysts` | Optional prerequisite stacks, in the same format as `ingredients`. Defaults to empty. All assemblies in one formed well contribute their catalyst inventories; catalysts are never consumed or multiplied by batch count/research parallelism and are excluded from encoded pattern inputs. |
 | `results` | Up to **6** item outputs as strict stacks `{id: ..., count: ...}`. |
 | `fluid_input` | Optional fluid input `{id: ..., amount: ...}` in mB. Does not count toward the twelve-input limit. |
 | `fluid_result` | Optional single fluid output, same format. |
@@ -315,7 +316,7 @@ multiplied.
 | `ae_per_tick` | Base power, default `64.0`; negative values are raised to `0`. |
 | `requires_research` | Default `false`. See §4.2. |
 
-Load-time error conditions: `ingredients` + `ae_inputs` may not exceed **12**;
+Load-time error conditions: `ingredients` + `catalysts` + `ae_inputs` may not exceed **12**;
 at least one of `ingredients`, `fluid_input` or `ae_inputs` must be present; every
 `ae_inputs` / `ae_outputs` amount must be positive; and at least one item, fluid, or AE result is
 required. Unlike research definitions, a malformed well recipe fails to load
@@ -391,12 +392,43 @@ block other machines, and already-built multiblocks keep working.
 
 ---
 
+### 4.3 Retained catalyst and encoding contract
+
+This custom recipe consumes two iron ingots per execution, while requiring one
+amethyst shard held in the formed well's catalyst inventories:
+
+```json
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [{"ingredient": {"item": "minecraft:iron_ingot"}, "count": 2}],
+  "catalysts": [{"ingredient": {"item": "minecraft:amethyst_shard"}, "count": 1}],
+  "results": [{"id": "minecraft:iron_block", "count": 1}],
+  "processing_time": 200,
+  "ae_per_tick": 64,
+  "requires_research": false
+}
+```
+
+Each assembly has 36 catalyst slots. Loaded assemblies in the same formed well
+share these prerequisites. Batch/research parallelism multiplies consumed inputs
+and outputs, but not catalyst counts. Catalysts stay in their inventories and
+are checked when admitting/starting work. Missing catalysts prevent execution.
+
+JEI encoding uses the server's recipe definition and selected matching item
+alternatives. It combines every consumed item, fluid and generic AE input, and
+every output including byproducts. Catalysts are omitted from the encoded inputs.
+Upload requires an active encoding terminal, a blank pattern and an available
+assembly belonging to the player's team. The server validates the current recipe,
+selected inputs and target; client quantities cannot redefine a recipe. Upload
+helpers/payloads are internal and are not public Java API.
+
 ## 5. Materials, admission and persistence
 
 - Progress syncs every 5 ticks; selected research stock is sampled every 20 ticks.
-  Starting a round re-reads the storage providers, revalidates and extracts the
-  whole round cost. Only items in the controller's AE network are used — player
-  inventories and port buffers are not research supplies.
+  Preparation and admission share the current stock snapshot within one pass,
+  then validate and extract the actual whole-round cost. Displayed stock is not
+  a reservation. Only items in the controller's AE network are research supplies;
+  player inventories and port buffers are excluded.
 - Normal orders continuously prepare the next round. Shift orders sum the actual costs of every remaining round, including replacement ingredients, then reach the maximum in one run. Preparation snapshots its definition; maximum tasks use one research duration and its normal power per tick.
 - Every 20 ticks, exact joint allocation compares stock and owned reserves. Desired quantities replace the queue and subtract remaining CPU deliveries. Multiple preparations share one stock scan and item index; ordinary items/tags visit candidate keys, while custom ingredients retain their predicate.
 - Ordered output goes directly into the research cache. Other crafts consuming previously stocked base materials trigger automatic replenishment. Stopping preparation cancels only its own jobs and persists refunds. Ordered tasks reject stopping and pausing after admission.
@@ -439,13 +471,14 @@ block other machines, and already-built multiblocks keep working.
 | `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
 | `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
 | `event_horizon` | 600 ticks / 30 s | 2048 AE/t | Miniature Black Hole, Miniature White Hole and all 13 Singularity Hub structural blocks |
+| `nomai_materials` | 600 ticks / 30 s | 256 AE/t | Ghost Matter and Gravity Crystal; one round, stage `0`, `sort_order: 35`, requires one `ae_foundation` completion |
 | `machine/<machine_key>` | 600 ticks / 30 s | 512 AE/t | Recipes imported from that addon machine (when the mod and machine are present) |
 
 The 30 seconds applies to the first unlock and to every later deep-research round
 of the built-in researches. Custom `duration` values stay free in ticks and still
 default to 1200; a started round keeps the duration snapshot from its start.
 
-Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 100,000 `ae2:singularity`; the Miniature White Hole uses 1,000,000,000 `ae2:matter_ball`. Both use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller consumes one Miniature Black Hole; the White Hole Resource Core consumes one Miniature White Hole. All 13 hub block recipes use 100× ordinary ingredient quantities, retaining hole input counts, outputs, duration and power.
+Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts use 100× ordinary ingredient quantities, retaining outputs, duration and power. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
 
 These stage-two branches require **one** `ae_foundation` completion by default.
 Built-in additions use IDs under
@@ -690,30 +723,3 @@ a positive integer or the string `"max"` and reject `0` and negatives.
 
 Other recipe executors must call the permission and production-parameter hooks
 themselves.
-
----
-
-## 11. World visuals
-
-Research world effects automatically cover stages added by third-party mods, data
-packs and KubeJS without any recipe change. The three built-in stages use an
-ice-cyan crystal lattice, a mint-teal array with gold accents and a violet-white
-orbital star map; any other stage picks one of the four star maps (lattice, array,
-orbital sphere, double helix) pseudo-randomly but stably from the stage ID,
-controller position, dimension and research round — so a custom stage can also
-land on one of the three built-in shapes. A round keeps the same look across
-multiplayer clients, pause/resume and reloads, and rerolls for the next round,
-including possibly the same map again.
-
-At most four research star maps render per controller, preferring running tasks.
-The cap only bounds visual cost and does not limit how many researches may run.
-Paused research, unmet prerequisites, an unavailable definition, a broken
-structure, an offline network or insufficient power dims the map and stops its
-light pulses; crown arcs grow with the research round, capped at three, and a real
-completion plays a 32-tick breakthrough burst. Progress travels through block
-updates every 5 ticks, so it stays visible with the controller screen closed.
-Command-based unlocks do not play the completion animation. The client-side
-`dynamic_effect_level` option (0, 1 or 2, default 2) controls effect detail: `0`
-disables the star maps entirely, and they only render while the client sees a
-formed structure. Existing research definitions and public API signatures remain
-compatible.

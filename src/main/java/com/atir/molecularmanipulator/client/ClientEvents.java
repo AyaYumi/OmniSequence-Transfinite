@@ -83,6 +83,7 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(ModContent.GHOST_MATTER_BE.get(), GhostMatterRenderer::new);
         event.registerBlockEntityRenderer(SingularityContent.CORE_BE.get(), SingularityCoreRenderer::new);
         event.registerBlockEntityRenderer(ModContent.COSMIC_SINGULARITY_BE.get(), CosmicSingularityRenderer::new);
         event.registerBlockEntityRenderer(SingularityContent.CONTROLLER_BE.get(), SingularityRenderer::new);
@@ -110,6 +111,7 @@ public final class ClientEvents {
             SingularityAssemblyRenderer.clear();
             SingularityWhiteHoleRenderer.release();
             CosmicSingularityPostRenderer.release();
+            com.atir.molecularmanipulator.client.render.GhostMatterExposureRenderer.release();
         });
     }
 }

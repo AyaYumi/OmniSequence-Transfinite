@@ -1,0 +1,33 @@
+// Shared catalysts, real recipe import and durable ownership in an isolated world.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def pack = project.findProperty('catalystPackMods')
+        if (pack) {
+            dependencies.add('localRuntime', files(fileTree(pack).matching { include 'ae2lt-2.1.0-beta.6.jar' }.singleFile))
+            dependencies.add('localRuntime', files(fileTree(pack).matching { include 'thunderbolt-2.0.0-beta.4.jar' }.singleFile))
+        }
+        def verification = sourceSets.create('catalystSharingVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/MatterCatalystGameTests.java', '**/VerificationAEKey.java'
+            resources.srcDir file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def runName = pack ? 'catalyst-sharing-lightning' : 'catalyst-sharing'
+        neoForge.runs.getByName('gameTestServer').gameDirectory = file('build/' + runName)
+        neoForge.runs.getByName('gameTestServer').logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileCatalystSharingVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                if (!file('build/' + runName + '/logs/latest.log').text.contains('All 1 required tests passed'))
+                    throw new GradleException('Catalyst sharing checks did not pass')
+            }
+        }
+    }
+}

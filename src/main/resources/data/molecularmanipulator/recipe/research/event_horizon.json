@@ -126,6 +126,7 @@
   "unlocks": [
     "molecularmanipulator:black_hole",
     "molecularmanipulator:white_hole",
+    "molecularmanipulator:miniature_supernova",
     "molecularmanipulator:event_horizon_singularity_hub",
     "molecularmanipulator:white_hole_resource_core",
     "molecularmanipulator:singularity_base_casing",
@@ -136,9 +137,7 @@
     "molecularmanipulator:event_horizon_flux_pillar",
     "molecularmanipulator:black_hole_capture_node",
     "molecularmanipulator:event_horizon_stabilizer",
-    "molecularmanipulator:singularity_crystal_tower",
-    "molecularmanipulator:singularity_base_stairs",
-    "molecularmanipulator:singularity_base_slab"
+    "molecularmanipulator:singularity_crystal_tower"
   ],
   "required_mods": [
     "extendedae",

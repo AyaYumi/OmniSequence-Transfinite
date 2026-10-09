@@ -1,0 +1,23 @@
+newmtl dark
+Ka 0 0 0
+Kd 1 1 1
+d 1
+map_Kd #dark
+
+newmtl blue
+Ka 0 0 0
+Kd 1 1 1
+d 1
+map_Kd #blue
+
+newmtl pale
+Ka 0 0 0
+Kd 1 1 1
+d 1
+map_Kd #pale
+
+newmtl glint
+Ka 0 0 0
+Kd 1 1 1
+d 1
+map_Kd #glint

@@ -1,0 +1,40 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "minecraft:amethyst_shard"
+      },
+      "count": 16
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:copper_ingot"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_crystal"
+      },
+      "count": 4
+    }
+  ],
+  "catalysts": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:ghost_matter"
+      },
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:gravity_crystal",
+      "count": 1
+    }
+  ],
+  "processing_time": 200,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

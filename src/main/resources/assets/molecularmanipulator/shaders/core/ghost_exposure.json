@@ -1,0 +1,10 @@
+{
+  "vertex": "molecularmanipulator:cosmic_lens",
+  "fragment": "molecularmanipulator:ghost_exposure",
+  "samplers": [{ "name": "SceneColor" }],
+  "uniforms": [
+    { "name": "SceneSize", "type": "float", "count": 2, "values": [1, 1] },
+    { "name": "Exposure", "type": "float", "count": 1, "values": [0] },
+    { "name": "ExposureTime", "type": "float", "count": 1, "values": [0] }
+  ]
+}

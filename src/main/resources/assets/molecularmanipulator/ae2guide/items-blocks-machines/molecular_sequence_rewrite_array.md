@@ -10,7 +10,7 @@ item_ids:
 
 # Molecular Sequence Rewrite Array
 
-Execute crafting, smithing, and stonecutting patterns inside one block for high-throughput ME autocrafting.
+The Molecular Sequence Rewrite Array combines pattern storage and recipe execution in one block. It runs crafting, smithing and stonecutting recipes for ME autocrafting.
 
 <Row>
 <BlockImage id="molecularmanipulator:molecular_manipulator" scale="4" />
@@ -22,30 +22,27 @@ Execute crafting, smithing, and stonecutting patterns inside one block for high-
 <ItemImage id="ae2:stonecutting_pattern" scale="4" />
 </Row>
 
-## Connect it
+## Setup
 
-1. Complete **Tier 2: Sequence Array** research and fabricate the block in the well.
-2. Connect the array to a powered ME network with an available channel.
-3. Insert encoded crafting, smithing, or stonecutting patterns. Use page buttons to manage them.
-4. Request products in an ME terminal. The array accepts ingredients and executes the recipes.
+1. Complete **Tier 2: Sequence Array** in the well and fabricate the array.
+2. Connect it to a powered ME network with an available channel.
+3. Insert encoded crafting, smithing or stonecutting patterns.
+4. Request products from an ME terminal. The array receives ingredients and performs the recipes internally.
 
-| Capability | Detail |
-| --- | --- |
-| Pattern library | 10 pages × 36 slots = 360 slots |
-| Internal execution | Crafting, smithing, stonecutting |
-| External processing | Use processing patterns, providers, and the required machine |
-| Unlock | Sequence Array research branch |
+Its pattern inventory holds **360 patterns** across ten pages of 36 slots. For recipes using external machines, place processing patterns in a Pattern Provider connected to the required machines.
 
-## Large batches
+## Batch processing
 
-The logical batch ceiling is about **9.22E crafts**. Eligible recipes can finish a batch in one tick; available materials, energy, and ME output space determine actual size.
+Eligible recipes complete a batch in **one tick**. Batch size depends on ingredients, energy and output capacity. Crafting still consumes the recipe's materials and returns containers and tools.
 
-Parallelism preserves ingredient costs, tool returns, and crafting energy. Fabrication deep-research speed bonuses apply to well recipes only.
+Deep research bonuses apply to fabrication recipes in the well, not this device's processing speed.
 
-## Blocked outputs
+## Output and relocation
 
-Products and returns are retained before insertion into ME. Full storage delays delivery and triggers retries. Normal removal carries patterns and unfinished contents with the block.
+When ME storage is full, products and returned items remain in the device until the network accepts them. Canceling work returns unused ingredients; completed products are retained.
 
-## Recipe
+Normal removal carries patterns and unfinished contents with the block. Restore its network connection and power to continue.
+
+## Recipes
 
 <RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

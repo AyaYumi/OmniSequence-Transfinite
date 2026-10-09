@@ -136,6 +136,9 @@ configurations {
 }
 
 dependencies {
+    // Optional CPU contracts are compile-only; their mods are never bundled.
+    compileOnly files('libs/neoecoae-21.2.0.jar', 'libs/thunderbolt-batch-api.jar',
+            'libs/data_energistics-3.3.0-api.jar')
     compileOnly files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
     localRuntime files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
     implementation "org.appliedenergistics:appliedenergistics2:${ae2_version}"
@@ -149,6 +152,7 @@ dependencies {
     compileOnly "dev.vfyjxf:taffy:1.1.4"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:${jei_version}"
     compileOnly "curse.maven:ae2-jei-integration-1074338:7727898"
+    compileOnly "curse.maven:ftb-teams-forge-404468:8724782"
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -203,6 +207,10 @@ tasks.withType(JavaCompile).configureEach {
 tasks.withType(ProcessResources).configureEach {
     filteringCharset = 'UTF-8'
     includeEmptyDirs = false
+    // Keep editor backups and development artifacts out of runtime resources.
+    exclude '**/*.bak', '**/*.old', '**/*.tmp', '**/*.log', '**/*~',
+            '**/*.bbmodel', '**/*.psd', '**/*.xcf', '**/*.blend',
+            '**/.DS_Store', '**/Thumbs.db', '**/desktop.ini'
 }
 
 tasks.named('jar', Jar).configure {
@@ -213,7 +221,7 @@ tasks.named('jar', Jar).configure {
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
     from('docs') {
-        include 'README.md', 'configuration.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
+        include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
                 'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
         into 'docs'
     }

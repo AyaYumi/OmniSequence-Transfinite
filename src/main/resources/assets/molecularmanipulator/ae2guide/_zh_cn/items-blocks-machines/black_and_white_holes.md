@@ -7,53 +7,55 @@ navigation:
 item_ids:
 - molecularmanipulator:black_hole
 - molecularmanipulator:white_hole
+- molecularmanipulator:miniature_supernova
 ---
 
 # 微型黑洞与微型白洞
 
-在同一维度中，把周围物品与非玩家实体从微型黑洞传送到微型白洞出口。
+微型黑洞将附近掉落物和非玩家实体送到同维度、同队最近的微型白洞。两者可用于物品或生物传送，也参与天枢部件的制作。
 
 <Row>
 <ItemImage id="molecularmanipulator:black_hole" scale="6" />
 
 <ItemImage id="molecularmanipulator:white_hole" scale="6" />
+
+<ItemImage id="molecularmanipulator:miniature_supernova" scale="6" />
 </Row>
 
-## 制作微型黑洞与微型白洞
+## 制作
 
-先在构筑井完成**三阶：视界奇点**。使用样板总成执行以下大数量配方，每份产出一个；首次解锁时均为 30 秒、4096 AE/t。
+完成**三阶：视界奇点**研究后，用构筑井[样板总成](matter_fabrication_pattern_assembly.md)加工。首次解锁时，以下配方均耗时 **30 秒**，功率 **4096 AE/t**。
 
-| 产物 | 唯一原料 |
+| 产物 | 材料 |
 | --- | --- |
-| 微型黑洞 ×1 | AE2 奇点 ×100K（10 万） |
-| 微型白洞 ×1 | AE2 物质球 ×1G（10 亿） |
+| 微型黑洞 ×1 | AE2 奇点 ×10,000 |
+| 微型白洞 ×1 | 微型黑洞 ×10 |
+| 微型超新星 ×1 | 微型黑洞 ×100、微型白洞 ×100 |
 
-<RecipeFor id="molecularmanipulator:black_hole" />
+天枢主控与白洞资源核心各需要一枚微型超新星。
 
-<RecipeFor id="molecularmanipulator:white_hole" />
+## 建立传送通道
 
-## 建立入口与出口
+1. 先放置**微型白洞**，在其上方留出出口空间。
+2. 同一 FTB 队伍的成员在同维度放置**微型黑洞**。
+3. 附近掉落物和非玩家实体会被拉向黑洞，接近中心后传送到最近白洞上方。
 
-1. 先放置**微型白洞**，为出口上方留出通行空间。
-2. 在同一维度放置**微型黑洞**，附近掉落物和非玩家实体会逐渐被拉向中心。
-3. 靠近微型黑洞中心后，实体传送到微型白洞上方，并向上轻微弹出。
+玩家不会被吸取或传送。没有匹配白洞时，黑洞不开始吸取。多个黑洞会各自选择最近出口，白洞数量没有放置上限。
 
-| 规则 | 行为 |
-| --- | --- |
-| 玩家 | 不会被吸取或传送 |
-| 微型白洞数量 | 每个维度最多一个；拆除现有微型白洞后才能放置另一个 |
-| 多个微型黑洞 | 共用该维度的微型白洞出口 |
-| 没有微型白洞 | 微型黑洞不开始吸取 |
-| 微型白洞区块 | 放置后强制加载，拆除后释放 |
+## 队伍与区块
 
-微型黑洞本身需要所在区块加载才会工作。传送保留实体本身，物品不会先变成采集产物或奇点序质。
+放置时绑定放置者的 FTB 队伍；未安装 FTB Teams 时绑定个人。换队后，重新放置黑白洞来更新归属。
 
-## 用在天枢中
+白洞会保持所在区块加载，拆除后释放。黑洞需要所在区块已加载才会工作。传送保留实体和物品本身。
 
-<ItemGrid>
-<ItemIcon id="molecularmanipulator:event_horizon_singularity_hub" />
-<ItemIcon id="molecularmanipulator:black_hole" />
-<ItemIcon id="molecularmanipulator:singularity_sequence_matter_bucket" />
-</ItemGrid>
+## 在天枢中使用
 
-把微型黑洞作为物品放入天枢的微型黑洞槽，可提高**奇点序质**产量。这个槽最多容纳 64 个微型黑洞，具体用法见[物质复制](singularity_matter_duplication.md)。
+微型黑洞也可作为物品放入天枢的专用槽，最多 **64 个**，用于增加奇点序质产量。详见[物质复制](singularity_matter_duplication.md)。
+
+## 配方
+
+<RecipeFor id="molecularmanipulator:black_hole" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
+
+<RecipeFor id="molecularmanipulator:white_hole" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
+
+<RecipeFor id="molecularmanipulator:miniature_supernova" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />

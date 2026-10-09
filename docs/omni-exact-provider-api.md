@@ -1,6 +1,6 @@
 # Exact-count provider API / 大数供应器接口
 
-Current source: Minecraft 1.21.1, 2.0.8, Java 21, AE2 19.2.17+, AppliedEnhancements 1.1.0.
+Current source: Minecraft 1.21.1, 2.0.8, Java 21, AE2 19.2.17+, Applied Enhancements 1.1.0+ (paired release 1.1.1).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is
@@ -72,6 +72,21 @@ No general numeric ABI negotiation is exposed by these capability types. Bind to
 the current documented method signatures and isolate optional class loading.
 `OmniBatchCraftingApi.apiVersion()` negotiates the atomic batch SPI only.
 
+## Complete plans and secondary outputs
+
+With AES 1.1.1, read `AelisExactCraftingPlanApi.read(plan)` and its
+`executionRequirement()` before building an exact CPU ledger. On the supported
+1.1.0 runtime, use the existing exact quantity getters. Exact pattern counts are
+a complete replacement ledger, not an additive overflow patch; do not merge them
+with the long task map. Keep the returned plan from metadata attachment/copying.
+
+Preserve native scaled-pattern identity, weighted batch counts and unscaled
+remainders. If an optional rewrite cannot be reconciled, continue with the
+complete original work. Record every AEKey output separately, including
+byproducts, and report actual accepted output rather than planned production.
+A saturated long projection alone does not reject a plan or confer exact CPU
+execution support. Cancellation and rollback still follow material ownership.
+
 ## 中文
 
 大数能力处理逻辑次数和按 AEKey 区分的精确产物数量。它不替代两阶段 long 批量投料，
@@ -88,3 +103,9 @@ the current documented method signatures and isolate optional class loading.
 默认批量方法逐键转移，最后用已接收数量映射调用一次扣减；允许部分接收，不提供
 所有资源同时提交的保证。扣减回调必须可靠完成且不能抛出异常。调用方负责权限、
 线程、数据持久化和具体第三方机器的语义。
+
+AES 1.1.1 可通过 `AelisExactCraftingPlanApi.read(plan)` 与结构化能力查询读取完整计划；
+最低兼容的 1.1.0 使用原有精确数量读取方法。精确样板次数替换 long 任务表，不能叠加。
+保留元数据接口返回的计划、原生包装身份、整批与原样板尾数。可选改写无法换算时
+继续原始完整工作量；主产物和副产物逐 AEKey 记账，按真实接收数量报告，不能用
+计划产量代替已经交付的产量。long 投影饱和不等于拒绝，也不保证 CPU 具备精确执行能力。

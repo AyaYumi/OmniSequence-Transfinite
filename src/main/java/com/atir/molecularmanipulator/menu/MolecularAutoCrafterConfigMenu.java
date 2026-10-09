@@ -18,6 +18,7 @@ import net.minecraft.world.item.ItemStack;
 /** Detail menu opened from one of the standalone auto-crafter's pattern slots. */
 public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
     private static final String ACTION_LIMIT = "set_auto_craft_limit";
+    private static final String ACTION_LIMIT_MODE = "toggle_auto_craft_limit_mode";
     private static final String ACTION_RESERVE = "set_auto_craft_reserve";
     private static final String ACTION_BACK = "return_to_auto_crafter";
 
@@ -39,6 +40,8 @@ public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
     @GuiSync(11) public long reserve7;
     @GuiSync(12) public long reserve8;
     @GuiSync(13) public boolean enabled;
+    @GuiSync(14) public MolecularAutoCrafter.OutputLimitMode outputLimitMode =
+            MolecularAutoCrafter.OutputLimitMode.DESTINATION;
 
     private final MolecularAutoCrafterBlockEntity machine;
     private final AppEngInternalInventory patternPreview = new AppEngInternalInventory(1);
@@ -48,6 +51,7 @@ public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
         super(TYPE, id, inventory, machine);
         this.machine = machine;
         registerClientAction(ACTION_LIMIT, Long.class, this::setLimit);
+        registerClientAction(ACTION_LIMIT_MODE, this::toggleOutputLimitMode);
         registerClientAction(ACTION_RESERVE, ReserveRequest.class, this::setReserve);
         registerClientAction(ACTION_BACK, this::back);
         selectedSlot = machine.getMenuSelectedSlot();
@@ -80,6 +84,10 @@ public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
         if (isClientSide()) sendClientAction(ACTION_LIMIT, Math.max(0, value));
     }
 
+    public void requestOutputLimitModeToggle() {
+        if (isClientSide()) sendClientAction(ACTION_LIMIT_MODE);
+    }
+
     public void requestReserve(int index, long value) {
         if (isClientSide()) sendClientAction(ACTION_RESERVE,
                 new ReserveRequest(index, Math.max(0, value)));
@@ -103,6 +111,13 @@ public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
         }
     }
 
+    private void toggleOutputLimitMode() {
+        if (isServerSide() && getPlayer() != null && getPlayer().mayBuild()) {
+            machine.getAutoCrafter().toggleOutputLimitMode(selectedSlot);
+            refresh();
+        }
+    }
+
     private void setReserve(ReserveRequest request) {
         if (isServerSide() && getPlayer() != null && getPlayer().mayBuild()
                 && request != null && request.index >= 0 && request.index < MolecularAutoCrafter.MAX_INPUTS) {
@@ -116,6 +131,7 @@ public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
             state = MolecularAutoCrafter.AutoCraftState.EMPTY;
             inputCount = 0;
             enabled = false;
+            outputLimitMode = MolecularAutoCrafter.OutputLimitMode.DESTINATION;
             patternPreview.setItemDirect(0, ItemStack.EMPTY);
             return;
         }
@@ -127,6 +143,7 @@ public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
         state = view.state();
         enabled = view.enabled();
         outputLimit = view.outputLimit();
+        outputLimitMode = view.outputLimitMode();
         inputCount = Math.min(MolecularAutoCrafter.MAX_INPUTS, view.inputCount());
         var values = view.protections();
         reserve0 = values[0]; reserve1 = values[1]; reserve2 = values[2]; reserve3 = values[3];

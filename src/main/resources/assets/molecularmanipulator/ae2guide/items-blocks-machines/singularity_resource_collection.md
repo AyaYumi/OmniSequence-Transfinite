@@ -8,7 +8,7 @@ navigation:
 
 # Singularity Resource Collection
 
-Produce every resource included in configured item tags. Any item tag is supported, including resources beyond raw ores and logs; each cycle produces the full list simultaneously.
+The hub produces every item in its resource list simultaneously. Defaults include raw ores and logs; modpacks can configure other resources.
 
 <ItemGrid>
 <ItemIcon id="minecraft:raw_iron" />
@@ -21,35 +21,27 @@ Produce every resource included in configured item tags. Any item tag is support
 <ItemIcon id="minecraft:warped_stem" />
 </ItemGrid>
 
-These are common examples. The **complete list in Resource Collection** follows the pack's tags and blacklist.
+## Starting collection
 
-## Start harvesting
+1. Form an [Event Horizon Singularity Hub](event_horizon_singularity_hub.md) or connect a [Compact Hub](compact_singularity_hub.md).
+2. Open **Resource Collection** and review the complete current list.
+3. Provide ME storage for its items and select **Start Collection**.
+4. The multiblock hub begins production after startup. Products enter its connected ME network automatically.
 
-1. Form the [Singularity Hub](event_horizon_singularity_hub.md) and connect online ME.
-2. Open **Resource Collection** and review the full production list.
-3. Reserve ME item space for every entry and select **Start Collection**.
-4. Wait for startup. Products are inserted into the connected ME network.
+By default, each resource produces **1000 items every 20 ticks**, about one second at normal TPS. An item matching multiple tags appears only once. There is no need to switch collection targets.
 
-| Default setting | Value |
-| --- | --- |
-| Per item, per cycle | 1000 items |
-| Interval | 20 ticks; about one second at normal TPS |
-| Production | All entries together, duplicates removed |
-| Insufficient storage | Wait for capacity; do not spill products into the world |
+## Resource list
 
-## Configure the resource list
+The server configuration's **Singularity Hub → Resource Collection** group controls resource tags, quantities, intervals and the blacklist.
 
-The server configuration's **Singularity Hub → Resource Collection** group controls tags, quantity, interval, and the item blacklist.
-
-| Setting | Default or format |
+| Setting | Default or example |
 | --- | --- |
 | Item tags | #c:raw_ores, #c:raw_materials, #minecraft:raw_ores, #minecraft:logs, #c:logs |
-| Item blacklist | Exact item IDs, such as minecraft:raw_iron |
+| Additional tag example | #minecraft:planks to produce planks |
+| Blacklist | Item IDs such as minecraft:raw_iron |
 
-Add other item tags, such as #minecraft:planks for planks. Existing ore/log lists migrate into one list while preserving custom entries.
+Only tag members present in the pack enter the list. Blacklisted items are neither displayed nor produced. The page's list shows the current resources; the icons above are common examples.
 
-Only tags actually defined in the pack contribute items. All matching tag members are combined, then excluded IDs are removed. **The blacklist wins**, and excluded items also disappear from the collection list.
+## Stopping and waiting
 
-## Stop or wait
-
-Select **Stop Collection** to stop harvesting and dock the building. Check Overview and Collection status for network, structure, and storage requirements before resuming.
+Select **Stop Collection** to stop production and dock the multiblock hub. An offline network, incomplete structure or insufficient storage makes the device wait for operating conditions to recover. Products do not spill into the world when storage is full.

@@ -1,0 +1,30 @@
+{
+  "variants": {
+    "facing=up": {
+      "model": "molecularmanipulator:block/gravity_crystal"
+    },
+    "facing=down": {
+      "model": "molecularmanipulator:block/gravity_crystal",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "molecularmanipulator:block/gravity_crystal",
+      "x": 90
+    },
+    "facing=south": {
+      "model": "molecularmanipulator:block/gravity_crystal",
+      "x": 90,
+      "y": 180
+    },
+    "facing=east": {
+      "model": "molecularmanipulator:block/gravity_crystal",
+      "x": 90,
+      "y": 90
+    },
+    "facing=west": {
+      "model": "molecularmanipulator:block/gravity_crystal",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

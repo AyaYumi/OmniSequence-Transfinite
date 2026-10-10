@@ -3,6 +3,8 @@ package com.atir.molecularmanipulator.registry;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
 import com.atir.molecularmanipulator.block.CosmicSingularityBlock;
+import com.atir.molecularmanipulator.block.GravityCrystalBlock;
+import com.atir.molecularmanipulator.block.GhostMatterBlock;
 import com.atir.molecularmanipulator.block.MolecularManipulatorBlock;
 import com.atir.molecularmanipulator.block.MolecularAutoCrafterBlock;
 import com.atir.molecularmanipulator.block.MatterFabricationControllerBlock;
@@ -20,6 +22,8 @@ import com.atir.molecularmanipulator.block.OmniComputationPartBlock;
 import com.atir.molecularmanipulator.block.TransfiniteComputeNexusBlock;
 import com.atir.molecularmanipulator.blockentity.AssemblerMatrixMolecularCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity;
+import com.atir.molecularmanipulator.blockentity.GravityCrystalBlockEntity;
+import com.atir.molecularmanipulator.blockentity.GhostMatterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternAssemblyBlockEntity;
@@ -261,6 +265,30 @@ public final class ModContent {
     public static final RegistryObject<BlockItem> WHITE_HOLE = ITEMS.register("white_hole",
             () -> new SingularityCosmicItem(WHITE_HOLE_BLOCK.get(), "white_hole",
                     net.minecraft.ChatFormatting.AQUA, new Item.Properties()));
+    public static final RegistryObject<Item> MINIATURE_SUPERNOVA = ITEMS.register("miniature_supernova",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<GravityCrystalBlock> GRAVITY_CRYSTAL_BLOCK = BLOCKS.register("gravity_crystal",
+            () -> new GravityCrystalBlock(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                    .strength(2.5F, 6F).requiresCorrectToolForDrops().noOcclusion()
+                    .lightLevel(state -> state.getValue(GravityCrystalBlock.POWERED) ? 2 : 10)
+                    .sound(net.minecraft.world.level.block.SoundType.AMETHYST)));
+    public static final RegistryObject<BlockItem> GRAVITY_CRYSTAL = ITEMS.register("gravity_crystal",
+            () -> new SingularityCosmicItem(GRAVITY_CRYSTAL_BLOCK.get(), "gravity_crystal",
+                    net.minecraft.ChatFormatting.LIGHT_PURPLE, new Item.Properties()));
+    public static final RegistryObject<GhostMatterBlock> GHOST_MATTER_BLOCK = BLOCKS.register("ghost_matter",
+            () -> new GhostMatterBlock(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                    .strength(-1F, 3600000F).noOcclusion().noCollission()
+                    .lightLevel(state -> state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED) ? 0 : 7)
+                    .sound(net.minecraft.world.level.block.SoundType.AMETHYST)));
+    public static final RegistryObject<BlockItem> GHOST_MATTER = ITEMS.register("ghost_matter",
+            () -> new SingularityCosmicItem(GHOST_MATTER_BLOCK.get(), "ghost_matter",
+                    net.minecraft.ChatFormatting.GREEN, new Item.Properties()));
+    public static final RegistryObject<BlockEntityType<GravityCrystalBlockEntity>> GRAVITY_CRYSTAL_BE =
+            BLOCK_ENTITIES.register("gravity_crystal", () -> BlockEntityType.Builder.of(
+                    GravityCrystalBlockEntity::new, GRAVITY_CRYSTAL_BLOCK.get()).build(null));
+    public static final RegistryObject<BlockEntityType<GhostMatterBlockEntity>> GHOST_MATTER_BE =
+            BLOCK_ENTITIES.register("ghost_matter", () -> BlockEntityType.Builder.of(
+                    GhostMatterBlockEntity::new, GHOST_MATTER_BLOCK.get()).build(null));
     static {
 
     }
@@ -374,6 +402,9 @@ public final class ModContent {
                         SingularityContent.displayItems(output);
                         output.accept(BLACK_HOLE.get());
                         output.accept(WHITE_HOLE.get());
+                        output.accept(MINIATURE_SUPERNOVA.get());
+                        output.accept(GRAVITY_CRYSTAL.get());
+                        output.accept(GHOST_MATTER.get());
                         output.accept(ModFluids.SEQUENCE_MATTER_BUCKET.get());
                         if (AdvancedAEIntegration.isLoaded()) {
                             output.accept(TRANSFINITE_COMPUTE_NEXUS_ITEM.get());

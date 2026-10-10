@@ -1,0 +1,30 @@
+// Focused single-block production and portable-inventory regression in a disposable world.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('compactSingularityVerification') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/CompactSingularityGameTests.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.configureEach { mods { "${project.mod_id}" { source verification } } }
+        minecraft.runs.getByName('gameTestServer').workingDirectory = project.file('build/compact-singularity-regression-run')
+        minecraft.runs.getByName('gameTestServer').property "forge.logging.console.level", "info"
+        tasks.named('compileCompactSingularityVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def directory = minecraft.runs.getByName('gameTestServer').workingDirectory
+                def log = new File(directory, 'logs/latest.log').text
+                if (!(log =~ /All [1-9][0-9]* required tests passed/))
+                    throw new GradleException('No successful required game tests in compact-singularity')
+            }
+        }
+    }
+}

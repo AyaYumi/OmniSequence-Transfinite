@@ -12,6 +12,7 @@ import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterConfigMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -41,6 +42,7 @@ public final class MolecularAutoCrafterConfigScreen
     private AETextField outputLimit;
     private final AETextField[] reserves = new AETextField[MolecularAutoCrafter.MAX_INPUTS];
     private OmniButton limitApply;
+    private OmniButton outputLimitMode;
     private final OmniButton[] reserveApply = new OmniButton[MolecularAutoCrafter.MAX_INPUTS];
     private OmniButton saveAll;
     private MolecularAutoCrafterIconButton previousPage;
@@ -65,6 +67,9 @@ public final class MolecularAutoCrafterConfigScreen
                 Component.translatable("gui.molecularmanipulator.auto_craft_output_limit"),
                 Component.translatable("gui.molecularmanipulator.auto_craft_output_limit_tooltip"));
         limitApply = applyButton(OUTPUT_Y, this::applyLimit);
+        outputLimitMode = addScreenWidget(AeUiTheme.button(leftPos + SLOT_X, topPos + 61,
+                imageWidth - SLOT_X * 2, 18,
+                Component.empty(), button -> menu.requestOutputLimitModeToggle()));
         for (int input = 0; input < reserves.length; input++) {
             int selected = input;
             int rowY = rowY(input);
@@ -169,6 +174,15 @@ public final class MolecularAutoCrafterConfigScreen
         page = Math.min(page, pageCount() - 1);
         boolean ready = selectedDetails() != null;
         refreshField(outputLimit, limitDraft, ready);
+        boolean destination = menu.outputLimitMode
+                == MolecularAutoCrafter.OutputLimitMode.DESTINATION;
+        outputLimitMode.active = ready;
+        outputLimitMode.setMessage(Component.translatable(destination
+                ? "gui.molecularmanipulator.auto_craft_limit_source_destination"
+                : "gui.molecularmanipulator.auto_craft_limit_source_network"));
+        outputLimitMode.setTooltip(Tooltip.create(Component.translatable(destination
+                ? "gui.molecularmanipulator.auto_craft_limit_source_destination_hint"
+                : "gui.molecularmanipulator.auto_craft_limit_source_network_hint")));
         for (int input = 0; input < reserves.length; input++) {
             boolean visible = input < inputCount() && input / PAGE_SIZE == page;
             reserves[input].visible = visible;
@@ -269,8 +283,6 @@ public final class MolecularAutoCrafterConfigScreen
                 imageWidth - NAME_X - 10, color(PaletteColor.MUTED_TEXT_COLOR));
         label(graphics, "gui.molecularmanipulator.auto_craft_product", SLOT_X, 32, FIELD_X - SLOT_X - 6);
         label(graphics, "gui.molecularmanipulator.auto_craft_output_limit_label", FIELD_X, 32, FIELD_WIDTH);
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.auto_craft_limit_hint"),
-                SLOT_X, 66, imageWidth - 20, color(PaletteColor.MUTED_TEXT_COLOR));
         label(graphics, "gui.molecularmanipulator.auto_craft_materials", SLOT_X, 80, FIELD_X - SLOT_X - 6);
         label(graphics, "gui.molecularmanipulator.auto_craft_reserve_label", FIELD_X, 80, FIELD_WIDTH);
         var pattern = selectedDetails();

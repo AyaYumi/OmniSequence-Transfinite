@@ -47,6 +47,18 @@ final class MolecularAutoCraftMath {
                 ? 0 : producedPerCraft - recycledInputPerCraft;
     }
 
+    static <K> long addMatchingOutputAmount(long stored, long limit,
+            K output, K candidate, long amount) {
+        if (stored < 0 || limit < 0) {
+            throw new IllegalArgumentException("stock and limit must be non-negative");
+        }
+        requireNonNegative(amount, "amount");
+        if (stored >= limit || limit == 0 || output == null || !output.equals(candidate)) {
+            return stored;
+        }
+        return Math.min(limit, saturatedAdd(stored, amount));
+    }
+
     static long saturatedAdd(long left, long right) {
         requireNonNegative(left, "left");
         requireNonNegative(right, "right");

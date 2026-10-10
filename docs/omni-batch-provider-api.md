@@ -2,8 +2,8 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.0.7-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10 / UELM 15.5.4
-and the required AppliedEnhancements 1.1.0-forge. The runtime ABI remains **1**.
+Current for OmniSequence 2.0.8-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10 / UELM 15.5.4
+and Applied Enhancements 1.1.0+ (paired release 1.1.1). The runtime ABI remains **1**.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -245,6 +245,57 @@ class or conditional Mixin that is loaded only when Mod ID
 `molecularmanipulator` is present. Compile against OmniSequence as
 `compileOnly`; do not embed its API classes.
 
+
+## Cycle transactions, byproducts and native doubling
+
+An independent CPU acquires one
+`AelisBatchExecutionContext.acquire(runtime, pattern.getDefinition(), source)`
+before the first extraction. Use its inventory for the first craft, extra batch
+inputs and refunds. Open `beginDispatch(actualInputs, actualCrafts)` before
+provider delivery; call `accepted()` at durable ownership transfer. Closing a
+rejected dispatch restores cycle accounting, while the CPU refunds still-owned
+physical inputs. A null inventory declines this attempt; `maximumCrafts()` is a
+phase bound and does not promise materials or queue capacity. The shared context
+is available in AES 1.1.0+ and must not be reacquired after the first extraction.
+
+Retain every expected output, including item/fluid byproducts. Unsupported
+optimization or an unreadable external batch wrapper must preserve the complete
+original task ledger and permit ordinary planning/dispatch. It must not turn a
+secondary output into a planning exception or truncate work to a long preview.
+Providers still enforce actual material ownership and capacity.
+
+For new integrations using AES 1.1.1, query
+`AelisSmartDoublingApi.isExternallyManaged(pattern)` before adding a local scale.
+Preserve native enabled patterns, existing external wrappers, provider splits
+and the original-pattern remainder. An installed addon alone does not enable
+this bypass. The query describes external management, not ownership or exact
+execution support; load 1.1.1-only types only with that runtime present.
+
+## Optional native CPU APIs on Forge
+
+Matter Fabrication Pattern Assemblies also implement optional dispatch contracts
+when the installed Forge addon supplies the matching public API. These integrations
+use the same research, catalyst, capacity and durable-ownership checks as ordinary
+delivery; they do not change Omni's batch ABI 1.
+
+| Addon contract | Admission and accepted-count semantics |
+| --- | --- |
+| ECO `ECOFastPathDispatchProvider` | Fast-path preparation validates complete inputs and outputs. Container remainders and exact input totals outside the durable long representation decline this path. |
+| Thunderbolt `IBatchCraftingProvider` | `pushBatch` receives a reusable one-craft prototype and returns the **unaccepted remainder**, not the accepted count. |
+| Data Energistics `CountedCraftingProviderAdapter` | Registered against the original provider identity; a single-use admission reports its count and marks input ownership transferred only after commit succeeds. Registration is removed when the provider disconnects. |
+
+Native counted dispatch bypasses local smart doubling. External scaled patterns
+still retain their complete input/output ratio; an accepted batch persists the
+entire material vector. Capacity queries do not transfer inputs or authorize an
+additional material multiplier.
+
+Compile-only declarations under `src/optionalCpuApi` supply Java 17 signatures;
+they are excluded from runtime classpaths and release JARs. Do not copy or shade
+them into another mod. Mod presence alone is insufficient: ECO/Thunderbolt Mixin
+activation also checks for the public interface, and unavailable Data Energistics
+contracts leave ordinary AE dispatch available. A fallback cannot repair an
+addon's own incompatible CPU Mixins. Forge ECO 20.4.2 lacks the new fast-path API;
+no minimum Forge release for the other new contracts is asserted here.
 
 ## Exact-count capabilities
 

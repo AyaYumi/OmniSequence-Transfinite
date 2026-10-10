@@ -32,5 +32,7 @@ public interface MolecularAutoCrafterHost {
     void queueAutoCraftRefund(AEKey key, long amount);
 
     long getBufferedAutoCraftAmount(AEKey key);
+
+    long getAutoCraftOutputStock(AEKey key, long limit, MolecularAutoCrafter.OutputLimitMode mode);
     default void flushAutoCraftOutputsAfterControlChange() { }
 }

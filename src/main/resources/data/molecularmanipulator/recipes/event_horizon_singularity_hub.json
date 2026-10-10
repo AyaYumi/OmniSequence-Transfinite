@@ -3,9 +3,9 @@
   "ingredients": [
     {
       "ingredient": {
-        "item": "molecularmanipulator:black_hole"
+        "item": "molecularmanipulator:miniature_supernova"
       },
-      "count": 10000
+      "count": 1
     },
     {
       "ingredient": {
@@ -34,7 +34,7 @@
   ],
   "results": [
     {
-      "id": "molecularmanipulator:event_horizon_singularity_hub",
+      "item": "molecularmanipulator:event_horizon_singularity_hub",
       "count": 1
     }
   ],

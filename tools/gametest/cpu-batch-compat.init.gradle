@@ -1,0 +1,42 @@
+// Real optional CPU APIs, isolated from production and the player's pack.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        // Explicit matching Forge jars, including their runtime dependencies, separated by semicolons.
+        def jars = (project.findProperty('cpuCompatJars') ?: '').toString().split(';').findAll { !it.isBlank() }
+        jars.eachWithIndex { path, index ->
+            def jar = project.file(path)
+            if (!jar.isFile()) throw new GradleException('Missing Forge CPU runtime: ' + jar)
+            new java.util.zip.ZipFile(jar).withCloseable { archive ->
+                if (archive.getEntry('META-INF/mods.toml') == null)
+                    throw new GradleException('Expected a Forge 1.20.1 mod, not a NeoForge runtime: ' + jar)
+            }
+            repositories.flatDir { dirs jar.parentFile }
+            dependencies.add('localRuntime', fg.deobf("local.cpu:${jar.name[0..-5]}:1"))
+        }
+        def regression = sourceSets.create('cpuBatchCompatibility') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/MatterCpuBatchGameTests.java', '**/MatterNativeCpuChecks.java', '**/VerificationAEKey.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.configureEach { mods { "${project.mod_id}" { source regression } } }
+        def server = minecraft.runs.getByName('gameTestServer')
+        def runName = (project.findProperty('cpuCompatRunName') ?: 'cpu-batch-compat').toString()
+        if (!(runName ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid CPU compatibility run name')
+        server.workingDirectory = project.file('build/' + runName)
+        server.property "forge.logging.console.level", "info"
+        tasks.named('compileCpuBatchCompatibilityJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                if (!project.file('build/' + runName + '/logs/latest.log').text.contains('All 1 required tests passed'))
+                    throw new GradleException('Matter CPU batch compatibility checks did not pass')
+            }
+        }
+    }
+}

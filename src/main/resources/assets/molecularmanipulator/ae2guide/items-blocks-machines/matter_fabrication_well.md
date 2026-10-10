@@ -15,9 +15,7 @@ item_ids:
 
 # Matter Fabrication Well
 
-The starting point for material processing, research, and ME autocrafting. Build the well, then research the machines that follow.
-
-## Prepare the site
+The Matter Fabrication Well is a multiblock machine for material processing and research. Input and output ports handle supplied ingredients, while Pattern Assemblies let it execute ME autocrafting requests.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:matter_fabrication_controller" />
@@ -28,63 +26,41 @@ The starting point for material processing, research, and ME autocrafting. Build
 <ItemIcon id="molecularmanipulator:matter_fabrication_core" />
 </ItemGrid>
 
-| Preparation | Requirement |
+## Structure
+
+The well occupies **41 × 41 blocks** and is **27 blocks tall**. Its controller, basic structure blocks and ports require no research. JEI's structure page lists all required materials.
+
+1. Place the controller and enable **Projection** to check missing blocks and obstructions.
+2. Gather the listed materials, clear obstructions and select **Build**. Construction uses your inventory before the connected ME storage.
+3. Install the required [ports](matter_fabrication_ports.md) in service positions. Hold a port to see valid positions.
+4. Connect ME and power, then check formation and network status in the controller.
+
+There are **44 service positions**: 24 on the front steps and four groups of five around the central platform. [Pattern Assemblies](matter_fabrication_pattern_assembly.md) also use these positions.
+
+## Operation
+
+| Workflow | How to use it |
 | --- | --- |
-| Space | 41 × 41 blocks, 27 blocks tall |
-| Starting tier | Tier 0; controller and basic ports need no research |
-| Materials | JEI structure page and controller projection |
+| Material processing | Supply items and fluids through input ports; collect products from output ports |
+| [Research](matter_fabrication_research.md) | Store research materials in ME, select a branch and start it |
+| ME autocrafting | Complete tier 1, install a Pattern Assembly and insert matching processing patterns |
 
-## Build the well
+Research and processing can run together. If work cannot start, check the structure, power, research requirements and output capacity.
 
-1. Place the controller facing your work area. Enable **Projection** to find missing blocks and obstructions.
-2. Gather the JEI material list, clear obstructions, and select **Build**.
-3. Construction takes player inventory materials first, then materials from the connected ME network.
-4. Install [input and output ports](matter_fabrication_ports.md) in highlighted service positions. Power the completed well through ME.
+## Quantum connection
 
-There are **44 service positions**: 24 on the front steps and four groups of five around the central platform. Hold a port to see them.
+Place one **Quantum Entangled Singularity** in the controller's quantum slot and its partner in a powered AE2 quantum bridge to connect remote ME storage. The link requires an additional **512 AE/t and one channel** and can supply construction materials before the well is formed.
 
-## Choose a workflow
+## Dismantling and relocation
 
-<Row>
-<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="4" />
+**Dismantle** keeps the controller and returns structure materials to ME first, then your inventory. If both destinations are full, clear space to resume recovery.
 
-<BlockImage id="molecularmanipulator:matter_fabrication_fluid_input" scale="4" />
+Normal controller removal retains research progress, accepted work and the quantum slot. Ports retain their caches, and assemblies retain patterns and processing materials. Restore the structure, network and power to continue.
 
-<BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
-</Row>
+When the server enables multiblock chunk loading, required chunks stay loaded during construction and while formed. Occupied chunks prevent natural mob spawning; spawners, breeding and existing creatures are unaffected.
 
-| Work | Start here |
-| --- | --- |
-| [Processing](matter_fabrication_ports.md) | Supply item/fluid inputs and leave output capacity |
-| [Research](matter_fabrication_research.md) | Select a branch; put its materials in the controller's ME network |
-| [ME autocrafting](matter_fabrication_pattern_assembly.md) | Unlock the Pattern Assembly at tier 1 and insert matching processing patterns |
-
-Research and processing can run together. JEI and the live recipe panels show the current ingredients, duration, power, and research requirements.
-
-## Remote access and recovery
-
-<ItemGrid>
-<ItemIcon id="ae2:quantum_entangled_singularity" />
-<ItemIcon id="ae2:quantum_ring" />
-<ItemIcon id="ae2:quantum_link" />
-</ItemGrid>
-
-Insert one **Quantum Entangled Singularity** in the quantum slot and its partner in a powered AE2 quantum bridge. The connection also works for construction before formation. It costs an additional **512 AE/t and one channel**.
-
-**Dismantle** recovers the structure from top to bottom and keeps the controller. Returns go to ME first, then the player; recovery pauses when both are full.
-
-| Removed block | Contents carried with it |
-| --- | --- |
-| Controller | Research, accepted jobs, and quantum slot |
-| Ports | Their item or fluid caches |
-| Pattern Assembly | Patterns, ingredients, and processing batches |
-
-Restore the structure, network, and power to resume. The multiblock chunk-loading setting keeps required chunks loaded while formed or under construction. Occupied chunks block natural spawning; spawners, breeding, and existing mobs are unaffected.
-
-## Controller recipe
+## Recipes
 
 <RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
-
-## Related pages
 
 <SubPages icons={true} />

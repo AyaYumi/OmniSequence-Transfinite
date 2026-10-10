@@ -1,0 +1,29 @@
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def regression = sourceSets.create('performanceRegression') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/MatterRecipeLookupGameTests.java', '**/MatterAEKeyGameTests.java', '**/MatterDismantleGameTests.java', '**/VerificationAEKey.java', '**/MolecularLongBatchGameTests.java', '**/TransfiniteComputeNexusGameTests.java', '**/MolecularCenterPatternPortGameTests.java', '**/ResearchStockGameTests.java', '**/RegressionConfigFixture.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.configureEach { mods { "${project.mod_id}" { source regression } } }
+        def server = minecraft.runs.getByName('gameTestServer')
+        server.workingDirectory = project.file(project.findProperty('performanceRegressionDirectory') ?: 'build/performance-regression-run')
+        server.property "forge.logging.console.level", "info"
+        tasks.named('compilePerformanceRegressionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def directory = minecraft.runs.getByName('gameTestServer').workingDirectory
+                def log = new File(directory, 'logs/latest.log').text
+                if (!(log =~ /All [1-9][0-9]* required tests passed/))
+                    throw new GradleException('No successful required game tests in performance-regression')
+            }
+        }
+    }
+}

@@ -1,0 +1,63 @@
+// Isolated real planning/submission/completion for processing patterns with secondary outputs.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        if (project.hasProperty('byproductAppliedJar')) {
+            def applied = project.file(project.property('byproductAppliedJar'))
+            if (!applied.isFile()) throw new GradleException('Matching Forge Applied runtime JAR is required')
+            configurations.implementation.dependencies.removeAll { it.group == 'com.appliedenhancements' && it.name == 'appliedenhancements' }
+            repositories.flatDir { dirs applied.parentFile }
+            dependencies.add('implementation', fg.deobf("local.applied:${applied.name[0..-5]}:1"))
+        }
+        if (project.hasProperty('byproductUselessJar')) {
+            def addon = project.file(project.property('byproductUselessJar'))
+            if (!addon.isFile()) throw new GradleException('Useless runtime JAR is required')
+            repositories.flatDir { dirs addon.parentFile }
+            dependencies.add('localRuntime', fg.deobf("local.byproduct:${addon.name[0..-5]}:1"))
+        }
+        if (project.hasProperty('byproductEapJar')) {
+            def addon = project.file(project.property('byproductEapJar'))
+            if (!addon.isFile()) throw new GradleException('ExtendedAE Plus runtime JAR is required')
+            repositories.flatDir { dirs addon.parentFile }
+            dependencies.add('localRuntime', fg.deobf("local.byproduct:${addon.name[0..-5]}:1"))
+        }
+        for (def property : ['byproductAaeJar', 'byproductGeckoJar']) {
+            if (project.hasProperty(property)) {
+                def addon = project.file(project.property(property))
+                if (!addon.isFile()) throw new GradleException(property + ' JAR is required')
+                repositories.flatDir { dirs addon.parentFile }
+            dependencies.add('localRuntime', fg.deobf("local.byproduct:${addon.name[0..-5]}:1"))
+            }
+        }
+        def runName = (project.findProperty('byproductRunName') ?: 'byproduct-submission').toString()
+        if (!(runName ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid byproduct run directory')
+        def regression = sourceSets.create('byproductSubmission') {
+            java.srcDir project.file('tools/gametest/ae2-compat')
+            java.include '**/MixedByproductGameTests.java'
+            if (project.hasProperty('planningFallbackChecks')) java.include '**/PlanningFallbackGameTests.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.configureEach { mods { "${project.mod_id}" { source regression } } }
+        def server = minecraft.runs.getByName('gameTestServer')
+        server.workingDirectory = project.file('build/' + runName)
+        server.property "forge.logging.console.level", "info"
+        server.property 'molecularmanipulator.byproductAutomatic', project.hasProperty('byproductAutomatic').toString()
+        server.property 'molecularmanipulator.byproductNative', project.hasProperty('byproductUselessJar').toString()
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                if (!project.file('build/' + runName + '/logs/latest.log').text
+                        .contains('All ' + (project.hasProperty('planningFallbackChecks') ? 6 : 5) + ' required tests passed')) {
+                    throw new GradleException('Byproduct calculation/submission checks did not pass')
+                }
+            }
+        }
+        tasks.named('compileByproductSubmissionJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+    }
+}

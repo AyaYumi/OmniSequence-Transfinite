@@ -3,7 +3,7 @@
   "ingredients": [],
   "results": [
     {
-      "id": "molecularmanipulator:black_hole",
+      "item": "molecularmanipulator:black_hole",
       "count": 1
     }
   ],
@@ -13,8 +13,8 @@
   "ae_inputs": [
     {
       "#t": "ae2:i",
-      "id": "ae2:singularity",
-      "#": 100000
+      "#": 10000,
+      "id": "ae2:singularity"
     }
   ]
 }

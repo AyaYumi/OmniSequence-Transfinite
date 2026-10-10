@@ -15,6 +15,12 @@ public final class OmniSmartDoublingPlanner {
 
     public static ICraftingPlan rewriteForSubmission(ICraftingPlan plan,
             Function<IPatternDetails, Iterable<ICraftingProvider>> providerLookup) {
+        try { return rewriteKnownPlan(plan, providerLookup); }
+        catch (RuntimeException | LinkageError unavailable) { return plan; }
+    }
+
+    private static ICraftingPlan rewriteKnownPlan(ICraftingPlan plan,
+            Function<IPatternDetails, Iterable<ICraftingProvider>> providerLookup) {
         if (plan == null || plan.simulation()) return plan;
         var rewritten = new LinkedHashMap<IPatternDetails, Long>();
         boolean changed = false;
@@ -22,7 +28,7 @@ public final class OmniSmartDoublingPlanner {
             long operations = entry.getValue() == null ? 0 : entry.getValue();
             if (operations > 1
                     && !(entry.getKey() instanceof com.github.appliedenhancements.integration.ae2.AelisScaledPattern)
-                    && !com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManaged(entry.getKey())
+                    && !com.atir.molecularmanipulator.crafting.OmniNativeSmartDoubling.isExternallyManaged(entry.getKey())
                     && hasSmartProvider(providerLookup.apply(entry.getKey()))) {
                 try {
                     rewritten.put(MolecularScaledPatternFactory.create(entry.getKey(), operations), 1L);
@@ -36,14 +42,20 @@ public final class OmniSmartDoublingPlanner {
         var rewrittenPlan = new CraftingPlan(plan.finalOutput(), plan.bytes(), plan.simulation(), plan.multiplePaths(),
                 plan.usedItems(), plan.emittedItems(), plan.missingItems(),
                 Collections.unmodifiableMap(rewritten));
-        return com.appliedenhancements.api.AelisCycleExecutionApi.copyMetadata(plan, rewrittenPlan);
+        try {
+            return com.appliedenhancements.api.AelisCycleExecutionApi.copyMetadata(plan, rewrittenPlan);
+        } catch (RuntimeException | LinkageError unavailable) {
+            // Older Applied versions may not reconcile a mixed external rewrite.
+            // Retain the complete original job instead of submitting partial metadata.
+            return plan;
+        }
     }
 
     private static boolean hasSmartProvider(Iterable<ICraftingProvider> providers) {
         if (providers == null) return false;
         boolean local = false;
         for (var provider : providers) {
-            if (com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManagedProvider(provider)) return false;
+            if (com.atir.molecularmanipulator.crafting.OmniNativeSmartDoubling.isExternallyManagedProvider(provider)) return false;
             if (provider instanceof OmniSmartDoublingProvider) local = true;
         }
         return local;

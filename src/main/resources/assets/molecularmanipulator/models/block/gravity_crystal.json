@@ -1,0 +1,71 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "render_type": "cutout",
+  "textures": {
+    "crystal": "molecularmanipulator:block/gravity_crystal/crystal",
+    "mount": "molecularmanipulator:block/gravity_crystal/mount",
+    "trim": "molecularmanipulator:block/gravity_crystal/trim",
+    "indicator": "molecularmanipulator:block/gravity_crystal/indicator",
+    "particle": "molecularmanipulator:block/gravity_crystal/crystal"
+  },
+  "loader": "forge:obj",
+  "model": "molecularmanipulator:models/block/gravity_crystal.obj",
+  "automatic_culling": false,
+  "flip_v": true,
+  "shade_quads": true,
+  "emissive_ambient": true,
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.8,
+        0.8,
+        0.8
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        2,
+        0
+      ],
+      "scale": [
+        0.3,
+        0.3,
+        0.3
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.6,
+        0.6,
+        0.6
+      ]
+    }
+  }
+}

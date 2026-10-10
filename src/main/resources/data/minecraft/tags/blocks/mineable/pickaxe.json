@@ -32,6 +32,7 @@
     "molecularmanipulator:matter_fabrication_fluid_output",
     "molecularmanipulator:matter_fabrication_pattern_assembly",
     "molecularmanipulator:event_horizon_singularity_hub",
+    "molecularmanipulator:compact_singularity_hub",
     "molecularmanipulator:singularity_base_casing",
     "molecularmanipulator:gravity_gilded_block",
     "molecularmanipulator:spacetime_anchor_pillar",
@@ -45,6 +46,7 @@
     "molecularmanipulator:singularity_base_stairs",
     "molecularmanipulator:singularity_base_slab",
     "molecularmanipulator:black_hole",
-    "molecularmanipulator:white_hole"
+    "molecularmanipulator:white_hole",
+    "molecularmanipulator:gravity_crystal"
   ]
 }

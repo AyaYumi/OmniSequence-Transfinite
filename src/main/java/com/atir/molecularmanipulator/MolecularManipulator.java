@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
+import com.atir.molecularmanipulator.network.MatterFabricationUploadPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.integration.useless.UselessBigIntegerApiBridge;
 import com.mojang.logging.LogUtils;
@@ -25,6 +26,7 @@ public final class MolecularManipulator {
         modEventBus.addListener(this::commonSetup);
         PatternSearchIndexPayload.register();
         com.atir.molecularmanipulator.network.MachineRecipeJsonPayload.register();
+        MatterFabricationUploadPayload.register();
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

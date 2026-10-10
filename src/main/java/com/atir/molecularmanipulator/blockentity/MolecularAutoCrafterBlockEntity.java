@@ -186,6 +186,60 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         return key == null ? 0 : bufferedOutputs.getLong(key);
     }
 
+    @Override
+    public long getAutoCraftOutputStock(AEKey key, long limit,
+            MolecularAutoCrafter.OutputLimitMode mode) {
+        if (key == null || limit <= 0) return 0;
+        Level level = getLevel();
+        if (mode == MolecularAutoCrafter.OutputLimitMode.DESTINATION
+                && outputMode == OutputMode.ADJACENT && key instanceof AEItemKey
+                && level != null) {
+            return countAdjacentOutputStock(level, key, limit);
+        }
+        var grid = getMainNode().getGrid();
+        if (grid == null) return 0;
+        try {
+            return grid.getStorageService().getInventory().extract(
+                    key, limit, Actionable.SIMULATE, actionSource);
+        } catch (RuntimeException exception) {
+            return limit;
+        }
+    }
+
+    private long countAdjacentOutputStock(Level level, AEKey key, long limit) {
+        if (outputSides == 0) return 0;
+        long stored = 0;
+        for (var side : Direction.values()) {
+            if ((outputSides & 1 << side.get3DDataValue()) == 0) continue;
+            BlockPos neighbor = worldPosition.relative(side);
+            if (!level.hasChunkAt(neighbor)) continue;
+            try {
+                var neighborEntity = level.getBlockEntity(neighbor);
+                var target = neighborEntity == null ? null : neighborEntity.getCapability(ForgeCapabilities.ITEM_HANDLER, side.getOpposite()).orElse(null);
+                if (target == null) continue;
+                for (int slot = 0; slot < target.getSlots(); slot++) {
+                    ItemStack stack = target.getStackInSlot(slot);
+                    stored = MolecularAutoCraftMath.addMatchingOutputAmount(
+                            stored, limit, key,
+                            stack.isEmpty() ? null : AEItemKey.of(stack),
+                            stack.getCount());
+                    if (stored >= limit) return limit;
+                }
+            } catch (RuntimeException exception) {
+                return limit;
+            }
+        }
+        return stored;
+    }
+
+    @Override
+    public void flushAutoCraftOutputsAfterControlChange() {
+        Level level = getLevel();
+        if (level != null && !level.isClientSide() && !assembling) {
+            flushOutputs(level);
+        }
+    }
+
     /** Snapshot for the output-buffer slots; the machine remains the owner of these resources. */
     public List<GenericStack> getBufferedAutoCraftOutputs() {
         var result = new ArrayList<GenericStack>();
@@ -207,9 +261,9 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     public void serverTick() {
         Level level = getLevel();
         if (level == null || level.isClientSide()) return;
+        flushOutputs(level);
         autoCrafter.tick(level.getGameTime());
         updateWorkingState();
-        flushOutputs(level);
     }
 
     private void updateWorkingState() {
@@ -346,13 +400,6 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     public enum OutputMode {
         NETWORK,
         ADJACENT
-    }
-    @Override
-    public void flushAutoCraftOutputsAfterControlChange() {
-        Level level = getLevel();
-        if (level != null && !level.isClientSide() && !assembling) {
-            flushOutputs(level);
-        }
     }
 
 }

@@ -1,0 +1,25 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [],
+  "results": [
+    {
+      "item": "molecularmanipulator:miniature_supernova",
+      "count": 1
+    }
+  ],
+  "processing_time": 600,
+  "ae_per_tick": 4096,
+  "requires_research": true,
+  "ae_inputs": [
+    {
+      "#t": "ae2:i",
+      "#": 100,
+      "id": "molecularmanipulator:black_hole"
+    },
+    {
+      "#t": "ae2:i",
+      "#": 100,
+      "id": "molecularmanipulator:white_hole"
+    }
+  ]
+}

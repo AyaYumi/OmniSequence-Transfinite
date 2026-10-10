@@ -33,10 +33,15 @@ public final class CosmicSingularityGameTests {
         var previousPosition = player.position(); var previousVelocity = player.getDeltaMovement();
         try {
             level.setBlockAndUpdate(white, ModContent.WHITE_HOLE_BLOCK.get().defaultBlockState());
-            WhiteHoleRegistry.register(level, white);
-            helper.assertTrue(!WhiteHoleRegistry.canPlace(level), "A second white hole must remain forbidden");
+            var ownership = new net.minecraft.nbt.CompoundTag();
+            var team = java.util.UUID.fromString("0166c5b5-e73f-4bb2-9c1c-516c225c30d3");
+            ownership.putUUID("bound_team", team);
+            ((CosmicSingularityBlockEntity) level.getBlockEntity(white)).load(ownership);
+            WhiteHoleRegistry.register(level, white, team);
+            helper.assertTrue(white.equals(WhiteHoleRegistry.nearest(level, black, team)), "Registered team exit must be found");
             level.setBlockAndUpdate(black, ModContent.BLACK_HOLE_BLOCK.get().defaultBlockState());
             var machine = (CosmicSingularityBlockEntity) level.getBlockEntity(black);
+            machine.load(ownership);
             first.setNoGravity(true); level.addFreshEntity(first);
             pig.setPos(center.x, center.y, center.z); pig.setNoGravity(true); level.addFreshEntity(pig);
             if (pack) player.teleportTo(center.x, center.y, center.z);
@@ -57,9 +62,9 @@ public final class CosmicSingularityGameTests {
             ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(time + 6); machine.serverTick();
             helper.assertTrue(late.getDeltaMovement().equals(Vec3.ZERO), "Leaving the bounds must stop attraction immediately");
             level.setBlockAndUpdate(white, Blocks.AIR.defaultBlockState());
-            helper.assertTrue(WhiteHoleRegistry.canPlace(level), "Removing the white hole must release its registry claim");
+            helper.assertTrue(WhiteHoleRegistry.nearest(level, black, team) == null, "Removing the white hole must release its registry claim");
             machine.serverTick();
-            System.out.println("COSMIC_CAPTURE_PASS: items, mobs, scan interval, new arrivals, exits and white-hole uniqueness");
+            System.out.println("COSMIC_CAPTURE_PASS: items, mobs, scan interval, new arrivals, exits and team exit cleanup");
             helper.succeed();
         } finally {
             first.discard(); late.discard(); pig.discard();

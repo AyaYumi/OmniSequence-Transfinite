@@ -37,6 +37,11 @@ final class MatterFabricationBatch {
     long storedInputAmount(AEKey key) { return inputs.getOrDefault(key, 0L); }
     Map<AEKey, Long> storedOutputs() { return Map.copyOf(outputDebt); }
     boolean unavailable() { return unavailable != null; }
+    boolean waitingForCatalyst(MatterFabricationBlockEntity host) {
+        if (crafts <= 0 || recipeId == null) return false;
+        var holder = MatterRecipeIndex.get(host.getLevel()).fabrication(recipeId);
+        return holder != null && !host.hasCatalysts(holder.value());
+    }
 
     static Map<AEKey, Long> outputs(MatterFabricationRecipe recipe) {
         return MatterRecipeIndex.outputAmounts(recipe);
@@ -64,11 +69,15 @@ final class MatterFabricationBatch {
     static MatterFabricationRecipe match(MatterFabricationBlockEntity host,
             List<MatterFabricationRecipe> candidates, Map<AEKey, Long> supplied, long count) {
         if (count <= 0) return null;
+        MatterFabricationRecipe missingCatalyst = null;
         for (var holder : candidates) {
             if (MatterResearchApi.canUseRecipe(host, holder)
-                    && validInputs(holder.value(), supplied, count)) return holder;
+                    && validInputs(holder.value(), supplied, count)) {
+                if (host.hasCatalysts(holder.value())) return holder;
+                if (missingCatalyst == null) missingCatalyst = holder;
+            }
         }
-        return null;
+        return missingCatalyst;
     }
 
     private static boolean validInputs(MatterFabricationRecipe recipe, Map<AEKey, Long> supplied, long count) {
@@ -113,6 +122,7 @@ final class MatterFabricationBatch {
     long capacity(MatterFabricationBlockEntity host, MatterFabricationRecipe holder, Map<AEKey, Long> oneCraft) {
         if (unavailable != null || !outputDebt.isEmpty() || progress > 0) return 0;
         var recipe = holder.value(); var profile = MatterResearchApi.productionProfile(host, holder);
+        if (!host.hasCatalysts(recipe)) return 0;
         var output = outputs(recipe);
         if (crafts > 0 && (!holder.id().equals(recipeId) || !output.equals(outputsPerCraft)
                 || duration != profile.ticks() || Double.compare(powerPerCraft, recipe.aePerTick()) != 0)) return 0;
@@ -132,7 +142,15 @@ final class MatterFabricationBatch {
             long count, Map<AEKey, Long> expectedOutputs) {
         try {
             var holder = match(host, pattern, supplied, count);
-            if (holder == null || count > capacity(host, holder, Map.of())) return false;
+            return holder != null && accept(host, holder, supplied, count, expectedOutputs);
+        } catch (ArithmeticException error) { return false; }
+    }
+
+    boolean accept(MatterFabricationBlockEntity host, MatterFabricationRecipe holder, Map<AEKey, Long> supplied,
+            long count, Map<AEKey, Long> expectedOutputs) {
+        try {
+            if (count <= 0 || !MatterResearchApi.canUseRecipe(host, holder) || !validInputs(holder.value(), supplied, count)
+                    || count > capacity(host, holder, Map.of())) return false;
             var output = outputs(holder.value());
             var scaled = new LinkedHashMap<AEKey, Long>(); output.forEach((key, amount) -> scaled.put(key, Math.multiplyExact(amount, count)));
             if (expectedOutputs != null && !scaled.equals(expectedOutputs)) return false;
@@ -175,6 +193,7 @@ final class MatterFabricationBatch {
             return update(outputDebt.isEmpty() ? MatterFabricationBlockEntity.ProcessingState.IDLE : MatterFabricationBlockEntity.ProcessingState.OUTPUT_BLOCKED, false);
         }
         if (!host.isStructureFormed()) return update(MatterFabricationBlockEntity.ProcessingState.STRUCTURE_INCOMPLETE, false);
+        if (waitingForCatalyst(host)) return update(MatterFabricationBlockEntity.ProcessingState.WAITING_CATALYST, false);
         double power = powerPerCraft * crafts;
         if (!Double.isFinite(power) || !host.consumeResearchPower(power)) return update(MatterFabricationBlockEntity.ProcessingState.WAITING_POWER, false);
         progress++; host.saveChanges();

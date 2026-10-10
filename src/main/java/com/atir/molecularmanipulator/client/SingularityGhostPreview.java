@@ -35,6 +35,7 @@ public final class SingularityGhostPreview {
     }
 
     public static boolean toggle(SingularityBlockEntity machine) {
+        if (machine.isSingleBlock()) return false;
         var minecraft = Minecraft.getInstance();
         if (minecraft.level == null) {
             return false;

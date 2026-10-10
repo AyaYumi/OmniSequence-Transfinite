@@ -1,20 +1,18 @@
 {
-  "type": "molecularmanipulator:matter_fabrication",
-  "ingredients": [
-    {
-      "ingredient": {
-        "item": "molecularmanipulator:singularity_base_casing"
-      },
-      "count": 6000000
-    }
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "C  ",
+    "CC ",
+    "CCC"
   ],
-  "results": [
-    {
-      "id": "molecularmanipulator:singularity_base_stairs",
-      "count": 8
+  "key": {
+    "C": {
+      "item": "molecularmanipulator:singularity_base_casing"
     }
-  ],
-  "processing_time": 100,
-  "ae_per_tick": 512,
-  "requires_research": true
+  },
+  "result": {
+    "item": "molecularmanipulator:singularity_base_stairs",
+    "count": 4
+  }
 }

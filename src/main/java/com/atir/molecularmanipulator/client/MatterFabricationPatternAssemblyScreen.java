@@ -17,7 +17,7 @@ public final class MatterFabricationPatternAssemblyScreen
         extends ResponsiveContainerScreen<MatterFabricationPatternAssemblyMenu> {
     private EditBox nameField;
     private boolean initializedName;
-    private final Button[] tabs = new Button[3];
+    private final Button[] tabs = new Button[4];
     private Button previous, next, refund;
 
     public MatterFabricationPatternAssemblyScreen(MatterFabricationPatternAssemblyMenu menu,
@@ -40,9 +40,9 @@ public final class MatterFabricationPatternAssemblyScreen
                 button -> saveName()));
         for (int i = 0; i < tabs.length; i++) {
             final int view = i;
-            tabs[i] = addScreenWidget(OmniUiTheme.button(leftPos + 18 + i * 72, topPos + 90, 68, 16,
-                    text(i == 0 ? "patterns" : i == 1 ? "input" : "output"), button -> menu.requestView(view)));
-            tabs[i].setTooltip(Tooltip.create(text("capacity")));
+            tabs[i] = addScreenWidget(OmniUiTheme.button(leftPos + 18 + i * 54, topPos + 90, 50, 16,
+                    text(i == 0 ? "patterns" : i == 1 ? "input_tab" : i == 2 ? "output_tab" : "catalysts"), button -> menu.requestView(view)));
+            tabs[i].setTooltip(Tooltip.create(text(i == 3 ? "catalyst_hint" : "capacity")));
         }
         previous = addScreenWidget(OmniUiTheme.button(leftPos + 18, topPos + 198, 24, 16, Component.literal("<"),
                 button -> menu.requestPage(menu.bufferState.page() - 1)));
@@ -69,10 +69,11 @@ public final class MatterFabricationPatternAssemblyScreen
             ((OmniButton) tabs[i]).setSelected(menu.view == i);
         }
         if (previous != null) {
-            previous.visible = next.visible = menu.view != 0;
+            previous.visible = next.visible = menu.view == 1 || menu.view == 2;
             previous.active = menu.bufferState.page() > 0;
             next.active = menu.bufferState.page() + 1 < menu.bufferState.pages();
             refund.active = menu.canRefund;
+            refund.visible = menu.view != 3;
         }
         menu.updatePatternSlots();
     }
@@ -80,7 +81,7 @@ public final class MatterFabricationPatternAssemblyScreen
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if (menu.view != 0 && x >= 12 && x < 236 && y >= 110 && y < 218 && scrollY != 0) {
+        if ((menu.view == 1 || menu.view == 2) && x >= 12 && x < 236 && y >= 110 && y < 218 && scrollY != 0) {
             menu.requestPage(menu.bufferState.page() + (scrollY < 0 ? 1 : -1)); return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollY);
@@ -89,7 +90,7 @@ public final class MatterFabricationPatternAssemblyScreen
     @Override
     public appeng.client.gui.StackWithBounds getStackUnderMouse(double mouseX, double mouseY) {
         double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if (menu.view != 0 && x >= 18 && x < 230 && y >= 112 && y < 192) {
+        if ((menu.view == 1 || menu.view == 2) && x >= 18 && x < 230 && y >= 112 && y < 192) {
             int row = (int) (y - 112) / 20;
             if (row < menu.bufferState.contents().size()) return new appeng.client.gui.StackWithBounds(
                     menu.bufferState.contents().get(row), new net.minecraft.client.renderer.Rect2i(
@@ -103,7 +104,7 @@ public final class MatterFabricationPatternAssemblyScreen
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
         double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if (menu.view != 0 && x >= 18 && x < 230 && y >= 112 && y < 192) {
+        if ((menu.view == 1 || menu.view == 2) && x >= 18 && x < 230 && y >= 112 && y < 192) {
             int row = (int) (y - 112) / 20;
             if (row < menu.bufferState.contents().size()) {
                 var stack = menu.bufferState.contents().get(row);
@@ -135,7 +136,7 @@ public final class MatterFabricationPatternAssemblyScreen
         super.drawBG(graphics, x, y, mouseX, mouseY, partialTick);
         graphics.fill(x + 12, y + 36, x + 236, y + 37, OmniUiTheme.SHADOW);
         MachineUiLayout.PATTERN_ASSEMBLY.draw(graphics, x, y);
-        if (menu.view == 0) OmniUiTheme.slotGrid(graphics, x + 43, y + 110, 9, 4);
+        if (menu.view == 0 || menu.view == 3) OmniUiTheme.slotGrid(graphics, x + 43, y + 110, 9, 4);
     }
 
     @Override
@@ -148,9 +149,13 @@ public final class MatterFabricationPatternAssemblyScreen
                 164, 22, 70, OmniUiTheme.PRIMARY_TEXT);
         if (menu.view == 0) {
             var status = menu.bufferState.unavailable() ? text("unavailable")
+                    : menu.waitingForCatalyst ? text("waiting_catalyst")
                     : !menu.controllerReady && (menu.bufferState.processing() || menu.bufferState.queuedPatterns() > 0) ? text("waiting") : text("capacity");
             drawFittedString(graphics, status, 20, 186, 208, OmniUiTheme.MUTED_TEXT);
             drawFittedString(graphics, text("queued", menu.bufferState.queuedPatterns()), 20, 202, 108, OmniUiTheme.MUTED_TEXT);
+        } else if (menu.view == 3) {
+            drawFittedString(graphics, text("catalyst_shared"), 20, 186, 208, OmniUiTheme.MUTED_TEXT);
+            drawFittedString(graphics, text("catalyst_types", menu.sharedCatalystTypes), 20, 202, 208, OmniUiTheme.MUTED_TEXT);
         } else {
             if (menu.bufferState.unavailable()) drawFittedString(graphics, text("unavailable"), 20, 118, 208, OmniUiTheme.WARNING);
             else if (menu.bufferState.contents().isEmpty()) drawFittedString(graphics, text("empty"), 20, 118, 208, OmniUiTheme.MUTED_TEXT);

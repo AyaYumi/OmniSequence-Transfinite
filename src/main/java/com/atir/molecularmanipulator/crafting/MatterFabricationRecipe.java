@@ -20,6 +20,7 @@ import java.util.List;
 
 public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation id,
         List<CountedIngredient> ingredients,
+        List<CountedIngredient> catalysts,
         List<ItemStack> results,
         FluidStack fluidInput,
         FluidStack fluidResult,
@@ -30,6 +31,26 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
         boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
     public static final int MAX_INPUTS = 12;
     public static final int MAX_OUTPUTS = 6;
+
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
+            FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            List<GenericStack> aeOutputs, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(com.atir.molecularmanipulator.MolecularManipulator.id("unregistered"), ingredients, List.of(), results, fluidInput, fluidResult, aeInputs, aeOutputs,
+                processingTime, aePerTick, requiresResearch);
+    }
+
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<CountedIngredient> catalysts,
+            List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            List<GenericStack> aeOutputs, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(com.atir.molecularmanipulator.MolecularManipulator.id("unregistered"), ingredients, catalysts,
+                results, fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+    }
+
+    public MatterFabricationRecipe(net.minecraft.resources.ResourceLocation id, List<CountedIngredient> ingredients,
+            List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            List<GenericStack> aeOutputs, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(id, ingredients, List.of(), results, fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+    }
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
             FluidStack fluidInput, FluidStack fluidResult, int processingTime, double aePerTick) {
@@ -47,12 +68,6 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
         this(ingredients, results, fluidInput, fluidResult, aeInputs, List.of(), processingTime, aePerTick, requiresResearch);
     }
 
-    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results, FluidStack fluidInput,
-            FluidStack fluidResult, List<GenericStack> aeInputs, List<GenericStack> aeOutputs,
-            int processingTime, double aePerTick, boolean requiresResearch) {
-        this(com.atir.molecularmanipulator.MolecularManipulator.id("unregistered"), ingredients, results,
-                fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
-    }
 
     public MatterFabricationRecipe(net.minecraft.resources.ResourceLocation id, List<CountedIngredient> ingredients,
             List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
@@ -68,17 +83,18 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
     @Override public net.minecraft.resources.ResourceLocation getId() { return id; }
     public MatterFabricationRecipe value() { return this; }
     public MatterFabricationRecipe withId(net.minecraft.resources.ResourceLocation recipeId) {
-        return new MatterFabricationRecipe(recipeId, ingredients, results, fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+        return new MatterFabricationRecipe(recipeId, ingredients, catalysts, results, fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
     }
 
     public MatterFabricationRecipe {
         ingredients = List.copyOf(ingredients);
+        catalysts = List.copyOf(catalysts);
         results = results.stream().map(ItemStack::copy).toList();
         fluidInput = fluidInput.copy();
         fluidResult = fluidResult.copy();
         aeInputs = List.copyOf(aeInputs);
         aeOutputs = List.copyOf(aeOutputs);
-        if (ingredients.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
+        if (ingredients.size() + catalysts.size() + aeInputs.size() > MAX_INPUTS || ingredients.isEmpty() && fluidInput.isEmpty() && aeInputs.isEmpty()) {
             throw new IllegalArgumentException("Matter fabrication recipes require between 1 and 12 item/AE inputs or a fluid input");
         }
         if (aeInputs.stream().anyMatch(stack -> stack.amount() <= 0)
@@ -206,7 +222,9 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
                 instance.group(
                         CountedIngredient.CODEC.codec().listOf()
                                 .optionalFieldOf("ingredients", List.of()).forGetter(MatterFabricationRecipe::ingredients),
-                        com.atir.molecularmanipulator.crafting.ForgeRecipeCodecs.ITEM_STACK.listOf()
+                        CountedIngredient.CODEC.codec().listOf()
+                                .optionalFieldOf("catalysts", List.of()).forGetter(MatterFabricationRecipe::catalysts),
+                        ForgeRecipeCodecs.ITEM_STACK.listOf()
                                 .optionalFieldOf("results", List.of()).forGetter(MatterFabricationRecipe::results),
                         com.atir.molecularmanipulator.crafting.ForgeRecipeCodecs.FLUID_STACK.optionalFieldOf("fluid_input", FluidStack.EMPTY)
                                 .forGetter(MatterFabricationRecipe::fluidInput),
@@ -223,6 +241,8 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
                         Codec.BOOL.optionalFieldOf("requires_research", false)
                                 .forGetter(MatterFabricationRecipe::requiresResearch))
                         .apply(instance, MatterFabricationRecipe::new));
+
+        public MapCodec<MatterFabricationRecipe> codec() { return CODEC; }
 
         @Override public MatterFabricationRecipe fromJson(net.minecraft.resources.ResourceLocation id, com.google.gson.JsonObject json) {
             return CODEC.codec().parse(com.mojang.serialization.JsonOps.INSTANCE, json)

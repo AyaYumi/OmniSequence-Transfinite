@@ -55,6 +55,7 @@ logs/
 /docs/development.md
 /docs/DEVELOPMENT.md
 /docs/performance.md
+/VERSION_SYNC.md
 /tools/client/
 /tools/pack/
 /tools/ui/
@@ -62,5 +63,6 @@ logs/
 *.sparkprofile
 *.tmp
 *.bak
+__pycache__/
 
 /.dependencies/

@@ -15,9 +15,7 @@ item_ids:
 
 # 物质构筑井
 
-材料加工、研究与 AE 自动合成的起点。先建成构筑井，再通过研究开放后续设备。
-
-## 施工准备
+物质构筑井是一座用于材料加工和研究的多方块机器。它可以通过输入输出口加工原料，也可以安装样板总成，为 ME 网络执行自动合成。
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:matter_fabrication_controller" />
@@ -28,63 +26,41 @@ item_ids:
 <ItemIcon id="molecularmanipulator:matter_fabrication_core" />
 </ItemGrid>
 
-| 准备项 | 要求 |
+## 搭建结构
+
+构筑井占地 **41 × 41**，高 **27 格**。控制器、基础结构件和输入输出口无需研究即可制作。完整材料清单可在 JEI 结构页查看。
+
+1. 放置控制器，打开**投影**，检查建筑范围内的缺块和冲突。
+2. 按清单准备材料，清理冲突后点击**一键搭建**。搭建先使用玩家背包，再使用控制器连接的 ME 库存。
+3. 在服务位置安装所需的[输入输出口](matter_fabrication_ports.md)。手持接口可以查看这些位置。
+4. 接通 ME 网络与电源，在控制器中确认结构成型和联网状态。
+
+服务位置共 **44 格**：前方台阶 24 格，中央平台四段各 5 格。[样板总成](matter_fabrication_pattern_assembly.md)也安装在服务位置。
+
+## 使用构筑井
+
+| 工作方式 | 操作 |
 | --- | --- |
-| 空间 | 41 × 41，高 27 格 |
-| 初始阶段 | 0 阶，控制器与基础接口无需研究 |
-| 材料清单 | JEI 结构页与控制器投影 |
+| 材料加工 | 将物品与流体送入对应输入口，从输出口取走产物 |
+| [研究](matter_fabrication_research.md) | 把研究材料存入 ME，在研究页选择分支并开始 |
+| ME 自动合成 | 完成一阶研究，安装样板总成并放入对应处理样板 |
 
-## 从控制器到完整建筑
+研究和加工可以同时进行。无法开始时，检查结构、供电、研究条件以及产物接收空间。
 
-1. 放置控制器，正面朝向操作侧，打开**投影**检查缺块和冲突。
-2. 按 JEI 清单备齐材料，清理冲突后点击**一键搭建**。
-3. 施工优先取玩家背包，再取控制器连接的 ME 网络。
-4. 在高亮的服务位置安装[输入输出口](matter_fabrication_ports.md)，成型后接通 ME 电源。
+## 量子连接
 
-服务位置共 **44 格**：前方台阶 24 格，中央平台四段各 5 格。手持接口可查看安装位置。
+在控制器量子槽放入一枚**缠绕态奇点**，将配对的另一枚放入已供电的 AE2 量子环，即可连接远端 ME 网络。量子连接额外需要 **512 AE/t 和 1 个频道**，也能在结构未成型时提供搭建材料。
 
-## 选择工作方式
+## 拆除与搬迁
 
-<Row>
-<BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="4" />
+**一键拆除**保留控制器，将结构材料优先送回 ME，再放入背包。接收空间不足时暂停，腾出空间后可以继续。
 
-<BlockImage id="molecularmanipulator:matter_fabrication_fluid_input" scale="4" />
+正常拆下控制器会保留研究进度、已接收任务与量子槽内容；接口保留各自缓存，样板总成保留样板与加工材料。重新安装并恢复结构、网络和供电后可继续工作。
 
-<BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
-</Row>
+服务器启用多方块强加载时，成型与施工期间会保持所需区块加载。建筑占用区块内会阻止自然刷怪，刷怪笼、繁殖和已有生物不受影响。
 
-| 工作 | 如何开始 |
-| --- | --- |
-| [材料加工](matter_fabrication_ports.md) | 经物品、流体输入口投料，输出口接收产物 |
-| [研究](matter_fabrication_research.md) | 在研究页选择分支，材料放入控制器的 ME 网络 |
-| [AE 自动合成](matter_fabrication_pattern_assembly.md) | 一阶解锁样板总成后，放入匹配加工配方的处理样板 |
-
-研究和加工可以同时进行。配方的实际材料、耗时、功率和研究条件以 JEI 与下方配方图为准。
-
-## 远程施工与回收
-
-<ItemGrid>
-<ItemIcon id="ae2:quantum_entangled_singularity" />
-<ItemIcon id="ae2:quantum_ring" />
-<ItemIcon id="ae2:quantum_link" />
-</ItemGrid>
-
-量子槽放入一枚**缠绕态奇点**，配对的另一枚放入已供电的 AE2 量子环。未成型时也可取用远端施工材料；链路额外需要 **512 AE/t、1 个频道**。
-
-**一键拆除**从上到下回收并保留控制器。材料先回 ME，再进背包；空间不足时暂停，腾出空间后继续。
-
-| 拆下的方块 | 随方块保存 |
-| --- | --- |
-| 控制器 | 研究进度、已接收任务和量子槽内容 |
-| 输入输出口 | 各自物品或流体缓存 |
-| 样板总成 | 样板、材料与加工批次 |
-
-重新安装后，恢复完整结构、网络与供电即可继续。启用多方块强加载配置时，成型和施工期间会保持所需区块加载；占用区块受到自然生成保护，刷怪笼、繁殖与已有生物不受影响。
-
-## 控制器配方
+## 配方
 
 <RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />
-
-## 继续阅读
 
 <SubPages icons={true} />

@@ -86,8 +86,9 @@ tasks.named('jarJar', Jar).configure {
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
+    from('CONFIGURATION.md')
     from('docs') {
-        include 'README.md', 'configuration.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
+        include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
                 'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
         into 'docs'
     }
@@ -221,8 +222,9 @@ tasks.named('jar', Jar).configure {
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('CHANGELOG.md')
+    from('CONFIGURATION.md') { into 'docs' }
     from('docs') {
-        include 'README.md', 'configuration.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
+        include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
                 'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
         into 'docs'
     }
@@ -251,6 +253,14 @@ tasks.withType(ProcessResources).configureEach {
     filteringCharset = 'UTF-8'
     includeEmptyDirs = false
 }
+
+// Optional CPU contracts are Java 17 ABI declarations, never runtime implementations.
+// Keep the declaration output off runtime classpaths and out of every distributable.
+def optionalCpuApi = sourceSets.create('optionalCpuApi') {
+    java.srcDir 'src/optionalCpuApi/java'
+    compileClasspath = sourceSets.main.compileClasspath
+}
+sourceSets.main.compileClasspath += optionalCpuApi.output
 
 // Fail clearly before compiling against an older local prerequisite.
 def verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi') {
@@ -295,6 +305,16 @@ def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
     inputs.file(releaseJar)
     doLast {
         new java.util.zip.ZipFile(releaseJar.get().asFile).withCloseable { archive ->
+            def apiDocs = ['README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
+                    'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md']
+            def packagedDocs = archive.entries().toList().findAll { !it.directory && it.name.startsWith('docs/') }
+                    .collect { it.name.substring('docs/'.length()) }
+            if (packagedDocs.toSet() != apiDocs.toSet())
+                throw new GradleException('Release docs must contain only the complete public API documentation')
+            def forbidden = ['cn/dancingsnow/neoecoae/', 'com/moakiee/thunderbolt/',
+                    'com/fish_dan_/data_energistics/', 'com/atir/molecularmanipulator/verification/']
+            if (archive.entries().toList().any { entry -> forbidden.any { prefix -> entry.name.startsWith(prefix) } })
+                throw new GradleException('Optional ABI declarations or test fixtures leaked into the release JAR')
             def parser = new groovy.json.JsonSlurper()
             def config = parser.parse(archive.getInputStream(archive.getEntry("${mod_id}.mixins.json")), 'UTF-8')
             def refmapName = "${mod_id}.refmap.json"
@@ -307,7 +327,13 @@ def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
                 'SingularityPlayerCarriageMixin': ['tick', 'm_9933_'],
                 'ForgeMachineRecipeJsonMixin': ['apply', 'm_5787_'],
                 'ResponsiveScreenBackgroundMixin': ['renderBackground', 'm_280273_'],
-                'RecipeManagerAccessor': ['byName', 'f_199900_']
+                'RecipeManagerAccessor': ['byName', 'f_199900_'],
+                'GravityCameraMixin': ['setRotation(FF)V', 'm_90572_'],
+                'GravityEntityMixin': ['canEnterPose', 'm_20175_'],
+                'GravityLivingMotionMixin': ['travel', 'm_7023_'],
+                'GravityPlayerRendererMixin': ['setupRotations', 'm_7523_'],
+                'GhostMatterDamageMixin': ['handleDamageEvent', 'm_269138_'],
+                'GhostMatterLocalHealthMixin': ['hurtTo', 'm_108760_']
             ].each { mixin, target ->
                 def mapping = refmap.mappings["com/atir/molecularmanipulator/mixin/${mixin}"]?[target[0]]
                 if (!(mapping instanceof String) || !mapping.contains(target[1])) {

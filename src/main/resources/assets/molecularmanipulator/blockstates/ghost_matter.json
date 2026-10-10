@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "dispersed=false": {
+      "model": "molecularmanipulator:block/ghost_matter"
+    },
+    "dispersed=true": {
+      "model": "molecularmanipulator:block/ghost_matter_dispersed"
+    }
+  }
+}

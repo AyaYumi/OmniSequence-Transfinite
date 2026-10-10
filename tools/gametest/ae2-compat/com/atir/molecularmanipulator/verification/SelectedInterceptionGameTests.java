@@ -184,7 +184,7 @@ public final class SelectedInterceptionGameTests {
                     case "hashCode" -> System.identityHashCode(p);
                     case "equals" -> p == a[0];
                     case "getDefinition" -> AEItemKey.of(item);
-                    case "getOutputs" -> List.of(new GenericStack(AEItemKey.of(item), 1));
+                    case "getOutputs" -> new GenericStack[]{new GenericStack(AEItemKey.of(item), 1)};
                     case "getInputs" -> new IPatternDetails.IInput[0];
                     default -> throw new AssertionError(m.getName());
                 });

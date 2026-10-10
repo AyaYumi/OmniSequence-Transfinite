@@ -22,19 +22,25 @@ final class MatterFabricationJeiIngredients {
             var converters = Class.forName("tamaized.ae2jeiintegration.api.integrations.jei.IngredientConverters");
             var registered = (Iterable<?>) converters.getMethod("getConverters").invoke(null);
             for (var converter : registered) {
-                var type = converter.getClass();
-                Object ingredient = type.getMethod("getIngredientFromStack", GenericStack.class).invoke(converter, stack);
-                if (ingredient == null) continue;
-                @SuppressWarnings("unchecked")
-                var ingredientType = (IIngredientType<Object>) type.getMethod("getIngredientType").invoke(converter);
-                slot.addIngredient(ingredientType, ingredient);
-                slot.setCustomRenderer(ingredientType, new KeyRenderer<>(stack));
-                return true;
+                if (addWithConverter(slot, stack, converter)) return true;
             }
         } catch (ReflectiveOperationException | LinkageError ignored) {
             // The optional integration has no stable Forge API on every supported pack.
         }
         return false;
+    }
+
+    static boolean addWithConverter(IRecipeSlotBuilder slot, GenericStack stack, Object converter)
+            throws ReflectiveOperationException {
+        var type = converter.getClass();
+        Object ingredient = type.getMethod("getIngredientFromStack", GenericStack.class).invoke(converter, stack);
+        if (ingredient == null) return false;
+        @SuppressWarnings("unchecked")
+        var ingredientType = (IIngredientType<Object>) type.getMethod("getIngredientType").invoke(converter);
+        slot.setSlotName(JeiAeStackAmounts.slotName(stack.amount()));
+        slot.addIngredient(ingredientType, ingredient);
+        slot.setCustomRenderer(ingredientType, new KeyRenderer<>(stack));
+        return true;
     }
 
     private record KeyRenderer<T>(GenericStack stack) implements IIngredientRenderer<T> {

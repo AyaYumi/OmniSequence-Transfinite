@@ -1,0 +1,30 @@
+// CI regression for six-direction gravity and Ghost Matter in a disposable server world.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('outerWildsVerification') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/OuterWildsGameTests.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.configureEach { mods { "${project.mod_id}" { source verification } } }
+        def run = minecraft.runs.getByName('gameTestServer')
+        run.workingDirectory = project.file('build/outer-wilds-gametest')
+        run.property "forge.logging.console.level", "info"
+        tasks.named('compileOuterWildsVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def log = new File(run.workingDirectory, 'logs/latest.log').text
+                if (!(log =~ /All [1-9][0-9]* required tests passed/))
+                    throw new GradleException('No successful required game tests in outer-wilds')
+            }
+        }
+    }
+}

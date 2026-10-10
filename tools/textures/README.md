@@ -1,17 +1,19 @@
 # Texture maintenance / 贴图维护
 
-Current source: 2.0.7-forge. Runtime textures and metadata live in
+Current source: 2.0.8-forge. Runtime textures and metadata live in
 `src/main/resources/assets/molecularmanipulator/textures/`. Editable source images
 under `static/` are required to regenerate animations; they are not unused assets.
 
 | Generator | Maintained input and output |
 | --- | --- |
-| `generate_animation.py` | 20 original block PNGs in `static/`; 24-frame strips and interpolation metadata |
-| `animate_hole_items.py` | 32×32 `static/items/black_hole.png` / `white_hole.png`; 32-frame orbit/halo item animations |
-| `rebuild_singularity.py` | Current 16×16 Hub block art; rebuild emissive overlays without repainting base texels |
-| `generate_sequence_matter_fluid.py` | Tiled source/flowing Sequence Matter animation; 32 frames |
+| `generate_ghost_matter.py` | `static/items/ghost_matter.png`; current ghost-matter item, mesh and fog resources |
+| `generate_animation.py` | Block source images in `static/`; runtime textures and metadata |
+| `animate_hole_items.py` | `static/items/black_hole.png` / `white_hole.png`; runtime item textures |
+| `rebuild_singularity.py` | Hub source images; rebuild emissive overlays |
+| `generate_sequence_matter_fluid.py` | Sequence Matter source and flowing fluid textures |
 
 ```powershell
+python tools/textures/generate_ghost_matter.py
 python tools/textures/generate_animation.py
 python tools/textures/animate_hole_items.py
 python tools/textures/rebuild_singularity.py

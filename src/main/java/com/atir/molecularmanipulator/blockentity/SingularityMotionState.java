@@ -46,7 +46,7 @@ public final class SingularityMotionState {
     }
     /** Starts motion as part of the resource-collection device lifecycle. */
     public boolean startForCollection(ServerPlayer player) {
-        if (!machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
+        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
                 || mode == DOCKING || machine.embedRequested()) return false;
         if (mode != RUNNING) toggleInternal(player);
         return mode == RUNNING;
@@ -64,7 +64,7 @@ public final class SingularityMotionState {
     }
 
     private void toggleInternal(ServerPlayer player) {
-        if (!machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE || mode == DOCKING || machine.embedRequested()) return;
+        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE || mode == DOCKING || machine.embedRequested()) return;
         operator = player.getUUID(); machine.setRecoveryOwner(player);
         // Stopping an already-running carriage must never be blocked by a
         // later layout migration. Freeze it first; migration can then finish

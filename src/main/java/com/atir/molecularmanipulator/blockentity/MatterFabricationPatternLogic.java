@@ -13,7 +13,6 @@ import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.api.crafting.*;
 import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
-import com.atir.molecularmanipulator.integration.ae2.OmniSmartDoublingProvider;
 import com.github.appliedenhancements.integration.ae2.AelisScaledPattern;
 import net.minecraft.world.item.ItemStack;
 
@@ -21,10 +20,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 public final class MatterFabricationPatternLogic extends PatternProviderLogic
-        implements OmniBatchCraftingProvider, OmniSmartDoublingProvider {
+        implements OmniBatchCraftingProvider {
     private final MatterFabricationPatternAssemblyBlockEntity assembly;
     private final AppEngInternalInventory patternInventory;
     private final List<IPatternDetails> patterns = new ArrayList<>();
@@ -175,50 +176,164 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
 
     @Override
     public OmniBatchAdmission prepareOmniBatch(OmniBatchProbe probe) {
-        var controller = assembly.getController();
-        var normalized = normalizeSmartPattern(probe.pattern());
-        var registered = registeredPattern(normalized.pattern());
-        if (isBlocking() || !assembly.isOperational() || controller == null || registered == null) return null;
-        var oneCraft = new java.util.LinkedHashMap<appeng.api.stacks.AEKey, Long>();
+        var oneCraft = new LinkedHashMap<AEKey, Long>();
         try {
             for (var input : probe.oneCraftInputs()) {
-                if (input.amount() % normalized.crafts() != 0) return null;
-                oneCraft.merge(input.key(), input.amount() / normalized.crafts(), Math::addExact);
+                oneCraft.merge(input.key(), input.amount(), Math::addExact);
             }
         }
         catch (ArithmeticException error) { return null; }
-        final long limit;
-        try {
-            long baseLimit = assembly.getBuffer().capacity(registered, oneCraft);
-            limit = Math.min(probe.requestedMaxCrafts(), baseLimit / normalized.crafts());
-        }
-        catch (ArithmeticException error) { return null; }
-        if (limit < 2) return null;
+        var batch = prepareCountedBatch(probe.pattern(), oneCraft, probe.requestedMaxCrafts());
+        if (batch == null || batch.maxCrafts() < 2) return null;
         return new OmniBatchAdmission() {
-            @Override public long maxCrafts() { return limit; }
+            @Override public long maxCrafts() { return batch.maxCrafts(); }
             @Override public void commit(OmniBatchDelivery delivery) {
                 var request = delivery.request();
-                var requestPattern = normalizeSmartPattern(request.pattern());
-                var requestRegistered = registeredPattern(requestPattern.pattern());
-                var inputs = new java.util.LinkedHashMap<appeng.api.stacks.AEKey, Long>();
-                var outputs = new java.util.LinkedHashMap<appeng.api.stacks.AEKey, Long>();
+                var inputs = new LinkedHashMap<AEKey, Long>();
                 boolean accepted = false;
                 try {
-                    boolean validInputs = true;
                     for (var input : request.inputs()) {
-                        if (input.amount() % requestPattern.crafts() != 0) { validInputs = false; break; }
-                        inputs.merge(input.key(), input.amount() / requestPattern.crafts(), Math::addExact);
+                        inputs.merge(input.key(), input.amount(), Math::addExact);
                     }
-                    for (var output : request.expectedOutputs()) outputs.merge(output.what(), output.amount(), Math::addExact);
-                    long baseCrafts = Math.multiplyExact(request.craftCount(), requestPattern.crafts());
-                    accepted = validInputs && assembly.isOperational() && assembly.getController() == controller && request.craftCount() <= limit
-                            && requestRegistered != null && requestRegistered.equals(registered)
-                            && outputs.equals(MatterPatternBuffer.scaled(MatterFabricationBatch.patternOutputs(requestRegistered), baseCrafts))
-                            && assembly.getBuffer().enqueue(requestRegistered, inputs, baseCrafts);
-                } catch (ArithmeticException ignored) { }
+                    accepted = batch.matches(request.pattern())
+                            && batch.commit(inputs, batchInputs(request.expectedOutputs()), request.craftCount());
+                } catch (ArithmeticException | IllegalArgumentException ignored) { }
                 if (accepted) delivery.accept(new OmniBatchDelivery.Receipt(OmniBatchDelivery.Ownership.PERSISTED_PROVIDER_QUEUE, OmniBatchDelivery.Backpressure.RECHECK_NEXT_TICK));
                 else delivery.reject(OmniBatchDelivery.Rejection.reject(OmniBatchDelivery.RejectReason.CAPACITY_CHANGED));
             }
         };
+    }
+
+    /** Native CPUs own scaling. Inputs here describe one CPU operation, including any external wrapper. */
+    public CountedBatch prepareCountedBatch(IPatternDetails pattern, Map<AEKey, Long> unitInputs,
+            long requestedCrafts) {
+        if (requestedCrafts <= 0 || !canDispatchBatch()) return null;
+        try {
+            var normalized = normalizeSmartPattern(pattern);
+            var registered = registeredPattern(normalized.pattern());
+            if (registered == null || unitInputs == null || unitInputs.isEmpty()) return null;
+            var baseInputs = new LinkedHashMap<AEKey, Long>();
+            for (var entry : unitInputs.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null || entry.getValue() <= 0
+                        || entry.getValue() % normalized.crafts() != 0) return null;
+                baseInputs.put(entry.getKey(), entry.getValue() / normalized.crafts());
+            }
+            var outputs = MatterPatternBuffer.scaled(MatterFabricationBatch.patternOutputs(registered),
+                    normalized.crafts());
+            if (outputs.isEmpty() || !outputs.equals(MatterFabricationBatch.patternOutputs(pattern))) return null;
+            long capacity = assembly.getBuffer().capacity(registered, baseInputs) / normalized.crafts();
+            long limit = Math.min(requestedCrafts, capacity);
+            return limit > 0 ? new CountedBatch(registered, normalized.crafts(), Map.copyOf(unitInputs),
+                    outputs, limit, assembly.getController()) : null;
+        } catch (ArithmeticException | IllegalArgumentException error) { return null; }
+    }
+
+    public long countedBatchCapacity(IPatternDetails pattern) {
+        try {
+            var unit = new LinkedHashMap<AEKey, Long>();
+            for (var input : pattern.getInputs()) {
+                var possible = input.getPossibleInputs();
+                if (possible.length == 0) return 0;
+                unit.merge(possible[0].what(), Math.multiplyExact(possible[0].amount(), input.getMultiplier()), Math::addExact);
+            }
+            var batch = prepareCountedBatch(pattern, unit, Long.MAX_VALUE);
+            return batch == null ? 0 : batch.maxCrafts();
+        } catch (ArithmeticException | IllegalArgumentException error) { return 0; }
+    }
+
+    /** Report missing prerequisites even when the CPU still owns the rejected delivery. */
+    public boolean hasMissingCatalysts() {
+        var controller = assembly.getController();
+        if (controller == null) return false;
+        for (var pattern : patterns) {
+            try {
+                var unit = new LinkedHashMap<AEKey, Long>();
+                for (var input : pattern.getInputs()) {
+                    var possible = input.getPossibleInputs();
+                    if (possible.length == 0) continue;
+                    unit.merge(possible[0].what(), Math.multiplyExact(possible[0].amount(), input.getMultiplier()), Math::addExact);
+                }
+                var recipe = MatterFabricationBatch.match(controller, pattern, unit, 1);
+                if (recipe != null && !controller.hasCatalysts(recipe.value())) return true;
+            } catch (ArithmeticException | IllegalArgumentException ignored) { }
+        }
+        return false;
+    }
+
+    private boolean canDispatchBatch() {
+        var level = assembly.getLevel();
+        return level != null && !level.isClientSide() && level.getServer() != null
+                && level.getServer().isSameThread() && !assembly.isRemoved()
+                && assembly.isOperational() && (!isBlocking() || !assembly.getBuffer().hasContents());
+    }
+
+    /** Checked snapshots avoid KeyCounter's saturating arithmetic at the admission boundary. */
+    public static Map<AEKey, Long> batchInputs(KeyCounter[] counters) {
+        if (counters == null) throw new IllegalArgumentException("Missing batch inputs");
+        var result = new LinkedHashMap<AEKey, Long>();
+        for (var counter : counters) {
+            if (counter == null) throw new IllegalArgumentException("Missing input slot");
+            for (var entry : counter) {
+                if (entry.getKey() == null || entry.getLongValue() <= 0) throw new IllegalArgumentException("Invalid batch input");
+                result.merge(entry.getKey(), entry.getLongValue(), Math::addExact);
+            }
+        }
+        return result;
+    }
+
+    public static Map<AEKey, Long> batchInputs(List<appeng.api.stacks.GenericStack> stacks) {
+        var result = new LinkedHashMap<AEKey, Long>();
+        for (var stack : stacks) {
+            if (stack == null || stack.what() == null || stack.amount() <= 0) throw new IllegalArgumentException("Invalid batch stack");
+            result.merge(stack.what(), stack.amount(), Math::addExact);
+        }
+        return result;
+    }
+
+    public final class CountedBatch {
+        private final IPatternDetails pattern;
+        private final long multiplier, limit;
+        private final Map<AEKey, Long> unitInputs, unitOutputs;
+        private final MatterFabricationBlockEntity controller;
+        private boolean used;
+
+        private CountedBatch(IPatternDetails pattern, long multiplier, Map<AEKey, Long> unitInputs,
+                Map<AEKey, Long> unitOutputs, long limit, MatterFabricationBlockEntity controller) {
+            this.pattern = pattern;
+            this.multiplier = multiplier;
+            this.unitInputs = unitInputs;
+            this.unitOutputs = Map.copyOf(unitOutputs);
+            this.limit = limit;
+            this.controller = controller;
+        }
+
+        public long maxCrafts() { return limit; }
+
+        private boolean matches(IPatternDetails candidate) {
+            var normalized = normalizeSmartPattern(candidate);
+            return normalized.crafts() == multiplier && pattern.equals(registeredPattern(normalized.pattern()));
+        }
+
+        /** ECO supplies the full vector; ownership transfers only after durable enqueue succeeds. */
+        public boolean commit(Map<AEKey, Long> totalInputs, Map<AEKey, Long> totalOutputs, long crafts) {
+            if (used) return false;
+            used = true;
+            try {
+                return crafts > 0 && crafts <= limit && canDispatchBatch()
+                        && assembly.getController() == controller && patternSet.contains(pattern)
+                        && MatterPatternBuffer.scaled(unitOutputs, crafts).equals(totalOutputs)
+                        && assembly.getBuffer().enqueue(pattern, totalInputs, Math.multiplyExact(crafts, multiplier));
+            } catch (ArithmeticException | IllegalArgumentException error) { return false; }
+        }
+
+        /** Trinity/Thunderbolt pass a reusable single-operation template. Never clear that template. */
+        public boolean commitPrototype(KeyCounter[] prototype, long crafts) {
+            try {
+                var actual = batchInputs(prototype);
+                if (!actual.equals(unitInputs)) return false;
+                return commit(MatterPatternBuffer.scaled(actual, crafts),
+                        MatterPatternBuffer.scaled(unitOutputs, crafts), crafts);
+            } catch (ArithmeticException | IllegalArgumentException error) { return false; }
+        }
     }
 }

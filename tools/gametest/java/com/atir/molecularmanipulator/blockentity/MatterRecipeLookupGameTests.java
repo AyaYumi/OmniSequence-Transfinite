@@ -39,6 +39,40 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 public final class MatterRecipeLookupGameTests {
     private static final int RECIPES = 128, RESEARCHES = 32, LOOKUPS = 2000;
 
+    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 100)
+    @SuppressWarnings("unchecked")
+    public static void declaredFluidMappingsPreserveForgeAmountsAndNbt(GameTestHelper helper) throws Exception {
+        var reader = com.atir.molecularmanipulator.crafting.MatterRecipeBridge.class.getDeclaredMethod(
+                "readFluids", com.mojang.serialization.DynamicOps.class, JsonElement.class);
+        reader.setAccessible(true);
+        var json = com.google.gson.JsonParser.parseString("""
+                [
+                  {"id":"minecraft:water","amount":1000,"nbt":"{variant:7b}"},
+                  {"fluid":"minecraft:lava","amount":250,"nbt":{"marker":42}}
+                ]
+                """);
+        var fluids = (List<FluidStack>) reader.invoke(null, JsonOps.INSTANCE, json);
+        helper.assertTrue(fluids.size() == 2
+                && fluids.get(0).getFluid() == net.minecraft.world.level.material.Fluids.WATER
+                && fluids.get(0).getAmount() == 1000
+                && net.minecraft.nbt.TagParser.parseTag("{variant:7b}").equals(fluids.get(0).getTag())
+                && fluids.get(1).getFluid() == net.minecraft.world.level.material.Fluids.LAVA
+                && fluids.get(1).getAmount() == 250
+                && net.minecraft.nbt.TagParser.parseTag("{marker:42}").equals(fluids.get(1).getTag()),
+                "Declared fluid field mappings must retain every fluid, mB amount and exact Forge NBT");
+        boolean rejected = false;
+        try {
+            reader.invoke(null, JsonOps.INSTANCE, com.google.gson.JsonParser.parseString("""
+                    {"id":"minecraft:water","amount":1000,"components":{"example:marker":1}}
+                    """));
+        } catch (java.lang.reflect.InvocationTargetException expected) {
+            rejected = expected.getCause() instanceof RuntimeException;
+        }
+        helper.assertTrue(rejected, "Unsupported component data must not silently lose fluid identity");
+        System.out.println("MATTER_FLUID_MAPPING_PASS ids=true amounts=true snbt=true compoundNbt=true invalidComponentsRejected=true");
+        helper.succeed();
+    }
+
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 400)
     public static void repeatedPatternLookup(GameTestHelper helper) {
         var level = helper.getLevel();

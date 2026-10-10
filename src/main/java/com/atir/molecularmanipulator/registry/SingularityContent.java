@@ -23,6 +23,8 @@ import net.minecraftforge.registries.RegistryObject;
 public final class SingularityContent {
     public static final RegistryObject<com.atir.molecularmanipulator.block.SingularityControllerBlock> CONTROLLER =
             ModContent.BLOCKS.register("event_horizon_singularity_hub", () -> new com.atir.molecularmanipulator.block.SingularityControllerBlock(properties(9)));
+    public static final RegistryObject<com.atir.molecularmanipulator.block.SingularityControllerBlock> COMPACT =
+            ModContent.BLOCKS.register("compact_singularity_hub", () -> new com.atir.molecularmanipulator.block.SingularityControllerBlock(properties(12)));
     public static final RegistryObject<Block> CASING = ModContent.BLOCKS.register("singularity_base_casing", () -> new Block(properties(0)));
     public static final RegistryObject<Block> GILDED = ModContent.BLOCKS.register("gravity_gilded_block", () -> new Block(properties(0)));
     public static final RegistryObject<RotatedPillarBlock> PILLAR = ModContent.BLOCKS.register("spacetime_anchor_pillar", () -> new RotatedPillarBlock(properties(0)));
@@ -50,6 +52,7 @@ public final class SingularityContent {
             ModContent.ITEMS.register(block.getId().getPath(), () -> new SingularityBlockItem(block.get(),
                     new Item.Properties(), block == CONTROLLER));
         }
+        ModContent.ITEMS.register("compact_singularity_hub", () -> new SingularityBlockItem(COMPACT.get(), new Item.Properties(), true));
     }
 
     private SingularityContent() {}
@@ -63,12 +66,13 @@ public final class SingularityContent {
 
     public static final RegistryObject<BlockEntityType<com.atir.molecularmanipulator.blockentity.SingularityBlockEntity>> CONTROLLER_BE =
             ModContent.BLOCK_ENTITIES.register("event_horizon_singularity_hub", () -> BlockEntityType.Builder.of(
-                    com.atir.molecularmanipulator.blockentity.SingularityBlockEntity::new, CONTROLLER.get()).build(null));
+                    com.atir.molecularmanipulator.blockentity.SingularityBlockEntity::new, CONTROLLER.get(), COMPACT.get()).build(null));
     public static final RegistryObject<net.minecraft.world.inventory.MenuType<com.atir.molecularmanipulator.menu.SingularityMenu>> MENU =
             ModContent.MENUS.register("event_horizon_singularity_hub", () -> com.atir.molecularmanipulator.menu.SingularityMenu.TYPE);
 
     public static void bindBlockEntity() {
         CONTROLLER.get().setBlockEntity(com.atir.molecularmanipulator.blockentity.SingularityBlockEntity.class, CONTROLLER_BE.get(), null, null);
+        COMPACT.get().setBlockEntity(com.atir.molecularmanipulator.blockentity.SingularityBlockEntity.class, CONTROLLER_BE.get(), null, null);
     }
 
     /** Force palette registration before the shared deferred registers attach to the mod bus. */
@@ -76,6 +80,7 @@ public final class SingularityContent {
 
     public static void displayItems(CreativeModeTab.Output output) {
         PALETTE.forEach(block -> output.accept(block.get()));
+        output.accept(COMPACT.get());
     }
 
     private static RegistryObject<SingularityPartBlock> part(String id, int light, SingularityPartBlock.Effect effect) {

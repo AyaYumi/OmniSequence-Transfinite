@@ -13,6 +13,7 @@ import appeng.core.definitions.AEBlocks;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
+import mezz.jei.api.registration.IAdvancedRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -102,6 +103,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
+        MatterFabricationUploadButton.setRuntime(jeiRuntime);
         ResearchJeiBookmarks.setRuntime(jeiRuntime);
         SequenceMatterGuide.setRuntime(jeiRuntime);
         if (!AdvancedAEIntegration.isLoaded()) {
@@ -109,6 +111,16 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                     VanillaTypes.ITEM_STACK,
                     omniItems());
         }
+    }
+
+    @Override
+    public void registerAdvanced(IAdvancedRegistration registration) {
+        registration.addRecipeButtonFactory(new MatterFabricationUploadButton(registration.getJeiHelpers().getGuiHelper()));
+    }
+
+    @Override
+    public void onRuntimeUnavailable() {
+        MatterFabricationUploadButton.setRuntime(null);
     }
 
     private static List<ItemStack> createStructureMaterials() {

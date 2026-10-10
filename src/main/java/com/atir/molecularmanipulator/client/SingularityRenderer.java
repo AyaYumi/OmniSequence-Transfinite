@@ -23,6 +23,7 @@ public final class SingularityRenderer implements BlockEntityRenderer<Singularit
     public SingularityRenderer(BlockEntityRendererProvider.Context context) {}
     @Override public void render(SingularityBlockEntity machine, float partialTick, PoseStack poses,
                                  MultiBufferSource buffers, int light, int overlay) {
+        if (machine.isSingleBlock()) return;
         int detail = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         boolean suspended = machine.structureVersion() >= SingularityStructure.VERSION;
         if (!machine.formed() || detail <= 0 && !suspended || machine.getLevel() == null) return;

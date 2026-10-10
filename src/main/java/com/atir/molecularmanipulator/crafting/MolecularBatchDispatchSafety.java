@@ -29,7 +29,7 @@ public final class MolecularBatchDispatchSafety {
     }
 
     public static boolean isBatchablePattern(IPatternDetails patternDetails) {
-        if (com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManaged(patternDetails)) return false;
+        if (com.atir.molecularmanipulator.crafting.OmniNativeSmartDoubling.isExternallyManaged(patternDetails)) return false;
         if (!ModConfig.OMNI_BATCH_DISPATCH_ENABLED.get()) {
             return false;
         }

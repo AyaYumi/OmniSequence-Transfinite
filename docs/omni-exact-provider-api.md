@@ -1,6 +1,6 @@
 # Exact-count provider API / 大数供应器接口
 
-Current source: Minecraft 1.20.1, 2.0.7-forge, Java 17, AE2 15.4.10 / UELM 15.5.4, revised AppliedEnhancements 1.1.0-forge.
+Current source: Minecraft 1.20.1, 2.0.8-forge, Java 17, AE2 15.4.10 / UELM 15.5.4, Applied Enhancements 1.1.0+ (paired release 1.1.1).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is
@@ -68,9 +68,30 @@ amounts, then calls `debitSource` once with that map. It permits partial accepta
 and does not promise an atomic all-key transaction. Overrides must document their
 stronger semantics; a debit callback must complete without throwing.
 
+The well's persisted counted batches use long amounts per AEKey. The presence of
+an ECO/Thunderbolt/Data Energistics integration does not turn every assembly into
+a native BigInteger provider: exact inputs beyond the durable representation are
+declined, preserving the complete original plan and material ownership. Register
+an exact capability only when the implementation can honor the contracts above.
+
 No general numeric ABI negotiation is exposed by these capability types. Bind to
 the current documented method signatures and isolate optional class loading.
 `OmniBatchCraftingApi.apiVersion()` negotiates the atomic batch SPI only.
+
+## Complete plans and secondary outputs
+
+With AES 1.1.1, read `AelisExactCraftingPlanApi.read(plan)` and its
+`executionRequirement()` before building an exact CPU ledger. On the supported
+1.1.0 runtime, use the existing exact quantity getters. Exact pattern counts are
+a complete replacement ledger, not an additive overflow patch; do not merge them
+with the long task map. Keep the returned plan from metadata attachment/copying.
+
+Preserve native scaled-pattern identity, weighted batch counts and unscaled
+remainders. If an optional rewrite cannot be reconciled, continue with the
+complete original work. Record every AEKey output separately, including
+byproducts, and report actual accepted output rather than planned production.
+A saturated long projection alone does not reject a plan or confer exact CPU
+execution support. Cancellation and rollback still follow material ownership.
 
 ## 中文
 
@@ -88,3 +109,13 @@ the current documented method signatures and isolate optional class loading.
 默认批量方法逐键转移，最后用已接收数量映射调用一次扣减；允许部分接收，不提供
 所有资源同时提交的保证。扣减回调必须可靠完成且不能抛出异常。调用方负责权限、
 线程、数据持久化和具体第三方机器的语义。
+
+AES 1.1.1 可通过 `AelisExactCraftingPlanApi.read(plan)` 与结构化能力查询读取完整计划；
+最低兼容的 1.1.0 使用原有精确数量读取方法。精确样板次数替换 long 任务表，不能叠加。
+保留元数据接口返回的计划、原生包装身份、整批与原样板尾数。可选改写无法换算时
+继续原始完整工作量；主产物和副产物逐 AEKey 记账，按真实接收数量报告，不能用
+计划产量代替已经交付的产量。long 投影饱和不等于拒绝，也不保证 CPU 具备精确执行能力。
+
+构筑井计数批次按每个 AEKey 的 long 数量保存；接入可选 CPU 接口不会自动授予
+原生 BigInteger 能力。超出持久表示范围的精确输入必须拒绝并保留完整计划及材料
+所有权，只有能完整兑现上述契约的实现才应注册精确能力。

@@ -32,7 +32,9 @@ final class ResearchIngredientIndex {
         if (!custom.isEmpty()) return matches(stock);
         var result = new LinkedHashMap<AEItemKey, BitSet>();
         ordinary.forEach((item, rows) -> {
-            for (var key : indexed.getOrDefault(item, List.of())) result.put(key, rows);
+            for (var key : indexed.getOrDefault(item, List.of())) {
+                if (stock.getOrDefault(key, 0L) > 0) result.put(key, rows);
+            }
         });
         return result;
     }

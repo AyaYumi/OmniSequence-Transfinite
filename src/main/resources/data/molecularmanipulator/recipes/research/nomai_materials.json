@@ -1,0 +1,54 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.nomai_materials",
+  "prerequisites": [
+    "molecularmanipulator:research/ae_foundation"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "ae2:certus_quartz_crystal"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_crystal"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:amethyst_shard"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:copper_ingot"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:ender_pearl"
+      },
+      "count": 16
+    }
+  ],
+  "duration": 600,
+  "ae_per_tick": 256,
+  "unlocks": [
+    "molecularmanipulator:ghost_matter",
+    "molecularmanipulator:gravity_crystal"
+  ],
+  "sort_order": 35,
+  "stage": 0,
+  "depths": [
+    {
+      "material_multiplier": "1",
+      "parallel": "1",
+      "speed_multiplier": "1"
+    }
+  ]
+}

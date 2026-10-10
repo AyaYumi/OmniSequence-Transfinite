@@ -5,7 +5,9 @@ import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.world.WhiteHoleRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
@@ -31,10 +33,13 @@ public final class CosmicSingularityBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public BlockState getStateForPlacement(BlockPlaceContext context) {
-        if (kind == Kind.WHITE_HOLE && context.getLevel() instanceof ServerLevel server
-                && !WhiteHoleRegistry.canPlace(server)) return null;
-        return defaultBlockState();
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state,
+            LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (placer instanceof ServerPlayer player
+                && level.getBlockEntity(pos) instanceof CosmicSingularityBlockEntity singularity) {
+            singularity.bindToPlayerTeam(player);
+        }
     }
 
     @Override

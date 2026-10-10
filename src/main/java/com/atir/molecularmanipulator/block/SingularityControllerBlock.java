@@ -35,7 +35,7 @@ public final class SingularityControllerBlock extends AEBaseEntityBlock<Singular
         var stack=player.getItemInHand(hand);var machine=getBlockEntity(level,pos);
         if(InteractionUtil.canWrenchRotate(stack)) {
             if(!level.isClientSide()&&player.mayBuild()&&level.mayInteract(player,pos)&&machine!=null
-                    &&machine.operation()==SingularityBlockEntity.Operation.IDLE&&!machine.formed()&&!machine.motion().hasBodies())
+                    &&machine.operation()==SingularityBlockEntity.Operation.IDLE&&(machine.isSingleBlock() || !machine.formed())&&!machine.motion().hasBodies())
                 level.setBlockAndUpdate(pos,rotate(state,Rotation.CLOCKWISE_90));
             return InteractionResult.sidedSuccess(level.isClientSide());
         }

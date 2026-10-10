@@ -19,9 +19,7 @@ item_ids:
 
 # Omni Computation Core
 
-A large ME crafting CPU. Form the floating crown to manage multiple crafting requests at once.
-
-## Structure and parts
+The Omni Computation Core is a large ME crafting CPU that runs multiple independent crafting requests. It manages jobs; the network's Pattern Providers and machines perform the recipes.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:omni_computation_controller" />
@@ -36,55 +34,41 @@ A large ME crafting CPU. Form the floating crown to manage multiple crafting req
 <ItemIcon id="molecularmanipulator:computation_crystal_pylon" />
 </ItemGrid>
 
-| Preparation | Requirement |
+## Construction
+
+Complete **Tier 2: Omni Computation** in the well, then fabricate the controller and structure parts.
+
+| Clearance | Bounds |
 | --- | --- |
-| Unlock | Tier 2: Omni Computation in the well |
-| Bounds | 65 × 65 blocks, 35 blocks tall |
-| Relative to controller | 17 above/below, 32 left/right |
-| Front/rear clearance | 22 in front, 42 behind |
+| Overall structure | 65 × 65 blocks, 35 blocks tall |
+| Relative to controller | 17 above and below; 32 left and right |
+| Front and rear | 22 in front; 42 behind |
 
-1. Fabricate the controller and parts. Use **Projection** and the JEI structure page to inspect the site.
-2. Clear obstructions and select **Build**. Player inventory materials are taken before ME materials.
-3. Connect a powered, online ME network and verify the formed structure.
-4. Request crafting from an ME terminal. The core creates independent CPU lanes automatically.
+1. Place the controller, check JEI's material list and enable **Projection**.
+2. Clear obstructions, gather materials and select **Build**. Your inventory is used before ME storage.
+3. Connect a powered ME network with channels and check formation.
+4. Request crafting from an ME terminal and monitor jobs through AE2's crafting status interface.
 
-## Crafting operation
+## Crafting requests
 
-<Row>
-<BlockImage id="molecularmanipulator:infinite_crafting_storage" scale="4" />
+The core provides independent crafting capacity for multiple requests and can continue accepting new orders. Large orders still require ingredients, energy, Pattern Providers, machines and output space.
 
-<BlockImage id="molecularmanipulator:infinite_parallel_matrix" scale="4" />
+Cyclic recipes need initial seed materials. If a job stalls, check missing ingredients in crafting status and whether the required machines can receive inputs and return products.
 
-<ItemImage id="ae2:crafting_terminal" scale="4" />
-</Row>
+## Quantum connection
 
-| Core provides | You still supply |
-| --- | --- |
-| Large logical crafting storage | Required ingredients |
-| Parallel virtual CPU lanes | Providers and machines that accept inputs |
-| Accelerated planning while online | Energy and output capacity |
+Place one **Quantum Entangled Singularity** in the quantum slot and its partner in a powered remote AE2 quantum bridge. The link requires an additional **512 AE/t and one channel**.
 
-Cyclic recipes still need seed materials. Dispatch adapts to receiving machines and server load; logical capacity is not a fixed production rate.
+## Recovery and structure updates
 
-## Quantum access and persistence
+Structure damage and chunk unloading retain tasks, materials and progress until operating conditions recover. Normal controller removal carries jobs and quantum contents with the block.
 
-Insert one paired Quantum Entangled Singularity into the quantum slot and the other into a remote AE2 quantum bridge. The link adds **512 AE/t and one channel**. Resolve conflicting networks before connecting.
+**Dismantle** keeps the controller and returns materials to ME before your inventory. Recovery pauses if both are full. Server-enabled multiblock chunk loading keeps required chunks loaded during operation, construction and updates. Occupied chunks prevent natural mob spawning.
 
-| Situation | Result |
-| --- | --- |
-| Structure damage or unloading | Retain jobs, ingredients, and progress until restored |
-| Normal controller removal | Carry jobs and quantum inventory with the block |
-| Dismantle | Keep the controller; return materials to ME, then the player |
-| No recovery space | Pause and retain dismantling progress |
+Legacy **1.3.9** radial structures support **Update Structure**. Inspect the new projection and materials first. Click once to confirm, then again within five seconds to execute. The update relocates the controller and its jobs.
 
-The multiblock chunk-loading setting keeps needed chunks loaded during formation, construction, and updates. Occupied chunks have natural-spawning protection.
+For a compact CPU, see [Transfinite Compute Nexus](transfinite_compute_nexus.md).
 
-## Update a legacy structure
-
-The official **1.3.9** radial core supports **Update Structure**. Inspect the new projection and material requirements first. Click once to confirm, then again within five seconds to execute. The controller and jobs migrate to the new position.
-
-## Controller recipe
+## Recipes
 
 <RecipeFor id="molecularmanipulator:omni_computation_controller" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
-
-For a single-block CPU, see [Transfinite Compute Nexus](transfinite_compute_nexus.md).

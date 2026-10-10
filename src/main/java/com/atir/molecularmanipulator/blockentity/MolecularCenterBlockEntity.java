@@ -789,6 +789,25 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return saturatedAdd(amount, reusableBatchRefunds.getLong(key));
     }
 
+    @Override
+    public long getAutoCraftOutputStock(AEKey key, long limit,
+            MolecularAutoCrafter.OutputLimitMode mode) {
+        if (key == null || limit <= 0) {
+            return 0;
+        }
+        var grid = getMainNode().getGrid();
+        if (grid == null) {
+            return 0;
+        }
+        try {
+            return grid.getStorageService().getInventory().extract(
+                    key, limit, Actionable.SIMULATE, actionSource);
+        } catch (RuntimeException exception) {
+            return limit;
+        }
+    }
+
+    @Override
     public void flushAutoCraftOutputsAfterControlChange() {
         if (level != null && !level.isClientSide() && !assembling) {
             flushBufferedOutputs(level.getGameTime(), true);

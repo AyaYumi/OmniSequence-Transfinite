@@ -36,7 +36,7 @@ public final class MolecularExternalScaledPattern {
     }
 
     public static Unwrapped unwrapMultiInput(IPatternDetails patternDetails) {
-        if (com.appliedenhancements.api.AelisSmartDoublingApi.isExternallyManaged(patternDetails))
+        if (com.atir.molecularmanipulator.crafting.OmniNativeSmartDoubling.isExternallyManaged(patternDetails))
             return new Unwrapped(patternDetails, 1);
         return unwrap(patternDetails, true);
     }
@@ -50,6 +50,11 @@ public final class MolecularExternalScaledPattern {
         if (patternDetails == null) {
             throw new IllegalArgumentException("Pattern details cannot be null");
         }
+        try { return unwrapKnown(patternDetails, requireMultipleInputs); }
+        catch (RuntimeException | LinkageError unavailable) { return new Unwrapped(patternDetails, 1); }
+    }
+
+    private static Unwrapped unwrapKnown(IPatternDetails patternDetails, boolean requireMultipleInputs) {
 
         var resolvedLookup = getLookup(patternDetails.getClass().getClassLoader(), patternDetails);
         if (resolvedLookup.missing()

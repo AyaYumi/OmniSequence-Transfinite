@@ -1,0 +1,18 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "render_type": "cutout",
+  "textures": {
+    "dark": "molecularmanipulator:block/ghost_matter/dark",
+    "blue": "molecularmanipulator:block/ghost_matter/blue",
+    "pale": "molecularmanipulator:block/ghost_matter/pale",
+    "glint": "molecularmanipulator:block/ghost_matter/glint",
+    "particle": "molecularmanipulator:block/ghost_matter/blue"
+  },
+  "loader": "forge:obj",
+  "model": "molecularmanipulator:models/block/ghost_matter.obj",
+  "automatic_culling": false,
+  "flip_v": true,
+  "shade_quads": true,
+  "emissive_ambient": false
+}

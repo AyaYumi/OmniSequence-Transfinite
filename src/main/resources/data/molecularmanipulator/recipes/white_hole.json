@@ -3,7 +3,7 @@
   "ingredients": [],
   "results": [
     {
-      "id": "molecularmanipulator:white_hole",
+      "item": "molecularmanipulator:white_hole",
       "count": 1
     }
   ],
@@ -13,8 +13,8 @@
   "ae_inputs": [
     {
       "#t": "ae2:i",
-      "id": "ae2:matter_ball",
-      "#": 1000000000
+      "#": 10,
+      "id": "molecularmanipulator:black_hole"
     }
   ]
 }

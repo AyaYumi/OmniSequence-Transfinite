@@ -1,0 +1,31 @@
+// Full upload transactions and placement team binding in disposable server worlds.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('fabricationUploadVerification') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/MatterFabricationUploadGameTests.java', '**/VerificationAEKey.java', '**/FtbTeamFixture.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        if (project.hasProperty('fabricationFtbTests')) {
+            def pack = project.findProperty('ftbPackMods')
+            if (!pack) throw new GradleException('ftbPackMods must point to matching Forge 1.20.1 dependencies')
+            ['ftb-teams-forge-2001*.jar', 'ftb-library-forge-2001*.jar', 'architectury-*-forge.jar'].each { pattern ->
+                def jar = project.fileTree(pack).matching { include pattern }.singleFile
+                repositories.flatDir { dirs jar.parentFile }
+                dependencies.add('localRuntime', fg.deobf("local.ftb:${jar.name[0..-5]}:1"))
+            }
+        }
+        minecraft.runs.configureEach { mods { "${project.mod_id}" { source verification } } }
+        minecraft.runs.getByName('gameTestServer').workingDirectory = project.file(
+                project.hasProperty('fabricationFtbTests') ? 'build/fabrication-upload-ftb-run' : 'build/fabrication-upload-run')
+        minecraft.runs.getByName('gameTestServer').property "forge.logging.console.level", "info"
+        tasks.named('compileFabricationUploadVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+    }
+}

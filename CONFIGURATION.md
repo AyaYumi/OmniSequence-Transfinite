@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.7-forge, Minecraft 1.20.1 / Forge. Names and help text are available in English and Chinese.
+Current source: 2.0.8-forge, Minecraft 1.20.1 / Forge. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 
@@ -19,7 +19,7 @@ AppliedEnhancements configuration.
 | `sequence_array.build_blocks_per_tick` | 32 | 1–256; construction/dismantling blocks per tick |
 | `sequence_array.idle_power` | 128 | 1–4096 AE/t |
 | `multiblocks.force_load_chunks` | true | Keep registered multiblock footprint loaded |
-| `singularity_hub.singularity_collection.item_tags` | `#forge:raw_materials`, `#c:raw_ores`, `#c:raw_materials`, `#minecraft:raw_ores`, `#minecraft:logs`, `#c:logs` | Arbitrary item tags; optional `#`; merge and deduplicate; empty list disables production |
+| `singularity_hub.singularity_collection.item_tags` | `#c:raw_ores`, `#c:raw_materials`, `#minecraft:raw_ores`, `#minecraft:logs`, `#c:logs` | Arbitrary item tags; optional `#`; merge and deduplicate; empty list disables production |
 | `singularity_hub.singularity_collection.item_blacklist` | `[]` | Exact namespaced item IDs; overrides every tag |
 | `singularity_hub.singularity_collection.batch_size` | 1000 | 1–1,000,000 items for each eligible type per cycle |
 | `singularity_hub.singularity_collection.interval_ticks` | 20 | 1–1200 ticks |

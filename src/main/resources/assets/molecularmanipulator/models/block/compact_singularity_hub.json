@@ -1,0 +1,9 @@
+{
+  "parent": "molecularmanipulator:block/event_horizon_singularity_hub",
+  "textures": {
+    "socket": "molecularmanipulator:block/singularity/stabilizer",
+    "socket_glow": "molecularmanipulator:block/singularity/stabilizer_glow",
+    "core_seal": "#socket",
+    "core_seal_glow": "#socket_glow"
+  }
+}

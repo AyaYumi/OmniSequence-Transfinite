@@ -1,8 +1,8 @@
 # 物质构筑井：配方与研究 API
 
-自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.7-forge**。
+自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.8-forge**。
 目标环境：Minecraft **1.20.1** / Forge、Java **17**、AE2 **15.4.10 / UELM 15.5.4**，以及必需前置
-AppliedEnhancements **1.1.0-forge**。模组 ID 仍为 `molecularmanipulator`。
+Applied Enhancements **1.1.0-forge+**（本次配套 **1.1.1**）。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.zh-CN.md)。
@@ -154,9 +154,8 @@ ServerEvents.recipes(event => {
 | `ae_keys` | 从普通配方字段构造已注册 AE 资源的规则列表，见下例。 |
 
 路径遵循 JSON Pointer：`/inputs/items` 读取嵌套字段，`/inputs/0` 读取数组第一项，
-空字符串读取整个配方；字段名中的 `/` 写成 `~1`、`~` 写成 `~0`。Forge 读取重载时保留的
-源 JSON，包括 KubeJS 脚本完成后的新增及修改配方。仅通过 Java 替换的配方使用数据字段
-后备编码，并排除运行上下文；集成应优先注册 JSON 定义。无法编码的后备配方跳过且警告限流。
+空字符串读取整个配方；字段名中的 `/` 写成 `~1`、`~` 写成 `~0`。路径必须对应源配方
+经其序列化器重新编码后的 JSON；某些序列化器会省略默认值，原始 KubeJS JSON 与编码结果可能不同。
 字段值为数组时逐项读取；物品输入的可替换原料数组应放进 `ingredient`，例如
 `{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`。
 显式映射字段必须可读取、数组必须非空，数量必须是正整数。某项无法解析时整条配方跳过，
@@ -229,7 +228,7 @@ ServerEvents.recipes(event => {
 | 字段 | 含义 |
 | --- | --- |
 | `title` | 名称或翻译键。必填，不能为空字符串。 |
-| `stage` | 显示阶数，默认 `1`。先后与门槛由前置列表决定，不由该数字决定。 |
+| `stage` | 非负显示阶数，默认 `1`；`0` 表示特殊研究，不加数字阶数前缀。列表顺序由 `sort_order` 决定，门槛由前置决定。 |
 | `sort_order` | 导航顺序，默认 `0`。定义按 `sort_order` 排序，其次按 ID 排序。 |
 | `prerequisites` | 前置研究 ID 列表，每项默认要求完成 1 次；自引用与循环无效。 |
 | `prerequisite_levels` | 可选映射 `{研究 ID: 所需完成次数或 "max"}`，逐项覆盖门槛；其中的 ID 会自动加入前置列表。 |
@@ -288,6 +287,7 @@ ServerEvents.recipes(event => {
 | 字段 | 含义 |
 | --- | --- |
 | `ingredients` | 计数物品输入，每项 `{ingredient: {item: ...} 或 {tag: ...}, count: ...}`，数量为正整数，默认空。 |
+| `catalysts` | 可选催化剂条件，格式同 `ingredients`，默认空。由同一座成型构筑井所有样板总成的催化剂库存共同提供；合成不消耗，数量不乘以批量或研究并行。自动编码时不作为样板输入。 |
 | `results` | 最多 **6** 种物品产物，严格格式 `{id: ..., count: ...}`。 |
 | `fluid_input` | 可选流体输入 `{id: ..., amount: ...}`，单位 mB。不计入十二项输入上限。 |
 | `fluid_result` | 可选单种流体产物，格式相同。 |
@@ -297,29 +297,30 @@ ServerEvents.recipes(event => {
 | `ae_per_tick` | 基础功耗，默认 `64.0`；负值会被提升为 `0`。 |
 | `requires_research` | 默认 `false`，见 §4.2。 |
 
-加载期错误条件：`ingredients` + `ae_inputs` 合计不得超过 **12** 项；`ingredients`、
+加载期错误条件：`ingredients` + `catalysts` + `ae_inputs` 合计不得超过 **12** 项；`ingredients`、
 `fluid_input`、`ae_inputs` 至少要有一项；每项 `ae_inputs` / `ae_outputs` 数量必须为正；
 且至少要有一种物品、流体或 AE 资源产物。与研究定义不同，格式错误的构筑井配方会直接加载失败。
 
 ### 4.1 通用输入（`ae_inputs`）
 
-`ae_inputs` 接受所有已注册的 AEKey 类型，气体、化学品等第三方资源由此输入。每项使用 AE2
-的 Forge 配方编码格式：`#t` 是已注册的 AEKey 类型 ID，`#` 是每份配方的原始数量，
-`key_nbt` 由 AE2 15 的 NBT 接口读取。
+`ae_inputs` 接受所有已注册的 AEKey 类型，气体、化学品等第三方资源由此输入。Forge 使用
+`ForgeRecipeCodecs.GENERIC_STACK` 将 JSON 的 `#t` / `#` 转为 AE2 15 的原生 NBT
+（类型字段 `#c`），再通过 `GenericStack.readTag` 解码。
 
 | 字段 | 含义 |
 | --- | --- |
 | `#t` | AEKey 类型 ID。AE2 物品为 `ae2:i`，AE2 流体为 `ae2:f`；附属模组注册自己的 ID。 |
 | `#` | 每份配方的原始数量，1 至 9223372036854775807。物品类型单位为个，Forge 流体单位为 mB。 |
-| `key_nbt` | `key.toTag()` 的 SNBT，保留 NBT 数值类型和数组；简单原生字段也可与 `#t` 并列填写。 |
+| `id`、`tag` 等 | 原生 AEKey NBT 字段；物品/流体的附加 NBT 使用 `tag`，附属资源按其 `AEKey.toTag()` 格式编写。 |
+| `key_nbt` | 可选 SNBT 字符串或复合对象，代替内联键字段。需要保留数值宽度或数组类型时使用 SNBT；标准序列化输出使用此字段。 |
 
 ```json
 {
   "type": "molecularmanipulator:matter_fabrication",
   "ingredients": [{"ingredient": {"item": "minecraft:diamond"}, "count": 2}],
   "ae_inputs": [
-    {"#t": "ae2:i", "key_nbt": "{id:\"minecraft:diamond\"}", "#": 2},
-    {"#t": "ae2:f", "key_nbt": "{id:\"minecraft:water\"}", "#": 1000}
+    {"#t": "ae2:i", "id": "minecraft:diamond", "#": 2},
+    {"#t": "ae2:f", "id": "minecraft:water", "#": 1000}
   ],
   "fluid_input": {"id": "minecraft:water", "amount": 250},
   "results": [{"id": "minecraft:obsidian", "count": 1}],
@@ -328,7 +329,7 @@ ServerEvents.recipes(event => {
 }
 ```
 
-`#` 解析为精确的 long 数值，**不是**研究字段使用的十进制字符串格式，因此
+`#` 必须是 JSON 整数，按正的有符号 long 校验，不使用研究字段的十进制字符串格式，因此
 `"3000000000"` 这种写法会被拒绝。需要超过 JavaScript 精确整数范围时，请在数据包 JSON 中写
 整数字面量，或在 Java 中用 `new GenericStack(key, longAmount)` 构造，不要先经 JavaScript 数字
 转换。
@@ -346,11 +347,29 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
         aeInputs, processingTime, aePerTick, requiresResearch); // aeInputs 为 List<GenericStack>
 ```
 
-旧的 6、7、8 参数构造器保持可用，省略的通用输入或输出列表默认为空。完整构造器为：
+旧的 6、7、8 参数构造器保持可用，省略的催化剂及通用输入或输出列表默认为空。含通用产物的构造器为：
 
 ```java
 new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
         aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+```
+
+包含催化剂的构造器为：
+
+```java
+new MatterFabricationRecipe(ingredients, catalysts, results, fluidInput, fluidResult,
+        aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch)
+        .withId(new ResourceLocation("example:retained_catalyst"));
+```
+
+Forge 配方对象自身带有 ID；参数省略 ID 的构造器使用 `molecularmanipulator:unregistered`。
+手动创建并注册配方时，使用带 ID 的规范构造器或 `withId` 设置真实 ID。普通物品/流体
+堆栈用 `nbt`（SNBT 字符串或复合对象），通用 AEKey 用 `tag` 或 `key_nbt`；数据组件字段不受支持。
+物品输入/催化剂数量及普通物品/流体结果数量使用正 int（最大 2,147,483,647），
+通用 AE 数量使用正 long。以下示例保留 AE 物品键中的附加 NBT：
+
+```json
+{"#t": "ae2:i", "#": 1, "key_nbt": "{id:\"minecraft:diamond\",tag:{example_marker:1b}}"}
 ```
 
 ### 4.2 研究权限
@@ -364,11 +383,38 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 
 ---
 
+### 4.3 保留催化剂与编码契约
+
+以下自定义配方每次消耗两个铁锭，同时要求成型构筑井内的催化剂库存保留一枚紫水晶碎片：
+
+```json
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [{"ingredient": {"item": "minecraft:iron_ingot"}, "count": 2}],
+  "catalysts": [{"ingredient": {"item": "minecraft:amethyst_shard"}, "count": 1}],
+  "results": [{"id": "minecraft:iron_block", "count": 1}],
+  "processing_time": 200,
+  "ae_per_tick": 64,
+  "requires_research": false
+}
+```
+
+每个样板总成有 36 槽催化剂库存，同一座成型构筑井内已加载的总成共同提供条件。
+批量和研究并行会放大消耗原料及产物，不放大催化剂需求；催化剂保留在库存中。
+接收/开始及继续加工时检查条件。缺少催化剂会拒绝新投料，并暂停已接收的任务；
+原料与进度继续保存，恢复催化剂后继续，不会重复收费或丢弃原料。
+
+JEI 编码以服务端配方定义和玩家选择的合法物品替代项为准，包含所有消耗物品、
+流体、通用 AE 输入及全部副产物；催化剂不写入样板输入。上传需要有效的编码
+终端、一张空白样板和玩家所属队伍有空位的总成。服务端重新检查当前配方、输入
+选择和目标，客户端数量不能改写配方。上传辅助类和载荷属于内部实现，不是公开 Java API。
+
 ## 5. 材料、扣料与保存
 
-- 界面进度每 5 tick 同步，所选研究的 AE 库存每 20 tick 采样一次。开始研究时再次直接读取存储提供者，
-  重新校验并一次性提取整轮费用。研究仅消耗控制器所在 AE 网络中的**物品**，玩家背包和接口
-  缓存都不是研究材料。
+- 研究进度每 5 tick 同步，选中研究的库存每 20 tick 采样。同一轮检查内，备料与
+  研究准入共享同 tick 的当前库存快照，再核验并抽取真实整轮费用；成功扣料更新
+  共享数量，核验失败、部分抽料或退款使快照失效，下一次准入重读库存。显示库存不代表材料预留。
+  研究只使用控制器 AE 网络中的物品，玩家背包和接口缓存不属于研究供料。
 - 普通下单持续备齐下一轮材料；Shift 下单汇总所有剩余轮次的实际费用（包括各轮替换材料），完成一次直接到最高次数。备料时保存定义快照，满阶任务使用一次研究的耗时与功耗。
 - 每 20 tick 对库存与本研究缓存进行联合分配，按缺口替换订单量，扣除在途剩余产物，避免重复下单。多个备料任务共享一次库存扫描与物品索引；普通物品/标签只匹配候选物品，定制 Ingredient 保留原谓词。
 - 下单产物直接进入本研究缓存。其他合成消耗已存基础材料后自动补单；停止备料只取消本研究的订单，并持久化缓存退款。已正式开始的下单研究拒绝停止和暂停。
@@ -400,12 +446,13 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 | `sequence_array` | 600 tick / 30 秒 | 512 AE/t | 构序阵列 6 类部件、分子构序重写阵列、装配矩阵构序重写核心 |
 | `omni_computation` | 600 tick / 30 秒 | 1024 AE/t | 万物演算 10 类部件与超限算枢 |
 | `event_horizon` | 600 tick / 30 秒 | 2048 AE/t | 微型黑洞、微型白洞与天枢全部 13 类建筑部件 |
+| `nomai_materials` | 600 tick / 30 秒 | 256 AE/t | 幽灵物质与引力水晶；单轮，`stage: 0`、`sort_order: 35`，前置一阶研究完成一次 |
 | `machine/<machine_key>` | 600 tick / 30 秒 | 512 AE/t | 对应附属机器导入的配方（加载模组且机器存在时） |
 
 30 秒适用于内置研究的首次解锁及后续每轮深度研究。自定义 `duration` 仍按 tick 自由配置，
 省略时默认 1200；已开始的轮次保留开工时的耗时快照。
 
-三阶 `event_horizon` 要求 `sequence_array` 与 `omni_computation` 各完成一次。首轮耗材等于当前构序阵列与万物演算核心的完整搭建材料（含主控）：共 19 类、4,634 个方块。沿用九轮深度研究倍率；消耗 ME 库存中的方块，不会拆除现有建筑。微型黑洞配方为 100,000 个 `ae2:singularity`，微型白洞配方为 1,000,000,000 个 `ae2:matter_ball`，两者用 `ae_inputs` 数字 long 编码，通过构筑井样板总成执行。天枢全部 13 类方块配方的普通材料投入为基础数量的 1,000,000 倍；天枢主控现在消耗 10,000 个微型黑洞，白洞资源核心消耗 10,000 个微型白洞。
+三阶 `event_horizon` 要求 `sequence_array` 与 `omni_computation` 各完成一次。首轮耗材等于当前构序阵列与万物演算核心的完整搭建材料（含主控）：共 19 类、4,634 个方块。沿用九轮深度研究倍率；消耗 ME 库存中的方块，不会拆除现有建筑。微型黑洞配方为 10,000 个 `ae2:singularity`，微型白洞配方为 10 个微型黑洞，微型超新星在同一分支解锁并消耗黑洞、白洞各 100 个。这些配方用 `ae_inputs` 数字 long 编码，通过构筑井样板总成执行。天枢主控和白洞资源核心各消耗一个微型超新星。天枢 11 类构筑井部件配方的其他材料数量增加为原来的 100 倍；产出数量、耗时和功率不变。天枢基壳楼梯与台阶改为工作台有序配方：6 个基壳做 4 个楼梯，3 个基壳横排做 6 个台阶；这两条配方从研究解锁列表移除，原料基壳仍由该分支解锁。
 
 这些二阶分支默认都需要一阶完成 **1 次**。内置材料配方 ID 位于
 `molecularmanipulator:fabrication/research_materials/<模组 ID>/<物品名>`；附属机器配方 ID 位于
@@ -470,7 +517,7 @@ tick 功耗乘本批份数计收。
 批次保存原料所有权与配方 ID，因此未开工批次会按当前配方、权限与参数重新检查，而不是沿用
 旧数值。无法继续加工时，原料仍留在总成内，可作为待加工原料退回。
 
-### 7.1 2.0.7-forge 尚存的边界
+### 7.1 2.0.8-forge 尚存的边界
 
 - 产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。
@@ -584,7 +631,7 @@ Java 模组可用复制 API 生成修改后的定义：
 var parent = new ResourceLocation("molecularmanipulator:research/ae_foundation");
 var three = existingResearch.withPrerequisiteLevels(Map.of(parent, 3));
 var full = existingResearch.withPrerequisiteLevels(Map.of(parent, 0)); // Java 的 0 对应数据中的 "max"
-int required = MatterResearchApi.requiredPrerequisiteLevel(three, parentRecipe);
+int required = MatterResearchApi.requiredPrerequisiteLevel(three, parentResearch);
 boolean eligible = MatterResearchApi.prerequisitesMet(three,
         MatterResearchApi.definitions(serverLevel), controller.getResearch()::completionCount);
 ```
@@ -596,21 +643,3 @@ boolean eligible = MatterResearchApi.prerequisitesMet(three,
 （满级），而 JSON/KubeJS 接受正整数或字符串 `"max"`，不接受数值 `0` 和负数。
 
 其他配方执行器需要自行调用权限与生产参数接口。
-
----
-
-## 11. 世界特效
-
-研究中的世界特效自动支持第三方模组、数据包和 KubeJS 添加的阶段，无须修改配方格式。三个
-内置阶段分别使用冰青晶格、青绿方阵（金色点缀）、紫白轨道星图；其他阶段根据阶段 ID、控制器
-位置、维度和研究轮次，从四种星图（晶格、方阵、轨道球、双螺旋）中稳定伪随机选择一种，因此
-自定义阶段也可能落在三个内置形状上。同一轮在多人客户端、暂停/恢复和重载后保持相同样式，
-下一轮重新选取，允许再次选中相同样式。
-
-每个控制器最多同时展示四个研究星图，优先显示运行中的任务；此数量只限制视觉开销，不限制可
-同时执行的研究数量。暂停、前置不满足、定义不可用、结构损坏、网络离线和供能不足时，星图变暗
-并停止光脉冲；王冠弧数量随研究轮次增长（上限 3 圈），真实完成时播放 32 tick 的突破环与射线
-动画。研究进度通过方块同步每 5 tick 传递一次，关闭控制器界面后依然显示；管理指令直接解锁
-不会触发研究完成动画。客户端特效等级配置 `dynamic_effect_level`（0/1/2，默认 2）控制特效
-细节：设为 `0` 会完全关闭星图，且只有客户端认为结构已成型时才会渲染。原有研究定义和公开
-API 的签名保持兼容。

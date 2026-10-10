@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.mixin;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.crafting.IPatternDetails;
+import com.github.appliedenhancements.integration.ae2.AelisScaledPattern;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.networking.crafting.ICraftingRequester;
@@ -55,17 +56,29 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
     @Inject(method = "getProviders", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$resolveSmartPatternProviders(IPatternDetails pattern,
             CallbackInfoReturnable<Iterable<ICraftingProvider>> callback) {
-        IPatternDetails original = pattern;
-        if (pattern instanceof MolecularScaledPattern scaled) {
-            original = scaled.base();
-        } else {
-            try {
-                var unwrapped = MolecularExternalScaledPattern.unwrapSmartDoubling(pattern);
-                if (unwrapped.multiplier() > 1) original = unwrapped.patternDetails();
-            } catch (RuntimeException ignored) { }
-        }
-        if (original != pattern) {
-            callback.setReturnValue(((CraftingService) (Object) this).getProviders(original));
+        try {
+            IPatternDetails original = pattern;
+            var visited = new java.util.IdentityHashMap<IPatternDetails, Boolean>();
+            while (original != null) {
+                if (visited.put(original, Boolean.TRUE) != null) return;
+                IPatternDetails next = original;
+                if (original instanceof AelisScaledPattern scaled
+                        && scaled.appliedenhancements$operationsPerPush() > 1) {
+                    next = scaled.appliedenhancements$originalPattern();
+                } else if (original instanceof MolecularScaledPattern scaled) {
+                    next = scaled.base();
+                } else {
+                    var unwrapped = MolecularExternalScaledPattern.unwrapSmartDoubling(original);
+                    if (unwrapped.multiplier() > 1) next = unwrapped.patternDetails();
+                }
+                if (next == original) break;
+                original = next;
+            }
+            if (original != null && original != pattern) {
+                callback.setReturnValue(((CraftingService) (Object) this).getProviders(original));
+            }
+        } catch (RuntimeException | LinkageError unavailable) {
+            // Preserve native provider discovery when an optional wrapper cannot be inspected.
         }
     }
 

@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.integration.useless;
 import appeng.api.networking.IGrid;
 import appeng.api.stacks.AEKey;
 import appeng.hooks.ticking.TickHandler;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutputReceiver;
 import com.atir.molecularmanipulator.config.ModConfig;
 import java.lang.reflect.Field;
@@ -18,9 +17,6 @@ import net.minecraft.world.level.Level;
 public final class UselessExactOutputReturn {
     private static final long GLOBAL_DIRECT_BUDGET_NANOS = 2_000_000L;
     private static long budgetTick = Long.MIN_VALUE, spentThisTick;
-    private static long keysTransferred, batchesCompleted, totalNanos, nextReport;
-    private static BigInteger equivalentSegments = BigInteger.ZERO;
-    private static final BigInteger MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
     private static final Map<Object, Route> VERIFIED = new java.util.WeakHashMap<>();
     /** Managers that have accepted a batch through Omni's CPU-bound API. */
     private static final java.util.Set<Object> CANDIDATES =
@@ -31,8 +27,6 @@ public final class UselessExactOutputReturn {
             this.grid = new java.lang.ref.WeakReference<>(grid);
         }
     }
-    private static final Map<String, Long> REASONS = new java.util.LinkedHashMap<>();
-    private static long diagnosticDeadline;
     private static final ClassValue<Optional<Method>> CONTROLLERS = new ClassValue<>() {
         @Override protected Optional<Method> computeValue(Class<?> provider) {
             try { return Optional.of(provider.getMethod("getController")); }
@@ -84,9 +78,6 @@ public final class UselessExactOutputReturn {
         catch (ReflectiveOperationException failure) { return false; }
     }
 
-    public static BigInteger adaptiveWindow(Object manager) {
-        return BigInteger.ZERO;
-    }
 
     /**
      * UselessMod's normal hard chunk guard is sized for segmented AE output.
@@ -100,34 +91,12 @@ public final class UselessExactOutputReturn {
         return original;
     }
 
-    static void admissionRejected(Object manager) {
-        // The next attempt probes Useless capacity again directly.
-    }
 
-    private static long oldestAge(Object manager, Layout layout, Level level) throws ReflectiveOperationException {
-        var queue = (List<?>) layout.queue.get(manager);
-        return queue.isEmpty() || level == null ? 0 : Math.max(0, level.getGameTime() - layout.queuedTick.getLong(queue.getFirst()));
-    }
 
     /** Invoked only by Omni's post-accounting registry, never a cancellation/force flush. */
     public static void flushAfterAccounting(Object provider) {
         Object manager = managerOf(provider);
         if (manager != null) flush(manager, true);
-    }
-
-    public static void diagnostic(String reason) {
-        if (!profilingEnabled()) {
-            REASONS.clear();
-            diagnosticDeadline = 0;
-            return;
-        }
-        REASONS.merge(reason, 1L, Long::sum);
-        long now = System.nanoTime();
-        if (diagnosticDeadline == 0) diagnosticDeadline = now + 10_000_000_000L;
-        if (now >= diagnosticDeadline) {
-            MolecularManipulator.LOGGER.info("Omni direct return diagnostics: {}", REASONS);
-            REASONS.clear(); diagnosticDeadline = now + 10_000_000_000L;
-        }
     }
 
     @SuppressWarnings("unchecked")
@@ -148,9 +117,7 @@ public final class UselessExactOutputReturn {
         var optional = LAYOUTS.get(manager.getClass());
         if (optional.isEmpty()) return BigInteger.ZERO;
         var layout = optional.get();
-        boolean profiling = profilingEnabled();
         long started = 0;
-        long returnAge = 0;
         BigInteger transferred = BigInteger.ZERO;
         try {
             var queue = (List<Object>) layout.queue.get(manager);
@@ -160,10 +127,10 @@ public final class UselessExactOutputReturn {
             if (level == null || level.isClientSide || level.getServer() == null || !level.getServer().isSameThread()
                     || !(Boolean) layout.supported.invoke(host)) return BigInteger.ZERO;
             var grid = (IGrid) layout.grid.invoke(host);
-            if (grid == null || layout.outputTarget.invoke(host) == null) { diagnostic("source-offline"); return BigInteger.ZERO; }
+            if (grid == null || layout.outputTarget.invoke(host) == null) return BigInteger.ZERO;
             long tick = TickHandler.instance().getCurrentTick();
             if (budgetTick != tick) { budgetTick = tick; spentThisTick = 0; }
-            if (spentThisTick >= GLOBAL_DIRECT_BUDGET_NANOS) { diagnostic("time-budget"); return BigInteger.ZERO; }
+            if (spentThisTick >= GLOBAL_DIRECT_BUDGET_NANOS) return BigInteger.ZERO;
             started = System.nanoTime();
             // The Useless manager queue is shared by ordinary AE output and
             // native BigInteger batches.  The scan limit must apply to
@@ -208,24 +175,15 @@ public final class UselessExactOutputReturn {
                 }
                 if (accepted == null) accepted = Map.of();
                 if (!accepted.equals(debited)) throw new IllegalStateException("Native receiver acknowledgement differs from debit");
-                if (accepted.isEmpty()) {
-                    diagnostic("receiver-declined");
-                } else {
+                if (!accepted.isEmpty()) {
                     var route = VERIFIED.get(manager);
                     if (route == null || route.grid.get() != grid) VERIFIED.put(manager, new Route(grid));
-                    returnAge = Math.max(returnAge, Math.max(0, level.getGameTime() - layout.queuedTick.getLong(pending)));
-                    diagnostic(afterAccounting ? "accepted-same-tick" : "accepted-block-tick");
                     for (BigInteger value : accepted.values()) {
                         transferred = transferred.add(value);
-                        if (profiling) {
-                            keysTransferred++;
-                            equivalentSegments = equivalentSegments.add(value.add(MAX_LONG).subtract(BigInteger.ONE).divide(MAX_LONG));
-                        }
                     }
                 }
                 if (amounts.isEmpty()) {
                     iterator.remove();
-                    if (profiling) batchesCompleted++;
                     layout.completed.invoke(null, pending);
                 }
             }
@@ -237,10 +195,8 @@ public final class UselessExactOutputReturn {
             if (started != 0) {
                 long elapsed = System.nanoTime() - started;
                 spentThisTick += elapsed;
-                if (profiling) totalNanos += elapsed;
                 try { layout.addWork.invoke(null, elapsed); }
                 catch (ReflectiveOperationException failure) { throw new IllegalStateException("Native transfer budget accounting failed", failure); }
-                reportIfDue();
             }
         }
     }
@@ -267,26 +223,6 @@ public final class UselessExactOutputReturn {
                 debited = count;
             } catch (IllegalAccessException failure) { throw new IllegalStateException(failure); }
         }
-    }
-
-    private static void reportIfDue() {
-        if (!profilingEnabled()) {
-            keysTransferred = batchesCompleted = totalNanos = nextReport = 0;
-            equivalentSegments = BigInteger.ZERO;
-            return;
-        }
-        long now = System.nanoTime();
-        if (nextReport == 0) nextReport = now + 10_000_000_000L;
-        if (now < nextReport || keysTransferred == 0) return;
-        MolecularManipulator.LOGGER.info(
-                "Omni native output transfer: keys={}, completedBatches={}, equivalentLongSegments={}, elapsedMs={}",
-                keysTransferred, batchesCompleted, equivalentSegments, totalNanos / 1_000_000.0);
-        keysTransferred = batchesCompleted = totalNanos = 0; equivalentSegments = BigInteger.ZERO;
-        nextReport = now + 10_000_000_000L;
-    }
-
-    private static boolean profilingEnabled() {
-        return ModConfig.SERVER_SPEC.isLoaded() && ModConfig.OMNI_PROFILE_EXACT_RETURNS.get();
     }
 
     private static final class Layout {

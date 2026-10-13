@@ -1,31 +1,35 @@
 # Isolated engine regressions / 隔离游戏测试
 
-Current source: 2.0.8. Test source sets are excluded from a normal runtime JAR.
+Current source: 2.0.9. Test source sets are excluded from a normal runtime JAR.
 [Dependency setup](../../libs/README.md)
 
 ## Suites
 
 | Init script | Coverage |
 | --- | --- |
+| `auto-crafting.init.gradle` | Real powered Sequence Array and single-block passive crafting: capacity-limited same-tick ME/adjacent delivery, blocked probe counts, million-item batches, returned buckets/shared-capacity rollback, old long output retention and CPU pipeline preservation |
 | `performance-regression.init.gradle` | Long-count providers, well AEKey inputs/codecs/queues, recipe lookup invalidation, research stock scan counts and admission conservation, dismantling, Nexus and actual storage-bus pattern access |
 | `cpu-batch-compat.init.gradle` | Real ECO, Trinity and Thunderbolt API dispatch into a formed well, scaled input conservation, durable queues, adapter reload and optional-mod absence |
 | `singularity.init.gradle` | Hub registry/palette, build/dismantle, old motion/embedding migrations, protection events and material conservation |
-| `compact-singularity.init.gradle` | Single-block hub: six-face ME connections, tag collection, fluid production/copying, capacity waits and retained drops |
+| `compact-singularity.init.gradle` | Single-block hub: six-face ME connections, tag collection, fluid production/copying, capacity waits and retained drops; collection batch/interval bounds, live changes, missed cycles and reload |
 | `cosmic-holes.init.gradle` | Real hole item placement, optional FTB team ownership, nearest exit, multiple exits, item preservation, removal fallback, saved bindings and recipes |
 | `aae.init.gradle` | Actual transformed Omni AE and AdvancedAE CPUs, native/optional batch providers, ownership, rejected/failing admissions, exact counts and per-tick backpressure |
 | `ae2-compat.init.gradle` | AE2 extraction, native bypass, mixed exact tasks and long-count providers with Applied 1.1.0 |
 | `paired-api.init.gradle` | Current Applied development API: mixed native rewriting, fallback and exact quantity integration; select its separate JAR with `applied_enhancements_api_build` |
+| `fabrication-dispatch.init.gradle` | Finite-power Nexus deliveries at 20 billion and `Long.MAX_VALUE`, 8.1G energy-limit reproduction, durable ownership/refunds and actual client page synchronization |
 | `cyclic-submission.init.gradle` | Terminal-style planning, summary, submission and completion on a powered Omni Nexus; ignored startup seed, missing seed/raw inputs, retry rollback and ordinary output exclusion |
 | `applied-110.init.gradle` | Original Applied 1.1.0: native bypass, mixed exact local rewriting, AE2 extraction and long-count providers |
 | `gametest.init.gradle` | Combined engine suite, including legacy migrations and spawn protection |
 
 ```powershell
+.\gradlew.bat -I tools/gametest/auto-crafting.init.gradle runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/performance-regression.init.gradle runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/cpu-batch-compat.init.gradle -PcpuCompatRunName=cpu-batch-baseline runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/applied-110.init.gradle runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/cyclic-submission.init.gradle runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/cyclic-submission.init.gradle -PcyclicAutomatic -PcyclicRunName=cyclic-automatic runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/singularity.init.gradle runGameTestServer --no-configuration-cache
+.\gradlew.bat -I tools/gametest/compact-singularity.init.gradle -PcompactSingularityRunName=compact-issues-5-6 runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/cosmic-holes.init.gradle runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/cosmic-holes.init.gradle -PcosmicFtbTests runGameTestServer --no-configuration-cache
 .\gradlew.bat -I tools/gametest/aae.init.gradle "-PaaeJar=libs/AdvancedAE-1.6.11-1.21.1.jar" "-PgeckoJar=libs/geckolib-neoforge-1.21.1-4.9.2.jar" runGameTestServer --no-configuration-cache
@@ -42,6 +46,27 @@ input/output accounting, long resource capacity, failed pushes, scaled Omni
 deliveries, NBT retention, refunds, adapter lifecycle and local doubling bypass.
 Without `cpuCompatMods`, it verifies loading and ordinary/local dispatch with
 every optional CPU absent. Test resources and API dependencies are not packaged.
+
+Fabrication Pattern Assembly page synchronization and full-long Nexus delivery:
+
+```powershell
+.\gradlew.bat -I tools/gametest/fabrication-dispatch.init.gradle runGameTestServer --no-configuration-cache
+.\gradlew.bat -I tools/gametest/fabrication-dispatch.init.gradle -PfabricationMenuClient runClient --no-configuration-cache
+```
+
+The server suite runs two required tests. It reproduces the 8.1G upfront-energy
+limit, then dispatches 20 billion and `Long.MAX_VALUE` of two separate resources
+through actual Nexus CPUs using a finite energy-service fixture. Each job must
+transfer in one delivery, update AE tasks/waiting quantities exactly, retain its
+queue through NBT reload and refund without loss. All 36 hidden slots retain
+their sync contents while rejecting pickup, insertion and shift-click.
+The client creates a disposable integrated world and performs 12 real network
+page changes in the same open screen, verifying every pattern and catalyst slot.
+Require `MATTER_ASSEMBLY_MENU_CLIENT_PASS`. Use
+`'-Pae2_version=19.2.17' '-Papplied_enhancements_api_build=1.1.1'` to match the
+installed pack's AE2/prerequisite versions. These fixtures do not enter release JARs.
+`'-PfabricationAppliedJar=<absolute path to the installed Applied JAR>'` selects
+the installed implementation when its build differs from the compile API JAR.
 
 Use the matching independent prerequisite in `libs/`. Optional AdvancedAE and
 GeckoLib runtime JARs must be passed explicitly; they are not packaged with the mod.
@@ -90,6 +115,20 @@ The client exits automatically after checking every block-state model, both item
 models, complete OBJ materials, vertex bounds and missing textures. Test-only
 source sets and worlds remain below `build/` and are excluded from release JARs.
 
+Antarchy gravity compatibility (supply Antarchy and its required dependency JARs in one directory):
+
+```powershell
+.\gradlew.bat -I tools/gametest/antarchy-gravity.init.gradle '-PantarchyModsDir=D:\test-mods\antarchy' runClient --no-configuration-cache
+```
+
+This runs a real integrated server and client. It checks startup, inverted camera
+anchors/rotation, crystal wall gravity with Antarchy loaded, overlapping-gravity
+handoff and collision bounds, actual ceiling walking/jumping, all three camera
+modes, forced normal gravity, return transitions and restoration of crystal fields.
+Require `ANTARCHY_GRAVITY_CLIENT_PASS`. Tested with Antarchy 2.2.1 for NeoForge 1.21.1;
+the optional JARs and verification classes are excluded from the release mod.
+The ordinary gravity walking suite above also verifies smooth eye-anchor continuity.
+
 Shared catalysts (36-slot menu, separate recipe JSON/network codecs, cross-assembly
 stock, isolation between wells, overlapping ingredients, 1026-craft native batches,
 stale admission, pause/resume, saved active work and portable drops):
@@ -99,8 +138,12 @@ stale admission, pause/resume, saved active work and portable drops):
 .\gradlew.bat -I tools/gametest/catalyst-sharing.init.gradle '-PcatalystPackMods=E:\MC\PCL\.minecraft\versions\New Age Science and Technology\mods' runGameTestServer --no-configuration-cache
 ```
 
-The second run also imports the pack's real Lightning Tech Crystal Catalyzer recipes
-and checks their retained catalysts, fixed water cost and lightning input.
+The second run also imports all available real Lightning Tech Crystal Catalyzer recipes
+and checks empty/wrong catalyst rejection, Thunderbolt delivery, explicit input mappings,
+fixed water cost and lightning input. A live AE CPU order starts with no catalyst,
+waits without losing its materials, pauses when the catalyst is removed and completes
+exactly once after restocking. Saved batches also pause while their recipe is absent.
+Use `-PcatalystSharingRunName=<name>` for a fresh disposable world.
 
 Fabrication encoding/upload and placement-time team binding:
 

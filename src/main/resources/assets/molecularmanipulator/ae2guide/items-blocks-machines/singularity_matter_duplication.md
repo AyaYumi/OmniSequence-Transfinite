@@ -21,10 +21,12 @@ Miniature black holes consume energy inside the hub to generate **Singularity Se
 
 1. Form an [Event Horizon Singularity Hub](event_horizon_singularity_hub.md) or connect a [Compact Hub](compact_singularity_hub.md).
 2. Provide **ME fluid storage** that accepts Sequence Matter.
-3. Insert up to **64 miniature black holes** in the black-hole slot on **Matter Duplication**.
+3. Insert up to **64 miniature black holes** in the **Matter generator** slot on **Matter Duplication**.
 4. Supply FE or AE energy. Matter is generated automatically and stored in ME.
 
 Generation needs neither a sample nor active resource collection. Item storage cannot replace fluid storage; check that infinite storage also supports fluids.
+
+More black holes increase fluid output and its energy cost. They do not change the cost or per-tick limit of item copying. Select **Guide** on the duplication page to open these instructions.
 
 | Black holes | Default output every 20 ticks |
 | --- | --- |
@@ -46,6 +48,8 @@ Matter Duplication displays FE and AE consumption separately. The server's **Sin
 ## Copying items
 
 Insert the desired item in the **sample slot** and leave ME item capacity for copies. Each copy costs **1000 mB (1 B)** of Sequence Matter. Copies enter ME; the original sample remains, and item component data is preserved.
+
+With enough stored matter and item space, the hub copies at most **one item per tick**. Resource Collection's `batch_size` and `interval_ticks` do not control copying. The duplication group's `interval_ticks` controls fluid generation. Under default settings, 64 black holes produce 1280 mB per second, enough for an average of 1.28 copies per second at normal TPS.
 
 Remove the sample to stop copying. Miniature black holes can continue generating matter. If delivery is interrupted, completed outputs and pending matter refunds are retained until the network recovers.
 

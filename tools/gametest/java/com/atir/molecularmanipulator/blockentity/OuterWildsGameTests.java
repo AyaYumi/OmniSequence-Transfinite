@@ -351,11 +351,17 @@ public final class OuterWildsGameTests {
                                 + " expected=" + player.getEyePosition().subtract(GravityFrame.up(down).scale(.1))
                                 + " motion=" + arrow.getDeltaMovement() + " look=" + player.getLookAngle()
                                 + " inherited=" + player.getKnownMovement());
+                // Vanilla toss spread can occasionally lower the aiming projection below this check's threshold.
+                player.getRandom().setSeed(0);
                 var dropped = player.drop(new ItemStack(Items.DIAMOND), false, false);
                 helper.assertTrue(dropped != null && dropped.position().distanceTo(
                         player.getEyePosition().subtract(GravityFrame.up(down).scale(.3))) < 1.0E-5
                         && dropped.getDeltaMovement().dot(player.getLookAngle()) > .2,
-                        "Dropped items must originate at the rotated hand/eye side: " + down);
+                        "Dropped items must originate at the rotated hand/eye side: " + down
+                                + " origin=" + (dropped == null ? null : dropped.position())
+                                + " expected=" + player.getEyePosition().subtract(GravityFrame.up(down).scale(.3))
+                                + " motion=" + (dropped == null ? null : dropped.getDeltaMovement())
+                                + " look=" + player.getLookAngle());
                 if (dropped != null) dropped.discard();
                 arrow.discard();
                 var serialized = player.saveWithoutId(new net.minecraft.nbt.CompoundTag());

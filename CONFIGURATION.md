@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.8, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
+Current source: 2.0.9, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 
@@ -33,8 +33,6 @@ AppliedEnhancements configuration.
 | `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 50000 | 250–50000 microseconds; shared compatibility deadline |
 | `omni_computation.dispatch.omni_dispatch_max_work_units` | 2147483647 | 64–Long.MAX_VALUE; extraction/provider work budget per controller/tick |
 | `omni_computation.dispatch.omni_coalesce_return_notifications` | true | Notify each changed key after settling its exact ledgers |
-| `omni_computation.dispatch.omni_profile_exact_returns` | false | Opt-in global performance summaries; not required for crafting |
-| `omni_computation.dispatch.omni_return_profile_sample_interval` | 64 | 1–4096; sample timing once per this many exact insertions |
 | `omni_computation.dispatch.omni_direct_native_output_return` | true | Direct live-bound compatible native intermediate-output return |
 | `transfinite_compute_nexus.idle_power` | 16384 | 1–2,147,483,647 AE/t; powered network and one channel |
 
@@ -68,6 +66,12 @@ Blacklist entries use `namespace:item`, without `#` or wildcards. Unknown valid
 IDs are harmless and can remain for optional mods. Every remaining tagged type
 is produced simultaneously and shown in the collection page.
 
+The collection page shows the server's effective batch size and interval. A live
+interval change starts a fresh cycle instead of waiting for the previous deadline.
+Collection settings do not control sample copying, which is limited to one item
+per tick with sufficient stored matter and item space. The duplication group's
+`interval_ticks` controls Sequence Matter generation.
+
 Sequence Matter output per cycle = hole count × `matter_per_black_hole` mB.
 FE/AE theoretical cost = produced mB × the chosen per-unit cost. With 64 holes,
 defaults produce 1,280 mB and cost either 1,280,000 FE or 327,680 AE. Actual
@@ -80,7 +84,7 @@ fluid and does not repeat the generation energy charge.
 not repay skipped/unloaded cycles. Storage pressure retains owned copy output
 and fluid refunds for a later retry.
 
-## Migration and diagnostics
+## Migration and warnings
 
 Old ore/log tag lists merge into `item_tags` without injecting new defaults into
 an existing custom/empty list. Existing `item_tags` wins. Older collection and
@@ -88,10 +92,9 @@ duplication groups move from `sequence_array` to `singularity_hub`; chunk-loadin
 moves to `multiblocks`. Retired Matter Rewrite/entropy/Shift-tooltip options are
 removed. Valid values survive schema repair; backup files are created before changes.
 
-Recurring runtime/load warning and error templates share a global one-minute
-window, independent of controller count. AELIS and exact-dispatch trace categories
-also share that limit. Opt-in performance measurements aggregate at ten-second
-intervals. Startup migration messages describe actual changes, not tick activity.
+Recurring runtime and load warnings share a global one-minute window,
+independent of controller count. Startup migration messages describe actual
+changes; routine successful crafting does not produce trace logs.
 
 ## 中文
 
@@ -104,4 +107,5 @@ FE 来自控制器相邻六面的能源能力；AE 来自连接的 ME 电网。�
 实际供能。复制一件物品固定消耗 1,000 mB（1 B），样品保留。
 
 旧分组和标签自动迁移，已设置的新值包括空列表优先保留。已删除的构序重写相关
-选项不会重新生成。性能诊断默认关闭，重复故障按固定模板全局限流。
+选项不会重新生成。重复运行故障保留首次警告或错误，并按固定模板全局限流；
+正常合成和输出回收不会持续写入跟踪日志。

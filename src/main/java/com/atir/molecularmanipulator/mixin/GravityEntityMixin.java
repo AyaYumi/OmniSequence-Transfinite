@@ -101,7 +101,6 @@ public abstract class GravityEntityMixin {
     private void omnisequence$syncBody(EntityDataAccessor<?> accessor, CallbackInfo ci) {
         var entity = (Entity) (Object) this;
         if (entity instanceof GravityPlayerAccess access && access.omnisequence$isGravityData(accessor))
-            entity.setBoundingBox(GravityFrame.bounds(GravityController.direction(entity),
-                entity.position(), entity.getDimensions(entity.getPose())));
+            entity.setPos(entity.position());
     }
 }

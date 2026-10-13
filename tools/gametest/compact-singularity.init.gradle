@@ -5,12 +5,14 @@ allprojects {
         def verification = sourceSets.create('compactSingularityVerification') {
             java.srcDir file('tools/gametest/java')
             java.include '**/CompactSingularityGameTests.java'
+            java.include '**/SingularityCollectionGameTests.java'
             resources.srcDir file('tools/gametest/resources')
             compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
             runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
         }
         neoForge.mods.getByName(project.mod_id).sourceSet(verification)
-        neoForge.runs.getByName('gameTestServer').gameDirectory = file('build/compact-singularity-regression-run')
+        neoForge.runs.getByName('gameTestServer').gameDirectory = file('build/' +
+                project.providers.gradleProperty('compactSingularityRunName').getOrElse('compact-singularity-regression-run'))
         neoForge.runs.getByName('gameTestServer').logLevel = org.slf4j.event.Level.INFO
         tasks.named('compileCompactSingularityVerificationJava', JavaCompile) {
             dependsOn tasks.named('classes')

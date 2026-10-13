@@ -27,7 +27,7 @@
     "EcoMatterPatternBatchMixin",
     "ThunderboltMatterPatternBatchMixin",
     "ExactExecutingJobAccessor",
-    "ExactReturnPerformanceMixin",
+    "ExactReturnNotificationMixin",
     "GridActiveMachinesMixin",
     "KeyCounterMixin",
     "LegacyAelisTaskReconciliationMixin",

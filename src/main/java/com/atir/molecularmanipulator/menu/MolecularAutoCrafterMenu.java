@@ -5,13 +5,11 @@ import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.RestrictedInputSlot;
-import appeng.menu.slot.InaccessibleSlot;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocators;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafterBlockEntity;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
@@ -25,13 +23,10 @@ public final class MolecularAutoCrafterMenu extends AEBaseMenu {
     private static final String ACTION_CONFIG = "open_auto_craft_config";
     private static final String ACTION_OUTPUT_MODE = "toggle_auto_craft_output_mode";
     private static final String ACTION_OUTPUT_SIDE = "toggle_auto_craft_output_side";
-    private static final String ACTION_OUTPUT_PAGE = "auto_craft_output_page";
-
     public static final int GRID_X = 10;
     public static final int PATTERN_Y = 36;
-    public static final int OUTPUT_Y = 88;
-    public static final int INVENTORY_Y = 140;
-    public static final int HOTBAR_Y = 198;
+    public static final int INVENTORY_Y = 88;
+    public static final int HOTBAR_Y = 146;
 
     public static final MenuType<MolecularAutoCrafterMenu> TYPE = MenuTypeBuilder
             .create(MolecularAutoCrafterMenu::new, MolecularAutoCrafterBlockEntity.class)
@@ -56,11 +51,7 @@ public final class MolecularAutoCrafterMenu extends AEBaseMenu {
     @GuiSync(16) public MolecularAutoCrafterBlockEntity.OutputMode outputMode =
             MolecularAutoCrafterBlockEntity.OutputMode.NETWORK;
     @GuiSync(17) public int outputSides;
-    @GuiSync(18) public int outputPage;
-    @GuiSync(19) public int outputPages = 1;
-
     private final MolecularAutoCrafterBlockEntity machine;
-    private final AutoCrafterOutputView outputView = new AutoCrafterOutputView();
 
     private MolecularAutoCrafterMenu(int id, Inventory inventory,
             MolecularAutoCrafterBlockEntity machine) {
@@ -76,15 +67,6 @@ public final class MolecularAutoCrafterMenu extends AEBaseMenu {
             pattern.y = PATTERN_Y;
             addSlot(pattern, SlotSemantics.ENCODED_PATTERN);
         }
-        var outputs = outputView.createMenuWrapper();
-        for (int index = 0; index < AutoCrafterOutputView.SLOTS; index++) {
-            var slot = new InaccessibleSlot(outputs, index);
-            slot.x = GRID_X + (index % AutoCrafterOutputView.COLUMNS) * 18;
-            slot.y = OUTPUT_Y + (index / AutoCrafterOutputView.COLUMNS) * 18;
-            slot.setEmptyTooltip(() -> java.util.List.of(Component.translatable(
-                    "gui.molecularmanipulator.auto_craft_output_buffer_hint")));
-            addSlot(slot, SlotSemantics.MACHINE_OUTPUT);
-        }
         registerClientAction(ACTION_SELECT, Integer.class, this::select);
         registerClientAction(ACTION_TOGGLE, Integer.class, this::toggle);
         registerClientAction(ACTION_LIMIT, Long.class, this::setLimit);
@@ -92,7 +74,6 @@ public final class MolecularAutoCrafterMenu extends AEBaseMenu {
         registerClientAction(ACTION_CONFIG, Integer.class, this::openConfig);
         registerClientAction(ACTION_OUTPUT_MODE, this::toggleOutputMode);
         registerClientAction(ACTION_OUTPUT_SIDE, Integer.class, this::toggleOutputSide);
-        registerClientAction(ACTION_OUTPUT_PAGE, Integer.class, this::changeOutputPage);
     }
 
     public MolecularAutoCrafterBlockEntity getMachine() { return machine; }
@@ -141,16 +122,6 @@ public final class MolecularAutoCrafterMenu extends AEBaseMenu {
 
     public void requestOutputModeToggle() {
         if (isClientSide()) sendClientAction(ACTION_OUTPUT_MODE);
-    }
-
-    public void requestOutputPage(int page) {
-        if (isClientSide()) sendClientAction(ACTION_OUTPUT_PAGE, page);
-    }
-
-    private void changeOutputPage(int page) {
-        if (!isServerSide()) return;
-        outputPage = Math.clamp(page, 0, outputPages - 1);
-        broadcastChanges();
     }
 
     public void requestOutputSideToggle(int side) {
@@ -226,8 +197,6 @@ public final class MolecularAutoCrafterMenu extends AEBaseMenu {
     @Override
     public void broadcastChanges() {
         if (isServerSide()) {
-            outputPage = outputView.refresh(machine.getBufferedAutoCraftOutputs(), outputPage);
-            outputPages = outputView.pageCount();
             outputMode = machine.getOutputMode();
             outputSides = machine.getOutputSides();
             enabledMask = 0;

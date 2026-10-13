@@ -311,9 +311,12 @@ public final class GravityWalkingClientChecks {
         camera.setup(mc.level, probe, false, false, 1);
         for (var down : new Direction[]{Direction.WEST, Direction.NORTH, Direction.UP, Direction.DOWN}) {
             var previous = new org.joml.Quaternionf(camera.rotation());
+            var previousEye = camera.getPosition();
             check(GravityController.change(probe, down), "Camera probe must have space to change gravity");
             camera.setup(mc.level, probe, false, false, 1);
             check(Math.abs(previous.dot(camera.rotation())) > .99999F, "A gravity transition must start at the last rendered orientation");
+            check(camera.getPosition().distanceTo(previousEye) < .001,
+                    "A gravity transition must start at the last rendered eye anchor");
             probe.tickCount += 5;
             camera.setup(mc.level, probe, false, false, 1);
             check(Math.abs(previous.dot(camera.rotation())) < .999F, "A gravity transition must advance through intermediate orientations");

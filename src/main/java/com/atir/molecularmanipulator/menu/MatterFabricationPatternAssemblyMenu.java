@@ -9,7 +9,9 @@ import appeng.menu.slot.AppEngSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternAssemblyBlockEntity;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.ItemStack;
 
 /** A single, renameable 9 x 4 processing-pattern bank. */
 public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
@@ -45,14 +47,21 @@ public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
 
         var patterns = assembly.getLogic().getPatternInv();
         for (int slot = 0; slot < MatterFabricationPatternAssemblyBlockEntity.PATTERN_SLOTS; slot++) {
+            final int inventorySlot = slot;
             var patternSlot = new RestrictedInputSlot(
-                    RestrictedInputSlot.PlacableItemType.PROVIDER_PATTERN, patterns, slot);
+                    RestrictedInputSlot.PlacableItemType.PROVIDER_PATTERN, patterns, slot) {
+                @Override public ItemStack getItem() { return patterns.getStackInSlot(inventorySlot); }
+                @Override public boolean mayPickup(Player player) { return isSlotEnabled() && super.mayPickup(player); }
+            };
             patternSlot.x = 44 + slot % 9 * 18;
             patternSlot.y = 111 + slot / 9 * 18;
             addSlot(patternSlot, SlotSemantics.ENCODED_PATTERN);
         }
         for (int slot = 0; slot < MatterFabricationPatternAssemblyBlockEntity.CATALYST_SLOTS; slot++) {
-            var catalystSlot = new AppEngSlot(assembly.getCatalystInventory(), slot);
+            final int inventorySlot = slot;
+            var catalystSlot = new AppEngSlot(assembly.getCatalystInventory(), slot) {
+                @Override public ItemStack getItem() { return getInventory().getStackInSlot(inventorySlot); }
+            };
             catalystSlot.x = 44 + slot % 9 * 18;
             catalystSlot.y = 111 + slot / 9 * 18;
             addSlot(catalystSlot, SlotSemantics.MACHINE_INPUT);
@@ -75,6 +84,9 @@ public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
         for (var slot : getSlots(SlotSemantics.MACHINE_INPUT)) setPageSlot((AppEngSlot) slot, view == 3);
     }
     private static void setPageSlot(AppEngSlot slot, boolean enabled) {
+        // Keep contents synchronized on every page. Disabled AE slots normally
+        // report EMPTY, which can erase the client inventory during a tab change.
+        // The page slots above expose their contents while still blocking interaction.
         slot.setActive(enabled);
         slot.setSlotEnabled(enabled);
     }

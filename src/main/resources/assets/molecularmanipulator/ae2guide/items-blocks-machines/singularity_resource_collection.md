@@ -30,6 +30,8 @@ The hub produces every item in its resource list simultaneously. Defaults includ
 
 By default, each resource produces **1000 items every 20 ticks**, about one second at normal TPS. An item matching multiple tags appears only once. There is no need to switch collection targets.
 
+The page displays the server's current batch size and interval. Select **Guide** to open this page from the controller.
+
 ## Resource list
 
 The server configuration's **Singularity Hub → Resource Collection** group controls resource tags, quantities, intervals and the blacklist.
@@ -39,6 +41,10 @@ The server configuration's **Singularity Hub → Resource Collection** group con
 | Item tags | #c:raw_ores, #c:raw_materials, #minecraft:raw_ores, #minecraft:logs, #c:logs |
 | Additional tag example | #minecraft:planks to produce planks |
 | Blacklist | Item IDs such as minecraft:raw_iron |
+| Items per resource per cycle (`batch_size`) | 1000 |
+| Ticks between cycles (`interval_ticks`) | 20 |
+
+These settings apply to resource collection. [Sample copying](singularity_matter_duplication.md) has a separate limit of one item per tick. Changing the collection interval while running starts a fresh cycle; missed cycles are not replayed.
 
 Only tag members present in the pack enter the list. Blacklisted items are neither displayed nor produced. The page's list shows the current resources; the icons above are common examples.
 

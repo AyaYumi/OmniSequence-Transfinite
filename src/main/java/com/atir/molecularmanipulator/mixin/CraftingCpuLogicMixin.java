@@ -32,6 +32,7 @@ import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerProviderAdapterRegistry;
 import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputAdapterRegistry;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
+import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternLogic;
 import com.atir.molecularmanipulator.crafting.MolecularAdaptiveBatchController;
 import com.atir.molecularmanipulator.crafting.MolecularAdaptiveProviderIterable;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
@@ -94,9 +95,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             target = "Lappeng/crafting/inv/ListCraftingInventory;insert(Lappeng/api/stacks/AEKey;JLappeng/api/config/Actionable;)V"))
     private void molecularmanipulator$storeExactIntermediate(ListCraftingInventory inventory,
             AEKey key, long amount, Actionable mode, Operation<Void> original) {
-        var timing = (com.atir.molecularmanipulator.crafting.OmniExactReturnTiming) (Object) this;
-        long start = timing.omnisequence$isProfilingReturn() ? System.nanoTime() : 0;
-        try {
         if (molecularmanipulator$exactState == null || mode != Actionable.MODULATE) {
             original.call(inventory, key, amount, mode);
             return;
@@ -104,7 +102,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         molecularmanipulator$exactInventory.insert(inventory, key, BigInteger.valueOf(amount));
         postChange(key);
         cluster.markDirty();
-        } finally { if (start != 0) timing.omnisequence$addReturnInventoryTime(System.nanoTime() - start); }
     }
 
     @Inject(method = "storeItems", at = @At("HEAD"))
@@ -350,23 +347,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
     private boolean molecularmanipulator$exactPrototypeHasContainers;
     @Unique
     private NativeBigIntegerBatchCallback molecularmanipulator$nativeBigIntegerCallback;
-
-    @Unique
-    private void molecularmanipulator$logExactDiagnostic(
-            String outcome, ICraftingProvider provider,
-            IPatternDetails pattern, BigInteger requested,
-            BigInteger admitted) {
-        if (!com.atir.molecularmanipulator.config.ModConfig.OMNI_PROFILE_EXACT_RETURNS.get()) {
-            return;
-        }
-        RateLimitedLog.info(
-                "Omni exact dispatch: outcome={}, provider={}, pattern={}, requested={}, admitted={}, patternClass={}, outputs={}",
-                outcome,
-                provider == null ? "null" : provider.getClass().getName(),
-                pattern == null ? "null" : pattern.getDefinition(),
-                requested, admitted, pattern == null ? "null" : pattern.getClass().getName(),
-                pattern == null ? "null" : pattern.getOutputs());
-    }
 
     @Inject(method = "trySubmitJob", at = @At("RETURN"), cancellable = true)
     private void molecularmanipulator$attachExactCraftingState(
@@ -909,10 +889,17 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         }
 
         if (molecularmanipulator$dispatchOwner != null) {
+            // Exact tasks expose MAX_VALUE - 1 to AE's decrement loop. A counted
+            // delivery can safely use the full long range because we install the
+            // next rolling window before AE performs its single decrement.
+            long apiTaskValue = molecularmanipulator$exactState == null ? taskValue
+                    : Math.min(molecularmanipulator$cycleBatch.maximumCrafts(),
+                            molecularmanipulator$exactState.remaining(patternDetails)
+                                    .min(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact());
             var apiBatchInputs = molecularmanipulator$prepareApiBatch(
                     craftingService, patternDetails, inventory, energyService,
                     level, firstInputs, expectedOutputs,
-                    expectedContainerItems, taskValue,
+                    expectedContainerItems, apiTaskValue,
                     waitingForCraftLimit);
             if (apiBatchInputs != null) {
                 return apiBatchInputs;
@@ -1251,10 +1238,13 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
                     continue;
                 }
 
-                var extraction = MolecularBatchCraftingExtractor.expandFromFirst(
-                        patternDetails, inventory, energyService, level,
-                        firstInputs, expectedOutputs, expectedContainerItems,
-                        admittedCrafts, false);
+                var extraction = provider instanceof MatterFabricationPatternLogic
+                        ? MolecularBatchCraftingExtractor.expandQueuedProcessingFromFirst(
+                                patternDetails, inventory, energyService, level,
+                                firstInputs, expectedOutputs, expectedContainerItems, admittedCrafts)
+                        : MolecularBatchCraftingExtractor.expandFromFirst(
+                                patternDetails, inventory, energyService, level,
+                                firstInputs, expectedOutputs, expectedContainerItems, admittedCrafts, false);
                 if (extraction == null || extraction.craftCount() < 2) {
                     continue;
                 }
@@ -1278,6 +1268,18 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             }
         }
         return null;
+    }
+
+    @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
+            target = "Lappeng/crafting/execution/CraftingCpuHelper;calculatePatternPower([Lappeng/api/stacks/KeyCounter;)D"))
+    private double molecularmanipulator$queuedFabricationDispatchPower(KeyCounter[] inputs,
+            Operation<Double> original) {
+        if (molecularmanipulator$apiBatchAdmission != null
+                && molecularmanipulator$apiBatchProvider instanceof MatterFabricationPatternLogic
+                && molecularmanipulator$apiBatchInputs == inputs) {
+            return original.call((Object) molecularmanipulator$apiBatchFirstInputs);
+        }
+        return original.call((Object) inputs);
     }
 
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
@@ -1692,9 +1694,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
     private long molecularmanipulator$replenishExactOutputWindow(
             ListCraftingInventory waitingFor, AEKey what, long amount, Actionable mode,
             Operation<Long> original) {
-        var timing = (com.atir.molecularmanipulator.crafting.OmniExactReturnTiming) (Object) this;
-        long start = timing.omnisequence$isProfilingReturn() ? System.nanoTime() : 0;
-        try {
         long settled = original.call(waitingFor, what, amount, mode);
         var state = molecularmanipulator$exactState;
         var currentJob = job;
@@ -1718,7 +1717,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             cluster.markDirty();
         }
         return settled;
-        } finally { if (start != 0) timing.omnisequence$addReturnAccountingTime(System.nanoTime() - start); }
     }
 
     @ModifyExpressionValue(method = "executeCrafting", at = @At(value = "INVOKE",
@@ -2599,15 +2597,12 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             var state = molecularmanipulator$exactState;
             var currentJob = job;
             if (terminal || state == null || state != acceptedState || currentJob == null) {
-                com.atir.molecularmanipulator.integration.useless.UselessExactOutputReturn.diagnostic("stale-cpu-binding");
                 return BigInteger.ZERO;
             }
             if (sourceGrid == null || cluster.getGrid() != sourceGrid) {
-                com.atir.molecularmanipulator.integration.useless.UselessExactOutputReturn.diagnostic("grid-mismatch");
                 return BigInteger.ZERO;
             }
             if (!cluster.isActive()) {
-                com.atir.molecularmanipulator.integration.useless.UselessExactOutputReturn.diagnostic("cpu-offline");
                 return BigInteger.ZERO;
             }
             if (offered.signum() <= 0 || key == null || cluster.getLevel() == null
@@ -2615,7 +2610,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             var access = (ExactExecutingJobAccessor) currentJob;
             // Final products must still honor requester/network storage acceptance.
             if (key.matches(access.molecularmanipulator$getFinalOutput())) {
-                com.atir.molecularmanipulator.integration.useless.UselessExactOutputReturn.diagnostic("final-output-route");
                 return BigInteger.ZERO;
             }
             var waiting = access.molecularmanipulator$getWaitingFor();
@@ -2623,7 +2617,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             if (exposed < 0) return BigInteger.ZERO;
             var accepted = offered.min(BigInteger.valueOf(exposed).add(state.uncreditedOutput(key)));
             if (accepted.signum() <= 0) {
-                com.atir.molecularmanipulator.integration.useless.UselessExactOutputReturn.diagnostic("no-waiting-debt");
                 return BigInteger.ZERO;
             }
             long fromWindow = accepted.min(BigInteger.valueOf(exposed)).longValueExact();
@@ -2734,9 +2727,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
                 BigInteger missing = output.amount().subtract(expected);
                 if (missing.signum() > 0) {
                     state.queueOutput(output.key(), missing);
-                    molecularmanipulator$logExactDiagnostic(
-                            "callback-correction", null, pattern,
-                            output.amount(), missing);
                     cluster.markDirty();
                 }
             }
@@ -2773,9 +2763,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
                 OmniBigIntegerProviderAdapterRegistry.resolve(
                         provider, patternDetails);
         if (exactProvider == null) {
-            molecularmanipulator$logExactDiagnostic(
-                    "no-adapter", provider, patternDetails,
-                    state.remaining(patternDetails), null);
             return null;
         }
 
@@ -2806,9 +2793,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             var admitted = exactProvider.getMaximumBigIntegerCrafts(
                     patternDetails, attemptInputs, requested);
             if (admitted == null || admitted.signum() <= 0) {
-                molecularmanipulator$logExactDiagnostic(
-                        "no-capacity", provider, patternDetails,
-                        requested, admitted);
                 return BigInteger.ZERO;
             }
             admitted = admitted.min(requested);
@@ -2833,17 +2817,11 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             cluster.markDirty();
             if (!accepted) {
                 molecularmanipulator$nativeBigIntegerCallback = null;
-                molecularmanipulator$logExactDiagnostic(
-                        "push-rejected", provider, patternDetails,
-                        requested, admitted);
                 return BigInteger.ZERO;
             }
             molecularmanipulator$commitExactCraft(patternDetails, admitted);
             molecularmanipulator$recordLastBatch(patternDetails, admitted,
                     molecularmanipulator$batchInputAmounts(unitPrototype, admitted));
-            molecularmanipulator$logExactDiagnostic(
-                    "accepted-native", provider, patternDetails,
-                    requested, admitted);
             molecularmanipulator$acceptedExactBigIntegerCrafts = admitted;
             molecularmanipulator$exactBigIntegerAccountingDivisor =
                     accountingDivisor;
@@ -2885,17 +2863,11 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             var admitted = exactProvider.getMaximumBigIntegerCrafts(
                     patternDetails, attemptInputs, remaining);
             if (admitted == null || admitted.signum() <= 0) {
-                molecularmanipulator$logExactDiagnostic(
-                        "no-capacity", provider, patternDetails,
-                        remaining, admitted);
                 break;
             }
             admitted = admitted.min(remaining);
             if (!exactProvider.pushBigIntegerCraftingPattern(
                     patternDetails, admitted, attemptInputs)) {
-                molecularmanipulator$logExactDiagnostic(
-                        "push-rejected", provider, patternDetails,
-                        remaining, admitted);
                 break;
             }
 
@@ -2909,10 +2881,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
         if (accepted.signum() <= 0) {
             return null;
         }
-
-        molecularmanipulator$logExactDiagnostic(
-                "accepted", provider, patternDetails,
-                requested, accepted);
 
         molecularmanipulator$acceptedExactBigIntegerCrafts = accepted;
         molecularmanipulator$exactBigIntegerAccountingDivisor =
@@ -2980,10 +2948,16 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             return null;
         }
         long originalValue = molecularmanipulator$getTaskValue(task);
-        if (originalValue < craftCount) {
+        long valueBeforeOriginalDecrement;
+        if (molecularmanipulator$exactState != null) {
+            if (molecularmanipulator$exactState.remaining(patternDetails).compareTo(BigInteger.valueOf(craftCount)) < 0) return null;
+            valueBeforeOriginalDecrement = OmniExactCraftingState.window(
+                    molecularmanipulator$exactState.nextRemaining(patternDetails, craftCount)) + 1;
+        } else if (originalValue >= craftCount) {
+            valueBeforeOriginalDecrement = originalValue - craftCount + 1;
+        } else {
             return null;
         }
-        long valueBeforeOriginalDecrement = originalValue - craftCount + 1;
         if (valueBeforeOriginalDecrement < 1
                 || !molecularmanipulator$setTaskValue(task, valueBeforeOriginalDecrement)) {
             return null;

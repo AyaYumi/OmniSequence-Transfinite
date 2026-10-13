@@ -34,6 +34,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -98,6 +99,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     public void toggleOutputMode() {
         outputMode = outputMode == OutputMode.NETWORK ? OutputMode.ADJACENT : OutputMode.NETWORK;
         outputReadyTick = 0;
+        autoCrafter.outputDestinationChanged();
         saveChanges();
     }
 
@@ -105,6 +107,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         if (side < 0 || side >= 6) return;
         outputSides ^= 1 << side;
         outputReadyTick = 0;
+        autoCrafter.outputDestinationChanged();
         saveChanges();
     }
 
@@ -134,7 +137,12 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
 
     @Override
     public boolean canRunAutoCrafting() {
-        return !assembling && isOperational();
+        return !assembling && isOperational() && bufferedOutputs.isEmpty();
+    }
+
+    @Override
+    public boolean hasAutoCraftRecovery() {
+        return !bufferedOutputs.isEmpty();
     }
 
     @Override
@@ -164,12 +172,67 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     }
 
     @Override
-    public void queueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
-            Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount) {
-        addOutputs(primary);
-        addOutputs(remainders);
-        outputReadyTick = Math.max(outputReadyTick, gameTime + 1);
-        saveChanges();
+    public MolecularAutoCrafterHost.OutputDestination autoCraftOutputDestination() {
+        if (outputMode == OutputMode.NETWORK) {
+            return MolecularAutoCraftOutput.network(
+                    getMainNode().getGrid().getStorageService().getInventory(), actionSource);
+        }
+        var targets = new ArrayList<IItemHandler>();
+        var level = getLevel();
+        for (var side : Direction.values()) {
+            if ((outputSides & 1 << side.get3DDataValue()) == 0) continue;
+            BlockPos neighbor = worldPosition.relative(side);
+            if (!level.hasChunkAt(neighbor)) continue;
+            var target = level.getCapability(Capabilities.ItemHandler.BLOCK, neighbor, side.getOpposite());
+            if (target != null && !targets.contains(target)) targets.add(target);
+        }
+        return new MolecularAutoCrafterHost.OutputDestination() {
+            @Override
+            public long insert(AEKey key, long amount, Actionable mode) {
+                if (!(key instanceof AEItemKey itemKey)) return 0;
+                // One bulk stack per container, never a loop per crafted item.
+                int requested = (int) Math.min(amount, Integer.MAX_VALUE);
+                int remaining = requested;
+                for (var target : targets) {
+                    if (remaining == 0) break;
+                    remaining = ItemHandlerHelper.insertItemStacked(target,
+                            itemKey.toStack(remaining), mode == Actionable.SIMULATE).getCount();
+                }
+                return requested - remaining;
+            }
+
+            @Override
+            public long extract(AEKey key, long amount) {
+                long remaining = amount;
+                for (var target : targets) {
+                    for (int slot = 0; slot < target.getSlots() && remaining > 0; slot++) {
+                        if (!key.equals(AEItemKey.of(target.getStackInSlot(slot)))) continue;
+                        var recovered = target.extractItem(slot, (int) Math.min(remaining, Integer.MAX_VALUE), false);
+                        remaining -= recovered.getCount();
+                    }
+                    if (remaining == 0) break;
+                }
+                return amount - remaining;
+            }
+        };
+    }
+
+    @Override
+    public boolean deliverAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
+            Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount,
+            MolecularAutoCrafterHost.OutputDestination destination) {
+        assembling = true;
+        try {
+            var result = MolecularAutoCraftOutput.deliver(primary, remainders, destination);
+            if (!result.committed()) return false;
+            // Keep old saved outputs and exceptional recovery, never normal production.
+            addOutputs(result.recovery());
+            if (!bufferedOutputs.isEmpty()) outputReadyTick = gameTime + 1;
+            saveChanges();
+            return true;
+        } finally {
+            assembling = false;
+        }
     }
 
     @Override

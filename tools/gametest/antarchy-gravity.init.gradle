@@ -1,0 +1,33 @@
+// Supply Antarchy and its required dependencies separately; none are bundled in the production mod.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def modsDir = project.findProperty('antarchyModsDir')
+        if (modsDir == null) throw new GradleException('Set -PantarchyModsDir=<directory containing Antarchy and its dependencies>')
+        def optionalMods = files(fileTree(modsDir) { include '*.jar' })
+        dependencies.add('localRuntime', optionalMods)
+        def verification = sourceSets.create('antarchyGravityVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/AntarchyGravityClientChecks.java'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath + optionalMods
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def run = neoForge.runs.getByName('client')
+        run.gameDirectory = file('build/antarchy-gravity-client')
+        run.systemProperty 'omnisequence.antarchy_gravity_check', 'true'
+        run.jvmArgument '-Xmx4G'
+        run.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileAntarchyGravityVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named('runClient').configure {
+            doLast {
+                if (!new File(run.gameDirectory.get().asFile, 'logs/latest.log').text.contains('ANTARCHY_GRAVITY_CLIENT_PASS'))
+                    throw new GradleException('Antarchy gravity client verification did not pass')
+            }
+        }
+    }
+}

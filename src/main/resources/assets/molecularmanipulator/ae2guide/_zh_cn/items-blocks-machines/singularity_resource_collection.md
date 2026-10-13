@@ -30,6 +30,8 @@ navigation:
 
 默认每 **20 tick**（正常 TPS 下约 1 秒）生产每种资源 **1000 个**。同一物品即使命中多个标签，也只在列表中出现一次。无需切换采集目标。
 
+页面显示服务器当前的单次产量与采集间隔。点击控制器中的**指南**即可打开本页。
+
 ## 资源列表
 
 服务器配置的**视界奇点天枢 → 资源采集**分组可调整资源标签、产量、间隔与黑名单。
@@ -39,6 +41,10 @@ navigation:
 | 物品标签 | #c:raw_ores、#c:raw_materials、#minecraft:raw_ores、#minecraft:logs、#c:logs |
 | 额外标签示例 | #minecraft:planks，用于生产木板 |
 | 黑名单 | 物品 ID，例如 minecraft:raw_iron |
+| 每种资源每周期产量（`batch_size`） | 1000 |
+| 周期间隔（`interval_ticks`） | 20 tick |
+
+这些设置用于资源采集。[样品复制](singularity_matter_duplication.md)的独立上限为每 tick 1 件。运行中修改采集间隔会重新计时，不补发错过的周期。
 
 只有整合包中实际存在的标签成员会进入列表。黑名单中的物品不会显示或生产。页面中的列表是当前可采集资源的依据，上方图标仅为常见示例。
 

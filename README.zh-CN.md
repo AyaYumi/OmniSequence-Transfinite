@@ -8,10 +8,10 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.8，源码分支 `1.21.1-neoforge` |
+| 本模组 | 2.0.9，源码分支 `1.21.1-neoforge` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 或更高 |
-| AppliedEnhancements | 1.1.0 或更高，客户端和服务端都需要 |
+| AppliedEnhancements | 1.1.2 或更高，客户端和服务端都需要 |
 | AE2 | 19.2.17 或更高；已使用 19.2.17 和 19.2.18 验证 |
 | ExtendedAE | 1.21-2.2.32-neoforge 或更高 |
 | LDLib2 | 2.2.18 或更高 |
@@ -63,12 +63,12 @@
 
 ## 从源码构建
 
-使用 Java 21，将 `appliedenhancements-1.1.0.jar` 放入 `libs/`，然后运行：
+使用 Java 21，将 `appliedenhancements-1.1.2.jar` 放入 `libs/`，然后运行：
 
 ```sh
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.8.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.9.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 使用 [MIT 许可证](LICENSE)。

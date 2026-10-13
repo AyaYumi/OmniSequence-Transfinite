@@ -158,7 +158,8 @@ public final class CompactSingularityGameTests {
                 var entities = level.getEntitiesOfClass(ItemEntity.class, new AABB(ORIGIN).inflate(2));
                 var drops = entities.stream().map(ItemEntity::getItem).toList();
                 helper.assertTrue(drops.size() == 1 && drops.getFirst().is(SingularityContent.COMPACT.get().asItem()),
-                        "Removal must return exactly one compact hub, never a multiblock controller");
+                        "Removal must return exactly one compact hub, never a multiblock controller; got " + drops
+                                + ", block drops enabled=" + level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOBLOCKDROPS));
                 var packed = drops.getFirst().get(DataComponents.BLOCK_ENTITY_DATA);
                 var placed = new SingularityBlockEntity(ORIGIN, SingularityContent.COMPACT.get().defaultBlockState());
                 helper.assertTrue(packed != null, "Drop must retain its stored contents");

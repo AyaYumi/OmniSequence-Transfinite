@@ -684,7 +684,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     @Override
     public boolean canRunAutoCrafting() {
         return !assembling && !pipelineBlocked && !hasActiveReusableBatch() && isOperational()
-                && getLogic().getReturnInv().isEmpty();
+                && getLogic().getReturnInv().isEmpty() && !hasBufferedOutputs();
+    }
+
+    @Override
+    public boolean hasAutoCraftRecovery() {
+        return hasBufferedOutputs();
     }
 
     @Override
@@ -695,53 +700,41 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     @Override
     public boolean canQueueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders) {
-        return canQueueOutputs(primary, remainders);
+        var totals = new Object2LongOpenHashMap<AEKey>();
+        try {
+            mergeChecked(totals, reusableBatchRefunds);
+            mergeChecked(totals, primary);
+            mergeChecked(totals, remainders);
+            return totals.size() <= MAX_BUFFERED_TYPES;
+        } catch (ArithmeticException exception) {
+            return false;
+        }
     }
 
     @Override
-    public void queueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
-            Object2LongOpenHashMap<AEKey> remainders, long gameTime,
-            long craftCount) {
-        addOutputs(pendingPrimaryOutputs, primary);
-        addOutputs(pendingByproducts, remainders);
-        recordPipelineActivity(gameTime, craftCount);
-        scheduleOutputFlush(gameTime);
-        markOutputBufferChanged(gameTime);
-        returnAutoCraftRemaindersImmediately(remainders, gameTime);
+    public MolecularAutoCrafterHost.OutputDestination autoCraftOutputDestination() {
+        return MolecularAutoCraftOutput.network(
+                getMainNode().getGrid().getStorageService().getInventory(), actionSource);
     }
 
-    private void returnAutoCraftRemaindersImmediately(
-            Object2LongOpenHashMap<AEKey> remainders, long gameTime) {
-        if (remainders.isEmpty()) {
-            return;
-        }
-        var grid = getMainNode().getGrid();
-        if (grid == null) {
-            return;
-        }
-        var storage = grid.getStorageService().getInventory();
-        boolean changed = false;
-        for (var entry : remainders.object2LongEntrySet()) {
-            long pending = pendingByproducts.getLong(entry.getKey());
-            long requested = Math.min(pending, entry.getLongValue());
-            if (requested <= 0) {
-                continue;
-            }
-            long inserted = storage.insert(entry.getKey(), requested,
-                    Actionable.MODULATE, actionSource);
-            if (inserted <= 0) {
-                continue;
-            }
-            long remaining = pending - inserted;
-            if (remaining == 0) {
-                pendingByproducts.removeLong(entry.getKey());
-            } else {
-                pendingByproducts.put(entry.getKey(), remaining);
-            }
-            changed = true;
-        }
-        if (changed) {
+    @Override
+    public boolean deliverAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
+            Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount,
+            MolecularAutoCrafterHost.OutputDestination destination) {
+        assembling = true;
+        try {
+            var result = MolecularAutoCraftOutput.deliver(primary, remainders, destination);
+            if (!result.committed()) return false;
+            // Passive output no longer enters the CPU pipeline. The existing
+            // persisted refund escrow retains only exceptional failed delivery.
+            addOutputs(reusableBatchRefunds, result.recovery());
+            long transferred = saturatedSum(primary, remainders) - sumAmounts(result.recovery());
+            if (transferred > 0) lastPipelineTransfer = transferred;
+            recordPipelineActivity(gameTime, craftCount);
             markOutputBufferChanged(gameTime);
+            return true;
+        } finally {
+            assembling = false;
         }
     }
 

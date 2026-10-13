@@ -69,6 +69,7 @@ public final class SingularityMenu extends AEBaseMenu {
     @GuiSync(42) public long duplicationAePerCycle;
     @GuiSync(43) public long lastDuplicationFeConsumed;
     @GuiSync(44) public double lastDuplicationAeConsumed;
+    @GuiSync(45) public int collectionIntervalTicks = 20;
     private final AppEngSlot quantumSlot;
     private final AppEngSlot duplicationSampleSlot;
     private final AppEngSlot blackHoleSlot;
@@ -228,6 +229,7 @@ public final class SingularityMenu extends AEBaseMenu {
             quantumFrequency = machine.getQuantumFrequency(); quantumLinkState = machine.getQuantumLinkState();
             collectionActive = machine.collectionActive(); collectionStarting = machine.collectionStarting();
             collectionItems = machine.collectionItemIds(); collectionBatchSize = machine.collectionBatchSizeForMenu();
+            collectionIntervalTicks = machine.collectionIntervalTicksForMenu();
             blackHoleCount = machine.blackHoleCount(); duplicationSpeedMultiplier = machine.duplicationSpeedMultiplier();
             duplicationMatterPerSecond = machine.duplicationTargetPerSecond();
             duplicationEnergyPriority = machine.duplicationEnergyPriorityForMenu();

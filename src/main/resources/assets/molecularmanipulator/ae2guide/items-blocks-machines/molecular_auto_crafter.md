@@ -41,7 +41,9 @@ For example, a plank target of 4096 and log reserve of 256 replenishes planks wh
 
 ## Waiting and stopping
 
-Missing ingredients, power loss, disconnection and blocked output cause the device to wait. It resumes when conditions recover. Disabling a position or removing its pattern stops new crafts; completed products still return to ME.
+Each batch is limited by the space available at the selected output destination. Products and returned containers are delivered immediately; normal production does not accumulate an internal stockpile. A full destination pauses crafting, with retries up to one second apart. Disabling a position or removing its pattern stops new crafts.
+
+Resources retained from older saves or an interrupted delivery are preserved and returned automatically. New crafting waits until these pending resources have been delivered.
 
 Use the settings page arrows for additional ingredient and output entries. This device runs crafting, smithing and stonecutting recipes. External processing requires Pattern Providers and processing patterns.
 

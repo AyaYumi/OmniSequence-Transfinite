@@ -75,7 +75,7 @@ public final class MatterCatalystGameTests {
         });
         helper.runAfterDelay(40, () -> {
             helper.assertTrue(a.isOperational() && b.isOperational() && other.isStructureFormed(), "Both wells and sharing assemblies must form");
-            verifyRealLightningImport(helper);
+            verifyRealLightningImport(helper, controller, a, b);
             var originals = List.copyOf(level.getRecipeManager().getRecipes());
             try {
                 var recipe = recipe(Items.EMERALD, List.of(counted(Items.DIAMOND_BLOCK, 1)));
@@ -147,6 +147,14 @@ public final class MatterCatalystGameTests {
                 a.getBuffer().save(pausedSave, level.registryAccess()); a.getBuffer().load(pausedSave, level.registryAccess());
                 helper.assertTrue(a.getBuffer().process(controller).progress() == first.progress() && a.getBuffer().waitingForCatalyst(),
                         "A saved active batch must retain its catalyst condition and paused progress");
+                level.getRecipeManager().replaceRecipes(recipes.stream().filter(holder -> !holder.id().equals(RECIPE)).toList());
+                var missingRecipe = a.getBuffer().process(controller);
+                helper.assertTrue(missingRecipe.state() == MatterFabricationBlockEntity.ProcessingState.NO_RECIPE
+                                && missingRecipe.progress() == first.progress() && a.getBuffer().contents(false).equals(heldInputs),
+                        "An unresolved saved recipe must never bypass its catalyst requirement or advance stored work");
+                level.getRecipeManager().replaceRecipes(recipes);
+                helper.assertTrue(a.getBuffer().process(controller).state() == MatterFabricationBlockEntity.ProcessingState.WAITING_CATALYST,
+                        "Restoring the recipe must restore its missing-catalyst pause");
                 b.getCatalystInventory().setItemDirect(0, new ItemStack(Items.DIAMOND_BLOCK));
                 verifyPersistence(helper, b);
                 for (int i = 0; i < 3; i++) a.getBuffer().process(controller);
@@ -166,10 +174,8 @@ public final class MatterCatalystGameTests {
                 helper.assertTrue(!controller.hasCatalysts(recipe), "An unlinked assembly must immediately leave the shared inventory");
                 b.setControllerPos(origin);
                 helper.assertTrue(controller.hasCatalysts(recipe), "Relinking must restore the shared catalyst immediately");
-                b.setRemoved();
+                level.removeBlockEntity(b.getBlockPos());
                 helper.assertTrue(!controller.hasCatalysts(recipe), "Removing the owning assembly must invalidate the shared cache immediately");
-                b.clearRemoved();
-                controller.invalidateCatalysts();
                 System.out.println("MATTER_CATALYST_PASS: shared ownership, 1026 crafts, pause/resume, codecs, menus and portable contents");
                 helper.succeed();
             } finally {
@@ -240,8 +246,74 @@ public final class MatterCatalystGameTests {
         } finally { packet.release(); }
     }
 
-    private static void verifyRealLightningImport(GameTestHelper helper) {
+    private static void verifyRealLightningImport(GameTestHelper helper, MatterFabricationBlockEntity controller,
+            MatterFabricationPatternAssemblyBlockEntity a, MatterFabricationPatternAssemblyBlockEntity b) {
         if (!ModList.get().isLoaded("ae2lt")) return;
+        var imported = MatterRecipeBridge.importRecipes(helper.getLevel(), helper.getLevel().getRecipeManager().getRecipes()).stream()
+                .filter(recipe -> recipe.machineKey().equals("lightning_crystal_catalyzer")).toList();
+        helper.assertTrue(!imported.isEmpty(), "Real catalyzer recipes must be available");
+        for (var importedRecipe : imported) {
+            var holder = importedRecipe.holder();
+            var recipe = holder.value();
+            helper.assertTrue(!recipe.catalysts().isEmpty(), "Catalyzer import lost its catalyst: " + holder.id());
+            for (var research : MatterRecipeIndex.get(helper.getLevel()).researchFor(holder.id())) {
+                MatterResearchApi.setCompletionCount(controller, research.id().toString(), 1);
+            }
+            a.getLogic().getPatternInv().setItemDirect(0, MatterFabricationPatternEncoding.encode(recipe, List.of()));
+            a.getLogic().updatePatterns();
+            var pattern = a.getLogic().getAvailablePatterns().getFirst();
+            var unit = inputs(pattern);
+            a.getCatalystInventory().clear(); b.getCatalystInventory().clear();
+            var rejected = counters(unit);
+            helper.assertTrue(!a.getLogic().pushPattern(pattern, rejected) && MatterFabricationPatternLogic.batchInputs(rejected).equals(unit),
+                    "Real catalyzer must reject AE delivery with empty catalyst inventories: " + holder.id());
+            helper.assertTrue(a.getLogic().prepareCountedBatch(pattern, unit, 1026) == null,
+                    "Real catalyzer must reject native batches with no catalyst: " + holder.id());
+            if (ModList.get().isLoaded("thunderbolt")) {
+                var provider = (com.moakiee.thunderbolt.api.crafting.batch.IBatchCraftingProvider) (Object) a.getLogic();
+                var prototype = counters(unit);
+                helper.assertTrue(provider.getBatchCapacity(pattern) == 0 && provider.pushBatch(pattern, prototype, 1026) == 1026
+                                && MatterFabricationPatternLogic.batchInputs(prototype).equals(unit) && !a.getBuffer().hasContents(),
+                        "Thunderbolt's real delivery API must retain all rejected crafts and materials: " + holder.id());
+            }
+            b.getCatalystInventory().setItemDirect(0, new ItemStack(Items.DIRT));
+            helper.assertTrue(!a.getLogic().pushPattern(pattern, counters(unit)),
+                    "Real catalyzer must reject the wrong catalyst: " + holder.id());
+            b.getCatalystInventory().clear();
+            var catalyst = recipe.catalysts().getFirst();
+            b.getCatalystInventory().setItemDirect(0, catalyst.ingredient().getItems()[0].copyWithCount(catalyst.count()));
+            helper.assertTrue(a.getLogic().pushPattern(pattern, counters(unit)),
+                    "Real catalyzer must accept its matching retained catalyst: " + holder.id());
+            var first = a.getBuffer().process(controller);
+            helper.assertTrue(first != null && first.progress() == 1, "Real catalyzer must begin processing: " + holder.id());
+            var held = a.getBuffer().contents(false);
+            b.getCatalystInventory().clear();
+            var paused = a.getBuffer().process(controller);
+            helper.assertTrue(paused.state() == MatterFabricationBlockEntity.ProcessingState.WAITING_CATALYST
+                            && paused.progress() == first.progress() && a.getBuffer().contents(false).equals(held),
+                    "Real catalyzer must pause after removal without losing inputs: " + holder.id());
+            a.getBuffer().clear();
+        }
+        a.getLogic().getPatternInv().clear(); a.getLogic().updatePatterns();
+        b.getCatalystInventory().clear();
+        var declaration = MatterMachineImportRecipe.CODEC.codec().parse(
+                helper.getLevel().registryAccess().createSerializationContext(JsonOps.INSTANCE), com.google.gson.JsonParser.parseString("""
+                {
+                  "machine": "ae2lt:crystal_catalyzer",
+                  "serializers": ["ae2lt:crystal_catalyzer"],
+                  "research": {"title": "Mapped catalyzer verification", "ingredients": []},
+                  "inputs": {"ae_keys": [{"key_type": "ae2lt:lightning", "amount_path": "/lightningCost",
+                    "fields": {"tier": "high_voltage"}, "field_paths": {"tier": "/lightningTier"}}]}
+                }
+                """)).getOrThrow();
+        var machine = new MatterRecipeBridge.MachineSpec("mapped_catalyzer", "ae2lt", declaration.machine(),
+                List.of("ae2lt:crystal_catalyzer"), declaration);
+        var mapped = MatterRecipeBridge.importRecipes(helper.getLevel(), helper.getLevel().getRecipeManager().getRecipes(), List.of(machine));
+        helper.assertTrue(mapped.size() == imported.size(), "Mapped import must retain every catalyzer branch");
+        for (var mappedRecipe : mapped) {
+            helper.assertTrue(!mappedRecipe.holder().value().catalysts().isEmpty(),
+                    "Explicit consumed-input mappings must retain the catalyzer's prerequisite: " + mappedRecipe.holder().id());
+        }
         var recipes = MatterRecipeIndex.get(helper.getLevel()).fabrication().stream().map(RecipeHolder::value).filter(recipe ->
                 recipe.results().stream().anyMatch(output -> BuiltInRegistries.ITEM.getKey(output.getItem()).toString().equals("ae2lt:overload_crystal"))
                         && !recipe.catalysts().isEmpty()).toList();
@@ -252,7 +324,7 @@ public final class MatterCatalystGameTests {
                     && recipe.aeInputs().stream().anyMatch(input -> input.what().getType().getId().toString().equals("ae2lt:lightning") && input.amount() == 1),
                     "Real catalyzer import must retain its block, consume fixed water and the recipe's lightning cost");
         }
-        System.out.println("MATTER_CATALYST_LIGHTNING_IMPORT_PASS");
+        System.out.println("MATTER_CATALYST_LIGHTNING_IMPORT_PASS: " + imported.size() + " real recipes reject empty/wrong catalysts and pause active AE work");
     }
 
     private static MatterFabricationRecipe recipe(Item output, List<MatterFabricationRecipe.CountedIngredient> catalysts) {

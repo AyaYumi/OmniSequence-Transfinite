@@ -1,0 +1,44 @@
+// Real Nexus dispatch and client/server menu synchronization in disposable worlds.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        if (project.hasProperty('fabricationAppliedJar')) {
+            def applied = file(project.property('fabricationAppliedJar'))
+            if (!applied.isFile()) throw new GradleException('Selected Applied runtime JAR is required')
+            def runtime = configurations.getByName('localRuntime')
+            runtime.dependencies.findAll { dep ->
+                dep instanceof org.gradle.api.artifacts.FileCollectionDependency &&
+                        dep.files.files.any { it.name.startsWith('appliedenhancements-') }
+            }.each { runtime.dependencies.remove(it) }
+            dependencies.add('localRuntime', files(applied))
+        }
+        boolean client = project.hasProperty('fabricationMenuClient')
+        def verification = sourceSets.create('fabricationDispatchVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include client ? '**/MatterAssemblyMenuClientChecks.java' : '**/MatterAssemblyDispatchGameTests.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/**'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def run = neoForge.runs.getByName(client ? 'client' : 'gameTestServer')
+        def runName = (project.findProperty('fabricationDispatchRunName') ?: (client ? 'fabrication-menu-client' : 'fabrication-dispatch-server')).toString()
+        if (!(runName ==~ /[A-Za-z0-9_-]+/)) throw new GradleException('Invalid fabrication verification directory')
+        run.gameDirectory = file('build/' + runName)
+        run.logLevel = org.slf4j.event.Level.INFO
+        if (client) run.systemProperty 'omnisequence.fabrication_menu_check', 'true'
+        tasks.named('compileFabricationDispatchVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named(client ? 'runClient' : 'runGameTestServer').configure {
+            doLast {
+                def marker = client ? 'MATTER_ASSEMBLY_MENU_CLIENT_PASS' : 'All 2 required tests passed'
+                if (!new File(run.gameDirectory.get().asFile, 'logs/latest.log').text.contains(marker))
+                    throw new GradleException('Fabrication verification did not pass: ' + marker)
+            }
+        }
+    }
+}

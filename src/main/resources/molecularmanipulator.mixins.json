@@ -45,6 +45,7 @@
   ],
   "client": [
     "GhostMatterGameRendererMixin",
+    "GameRendererCameraBobAccessor",
     "GhostMatterLocalHealthMixin",
     "GravityCameraMixin",
     "GravityScreenEffectMixin",

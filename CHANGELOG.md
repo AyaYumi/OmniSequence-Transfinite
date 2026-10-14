@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fixed the white-hole lens drifting away from its structure while the player walks with view bobbing enabled. The lens now uses the same camera bob transform as the rendered scene.
+- 修复开启视角晃动后，玩家走动时白洞透镜特效偏离天枢结构的问题；透镜现与场景使用相同的镜头晃动变换。
+
 - Rewrote all 34 English and Chinese in-game guide pages around device uses, setup and operation, following AE2, ExtendedAE and AdvancedAE guide conventions. Refreshed both READMEs, removed animation specifications and corrected Exotic Matter Studies to optional special research after tier 1.
 - 参考 AE2、ExtendedAE 和 AdvancedAE 的指南结构，重写全部 34 页中英文游戏内指南，围绕设备用途、搭建与操作说明组织内容；同步重写 README、移除动画规格描述，并修正异态物质学为一阶后开放的可选特殊研究。
 

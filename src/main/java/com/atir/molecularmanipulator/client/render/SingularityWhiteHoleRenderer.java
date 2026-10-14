@@ -72,11 +72,10 @@ public final class SingularityWhiteHoleRenderer {
             RenderSystem.disableBlend();
             RenderSystem.disableCull();
             RenderSystem.setShader(OmniShaders::singularityLens);
-            var cameraEffects = SingularityLensProjection.cameraEffects(event.getCamera());
             PENDING.sort(Comparator.comparingDouble((Lens lens) -> lens.eye.subtract(0, 12.5, 0).lengthSqr()).reversed());
             for (var lens : PENDING) {
                 copyScene(target);
-                draw(lens, event.getModelViewMatrix(), event.getProjectionMatrix(), cameraEffects);
+                draw(lens, event.getModelViewMatrix(), event.getProjectionMatrix());
             }
         } finally {
             PENDING.clear();
@@ -113,16 +112,15 @@ public final class SingularityWhiteHoleRenderer {
         target.bindWrite(false);
     }
 
-    private static void draw(Lens lens, Matrix4f view, Matrix4f projection, Matrix4f cameraEffects) {
+    private static void draw(Lens lens, Matrix4f view, Matrix4f projection) {
         var shader = OmniShaders.singularityLens();
-        var lensProjection = SingularityLensProjection.baseProjection(projection, cameraEffects);
-        var center = SingularityLensProjection.centerInProjectionSpace(lens.pose, 12.5F, view, cameraEffects);
+        var center = SingularityLensProjection.centerInViewSpace(lens.pose, 12.5F, view);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
-        shader.safeGetUniform("LensProjection").set(lensProjection);
-        shader.safeGetUniform("InverseProjection").set(new Matrix4f(lensProjection).invert());
+        shader.safeGetUniform("LensProjection").set(projection);
+        shader.safeGetUniform("InverseProjection").set(SingularityLensProjection.inverseProjection(projection));
         shader.safeGetUniform("LensTime").set(lens.frame.time() % 24000);
         shader.safeGetUniform("CoreRadius").set(SingularityWhiteHoleProfile.radius(lens.frame));
         shader.safeGetUniform("FieldRadius").set(SingularityWhiteHoleProfile.FIELD_RADIUS);

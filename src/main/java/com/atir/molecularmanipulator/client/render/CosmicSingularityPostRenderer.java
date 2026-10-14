@@ -69,11 +69,10 @@ public final class CosmicSingularityPostRenderer {
             RenderSystem.disableBlend();
             RenderSystem.disableCull();
             RenderSystem.setShader(OmniShaders::cosmicLens);
-            var cameraEffects = SingularityLensProjection.cameraEffects(event.getCamera());
             PENDING.sort(Comparator.comparingDouble(Hole::distanceSqr).reversed());
             for (var hole : PENDING) {
                 copyScene(target);
-                draw(hole, event.getModelViewMatrix(), event.getProjectionMatrix(), cameraEffects);
+                draw(hole, event.getModelViewMatrix(), event.getProjectionMatrix());
             }
         } finally {
             PENDING.clear();
@@ -110,16 +109,15 @@ public final class CosmicSingularityPostRenderer {
         target.bindWrite(false);
     }
 
-    private static void draw(Hole hole, Matrix4f view, Matrix4f projection, Matrix4f cameraEffects) {
+    private static void draw(Hole hole, Matrix4f view, Matrix4f projection) {
         var shader = OmniShaders.cosmicLens();
-        var lensProjection = SingularityLensProjection.baseProjection(projection, cameraEffects);
-        var center = SingularityLensProjection.centerInProjectionSpace(hole.pose, 0, view, cameraEffects);
+        var center = SingularityLensProjection.centerInViewSpace(hole.pose, 0, view);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
-        shader.safeGetUniform("LensProjection").set(lensProjection);
-        shader.safeGetUniform("InverseProjection").set(new Matrix4f(lensProjection).invert());
+        shader.safeGetUniform("LensProjection").set(projection);
+        shader.safeGetUniform("InverseProjection").set(SingularityLensProjection.inverseProjection(projection));
         shader.safeGetUniform("LensTime").set(hole.time);
         shader.safeGetUniform("CoreRadius").set(0.30F);
         shader.safeGetUniform("FieldRadius").set(1.25F);

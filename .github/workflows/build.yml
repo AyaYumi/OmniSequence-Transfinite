@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       applied_enhancements_jar_url:
-        description: Matching AppliedEnhancements 1.1.0 artifact URL
+        description: AppliedEnhancements artifact URL matching applied_enhancements_api_build in gradle.properties
         required: false
         type: string
 
@@ -32,6 +32,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Read build versions
+        id: versions
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          properties = dict(
+              line.split('=', 1)
+              for line in Path('gradle.properties').read_text(encoding='utf-8').splitlines()
+              if '=' in line and not line.lstrip().startswith('#')
+          )
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as output:
+              output.write(f"APPLIED_ENHANCEMENTS_API_BUILD={properties['applied_enhancements_api_build'].strip()}\n")
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f"mod_version={properties['mod_version'].strip()}\n")
+          PY
+
       - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
@@ -46,7 +64,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: AyaYumi/AppliedEnhancements
-          ref: d70f2c0351cc9d9a690bc5f288bca019d0741b9d
+          ref: f11fea73897e954ea4cf0f9bf5d3fc41119fe194
           path: .build-dependencies/appliedenhancements
           persist-credentials: false
 
@@ -54,16 +72,30 @@ jobs:
         if: env.APPLIED_ENHANCEMENTS_JAR_URL == ''
         shell: bash
         run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          properties = dict(
+              line.split('=', 1)
+              for line in Path('.build-dependencies/appliedenhancements/gradle.properties').read_text(encoding='utf-8').splitlines()
+              if '=' in line and not line.lstrip().startswith('#')
+          )
+          actual = properties['mod_version'].strip()
+          expected = os.environ['APPLIED_ENHANCEMENTS_API_BUILD']
+          if actual != expected:
+              raise SystemExit(f'Pinned AppliedEnhancements source is {actual}, but this project requires {expected}. Update the prerequisite ref in build.yml.')
+          PY
           bash .build-dependencies/appliedenhancements/gradlew -p .build-dependencies/appliedenhancements jar --no-configuration-cache
           mkdir -p libs
-          cp .build-dependencies/appliedenhancements/build/libs/appliedenhancements-1.1.0.jar libs/
+          cp ".build-dependencies/appliedenhancements/build/libs/appliedenhancements-${APPLIED_ENHANCEMENTS_API_BUILD}.jar" libs/
 
       - name: Use explicit prerequisite artifact
         if: env.APPLIED_ENHANCEMENTS_JAR_URL != ''
         shell: bash
         run: |
           mkdir -p libs
-          curl --fail --location --retry 3 "$APPLIED_ENHANCEMENTS_JAR_URL" -o libs/appliedenhancements-1.1.0.jar
+          curl --fail --location --retry 3 "$APPLIED_ENHANCEMENTS_JAR_URL" -o "libs/appliedenhancements-${APPLIED_ENHANCEMENTS_API_BUILD}.jar"
 
       - name: Build and generate API docs
         # Fetch compile-only optional APIs; these are not bundled or needed by players.
@@ -75,7 +107,7 @@ jobs:
       - name: Save build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: omnisequence-2.0.8
+          name: omnisequence-${{ steps.versions.outputs.mod_version }}
           path: |
             build/libs/*.jar
             build/docs/api/

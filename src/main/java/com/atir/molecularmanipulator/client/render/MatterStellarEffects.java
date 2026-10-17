@@ -6,7 +6,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.List;
 import net.minecraft.world.phys.Vec3;
 
-/** Bounded star-ring geometry, shared by live rendering and GPU verification. */
+/** Bounded star-ring geometry for fabrication effects. */
 public final class MatterStellarEffects {
     private static final int ICE = 0xA1ECFF;
     private static final int GOLD = 0xFFE4A0;

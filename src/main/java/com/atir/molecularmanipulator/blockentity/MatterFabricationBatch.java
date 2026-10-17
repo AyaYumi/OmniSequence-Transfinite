@@ -193,6 +193,11 @@ final class MatterFabricationBatch {
             return update(outputDebt.isEmpty() ? MatterFabricationBlockEntity.ProcessingState.IDLE : MatterFabricationBlockEntity.ProcessingState.OUTPUT_BLOCKED, false);
         }
         if (!host.isStructureFormed()) return update(MatterFabricationBlockEntity.ProcessingState.STRUCTURE_INCOMPLETE, false);
+        // A saved batch keeps its inputs and outputs, but cannot validate prerequisites
+        // while its recipe is absent (for example after a data-pack reload).
+        if (crafts > 0 && MatterRecipeIndex.get(host.getLevel()).fabrication(recipeId) == null) {
+            return update(MatterFabricationBlockEntity.ProcessingState.NO_RECIPE, false);
+        }
         if (waitingForCatalyst(host)) return update(MatterFabricationBlockEntity.ProcessingState.WAITING_CATALYST, false);
         double power = powerPerCraft * crafts;
         if (!Double.isFinite(power) || !host.consumeResearchPower(power)) return update(MatterFabricationBlockEntity.ProcessingState.WAITING_POWER, false);

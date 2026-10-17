@@ -11,25 +11,25 @@
       "ingredient": {
         "item": "molecularmanipulator:omni_computation_controller"
       },
-      "count": 1000000
+      "count": 100
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:molecular_center_core"
       },
-      "count": 1000000
+      "count": 100
     },
     {
       "ingredient": {
         "item": "ae2:engineering_processor"
       },
-      "count": 16000000
+      "count": 1600
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:spacetime_anchor_pillar"
       },
-      "count": 8000000
+      "count": 800
     }
   ],
   "results": [

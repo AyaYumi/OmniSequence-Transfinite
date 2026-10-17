@@ -24,6 +24,11 @@ public final class OmniShaders {
     }
 
     public static void register(RegisterShadersEvent event) throws IOException {
+        // Keep every JSON blend descriptor equal to vanilla's srcalpha/1-srcalpha.
+        // In 1.20.1 ShaderInstance.apply shares BlendMode.lastApplied across all draws;
+        // opaque/additive descriptors can make the GUI shader overwrite the vignette's
+        // multiplicative blend and cover the world with its black texture instead.
+        // RenderTypes own depth/glow blending; full-screen passes disable it explicitly.
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
                         MolecularManipulator.id("molecular_spectral"),
                         DefaultVertexFormat.POSITION_COLOR),

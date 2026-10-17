@@ -567,19 +567,22 @@ public final class MatterRecipeBridge {
             var mapped = machine.declaration != null && machine.declaration.inputs().isPresent()
                     ? mappedInputs(level, encoded, machine.declaration.inputs().get()) : null;
             if (machine.declaration != null && machine.declaration.inputs().isPresent() && mapped == null) return null;
+            // Field mappings describe consumed inputs, never optional machine prerequisites.
+            // Keep the catalyzer requirement even when a data pack supplies an explicit mapping.
+            if (type.equals("ae2lt:crystal_catalyzer") && encoded instanceof JsonObject object) {
+                var catalyst = object.get("catalyst");
+                if (catalyst != null && !catalyst.isJsonNull()) {
+                    var ingredient = parseIngredient(level, catalyst, 1).orElse(null);
+                    long count = number(object, "catalystCount", 1);
+                    if (ingredient == null || count < 1 || count > Integer.MAX_VALUE) return null;
+                    catalysts.add(new MatterFabricationRecipe.CountedIngredient(ingredient, (int) count));
+                }
+            }
             if (mapped != null) {
                 parsed.addAll(mapped.items());
                 aeInputs.addAll(mapped.resources());
             } else if (encoded != null) {
-                if (type.equals("ae2lt:crystal_catalyzer") && encoded instanceof JsonObject object) {
-                    var catalyst = object.get("catalyst");
-                    if (catalyst != null && !catalyst.isJsonNull()) {
-                        var ingredient = parseIngredient(level, catalyst, 1).orElse(null);
-                        long count = number(object, "catalystCount", 1);
-                        if (ingredient == null || count < 1 || count > Integer.MAX_VALUE) return null;
-                        catalysts.add(new MatterFabricationRecipe.CountedIngredient(ingredient, (int) count));
-                    }
-                } else {
+                if (!type.equals("ae2lt:crystal_catalyzer")) {
                     collectInputs(level, encoded, parsed, false);
                 }
                 collectGenericInputs(level, encoded, aeInputs);

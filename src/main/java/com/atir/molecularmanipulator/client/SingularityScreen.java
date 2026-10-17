@@ -1,11 +1,15 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
+import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.blockentity.SingularityBlockEntity;
 import com.atir.molecularmanipulator.blockentity.SingularityDuplicationProcessor;
 import com.atir.molecularmanipulator.blockentity.SingularityStructure;
 import com.atir.molecularmanipulator.menu.SingularityMenu;
+import guideme.PageAnchor;
+import guideme.internal.GuideMEClient;
+import guideme.internal.GuideRegistry;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -40,6 +44,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         overview = button(12, 22, 76, "overview", b -> showOverview());
         collectionTab = button(92, 22, 82, "collection", b -> showCollection());
         duplicationTab = button(178, 22, 82, "duplication", b -> showDuplication());
+        var guide = button(264, 22, 56, "guide", b -> openGuide());
+        guide.setTooltip(Tooltip.create(tr("guide_hint")));
         // This is only a construction cancel action now. Motion is controlled by
         // the resource-collection device state and has no standalone button.
         cancel = button(140, 217, 74, "cancel", b -> menu.request("cancel"));
@@ -76,6 +82,15 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     private void showDuplication() {
         collectionPage = false;
         duplicationPage = true;
+    }
+
+    private void openGuide() {
+        String page = collectionPage ? "singularity_resource_collection"
+                : duplicationPage ? "singularity_matter_duplication"
+                : menu.getMachine().isSingleBlock() ? "compact_singularity_hub" : "event_horizon_singularity_hub";
+        var pageId = MolecularManipulator.id("items-blocks-machines/" + page + ".md");
+        GuideRegistry.getAll().stream().filter(guide -> guide.pageExists(pageId)).findFirst()
+                .ifPresent(guide -> GuideMEClient.openGuideAtAnchor(guide, PageAnchor.page(pageId)));
     }
 
     private Button button(int x, int y, int width, String text, Button.OnPress action) {
@@ -235,7 +250,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         text(g, tr(menu.getMachine().isSingleBlock() ? "compact_collection_hint" : "collection_hint"), 20, 128, 292, AeUiTheme.MUTED_TEXT);
 
         List<ItemStack> resources = collectionResources();
-        text(g, tr("collection_resources", resources.size(), menu.collectionBatchSize),
+        text(g, tr("collection_resources", resources.size(), menu.collectionBatchSize, menu.collectionIntervalTicks),
                 20, 143, 292, AeUiTheme.ACCENT);
         int maxScroll = Math.max(0, (resources.size() + 2) / 3 - 4);
         collectionScroll = Math.min(collectionScroll, maxScroll);
@@ -300,6 +315,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         text(g, tr("duplication_energy", menu.duplicationEnergyPriority), 20, 102, 292, AeUiTheme.ACCENT);
         text(g, tr("duplication_sample"), 20, 124, 130, AeUiTheme.PRIMARY_TEXT);
         text(g, tr("duplication_black_hole"), 164, 124, 130, AeUiTheme.PRIMARY_TEXT);
+        text(g, tr("duplication_copy_rate"), 20, 174, 130, AeUiTheme.MUTED_TEXT);
         text(g, tr("duplication_black_hole_count", menu.blackHoleCount), 164, 174, 130, AeUiTheme.ACCENT);
         text(g, tr("duplication_speed", menu.duplicationMatterPerCycle, menu.duplicationIntervalTicks), 20, 186, 292,
                 menu.blackHoleCount > 0 ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);

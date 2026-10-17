@@ -17,7 +17,6 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
@@ -70,10 +69,11 @@ public final class CosmicSingularityPostRenderer {
             RenderSystem.disableBlend();
             RenderSystem.disableCull();
             RenderSystem.setShader(OmniShaders::cosmicLens);
+            var cameraEffects = SingularityLensProjection.cameraEffects(event.getPartialTick());
             PENDING.sort(Comparator.comparingDouble(Hole::distanceSqr).reversed());
             for (var hole : PENDING) {
                 copyScene(target);
-                draw(hole, event.getProjectionMatrix());
+                draw(hole, event.getProjectionMatrix(), cameraEffects);
             }
         } finally {
             PENDING.clear();
@@ -110,17 +110,16 @@ public final class CosmicSingularityPostRenderer {
         target.bindWrite(false);
     }
 
-    private static void draw(Hole hole, Matrix4f projection) {
+    private static void draw(Hole hole, Matrix4f projection, Matrix4f cameraEffects) {
         var shader = OmniShaders.cosmicLens();
-        var center = hole.pose.transformPosition(0, 0, 0, new Vector3f());
-        // Forge BER poses already contain the camera view rotation. AFTER_LEVEL
-        // supplies a projection pose, so applying it here projects the center twice.
+        var lensProjection = SingularityLensProjection.lensProjection(projection, cameraEffects);
+        var center = SingularityLensProjection.centerInViewSpace(hole.pose, 0, cameraEffects);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
-        shader.safeGetUniform("LensProjection").set(projection);
-        shader.safeGetUniform("InverseProjection").set(new Matrix4f(projection).invert());
+        shader.safeGetUniform("LensProjection").set(lensProjection);
+        shader.safeGetUniform("InverseProjection").set(SingularityLensProjection.inverseProjection(lensProjection));
         shader.safeGetUniform("LensTime").set(hole.time);
         shader.safeGetUniform("CoreRadius").set(0.30F);
         shader.safeGetUniform("FieldRadius").set(1.25F);

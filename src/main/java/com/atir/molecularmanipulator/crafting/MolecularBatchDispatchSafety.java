@@ -5,20 +5,15 @@ import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.me.service.CraftingService;
-import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 public final class MolecularBatchDispatchSafety {
-    private static final int MAX_LOGGED_DIAGNOSTICS = 1024;
-    private static final Set<String> LOGGED_DIAGNOSTICS = ConcurrentHashMap.newKeySet();
-
     private MolecularBatchDispatchSafety() {
     }
 
@@ -34,14 +29,9 @@ public final class MolecularBatchDispatchSafety {
             return false;
         }
         try {
-            String unsafeReason = getUnsafePatternReason(patternDetails);
-            if (unsafeReason != null) {
-                logFallbackOnce(patternDetails, unsafeReason, null);
-                return false;
-            }
-            return true;
+            return hasValidPatternInputs(patternDetails);
         } catch (RuntimeException exception) {
-            logFallbackOnce(patternDetails, "pattern_validation_failed", exception);
+            RateLimitedLog.warn("Molecular batch pattern validation failed; using ordinary dispatch", exception);
             return false;
         }
     }
@@ -124,7 +114,6 @@ public final class MolecularBatchDispatchSafety {
 
             var providers = craftingService.getProviders(patternDetails);
             if (providers == null) {
-                logFallbackOnce(patternDetails, "provider_iterable_missing", null);
                 return List.of();
             }
 
@@ -142,33 +131,33 @@ public final class MolecularBatchDispatchSafety {
             }
             return offers;
         } catch (RuntimeException exception) {
-            logFallbackOnce(patternDetails, "provider_iteration_unstable", exception);
+            RateLimitedLog.warn("Molecular batch provider scan failed; using ordinary dispatch", exception);
             return List.of();
         }
     }
 
     public record BatchOffer(ICraftingProvider provider, long batchLimit) {
     }
-    private static String getUnsafePatternReason(IPatternDetails patternDetails) {
+    private static boolean hasValidPatternInputs(IPatternDetails patternDetails) {
         if (patternDetails == null) {
-            return "missing_pattern_details";
+            return false;
         }
 
         var inputs = patternDetails.getInputs();
         if (inputs == null) {
-            return "missing_pattern_inputs";
+            return false;
         }
         for (var input : inputs) {
             if (input == null) {
-                return "invalid_pattern_input";
+                return false;
             }
             var possibleInputs = input.getPossibleInputs();
             if (possibleInputs == null || possibleInputs.length == 0) {
-                return "missing_input_templates";
+                return false;
             }
             for (var possibleInput : possibleInputs) {
                 if (possibleInput == null || possibleInput.what() == null || possibleInput.amount() <= 0) {
-                    return "invalid_input_template";
+                    return false;
                 }
                 // Remainders are classified from the actual extracted key by
                 // MolecularBatchCraftingExtractor. Only explicit molecular
@@ -177,42 +166,6 @@ public final class MolecularBatchDispatchSafety {
                 // fall back.
             }
         }
-        return null;
-    }
-
-    private static void logFallbackOnce(IPatternDetails patternDetails, String reason,
-            RuntimeException exception) {
-        if (!MolecularManipulator.LOGGER.isDebugEnabled()) {
-            return;
-        }
-
-        String pattern = describePattern(patternDetails);
-        String diagnosticKey = pattern + ':' + reason;
-        if (LOGGED_DIAGNOSTICS.size() >= MAX_LOGGED_DIAGNOSTICS) {
-            return;
-        }
-        if (!LOGGED_DIAGNOSTICS.add(diagnosticKey)) {
-            return;
-        }
-
-        if (exception == null) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.debug("Molecular batch dispatch fallback: pattern={}, reason={}",
-                    pattern, reason);
-            return;
-        }
-        com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
-                "Molecular batch dispatch provider scan failed: pattern={}, reason={}",
-                pattern, reason, exception);
-    }
-
-    private static String describePattern(IPatternDetails patternDetails) {
-        if (patternDetails == null) {
-            return "null";
-        }
-        try {
-            return String.valueOf(patternDetails.getDefinition());
-        } catch (RuntimeException exception) {
-            return patternDetails.getClass().getName();
-        }
+        return true;
     }
 }

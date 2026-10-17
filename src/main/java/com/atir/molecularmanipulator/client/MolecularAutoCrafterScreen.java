@@ -17,7 +17,7 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
-/** Compact AE2 pattern controls, a two-row output buffer, and the player inventory. */
+/** Compact AE2 pattern controls and the player inventory. */
 public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<MolecularAutoCrafterMenu> {
     private static final int CONTROL_SIZE = 16;
     private static final int CONTROL_ICON_SIZE = 16;
@@ -27,8 +27,6 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
             new MolecularAutoCrafterIconButton[MolecularAutoCrafter.PATTERN_SLOTS];
     private MolecularAutoCrafterIconButton outputModeButton;
     private MolecularAutoCrafterIconButton outputDirectionButton;
-    private MolecularAutoCrafterIconButton previousOutputPage;
-    private MolecularAutoCrafterIconButton nextOutputPage;
     private DirectionPopup directionPopup;
     private boolean directionPopupOpen;
 
@@ -58,14 +56,6 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
         super.init();
         directionPopup = new DirectionPopup(leftPos + 82, topPos + 82);
         addScreenWidget(directionPopup);
-        previousOutputPage = addScreenWidget(new MolecularAutoCrafterIconButton(
-                leftPos + 120, topPos + 74, 12, 10, Icon.ARROW_LEFT,
-                Component.translatable("gui.molecularmanipulator.auto_craft_previous_output_page"),
-                () -> menu.requestOutputPage(menu.outputPage - 1)));
-        nextOutputPage = addScreenWidget(new MolecularAutoCrafterIconButton(
-                leftPos + 158, topPos + 74, 12, 10, Icon.ARROW_RIGHT,
-                Component.translatable("gui.molecularmanipulator.auto_craft_next_output_page"),
-                () -> menu.requestOutputPage(menu.outputPage + 1)));
         var slots = menu.getPatternSlots();
         for (int index = 0; index < slots.size(); index++) {
             int selected = index;
@@ -90,9 +80,6 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
     }
 
     private void refreshControls() {
-        previousOutputPage.visible = nextOutputPage.visible = menu.outputPages > 1;
-        previousOutputPage.active = menu.outputPage > 0;
-        nextOutputPage.active = menu.outputPage + 1 < menu.outputPages;
         boolean adjacent = menu.outputMode == MolecularAutoCrafterBlockEntity.OutputMode.ADJACENT;
         outputModeButton.setIcon(adjacent ? Icon.AUTO_EXPORT_OFF : Icon.AUTO_EXPORT_ON);
         outputModeButton.setMessage(Component.translatable(adjacent
@@ -143,7 +130,6 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
         }
         int gridX = x + MolecularAutoCrafterMenu.GRID_X - 1;
         OmniUiTheme.slotGridOutline(graphics, gridX, y + MolecularAutoCrafterMenu.PATTERN_Y - 1, 9, 1);
-        OmniUiTheme.slotGridOutline(graphics, gridX, y + MolecularAutoCrafterMenu.OUTPUT_Y - 1, 9, 2);
         OmniUiTheme.slotGridOutline(graphics, gridX, y + MolecularAutoCrafterMenu.INVENTORY_Y - 1, 9, 3);
         OmniUiTheme.slotGridOutline(graphics, gridX, y + MolecularAutoCrafterMenu.HOTBAR_Y - 1, 9, 1);
     }
@@ -155,11 +141,6 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
                         ? Component.translatable("gui.ae2.Patterns") : displayName,
                 MolecularAutoCrafterMenu.GRID_X, 6, 160,
                 style.getColor(PaletteColor.DEFAULT_TEXT_COLOR).toARGB());
-        if (menu.outputPages > 1) {
-            drawCenteredFittedString(graphics,
-                    Component.literal((menu.outputPage + 1) + "/" + menu.outputPages),
-                    145, 76, 22, style.getColor(PaletteColor.MUTED_TEXT_COLOR).toARGB());
-        }
     }
 
     private void toggleDirectionPopup() {

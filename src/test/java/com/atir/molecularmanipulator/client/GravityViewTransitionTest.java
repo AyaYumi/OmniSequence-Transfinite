@@ -12,15 +12,20 @@ class GravityViewTransitionTest {
         var view = new GravityViewTransition();
         var flat = new Quaternionf();
         var wall = new Quaternionf().rotationZ((float) (-Math.PI / 2));
+        assertFalse(view.active(100));
         assertRotation(flat, view.beginFrame(Direction.DOWN, flat, 100));
+        assertFalse(view.active(100), "Ordinary gravity must leave another mod's camera anchor unchanged");
         assertRotation(flat, view.beginFrame(Direction.WEST, wall, 101));
+        assertTrue(view.active(101));
         var halfway = view.beginFrame(Direction.WEST, wall, 106);
         var up = new Vector3f(0, 1, 0).rotate(halfway);
         assertEquals(Math.sqrt(.5), up.x, 1E-5);
         assertEquals(Math.sqrt(.5), up.y, 1E-5);
         assertRotation(wall, view.beginFrame(Direction.WEST, wall, 111));
         assertRotation(wall, view.beginFrame(Direction.DOWN, flat, 112));
+        assertTrue(view.active(112), "Recovery still needs the last crystal eye position");
         assertRotation(flat, view.beginFrame(Direction.DOWN, flat, 122));
+        assertFalse(view.active(122), "A completed recovery must release the camera anchor");
     }
 
     @Test void interruptedTurnsAndMouseInputRemainContinuous() {
@@ -38,6 +43,7 @@ class GravityViewTransitionTest {
         assertRotation(new Quaternionf(ceiling).mul(input), view.beginFrame(Direction.UP,
                 new Quaternionf(ceiling).mul(input), 15));
         view.reset();
+        assertFalse(view.active(0));
         assertRotation(ceiling, view.beginFrame(Direction.UP, ceiling, 0));
     }
 

@@ -4,7 +4,6 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.KeyCounter;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerCraftingProvider;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput;
@@ -113,11 +112,8 @@ public final class UselessBigIntegerApiBridge {
                     provider -> providerType.isInstance(unwrapProvider(provider))
                             && UselessExactOutputReturn.managerOf(unwrapProvider(provider)) != null,
                     provider -> UselessExactOutputReturn.flushAfterAccounting(unwrapProvider(provider)));
-            MolecularManipulator.LOGGER.info(
-                    "Registered UselessMod public BigInteger API bridge with same-tick direct return");
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            MolecularManipulator.LOGGER.debug(
-                    "UselessMod public BigInteger API is unavailable", exception);
+            // UselessMod is optional; an absent or incompatible API uses normal return.
         }
     }
 
@@ -265,17 +261,14 @@ public final class UselessBigIntegerApiBridge {
                 Object manager = UselessExactOutputReturn.managerOf(provider);
                 boolean committed = OmniDirectAdmission.withSender(manager, shape.minimumOutput(), () -> {
                     if (OmniDirectAdmission.limitRequested(shape.pattern(), nativeCount).compareTo(nativeCount) < 0) {
-                        UselessExactOutputReturn.diagnostic("commit-window-limit");
                         return false;
                     }
                     Object batch = admitWholeTaskBatch(target, shape, nativeCount, binding);
                     if (batch == null) {
-                        UselessExactOutputReturn.diagnostic("commit-admit-null");
                         return false;
                     }
                     BigInteger admitted = (BigInteger) count.invoke(batch);
                     if (admitted.signum() <= 0 || admitted.compareTo(nativeCount) > 0) {
-                        UselessExactOutputReturn.diagnostic("commit-count-invalid");
                         return false;
                     }
                     BigInteger wholeTasks = admitted.divide(shape.operationsPerTask());
@@ -284,29 +277,18 @@ public final class UselessBigIntegerApiBridge {
                         // admitWholeTaskBatch only returns complete wrapper
                         // tasks. Keep this guard as an ABI safety net in case
                         // a future Useless build violates that contract.
-                        UselessExactOutputReturn.diagnostic("commit-count-partial-task");
                         return false;
                     }
-                    if (!admitted.equals(nativeCount)) {
-                        // Useless 2.3.9 may shrink the admission between the
-                        // capacity probe and this atomic commit when another
-                        // lane consumes the remaining window. The returned
-                        // batch count is authoritative; the caller reconciles
-                        // its input ledger to this actual count.
-                        UselessExactOutputReturn.diagnostic("commit-count-adjusted");
-                    }
                     boolean accepted = (Boolean) commit.invoke(batch, (Object) shape.prototype());
-                    if (!accepted) UselessExactOutputReturn.diagnostic("commit-provider-rejected");
                     if (accepted) lastAcceptedTasks = wholeTasks;
                     return accepted;
                 });
                 if (committed) {
                     UselessExactOutputReturn.enable(manager);
                     for (var counter : prototype) counter.clear();
-                } else UselessExactOutputReturn.admissionRejected(manager);
+                }
                 return committed;
             } catch (ReflectiveOperationException | RuntimeException exception) {
-                UselessExactOutputReturn.diagnostic("commit-exception-" + exception.getClass().getSimpleName());
                 return false;
             }
         }
@@ -335,24 +317,18 @@ public final class UselessBigIntegerApiBridge {
                 }
                 BigInteger admitted = (BigInteger) count.invoke(batch);
                 if (admitted == null || admitted.signum() <= 0 || admitted.compareTo(candidate) > 0) {
-                    UselessExactOutputReturn.diagnostic("commit-count-invalid");
                     return null;
                 }
                 BigInteger[] division = admitted.divideAndRemainder(operations);
                 if (division[1].signum() == 0) {
-                    if (!admitted.equals(candidate)) {
-                        UselessExactOutputReturn.diagnostic("commit-count-adjusted");
-                    }
                     return batch;
                 }
                 BigInteger aligned = division[0].multiply(operations);
-                UselessExactOutputReturn.diagnostic("commit-count-partial-task-retry");
                 if (aligned.signum() <= 0 || aligned.compareTo(candidate) >= 0) {
                     return null;
                 }
                 candidate = aligned;
             }
-            UselessExactOutputReturn.diagnostic("commit-count-partial-task-exhausted");
             return null;
         }
 

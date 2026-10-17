@@ -1,0 +1,32 @@
+// Regression suites run only in disposable directories under build/.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def directory = 'fabrication-dispatch-server'
+        def verification = sourceSets.create('fabricationDispatchVerification') {
+            java.srcDir project.file('tools/gametest/java')
+            java.include '**/MatterAssemblyDispatchGameTests.java'
+            resources.srcDir project.file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipes/**'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        minecraft.runs.named('gameTestServer') {
+            workingDirectory project.file('build/' + directory)
+            property 'forge.logging.console.level', 'info'
+            mods { "${project.mod_id}" { source verification } }
+        }
+        tasks.named('compileFabricationDispatchVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+        tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+            doLast {
+                def marker = 'All 2 required tests passed'
+                if (!project.file('build/' + directory + '/logs/latest.log').text.contains(marker))
+                    throw new GradleException('fabrication-dispatch required checks did not pass')
+            }
+        }
+    }
+}

@@ -27,8 +27,6 @@ public final class ModConfig {
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
     public static final ForgeConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
     public static final ForgeConfigSpec.BooleanValue OMNI_COALESCE_RETURN_NOTIFICATIONS;
-    public static final ForgeConfigSpec.BooleanValue OMNI_PROFILE_EXACT_RETURNS;
-    public static final ForgeConfigSpec.IntValue OMNI_RETURN_PROFILE_SAMPLE_INTERVAL;
     public static final ForgeConfigSpec.BooleanValue OMNI_DIRECT_NATIVE_OUTPUT_RETURN;
     public static final ForgeConfigSpec.IntValue NEXUS_IDLE_POWER;
 
@@ -74,13 +72,13 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.singularity_collection_item_blacklist")
                 .defineListAllowEmpty("item_blacklist", List.<String>of(), ModConfig::isValidItemIdEntry);
         SINGULARITY_COLLECTION_BATCH_SIZE = server.comment(
-                "Items produced for every matching item in every configured tag each collection cycle. Default: 1000.",
-                "每次采集周期内，每个标签匹配物品的产出数量。默认：1000。")
+                "Items produced for each eligible resource per collection cycle. Does not control sample copying. Default: 1000.",
+                "每次采集周期内，每种符合条件的资源产出数量；不控制样品复制。默认：1000。")
                 .translation("molecularmanipulator.configuration.singularity_collection_batch_size")
                 .defineInRange("batch_size", 1000, 1, 1_000_000);
         SINGULARITY_COLLECTION_INTERVAL_TICKS = server.comment(
-                "Ticks between resource collection cycles. Default: 20 (one second).",
-                "资源采集周期之间的 Tick 数。默认：20（1 秒）。")
+                "Ticks between resource collection cycles. Changing the interval starts a fresh cycle. Does not control sample copying. Default: 20.",
+                "资源采集周期之间的 tick 数；修改间隔后重新计时，不控制样品复制。默认：20。")
                 .translation("molecularmanipulator.configuration.singularity_collection_interval_ticks")
                 .defineInRange("interval_ticks", 20, 1, 1200);
         server.pop();
@@ -163,16 +161,6 @@ public final class ModConfig {
                 "精确产物回收并结清账本后，每种发生变化的 AE 资源类型只发送一次通知。")
                 .translation("molecularmanipulator.configuration.omni_coalesce_return_notifications")
                 .define("omni_coalesce_return_notifications", true);
-        OMNI_PROFILE_EXACT_RETURNS = server.comment(
-                "Log exact CPU output-return timing, notification counts, and native UselessMod transfer diagnostics while active. Aggregate reports use 10-second intervals.",
-                "记录精确 CPU 产物回收耗时、通知次数和 UselessMod 原生转移诊断；每 10 秒汇总一次。")
-                .translation("molecularmanipulator.configuration.omni_profile_exact_returns")
-                .define("omni_profile_exact_returns", false);
-        OMNI_RETURN_PROFILE_SAMPLE_INTERVAL = server.comment(
-                "Time one in this many exact output insertions to keep profiling overhead low. Counts remain exact.",
-                "每隔指定次数的精确输出插入采样一次耗时；统计数量保持精确，用于降低性能分析开销。")
-                .translation("molecularmanipulator.configuration.omni_return_profile_sample_interval")
-                .defineInRange("omni_return_profile_sample_interval", 64, 1, 4096);
         OMNI_DIRECT_NATIVE_OUTPUT_RETURN = server.comment(
                 "Directly transfer native UselessMod intermediate output balances to their live bound CPU on the same grid. Unsupported queues use normal return.",
                 "将 UselessMod 原生中间产物余额直接返回同一网络实时绑定的 CPU；不支持的队列仍使用普通回收。")

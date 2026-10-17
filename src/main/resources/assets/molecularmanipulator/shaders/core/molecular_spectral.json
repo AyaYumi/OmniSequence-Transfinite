@@ -72,6 +72,6 @@
   "blend": {
     "func": "add",
     "srcrgb": "srcalpha",
-    "dstrgb": "one"
+    "dstrgb": "1-srcalpha"
   }
 }

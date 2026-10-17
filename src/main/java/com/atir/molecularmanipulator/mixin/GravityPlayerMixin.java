@@ -37,7 +37,8 @@ public abstract class GravityPlayerMixin implements GravityPlayerAccess {
         var player = (Player) (Object) this;
         if (omnisequence$gravity() == direction) return;
         player.getEntityData().set(omnisequence$DOWN, (byte) direction.get3DDataValue());
-        player.setBoundingBox(GravityFrame.bounds(direction, player.position(), player.getDimensions(player.getPose())));
+        // Rebuild through Entity.makeBoundingBox so another active gravity frame can supply its own bounds.
+        player.setPos(player.position());
     }
     @Override public SynchedEntityData.DataValue<?> omnisequence$gravityData() {
         return new SynchedEntityData.DataValue<>(omnisequence$DOWN.getId(), EntityDataSerializers.BYTE,

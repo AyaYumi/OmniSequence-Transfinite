@@ -1,6 +1,6 @@
 # 万象构序：超限 / OmniSequence: Transfinite
 
-[English](README.md) · [接口文档](docs/README.md) · [更新记录](CHANGELOG.md)
+[English](README.md) · [接口文档](docs/README.md)
 
 面向 AE2 和 ExtendedAE 后期自动化的扩展模组，提供材料研究、多方块加工、大容量样板库、合成 CPU，以及资源采集与物品复制。模组 ID 为 `molecularmanipulator`。
 
@@ -8,10 +8,10 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.8-forge，源码分支 `1.20.1-forge` |
+| 本模组 | 2.0.9-forge，源码分支 `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 或更高 |
-| AppliedEnhancements | 1.1.0-forge 或更高，客户端和服务端都需要 |
+| AppliedEnhancements | 1.1.1-forge 或更高，客户端和服务端都需要 |
 | AE2 | 15.4.10 或更高；已使用 15.4.10 / UELM 15.5.4 验证 |
 | ExtendedAE | 1.20-1.4.19-forge 或更高 |
 | JEI / AdvancedAE | 可选；AdvancedAE 启用对应研究与兼容 |
@@ -62,12 +62,12 @@
 
 ## 从源码构建
 
-使用 Java 17，将 `appliedenhancements-1.1.0-forge.jar` 放入 `libs/`，然后运行：
+使用 Java 17，将 `appliedenhancements-1.1.1-forge.jar` 放入 `libs/`，然后运行：
 
 ```sh
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.8-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.9-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 使用 [MIT 许可证](LICENSE)。

@@ -69,6 +69,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     private boolean paused, formed, scanRequested, collectionActive;
     private long collectionStartTick = Long.MIN_VALUE;
     private long nextCollectionTick = Long.MIN_VALUE;
+    private int collectionInterval;
     private long nextDuplicationGenerationTick = Long.MIN_VALUE;
     private int duplicationGenerationInterval;
     private long lastDuplicationFeConsumed;
@@ -125,8 +126,8 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
         super.onReady();
         scanRequested |= formed;
         nextInspection = 0;
-        if (collectionActive && nextCollectionTick == Long.MIN_VALUE) {
-            nextCollectionTick = level == null ? Long.MIN_VALUE : level.getGameTime() + collectionIntervalTicks();
+        if (collectionActive && nextCollectionTick == Long.MIN_VALUE && level != null) {
+            scheduleNextCollection(level.getGameTime());
         }
         updateQuantumLink();
     }
@@ -208,6 +209,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
                 .collect(java.util.stream.Collectors.joining(","));
     }
     public int collectionBatchSizeForMenu() { return collectionBatchSize(); }
+    public int collectionIntervalTicksForMenu() { return collectionIntervalTicks(); }
     public boolean collectionStarting() { return collectionActive && collectionStartTick != Long.MIN_VALUE
             && level != null && level.getGameTime() - collectionStartTick < 40; }
     public Operation operation() { return operation; }
@@ -338,7 +340,8 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
         if (isSingleBlock()) {
             if (!canManage(player) || !collectionActive && !networkOnline()) return;
             collectionActive = !collectionActive;
-            nextCollectionTick = collectionActive ? level.getGameTime() + collectionIntervalTicks() : Long.MIN_VALUE;
+            if (collectionActive) scheduleNextCollection(level.getGameTime());
+            else nextCollectionTick = Long.MIN_VALUE;
             status = collectionActive ? Status.COLLECTING : Status.IDLE;
             saveChanges(); markForUpdate();
             return;
@@ -428,7 +431,6 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
             repairMisplacedBlackHoles();
             if (level.getGameTime() % 20 == 0) updateQuantumLink();
             if (collectionActive && networkOnline()) {
-                if (nextCollectionTick == Long.MIN_VALUE) nextCollectionTick = level.getGameTime() + collectionIntervalTicks();
                 collectResource();
             } else {
                 nextCollectionTick = Long.MIN_VALUE;
@@ -454,7 +456,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
             } else if (collectionStartTick != Long.MIN_VALUE
                     && level.getGameTime() - collectionStartTick >= 40) {
                 collectionStartTick = Long.MIN_VALUE;
-                nextCollectionTick = level.getGameTime() + collectionIntervalTicks();
+                scheduleNextCollection(level.getGameTime());
                 status = Status.COLLECTING;
                 saveChanges();
             }
@@ -493,7 +495,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
         if (!recovery.isEmpty()) { status = Status.STORAGE_FULL; return; }
         if (operation == Operation.BUILD) build(player); else dismantle(player);
     }
-    /** Move black holes left in the quantum slot by older menu versions into the dedicated accelerator slot. */
+    /** Move black holes left in the quantum slot by older menu versions into the matter-generation slot. */
     private void repairMisplacedBlackHoles() {
         ItemStack misplaced = quantumInventory.getStackInSlot(0);
         if (!misplaced.is(ModContent.BLACK_HOLE.get())) return;
@@ -602,8 +604,14 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
 
     private void collectResource() {
         long now = level.getGameTime();
+        // A changed interval starts a fresh cycle, just like Sequence Matter generation.
+        // Do not wait for an old, potentially much longer deadline or replay missed cycles.
+        if (nextCollectionTick == Long.MIN_VALUE || collectionInterval != collectionIntervalTicks()) {
+            scheduleNextCollection(now);
+            return;
+        }
         if (now < nextCollectionTick) return;
-        nextCollectionTick = now + collectionIntervalTicks();
+        scheduleNextCollection(now);
 
         var collectionItems = configuredCollectionItems();
         if (collectionItems.isEmpty()) {
@@ -683,8 +691,12 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     private static int collectionBatchSize() {
         return Math.max(1, ModConfig.SINGULARITY_COLLECTION_BATCH_SIZE.get());
     }
-    private static long collectionIntervalTicks() {
-        return Math.max(1L, ModConfig.SINGULARITY_COLLECTION_INTERVAL_TICKS.get());
+    private static int collectionIntervalTicks() {
+        return Math.max(1, ModConfig.SINGULARITY_COLLECTION_INTERVAL_TICKS.get());
+    }
+    private void scheduleNextCollection(long now) {
+        collectionInterval = collectionIntervalTicks();
+        nextCollectionTick = now + collectionInterval;
     }
     private void refreshInspection() {
         inspection = SingularityStructure.inspect(level, worldPosition, facing(), motion::owns, structureVersion);
@@ -814,6 +826,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     @Override public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag);
+        collectionInterval = 0;
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);
         duplicationInventory.readFromNBT(tag, DUPLICATION_INVENTORY_TAG);
         duplication.load(tag.getCompound("singularityDuplication"));

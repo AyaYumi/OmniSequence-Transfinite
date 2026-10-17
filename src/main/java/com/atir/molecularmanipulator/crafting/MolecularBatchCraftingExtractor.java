@@ -43,6 +43,29 @@ public final class MolecularBatchCraftingExtractor {
             KeyCounter[] firstInputs, KeyCounter expectedOutputs,
             KeyCounter expectedContainerItems, long maxCrafts,
             boolean allowReusableInputs) {
+        return expandFromFirst(patternDetails, inventory, energyService, level, firstInputs,
+                expectedOutputs, expectedContainerItems, maxCrafts, allowReusableInputs, false);
+    }
+
+    /**
+     * A fabrication well stores the entire delivery, then pays processing power
+     * as it executes the queue. Charge AE's dispatch overhead once per delivery,
+     * rather than requiring power for every queued operation up front.
+     */
+    public static BatchExtraction expandQueuedProcessingFromFirst(IPatternDetails patternDetails,
+            ICraftingInventory inventory, IEnergyService energyService, Level level,
+            KeyCounter[] firstInputs, KeyCounter expectedOutputs,
+            KeyCounter expectedContainerItems, long maxCrafts) {
+        if (patternDetails == null || expectedContainerItems == null || !expectedContainerItems.isEmpty()) return null;
+        return expandFromFirst(patternDetails, inventory, energyService, level, firstInputs,
+                expectedOutputs, expectedContainerItems, maxCrafts, false, true);
+    }
+
+    private static BatchExtraction expandFromFirst(IPatternDetails patternDetails,
+            ICraftingInventory inventory, IEnergyService energyService, Level level,
+            KeyCounter[] firstInputs, KeyCounter expectedOutputs,
+            KeyCounter expectedContainerItems, long maxCrafts,
+            boolean allowReusableInputs, boolean queuedProcessing) {
         if (maxCrafts <= 1 || level == null) {
             return null;
         }
@@ -84,7 +107,11 @@ public final class MolecularBatchCraftingExtractor {
                 return null;
             }
 
-            craftCount = limitByEnergy(energyService, plan, craftCount);
+            if (queuedProcessing) {
+                if (!hasEnergyFor(energyService, plan, 1)) return null;
+            } else {
+                craftCount = limitByEnergy(energyService, plan, craftCount);
+            }
             if (craftCount <= 1) {
                 return null;
             }

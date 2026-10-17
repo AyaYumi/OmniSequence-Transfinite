@@ -50,6 +50,10 @@ public final class GravityViewTransition {
 
     public void recordEye(Vec3 rendered) { eye = rendered; }
 
+    public boolean active(double time) {
+        return direction != null && (direction != Direction.DOWN || progress(time) < 1);
+    }
+
     private double progress(double time) {
         double t = com.atir.molecularmanipulator.util.MathCompat.clamp((time - started) / DURATION_TICKS, 0, 1);
         return t * t * (3 - 2 * t);

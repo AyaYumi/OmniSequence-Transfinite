@@ -6,7 +6,7 @@ allprojects {
         if (pack) throw new GradleException('Use cpu-batch-compat.init.gradle with cpuCompatJars for matching Forge CPU runtimes; this suite validates native catalyst ownership.')
         def verification = sourceSets.create('catalystSharingVerification') {
             java.srcDir project.file('tools/gametest/java')
-            java.include '**/MatterCatalystGameTests.java', '**/VerificationAEKey.java'
+            java.include '**/MatterCatalystGameTests.java', '**/MatterLightningCatalystCpuGameTests.java', '**/VerificationAEKey.java'
             resources.srcDir project.file('tools/gametest/resources')
             compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
             runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
@@ -22,7 +22,7 @@ allprojects {
         }
         tasks.matching { it.name == 'runGameTestServer' }.configureEach {
             doLast {
-                if (!project.file('build/' + runName + '/logs/latest.log').text.contains('All 1 required tests passed'))
+                if (!project.file('build/' + runName + '/logs/latest.log').text.contains('All 2 required tests passed'))
                     throw new GradleException('Catalyst sharing checks did not pass')
             }
         }

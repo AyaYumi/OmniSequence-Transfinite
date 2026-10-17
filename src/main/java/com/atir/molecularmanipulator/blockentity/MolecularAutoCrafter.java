@@ -40,13 +40,19 @@ import java.util.UUID;
  * and its standalone single-block host.
  *
  * <p>Every configured pattern is evaluated independently. Each accepted passive
- * batch is bounded by {@link #MAX_BATCH_CRAFTS} for integer-count recipe APIs; the implementation
+ * batch is bounded by {@link #MAX_BATCH_CRAFTS} for responsive controls; the implementation
  * delegates actual-key selection, substitution and reusable-input validation to
  * AE2 and the same molecular batch helpers used by crafting CPUs.</p>
  */
 public final class MolecularAutoCrafter implements InternalInventoryHost {
     public static final int PATTERN_SLOTS = MolecularAutoCraftSchema.PATTERN_SLOTS;
     public static final int MAX_INPUTS = 9;
+    /**
+     * A passive slot is checked every server tick. Keep one accepted batch
+     * bounded so that an unlimited or virtual ME input cannot turn one click
+     * into an uninterruptible Long.MAX_VALUE dispatch. The next tick can
+     * continue the same recipe, while disabling a slot remains responsive.
+     */
     static final long MAX_BATCH_CRAFTS = Integer.MAX_VALUE;
     private static final String ROOT_TAG = "molecular_auto_crafter";
     private static final String VERSION_TAG = "version";
@@ -123,6 +129,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
         var config = ensureConfig(slot, decoded);
         config.enabled = enabled;
+        config.resetOutputRetry();
         config.state = enabled ? AutoCraftState.READY : AutoCraftState.DISABLED;
         config.lastBatch = 0;
         host.saveChanges();
@@ -137,6 +144,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
         var config = ensureConfig(slot, decoded);
         config.protections[inputIndex] = Math.max(0, amount);
+        config.resetOutputRetry();
         if (config.enabled) {
             config.state = AutoCraftState.READY;
         }
@@ -150,6 +158,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
         var config = ensureConfig(slot, decoded);
         config.outputLimit = Math.max(0, amount);
+        config.resetOutputRetry();
         if (config.enabled) {
             config.state = AutoCraftState.READY;
         }
@@ -164,6 +173,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         var config = ensureConfig(slot, decoded);
         config.outputLimitMode = config.outputLimitMode == OutputLimitMode.DESTINATION
                 ? OutputLimitMode.NETWORK : OutputLimitMode.DESTINATION;
+        config.resetOutputRetry();
         if (config.enabled) {
             config.state = AutoCraftState.READY;
         }
@@ -195,6 +205,10 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         return host.isClientSide();
     }
 
+    void outputDestinationChanged() {
+        for (var config : configs.values()) config.resetOutputRetry();
+    }
+
     void clear() {
         decodedPatterns.clear();
         configs.clear();
@@ -218,7 +232,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         if (!host.canRunAutoCrafting()) {
             for (var config : configs.values()) {
                 if (config.enabled) {
-                    config.state = AutoCraftState.MACHINE_OFFLINE;
+                    config.state = host.hasAutoCraftRecovery()
+                            ? AutoCraftState.OUTPUT_BLOCKED : AutoCraftState.MACHINE_OFFLINE;
                     config.lastBatch = 0;
                 }
             }
@@ -232,7 +247,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         for (int offset = 0; offset < slots.length; offset++) {
             int slot = slots[(start + offset) % slots.length];
             var config = configs.get(slot);
-            if (config == null || !config.enabled) {
+            if (config == null || !config.enabled || !config.outputRetry.ready(gameTime)) {
                 continue;
             }
             runPattern(slot, config, gameTime);
@@ -290,6 +305,11 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
     private void runPattern(int slot, PatternConfig config, long gameTime) {
         config.lastBatch = 0;
+        // Another slot may have produced exceptional recovery during this pass.
+        if (host.hasAutoCraftRecovery()) {
+            outputBlocked(config, gameTime);
+            return;
+        }
         var details = decode(slot);
         if (details == null || !config.definition.equals(details.getDefinition())
                 || !(details instanceof IMolecularAssemblerSupportedPattern pattern)) {
@@ -318,11 +338,11 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         MEStorage storage = grid.getStorageService().getInventory();
         IActionSource source = host.autoCraftActionSource();
         if (host.getBufferedAutoCraftAmount(outputs[0].what()) > 0) {
-            config.state = AutoCraftState.OUTPUT_BLOCKED;
+            outputBlocked(config, gameTime);
             return;
         }
         var outputAllowance = outputAllowance(details, config);
-        long maxCrafts = Math.min(outputAllowance.maxCrafts(), MAX_BATCH_CRAFTS);
+        long maxCrafts = Math.min(outputAllowance.maxCrafts(), config.outputBatchLimit);
         if (maxCrafts <= 0) {
             config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
             return;
@@ -339,8 +359,6 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                     details, craftingInventory, level, expectedOutputs, expectedRemainders);
         } catch (RuntimeException exception) {
             config.state = AutoCraftState.WAITING_MATERIALS;
-            RateLimitedLog.debug("Auto-crafter failed to extract one craft for slot {} at {}",
-                    slot, host.getBlockPos(), exception);
             return;
         }
         if (firstInputs == null) {
@@ -348,107 +366,157 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             return;
         }
 
-        var extraction = MolecularBatchCraftingExtractor.expandFromFirst(
-                details, craftingInventory, grid.getEnergyService(), level,
-                firstInputs, expectedOutputs, expectedRemainders,
-                maxCrafts, true);
-        KeyCounter[] inputs = extraction == null ? firstInputs : extraction.inputs();
-        long craftCount = extraction == null ? 1 : extraction.craftCount();
-        MolecularReusableBatchPlan reusablePlan = extraction == null
-                ? null : extraction.reusablePlan();
+        MolecularAutoCrafterHost.OutputDestination destination;
+        try {
+            destination = host.autoCraftOutputDestination();
+            // Probe after selecting one real input: extraction may free cell space.
+            // Reusable tool remainders are validated against the final batch below,
+            // rather than incorrectly multiplying a single returned tool by crafts.
+            maxCrafts = MolecularAutoCraftOutput.capacity(copyCounter(expectedOutputs),
+                    new Object2LongOpenHashMap<>(), 1, maxCrafts, destination);
+        } catch (RuntimeException exception) {
+            maxCrafts = 0;
+            destination = null;
+        }
+        if (maxCrafts <= 0) {
+            CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
+            outputBlocked(config, gameTime);
+            return;
+        }
 
-        if (!fitsOutputAllowance(outputs[0].what(), inputs,
-                expectedOutputs, expectedRemainders, outputAllowance.room())) {
-            if (extraction != null) {
-                extraction.rollbackAdditional(craftingInventory,
-                        expectedOutputs, expectedRemainders);
-                extraction = null;
-                inputs = firstInputs;
-                craftCount = 1;
-                reusablePlan = null;
+        // At most one reduced retry. Never binary-search the entire ME network.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            var extraction = MolecularBatchCraftingExtractor.expandFromFirst(
+                    details, craftingInventory, grid.getEnergyService(), level,
+                    firstInputs, expectedOutputs, expectedRemainders, maxCrafts, true);
+            KeyCounter[] inputs = extraction == null ? firstInputs : extraction.inputs();
+            long craftCount = extraction == null ? 1 : extraction.craftCount();
+            MolecularReusableBatchPlan reusablePlan = extraction == null
+                    ? null : extraction.reusablePlan();
+            if (host.hasAutoCraftRecovery()) {
+                CraftingCpuHelper.reinjectPatternInputs(craftingInventory, inputs);
+                outputBlocked(config, gameTime);
+                return;
             }
-            long safeCrafts = outputAllowance.room() == Long.MAX_VALUE
-                    ? maxCrafts
-                    : outputAllowance.room() / outputs[0].amount();
-            if (safeCrafts > 1) {
-                var safeExtraction = MolecularBatchCraftingExtractor.expandFromFirst(
-                        details, craftingInventory, grid.getEnergyService(), level,
-                        firstInputs, expectedOutputs, expectedRemainders,
-                        safeCrafts, true);
-                if (safeExtraction != null) {
-                    if (fitsOutputAllowance(outputs[0].what(), safeExtraction.inputs(),
-                            expectedOutputs, expectedRemainders, outputAllowance.room())) {
-                        extraction = safeExtraction;
-                        inputs = safeExtraction.inputs();
-                        craftCount = safeExtraction.craftCount();
-                        reusablePlan = safeExtraction.reusablePlan();
-                    } else {
-                        safeExtraction.rollbackAdditional(craftingInventory,
-                                expectedOutputs, expectedRemainders);
-                    }
-                }
-            }
+
             if (!fitsOutputAllowance(outputs[0].what(), inputs,
                     expectedOutputs, expectedRemainders, outputAllowance.room())) {
+                if (extraction != null) extraction.rollbackAdditional(craftingInventory,
+                        expectedOutputs, expectedRemainders);
+                if (host.hasAutoCraftRecovery()) {
+                    CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
+                    outputBlocked(config, gameTime);
+                    return;
+                }
+                long safeCrafts = outputAllowance.room() / outputs[0].amount();
+                if (attempt == 0 && safeCrafts > 0 && safeCrafts < craftCount) {
+                    maxCrafts = safeCrafts;
+                    continue;
+                }
+                CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
+                config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
+                return;
+            }
+
+            if (!prepareOutputs(details, inputs, firstInputs, craftCount, reusablePlan, level)) {
+                if (extraction != null) extraction.rollbackAdditional(craftingInventory,
+                        expectedOutputs, expectedRemainders);
+                if (host.hasAutoCraftRecovery()) {
+                    CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
+                    outputBlocked(config, gameTime);
+                    return;
+                }
+                if (attempt == 0 && craftCount > 1) {
+                    maxCrafts = 1;
+                    continue;
+                }
+                CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
+                config.state = AutoCraftState.INVALID_PATTERN;
+                return;
+            }
+
+            var primaryOutputs = copyMap(batcher.getPrimaryOutputAmounts());
+            var remainderOutputs = copyMap(batcher.getRemainderOutputAmounts());
+            if (!countersMatch(expectedOutputs, expectedRemainders, primaryOutputs, remainderOutputs)
+                    || !host.canQueueAutoCraftOutputs(primaryOutputs, remainderOutputs)) {
                 CraftingCpuHelper.reinjectPatternInputs(craftingInventory, inputs);
-                config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
+                outputBlocked(config, gameTime);
                 return;
             }
-        }
 
-        if (!prepareOutputs(details, inputs, firstInputs, craftCount, reusablePlan, level)) {
-            if (extraction == null) {
+            long capacity = MolecularAutoCraftOutput.capacity(primaryOutputs, remainderOutputs,
+                    craftCount, craftCount, destination);
+            if (capacity < craftCount) {
+                if (extraction != null) extraction.rollbackAdditional(craftingInventory,
+                        expectedOutputs, expectedRemainders);
+                if (host.hasAutoCraftRecovery()) {
+                    CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
+                    outputBlocked(config, gameTime);
+                    return;
+                }
+                if (attempt == 0 && capacity > 0) {
+                    maxCrafts = capacity;
+                    continue;
+                }
                 CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
-                config.state = AutoCraftState.INVALID_PATTERN;
+                outputBlocked(config, gameTime);
                 return;
             }
-            extraction.rollbackAdditional(craftingInventory,
-                    expectedOutputs, expectedRemainders);
-            inputs = firstInputs;
-            craftCount = 1;
-            if (!fitsOutputAllowance(outputs[0].what(), firstInputs,
-                    expectedOutputs, expectedRemainders, outputAllowance.room())) {
-                CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
-                config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
-                return;
-            }
-            if (!batcher.prepare(details, firstInputs, level, 1)) {
-                CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
-                config.state = AutoCraftState.INVALID_PATTERN;
-                return;
-            }
-        }
 
-        var primaryOutputs = copyMap(batcher.getPrimaryOutputAmounts());
-        var remainderOutputs = copyMap(batcher.getRemainderOutputAmounts());
-        if (!countersMatch(expectedOutputs, expectedRemainders,
-                primaryOutputs, remainderOutputs)
-                || !host.canQueueAutoCraftOutputs(primaryOutputs, remainderOutputs)) {
-            CraftingCpuHelper.reinjectPatternInputs(craftingInventory, inputs);
-            config.state = AutoCraftState.OUTPUT_BLOCKED;
+            double power = CraftingCpuHelper.calculatePatternPower(inputs);
+            if (!consumePower(grid.getEnergyService(), power)) {
+                CraftingCpuHelper.reinjectPatternInputs(craftingInventory, inputs);
+                config.state = AutoCraftState.WAITING_POWER;
+                return;
+            }
+
+            if (!host.deliverAutoCraftOutputs(primaryOutputs, remainderOutputs,
+                    gameTime, craftCount, destination)) {
+                // A shared-capacity collision rolled back every output. Refund
+                // ingredients and retry a smaller batch on a later tick.
+                try {
+                    grid.getEnergyService().injectPower(
+                            power * appeng.api.config.PowerMultiplier.CONFIG.multiplier,
+                            Actionable.MODULATE);
+                } catch (RuntimeException exception) {
+                    RateLimitedLog.warn("Auto-crafter could not refund AE power at {}",
+                            host.getBlockPos(), exception);
+                }
+                CraftingCpuHelper.reinjectPatternInputs(craftingInventory, inputs);
+                config.outputBatchLimit = Math.max(1, craftCount / 2);
+                outputBlocked(config, gameTime);
+                return;
+            }
+
+            batcher.consumeInputs(inputs);
+            try {
+                CraftingEvent.fireAutoCraftingEvent(level, pattern,
+                        batcher.getCraftedOutput().copy(), batcher.getCraftingGrid());
+            } catch (RuntimeException exception) {
+                RateLimitedLog.warn("Auto-crafting event failed for slot {} at {}",
+                        slot, host.getBlockPos(), exception);
+            }
+            config.outputRetry.reset();
+            config.outputBatchLimit = Math.min(MAX_BATCH_CRAFTS, config.outputBatchLimit * 2);
+            config.state = AutoCraftState.RUNNING;
+            config.lastBatch = craftCount;
+            config.totalCrafts = MolecularAutoCraftMath.saturatedAdd(config.totalCrafts, craftCount);
+            host.saveChanges();
             return;
         }
+    }
 
-        double power = CraftingCpuHelper.calculatePatternPower(inputs);
-        if (!consumePower(grid.getEnergyService(), power)) {
-            CraftingCpuHelper.reinjectPatternInputs(craftingInventory, inputs);
-            config.state = AutoCraftState.WAITING_POWER;
-            return;
-        }
+    private static void outputBlocked(PatternConfig config, long gameTime) {
+        config.state = AutoCraftState.OUTPUT_BLOCKED;
+        config.outputRetry.blocked(gameTime);
+    }
 
-        host.queueAutoCraftOutputs(primaryOutputs, remainderOutputs, gameTime, craftCount);
-        batcher.consumeInputs(inputs);
-        try {
-            CraftingEvent.fireAutoCraftingEvent(level, pattern,
-                    batcher.getCraftedOutput().copy(), batcher.getCraftingGrid());
-        } catch (RuntimeException exception) {
-            RateLimitedLog.warn("Auto-crafting event failed for slot {} at {}",
-                    slot, host.getBlockPos(), exception);
+    private static Object2LongOpenHashMap<AEKey> copyCounter(KeyCounter counter) {
+        var result = new Object2LongOpenHashMap<AEKey>();
+        for (var entry : counter) {
+            if (entry.getLongValue() > 0) result.put(entry.getKey(), entry.getLongValue());
         }
-        config.state = AutoCraftState.RUNNING;
-        config.lastBatch = craftCount;
-        config.totalCrafts = MolecularAutoCraftMath.saturatedAdd(
-                config.totalCrafts, craftCount);
+        return result;
     }
 
     private boolean prepareOutputs(IPatternDetails details, KeyCounter[] inputs,
@@ -804,6 +872,13 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         private AutoCraftState state = AutoCraftState.DISABLED;
         private long lastBatch;
         private long totalCrafts;
+        private final MolecularAutoCraftRetry outputRetry = new MolecularAutoCraftRetry();
+        private long outputBatchLimit = MAX_BATCH_CRAFTS;
+
+        private void resetOutputRetry() {
+            outputRetry.reset();
+            outputBatchLimit = MAX_BATCH_CRAFTS;
+        }
 
         private PatternConfig(AEItemKey definition) {
             this.definition = definition;

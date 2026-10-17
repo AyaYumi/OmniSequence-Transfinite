@@ -73,12 +73,16 @@ class OmniSpectralGeometryTest {
     }
 
     @Test
-    void molecularShaderKeepsTheOriginalSourceAlphaAdditiveBlending() throws Exception {
-        var json = JsonParser.parseString(resource("molecular_spectral.json")).getAsJsonObject();
-        var blend = ShaderInstance.parseBlendNode(json.getAsJsonObject("blend"));
-        assertFalse(blend.isOpaque(), "ShaderInstance.apply must not disable the render layer's blending");
-        assertEquals(new BlendMode(770, 1, 32774), blend,
-                "Both original render passes use source-alpha additive blending");
+    void allCoreShadersLeaveBlendOwnershipToRenderTypesAndFullscreenPasses() throws Exception {
+        var vanillaBlend = new BlendMode(770, 771, 32774);
+        for (String name : new String[] { "molecular_spectral", "matter_condensation", "singularity_compute",
+                "singularity_lens", "cosmic_lens", "ghost_exposure" }) {
+            var json = JsonParser.parseString(resource(name + ".json")).getAsJsonObject();
+            assertTrue(json.has("blend"), name + ": a missing blend node defaults to opaque in 1.20.1");
+            var blend = ShaderInstance.parseBlendNode(json.getAsJsonObject("blend"));
+            assertEquals(vanillaBlend, blend,
+                    name + ": a different global BlendMode cache value breaks the GUI vignette blend");
+        }
     }
 
     private String resource(String file) throws Exception {

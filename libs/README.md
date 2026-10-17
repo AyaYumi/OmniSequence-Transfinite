@@ -1,7 +1,9 @@
 # Local Forge dependencies
 
-Minecraft 1.20.1 / Java 17, OmniSequence 2.0.8-forge requires the independently installed
-`appliedenhancements-1.1.0-forge.jar`. Place it in this directory before building.
+Minecraft 1.20.1 / Java 17, OmniSequence 2.0.9-forge requires the independently installed
+`appliedenhancements-1.1.1-forge.jar`. Place it in this directory before building.
+AppliedEnhancements 1.1.2-forge is also supported and validated; build against it with
+`-Papplied_enhancements_version=1.1.2-forge` and a matching local JAR.
 Both sides require the matching Forge mod with the cycle transaction, exact-plan and smart-doubling APIs.
 
 Optional CPU adapters compile against Java 17 ABI declarations under `src/optionalCpuApi/java`.

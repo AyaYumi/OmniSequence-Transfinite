@@ -4,7 +4,7 @@ allprojects {
         if (project != rootProject) return
         def verification = sourceSets.create('compactSingularityVerification') {
             java.srcDir project.file('tools/gametest/java')
-            java.include '**/CompactSingularityGameTests.java'
+            java.include '**/CompactSingularityGameTests.java', '**/SingularityCollectionGameTests.java'
             resources.srcDir project.file('tools/gametest/resources')
             resources.exclude 'data/molecularmanipulator/recipes/**'
             compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath

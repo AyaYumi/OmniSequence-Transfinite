@@ -48,6 +48,8 @@ Place a crystal on the ground and select **repulsion** to create a lift. Connect
 
 Mine a crystal with a pickaxe to retrieve it. Leaving the field, pausing or removing the crystal, entering water, riding or enabling creative flight restores ordinary gravity.
 
+When Antarchy is installed, its inverted gravity, forced gravity and gravity transitions take priority over crystal attraction. Nearby crystals resume controlling player gravity when Antarchy releases it.
+
 ## Placing Ghost Matter
 
 Ghost Matter requires a supporting block below and cannot be mined directly. It damages creatures within roughly a **3×3×3** area, bypassing armor. Solid walls provide protection. Dropped items and creative or spectator players are unharmed.

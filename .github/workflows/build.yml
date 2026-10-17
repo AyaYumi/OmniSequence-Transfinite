@@ -24,13 +24,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: AyaYumi/AppliedEnhancements
-          ref: 247f5fc63582aaa6b890c94c0264ba1a9c697405
+          ref: 3616345407ac9fabbe1335e73f333cbfb7635a25
           path: .dependencies/appliedenhancements
       - name: Build shared prerequisite against upstream AE2
         run: |
+          python - <<'PY'
+          from pathlib import Path
+          def version(path, key):
+              return next(line.split('=', 1)[1].strip() for line in Path(path).read_text().splitlines() if line.startswith(key + '='))
+          expected = version('gradle.properties', 'applied_enhancements_version')
+          actual = version('.dependencies/appliedenhancements/gradle.properties', 'mod_version')
+          if actual != expected:
+              raise SystemExit(f'Pinned Forge prerequisite is {actual}, expected {expected}')
+          PY
           bash .dependencies/appliedenhancements/gradlew -p .dependencies/appliedenhancements build apiJavadoc --console=plain
           mkdir -p libs
-          cp .dependencies/appliedenhancements/build/libs/appliedenhancements-1.1.0-forge.jar libs/
+          cp .dependencies/appliedenhancements/build/libs/appliedenhancements-1.1.1-forge.jar libs/
       - name: Validate repository files and public documentation
         run: python .github/scripts/check_repository.py
 
@@ -46,15 +55,15 @@ jobs:
         run: bash gradlew ${{ matrix.args }} -I tools/gametest/maintenance.init.gradle runGameTestServer --console=plain
       - name: AdvancedAE batch acceptance and ownership
         run: bash gradlew ${{ matrix.args }} -I tools/gametest/aae.init.gradle runGameTestServer --console=plain
-      - name: New 2.0.8 behavior and ownership regressions
+      - name: New 2.0.9 behavior and ownership regressions
         run: |
-          for suite in outer-wilds compact-singularity cosmic-holes catalyst-sharing fabrication-upload cpu-batch-compat performance-regression cyclic-submission byproduct-submission applied-110; do
+          for suite in auto-crafting fabrication-dispatch outer-wilds compact-singularity cosmic-holes catalyst-sharing fabrication-upload cpu-batch-compat performance-regression cyclic-submission byproduct-submission applied-110; do
             bash gradlew ${{ matrix.args }} -I tools/gametest/$suite.init.gradle runGameTestServer --console=plain
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: omnisequence-2.0.8-forge-${{ matrix.name }}
+          name: omnisequence-2.0.9-forge-${{ matrix.name }}
           path: |
             build/libs/*.jar
             build/docs/api/

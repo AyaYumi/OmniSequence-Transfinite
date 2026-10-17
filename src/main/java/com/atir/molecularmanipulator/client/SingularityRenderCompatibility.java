@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.client;
 
-import com.atir.molecularmanipulator.MolecularManipulator;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraftforge.fml.ModList;
@@ -59,6 +58,5 @@ public final class SingularityRenderCompatibility {
         var listOption = (ForgeConfigSpec.ConfigValue<List<String>>) option;
         listOption.set(List.copyOf(updated));
         listOption.save();
-        MolecularManipulator.LOGGER.info("Singularity: registered {} in distance-culling {}", id, field);
     }
 }

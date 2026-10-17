@@ -76,4 +76,9 @@ final class MolecularAutoCrafterIconButton extends IconButton {
     protected Icon getIcon() {
         return icon;
     }
+
+    @Override
+    public boolean isTooltipAreaVisible() {
+        return false;
+    }
 }

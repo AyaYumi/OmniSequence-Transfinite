@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.world.gravity;
 
 import com.atir.molecularmanipulator.block.GravityCrystalBlock;
 import com.atir.molecularmanipulator.blockentity.GravityCrystalBlockEntity;
+import com.atir.molecularmanipulator.integration.AntarchyGravityCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
@@ -20,7 +21,9 @@ public final class GravityController {
     private GravityController() {}
 
     public static Direction direction(Entity entity) {
-        return entity instanceof GravityPlayerAccess access ? access.omnisequence$gravity() : Direction.DOWN;
+        if (!(entity instanceof GravityPlayerAccess access)) return Direction.DOWN;
+        var down = access.omnisequence$gravity();
+        return down != Direction.DOWN && AntarchyGravityCompat.controlsGravity(entity) ? Direction.DOWN : down;
     }
 
     public static boolean rotated(Entity entity) {
@@ -28,14 +31,19 @@ public final class GravityController {
     }
 
     public static boolean eligible(Player player) {
-        return player.isAlive() && !player.isSpectator() && !player.getAbilities().flying
+        return player.isAlive() && !player.isSpectator()
                 && !player.isPassenger() && !player.isSleeping() && !player.isFallFlying()
-                && !player.isInWaterOrBubble() && !player.isInLava();
+                && !player.isInWaterOrBubble() && !player.isInLava()
+                && !AntarchyGravityCompat.controlsGravity(player);
     }
 
     public static void tick(Player player) {
         if (player.level().isClientSide) return;
         var access = (GravityPlayerAccess) player;
+        if (AntarchyGravityCompat.controlsGravity(player)) {
+            releaseToExternalGravity(player);
+            return;
+        }
         var source = access.omnisequence$gravitySource();
         if (!eligible(player)) {
             access.omnisequence$gravitySource(null);
@@ -107,6 +115,11 @@ public final class GravityController {
 
     public static boolean change(Player player, Direction down) {
         var access = (GravityPlayerAccess) player;
+        if (AntarchyGravityCompat.controlsGravity(player)) {
+            if (down != Direction.DOWN) return false;
+            releaseToExternalGravity(player);
+            return true;
+        }
         var previous = direction(player);
         if (previous == down) return true;
         var dimensions = player.getDimensions(player.getPose());
@@ -145,5 +158,38 @@ public final class GravityController {
             serverPlayer.connection.teleport(safe.x, safe.y, safe.z, yaw, pitch);
         }
         return true;
+    }
+
+    private static void releaseToExternalGravity(Player player) {
+        var access = (GravityPlayerAccess) player;
+        access.omnisequence$gravitySource(null);
+        access.omnisequence$gravityCandidate(null, 0);
+        var previous = access.omnisequence$gravity();
+        if (previous == Direction.DOWN) return;
+        access.omnisequence$gravity(Direction.DOWN);
+        // Antarchy has already chosen its frame and feet. Only resolve overlap left by the old wall body.
+        var feet = player.position();
+        var bounds = player.getBoundingBox();
+        Vec3 safe = feet;
+        if (!player.level().noCollision(player, bounds.deflate(1.0E-7))) {
+            search: for (int step = 1; step <= 20; step++) {
+                for (var offset : new Direction[]{previous.getOpposite(), Direction.DOWN, Direction.UP,
+                        Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
+                    var displacement = Vec3.atLowerCornerOf(offset.getNormal()).scale(step * .1);
+                    if (player.level().noCollision(player, bounds.move(displacement).deflate(1.0E-7))) {
+                        safe = feet.add(displacement);
+                        break search;
+                    }
+                }
+            }
+        }
+        player.setPos(safe);
+        player.fallDistance = 0;
+        if (player instanceof ServerPlayer serverPlayer && serverPlayer.connection != null) {
+            serverPlayer.connection.send(new ClientboundSetEntityDataPacket(player.getId(),
+                    List.of(access.omnisequence$gravityData())));
+            if (!safe.equals(feet)) serverPlayer.connection.teleport(safe.x, safe.y, safe.z,
+                    player.getYRot(), player.getXRot());
+        }
     }
 }

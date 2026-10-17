@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.blockentity;
 
+import appeng.api.config.Actionable;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
@@ -9,6 +10,13 @@ import net.minecraft.world.level.Level;
 
 /** Host contract shared by the multiblock controller and the portable auto-crafter. */
 public interface MolecularAutoCrafterHost {
+    /** Captured output route for one passive dispatch, including rollback. */
+    interface OutputDestination {
+        long insert(AEKey key, long amount, Actionable mode);
+
+        long extract(AEKey key, long amount);
+    }
+
     IManagedGridNode getMainNode();
 
     Level getLevel();
@@ -21,13 +29,19 @@ public interface MolecularAutoCrafterHost {
 
     boolean canRunAutoCrafting();
 
+    boolean hasAutoCraftRecovery();
+
     IActionSource autoCraftActionSource();
 
     boolean canQueueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders);
 
-    void queueAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
-            Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount);
+    MolecularAutoCrafterHost.OutputDestination autoCraftOutputDestination();
+
+    /** Returns false only when all inserted outputs were recovered and inputs may be refunded. */
+    boolean deliverAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
+            Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount,
+            MolecularAutoCrafterHost.OutputDestination destination);
 
     void queueAutoCraftRefund(AEKey key, long amount);
 

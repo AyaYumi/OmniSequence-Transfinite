@@ -1,6 +1,6 @@
 # OmniSequence: Transfinite
 
-[简体中文](README.zh-CN.md) · [API documentation](docs/README.md) · [Changelog](CHANGELOG.md)
+[简体中文](README.zh-CN.md) · [API documentation](docs/README.md)
 
 An endgame expansion for AE2 and ExtendedAE, with material research, multiblock processing, large pattern libraries, crafting CPUs, resource collection and item duplication. Mod ID: `molecularmanipulator`.
 
@@ -8,10 +8,10 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.8-forge, branch `1.20.1-forge` |
+| OmniSequence | 2.0.9-forge, branch `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 or later |
-| AppliedEnhancements | 1.1.0-forge or later, client and server |
+| AppliedEnhancements | 1.1.1-forge or later, client and server |
 | AE2 | 15.4.10 or later; tested with 15.4.10 / UELM 15.5.4 |
 | ExtendedAE | 1.20-1.4.19-forge or later |
 | JEI / AdvancedAE | Optional; AdvancedAE enables its research/integration |
@@ -62,12 +62,12 @@ Modpack authors can define fabrication recipes and research through datapacks. R
 
 ## Building from source
 
-Use Java 17, place `appliedenhancements-1.1.0-forge.jar` in `libs/`, then run:
+Use Java 17, place `appliedenhancements-1.1.1-forge.jar` in `libs/`, then run:
 
 ```sh
 ./gradlew build apiJavadoc
 ```
 
-The runtime JAR is `build/libs/omnisequence-transfinite-2.0.8-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.9-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
 
 Licensed under the [MIT License](LICENSE).

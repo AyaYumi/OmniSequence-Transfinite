@@ -351,11 +351,17 @@ public final class OuterWildsGameTests {
                                 + " expected=" + player.getEyePosition().subtract(GravityFrame.up(down).scale(.1))
                                 + " motion=" + arrow.getDeltaMovement() + " look=" + player.getLookAngle()
                                 + " inherited=" + player.getDeltaMovement());
+                // Vanilla toss spread can occasionally lower the aiming projection below this check's threshold.
+                player.getRandom().setSeed(0);
                 var dropped = player.drop(new ItemStack(Items.DIAMOND), false, false);
                 helper.assertTrue(dropped != null && dropped.position().distanceTo(
                         player.getEyePosition().subtract(GravityFrame.up(down).scale(.3))) < 1.0E-5
                         && dropped.getDeltaMovement().dot(player.getLookAngle()) > .2,
-                        "Dropped items must originate at the rotated hand/eye side: " + down);
+                        "Dropped items must originate at the rotated hand/eye side: " + down
+                                + " origin=" + (dropped == null ? null : dropped.position())
+                                + " expected=" + player.getEyePosition().subtract(GravityFrame.up(down).scale(.3))
+                                + " motion=" + (dropped == null ? null : dropped.getDeltaMovement())
+                                + " look=" + player.getLookAngle());
                 if (dropped != null) dropped.discard();
                 arrow.discard();
                 var serialized = player.saveWithoutId(new net.minecraft.nbt.CompoundTag());
@@ -476,6 +482,40 @@ public final class OuterWildsGameTests {
         } finally {
             placed.forEach(p -> level.setBlock(p, Blocks.AIR.defaultBlockState(), 3));
             // Keep shared test chunks ticking until this disposable GameTest server exits.
+        }
+    }
+
+    @GameTest(template = "multiblock_dismantle_empty", batch = "gravity_tick", timeoutTicks = 100)
+    public static void playerTickAutomaticallyAcquiresAndReleasesGravity(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var crystal = helper.absolutePos(new BlockPos(2, 70, 2));
+        loadArea(helper, crystal);
+        clearArea(helper, crystal);
+        var player = FakePlayerFactory.get(level, new GameProfile(UUID.randomUUID(), "GravityTickTester"));
+        player.setGameMode(GameType.SURVIVAL);
+        try {
+            level.setBlock(crystal, ModContent.GRAVITY_CRYSTAL_BLOCK.get().defaultBlockState()
+                    .setValue(DirectionalBlock.FACING, Direction.EAST), 3);
+            centerPlayer(player, Vec3.atLowerCornerOf(crystal).add(1.5, 1.5, .5));
+            player.doTick();
+            var autoDirection = GravityController.direction(player);
+            var autoSource = ((GravityPlayerAccess) player).omnisequence$gravitySource();
+            boolean eligible = GravityController.eligible(player);
+            boolean affects = GravityCrystalBlockEntity.affects(level, crystal, player);
+            helper.assertTrue(autoDirection == Direction.WEST && crystal.equals(autoSource),
+                    "The player tick hook must acquire a nearby wall crystal without a direct controller call"
+                            + "; autoDirection=" + autoDirection + " autoSource=" + autoSource
+                            + " eligible=" + eligible + " affects=" + affects);
+
+            centerPlayer(player, Vec3.atLowerCornerOf(crystal).add(5, 1.5, .5));
+            player.doTick();
+            helper.assertTrue(GravityController.direction(player) == Direction.DOWN
+                            && ((GravityPlayerAccess) player).omnisequence$gravitySource() == null,
+                    "The player tick hook must release gravity after leaving the crystal range");
+            helper.succeed();
+        } finally {
+            player.discard();
+            clearArea(helper, crystal);
         }
     }
 

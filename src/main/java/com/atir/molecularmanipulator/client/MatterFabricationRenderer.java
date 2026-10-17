@@ -92,7 +92,7 @@ public final class MatterFabricationRenderer
         boolean glow() { return glow; }
     }
 
-    /** Live rendering and GPU verification share formed/running gating, orientation and pass selection. */
+    /** Applies formed/running gating, orientation and pass selection to fabrication effects. */
     static void renderFoundryPass(PoseStack poseStack, VertexConsumer consumer, float time,
             float completionPulse, boolean detailed, boolean formed, boolean running, Direction facing, FoundryPass pass) {
         renderFoundryPass(poseStack, consumer, time, completionPulse, detailed, formed, running, facing, pass, running ? 0.5F : 0);

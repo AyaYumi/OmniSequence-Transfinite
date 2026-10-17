@@ -1,6 +1,6 @@
 # Forge 1.20.1 isolated game tests
 
-Current version: **2.0.8-forge**, Minecraft **1.20.1**, Forge **47.4.20**, Java **17**.
+Current version: **2.0.9-forge**, Minecraft **1.20.1**, Forge **47.4.20**, Java **17**.
 Test sources and optional API declarations are excluded from release JARs.
 [Prerequisites](../../libs/README.md)
 
@@ -14,10 +14,12 @@ A completed server with zero discovered tests is not a passing run.
 
 | Init script | Coverage |
 | --- | --- |
+| `auto-crafting.init.gradle` | Real ME/chest capacity, same-tick delivery, bounded retries, shared-capacity rollback, old saves and CPU pipeline ownership |
+| `fabrication-dispatch.init.gradle` | Full 20-billion / Long.MAX_VALUE queue delivery with finite power; hidden slot invariants |
 | `outer-wilds.init.gradle` | Six-direction gravity, placement, motion, wall walking, jumping, aim, drops, metadata, field handoff; Ghost Matter damage, water, dispersed mist, expiry and real recipes |
-| `compact-singularity.init.gradle` | Six-face ME wiring, collection, exact fluid/energy capacity, sample copying, world saves and portable drops |
+| `compact-singularity.init.gradle` | Six-face ME wiring, collection, exact fluid/energy capacity, sample copying, configurable collection cycles/live changes, world saves and portable drops |
 | `cosmic-holes.init.gradle` | Bound ownership, multiple nearest exits, reload, item preservation and chunk tickets |
-| `catalyst-sharing.init.gradle` | Shared catalysts, recipe JSON/network sync, pattern menus and durable ownership |
+| `catalyst-sharing.init.gradle` | Shared catalysts, recipe JSON/network sync, pattern menus, explicit catalyst mappings, live CPU catalyst waiting and durable ownership |
 | `fabrication-upload.init.gradle` | Packet boundaries, real menu validation, research/team filtering, alternatives, blank ownership and full/detached providers |
 | `cpu-batch-compat.init.gradle` | Native counted provider, 1026-craft batches, scaling, stale admissions, persistence and refunds; optional real Forge API contracts or legacy fallback |
 | `performance-regression.init.gradle` | Recipe indexing, Forge fluid field mapping with exact NBT, arbitrary AEKeys, long-count providers, stock snapshot reads/admission/refunds, dismantling, Nexus and pattern ports |

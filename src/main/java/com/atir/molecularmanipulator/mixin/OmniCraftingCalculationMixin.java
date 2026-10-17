@@ -81,13 +81,6 @@ public abstract class OmniCraftingCalculationMixin {
         }
         var source = requester.getActionSource();
         omnisequence$interactiveRequest = source != null && source.player().isPresent();
-        if (com.appliedenhancements.Config.AELIS_DIAGNOSTICS.get()) {
-            RateLimitedLog.info(
-                    "Omni AELIS routing: automatic={}, activeController={}, output={}",
-                    omnisequence$automaticAelis,
-                    omnisequence$omniController == null ? "none" : omnisequence$omniController.getBlockPos(),
-                    output);
-        }
     }
 
     @WrapMethod(method = "run")
@@ -190,11 +183,6 @@ public abstract class OmniCraftingCalculationMixin {
         var result = planner.tryExecute(tree, inventory, requestedAmount, isSimulation(), getMissingItems());
         if (result.branchFailure() != null) throw result.branchFailure();
         if (!result.shouldFallback()) {
-            if (com.appliedenhancements.Config.AELIS_DIAGNOSTICS.get()) {
-                RateLimitedLog.info(
-                        "Omni AELIS API applied: requested={}, simulation={}, nodes={}",
-                        requestedAmount, isSimulation(), result.logicalNodeCount());
-            }
             if (!result.nativeNodeCount()) {
                 omnisequence$aelisNodeCount = Math.min(result.logicalNodeCount(), Long.MAX_VALUE / 8);
             }
@@ -204,10 +192,6 @@ public abstract class OmniCraftingCalculationMixin {
             RateLimitedLog.warn(
                     "Omni AELIS API request fell back to AE2: category={}, reason={}",
                     result.fallbackCategory(), result.fallbackReason(), result.error());
-        } else if (com.appliedenhancements.Config.AELIS_DIAGNOSTICS.get()) {
-            RateLimitedLog.info(
-                    "Omni AELIS API request fell back to AE2: category={}, reason={}",
-                    result.fallbackCategory(), result.fallbackReason());
         }
         // The public API restores candidate and missing-item state on fallback.
         original.call(tree, inventory, requestedAmount, containerItems);

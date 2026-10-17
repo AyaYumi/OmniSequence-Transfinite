@@ -1,7 +1,7 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.8-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
-Java **17**, AE2 **15.4.10 / UELM 15.5.4**, Applied Enhancements **1.1.0-forge+** (paired release **1.1.1**).
+Current source: OmniSequence **2.0.9-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
+Java **17**, AE2 **15.4.10 / UELM 15.5.4**, Applied Enhancements **1.1.1-forge+** (paired release **1.1.2-forge**).
 Mod ID: `molecularmanipulator`.
 
 | Contract | English | 中文 |

@@ -2,12 +2,18 @@ package com.atir.molecularmanipulator.mixin;
 
 import com.atir.molecularmanipulator.world.gravity.*;
 import com.atir.molecularmanipulator.client.GravityViewTransition;
+import com.atir.molecularmanipulator.client.GravityCameraView;
+import com.atir.molecularmanipulator.integration.AntarchyGravityCompat;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.Camera;
+import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.*;
@@ -15,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Camera.class)
-public abstract class GravityCameraMixin {
+public abstract class GravityCameraMixin implements GravityCameraView {
     @Shadow private Entity entity;
     @Shadow @Final private Quaternionf rotation;
     @Shadow @Final private Vector3f forwards;
@@ -25,11 +31,19 @@ public abstract class GravityCameraMixin {
     @Shadow private float eyeHeightOld;
     @Unique private float omnisequence$partialTickTime;
     @Shadow private BlockGetter level;
-    @Shadow protected abstract void setPosition(double x, double y, double z);
     @Unique private final GravityViewTransition omnisequence$transition = new GravityViewTransition();
     @Unique private Entity omnisequence$trackedEntity;
     @Unique private boolean omnisequence$baseRotation;
+    @Unique private boolean omnisequence$anchorPending;
+    @Unique private boolean omnisequence$ownsAnchor;
+    @Unique private boolean omnisequence$externalView;
     @Unique private double omnisequence$renderTime;
+    @Unique private final Quaternionf omnisequence$inverseViewFrame = new Quaternionf();
+
+    @Override
+    public Quaternionf omnisequence$inverseViewFrame() {
+        return omnisequence$inverseViewFrame;
+    }
 
     @Inject(method = "setup", at = @At("HEAD"))
     private void omnisequence$frame(BlockGetter level, Entity entity, boolean detached, boolean mirrored,
@@ -38,26 +52,59 @@ public abstract class GravityCameraMixin {
             omnisequence$transition.reset();
             omnisequence$trackedEntity = entity;
         }
+        omnisequence$inverseViewFrame.identity();
         omnisequence$baseRotation = true;
         omnisequence$partialTickTime = partialTick;
+        omnisequence$anchorPending = true;
         omnisequence$renderTime = entity.tickCount + partialTick;
+        omnisequence$externalView = AntarchyGravityCompat.controlsGravity(entity);
+        if (omnisequence$externalView) omnisequence$transition.reset();
+        omnisequence$ownsAnchor = !omnisequence$externalView && (GravityController.rotated(entity)
+                || omnisequence$transition.active(omnisequence$renderTime));
+    }
+
+    @Inject(method = "setup", at = @At("TAIL"))
+    private void omnisequence$endFrame(BlockGetter level, Entity entity, boolean detached, boolean mirrored,
+            float partialTick, CallbackInfo ci) {
+        omnisequence$anchorPending = false;
+        if (omnisequence$externalView) {
+            // Store the base view, as beginFrame runs before the front-view reversal in our own frames.
+            var base = detached && mirrored ? new Quaternionf(rotation).rotateY((float) Math.PI) : rotation;
+            omnisequence$transition.beginFrame(Direction.DOWN, base, omnisequence$renderTime);
+        }
     }
 
     @Inject(method = "setRotation(FF)V", at = @At("TAIL"))
     private void omnisequence$rotate(float yaw, float pitch, CallbackInfo ci) {
-        if (entity == null) return;
+        if (entity == null || omnisequence$externalView) return;
+        // Save the vanilla local orientation before adding gravity and transition.
+        omnisequence$inverseViewFrame.set(rotation);
         rotation.premul(GravityFrame.rotation(GravityController.direction(entity)));
         rotation.set(omnisequence$baseRotation
                 ? omnisequence$transition.beginFrame(GravityController.direction(entity), rotation, omnisequence$renderTime)
                 : omnisequence$transition.apply(rotation, omnisequence$renderTime));
+        // Camera uses +Z forward in 1.20.1: V = Ry(180) * inverse(Q). Vanilla renders
+        // Vlocal instead, so Vlocal * Qlocal * inverse(Qdisplayed) supplies the missing frame.
+        // Store this before Forge's camera-angle event mutates only the Euler fields.
+        omnisequence$inverseViewFrame.mul(new Quaternionf(rotation).conjugate()).normalize();
+        if (!omnisequence$transition.active(omnisequence$renderTime)) omnisequence$inverseViewFrame.identity();
         omnisequence$baseRotation = false;
         new Vector3f(0, 0, 1).rotate(rotation, forwards);
         new Vector3f(0, 1, 0).rotate(rotation, up);
         new Vector3f(1, 0, 0).rotate(rotation, left);
     }
 
-    @Redirect(method = "setup", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"))
-    private void omnisequence$eye(Camera camera, double x, double y, double z) {
+    @WrapMethod(method = "setPosition(DDD)V")
+    private void omnisequence$eye(double x, double y, double z, Operation<Void> original) {
+        // The first position in setup is the eye anchor, including calls redirected by other gravity mods.
+        // Later positions belong to third-person movement and must retain the caller's coordinates.
+        boolean anchor = omnisequence$anchorPending;
+        omnisequence$anchorPending = false;
+        if (!anchor || !omnisequence$ownsAnchor) {
+            original.call(x, y, z);
+            if (anchor) omnisequence$transition.recordEye(new Vec3(x, y, z));
+            return;
+        }
         var target = entity.getPosition(omnisequence$partialTickTime).add(GravityFrame.up(GravityController.direction(entity))
                 .scale(Mth.lerp(omnisequence$partialTickTime, eyeHeightOld, eyeHeight)));
         var eye = omnisequence$transition.eye(target, omnisequence$renderTime);
@@ -71,12 +118,14 @@ public abstract class GravityCameraMixin {
             }
         }
         omnisequence$transition.recordEye(eye);
-        setPosition(eye.x, eye.y, eye.z);
+        original.call(eye.x, eye.y, eye.z);
     }
 
     @Inject(method = "reset", at = @At("TAIL"))
     private void omnisequence$reset(CallbackInfo ci) {
         omnisequence$transition.reset();
+        omnisequence$inverseViewFrame.identity();
         omnisequence$trackedEntity = null;
+        omnisequence$anchorPending = false;
     }
 }

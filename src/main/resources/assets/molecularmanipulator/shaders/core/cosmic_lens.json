@@ -1,4 +1,9 @@
 {
+    "blend": {
+        "func": "add",
+        "srcrgb": "srcalpha",
+        "dstrgb": "1-srcalpha"
+    },
     "vertex": "molecularmanipulator:cosmic_lens",
     "fragment": "molecularmanipulator:cosmic_lens",
     "samplers": [

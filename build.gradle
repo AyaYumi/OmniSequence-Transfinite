@@ -85,7 +85,6 @@ tasks.named('jarJar', Jar).configure {
     archiveClassifier = project.hasProperty('ae2_uelm_version') ? 'uelm' : ''
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('CHANGELOG.md')
     from('CONFIGURATION.md')
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
@@ -221,7 +220,6 @@ tasks.named('jar', Jar).configure {
     reproducibleFileOrder = true
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('CHANGELOG.md')
     from('CONFIGURATION.md') { into 'docs' }
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
@@ -329,6 +327,7 @@ def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
                 'ResponsiveScreenBackgroundMixin': ['renderBackground', 'm_280273_'],
                 'RecipeManagerAccessor': ['byName', 'f_199900_'],
                 'GravityCameraMixin': ['setRotation(FF)V', 'm_90572_'],
+                'GravityGameRendererMixin': ['renderLevel', 'm_109089_'],
                 'GravityEntityMixin': ['canEnterPose', 'm_20175_'],
                 'GravityLivingMotionMixin': ['travel', 'm_7023_'],
                 'GravityPlayerRendererMixin': ['setupRotations', 'm_7523_'],

@@ -5,25 +5,25 @@
       "ingredient": {
         "item": "molecularmanipulator:omni_computation_casing"
       },
-      "count": 8000000
+      "count": 800
     },
     {
       "ingredient": {
         "item": "molecularmanipulator:molecular_center_casing"
       },
-      "count": 8000000
+      "count": 800
     },
     {
       "ingredient": {
         "item": "ae2:fluix_block"
       },
-      "count": 4000000
+      "count": 400
     },
     {
       "ingredient": {
         "item": "ae2:engineering_processor"
       },
-      "count": 2000000
+      "count": 200
     }
   ],
   "results": [

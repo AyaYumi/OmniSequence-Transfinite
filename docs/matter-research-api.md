@@ -1,8 +1,8 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.8-forge**.
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.9-forge**.
 Target: Minecraft **1.20.1** / Forge, Java **17**, AE2 **15.4.10 / UELM 15.5.4**, and the
-required prerequisite Applied Enhancements **1.1.0-forge+** (paired release **1.1.1**). The Mod ID stays
+required prerequisite Applied Enhancements **1.1.1-forge+** (paired release **1.1.2-forge**). The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
@@ -504,7 +504,7 @@ The 30 seconds applies to the first unlock and to every later deep-research roun
 of the built-in researches. Custom `duration` values stay free in ticks and still
 default to 1200; a started round keeps the duration snapshot from its start.
 
-Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts use 100× ordinary ingredient quantities, retaining outputs, duration and power. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
+Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts no longer use the old Forge-only 10,000× ingredient cost increase; outputs, duration and power are unchanged. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
 
 These stage-two branches require **one** `ae_foundation` completion by default.
 Built-in additions use IDs under
@@ -596,7 +596,7 @@ the recipe ID, so unstarted batches re-check the current recipe, permission and
 profile instead of reusing old figures. Work that can no longer proceed keeps its
 materials inside the assembly and can be returned as pending input.
 
-### 7.1 Known limitations in 2.0.8-forge
+### 7.1 Known limitations in 2.0.9-forge
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.

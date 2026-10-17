@@ -1,6 +1,6 @@
 # OmniSequence: Transfinite
 
-[简体中文](README.zh-CN.md) · [API documentation](docs/README.md) · [Changelog](CHANGELOG.md)
+[简体中文](README.zh-CN.md) · [API documentation](docs/README.md)
 
 An endgame expansion for AE2 and ExtendedAE, with material research, multiblock processing, large pattern libraries, crafting CPUs, resource collection and item duplication. Mod ID: `molecularmanipulator`.
 

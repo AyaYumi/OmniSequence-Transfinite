@@ -2434,10 +2434,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, com.app
             cluster.markDirty();
             molecularmanipulator$normalizedExternalScaleJob = currentJob;
             molecularmanipulator$blockedExternalScaleJob = null;
-            RateLimitedLog.debug(
-                    "Normalized {} ExtendedAE Plus multi-input task entries "
-                            + "before Omni dispatch",
-                    normalizedEntries);
             return true;
         } catch (RuntimeException | LinkageError exception) {
             RuntimeException rollbackFailure = null;

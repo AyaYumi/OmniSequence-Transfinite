@@ -361,8 +361,6 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                     details, craftingInventory, level, expectedOutputs, expectedRemainders);
         } catch (RuntimeException exception) {
             config.state = AutoCraftState.WAITING_MATERIALS;
-            RateLimitedLog.debug("Auto-crafter failed to extract one craft for slot {} at {}",
-                    slot, host.getBlockPos(), exception);
             return;
         }
         if (firstInputs == null) {
@@ -483,7 +481,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                             power * appeng.api.config.PowerMultiplier.CONFIG.multiplier,
                             Actionable.MODULATE);
                 } catch (RuntimeException exception) {
-                    RateLimitedLog.debug("Auto-crafter could not refund AE power at {}",
+                    RateLimitedLog.warn("Auto-crafter could not refund AE power at {}",
                             host.getBlockPos(), exception);
                 }
                 CraftingCpuHelper.reinjectPatternInputs(craftingInventory, inputs);

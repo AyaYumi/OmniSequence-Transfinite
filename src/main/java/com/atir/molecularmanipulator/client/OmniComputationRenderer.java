@@ -81,7 +81,7 @@ public final class OmniComputationRenderer
         poseStack.popPose();
     }
 
-    /** The live renderer and isolated GPU preview share these exact POSITION_COLOR vertices. */
+    /** Builds the POSITION_COLOR vertices used by the computation effect passes. */
     static void renderCrownPass(PoseStack poseStack, VertexConsumer consumer, float angle,
             float activityStrength, float completionPulse, boolean detailed, boolean glow) {
         renderCrownLayoutPass(OmniComputationStructure.StructureLayout.CURRENT, poseStack, consumer,

@@ -25,6 +25,10 @@ for relative in filter(None, paths):
             or source.suffix.lower() in {".log", ".tmp", ".bak", ".class", ".zip", ".hprof", ".jfr", ".sparkprofile"}
             or (source.suffix.lower() == ".jar" and relative != "gradle/wrapper/gradle-wrapper.jar")
             or lower.startswith(("tools/client/", "tools/pack/", "tools/ui/"))
+            or source.name.lower().startswith("changelog")
+            or source.name in {"VERSION_SYNC.md", "AntarchyGravityClientChecks.java",
+                               "MatterAssemblyMenuClientChecks.java", "GhostMatterClientChecks.java",
+                               "GravityWalkingClientChecks.java", "OuterWildsModelChecks.java"}
             or source.name.lower() in {"desktop.ini", "thumbs.db", ".ds_store"}):
         failures.append(f"{relative}: temporary/generated resource")
     if relative.startswith("docs/") and (source.parent != ROOT / "docs" or source.name not in allowed_docs):

@@ -1,6 +1,6 @@
 # 万象构序：超限 / OmniSequence: Transfinite
 
-[English](README.md) · [接口文档](docs/README.md) · [更新记录](CHANGELOG.md)
+[English](README.md) · [接口文档](docs/README.md)
 
 面向 AE2 和 ExtendedAE 后期自动化的扩展模组，提供材料研究、多方块加工、大容量样板库、合成 CPU，以及资源采集与物品复制。模组 ID 为 `molecularmanipulator`。
 

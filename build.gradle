@@ -219,7 +219,6 @@ tasks.named('jar', Jar).configure {
     reproducibleFileOrder = true
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('CHANGELOG.md')
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
                 'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'

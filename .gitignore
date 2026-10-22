@@ -59,6 +59,8 @@ logs/
 /tools/client/
 /tools/pack/
 /tools/ui/
+# Development-only tools are not part of the mod
+/tools/
 /.claude/
 *.sparkprofile
 *.tmp

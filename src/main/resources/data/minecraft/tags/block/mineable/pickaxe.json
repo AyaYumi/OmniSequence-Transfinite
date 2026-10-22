@@ -47,6 +47,14 @@
     "molecularmanipulator:singularity_base_slab",
     "molecularmanipulator:black_hole",
     "molecularmanipulator:white_hole",
-    "molecularmanipulator:gravity_crystal"
+    "molecularmanipulator:gravity_crystal",
+    "molecularmanipulator:negative_entropy_quartz_bud_small",
+    "molecularmanipulator:negative_entropy_quartz_bud_medium",
+    "molecularmanipulator:negative_entropy_quartz_bud_large",
+    "molecularmanipulator:negative_entropy_quartz_cluster",
+    "molecularmanipulator:negative_entropy_budding_quartz",
+    "molecularmanipulator:negative_entropy_flawed_budding_quartz",
+    "molecularmanipulator:negative_entropy_chipped_budding_quartz",
+    "molecularmanipulator:negative_entropy_damaged_budding_quartz"
   ]
 }

@@ -36,7 +36,12 @@ navigation:
 | 同时运行多个合成请求 | [万物演算核心](items-blocks-machines/omni_computation_core.md)、[超限算枢](items-blocks-machines/transfinite_compute_nexus.md) |
 | 采集资源与复制物品 | [视界奇点天枢](items-blocks-machines/event_horizon_singularity_hub.md)、[单方块奇点天枢](items-blocks-machines/compact_singularity_hub.md) |
 | 传送掉落物与生物 | [微型黑洞与微型白洞](items-blocks-machines/black_and_white_holes.md) |
+| 负熵系列：石英、晶种与信息流 | [负熵引擎](items-blocks-machines/negative_entropy_engine.md)、[负熵石英与晶种](items-blocks-machines/negative_entropy_quartz.md)、[信息流存储](items-blocks-machines/negentropy_information_flow.md) |
 | 在墙面行走或搭建升降通道 | [引力水晶与幽灵物质](items-blocks-machines/nomai_materials.md) |
+
+### 负熵分支
+
+从 ExtendedAE 的恩特罗化福鲁伊克斯母岩开始。用负熵晶种把母岩转成负熵母岩，母岩会继续长出负熵石英芽和晶簇。负熵引擎是 3×3×3 多方块，信息流则是这一系列使用的 AE 资源。
 
 ## 使用指南
 

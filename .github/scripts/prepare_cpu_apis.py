@@ -2,15 +2,16 @@
 from pathlib import Path
 import hashlib
 import os
+import re
 import urllib.request
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 LIBS = ROOT / "libs"
 ARTIFACTS = (
-    ("neoecoae-21.2.0.jar", "NEOECO_API_JAR_URL",
-     "https://cdn.modrinth.com/data/udZtKfzP/versions/cyNfBT7v/neoecoae-21.2.0.jar",
-     "87f52e9aa99cf7f9ae25925e46b038fc7df9e9df1f764cf4daa78a9be8bac084",
+    ("neoecoae-21.2.9.jar", "NEOECO_API_JAR_URL",
+     "https://github.com/DancingSnow0517/NeoECOAEExtension/releases/download/21.2.9/neoecoae-21.2.9.jar",
+     "d4f5745c229c235412240e7b04fb4db077fbbb75d22bcae2550d20c9934ff8be",
      "cn/dancingsnow/neoecoae/api/me/provider/ECOFastPathDispatchProvider.class"),
     ("thunderbolt-batch-api.jar", "THUNDERBOLT_API_JAR_URL",
      "https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/releases/download/2.0.3-beta/thunderbolt-2.0.3-beta.jar",
@@ -27,6 +28,11 @@ def validate(path, required_class):
     with zipfile.ZipFile(path) as jar:
         if required_class not in jar.namelist():
             raise RuntimeError(f"{path.name} does not provide {required_class}")
+        if required_class.startswith("cn/dancingsnow/neoecoae/"):
+            metadata = jar.read("META-INF/neoforge.mods.toml").decode("utf-8")
+            if not re.search(r'(?m)^\s*modId\s*=\s*"neoecoae"\s*(?:#.*)?$', metadata) or not re.search(
+                    r'(?m)^\s*version\s*=\s*"21\.2\.9"\s*(?:#.*)?$', metadata):
+                raise RuntimeError(f"{path.name} must be the real Neo ECO AE Extension 21.2.9 JAR")
 
 
 def main():

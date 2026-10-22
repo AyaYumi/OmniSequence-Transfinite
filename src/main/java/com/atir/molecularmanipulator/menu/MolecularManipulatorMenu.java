@@ -41,10 +41,13 @@ public final class MolecularManipulatorMenu extends AEBaseMenu implements Patter
     public int patternSearchResultCount;
     @GuiSync(3)
     public boolean patternSearchActive;
+    @GuiSync(4)
+    public int usedPatternSlots;
 
     private final MolecularManipulatorBlockEntity machine;
     private final InternalInventory patternInventory;
     private final List<AppEngSlot> patternSlots;
+    private int countedPatternRevision = -1;
     private int[] visiblePatternSlotIndices = new int[0];
     private long patternSearchIndexGeneration;
     private Consumer<PatternSearchIndexChunk> patternSearchIndexListener;
@@ -215,9 +218,25 @@ public final class MolecularManipulatorMenu extends AEBaseMenu implements Patter
     @Override
     public void broadcastChanges() {
         if (isServerSide()) {
-            patternRevision = machine.getPatternRevision();
+            refreshPatternSlotCount(machine.getPatternRevision());
         }
         super.broadcastChanges();
+    }
+
+    private void refreshPatternSlotCount(int revision) {
+        patternRevision = revision;
+        if (countedPatternRevision == revision) {
+            return;
+        }
+        // Disabled/off-page AppEngSlots report EMPTY; count the machine inventory instead.
+        int used = 0;
+        for (int slot = 0; slot < patternInventory.size(); slot++) {
+            if (!patternInventory.getStackInSlot(slot).isEmpty()) {
+                used++;
+            }
+        }
+        usedPatternSlots = used;
+        countedPatternRevision = revision;
     }
 
     private int clampPage(int requestedPage) {

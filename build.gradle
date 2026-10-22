@@ -27,6 +27,13 @@ sourceSets.main.resources {
     exclude("assets/examplemod/**") // stale MDK example resources
 }
 
+// NeoForge discovers this optional pack inside the mod JAR; no user-side ZIP is required.
+tasks.named('processResources', ProcessResources).configure {
+    from('resourcepacks/OmniSequence Dark') {
+        into 'resourcepacks/osq_dark'
+    }
+}
+
 repositories {
     maven {
         name = 'CurseMaven'
@@ -137,7 +144,7 @@ configurations {
 
 dependencies {
     // Optional CPU contracts are compile-only; their mods are never bundled.
-    compileOnly files('libs/neoecoae-21.2.0.jar', 'libs/thunderbolt-batch-api.jar',
+    compileOnly files("libs/neoecoae-${neoeco_version}.jar", 'libs/thunderbolt-batch-api.jar',
             'libs/data_energistics-3.3.0-api.jar')
     compileOnly files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
     localRuntime files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
@@ -173,6 +180,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_license            : mod_license,
             mod_version            : mod_version,
             ldlib2_version         : ldlib2_version,
+            neoeco_version         : neoeco_version,
             applied_enhancements_version: applied_enhancements_version,
     ]
     inputs.properties replaceProperties
@@ -221,10 +229,25 @@ tasks.named('jar', Jar).configure {
     from('THIRD_PARTY_NOTICES.md')
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
-                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
+                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md',
+                'eco-compatibility.md'
         into 'docs'
     }
+    from('licenses') {
+        into 'licenses'
+    }
 }
+
+var packageOsqDarkResourcePack = tasks.register('packageOsqDarkResourcePack', Zip) {
+    group = 'distribution'
+    description = 'Package the optional OmniSequence dark GUI resource pack.'
+    from('resourcepacks/OmniSequence Dark')
+    archiveFileName = 'OmniSequence-Dark-GUI.zip'
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+tasks.named('assemble').configure { dependsOn packageOsqDarkResourcePack }
 
 tasks.named('compileTestJava', JavaCompile).configure {
     // Geometry tests use the same Minecraft/JOML vertex API as the main renderer.

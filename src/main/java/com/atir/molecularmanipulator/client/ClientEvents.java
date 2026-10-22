@@ -1,13 +1,18 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.init.client.InitScreens;
+import appeng.api.client.AEKeyRendering;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKey;
+import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKeyType;
 import com.atir.molecularmanipulator.client.render.NexusFormedGeometry;
 import com.atir.molecularmanipulator.client.render.AutoCrafterGlowGeometry;
 import com.atir.molecularmanipulator.client.render.OmniShaders;
 import com.atir.molecularmanipulator.client.render.SingularityWhiteHoleRenderer;
 import com.atir.molecularmanipulator.client.render.CosmicSingularityRenderer;
 import com.atir.molecularmanipulator.client.render.CosmicSingularityPostRenderer;
+import com.atir.molecularmanipulator.client.render.NegativeEntropyEngineRenderer;
+import com.atir.molecularmanipulator.client.render.NegativeEntropyInfoRenderer;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
@@ -36,6 +41,11 @@ public final class ClientEvents {
     }
 
     @SubscribeEvent
+    public static void registerResourcePacks(net.neoforged.neoforge.event.AddPackFindersEvent event) {
+        com.atir.molecularmanipulator.client.gui.theme.OsqResourcePacks.register(event);
+    }
+
+    @SubscribeEvent
     public static void clientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
         event.enqueueWork(() -> net.neoforged.fml.ModList.get().getModContainerById(MolecularManipulator.MOD_ID)
                 .ifPresent(container -> container.registerExtensionPoint(
@@ -43,6 +53,10 @@ public final class ClientEvents {
                         (minecraft, parent) -> new net.neoforged.neoforge.client.gui.ConfigurationScreen(container, parent))));
         event.enqueueWork(SingularityRenderCompatibility::initialize);
         event.enqueueWork(SingularityFluidClient::registerRenderLayers);
+        event.enqueueWork(() -> AEKeyRendering.register(
+                NegativeEntropyInfoKeyType.INSTANCE,
+                NegativeEntropyInfoKey.class,
+                new NegativeEntropyInfoRenderer()));
     }
 
     @SubscribeEvent
@@ -94,6 +108,8 @@ public final class ClientEvents {
                 OmniComputationRenderer::new);
         event.registerBlockEntityRenderer(ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(),
                 MatterFabricationRenderer::new);
+        event.registerBlockEntityRenderer(ModContent.NEGATIVE_ENTROPY_ENGINE_CORE_BE.get(),
+                NegativeEntropyEngineRenderer::new);
     }
 
     @SubscribeEvent
@@ -104,6 +120,8 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void registerReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
+            com.atir.molecularmanipulator.client.gui.theme.OsqSpriteRenderer.clear();
+            com.atir.molecularmanipulator.client.gui.theme.OsqFonts.clearInkMetrics();
             MolecularCenterGhostPreview.onResourceReload();
             OmniComputationGhostPreview.onResourceReload();
             MatterFabricationGhostPreview.onResourceReload();

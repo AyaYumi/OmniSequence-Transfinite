@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"molecularmanipulator:block/negative_entropy_engine_core"},"facing=east":{"model":"molecularmanipulator:block/negative_entropy_engine_core","y":90},"facing=south":{"model":"molecularmanipulator:block/negative_entropy_engine_core","y":180},"facing=west":{"model":"molecularmanipulator:block/negative_entropy_engine_core","y":270}}}

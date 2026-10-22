@@ -21,3 +21,7 @@ source files or assets are included in this project.
 
 All resources distributed under the `molecularmanipulator` namespace are
 project-authored assets released under the project license.
+
+The GUI uses bundled Inter, Inter Tight, JetBrains Mono, and Source Han Sans SC
+font files. Their SIL Open Font License texts are included in
+`licenses/` and in the mod JAR.

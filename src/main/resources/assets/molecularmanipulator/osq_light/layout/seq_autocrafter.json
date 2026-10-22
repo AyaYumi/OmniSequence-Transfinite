@@ -1,0 +1,3132 @@
+{
+  "screen": "seq_autocrafter",
+  "machine": "sequence_array",
+  "family": "seq",
+  "title": "构序自动合成器",
+  "size": [
+    190,
+    200
+  ],
+  "left_room": 26,
+  "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
+  "density": 4,
+  "draw": [
+    {
+      "z": 0,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/window",
+      "slicing": "nine",
+      "pad": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "rect": [
+        0,
+        0,
+        190,
+        200
+      ],
+      "k": "window",
+      "id": "window"
+    },
+    {
+      "z": 1,
+      "type": "text",
+      "text": "构序自动合成器",
+      "x": 12,
+      "baseline": 23,
+      "width": 87.38,
+      "font": "NSC",
+      "weight": 900,
+      "size": 13,
+      "color": "#FF1E1519",
+      "letter_spacing": -0.52,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_900_13",
+      "lang": "block.molecularmanipulator.molecular_auto_crafter",
+      "dynamic": false
+    },
+    {
+      "z": 2,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/edge_key",
+      "slicing": "fixed",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        -26,
+        30,
+        22,
+        22
+      ],
+      "k": "edge",
+      "id": "tool0"
+    },
+    {
+      "z": 3,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/q_ink_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        -21,
+        35,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 4,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/edge_key",
+      "slicing": "fixed",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        -26,
+        56,
+        22,
+        22
+      ],
+      "k": "edge",
+      "id": "tool1"
+    },
+    {
+      "z": 5,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/out_ink_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        -21,
+        61,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 6,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/edge_key",
+      "slicing": "fixed",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        -26,
+        82,
+        22,
+        22
+      ],
+      "k": "edge",
+      "id": "tool2"
+    },
+    {
+      "z": 7,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/compass_white_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        -21,
+        87,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 8,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        30,
+        174,
+        68
+      ],
+      "k": "card",
+      "id": "slots"
+    },
+    {
+      "z": 9,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg0"
+    },
+    {
+      "z": 10,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        19,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 11,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        14,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 12,
+      "type": "item",
+      "item": "mc:netherite_ingot",
+      "count": "1",
+      "x": 15,
+      "y": 56,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 13,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/key13_ink",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run0"
+    },
+    {
+      "z": 14,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/pause_white_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        19.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 15,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg1"
+    },
+    {
+      "z": 16,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        37,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 17,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        32,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 18,
+      "type": "item",
+      "item": "mc:iron_ingot",
+      "count": "1",
+      "x": 33,
+      "y": 56,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 19,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/key13_ink",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run1"
+    },
+    {
+      "z": 20,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/pause_white_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        37.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 21,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg2"
+    },
+    {
+      "z": 22,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        55,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 23,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        50,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 24,
+      "type": "item",
+      "item": "mc:gold_ingot",
+      "count": "1",
+      "x": 51,
+      "y": 56,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 25,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run2"
+    },
+    {
+      "z": 26,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/play_ink2_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        55.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 27,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg3"
+    },
+    {
+      "z": 28,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        73,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 29,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        68,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 30,
+      "type": "item",
+      "item": "mc:copper_ingot",
+      "count": "1",
+      "x": 69,
+      "y": 56,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 31,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run3"
+    },
+    {
+      "z": 32,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/play_ink2_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        73.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 33,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg4"
+    },
+    {
+      "z": 34,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        91,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 35,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot_ghost",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        86,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 36,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_disabled",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run4"
+    },
+    {
+      "z": 37,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/play_dis_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        91.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 38,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg5"
+    },
+    {
+      "z": 39,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        109,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 40,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot_ghost",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        104,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 41,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_disabled",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run5"
+    },
+    {
+      "z": 42,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/play_dis_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        109.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 43,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg6"
+    },
+    {
+      "z": 44,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        127,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 45,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot_ghost",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        122,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 46,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_disabled",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run6"
+    },
+    {
+      "z": 47,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/play_dis_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        127.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 48,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg7"
+    },
+    {
+      "z": 49,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        145,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 50,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot_ghost",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        140,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 51,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_disabled",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run7"
+    },
+    {
+      "z": 52,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/play_dis_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        145.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 53,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160.5,
+        36,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "cfg8"
+    },
+    {
+      "z": 54,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/cog_ink2_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        163,
+        38.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 55,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot_ghost",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        158,
+        55,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "res"
+    },
+    {
+      "z": 56,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/key13_disabled",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160.5,
+        79,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "run8"
+    },
+    {
+      "z": 57,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/play_dis_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        163.5,
+        82,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 58,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        104,
+        174,
+        88
+      ],
+      "k": "card",
+      "id": "inv"
+    },
+    {
+      "z": 59,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        14,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 60,
+      "type": "item",
+      "item": "mc:netherite_ingot",
+      "count": "64",
+      "x": 15,
+      "y": 111,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 61,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        32,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 62,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        50,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 63,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        68,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 64,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        86,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 65,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        104,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 66,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        122,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 67,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        140,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 68,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        158,
+        110,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 69,
+      "type": "item",
+      "item": "mc:iron_ingot",
+      "count": "64",
+      "x": 159,
+      "y": 111,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 70,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        14,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 71,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        32,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 72,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        50,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 73,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        68,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 74,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        86,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 75,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        104,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 76,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        122,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 77,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        140,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 78,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        158,
+        128,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 79,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        14,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 80,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        32,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 81,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        50,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 82,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        68,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 83,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        86,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 84,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        104,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 85,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        122,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 86,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        140,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 87,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        158,
+        146,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 88,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        14,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 89,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "4",
+      "x": 15,
+      "y": 169,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 90,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        32,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 91,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        50,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 92,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        68,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 93,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        86,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 94,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        104,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 95,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        122,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 96,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        140,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 97,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        158,
+        168,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 98,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        186,
+        106,
+        14,
+        14
+      ],
+      "k": "edge",
+      "id": "ext0"
+    },
+    {
+      "z": 99,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        187,
+        107,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 100,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        186,
+        124,
+        14,
+        14
+      ],
+      "k": "edge",
+      "id": "ext1"
+    },
+    {
+      "z": 101,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        187,
+        125,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 102,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        186,
+        142,
+        14,
+        14
+      ],
+      "k": "edge",
+      "id": "ext2"
+    },
+    {
+      "z": 103,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        187,
+        143,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 104,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/popup",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        30,
+        174,
+        68
+      ],
+      "k": "pop",
+      "id": "dirs"
+    },
+    {
+      "z": 105,
+      "type": "text",
+      "text": "输出方向",
+      "x": 16,
+      "baseline": 43,
+      "width": 158,
+      "font": "NSC",
+      "weight": 700,
+      "size": 7,
+      "color": "#FF1E1519",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_700_7",
+      "lang": "gui.molecularmanipulator.auto_craft_output_directions",
+      "dynamic": false,
+      "center_y": 41,
+      "align": "center"
+    },
+    {
+      "z": 106,
+      "type": "text",
+      "text": "可多选 · 世界坐标",
+      "x": 16,
+      "baseline": 55,
+      "width": 158,
+      "font": "NSC",
+      "weight": 500,
+      "size": 6,
+      "color": "#FF957F88",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_6",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.seq.s002",
+      "lang_new": true,
+      "center_y": 53,
+      "align": "center"
+    },
+    {
+      "z": 107,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/button_active",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        64,
+        22,
+        22
+      ],
+      "k": "ctl",
+      "id": "d北"
+    },
+    {
+      "z": 108,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/button_active",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        43,
+        64,
+        22,
+        22
+      ],
+      "k": "ctl",
+      "id": "d西"
+    },
+    {
+      "z": 109,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/button_hover",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        70,
+        64,
+        22,
+        22
+      ],
+      "k": "ctl",
+      "id": "d东"
+    },
+    {
+      "z": 110,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/button_normal",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        97,
+        64,
+        22,
+        22
+      ],
+      "k": "ctl",
+      "id": "d南"
+    },
+    {
+      "z": 111,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/button_active",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        64,
+        22,
+        22
+      ],
+      "k": "ctl",
+      "id": "d上"
+    },
+    {
+      "z": 112,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/button_normal",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        151,
+        64,
+        22,
+        22
+      ],
+      "k": "ctl",
+      "id": "d下"
+    }
+  ],
+  "boxes": [
+    {
+      "k": "edge",
+      "id": "tool0",
+      "r": {
+        "x": -26,
+        "y": 30,
+        "w": 22,
+        "h": 22
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "tool1",
+      "r": {
+        "x": -26,
+        "y": 56,
+        "w": 22,
+        "h": 22
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "tool2",
+      "r": {
+        "x": -26,
+        "y": 82,
+        "w": 22,
+        "h": 22
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "slots",
+      "r": {
+        "x": 8,
+        "y": 30,
+        "w": 174,
+        "h": 68
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg0",
+      "r": {
+        "x": 16.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": "mc:netherite_ingot",
+      "n": "1"
+    },
+    {
+      "k": "ctl",
+      "id": "run0",
+      "r": {
+        "x": 16.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg1",
+      "r": {
+        "x": 34.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": "mc:iron_ingot",
+      "n": "1"
+    },
+    {
+      "k": "ctl",
+      "id": "run1",
+      "r": {
+        "x": 34.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg2",
+      "r": {
+        "x": 52.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": "mc:gold_ingot",
+      "n": "1"
+    },
+    {
+      "k": "ctl",
+      "id": "run2",
+      "r": {
+        "x": 52.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg3",
+      "r": {
+        "x": 70.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": "mc:copper_ingot",
+      "n": "1"
+    },
+    {
+      "k": "ctl",
+      "id": "run3",
+      "r": {
+        "x": 70.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg4",
+      "r": {
+        "x": 88.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "run4",
+      "r": {
+        "x": 88.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg5",
+      "r": {
+        "x": 106.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "run5",
+      "r": {
+        "x": 106.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg6",
+      "r": {
+        "x": 124.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "run6",
+      "r": {
+        "x": 124.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg7",
+      "r": {
+        "x": 142.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "run7",
+      "r": {
+        "x": 142.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "cfg8",
+      "r": {
+        "x": 160.5,
+        "y": 36,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "res",
+      "r": {
+        "x": 14,
+        "y": 55,
+        "w": 18,
+        "h": 18
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "run8",
+      "r": {
+        "x": 160.5,
+        "y": 79,
+        "w": 13,
+        "h": 13
+      },
+      "par": 3,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "inv",
+      "r": {
+        "x": 8,
+        "y": 104,
+        "w": 174,
+        "h": 88
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": "mc:netherite_ingot",
+      "n": "64"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": "mc:iron_ingot",
+      "n": "64"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": "ae:processing_pattern",
+      "n": "4"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 14,
+        "y": 110,
+        "w": 18,
+        "h": 18
+      },
+      "par": 31,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "ext0",
+      "r": {
+        "x": 186,
+        "y": 106,
+        "w": 14,
+        "h": 14
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "ext1",
+      "r": {
+        "x": 186,
+        "y": 124,
+        "w": 14,
+        "h": 14
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "ext2",
+      "r": {
+        "x": 186,
+        "y": 142,
+        "w": 14,
+        "h": 14
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "pop",
+      "id": "dirs",
+      "r": {
+        "x": 8,
+        "y": 30,
+        "w": 174,
+        "h": 68
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "d北",
+      "r": {
+        "x": 16,
+        "y": 64,
+        "w": 22,
+        "h": 22
+      },
+      "par": 71,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "d西",
+      "r": {
+        "x": 43,
+        "y": 64,
+        "w": 22,
+        "h": 22
+      },
+      "par": 71,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "d东",
+      "r": {
+        "x": 70,
+        "y": 64,
+        "w": 22,
+        "h": 22
+      },
+      "par": 71,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "d南",
+      "r": {
+        "x": 97,
+        "y": 64,
+        "w": 22,
+        "h": 22
+      },
+      "par": 71,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "d上",
+      "r": {
+        "x": 124,
+        "y": 64,
+        "w": 22,
+        "h": 22
+      },
+      "par": 71,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "d下",
+      "r": {
+        "x": 151,
+        "y": 64,
+        "w": 22,
+        "h": 22
+      },
+      "par": 71,
+      "item": null,
+      "n": ""
+    }
+  ]
+}

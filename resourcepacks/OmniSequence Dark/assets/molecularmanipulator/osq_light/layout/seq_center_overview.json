@@ -1,0 +1,4469 @@
+{
+  "screen": "seq_center_overview",
+  "theme": "dark",
+  "machine": "sequence_array",
+  "family": "seq",
+  "title": "构序阵列控制器 · 装配总控 · 暗色",
+  "size": [
+    432,
+    312
+  ],
+  "left_room": 0,
+  "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
+  "density": 4,
+  "draw": [
+    {
+      "z": 0,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/window",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        3,
+        12
+      ],
+      "rect": [
+        0,
+        0,
+        432,
+        312
+      ],
+      "k": "window",
+      "id": "window"
+    },
+    {
+      "z": 1,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        192,
+        32,
+        232,
+        183
+      ],
+      "k": "card",
+      "id": "hero"
+    },
+    {
+      "z": 2,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/dot_ok",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        201,
+        42.5,
+        4,
+        4
+      ]
+    },
+    {
+      "z": 3,
+      "type": "text",
+      "text": "结构已成型",
+      "x": 208.5,
+      "baseline": 44.5,
+      "width": 35,
+      "font": "NSC",
+      "weight": 700,
+      "size": 7,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_700_7",
+      "lang": "gui.molecularmanipulator.formed",
+      "dynamic": false
+    },
+    {
+      "z": 4,
+      "type": "text",
+      "text": "ME 网络",
+      "x": 371.05,
+      "baseline": 46.5,
+      "width": 21.94,
+      "font": "NSC",
+      "weight": 500,
+      "size": 6,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_6",
+      "lang": "gui.molecularmanipulator.overview_network",
+      "dynamic": false
+    },
+    {
+      "z": 5,
+      "type": "text",
+      "text": "在线",
+      "x": 395.98,
+      "baseline": 44.5,
+      "width": 12.02,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6",
+      "lang": "gui.molecularmanipulator.overview_online",
+      "dynamic": false
+    },
+    {
+      "z": 6,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/dot_ok",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        411,
+        42.5,
+        4,
+        4
+      ]
+    },
+    {
+      "z": 7,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/count_block_h41",
+      "slicing": "nine_h",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        192,
+        174,
+        112,
+        41
+      ],
+      "k": "blk",
+      "id": "count"
+    },
+    {
+      "z": 8,
+      "type": "text",
+      "text": "样板槽位",
+      "x": 201,
+      "baseline": 184.5,
+      "width": 22.39,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.6,
+      "color": "#EDFFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_6",
+      "lang": "gui.molecularmanipulator.overview_patterns",
+      "dynamic": false
+    },
+    {
+      "z": 9,
+      "type": "text",
+      "text": "1",
+      "x": 200.5,
+      "baseline": 203,
+      "width": 6.13,
+      "font": "Inter Tight",
+      "weight": 700,
+      "size": 17,
+      "color": "#EDFFFFFF",
+      "letter_spacing": -0.68,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_700_17",
+      "dynamic": true
+    },
+    {
+      "z": 10,
+      "type": "text",
+      "text": "024",
+      "x": 209.63,
+      "baseline": 203,
+      "width": 29.95,
+      "font": "Inter Tight",
+      "weight": 700,
+      "size": 17,
+      "color": "#EDFFFFFF",
+      "letter_spacing": -0.68,
+      "opacity": 0.86,
+      "font_id": "molecularmanipulator:osq_intertight_700_17",
+      "dynamic": true
+    },
+    {
+      "z": 11,
+      "type": "text",
+      "text": "/ 7 200",
+      "x": 241.58,
+      "baseline": 203,
+      "width": 20.3,
+      "font": "Inter",
+      "weight": 500,
+      "size": 6,
+      "color": "#EDFFFFFF",
+      "letter_spacing": 0,
+      "opacity": 0.86,
+      "font_id": "molecularmanipulator:osq_inter_500_6",
+      "dynamic": true
+    },
+    {
+      "z": 12,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/bar_track_block",
+      "slicing": "stretch",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        201,
+        209,
+        82,
+        1.5
+      ]
+    },
+    {
+      "z": 13,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/bar_fill_white",
+      "slicing": "stretch",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        201,
+        209,
+        11.64,
+        1.5
+      ]
+    },
+    {
+      "z": 14,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/legend_core",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        323.67,
+        189.59,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 15,
+      "type": "text",
+      "text": "核心",
+      "x": 332.17,
+      "baseline": 194.39,
+      "width": 10.8,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.4,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_4",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.seq.s013",
+      "lang_new": true
+    },
+    {
+      "z": 16,
+      "type": "text",
+      "text": "1",
+      "x": 344.47,
+      "baseline": 195.09,
+      "width": 2.14,
+      "font": "Inter Tight",
+      "weight": 600,
+      "size": 6,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.18,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_600_6",
+      "dynamic": true
+    },
+    {
+      "z": 17,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/legend_gold",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        351.61,
+        189.59,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 18,
+      "type": "text",
+      "text": "线圈",
+      "x": 360.11,
+      "baseline": 194.39,
+      "width": 10.8,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.4,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_4",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.seq.s014",
+      "lang_new": true
+    },
+    {
+      "z": 19,
+      "type": "text",
+      "text": "14",
+      "x": 372.41,
+      "baseline": 195.09,
+      "width": 5.73,
+      "font": "Inter Tight",
+      "weight": 600,
+      "size": 6,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.18,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_600_6",
+      "dynamic": true
+    },
+    {
+      "z": 20,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/legend_stab",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        383.14,
+        189.59,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 21,
+      "type": "text",
+      "text": "稳定器",
+      "x": 391.64,
+      "baseline": 194.39,
+      "width": 16.19,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.4,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_4",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.fab.s016",
+      "lang_new": true
+    },
+    {
+      "z": 22,
+      "type": "text",
+      "text": "41",
+      "x": 409.33,
+      "baseline": 195.09,
+      "width": 5.67,
+      "font": "Inter Tight",
+      "weight": 600,
+      "size": 6,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.18,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_600_6",
+      "dynamic": true
+    },
+    {
+      "z": 23,
+      "type": "text",
+      "text": "共",
+      "x": 386.88,
+      "baseline": 204.59,
+      "width": 6.61,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.4,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_4",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.seq.s015",
+      "lang_new": true
+    },
+    {
+      "z": 24,
+      "type": "text",
+      "text": "2 345",
+      "x": 393.48,
+      "baseline": 204.59,
+      "width": 14.91,
+      "font": "Inter Tight",
+      "weight": 600,
+      "size": 6,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.18,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_600_6",
+      "dynamic": true
+    },
+    {
+      "z": 25,
+      "type": "text",
+      "text": "块",
+      "x": 409.59,
+      "baseline": 204.59,
+      "width": 6.61,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.4,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_4",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.seq.s016",
+      "lang_new": true
+    },
+    {
+      "z": 26,
+      "type": "holo",
+      "rect": [
+        192,
+        52,
+        232,
+        122
+      ],
+      "sprite": "molecularmanipulator:osq_light/seq/holo/seq_center_overview",
+      "geometry": "molecularmanipulator:osq_light/geometry/seq_center_overview.json"
+    },
+    {
+      "z": 27,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/card_dark",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        192,
+        221,
+        232,
+        60
+      ],
+      "k": "card",
+      "id": "prod"
+    },
+    {
+      "z": 28,
+      "type": "text",
+      "text": "常驻生产",
+      "x": 201,
+      "baseline": 235,
+      "width": 24.02,
+      "font": "NSC",
+      "weight": 500,
+      "size": 6,
+      "color": "#A8FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_6",
+      "lang": "gui.molecularmanipulator.overview_auto_craft",
+      "dynamic": false
+    },
+    {
+      "z": 29,
+      "type": "text",
+      "text": "3",
+      "x": 200.5,
+      "baseline": 253,
+      "width": 8.81,
+      "font": "Inter Tight",
+      "weight": 700,
+      "size": 15,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.6,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_700_15",
+      "dynamic": true
+    },
+    {
+      "z": 30,
+      "type": "text",
+      "text": "/ 9",
+      "x": 211.31,
+      "baseline": 253,
+      "width": 8.23,
+      "font": "Inter",
+      "weight": 500,
+      "size": 6.5,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 0.6,
+      "font_id": "molecularmanipulator:osq_inter_500_6_5",
+      "dynamic": true
+    },
+    {
+      "z": 31,
+      "type": "text",
+      "text": "本轮装配",
+      "x": 254,
+      "baseline": 235,
+      "width": 24.02,
+      "font": "NSC",
+      "weight": 500,
+      "size": 6,
+      "color": "#A8FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_6",
+      "lang": "gui.molecularmanipulator.overview_pipeline",
+      "dynamic": false
+    },
+    {
+      "z": 32,
+      "type": "text",
+      "text": "12",
+      "x": 254,
+      "baseline": 249,
+      "width": 9.66,
+      "font": "Inter Tight",
+      "weight": 600,
+      "size": 8,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.24,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_600_8",
+      "dynamic": true
+    },
+    {
+      "z": 33,
+      "type": "text",
+      "text": "种样板 ·",
+      "x": 265.45,
+      "baseline": 249,
+      "width": 37.44,
+      "font": "NSC",
+      "weight": 600,
+      "size": 8,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_8",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.seq.s017",
+      "lang_new": true
+    },
+    {
+      "z": 34,
+      "type": "text",
+      "text": "4.1K",
+      "x": 301.09,
+      "baseline": 249,
+      "width": 16.31,
+      "font": "Inter Tight",
+      "weight": 600,
+      "size": 8,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.24,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_600_8",
+      "dynamic": true
+    },
+    {
+      "z": 35,
+      "type": "text",
+      "text": "次",
+      "x": 319.2,
+      "baseline": 249,
+      "width": 9.81,
+      "font": "NSC",
+      "weight": 600,
+      "size": 8,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_8",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.seq.s018",
+      "lang_new": true
+    },
+    {
+      "z": 36,
+      "type": "text",
+      "text": "待输出",
+      "x": 352,
+      "baseline": 235,
+      "width": 18.02,
+      "font": "NSC",
+      "weight": 500,
+      "size": 6,
+      "color": "#A8FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_6",
+      "lang": "gui.molecularmanipulator.overview_pending",
+      "dynamic": false
+    },
+    {
+      "z": 37,
+      "type": "text",
+      "text": "8.6K",
+      "x": 352,
+      "baseline": 249,
+      "width": 15.78,
+      "font": "Inter Tight",
+      "weight": 600,
+      "size": 8,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.24,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_600_8",
+      "dynamic": true
+    },
+    {
+      "z": 38,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/divider_dark",
+      "slicing": "stretch",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        201,
+        260,
+        214,
+        0.5
+      ]
+    },
+    {
+      "z": 39,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/dot_ok",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        201,
+        266.8,
+        4,
+        4
+      ]
+    },
+    {
+      "z": 40,
+      "type": "text",
+      "text": "敌对怪物自然生成已被抑制",
+      "x": 209,
+      "baseline": 270,
+      "width": 67.14,
+      "font": "NSC",
+      "weight": 600,
+      "size": 5.6,
+      "color": "#FFFFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_5_6",
+      "lang": "gui.molecularmanipulator.spawn_protection",
+      "dynamic": false,
+      "center_y": 268.8
+    },
+    {
+      "z": 41,
+      "type": "text",
+      "text": "范围：阵列中心周围 5×5 个区块",
+      "x": 280.14,
+      "baseline": 268.8,
+      "width": 81.63,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.6,
+      "color": "#9EFFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_6",
+      "lang": "gui.molecularmanipulator.spawn_protection_area",
+      "dynamic": false,
+      "center_y": 268.8
+    },
+    {
+      "z": 42,
+      "type": "text",
+      "text": "构序阵列控制器",
+      "x": 12,
+      "baseline": 23,
+      "width": 87.38,
+      "font": "NSC",
+      "weight": 900,
+      "size": 13,
+      "color": "#FFF4EAEE",
+      "letter_spacing": -0.52,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_900_13",
+      "lang": "block.molecularmanipulator.molecular_center_controller",
+      "dynamic": false
+    },
+    {
+      "z": 43,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/tab_active",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        308.75,
+        9,
+        38.75,
+        15
+      ]
+    },
+    {
+      "z": 44,
+      "type": "text",
+      "text": "装配总控",
+      "x": 315.75,
+      "baseline": 16.5,
+      "width": 24.75,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6.2,
+      "color": "#FF1B1518",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6_2",
+      "lang": "gui.molecularmanipulator.tab_overview",
+      "dynamic": false
+    },
+    {
+      "z": 45,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/tab_normal",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        347,
+        9,
+        38.75,
+        15
+      ]
+    },
+    {
+      "z": 46,
+      "type": "text",
+      "text": "自动合成",
+      "x": 354,
+      "baseline": 16.5,
+      "width": 24.75,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6.2,
+      "color": "#FFD3C2C9",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6_2",
+      "lang": "gui.molecularmanipulator.tab_auto_craft",
+      "dynamic": false
+    },
+    {
+      "z": 47,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/tab_normal",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        385.25,
+        9,
+        38.75,
+        15
+      ]
+    },
+    {
+      "z": 48,
+      "type": "text",
+      "text": "动态配色",
+      "x": 392.25,
+      "baseline": 16.5,
+      "width": 24.75,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6.2,
+      "color": "#FFD3C2C9",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6_2",
+      "lang": "gui.molecularmanipulator.tab_colors",
+      "dynamic": false
+    },
+    {
+      "z": 49,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        32,
+        178,
+        107
+      ],
+      "k": "card",
+      "id": "patterns"
+    },
+    {
+      "z": 50,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/field_normal",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        40,
+        88,
+        13
+      ],
+      "k": "ctl",
+      "id": "search"
+    },
+    {
+      "z": 51,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/search_mute_6",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        20,
+        43.5,
+        6,
+        6
+      ]
+    },
+    {
+      "z": 52,
+      "type": "text",
+      "text": "搜索样板...",
+      "x": 29,
+      "baseline": 46.5,
+      "width": 28.38,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.8,
+      "color": "#FFA8939C",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_8",
+      "lang": "gui.molecularmanipulator.pattern_search",
+      "dynamic": false
+    },
+    {
+      "z": 53,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        109,
+        40,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "prev"
+    },
+    {
+      "z": 54,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/left_ink2_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        112,
+        43,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 55,
+      "type": "text",
+      "text": "第 1/8 页",
+      "x": 130.98,
+      "baseline": 48.5,
+      "width": 24.03,
+      "font": "Inter Tight",
+      "weight": 500,
+      "size": 6,
+      "color": "#FFD3C2C9",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_intertight_500_6",
+      "lang": "gui.molecularmanipulator.page",
+      "lang_args": [
+        "1",
+        "8"
+      ],
+      "dynamic": false
+    },
+    {
+      "z": 56,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        164,
+        40,
+        13,
+        13
+      ],
+      "k": "ctl",
+      "id": "next"
+    },
+    {
+      "z": 57,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/right_ink2_7",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        167,
+        43,
+        7,
+        7
+      ]
+    },
+    {
+      "z": 58,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 59,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 17,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 60,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 61,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 35,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 62,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 63,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 53,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 64,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 65,
+      "type": "item",
+      "item": "ae:smithing_table_pattern",
+      "count": "1",
+      "x": 71,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 66,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 67,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 89,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 68,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 69,
+      "type": "item",
+      "item": "ae:stonecutting_pattern",
+      "count": "1",
+      "x": 107,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 70,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 71,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 125,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 72,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 73,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 143,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 74,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        59,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 75,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 161,
+      "y": 60,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 76,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 77,
+      "type": "item",
+      "item": "ae:smithing_table_pattern",
+      "count": "1",
+      "x": 17,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 78,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 79,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 35,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 80,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 81,
+      "type": "item",
+      "item": "ae:stonecutting_pattern",
+      "count": "1",
+      "x": 53,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 82,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 83,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 71,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 84,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 85,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 89,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 86,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 87,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 107,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 88,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 89,
+      "type": "item",
+      "item": "ae:smithing_table_pattern",
+      "count": "1",
+      "x": 125,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 90,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 91,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 143,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 92,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        77,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 93,
+      "type": "item",
+      "item": "ae:stonecutting_pattern",
+      "count": "1",
+      "x": 161,
+      "y": 78,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 94,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 95,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 17,
+      "y": 96,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 96,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 97,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 35,
+      "y": 96,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 98,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 99,
+      "type": "item",
+      "item": "ae:crafting_pattern",
+      "count": "1",
+      "x": 53,
+      "y": 96,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 100,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 101,
+      "type": "item",
+      "item": "ae:smithing_table_pattern",
+      "count": "1",
+      "x": 71,
+      "y": 96,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 102,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 103,
+      "type": "item",
+      "item": "ae:processing_pattern",
+      "count": "1",
+      "x": 89,
+      "y": 96,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 104,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 105,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 106,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 107,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        95,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 108,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 109,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 110,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 111,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 112,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 113,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 114,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 115,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 116,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        113,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "pat"
+    },
+    {
+      "z": 117,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        145,
+        178,
+        65
+      ],
+      "k": "card",
+      "id": "quantum"
+    },
+    {
+      "z": 118,
+      "type": "text",
+      "text": "缠绕态量子链路",
+      "x": 39,
+      "baseline": 158,
+      "width": 42.02,
+      "font": "NSC",
+      "weight": 500,
+      "size": 6,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_6",
+      "lang": "gui.molecularmanipulator.quantum_title",
+      "dynamic": false
+    },
+    {
+      "z": 119,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/dot_ok",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        39,
+        163.89,
+        4,
+        4
+      ]
+    },
+    {
+      "z": 120,
+      "type": "text",
+      "text": "量子链路稳定",
+      "x": 46,
+      "baseline": 165.89,
+      "width": 40.78,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6.8,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6_8",
+      "lang": "gui.molecularmanipulator.quantum_state.connected",
+      "dynamic": false
+    },
+    {
+      "z": 121,
+      "type": "text",
+      "text": "量子频率",
+      "x": 39,
+      "baseline": 178.2,
+      "width": 22.39,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.6,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_6",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.fab.s025",
+      "lang_new": true
+    },
+    {
+      "z": 122,
+      "type": "text",
+      "text": "75BCD15",
+      "x": 65.39,
+      "baseline": 179.5,
+      "width": 29.41,
+      "font": "JetBrains Mono",
+      "weight": 600,
+      "size": 7,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_jetbrainsmono_600_7",
+      "dynamic": true
+    },
+    {
+      "z": 123,
+      "type": "text",
+      "text": "上传核心",
+      "x": 133.61,
+      "baseline": 163.5,
+      "width": 22.39,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.6,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_6",
+      "lang": "gui.molecularmanipulator.quantum_upload_core",
+      "dynamic": false
+    },
+    {
+      "z": 124,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/divider_dark",
+      "slicing": "stretch",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        186,
+        162,
+        0.5
+      ]
+    },
+    {
+      "z": 125,
+      "type": "text",
+      "text": "链路维护 512 AE/t · 1频道 · 标准 AE2 量子环",
+      "x": 16,
+      "baseline": 194.5,
+      "width": 112.56,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.4,
+      "color": "#99FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_4",
+      "lang": "gui.molecularmanipulator.overview_quantum_requirements",
+      "lang_args": [
+        "512"
+      ],
+      "dynamic": false
+    },
+    {
+      "z": 126,
+      "type": "text",
+      "text": "EAEP：编码终端样板自动进入构序矩阵",
+      "x": 16,
+      "baseline": 203,
+      "width": 94.19,
+      "font": "NSC",
+      "weight": 500,
+      "size": 5.4,
+      "color": "#FFDCC08A",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_5_4",
+      "lang": "gui.molecularmanipulator.quantum_upload_core_hint",
+      "dynamic": false
+    },
+    {
+      "z": 127,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        157,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "qes"
+    },
+    {
+      "z": 128,
+      "type": "item",
+      "item": "img:qes",
+      "count": "1",
+      "x": 17,
+      "y": 158,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 129,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot_ghost",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        153,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "core"
+    },
+    {
+      "z": 130,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        216,
+        178,
+        88
+      ],
+      "k": "card",
+      "id": "inv"
+    },
+    {
+      "z": 131,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 132,
+      "type": "item",
+      "item": "ae:blank_pattern",
+      "count": "64",
+      "x": 17,
+      "y": 223,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 133,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 134,
+      "type": "item",
+      "item": "ae:blank_pattern",
+      "count": "32",
+      "x": 35,
+      "y": 223,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 135,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 136,
+      "type": "item",
+      "item": "ae:fluix_crystal",
+      "count": "48",
+      "x": 53,
+      "y": 223,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 137,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 138,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 139,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 140,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 141,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 142,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        222,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 143,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 144,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 145,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 146,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 147,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 148,
+      "type": "item",
+      "item": "mc:amethyst_shard",
+      "count": "27",
+      "x": 89,
+      "y": 241,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 149,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 150,
+      "type": "item",
+      "item": "ae:certus_quartz_crystal",
+      "count": "40",
+      "x": 107,
+      "y": 241,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 151,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 152,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 153,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        240,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 154,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 155,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 156,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 157,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 158,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 159,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 160,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 161,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 162,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        258,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 163,
+      "type": "item",
+      "item": "ae:matter_ball",
+      "count": "12",
+      "x": 161,
+      "y": 259,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 164,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        16,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 165,
+      "type": "item",
+      "item": "ae:certus_quartz_wrench",
+      "count": "1",
+      "x": 17,
+      "y": 281,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 166,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        34,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 167,
+      "type": "item",
+      "item": "ae:network_tool",
+      "count": "1",
+      "x": 35,
+      "y": 281,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 168,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        52,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 169,
+      "type": "item",
+      "item": "mc:diamond_pickaxe",
+      "count": "1",
+      "x": 53,
+      "y": 281,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 170,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        70,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 171,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        88,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 172,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        106,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 173,
+      "type": "item",
+      "item": "mc:pink_dye",
+      "count": "8",
+      "x": 107,
+      "y": 281,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 174,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        124,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 175,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        142,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 176,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        160,
+        280,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 177,
+      "type": "item",
+      "item": "mc:golden_carrot",
+      "count": "33",
+      "x": 161,
+      "y": 281,
+      "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+    },
+    {
+      "z": 178,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/button_normal",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        192,
+        287,
+        74,
+        17
+      ],
+      "k": "ctl",
+      "id": "projection"
+    },
+    {
+      "z": 179,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/proj_ink_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        198,
+        291.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 180,
+      "type": "text",
+      "text": "方块投影",
+      "x": 210,
+      "baseline": 295.5,
+      "width": 25.56,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6.4,
+      "color": "#FFF4EAEE",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6_4",
+      "lang": "gui.molecularmanipulator.preview",
+      "dynamic": false
+    },
+    {
+      "z": 181,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/toggle_off",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        245,
+        291.5,
+        15,
+        8
+      ]
+    },
+    {
+      "z": 182,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/button_disabled",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        271,
+        287,
+        74,
+        17
+      ],
+      "k": "ctl",
+      "id": "build"
+    },
+    {
+      "z": 183,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/build_dis_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        277,
+        291.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 184,
+      "type": "text",
+      "text": "一键安放",
+      "x": 289,
+      "baseline": 295.5,
+      "width": 25.56,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6.4,
+      "color": "#FF8D7A82",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6_4",
+      "lang": "gui.molecularmanipulator.build",
+      "dynamic": false
+    },
+    {
+      "z": 185,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/button_danger",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        350,
+        287,
+        74,
+        17
+      ],
+      "k": "ctl",
+      "id": "dismantle"
+    },
+    {
+      "z": 186,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/seq/icons/x_inv_8",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        356,
+        291.5,
+        8,
+        8
+      ]
+    },
+    {
+      "z": 187,
+      "type": "text",
+      "text": "一键拆卸",
+      "x": 368,
+      "baseline": 295.5,
+      "width": 25.56,
+      "font": "NSC",
+      "weight": 600,
+      "size": 6.4,
+      "color": "#FF1B1518",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_6_4",
+      "lang": "gui.molecularmanipulator.dismantle",
+      "dynamic": false
+    },
+    {
+      "z": 188,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        428,
+        224,
+        14,
+        14
+      ],
+      "k": "edge",
+      "id": "ext0"
+    },
+    {
+      "z": 189,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        429,
+        225,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 190,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        428,
+        242,
+        14,
+        14
+      ],
+      "k": "edge",
+      "id": "ext1"
+    },
+    {
+      "z": 191,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        429,
+        243,
+        12,
+        12
+      ]
+    },
+    {
+      "z": 192,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        428,
+        260,
+        14,
+        14
+      ],
+      "k": "edge",
+      "id": "ext2"
+    },
+    {
+      "z": 193,
+      "type": "sprite",
+      "external": true,
+      "sprite": null,
+      "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+      "rect": [
+        429,
+        261,
+        12,
+        12
+      ]
+    }
+  ],
+  "boxes": [
+    {
+      "k": "card",
+      "id": "hero",
+      "r": {
+        "x": 192,
+        "y": 32,
+        "w": 232,
+        "h": 183
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "blk",
+      "id": "count",
+      "r": {
+        "x": 192,
+        "y": 174,
+        "w": 112,
+        "h": 41
+      },
+      "par": 0,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "prod",
+      "r": {
+        "x": 192,
+        "y": 221,
+        "w": 232,
+        "h": 60
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "tabs",
+      "r": {
+        "x": 308.75,
+        "y": 9,
+        "w": 115.25,
+        "h": 15
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "patterns",
+      "r": {
+        "x": 8,
+        "y": 32,
+        "w": 178,
+        "h": 107
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "search",
+      "r": {
+        "x": 16,
+        "y": 40,
+        "w": 88,
+        "h": 13
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "prev",
+      "r": {
+        "x": 109,
+        "y": 40,
+        "w": 13,
+        "h": 13
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "next",
+      "r": {
+        "x": 164,
+        "y": 40,
+        "w": 13,
+        "h": 13
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 16,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 34,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 52,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 70,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:smithing_table_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 88,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 106,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:stonecutting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 124,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 142,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 160,
+        "y": 59,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 16,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:smithing_table_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 34,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 52,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:stonecutting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 70,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 88,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 106,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 124,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:smithing_table_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 142,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 160,
+        "y": 77,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:stonecutting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 16,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 34,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 52,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:crafting_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 70,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:smithing_table_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 88,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": "ae:processing_pattern",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 106,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 124,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 142,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 160,
+        "y": 95,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 16,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 34,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 52,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 70,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 88,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 106,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 124,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 142,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "pat",
+      "r": {
+        "x": 160,
+        "y": 113,
+        "w": 18,
+        "h": 18
+      },
+      "par": 4,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "quantum",
+      "r": {
+        "x": 8,
+        "y": 145,
+        "w": 178,
+        "h": 65
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "qes",
+      "r": {
+        "x": 16,
+        "y": 157,
+        "w": 18,
+        "h": 18
+      },
+      "par": 44,
+      "item": "img:qes",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "core",
+      "r": {
+        "x": 160,
+        "y": 153,
+        "w": 18,
+        "h": 18
+      },
+      "par": 44,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "inv",
+      "r": {
+        "x": 8,
+        "y": 216,
+        "w": 178,
+        "h": 88
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 16,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "ae:blank_pattern",
+      "n": "64"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 34,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "ae:blank_pattern",
+      "n": "32"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 52,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "ae:fluix_crystal",
+      "n": "48"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 70,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 88,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 106,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 124,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 142,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 160,
+        "y": 222,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 16,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 34,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 52,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 70,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 88,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "mc:amethyst_shard",
+      "n": "27"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 106,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "ae:certus_quartz_crystal",
+      "n": "40"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 124,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 142,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 160,
+        "y": 240,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 16,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 34,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 52,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 70,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 88,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 106,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 124,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 142,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 160,
+        "y": 258,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "ae:matter_ball",
+      "n": "12"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 16,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "ae:certus_quartz_wrench",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 34,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "ae:network_tool",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 52,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "mc:diamond_pickaxe",
+      "n": "1"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 70,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 88,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 106,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "mc:pink_dye",
+      "n": "8"
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 124,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 142,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 160,
+        "y": 280,
+        "w": 18,
+        "h": 18
+      },
+      "par": 47,
+      "item": "mc:golden_carrot",
+      "n": "33"
+    },
+    {
+      "k": "ctl",
+      "id": "projection",
+      "r": {
+        "x": 192,
+        "y": 287,
+        "w": 74,
+        "h": 17
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "build",
+      "r": {
+        "x": 271,
+        "y": 287,
+        "w": 74,
+        "h": 17
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "ctl",
+      "id": "dismantle",
+      "r": {
+        "x": 350,
+        "y": 287,
+        "w": 74,
+        "h": 17
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "ext0",
+      "r": {
+        "x": 428,
+        "y": 224,
+        "w": 14,
+        "h": 14
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "ext1",
+      "r": {
+        "x": 428,
+        "y": 242,
+        "w": 14,
+        "h": 14
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "edge",
+      "id": "ext2",
+      "r": {
+        "x": 428,
+        "y": 260,
+        "w": 14,
+        "h": 14
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    }
+  ]
+}

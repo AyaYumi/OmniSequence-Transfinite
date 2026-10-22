@@ -1,0 +1,3429 @@
+{
+"screen": "fab_research_detail",
+"machine": "matter_fabrication",
+"family": "fab",
+"title": "物质构筑井控制器 · 研究 · 订单详情",
+"size": [
+400,
+300
+],
+"left_room": 0,
+"units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
+"density": 4,
+"draw": [
+{
+"z": 0,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/window",
+"slicing": "nine",
+"pad": [
+1,
+1,
+1,
+1
+],
+"rect": [
+0,
+0,
+400,
+300
+],
+"k": "window",
+"id": "window"
+},
+{
+"z": 1,
+"type": "text",
+"text": "物质构筑井控制器",
+"x": 12,
+"baseline": 23,
+"width": 99.84,
+"font": "NSC",
+"weight": 900,
+"size": 13,
+"color": "#FF1D1910",
+"letter_spacing": -0.52,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_900_13",
+"lang": "block.molecularmanipulator.matter_fabrication_controller",
+"dynamic": false
+},
+{
+"z": 2,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/tab_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+339.75,
+9,
+26.38,
+15
+]
+},
+{
+"z": 3,
+"type": "text",
+"text": "总览",
+"x": 346.75,
+"baseline": 16.5,
+"width": 12.38,
+"font": "NSC",
+"weight": 600,
+"size": 6.2,
+"color": "#FF4E4634",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_2",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s014",
+"lang_new": true
+},
+{
+"z": 4,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/tab_active",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+365.63,
+9,
+26.38,
+15
+]
+},
+{
+"z": 5,
+"type": "text",
+"text": "研究",
+"x": 372.63,
+"baseline": 16.5,
+"width": 12.38,
+"font": "NSC",
+"weight": 600,
+"size": 6.2,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_2",
+"lang": "gui.molecularmanipulator.research.research_tab",
+"dynamic": false
+},
+{
+"z": 6,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/card",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+8,
+32,
+190,
+114
+],
+"k": "card",
+"id": "projects"
+},
+{
+"z": 7,
+"type": "text",
+"text": "研究项目",
+"x": 17,
+"baseline": 45,
+"width": 24.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s037",
+"lang_new": true
+},
+{
+"z": 8,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/row_active",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+50,
+174,
+15
+],
+"k": "ctl",
+"id": "proj0"
+},
+{
+"z": 9,
+"type": "text",
+"text": "一阶",
+"x": 22,
+"baseline": 59.5,
+"width": 10.8,
+"font": "NSC",
+"weight": 600,
+"size": 5.4,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 0.65,
+"font_id": "molecularmanipulator:osq_nsc_600_5_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s038",
+"lang_new": true
+},
+{
+"z": 10,
+"type": "text",
+"text": "AE 材料构筑",
+"x": 35.8,
+"baseline": 59.5,
+"width": 34.94,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s039",
+"lang_new": true
+},
+{
+"z": 11,
+"type": "text",
+"text": "3 / 9",
+"x": 172.25,
+"baseline": 59.5,
+"width": 11.75,
+"font": "Inter Tight",
+"weight": 600,
+"size": 6.4,
+"color": "#FFFFFFFF",
+"letter_spacing": -0.192,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_600_6_4",
+"dynamic": true
+},
+{
+"z": 12,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/row_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+69,
+174,
+15
+],
+"k": "ctl",
+"id": "proj1"
+},
+{
+"z": 13,
+"type": "text",
+"text": "二阶",
+"x": 22,
+"baseline": 78.5,
+"width": 10.8,
+"font": "NSC",
+"weight": 600,
+"size": 5.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 0.65,
+"font_id": "molecularmanipulator:osq_nsc_600_5_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s040",
+"lang_new": true
+},
+{
+"z": 14,
+"type": "text",
+"text": "构序阵列",
+"x": 35.8,
+"baseline": 78.5,
+"width": 25.56,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s041",
+"lang_new": true
+},
+{
+"z": 15,
+"type": "text",
+"text": "0 / 9",
+"x": 172.16,
+"baseline": 78.5,
+"width": 11.84,
+"font": "Inter Tight",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": -0.192,
+"opacity": 0.6,
+"font_id": "molecularmanipulator:osq_intertight_600_6_4",
+"dynamic": true
+},
+{
+"z": 16,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/row_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+88,
+174,
+15
+],
+"k": "ctl",
+"id": "proj2"
+},
+{
+"z": 17,
+"type": "text",
+"text": "特殊",
+"x": 22,
+"baseline": 97.5,
+"width": 10.8,
+"font": "NSC",
+"weight": 600,
+"size": 5.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 0.65,
+"font_id": "molecularmanipulator:osq_nsc_600_5_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s042",
+"lang_new": true
+},
+{
+"z": 18,
+"type": "text",
+"text": "异态物质学",
+"x": 35.8,
+"baseline": 97.5,
+"width": 31.95,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s043",
+"lang_new": true
+},
+{
+"z": 19,
+"type": "text",
+"text": "0 / 3",
+"x": 172.13,
+"baseline": 97.5,
+"width": 11.88,
+"font": "Inter Tight",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": -0.192,
+"opacity": 0.6,
+"font_id": "molecularmanipulator:osq_intertight_600_6_4",
+"dynamic": true
+},
+{
+"z": 20,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/row_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+107,
+174,
+15
+],
+"k": "ctl",
+"id": "proj3"
+},
+{
+"z": 21,
+"type": "text",
+"text": "扩展",
+"x": 22,
+"baseline": 116.5,
+"width": 10.8,
+"font": "NSC",
+"weight": 600,
+"size": 5.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 0.65,
+"font_id": "molecularmanipulator:osq_nsc_600_5_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s044",
+"lang_new": true
+},
+{
+"z": 22,
+"type": "text",
+"text": "ExtendedAE 构件",
+"x": 35.8,
+"baseline": 116.5,
+"width": 50.95,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s045",
+"lang_new": true
+},
+{
+"z": 23,
+"type": "text",
+"text": "0 / 5",
+"x": 172.25,
+"baseline": 116.5,
+"width": 11.75,
+"font": "Inter Tight",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": -0.192,
+"opacity": 0.6,
+"font_id": "molecularmanipulator:osq_intertight_600_6_4",
+"dynamic": true
+},
+{
+"z": 24,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/row_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+126,
+174,
+15
+],
+"k": "ctl",
+"id": "proj4"
+},
+{
+"z": 25,
+"type": "text",
+"text": "扩展",
+"x": 22,
+"baseline": 135.5,
+"width": 10.8,
+"font": "NSC",
+"weight": 600,
+"size": 5.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 0.65,
+"font_id": "molecularmanipulator:osq_nsc_600_5_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s044",
+"lang_new": true
+},
+{
+"z": 26,
+"type": "text",
+"text": "ExtendedAE 存储",
+"x": 35.8,
+"baseline": 135.5,
+"width": 50.95,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s046",
+"lang_new": true
+},
+{
+"z": 27,
+"type": "text",
+"text": "—",
+"x": 177.8,
+"baseline": 135.5,
+"width": 6.2,
+"font": "Inter Tight",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": -0.192,
+"opacity": 0.6,
+"font_id": "molecularmanipulator:osq_intertight_600_6_4",
+"dynamic": false
+},
+{
+"z": 28,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/card",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+8,
+152,
+190,
+48
+],
+"k": "card",
+"id": "order"
+},
+{
+"z": 29,
+"type": "text",
+"text": "订单",
+"x": 17,
+"baseline": 165,
+"width": 12.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s047",
+"lang_new": true
+},
+{
+"z": 30,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/dot_ok",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+17,
+171.75,
+4,
+4
+]
+},
+{
+"z": 31,
+"type": "text",
+"text": "合成中",
+"x": 24,
+"baseline": 173.75,
+"width": 22.5,
+"font": "NSC",
+"weight": 700,
+"size": 7.5,
+"color": "#FF2F9E6E",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_700_7_5",
+"lang": "gui.molecularmanipulator.research.order_state.submitted",
+"dynamic": false
+},
+{
+"z": 32,
+"type": "text",
+"text": "排队材料",
+"x": 17,
+"baseline": 191,
+"width": 25.36,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s048",
+"lang_new": true
+},
+{
+"z": 33,
+"type": "text",
+"text": "3",
+"x": 42.36,
+"baseline": 191,
+"width": 3.53,
+"font": "Inter Tight",
+"weight": 500,
+"size": 6,
+"color": "#FF1D1910",
+"letter_spacing": -0.18,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_500_6",
+"dynamic": true
+},
+{
+"z": 34,
+"type": "text",
+"text": "· 执行中的 CPU 订单",
+"x": 47.23,
+"baseline": 191,
+"width": 60.92,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s049",
+"lang_new": true
+},
+{
+"z": 35,
+"type": "text",
+"text": "1",
+"x": 106.81,
+"baseline": 191,
+"width": 3.53,
+"font": "Inter Tight",
+"weight": 500,
+"size": 6,
+"color": "#FF1D1910",
+"letter_spacing": -0.18,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_500_6",
+"dynamic": true
+},
+{
+"z": 36,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/button_active",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+138,
+169,
+52,
+17
+],
+"k": "ctl",
+"id": "detail"
+},
+{
+"z": 37,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/icons/back_white_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+144,
+173.5,
+8,
+8
+]
+},
+{
+"z": 38,
+"type": "text",
+"text": "材料",
+"x": 156,
+"baseline": 177.5,
+"width": 12.78,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"lang": "gui.molecularmanipulator.auto_craft_materials",
+"dynamic": false
+},
+{
+"z": 39,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/card",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+8,
+206,
+190,
+88
+],
+"k": "card",
+"id": "inv"
+},
+{
+"z": 40,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+22,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 41,
+"type": "item",
+"item": "img:certus",
+"count": "64",
+"x": 23,
+"y": 213,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 42,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+40,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 43,
+"type": "item",
+"item": "img:silicon_press",
+"count": "1",
+"x": 41,
+"y": 213,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 44,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+58,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 45,
+"type": "item",
+"item": "img:fluix_crystal",
+"count": "16",
+"x": 59,
+"y": 213,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 46,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+76,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 47,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+94,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 48,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+112,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 49,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+130,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 50,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+148,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 51,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+166,
+212,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 52,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+22,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 53,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+40,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 54,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+58,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 55,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+76,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 56,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+94,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 57,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+112,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 58,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+130,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 59,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+148,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 60,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+166,
+230,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 61,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+22,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 62,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+40,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 63,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+58,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 64,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+76,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 65,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+94,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 66,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+112,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 67,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+130,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 68,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+148,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 69,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+166,
+248,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 70,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+22,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 71,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+40,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 72,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+58,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 73,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+76,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 74,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+94,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 75,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+112,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 76,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+130,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 77,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+148,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 78,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+166,
+270,
+18,
+18
+],
+"k": "slot",
+"id": "inv"
+},
+{
+"z": 79,
+"type": "sprite",
+"external": true,
+"sprite": null,
+"note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+"rect": [
+396,
+208,
+14,
+14
+],
+"k": "edge",
+"id": "ext0"
+},
+{
+"z": 80,
+"type": "sprite",
+"external": true,
+"sprite": null,
+"note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+"rect": [
+397,
+209,
+12,
+12
+]
+},
+{
+"z": 81,
+"type": "sprite",
+"external": true,
+"sprite": null,
+"note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+"rect": [
+396,
+226,
+14,
+14
+],
+"k": "edge",
+"id": "ext1"
+},
+{
+"z": 82,
+"type": "sprite",
+"external": true,
+"sprite": null,
+"note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+"rect": [
+397,
+227,
+12,
+12
+]
+},
+{
+"z": 83,
+"type": "sprite",
+"external": true,
+"sprite": null,
+"note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+"rect": [
+396,
+244,
+14,
+14
+],
+"k": "edge",
+"id": "ext2"
+},
+{
+"z": 84,
+"type": "sprite",
+"external": true,
+"sprite": null,
+"note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+"rect": [
+397,
+245,
+12,
+12
+]
+},
+{
+"z": 85,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/card",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+204,
+32,
+188,
+100
+],
+"k": "card",
+"id": "detailcard"
+},
+{
+"z": 86,
+"type": "text",
+"text": "一阶 · AE 材料构筑",
+"x": 213,
+"baseline": 47,
+"width": 71.5,
+"font": "NSC",
+"weight": 700,
+"size": 8,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_700_8",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s050",
+"lang_new": true
+},
+{
+"z": 87,
+"type": "text",
+"text": "研究深度",
+"x": 213,
+"baseline": 60,
+"width": 24.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s051",
+"lang_new": true
+},
+{
+"z": 88,
+"type": "text",
+"text": "3",
+"x": 212.5,
+"baseline": 76,
+"width": 8.97,
+"font": "Inter Tight",
+"weight": 700,
+"size": 15,
+"color": "#FF1D1910",
+"letter_spacing": -0.45,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_700_15",
+"dynamic": true
+},
+{
+"z": 89,
+"type": "text",
+"text": "/ 9",
+"x": 223.47,
+"baseline": 76,
+"width": 6.25,
+"font": "Inter",
+"weight": 500,
+"size": 6,
+"color": "#FF1D1910",
+"letter_spacing": -0.45,
+"opacity": 0.6,
+"font_id": "molecularmanipulator:osq_inter_500_6",
+"dynamic": true
+},
+{
+"z": 90,
+"type": "text",
+"text": "本轮进度",
+"x": 300,
+"baseline": 60,
+"width": 24.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s052",
+"lang_new": true
+},
+{
+"z": 91,
+"type": "text",
+"text": "42",
+"x": 299.5,
+"baseline": 76,
+"width": 17.73,
+"font": "Inter Tight",
+"weight": 700,
+"size": 15,
+"color": "#FFA47A1E",
+"letter_spacing": -0.45,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_700_15",
+"dynamic": true
+},
+{
+"z": 92,
+"type": "text",
+"text": "%",
+"x": 318.23,
+"baseline": 76,
+"width": 5.52,
+"font": "Inter",
+"weight": 500,
+"size": 6,
+"color": "#FFA47A1E",
+"letter_spacing": -0.45,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_inter_500_6",
+"dynamic": false
+},
+{
+"z": 93,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_on",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+213,
+84,
+17,
+4
+]
+},
+{
+"z": 94,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_on",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+232,
+84,
+17,
+4
+]
+},
+{
+"z": 95,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_on",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+251,
+84,
+17,
+4
+]
+},
+{
+"z": 96,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_cur",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+270,
+84,
+17,
+4
+]
+},
+{
+"z": 97,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_off",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+289,
+84,
+17,
+4
+]
+},
+{
+"z": 98,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_off",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+308,
+84,
+17,
+4
+]
+},
+{
+"z": 99,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_off",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+327,
+84,
+17,
+4
+]
+},
+{
+"z": 100,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_off",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+346,
+84,
+17,
+4
+]
+},
+{
+"z": 101,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/depth_seg_off",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+365,
+84,
+17,
+4
+]
+},
+{
+"z": 102,
+"type": "text",
+"text": "当前加成",
+"x": 213,
+"baseline": 101,
+"width": 24.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s053",
+"lang_new": true
+},
+{
+"z": 103,
+"type": "text",
+"text": "8 并行 · ×2",
+"x": 213,
+"baseline": 110.5,
+"width": 38.66,
+"font": "NSC",
+"weight": 700,
+"size": 6.6,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_700_6_6",
+"dynamic": true
+},
+{
+"z": 104,
+"type": "text",
+"text": "本轮完成后",
+"x": 300,
+"baseline": 101,
+"width": 30.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"lang": "gui.molecularmanipulator.research.next_quantity_title",
+"dynamic": false
+},
+{
+"z": 105,
+"type": "text",
+"text": "16 并行 · ×3",
+"x": 300,
+"baseline": 110.5,
+"width": 42.55,
+"font": "NSC",
+"weight": 700,
+"size": 6.6,
+"color": "#FFA47A1E",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_700_6_6",
+"dynamic": true
+},
+{
+"z": 106,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/icons/clock_mute_6",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+213,
+119,
+6,
+6
+]
+},
+{
+"z": 107,
+"type": "text",
+"text": "12 / 30 s",
+"x": 222,
+"baseline": 124,
+"width": 22.11,
+"font": "Inter Tight",
+"weight": 500,
+"size": 6,
+"color": "#FF1D1910",
+"letter_spacing": -0.18,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_500_6",
+"dynamic": true
+},
+{
+"z": 108,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/icons/bolt_mute_6",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+256.11,
+119,
+6,
+6
+]
+},
+{
+"z": 109,
+"type": "text",
+"text": "256 AE/t",
+"x": 265.11,
+"baseline": 124,
+"width": 22.23,
+"font": "Inter Tight",
+"weight": 500,
+"size": 6,
+"color": "#FF1D1910",
+"letter_spacing": -0.18,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_500_6",
+"dynamic": true
+},
+{
+"z": 110,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/key13_normal",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+371,
+37,
+13,
+13
+],
+"k": "ctl",
+"id": "jei"
+},
+{
+"z": 111,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/icons/star_acc_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+374,
+40,
+7,
+7
+]
+},
+{
+"z": 112,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/card",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+204,
+138,
+188,
+82
+],
+"k": "card",
+"id": "materials"
+},
+{
+"z": 113,
+"type": "text",
+"text": "缺失的合成子材料：",
+"x": 213,
+"baseline": 151,
+"width": 54.02,
+"font": "NSC",
+"weight": 600,
+"size": 6,
+"color": "#FFDE5427",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s060",
+"lang_new": true
+},
+{
+"z": 114,
+"type": "text",
+"text": "1",
+"x": 267.02,
+"baseline": 151,
+"width": 3.63,
+"font": "Inter Tight",
+"weight": 600,
+"size": 6,
+"color": "#FFDE5427",
+"letter_spacing": -0.18,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_600_6",
+"dynamic": true
+},
+{
+"z": 115,
+"type": "text",
+"text": "种",
+"x": 271.98,
+"baseline": 151,
+"width": 7.36,
+"font": "NSC",
+"weight": 600,
+"size": 6,
+"color": "#FFDE5427",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s003",
+"lang_new": true
+},
+{
+"z": 116,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/branch_v",
+"slicing": "stretch",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+221,
+194,
+0.75,
+12
+]
+},
+{
+"z": 117,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/branch_h",
+"slicing": "stretch",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+221,
+205.25,
+10,
+0.75
+]
+},
+{
+"z": 118,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+212,
+156,
+18,
+18
+],
+"k": "slot",
+"id": "ord"
+},
+{
+"z": 119,
+"type": "item",
+"item": "img:silicon_press",
+"count": "1",
+"x": 213,
+"y": 157,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 120,
+"type": "text",
+"text": "压印器",
+"x": 235,
+"baseline": 164,
+"width": 19.17,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s055",
+"lang_new": true
+},
+{
+"z": 121,
+"type": "text",
+"text": "待合成 4 · 合成中",
+"x": 235,
+"baseline": 171.5,
+"width": 46.13,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FF2F9E6E",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"lang": "gui.molecularmanipulator.research.order_target_status",
+"lang_args": [
+"4",
+"合成中"
+],
+"dynamic": false
+},
+{
+"z": 122,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+212,
+176,
+18,
+18
+],
+"k": "slot",
+"id": "ord"
+},
+{
+"z": 123,
+"type": "item",
+"item": "img:fluix_crystal",
+"count": "1",
+"x": 213,
+"y": 177,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 124,
+"type": "text",
+"text": "充能器",
+"x": 235,
+"baseline": 184,
+"width": 19.17,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s056",
+"lang_new": true
+},
+{
+"z": 125,
+"type": "text",
+"text": "待合成 2 · 缺少合成子材料",
+"x": 235,
+"baseline": 191.5,
+"width": 68.5,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FFDE5427",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"lang": "gui.molecularmanipulator.research.order_target_status",
+"lang_args": [
+"2",
+"缺少合成子材料"
+],
+"dynamic": false
+},
+{
+"z": 126,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+233,
+196,
+18,
+18
+],
+"k": "slot",
+"id": "ord"
+},
+{
+"z": 127,
+"type": "item",
+"item": "img:certus",
+"count": "1",
+"x": 234,
+"y": 197,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 128,
+"type": "text",
+"text": "赛特斯石英水晶",
+"x": 256,
+"baseline": 204,
+"width": 44.73,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFDE5427",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s057",
+"lang_new": true
+},
+{
+"z": 129,
+"type": "text",
+"text": "缺少 64",
+"x": 256,
+"baseline": 211.5,
+"width": 18.83,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"lang": "gui.molecularmanipulator.research.order_missing_amount",
+"lang_args": [
+"64"
+],
+"dynamic": false
+},
+{
+"z": 130,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/button_normal",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+204,
+226,
+92,
+17
+],
+"k": "ctl",
+"id": "pause"
+},
+{
+"z": 131,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/icons/pause_ink_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+210,
+230.5,
+8,
+8
+]
+},
+{
+"z": 132,
+"type": "text",
+"text": "暂停研究",
+"x": 222,
+"baseline": 234.5,
+"width": 25.56,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1D1910",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"lang": "gui.molecularmanipulator.research.pause",
+"dynamic": false
+},
+{
+"z": 133,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/button_danger",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+300,
+226,
+92,
+17
+],
+"k": "ctl",
+"id": "order"
+},
+{
+"z": 134,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/icons/order_white_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+306,
+230.5,
+8,
+8
+]
+},
+{
+"z": 135,
+"type": "text",
+"text": "下单",
+"x": 318,
+"baseline": 234.5,
+"width": 12.78,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"lang": "gui.molecularmanipulator.research.order",
+"dynamic": false
+},
+{
+"z": 136,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/button_disabled",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+204,
+249,
+188,
+17
+],
+"k": "ctl",
+"id": "stop"
+},
+{
+"z": 137,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/icons/x_dis_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+210,
+253.5,
+8,
+8
+]
+},
+{
+"z": 138,
+"type": "text",
+"text": "停止当前研究",
+"x": 222,
+"baseline": 257.5,
+"width": 38.34,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFC3BAA6",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"lang": "gui.molecularmanipulator.research.stop_current",
+"dynamic": false
+},
+{
+"z": 139,
+"type": "text",
+"text": "Shift + 下单：一键下单到满阶",
+"x": 204,
+"baseline": 277,
+"width": 79.69,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s058",
+"lang_new": true
+},
+{
+"z": 140,
+"type": "text",
+"text": "开始时一次性扣除本轮材料；暂停保留材料与进度",
+"x": 204,
+"baseline": 287,
+"width": 132.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#FF8F8570",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s059",
+"lang_new": true
+},
+{
+"z": 141,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/fab/tooltip",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+318,
+170,
+70,
+46.55
+],
+"k": "tip",
+"id": "ord1"
+},
+{
+"z": 142,
+"type": "text",
+"text": "充能器",
+"x": 322,
+"baseline": 179,
+"width": 16.8,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s056",
+"lang_new": true
+},
+{
+"z": 143,
+"type": "text",
+"text": "本轮需求：2",
+"x": 322,
+"baseline": 187.11,
+"width": 31.17,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"lang": "gui.molecularmanipulator.research.quantity_required",
+"lang_args": [
+"2"
+],
+"dynamic": false
+},
+{
+"z": 144,
+"type": "text",
+"text": "缺少合成子材料",
+"x": 322,
+"baseline": 195.22,
+"width": 39.17,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"lang": "gui.molecularmanipulator.research.order_state.incomplete_plan",
+"dynamic": false
+},
+{
+"z": 145,
+"type": "text",
+"text": "排队材料 1",
+"x": 322,
+"baseline": 203.33,
+"width": 26.83,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"dynamic": true
+},
+{
+"z": 146,
+"type": "text",
+"text": "执行中的 CPU 订单 0",
+"x": 322,
+"baseline": 211.44,
+"width": 51.88,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"dynamic": true
+}
+],
+"boxes": [
+{
+"k": "ctl",
+"id": "tabs",
+"r": {
+"x": 339.75,
+"y": 9,
+"w": 52.25,
+"h": 15
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "card",
+"id": "projects",
+"r": {
+"x": 8,
+"y": 32,
+"w": 190,
+"h": 114
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "proj0",
+"r": {
+"x": 16,
+"y": 50,
+"w": 174,
+"h": 15
+},
+"par": 1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "proj1",
+"r": {
+"x": 16,
+"y": 69,
+"w": 174,
+"h": 15
+},
+"par": 1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "proj2",
+"r": {
+"x": 16,
+"y": 88,
+"w": 174,
+"h": 15
+},
+"par": 1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "proj3",
+"r": {
+"x": 16,
+"y": 107,
+"w": 174,
+"h": 15
+},
+"par": 1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "proj4",
+"r": {
+"x": 16,
+"y": 126,
+"w": 174,
+"h": 15
+},
+"par": 1,
+"item": null,
+"n": ""
+},
+{
+"k": "card",
+"id": "order",
+"r": {
+"x": 8,
+"y": 152,
+"w": 190,
+"h": 48
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "detail",
+"r": {
+"x": 138,
+"y": 169,
+"w": 52,
+"h": 17
+},
+"par": 7,
+"item": null,
+"n": ""
+},
+{
+"k": "card",
+"id": "inv",
+"r": {
+"x": 8,
+"y": 206,
+"w": 190,
+"h": 88
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 22,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": "img:certus",
+"n": "64"
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 40,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": "img:silicon_press",
+"n": "1"
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 58,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": "img:fluix_crystal",
+"n": "16"
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 76,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 94,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 112,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 130,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 148,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 166,
+"y": 212,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 22,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 40,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 58,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 76,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 94,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 112,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 130,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 148,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 166,
+"y": 230,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 22,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 40,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 58,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 76,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 94,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 112,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 130,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 148,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 166,
+"y": 248,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 22,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 40,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 58,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 76,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 94,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 112,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 130,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 148,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "inv",
+"r": {
+"x": 166,
+"y": 270,
+"w": 18,
+"h": 18
+},
+"par": 9,
+"item": null,
+"n": ""
+},
+{
+"k": "edge",
+"id": "ext0",
+"r": {
+"x": 396,
+"y": 208,
+"w": 14,
+"h": 14
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "edge",
+"id": "ext1",
+"r": {
+"x": 396,
+"y": 226,
+"w": 14,
+"h": 14
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "edge",
+"id": "ext2",
+"r": {
+"x": 396,
+"y": 244,
+"w": 14,
+"h": 14
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "card",
+"id": "detailcard",
+"r": {
+"x": 204,
+"y": 32,
+"w": 188,
+"h": 100
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "jei",
+"r": {
+"x": 371,
+"y": 37,
+"w": 13,
+"h": 13
+},
+"par": 49,
+"item": null,
+"n": ""
+},
+{
+"k": "card",
+"id": "materials",
+"r": {
+"x": 204,
+"y": 138,
+"w": 188,
+"h": 82
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "ord",
+"r": {
+"x": 212,
+"y": 156,
+"w": 18,
+"h": 18
+},
+"par": 51,
+"item": "img:silicon_press",
+"n": "1"
+},
+{
+"k": "slot",
+"id": "ord",
+"r": {
+"x": 212,
+"y": 176,
+"w": 18,
+"h": 18
+},
+"par": 51,
+"item": "img:fluix_crystal",
+"n": "1"
+},
+{
+"k": "slot",
+"id": "ord",
+"r": {
+"x": 233,
+"y": 196,
+"w": 18,
+"h": 18
+},
+"par": 51,
+"item": "img:certus",
+"n": "1"
+},
+{
+"k": "ctl",
+"id": "pause",
+"r": {
+"x": 204,
+"y": 226,
+"w": 92,
+"h": 17
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "order",
+"r": {
+"x": 300,
+"y": 226,
+"w": 92,
+"h": 17
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "stop",
+"r": {
+"x": 204,
+"y": 249,
+"w": 188,
+"h": 17
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "tip",
+"id": "ord1",
+"r": {
+"x": 318,
+"y": 170,
+"w": 70,
+"h": 46.55
+},
+"par": -1,
+"item": null,
+"n": ""
+}
+]
+}

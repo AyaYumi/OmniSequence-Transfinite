@@ -36,7 +36,12 @@ After tier 1, research Sequence Array and Omni Computation independently. Comple
 | Run multiple crafting requests | [Omni Computation Core](items-blocks-machines/omni_computation_core.md), [Compute Nexus](items-blocks-machines/transfinite_compute_nexus.md) |
 | Collect resources and duplicate items | [Singularity Hub](items-blocks-machines/event_horizon_singularity_hub.md), [Compact Hub](items-blocks-machines/compact_singularity_hub.md) |
 | Transfer dropped items and creatures | [Black and White Holes](items-blocks-machines/black_and_white_holes.md) |
+| Negative entropy: quartz, seed and information flow | [Negative Entropy Engine](items-blocks-machines/negative_entropy_engine.md), [Quartz and Seed](items-blocks-machines/negative_entropy_quartz.md), [Information Flow Storage](items-blocks-machines/negentropy_information_flow.md) |
 | Walk on walls or build lifts | [Gravity Crystals and Ghost Matter](items-blocks-machines/nomai_materials.md) |
+
+### Negative entropy branch
+
+Start with an entroized Fluix parent rock from ExtendedAE. Use a Negentropy Seed to turn it into a negative entropy parent rock; the rock grows quartz buds and clusters. The Negative Entropy Engine is a 3×3×3 multiblock, and information flow is the AE resource used by this series.
 
 ## Using this guide
 

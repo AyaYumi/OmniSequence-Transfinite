@@ -1,21 +1,28 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
+import appeng.menu.SlotSemantics;
 import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
 import java.util.List;
 
-public final class MolecularManipulatorScreen extends RestorableContainerScreen<MolecularManipulatorMenu> {
+public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<MolecularManipulatorMenu> {
     private static final int HIDDEN_SLOT_POSITION = -10_000;
     private static final int SEARCH_DEBOUNCE_TICKS = 5;
+    private static final String LAYOUT = "seq_manipulator";
 
     private EditBox patternSearch;
-    private MolecularManipulatorLdUi modularView;
+    private OsqUi ui;
+    private net.minecraft.client.gui.components.Button previousPageButton;
+    private net.minecraft.client.gui.components.Button nextPageButton;
     private final PatternSearchIndexState patternSearchIndex = new PatternSearchIndexState();
     private List<Integer> filteredPatternSlots = List.of();
     private String patternSearchQuery = "";
@@ -37,14 +44,14 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
 
     @Override
     protected void init() {
-        if (modularView != null) {
-            modularView.close();
-        }
+        imageWidth = 190;
+        imageHeight = 272;
         super.init();
+        ui = new OsqUi(LAYOUT);
         menu.setPatternSearchIndexListener(this::acceptPatternSearchIndexChunk);
-        patternSearch = AeUiTheme.textField(style, font, leftPos + 62, topPos + 36, 116, 12,
-                Component.translatable("gui.molecularmanipulator.pattern_search"),
-                Component.translatable("gui.molecularmanipulator.pattern_search_tooltip"));
+        layoutInventorySlots();
+        patternSearch = ui.field("search", leftPos, topPos, font,
+                Component.translatable("gui.molecularmanipulator.pattern_search"));
         patternSearch.setMaxLength(64);
         patternSearch.setValue(patternSearchQuery);
         patternSearch.setResponder(this::patternSearchChanged);
@@ -53,9 +60,15 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
             patternSearchDebounce = 1;
         }
         layoutPatternPage();
-        modularView = new MolecularManipulatorLdUi(this, menu);
-        modularView.attach(this);
-        addScreenWidget(modularView.widget());
+        previousPageButton = addScreenWidget(ui.button("prev", leftPos, topPos,
+                () -> Component.literal("<"), () -> changePage(-1)));
+        nextPageButton = addScreenWidget(ui.button("next", leftPos, topPos,
+                () -> Component.literal(">"), () -> changePage(1)));
+        ui.text("gui.molecularmanipulator.page", this::patternPageLabel);
+        ui.omit("gui.molecularmanipulator.seq.s019");
+        ui.number(16, 160, () -> menu.usedPatternSlots);
+        ui.number(35.42f, 160, () -> "/ " + menu.getPatternSlots().size());
+        refreshPageButtons();
     }
 
     @Override
@@ -70,9 +83,7 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
                 && patternSearchDebounce == 0) {
             requestPatternSearchIndex();
         }
-        if (modularView != null) {
-            modularView.tick();
-        }
+        refreshPageButtons();
         if (patternSearchQuery.isBlank() && autoPageRevision != menu.patternRevision) {
             autoPageRevision = menu.patternRevision;
             autoAdvanceFullPage();
@@ -94,22 +105,41 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
     @Override
     public void removed() {
         menu.setPatternSearchIndexListener(null);
-        if (modularView != null) {
-            modularView.close();
-            modularView = null;
-        }
         super.removed();
     }
 
     @Override
     public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
             float partialTicks) {
-        super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
-        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 35, offsetX + 186, offsetY + 130);
-        AeUiTheme.panel(guiGraphics, offsetX + 8, offsetY + 134, offsetX + 186, offsetY + 222);
-        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 51, 9, 4);
-        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 144, 9, 3);
-        AeUiTheme.slotGrid(guiGraphics, offsetX + 15, offsetY + 202, 9, 1);
+        if (ui != null) ui.background(guiGraphics, font, offsetX, offsetY);
+    }
+
+    @Override
+    public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
+        // Vanilla has already translated the pose to leftPos/topPos in renderLabels.
+        if (ui != null) ui.foreground(graphics, font);
+    }
+
+    private void layoutInventorySlots() {
+        var inventory = menu.getSlots(SlotSemantics.PLAYER_INVENTORY);
+        for (int index = 0; index < inventory.size(); index++) {
+            var slot = inventory.get(index);
+            slot.x = 15 + index % 9 * 18;
+            slot.y = 182 + index / 9 * 18;
+        }
+        var hotbar = menu.getSlots(SlotSemantics.PLAYER_HOTBAR);
+        for (int index = 0; index < hotbar.size(); index++) {
+            var slot = hotbar.get(index);
+            slot.x = 15 + index * 18;
+            slot.y = 240;
+        }
+    }
+
+    private void refreshPageButtons() {
+        if (previousPageButton == null || nextPageButton == null) return;
+        boolean waiting = patternSearchWaiting();
+        previousPageButton.active = !waiting && menu.getPage() > 0;
+        nextPageButton.active = !waiting && menu.getPage() + 1 < menu.getPageCount();
     }
 
     void changePage(int offset) {
@@ -154,8 +184,8 @@ public final class MolecularManipulatorScreen extends RestorableContainerScreen<
             int sourceSlot = visibleSlots[pageIndex];
             if (sourceSlot >= 0 && sourceSlot < slots.size()) {
                 var slot = slots.get(sourceSlot);
-                slot.x = 16 + pageIndex % 9 * 18;
-                slot.y = 52 + pageIndex / 9 * 18;
+                slot.x = 15 + pageIndex % 9 * 18;
+                slot.y = 56 + pageIndex / 9 * 18;
             }
         }
     }

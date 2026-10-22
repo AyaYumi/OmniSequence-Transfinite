@@ -39,6 +39,12 @@ final class MatterFabricationBatch {
     long storedInputAmount(AEKey key) { return inputs.getOrDefault(key, 0L); }
     Map<AEKey, Long> storedOutputs() { return Map.copyOf(outputDebt); }
     boolean unavailable() { return unavailable != null; }
+    Map<AEKey, Long> cancelInputs() {
+        if (unavailable != null || inputs.isEmpty()) return Map.of();
+        var remaining = Map.copyOf(inputs);
+        clear();
+        return remaining;
+    }
     boolean waitingForCatalyst(MatterFabricationBlockEntity host) {
         if (crafts <= 0 || recipeId == null) return false;
         var holder = MatterRecipeIndex.get(host.getLevel()).fabrication(recipeId);

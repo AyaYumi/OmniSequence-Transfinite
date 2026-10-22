@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "molecularmanipulator:negative_entropy_budding_quartz",
+    "molecularmanipulator:negative_entropy_flawed_budding_quartz",
+    "molecularmanipulator:negative_entropy_chipped_budding_quartz",
+    "molecularmanipulator:negative_entropy_damaged_budding_quartz"
+  ]
+}

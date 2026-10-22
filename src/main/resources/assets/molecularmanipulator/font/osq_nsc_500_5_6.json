@@ -1,0 +1,19 @@
+{
+ "providers": [
+  {
+   "type": "ttf",
+   "file": "molecularmanipulator:osq_sc_medium.ttf",
+   "size": 5.6,
+   "oversample": 4.0,
+   "shift": [
+    0.0,
+    0.0
+   ],
+   "skip": []
+  },
+  {
+   "type": "reference",
+   "id": "minecraft:default"
+  }
+ ]
+}

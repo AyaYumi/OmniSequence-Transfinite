@@ -1,6 +1,6 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.9**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
+Current source: OmniSequence **2.1.0**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
 Java **21**, AE2 **19.2.17+**, Applied Enhancements **1.1.0+** (paired release **1.1.2**).
 Mod ID: `molecularmanipulator`.
 
@@ -9,6 +9,7 @@ Mod ID: `molecularmanipulator`.
 | Atomic long-count pattern delivery, admission, optional adapters and output flush; runtime ABI 1 | [Batch provider SPI](omni-batch-provider-api.md) | [批量供应器 SPI](omni-batch-provider-api.zh-CN.md) |
 | Exact BigInteger provider/output capabilities and original-provider identity | [Exact-count API](omni-exact-provider-api.md) | 同页中文说明 |
 | Well recipe JSON, generic AEKey inputs, research, machine imports and KubeJS | [Well and research API](matter-research-api.md) | [构筑井与研究 API](matter-research-api.zh-CN.md) |
+| Optional ECO 21.2.9+ execution, exact plans, tool batches and persistence | [ECO compatibility](eco-compatibility.md) | 同页中文说明 |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
 AppliedEnhancements mod. Use its [1.1.1 API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/docs/README.md). The minimum 1.1.0 runtime remains supported; new 1.1.1 API types require 1.1.1 at compile time and runtime. Omni's internal

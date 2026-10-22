@@ -1,0 +1,56 @@
+{
+  "variants": {
+    "facing=up,waterlogged=false": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small"
+    },
+    "facing=up,waterlogged=true": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small"
+    },
+    "facing=down,waterlogged=false": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 180
+    },
+    "facing=down,waterlogged=true": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 180
+    },
+    "facing=north,waterlogged=false": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90
+    },
+    "facing=north,waterlogged=true": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90
+    },
+    "facing=south,waterlogged=false": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90,
+      "y": 180
+    },
+    "facing=south,waterlogged=true": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90,
+      "y": 180
+    },
+    "facing=west,waterlogged=false": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90,
+      "y": 270
+    },
+    "facing=west,waterlogged=true": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90,
+      "y": 270
+    },
+    "facing=east,waterlogged=false": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90,
+      "y": 90
+    },
+    "facing=east,waterlogged=true": {
+      "model": "molecularmanipulator:block/negative_entropy_quartz_bud_small",
+      "x": 90,
+      "y": 90
+    }
+  }
+}

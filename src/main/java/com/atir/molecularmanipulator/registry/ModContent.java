@@ -1,7 +1,11 @@
 package com.atir.molecularmanipulator.registry;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKey;
+import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKeyType;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
+import com.atir.molecularmanipulator.block.NegativeEntropyBuddingQuartzBlock;
+import com.atir.molecularmanipulator.block.NegativeEntropyEngineCoreBlock;
 import com.atir.molecularmanipulator.block.CosmicSingularityBlock;
 import com.atir.molecularmanipulator.block.GravityCrystalBlock;
 import com.atir.molecularmanipulator.block.GhostMatterBlock;
@@ -33,7 +37,10 @@ import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafterBlockEntity
 import com.atir.molecularmanipulator.blockentity.MolecularCenterCrystalBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
+import com.atir.molecularmanipulator.blockentity.NegativeEntropyEngineCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
+import com.atir.molecularmanipulator.item.CreativeNegentropyInfoCellItem;
+import com.atir.molecularmanipulator.item.NegentropySeedItem;
 import com.atir.molecularmanipulator.item.SingularityCosmicItem;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterMachineImportRecipe;
@@ -46,6 +53,9 @@ import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterConfigMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.GenericStack;
+import appeng.items.storage.BasicStorageCell;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
@@ -55,12 +65,16 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.AmethystClusterBlock;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.RegisterEvent;
 
 public final class ModContent {
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MolecularManipulator.MOD_ID);
@@ -75,7 +89,6 @@ public final class ModContent {
             DeferredRegister.create(Registries.RECIPE_TYPE, MolecularManipulator.MOD_ID);
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS =
             DeferredRegister.create(Registries.RECIPE_SERIALIZER, MolecularManipulator.MOD_ID);
-
     public static final DeferredBlock<MolecularManipulatorBlock> MOLECULAR_MANIPULATOR =
             BLOCKS.register("molecular_manipulator", MolecularManipulatorBlock::new);
     public static final DeferredItem<BlockItem> MOLECULAR_MANIPULATOR_ITEM =
@@ -200,6 +213,101 @@ public final class ModContent {
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM = registerBlockItem(
             "matter_fabrication_pattern_assembly", MATTER_FABRICATION_PATTERN_ASSEMBLY);
 
+    public static final DeferredBlock<NegativeEntropyEngineCoreBlock> NEGATIVE_ENTROPY_ENGINE_CORE =
+            BLOCKS.register("negative_entropy_engine_core", () -> new NegativeEntropyEngineCoreBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 8)));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_ENGINE_CORE_ITEM = registerBlockItem(
+            "negative_entropy_engine_core", NEGATIVE_ENTROPY_ENGINE_CORE);
+    public static final DeferredBlock<OmniComputationPartBlock> NEGATIVE_ENTROPY_ENGINE_CASING =
+            BLOCKS.register("negative_entropy_engine_casing", () -> new OmniComputationPartBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 3)));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_ENGINE_CASING_ITEM = registerBlockItem(
+            "negative_entropy_engine_casing", NEGATIVE_ENTROPY_ENGINE_CASING);
+    public static final DeferredBlock<MolecularCenterGlassBlock> NEGATIVE_ENTROPY_OBSERVATION_WINDOW =
+            BLOCKS.register("negative_entropy_observation_window", () -> new MolecularCenterGlassBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(5.0F, 1200.0F).requiresCorrectToolForDrops()
+                            .noOcclusion().lightLevel(state -> 8)));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_OBSERVATION_WINDOW_ITEM = registerBlockItem(
+            "negative_entropy_observation_window", NEGATIVE_ENTROPY_OBSERVATION_WINDOW);
+    public static final DeferredBlock<OmniComputationPartBlock> BASE_ENTROPY_ANCHOR =
+            BLOCKS.register("base_entropy_anchor", () -> new OmniComputationPartBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 7)));
+    public static final DeferredItem<BlockItem> BASE_ENTROPY_ANCHOR_ITEM = registerBlockItem(
+            "base_entropy_anchor", BASE_ENTROPY_ANCHOR);
+    public static final DeferredBlock<OmniComputationPartBlock> QUANTUM_ENTROPY_ANCHOR =
+            BLOCKS.register("quantum_entropy_anchor", () -> new OmniComputationPartBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(9.0F, 1500.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 11)));
+    public static final DeferredItem<BlockItem> QUANTUM_ENTROPY_ANCHOR_ITEM = registerBlockItem(
+            "quantum_entropy_anchor", QUANTUM_ENTROPY_ANCHOR);
+    public static final DeferredBlock<OmniComputationPartBlock> TERMINAL_ENTROPY_ANCHOR =
+            BLOCKS.register("terminal_entropy_anchor", () -> new OmniComputationPartBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 15)));
+    public static final DeferredItem<BlockItem> TERMINAL_ENTROPY_ANCHOR_ITEM = registerBlockItem(
+            "terminal_entropy_anchor", TERMINAL_ENTROPY_ANCHOR);
+    public static final DeferredItem<Item> NEGATIVE_ENTROPY_ALLOY_INGOT = ITEMS.register(
+            "negative_entropy_alloy_ingot", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> NEGATIVE_ENTROPY_CRYSTAL = ITEMS.register(
+            "negative_entropy_crystal", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> NEGATIVE_ENTROPY_CRYSTAL_DUST = ITEMS.register(
+            "negative_entropy_crystal_dust", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> NEGENTROPY_SEED = ITEMS.register(
+            "negentropy_seed", () -> new NegentropySeedItem(new Item.Properties()));
+    public static final DeferredItem<BasicStorageCell> NEGENTROPY_INFORMATION_CELL = ITEMS.register(
+            "negentropy_information_cell",
+            () -> new BasicStorageCell(new Item.Properties().stacksTo(1), 0.5, 4096, 1, 1,
+                    NegativeEntropyInfoKeyType.INSTANCE));
+    public static final DeferredItem<Item> CREATIVE_NEGENTROPY_INFORMATION_CELL = ITEMS.register(
+            "creative_negentropy_information_cell",
+            () -> new CreativeNegentropyInfoCellItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL =
+            registerEntropyQuartzCluster("negative_entropy_quartz_bud_small", 0.35F, 3.0F, 4.0F, 4);
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL_ITEM =
+            registerBlockItem("negative_entropy_quartz_bud_small", NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL);
+    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM =
+            registerEntropyQuartzCluster("negative_entropy_quartz_bud_medium", 0.45F, 4.0F, 3.0F, 6);
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM_ITEM =
+            registerBlockItem("negative_entropy_quartz_bud_medium", NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM);
+    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE =
+            registerEntropyQuartzCluster("negative_entropy_quartz_bud_large", 0.55F, 5.0F, 3.0F, 8);
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE_ITEM =
+            registerBlockItem("negative_entropy_quartz_bud_large", NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE);
+    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_CLUSTER =
+            registerEntropyQuartzCluster("negative_entropy_quartz_cluster", 0.7F, 7.0F, 3.0F, 12);
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_CLUSTER_ITEM =
+            registerBlockItem("negative_entropy_quartz_cluster", NEGATIVE_ENTROPY_QUARTZ_CLUSTER);
+    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ =
+            BLOCKS.register("negative_entropy_damaged_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
+                    parentRockProperties(1), null, 0));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ_ITEM =
+            registerBlockItem("negative_entropy_damaged_budding_quartz", NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ);
+    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ =
+            BLOCKS.register("negative_entropy_chipped_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
+                    parentRockProperties(2), () -> NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ.get(), 12));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ_ITEM =
+            registerBlockItem("negative_entropy_chipped_budding_quartz", NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ);
+    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ =
+            BLOCKS.register("negative_entropy_flawed_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
+                    parentRockProperties(3), () -> NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ.get(), 12));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ_ITEM =
+            registerBlockItem("negative_entropy_flawed_budding_quartz", NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ);
+    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_BUDDING_QUARTZ =
+            BLOCKS.register("negative_entropy_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
+                    // Flawless parent rock is permanent; only damaged stages decay.
+                    parentRockProperties(4), null, 0));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_BUDDING_QUARTZ_ITEM =
+            registerBlockItem("negative_entropy_budding_quartz", NEGATIVE_ENTROPY_BUDDING_QUARTZ);
+
     public static final DeferredBlock<TransfiniteComputeNexusBlock> TRANSFINITE_COMPUTE_NEXUS =
             BLOCKS.register("transfinite_compute_nexus", TransfiniteComputeNexusBlock::new);
     public static final DeferredItem<BlockItem> TRANSFINITE_COMPUTE_NEXUS_ITEM =
@@ -322,6 +430,10 @@ public final class ModContent {
             OMNI_COMPUTATION_CONTROLLER_BE = BLOCK_ENTITIES.register("omni_computation_controller",
                     () -> BlockEntityType.Builder.of(OmniComputationCoreBlockEntity::new,
                             OMNI_COMPUTATION_CONTROLLER.get(), TRANSFINITE_COMPUTE_NEXUS.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<NegativeEntropyEngineCoreBlockEntity>>
+            NEGATIVE_ENTROPY_ENGINE_CORE_BE = BLOCK_ENTITIES.register("negative_entropy_engine_core",
+                    () -> BlockEntityType.Builder.of(NegativeEntropyEngineCoreBlockEntity::new,
+                            NEGATIVE_ENTROPY_ENGINE_CORE.get()).build(null));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MolecularAutoCrafterBlockEntity>>
             MOLECULAR_AUTO_CRAFTER_BE = BLOCK_ENTITIES.register("molecular_auto_crafter",
                     () -> BlockEntityType.Builder.of(MolecularAutoCrafterBlockEntity::new,
@@ -402,6 +514,27 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_FLUID_INPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_FLUID_OUTPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_ENGINE_CORE_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_ENGINE_CASING_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_OBSERVATION_WINDOW_ITEM.get());
+                        output.accept(BASE_ENTROPY_ANCHOR_ITEM.get());
+                        output.accept(QUANTUM_ENTROPY_ANCHOR_ITEM.get());
+                        output.accept(TERMINAL_ENTROPY_ANCHOR_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_ALLOY_INGOT.get());
+                        output.accept(NEGATIVE_ENTROPY_CRYSTAL.get());
+                        output.accept(NEGATIVE_ENTROPY_CRYSTAL_DUST.get());
+                        output.accept(NEGENTROPY_SEED.get());
+                        output.accept(NEGENTROPY_INFORMATION_CELL.get());
+                        output.accept(CREATIVE_NEGENTROPY_INFORMATION_CELL.get());
+                        output.accept(GenericStack.wrapInItemStack(NegativeEntropyInfoKey.INSTANCE, 1));
+                        output.accept(NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_QUARTZ_CLUSTER_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_BUDDING_QUARTZ_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ_ITEM.get());
                         SingularityContent.displayItems(output);
                         output.accept(BLACK_HOLE.get());
                         output.accept(WHITE_HOLE.get());
@@ -458,6 +591,28 @@ public final class ModContent {
                         .lightLevel(state -> lightLevel), type));
     }
 
+    private static DeferredBlock<AmethystClusterBlock> registerEntropyQuartzCluster(
+            String id, float strength, float height, float width, int lightLevel) {
+        return BLOCKS.register(id, () -> new AmethystClusterBlock(height, width,
+                net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                        .strength(strength)
+                        .noOcclusion()
+                        .noCollission()
+                        .isViewBlocking((state, level, pos) -> false)
+                        .isSuffocating((state, level, pos) -> false)
+                        .lightLevel(state -> lightLevel)
+                        .sound(SoundType.AMETHYST)));
+    }
+
+    private static net.minecraft.world.level.block.state.BlockBehaviour.Properties parentRockProperties(int lightLevel) {
+        return net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                .strength(2.5F, 6F)
+                .requiresCorrectToolForDrops()
+                .randomTicks()
+                .lightLevel(state -> lightLevel)
+                .sound(SoundType.AMETHYST);
+    }
+
     private static <T extends net.minecraft.world.level.block.Block> DeferredItem<BlockItem> registerBlockItem(
             String id, DeferredBlock<T> block) {
         return ITEMS.register(id, () -> new BlockItem(block.get(), new Item.Properties()));
@@ -474,6 +629,18 @@ public final class ModContent {
         CREATIVE_TABS.register(eventBus);
         RECIPE_TYPES.register(eventBus);
         RECIPE_SERIALIZERS.register(eventBus);
+        eventBus.addListener(ModContent::registerAeKeyTypes);
+    }
+
+    public static void registerAeKeyTypes(RegisterEvent event) {
+        if (!event.getRegistryKey().equals(AEKeyType.REGISTRY_KEY)) {
+            return;
+        }
+        event.register(
+                AEKeyType.REGISTRY_KEY,
+                NegativeEntropyInfoKeyType.INSTANCE.getId(),
+                () -> NegativeEntropyInfoKeyType.INSTANCE
+        );
     }
 
     public static void bindBlockEntity() {

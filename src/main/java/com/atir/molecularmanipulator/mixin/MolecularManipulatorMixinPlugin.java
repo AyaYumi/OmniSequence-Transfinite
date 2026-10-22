@@ -28,13 +28,27 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         var loadingModList = FMLLoader.getLoadingModList();
+        if (mixinClassName.endsWith(".MatterCpuJobContextMixin")) {
+            if (targetClassName.startsWith("net.pedroksl.advanced_ae.")) {
+                return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
+            }
+            if (targetClassName.startsWith("cn.dancingsnow.neoecoae.")) {
+                return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
+            }
+            return true;
+        }
+        if (mixinClassName.endsWith(".TrinityMatterCpuJobContextMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;
+        }
         if (mixinClassName.endsWith(".LegacyAelisTaskReconciliationMixin")) {
             var applied = loadingModList == null ? null : loadingModList.getModFileById("appliedenhancements");
             return applied != null && applied.getMods().stream().anyMatch(mod ->
                     mod.getModId().equals("appliedenhancements") && mod.getVersion().toString().equals("1.1.0"));
         }
-        if (mixinClassName.endsWith(".EcoMatterPatternBatchMixin")) {
-            return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
+        if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("Eco")) {
+            var eco = loadingModList == null ? null : loadingModList.getModFileById("neoecoae");
+            return eco != null && eco.getMods().stream().anyMatch(mod -> mod.getModId().equals("neoecoae")
+                    && mod.getVersion().compareTo(new org.apache.maven.artifact.versioning.DefaultArtifactVersion("21.2.9")) >= 0);
         }
         if (mixinClassName.endsWith(".ThunderboltMatterPatternBatchMixin")) {
             return loadingModList != null && loadingModList.getModFileById("thunderbolt") != null;

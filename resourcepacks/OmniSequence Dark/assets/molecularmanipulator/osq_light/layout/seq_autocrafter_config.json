@@ -1,0 +1,1705 @@
+{
+"screen": "seq_autocrafter_config",
+"theme": "dark",
+"machine": "sequence_array",
+"family": "seq",
+"title": "配置自动合成槽 · 暗色",
+"size": [
+300,
+252
+],
+"left_room": 0,
+"units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
+"density": 4,
+"draw": [
+{
+"z": 0,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/window",
+"slicing": "nine",
+"pad": [
+0,
+0,
+3,
+12
+],
+"rect": [
+0,
+0,
+300,
+252
+],
+"k": "window",
+"id": "window"
+},
+{
+"z": 1,
+"type": "text",
+"text": "配置自动合成槽",
+"x": 12,
+"baseline": 23,
+"width": 87.38,
+"font": "NSC",
+"weight": 900,
+"size": 13,
+"color": "#FFF4EAEE",
+"letter_spacing": -0.52,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_900_13",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s003",
+"lang_new": true
+},
+{
+"z": 2,
+"type": "text",
+"text": "#1",
+"x": 110,
+"baseline": 22,
+"width": 14.34,
+"font": "Inter Tight",
+"weight": 700,
+"size": 15,
+"color": "#FFE57DA0",
+"letter_spacing": -0.45,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_700_15",
+"dynamic": true
+},
+{
+"z": 3,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/card",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+8,
+30,
+284,
+68
+],
+"k": "card",
+"id": "product"
+},
+{
+"z": 4,
+"type": "text",
+"text": "下界合金锭",
+"x": 39,
+"baseline": 45,
+"width": 35,
+"font": "NSC",
+"weight": 700,
+"size": 7,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_700_7",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s004",
+"lang_new": true
+},
+{
+"z": 5,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/dot_acc",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+39,
+49.89,
+4,
+4
+]
+},
+{
+"z": 6,
+"type": "text",
+"text": "等待下一次调度",
+"x": 46,
+"baseline": 51.89,
+"width": 40.59,
+"font": "NSC",
+"weight": 500,
+"size": 5.8,
+"color": "#FFD3C2C9",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_8",
+"lang": "gui.molecularmanipulator.auto_craft_state.ready",
+"dynamic": false
+},
+{
+"z": 7,
+"type": "text",
+"text": "成品限制（0 = 无限）",
+"x": 158,
+"baseline": 40,
+"width": 53.66,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#99FFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"lang": "gui.molecularmanipulator.auto_craft_output_limit",
+"dynamic": false
+},
+{
+"z": 8,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/field_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+158,
+44,
+110,
+13
+],
+"k": "ctl",
+"id": "limit"
+},
+{
+"z": 9,
+"type": "text",
+"text": "4096",
+"x": 162,
+"baseline": 50.5,
+"width": 12.77,
+"font": "NSC",
+"weight": 600,
+"size": 5.8,
+"color": "#FFA8939C",
+"letter_spacing": -0.174,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_5_8",
+"dynamic": true
+},
+{
+"z": 10,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_active",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+273,
+44,
+13,
+13
+],
+"k": "ctl",
+"id": "limit_set"
+},
+{
+"z": 11,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/check_white_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+276,
+47,
+7,
+7
+]
+},
+{
+"z": 12,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/divider_dark",
+"slicing": "stretch",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+66,
+268,
+0.5
+]
+},
+{
+"z": 13,
+"type": "text",
+"text": "统计",
+"x": 16,
+"baseline": 83,
+"width": 12.02,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#99FFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s005",
+"lang_new": true
+},
+{
+"z": 14,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+38,
+18,
+18
+],
+"k": "slot",
+"id": "product"
+},
+{
+"z": 15,
+"type": "item",
+"item": "mc:netherite_ingot",
+"count": "1",
+"x": 17,
+"y": 39,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 16,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/button_active",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+40,
+73,
+120,
+17
+],
+"k": "ctl",
+"id": "src_target"
+},
+{
+"z": 17,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/icons/out_white_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+46,
+77.5,
+8,
+8
+]
+},
+{
+"z": 18,
+"type": "text",
+"text": "实际输出目标库存",
+"x": 58,
+"baseline": 81.5,
+"width": 51.13,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFFFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s006",
+"lang_new": true
+},
+{
+"z": 19,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/button_normal",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+164,
+73,
+120,
+17
+],
+"k": "ctl",
+"id": "src_me"
+},
+{
+"z": 20,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/net_ink_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+170,
+77.5,
+8,
+8
+]
+},
+{
+"z": 21,
+"type": "text",
+"text": "ME 网络库存",
+"x": 182,
+"baseline": 81.5,
+"width": 36.28,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s007",
+"lang_new": true
+},
+{
+"z": 22,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/card",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+8,
+104,
+284,
+118
+],
+"k": "card",
+"id": "reserves"
+},
+{
+"z": 23,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/shield_mute_6",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+112,
+6,
+6
+]
+},
+{
+"z": 24,
+"type": "text",
+"text": "材料 · 保护数量",
+"x": 25,
+"baseline": 115,
+"width": 44.7,
+"font": "NSC",
+"weight": 500,
+"size": 6,
+"color": "#99FFFFFF",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_6",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s008",
+"lang_new": true
+},
+{
+"z": 25,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+124,
+18,
+18
+],
+"k": "slot",
+"id": "rsv"
+},
+{
+"z": 26,
+"type": "item",
+"item": "mc:cobblestone",
+"count": "1",
+"x": 17,
+"y": 125,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 27,
+"type": "text",
+"text": "圆石",
+"x": 39,
+"baseline": 135,
+"width": 12.38,
+"font": "NSC",
+"weight": 600,
+"size": 6.2,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_2",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s009",
+"lang_new": true
+},
+{
+"z": 28,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/field_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+158,
+126.5,
+110,
+13
+],
+"k": "ctl",
+"id": "rsv0"
+},
+{
+"z": 29,
+"type": "text",
+"text": "64",
+"x": 162,
+"baseline": 133,
+"width": 6.39,
+"font": "NSC",
+"weight": 600,
+"size": 5.8,
+"color": "#FFA8939C",
+"letter_spacing": -0.174,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_5_8",
+"dynamic": true
+},
+{
+"z": 30,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+273,
+126.5,
+13,
+13
+],
+"k": "ctl",
+"id": "ok0"
+},
+{
+"z": 31,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/check_ink2_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+276,
+129.5,
+7,
+7
+]
+},
+{
+"z": 32,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+142,
+18,
+18
+],
+"k": "slot",
+"id": "rsv"
+},
+{
+"z": 33,
+"type": "item",
+"item": "mc:iron_ingot",
+"count": "1",
+"x": 17,
+"y": 143,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 34,
+"type": "text",
+"text": "铁锭",
+"x": 39,
+"baseline": 153,
+"width": 12.38,
+"font": "NSC",
+"weight": 600,
+"size": 6.2,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_2",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s006",
+"lang_new": true
+},
+{
+"z": 35,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/field_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+158,
+144.5,
+110,
+13
+],
+"k": "ctl",
+"id": "rsv1"
+},
+{
+"z": 36,
+"type": "text",
+"text": "1024",
+"x": 162,
+"baseline": 151,
+"width": 12.77,
+"font": "NSC",
+"weight": 600,
+"size": 5.8,
+"color": "#FFA8939C",
+"letter_spacing": -0.174,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_5_8",
+"dynamic": true
+},
+{
+"z": 37,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+273,
+144.5,
+13,
+13
+],
+"k": "ctl",
+"id": "ok1"
+},
+{
+"z": 38,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/check_ink2_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+276,
+147.5,
+7,
+7
+]
+},
+{
+"z": 39,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+160,
+18,
+18
+],
+"k": "slot",
+"id": "rsv"
+},
+{
+"z": 40,
+"type": "item",
+"item": "mc:gold_ingot",
+"count": "1",
+"x": 17,
+"y": 161,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 41,
+"type": "text",
+"text": "金锭",
+"x": 39,
+"baseline": 171,
+"width": 12.38,
+"font": "NSC",
+"weight": 600,
+"size": 6.2,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_2",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s010",
+"lang_new": true
+},
+{
+"z": 42,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/field_error",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+158,
+162.5,
+110,
+13
+],
+"k": "ctl",
+"id": "rsv2"
+},
+{
+"z": 43,
+"type": "text",
+"text": "12a",
+"x": 162,
+"baseline": 169,
+"width": 9.59,
+"font": "NSC",
+"weight": 600,
+"size": 5.8,
+"color": "#FFF08257",
+"letter_spacing": -0.174,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_5_8",
+"dynamic": true
+},
+{
+"z": 44,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_disabled",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+273,
+162.5,
+13,
+13
+],
+"k": "ctl",
+"id": "ok2"
+},
+{
+"z": 45,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/check_dis_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+276,
+165.5,
+7,
+7
+]
+},
+{
+"z": 46,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+178,
+18,
+18
+],
+"k": "slot",
+"id": "rsv"
+},
+{
+"z": 47,
+"type": "item",
+"item": "mc:copper_ingot",
+"count": "1",
+"x": 17,
+"y": 179,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 48,
+"type": "text",
+"text": "铜锭",
+"x": 39,
+"baseline": 189,
+"width": 12.38,
+"font": "NSC",
+"weight": 600,
+"size": 6.2,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_2",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s011",
+"lang_new": true
+},
+{
+"z": 49,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/field_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+158,
+180.5,
+110,
+13
+],
+"k": "ctl",
+"id": "rsv3"
+},
+{
+"z": 50,
+"type": "text",
+"text": "0",
+"x": 162,
+"baseline": 187,
+"width": 3.2,
+"font": "NSC",
+"weight": 600,
+"size": 5.8,
+"color": "#FFA8939C",
+"letter_spacing": -0.174,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_5_8",
+"dynamic": true
+},
+{
+"z": 51,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+273,
+180.5,
+13,
+13
+],
+"k": "ctl",
+"id": "ok3"
+},
+{
+"z": 52,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/check_ink2_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+276,
+183.5,
+7,
+7
+]
+},
+{
+"z": 53,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/slot",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+16,
+196,
+18,
+18
+],
+"k": "slot",
+"id": "rsv"
+},
+{
+"z": 54,
+"type": "item",
+"item": "mc:diamond",
+"count": "1",
+"x": 17,
+"y": 197,
+"note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+},
+{
+"z": 55,
+"type": "text",
+"text": "钻石",
+"x": 39,
+"baseline": 207,
+"width": 12.38,
+"font": "NSC",
+"weight": 600,
+"size": 6.2,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_2",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.fab.s007",
+"lang_new": true
+},
+{
+"z": 56,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/field_normal",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+158,
+198.5,
+110,
+13
+],
+"k": "ctl",
+"id": "rsv4"
+},
+{
+"z": 57,
+"type": "text",
+"text": "0",
+"x": 162,
+"baseline": 205,
+"width": 3.2,
+"font": "NSC",
+"weight": 600,
+"size": 5.8,
+"color": "#FFA8939C",
+"letter_spacing": -0.174,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_5_8",
+"dynamic": true
+},
+{
+"z": 58,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+273,
+198.5,
+13,
+13
+],
+"k": "ctl",
+"id": "ok4"
+},
+{
+"z": 59,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/check_ink2_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+276,
+201.5,
+7,
+7
+]
+},
+{
+"z": 60,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/tooltip",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+62,
+182,
+92,
+30.33
+],
+"k": "tip",
+"id": "rsv2"
+},
+{
+"z": 61,
+"type": "text",
+"text": "请输入 0 至 9223372036854775807 的整数；空白或超出范围时不能保存。",
+"x": 66,
+"baseline": 191,
+"width": 83.92,
+"font": "NSC",
+"weight": 500,
+"size": 5.6,
+"color": "#FF1B1518",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_500_5_6",
+"lang": "gui.molecularmanipulator.auto_craft_amount_range",
+"dynamic": false
+},
+{
+"z": 62,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/button_normal",
+"slicing": "nine",
+"pad": [
+5,
+3,
+5,
+7
+],
+"rect": [
+8,
+228,
+56,
+17
+],
+"k": "ctl",
+"id": "back"
+},
+{
+"z": 63,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/back_ink_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+14,
+232.5,
+8,
+8
+]
+},
+{
+"z": 64,
+"type": "text",
+"text": "返回",
+"x": 26,
+"baseline": 236.5,
+"width": 12.78,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FFF4EAEE",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"dynamic": false,
+"lang": "gui.molecularmanipulator.seq.s012",
+"lang_new": true
+},
+{
+"z": 65,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/button_danger",
+"slicing": "nine",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+68,
+228,
+64,
+17
+],
+"k": "ctl",
+"id": "save"
+},
+{
+"z": 66,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/save_inv_8",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+74,
+232.5,
+8,
+8
+]
+},
+{
+"z": 67,
+"type": "text",
+"text": "保存全部",
+"x": 86,
+"baseline": 236.5,
+"width": 25.56,
+"font": "NSC",
+"weight": 600,
+"size": 6.4,
+"color": "#FF1B1518",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_6_4",
+"lang": "gui.molecularmanipulator.auto_craft_save_all",
+"dynamic": false
+},
+{
+"z": 68,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/common/dot_warn",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+138,
+234.39,
+4,
+4
+]
+},
+{
+"z": 69,
+"type": "text",
+"text": "有未保存的修改",
+"x": 145,
+"baseline": 236.39,
+"width": 40.59,
+"font": "NSC",
+"weight": 600,
+"size": 5.8,
+"color": "#FFF08257",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_nsc_600_5_8",
+"lang": "gui.molecularmanipulator.auto_craft_unsaved",
+"dynamic": false
+},
+{
+"z": 70,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+226,
+230,
+13,
+13
+],
+"k": "ctl",
+"id": "prev"
+},
+{
+"z": 71,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/left_ink2_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+229,
+233,
+7,
+7
+]
+},
+{
+"z": 72,
+"type": "text",
+"text": "第 1/2 页",
+"x": 243.98,
+"baseline": 238.5,
+"width": 24.03,
+"font": "Inter Tight",
+"weight": 500,
+"size": 6,
+"color": "#FFD3C2C9",
+"letter_spacing": 0,
+"opacity": 1,
+"font_id": "molecularmanipulator:osq_intertight_500_6",
+"lang": "gui.molecularmanipulator.page",
+"lang_args": [
+"1",
+"2"
+],
+"dynamic": false
+},
+{
+"z": 73,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/key13_normal",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+273,
+230,
+13,
+13
+],
+"k": "ctl",
+"id": "next"
+},
+{
+"z": 74,
+"type": "sprite",
+"sprite": "molecularmanipulator:osq_light/seq/icons/right_ink2_7",
+"slicing": "fixed",
+"pad": [
+0,
+0,
+0,
+0
+],
+"rect": [
+276,
+233,
+7,
+7
+]
+}
+],
+"boxes": [
+{
+"k": "card",
+"id": "product",
+"r": {
+"x": 8,
+"y": 30,
+"w": 284,
+"h": 68
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "limit",
+"r": {
+"x": 158,
+"y": 44,
+"w": 110,
+"h": 13
+},
+"par": 0,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "limit_set",
+"r": {
+"x": 273,
+"y": 44,
+"w": 13,
+"h": 13
+},
+"par": 0,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "product",
+"r": {
+"x": 16,
+"y": 38,
+"w": 18,
+"h": 18
+},
+"par": 0,
+"item": "mc:netherite_ingot",
+"n": "1"
+},
+{
+"k": "ctl",
+"id": "src_target",
+"r": {
+"x": 40,
+"y": 73,
+"w": 120,
+"h": 17
+},
+"par": 0,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "src_me",
+"r": {
+"x": 164,
+"y": 73,
+"w": 120,
+"h": 17
+},
+"par": 0,
+"item": null,
+"n": ""
+},
+{
+"k": "card",
+"id": "reserves",
+"r": {
+"x": 8,
+"y": 104,
+"w": 284,
+"h": 118
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "rsv",
+"r": {
+"x": 16,
+"y": 124,
+"w": 18,
+"h": 18
+},
+"par": 6,
+"item": "mc:cobblestone",
+"n": "1"
+},
+{
+"k": "ctl",
+"id": "rsv0",
+"r": {
+"x": 158,
+"y": 126.5,
+"w": 110,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "ok0",
+"r": {
+"x": 273,
+"y": 126.5,
+"w": 13,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "rsv",
+"r": {
+"x": 16,
+"y": 142,
+"w": 18,
+"h": 18
+},
+"par": 6,
+"item": "mc:iron_ingot",
+"n": "1"
+},
+{
+"k": "ctl",
+"id": "rsv1",
+"r": {
+"x": 158,
+"y": 144.5,
+"w": 110,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "ok1",
+"r": {
+"x": 273,
+"y": 144.5,
+"w": 13,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "rsv",
+"r": {
+"x": 16,
+"y": 160,
+"w": 18,
+"h": 18
+},
+"par": 6,
+"item": "mc:gold_ingot",
+"n": "1"
+},
+{
+"k": "ctl",
+"id": "rsv2",
+"r": {
+"x": 158,
+"y": 162.5,
+"w": 110,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "ok2",
+"r": {
+"x": 273,
+"y": 162.5,
+"w": 13,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "rsv",
+"r": {
+"x": 16,
+"y": 178,
+"w": 18,
+"h": 18
+},
+"par": 6,
+"item": "mc:copper_ingot",
+"n": "1"
+},
+{
+"k": "ctl",
+"id": "rsv3",
+"r": {
+"x": 158,
+"y": 180.5,
+"w": 110,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "ok3",
+"r": {
+"x": 273,
+"y": 180.5,
+"w": 13,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "slot",
+"id": "rsv",
+"r": {
+"x": 16,
+"y": 196,
+"w": 18,
+"h": 18
+},
+"par": 6,
+"item": "mc:diamond",
+"n": "1"
+},
+{
+"k": "ctl",
+"id": "rsv4",
+"r": {
+"x": 158,
+"y": 198.5,
+"w": 110,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "ok4",
+"r": {
+"x": 273,
+"y": 198.5,
+"w": 13,
+"h": 13
+},
+"par": 6,
+"item": null,
+"n": ""
+},
+{
+"k": "tip",
+"id": "rsv2",
+"r": {
+"x": 62,
+"y": 182,
+"w": 92,
+"h": 30.33
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "back",
+"r": {
+"x": 8,
+"y": 228,
+"w": 56,
+"h": 17
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "save",
+"r": {
+"x": 68,
+"y": 228,
+"w": 64,
+"h": 17
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "prev",
+"r": {
+"x": 226,
+"y": 230,
+"w": 13,
+"h": 13
+},
+"par": -1,
+"item": null,
+"n": ""
+},
+{
+"k": "ctl",
+"id": "next",
+"r": {
+"x": 273,
+"y": 230,
+"w": 13,
+"h": 13
+},
+"par": -1,
+"item": null,
+"n": ""
+}
+]
+}

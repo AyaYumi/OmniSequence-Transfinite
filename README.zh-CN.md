@@ -8,7 +8,7 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.9，源码分支 `1.21.1-neoforge` |
+| 本模组 | 2.1.0，源码分支 `1.21.1-neoforge` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 或更高 |
 | AppliedEnhancements | 1.1.2 或更高，客户端和服务端都需要 |
@@ -16,6 +16,7 @@
 | ExtendedAE | 1.21-2.2.32-neoforge 或更高 |
 | LDLib2 | 2.2.18 或更高 |
 | JEI / AdvancedAE | 可选；AdvancedAE 启用对应研究与兼容 |
+| Neo ECO AE Extension | 可选；安装时要求 21.2.9 或更高，双端一致 |
 
 将本模组和必需依赖分别安装到客户端与服务端的 `mods/` 文件夹，两端使用相同构建。ExpandedAE 2.1.1 与本模组不兼容。
 
@@ -61,6 +62,8 @@
 
 整合包作者可通过数据包配置构筑井配方与研究。第三方模组的研究、批量供应器与大数量加工接口见[开发文档索引](docs/README.md)。
 
+ECO 兼容包含双向批量投料、工具与容器返还、FX 精确批次，以及本模组 CPU 对 ECO 精确、阶段和循环计划的接收。详细数量边界、取消与恢复约定见 [ECO 兼容说明](docs/eco-compatibility.md)。
+
 ## 从源码构建
 
 使用 Java 21，将 `appliedenhancements-1.1.2.jar` 放入 `libs/`，然后运行：
@@ -69,6 +72,6 @@
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.9.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.1.0.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 使用 [MIT 许可证](LICENSE)。

@@ -220,6 +220,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
                         && super.mayPlace(stack);
             }
         };
+        slot.setIcon(appeng.client.gui.Icon.BACKGROUND_SINGULARITY);
         addSlot(slot, SlotSemantics.CONFIG);
         slot.x = QUANTUM_SLOT_X;
         slot.y = QUANTUM_SLOT_Y;

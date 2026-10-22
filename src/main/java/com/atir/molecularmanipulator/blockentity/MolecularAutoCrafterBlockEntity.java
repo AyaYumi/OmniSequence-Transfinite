@@ -52,6 +52,8 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
 
     private final MachineSource actionSource = new MachineSource(this);
     private final MolecularAutoCrafter autoCrafter = new MolecularAutoCrafter(this);
+    // Safety recovery only (legacy saves, failed rollback or input refunds).
+    // Normal production goes straight to the destination; there is no output inventory/menu.
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
     private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
     private boolean assembling;
@@ -301,17 +303,6 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         if (level != null && !level.isClientSide() && !assembling) {
             flushOutputs(level);
         }
-    }
-
-    /** Snapshot for the output-buffer slots; the machine remains the owner of these resources. */
-    public List<GenericStack> getBufferedAutoCraftOutputs() {
-        var result = new ArrayList<GenericStack>();
-        for (var entry : bufferedOutputs.object2LongEntrySet()) {
-            if (entry.getLongValue() > 0) {
-                result.add(new GenericStack(entry.getKey(), entry.getLongValue()));
-            }
-        }
-        return result;
     }
 
     private void addOutputs(Object2LongOpenHashMap<AEKey> outputs) {

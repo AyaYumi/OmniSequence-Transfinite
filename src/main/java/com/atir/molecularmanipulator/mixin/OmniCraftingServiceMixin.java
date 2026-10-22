@@ -19,6 +19,9 @@ import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
+import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchRunner;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
 import com.github.appliedenhancements.integration.ae2.AelisScaledPattern;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -46,6 +49,28 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
 
     @Shadow
     public abstract void addLink(CraftingLink link);
+
+    /** Keep original exact ECO plans away from foreign service hooks that require CraftingPlan. */
+    @WrapMethod(method = "submitJob")
+    private ICraftingSubmitResult molecularmanipulator$submitOwnedExactPlan(ICraftingPlan plan,
+            ICraftingRequester requester, ICraftingCPU target, boolean prioritizePower, IActionSource source,
+            Operation<ICraftingSubmitResult> original) {
+        if (!plan.simulation() && target instanceof CraftingCPUCluster selected
+                && selected.craftingLogic instanceof EcoCpuDispatchRunner runner
+                && runner.ecoDispatch$isExactPlan(plan)) {
+            var owner = OmniComputationCoreBlockEntity.ownerOf(selected);
+            if (owner != null && owner.isStructureFormed() && selected.getGrid() == grid) {
+                var bridge = (OmniCraftingServiceBridge) this;
+                var cpu = selected.isBusy() ? owner.getOrCreateIdleCpu(bridge) : selected;
+                if (cpu == null) return CraftingSubmitResult.CPU_BUSY;
+                // The CPU still validates the original ECO contract, activity, resources and permissions.
+                var result = cpu.submitJob(grid, plan, source, requester);
+                owner.ensureSpareAndRegister(bridge);
+                return result;
+            }
+        }
+        return original.call(plan, requester, target, prioritizePower, source);
+    }
 
     @ModifyVariable(method = "submitJob", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private ICraftingPlan molecularmanipulator$rewriteSmartDoublingPlan(ICraftingPlan plan) {
@@ -131,7 +156,9 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
                     continue;
                 }
                 for (var provider : ((CraftingService) (Object) this).getProviders(entry.getKey())) {
-                    if (MolecularBatchCraftingProvider.supports(provider, entry.getKey())) {
+                    if (MolecularBatchCraftingProvider.supports(provider, entry.getKey())
+                            || com.atir.molecularmanipulator.api.crafting.OmniBatchProviderAdapterRegistry.supports(
+                                    provider, entry.getKey())) {
                         return true;
                     }
                 }

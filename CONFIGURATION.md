@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.9, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
+Current source: 2.1.0, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 

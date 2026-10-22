@@ -1,0 +1,1650 @@
+{
+  "screen": "sing_compact",
+  "machine": "singularity_hub",
+  "family": "sing",
+  "title": "视界奇点天枢（单方块）· 天枢总览",
+  "size": [
+    260,
+    340
+  ],
+  "left_room": 0,
+  "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
+  "density": 4,
+  "draw": [
+    {
+      "z": 0,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/window",
+      "slicing": "nine",
+      "pad": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "rect": [
+        0,
+        0,
+        260,
+        340
+      ],
+      "k": "window",
+      "id": "window"
+    },
+    {
+      "z": 1,
+      "type": "text",
+      "text": "视界奇点天枢（单方块）",
+      "x": 12,
+      "baseline": 23,
+      "width": 236,
+      "font": "NSC",
+      "weight": 900,
+      "size": 13,
+      "color": "#FF121A26",
+      "letter_spacing": -0.52,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_900_13",
+      "lang": "block.molecularmanipulator.compact_singularity_hub",
+      "dynamic": false
+    },
+    {
+      "z": 2,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/tab_active",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        8.0,
+        34,
+        81.33333333333333,
+        20
+      ]
+    },
+    {
+      "z": 3,
+      "type": "text",
+      "text": "天枢总览",
+      "x": 15.0,
+      "baseline": 44,
+      "width": 67.33333333333333,
+      "font": "NSC",
+      "weight": 600,
+      "size": 7,
+      "color": "#FFFFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_7",
+      "lang": "gui.molecularmanipulator.singularity.overview",
+      "dynamic": false,
+      "center_y": 44,
+      "align": "center"
+    },
+    {
+      "z": 4,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/tab_normal",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        89.33333333333333,
+        34,
+        81.33333333333333,
+        20
+      ]
+    },
+    {
+      "z": 5,
+      "type": "text",
+      "text": "资源采集",
+      "x": 96.33333333333333,
+      "baseline": 44,
+      "width": 67.33333333333333,
+      "font": "NSC",
+      "weight": 600,
+      "size": 7,
+      "color": "#FF435063",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_7",
+      "lang": "gui.molecularmanipulator.singularity.collection",
+      "dynamic": false,
+      "center_y": 44,
+      "align": "center"
+    },
+    {
+      "z": 6,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/tab_normal",
+      "slicing": "nine",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        170.66666666666666,
+        34,
+        81.33333333333333,
+        20
+      ]
+    },
+    {
+      "z": 7,
+      "type": "text",
+      "text": "物质复制",
+      "x": 177.66666666666666,
+      "baseline": 44,
+      "width": 67.33333333333333,
+      "font": "NSC",
+      "weight": 600,
+      "size": 7,
+      "color": "#FF435063",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_7",
+      "lang": "gui.molecularmanipulator.singularity.duplication",
+      "dynamic": false,
+      "center_y": 44,
+      "align": "center"
+    },
+    {
+      "z": 8,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        41,
+        244,
+        178,
+        88
+      ],
+      "k": "card",
+      "id": "inv"
+    },
+    {
+      "z": 9,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        49,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 11,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        67,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 13,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        85,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 15,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        103,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 16,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        121,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 17,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        139,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 18,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        157,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 19,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        175,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 20,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        193,
+        250,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 21,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        49,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 22,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        67,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 23,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        85,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 24,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        103,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 25,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        121,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 27,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        139,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 29,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        157,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 30,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        175,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 31,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        193,
+        268,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 32,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        49,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 33,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        67,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 34,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        85,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 35,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        103,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 36,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        121,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 37,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        139,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 38,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        157,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 39,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        175,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 40,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        193,
+        286,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 42,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        49,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 44,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        67,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 46,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        85,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 48,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        103,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 49,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        121,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 50,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        139,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 51,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        157,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 52,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        175,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 54,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/slot",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        193,
+        308,
+        18,
+        18
+      ],
+      "k": "slot",
+      "id": "inv"
+    },
+    {
+      "z": 65,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/card",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        60,
+        244,
+        72
+      ],
+      "k": "card",
+      "id": "state"
+    },
+    {
+      "z": 66,
+      "type": "text",
+      "text": "单方块天枢已就绪",
+      "x": 17,
+      "baseline": 80,
+      "width": 210,
+      "font": "NSC",
+      "weight": 700,
+      "size": 12,
+      "color": "#FF121A26",
+      "letter_spacing": -0.48,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_700_12",
+      "lang": "gui.molecularmanipulator.singularity.compact_ready",
+      "dynamic": false
+    },
+    {
+      "z": 67,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/dot_ok",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        235,
+        72,
+        4,
+        4
+      ]
+    },
+    {
+      "z": 68,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/common/dot_ok",
+      "slicing": "fixed",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        17,
+        89,
+        4,
+        4
+      ],
+      "id": "network_dot"
+    },
+    {
+      "z": 69,
+      "type": "text",
+      "text": "ME：在线 · 1 频道",
+      "x": 24,
+      "baseline": 91,
+      "width": 219,
+      "font": "NSC",
+      "weight": 600,
+      "size": 7,
+      "color": "#FF121A26",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_7",
+      "lang": "gui.molecularmanipulator.singularity.network_online",
+      "dynamic": false,
+      "center_y": 91
+    },
+    {
+      "z": 70,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/divider",
+      "slicing": "stretch",
+      "pad": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "rect": [
+        17,
+        101,
+        226,
+        0.5
+      ]
+    },
+    {
+      "z": 71,
+      "type": "text",
+      "text": "运行状态",
+      "x": 17,
+      "baseline": 113,
+      "width": 60,
+      "font": "NSC",
+      "weight": 500,
+      "size": 6,
+      "color": "#FF8592A3",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_500_6",
+      "dynamic": false,
+      "lang": "gui.molecularmanipulator.sing.s012",
+      "lang_new": true
+    },
+    {
+      "z": 72,
+      "type": "text",
+      "text": "资源采集与运动运行中",
+      "x": 85,
+      "baseline": 113,
+      "width": 158,
+      "font": "NSC",
+      "weight": 700,
+      "size": 7.5,
+      "color": "#FF2F64C4",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_700_7_5",
+      "lang": "gui.molecularmanipulator.singularity.status.running",
+      "dynamic": false,
+      "center_y": 111
+    },
+    {
+      "z": 73,
+      "type": "sprite",
+      "sprite": "molecularmanipulator:osq_light/sing/card_dark",
+      "slicing": "nine",
+      "pad": [
+        5,
+        3,
+        5,
+        7
+      ],
+      "rect": [
+        8,
+        138,
+        244,
+        100
+      ],
+      "k": "card",
+      "id": "info"
+    },
+    {
+      "z": 74,
+      "type": "text",
+      "text": "资源采集：在采集页面启停，产物自动存入 ME。",
+      "x": 17,
+      "baseline": 151,
+      "width": 226,
+      "font": "NSC",
+      "weight": 500,
+      "size": 8,
+      "color": "#A8FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_8",
+      "lang": "gui.molecularmanipulator.singularity.compact_collection",
+      "dynamic": false,
+      "wrap": true
+    },
+    {
+      "z": 75,
+      "type": "text",
+      "text": "物质复制：放入样品和微型黑洞，准备流体存储。",
+      "x": 17,
+      "baseline": 175,
+      "width": 226,
+      "font": "NSC",
+      "weight": 500,
+      "size": 8,
+      "color": "#A8FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_8",
+      "lang": "gui.molecularmanipulator.singularity.compact_duplication",
+      "dynamic": false,
+      "wrap": true
+    },
+    {
+      "z": 76,
+      "type": "text",
+      "text": "六面均可接入 ME，需供电及一个频道。",
+      "x": 17,
+      "baseline": 199,
+      "width": 226,
+      "font": "NSC",
+      "weight": 500,
+      "size": 8,
+      "color": "#FFFFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_8",
+      "lang": "gui.molecularmanipulator.singularity.compact_network",
+      "dynamic": false,
+      "wrap": true
+    },
+    {
+      "z": 77,
+      "type": "text",
+      "text": "持续生产需要保持所在区块加载。",
+      "x": 17,
+      "baseline": 223,
+      "width": 226,
+      "font": "NSC",
+      "weight": 500,
+      "size": 8,
+      "color": "#A8FFFFFF",
+      "letter_spacing": 0,
+      "opacity": 1,
+      "font_id": "molecularmanipulator:osq_nsc_600_8",
+      "lang": "gui.molecularmanipulator.singularity.compact_chunks",
+      "dynamic": false,
+      "wrap": true
+    }
+  ],
+  "boxes": [
+    {
+      "k": "card",
+      "id": "inv",
+      "r": {
+        "x": 41,
+        "y": 244,
+        "w": 178,
+        "h": 88
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 49,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 67,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 85,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 103,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 121,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 139,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 157,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 175,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 193,
+        "y": 250,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 49,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 67,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 85,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 103,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 121,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 139,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 157,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 175,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 193,
+        "y": 268,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 49,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 67,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 85,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 103,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 121,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 139,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 157,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 175,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 193,
+        "y": 286,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 49,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 67,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 85,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 103,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 121,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 139,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 157,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 175,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "slot",
+      "id": "inv",
+      "r": {
+        "x": 193,
+        "y": 308,
+        "w": 18,
+        "h": 18
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "state",
+      "r": {
+        "x": 8,
+        "y": 60,
+        "w": 244,
+        "h": 72
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    },
+    {
+      "k": "card",
+      "id": "info",
+      "r": {
+        "x": 8,
+        "y": 138,
+        "w": 244,
+        "h": 100
+      },
+      "par": -1,
+      "item": null,
+      "n": ""
+    }
+  ]
+}

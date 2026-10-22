@@ -67,6 +67,24 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         });
     }
 
+    /** Native AE2 slot silhouettes, without the opaque tile behind them. */
+    @Override
+    public void renderSlot(GuiGraphics graphics, Slot slot) {
+        if (!(slot instanceof appeng.menu.slot.AppEngSlot nativeSlot) || !slot.getItem().isEmpty()
+                || !slot.isActive() || !nativeSlot.isSlotEnabled()) {
+            super.renderSlot(graphics, slot);
+            return;
+        }
+        var icon=nativeSlot.getIcon();
+        if (!com.atir.molecularmanipulator.client.gui.theme.OsqSlotGhosts.supports(icon)) {
+            super.renderSlot(graphics, slot); return;
+        }
+        nativeSlot.setIcon(null);
+        try { super.renderSlot(graphics, slot); }
+        finally { nativeSlot.setIcon(icon); }
+        com.atir.molecularmanipulator.client.gui.theme.OsqSlotGhosts.draw(graphics,icon,slot.x,slot.y);
+    }
+
     @Override
     public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         if (renderingScaledContent) {

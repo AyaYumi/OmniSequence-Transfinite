@@ -1,0 +1,30 @@
+{
+ "providers": [
+  {
+   "type": "ttf",
+   "file": "molecularmanipulator:osq_num_semibold.ttf",
+   "size": 8,
+   "oversample": 4.0,
+   "shift": [
+    0.0,
+    0.0
+   ],
+   "skip": []
+  },
+  {
+   "type": "ttf",
+   "file": "molecularmanipulator:osq_sc_semibold.ttf",
+   "size": 8,
+   "oversample": 4.0,
+   "shift": [
+    0.0,
+    0.0
+   ],
+   "skip": []
+  },
+  {
+   "type": "reference",
+   "id": "minecraft:default"
+  }
+ ]
+}

@@ -8,7 +8,7 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.9, branch `1.21.1-neoforge` |
+| OmniSequence | 2.1.0, branch `1.21.1-neoforge` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 or later |
 | AppliedEnhancements | 1.1.2 or later, client and server |
@@ -16,6 +16,7 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 | ExtendedAE | 1.21-2.2.32-neoforge or later |
 | LDLib2 | 2.2.18 or later |
 | JEI / AdvancedAE | Optional; AdvancedAE enables its research/integration |
+| Neo ECO AE Extension | Optional; 21.2.9 or later when installed, matching on both sides |
 
 Install the mod and required dependencies separately in client and server `mods/` folders. Use matching builds on both sides. ExpandedAE 2.1.1 is incompatible with this mod.
 
@@ -61,6 +62,8 @@ Global configuration files are `config/omnisequence-transfinite-server.toml` and
 
 Modpack authors can define fabrication recipes and research through datapacks. Research, batch-provider and large-count processing interfaces for other mods are covered in the [developer documentation index](docs/README.md).
 
+ECO integration includes batch dispatch in both directions, reusable tools and containers, native FX exact batches, and ECO exact/phased/cyclic plans on Omni CPUs. See [ECO compatibility](docs/eco-compatibility.md) for quantity limits, cancellation and persistence contracts.
+
 ## Building from source
 
 Use Java 21, place `appliedenhancements-1.1.2.jar` in `libs/`, then run:
@@ -69,6 +72,6 @@ Use Java 21, place `appliedenhancements-1.1.2.jar` in `libs/`, then run:
 ./gradlew build apiJavadoc
 ```
 
-The runtime JAR is `build/libs/omnisequence-transfinite-2.0.9.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.1.0.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
 
 Licensed under the [MIT License](LICENSE).

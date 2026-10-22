@@ -31,6 +31,8 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
     private MatterResearchPanel researchPanel;
     private boolean researchPage;
     private long dismantleArmedAt;
+    private OsqUi ui;
+    private final StructureUpdateConfirmation updateConfirmation=new StructureUpdateConfirmation();
 
     public MatterFabricationScreen(MatterFabricationMenu menu, Inventory inventory, Component title,
             ScreenStyle style) {
@@ -39,35 +41,42 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
 
     @Override
     protected void init() {
-        var selection = researchPanel == null ? null : researchPanel.selection();
-        super.init();
-        buildButton = addScreenWidget(AeUiTheme.button(leftPos + 12, topPos + 246, 70, 18,
-                Component.translatable("gui.molecularmanipulator.fabrication.build"),
-                button -> menu.requestBuild()));
-        updateButton = addScreenWidget(AeUiTheme.button(leftPos + 12, topPos + 246, 70, 18,
-                Component.translatable("gui.molecularmanipulator.fabrication.update"),
-                button -> menu.requestStructureUpdate()));
-        updateButton.setTooltip(Tooltip.create(Component.translatable(
-                "gui.molecularmanipulator.structure_update_confirm_tooltip")));
-        previewButton = addScreenWidget(AeUiTheme.button(leftPos + 90, topPos + 246, 70, 18,
-                Component.translatable("gui.molecularmanipulator.fabrication.preview"), button -> {
-                    MatterFabricationGhostPreview.toggle(menu.getMachine());
-                    onClose();
-                }));
-        refreshButton = addScreenWidget(AeUiTheme.button(leftPos + 168, topPos + 246, 70, 18,
-                Component.translatable("gui.molecularmanipulator.fabrication.refresh"),
-                button -> menu.requestRefresh()));
-        dismantleButton = addScreenWidget(AeUiTheme.button(leftPos + 246, topPos + 246, 74, 18,
-                Component.translatable("gui.molecularmanipulator.fabrication.dismantle"),
-                button -> handleDismantleClick()));
-        dismantleButton.setTooltip(Tooltip.create(Component.translatable(
-                "gui.molecularmanipulator.fabrication.dismantle_tooltip")));
-        statusTab = addScreenWidget(AeUiTheme.button(leftPos + 12, topPos + 22, 70, 20,
-                Component.translatable("gui.molecularmanipulator.research.status_tab"), button -> setResearchPage(false)));
-        researchTab = addScreenWidget(AeUiTheme.button(leftPos + 86, topPos + 22, 70, 20,
-                Component.translatable("gui.molecularmanipulator.research.research_tab"), button -> setResearchPage(true)));
-        researchPanel = new MatterResearchPanel(menu, font, leftPos, topPos, button -> addScreenWidget(button));
-        researchPanel.restoreSelection(selection);
+        var selection=researchPanel==null?null:researchPanel.selection();
+        ui=new OsqUi("fab_overview");imageWidth=ui.layout.width;imageHeight=ui.layout.height;super.init();
+        ui.inventory(menu);ui.slots(menu.getSlots(appeng.menu.SlotSemantics.MACHINE_INPUT),"qes");
+        buildButton=addScreenWidget(ui.button("build",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fabrication.build"),menu::requestBuild));
+        updateButton=addScreenWidget(ui.button("build",leftPos,topPos,()->Component.translatable(updateConfirmation.isArmed()
+                ?"gui.molecularmanipulator.structure_update_second_confirm":"gui.molecularmanipulator.fabrication.update"),()->{if(updateConfirmation.click())menu.requestStructureUpdate();}));
+        previewButton=addScreenWidget(ui.button("preview",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fabrication.preview"),()->{MatterFabricationGhostPreview.toggle(menu.getMachine());onClose();}));
+        refreshButton=addScreenWidget(ui.button("refresh",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fabrication.refresh"),menu::requestRefresh));
+        dismantleButton=addScreenWidget(ui.button("dismantle",leftPos,topPos,()->Component.translatable(dismantleArmedAt>0
+                ?"gui.molecularmanipulator.fabrication.dismantle_confirm":"gui.molecularmanipulator.fabrication.dismantle"),this::handleDismantleClick));
+        ui.state(dismantleButton,()->dismantleArmedAt>0?"confirm":"danger");
+        statusTab=addScreenWidget(ui.tab(339.75f,9,26.38f,15,leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fab.s014"),()->setResearchPage(false)));
+        researchTab=addScreenWidget(ui.tab(365.63f,9,26.38f,15,leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.research.research_tab"),()->setResearchPage(true)));
+        ui.state(statusTab,()->researchPage?"normal":"active");ui.state(researchTab,()->researchPage?"active":"normal");
+        researchPanel=new MatterResearchPanel(menu,font,leftPos,topPos,button->addScreenWidget(button));researchPanel.restoreSelection(selection);
+        ui.text("gui.molecularmanipulator.fabrication.state.running",this::stateLabel);
+        ui.text("gui.molecularmanipulator.singularity.network_online",()->Component.translatable("gui.molecularmanipulator.fabrication."+(menu.networkOnline?"online":"offline")));
+        ui.number(327.36f,63,()->DisplayNumbers.compact(menu.aePerTick));
+        ui.number(213,86,()->menu.correctParts+" / "+menu.totalParts);ui.text("gui.molecularmanipulator.fab.s021",this::operationLabel);
+        ui.number(334,86,()->"-");
+        ui.number(16.5f,188,()->menu.correctParts);ui.number(29.03f,188,()->"");ui.number(59.23f,188,()->"/ "+menu.totalParts);ui.number(69.34f,188,()->"");
+        ui.number(212.5f,129,()->menu.progress);ui.number(233.95f,129,()->"/ "+Math.max(0,menu.processingTime)+" t");
+        ui.number(367.59f,126,()->Math.round(100*processRatio())+"%");
+        ui.number(262.02f,188,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.text("gui.molecularmanipulator.fab.s026",()->Component.translatable("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
+        ui.number(217.36f,244,()->"512");
+        ui.width(16.5f,188,40);ui.width(59.23f,188,65);
+        ui.width(212.5f,129,20);ui.width(233.95f,129,78);
+        ui.width(276,87,55);ui.width(327.36f,63,25);
+        ui.color("gui.molecularmanipulator.fab.s026",()->menu.quantumFrequency==0?ui.palette.ink3:
+                menu.quantumLinkState==QuantumLinkState.CONNECTED||menu.quantumLinkState==QuantumLinkState.CONNECTED_BUILD_ONLY?ui.palette.ok:ui.palette.warn);
+        ui.sprite(285.63f,44,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
+        ui.sprite(213,59,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
+        ui.progress(17,194,()->menu.correctParts/(double)Math.max(1,menu.totalParts));
+        ui.progress(213,137,this::processRatio);
+        ui.at(229.27f,244,()->Component.literal("AE/t · 1 频道 · 仅抽取搭建材料"));
         setResearchPage(researchPage);
     }
 
@@ -76,13 +85,14 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         menu.showResearchPage(visible);
         updatePageWidgets();
     }
+    void testPage(boolean research){setResearchPage(research);}
+    void testDetails(){setResearchPage(true);researchPanel.showDetails(true);}
 
     private void updatePageWidgets() {
         buildButton.visible = !researchPage && !menu.legacyStructure;
         updateButton.visible = !researchPage && menu.legacyStructure;
         previewButton.visible = refreshButton.visible = dismantleButton.visible = !researchPage;
-        statusTab.active = researchPage;
-        researchTab.active = !researchPage;
+        statusTab.active = researchTab.active = true;
         researchPanel.update(researchPage);
     }
 
@@ -98,6 +108,11 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         super.render(graphics, mouseX, mouseY, partialTick);
         double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
         List<Component> tooltip = researchPage ? researchPanel.tooltipAt(x, y)
+                : x >= 235 && x < 384 && y >= 178 && y < 194
+                        ? List.of(Component.translatable("gui.molecularmanipulator.fab.s025").append(": ")
+                                .append(menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT)))
+                : x >= 213 && x < 384 && y >= 198 && y < 220
+                        ? List.of(Component.translatable("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)))
                 : x >= 20 && x < 152 && y >= 90 && y < 102
                         ? List.of(Component.translatable("gui.molecularmanipulator.fabrication.power", DisplayNumbers.exact(menu.aePerTick)))
                         : List.of();
@@ -108,6 +123,7 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
     public void containerTick() {
         super.containerTick();
         boolean operationActive = menu.building || menu.dismantling;
+        updateConfirmation.tick(menu.legacyStructure&&!operationActive);
         if (buildButton != null) {
             buildButton.active = !operationActive && !menu.updatingStructure;
         }
@@ -150,91 +166,15 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
     @Override
     public void drawBG(GuiGraphics graphics, int x, int y, int mouseX, int mouseY,
             float partialTick) {
-        super.drawBG(graphics, x, y, mouseX, mouseY, partialTick);
-        AeUiTheme.slotGrid(graphics, x + 84, y + 281, 9, 3);
-        AeUiTheme.slotGrid(graphics, x + 84, y + 339, 9, 1);
-        if (researchPage) {
-            researchPanel.drawBackground(graphics, x, y);
-            return;
-        }
-        AeUiTheme.panel(graphics, x + 12, y + 44, x + 160, y + 142);
-        AeUiTheme.panel(graphics, x + 168, y + 44, x + 320, y + 142);
-        AeUiTheme.panel(graphics, x + 12, y + 150, x + 320, y + 238);
-        AeUiTheme.slot(graphics, x + 21, y + 168);
-
-        float processRatio = menu.processingTime <= 0 ? 0.0F
-                : Math.min(1.0F, menu.progress / (float) menu.processingTime);
-        AeUiTheme.progress(graphics, x + 21, y + 120, 130, 7,
-                processRatio,
-                menu.state == MatterFabricationBlockEntity.ProcessingState.RUNNING ? CYAN : PURPLE);
-        float operationRatio = menu.operationTotal <= 0 ? 0.0F
-                : Math.min(1.0F, menu.operationProgress / (float) menu.operationTotal);
-        AeUiTheme.progress(graphics, x + 177, y + 120, 134, 7,
-                operationRatio, menu.dismantling ? AeUiTheme.ERROR : CYAN);
+        if(ui==null)return;
+        if(researchPage)researchPanel.drawBackground(graphics,x,y);else ui.background(graphics,font,x,y);
     }
 
     @Override
     public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        var displayTitle = title.getString().isBlank()
-                ? Component.translatable("block.molecularmanipulator.matter_fabrication_controller") : title;
-        drawFittedText(graphics, displayTitle, 12, 10, 308, AeUiTheme.PRIMARY_TEXT);
-        if (researchPage) {
-            researchPanel.drawForeground(graphics);
-            drawFittedText(graphics, Component.translatable("container.inventory"), 85, 270, 162, AeUiTheme.PRIMARY_TEXT);
-            return;
-        }
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.telemetry"), 20, 48, 132, AeUiTheme.PRIMARY_TEXT);
-        drawFittedText(graphics, stateLabel(), 20, 62, 132, stateColor());
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.network",
-                Component.translatable(menu.networkOnline
-                        ? "gui.molecularmanipulator.fabrication.online"
-                        : "gui.molecularmanipulator.fabrication.offline")),
-                20, 76, 132, menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.power",
-                DisplayNumbers.compact(menu.aePerTick)),
-                20, 90, 132, AeUiTheme.MUTED_TEXT);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.progress", menu.progress, Math.max(menu.processingTime, 0)),
-                20, 104, 132, AeUiTheme.MUTED_TEXT);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.service_ports"), 20, 130, 132, AeUiTheme.MUTED_TEXT);
-
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.management"), 176, 48, 136, AeUiTheme.PRIMARY_TEXT);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.structure", menu.correctParts, menu.totalParts),
-                176, 62, 136, menu.formed ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.missing", menu.missingParts),
-                176, 76, 136, menu.missingParts == 0 ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.conflict", menu.conflictParts),
-                176, 90, 136, menu.conflictParts == 0 ? AeUiTheme.SUCCESS : AeUiTheme.ERROR);
-        drawFittedText(graphics, operationLabel(), 176, 104, 136,
-                menu.dismantling ? AeUiTheme.ERROR : AeUiTheme.MUTED_TEXT);
-        if (menu.legacyStructure) {
-            drawFittedText(graphics, Component.translatable(
-                    "gui.molecularmanipulator.fabrication.legacy_detected"), 176, 130, 136, AeUiTheme.WARNING);
-        }
-
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.quantum_title"), 50, 158, 262, AeUiTheme.PRIMARY_TEXT);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.quantum_frequency", menu.quantumFrequency),
-                50, 172, 262, AeUiTheme.MUTED_TEXT);
-        boolean connected = menu.quantumLinkState == QuantumLinkState.CONNECTED
-                || menu.quantumLinkState == QuantumLinkState.CONNECTED_BUILD_ONLY;
-        drawFittedText(graphics, Component.translatable("gui.molecularmanipulator.quantum_state."
-                + menu.quantumLinkState.name().toLowerCase(Locale.ROOT)), 50, 186, 262,
-                connected ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        graphics.drawWordWrap(font, Component.translatable(
-                "gui.molecularmanipulator.fabrication.quantum_build_hint"), 20, 202, 292, AeUiTheme.MUTED_TEXT);
-        drawFittedText(graphics, Component.translatable(
-                "gui.molecularmanipulator.fabrication.pattern_network_hint"), 20, 225, 292, AeUiTheme.MUTED_TEXT);
-        drawFittedText(graphics, Component.translatable("container.inventory"), 85, 270, 162, AeUiTheme.PRIMARY_TEXT);
+        if(ui==null)return;
+        if(researchPage){researchPanel.drawForeground(graphics);return;}
+        ui.foreground(graphics,font);
     }
 
     private void drawFittedText(GuiGraphics graphics, Component text, int x, int y, int maxWidth, int color) {
@@ -245,6 +185,8 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         graphics.drawString(font, text, 0, 0, color, false);
         graphics.pose().popPose();
     }
+
+    private float processRatio(){return menu.processingTime<=0?0:Math.min(1,menu.progress/(float)menu.processingTime);}
 
     private Component operationLabel() {
         if (menu.updatingStructure) {

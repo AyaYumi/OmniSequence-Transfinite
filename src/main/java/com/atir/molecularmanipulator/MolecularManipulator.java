@@ -7,6 +7,8 @@ import com.atir.molecularmanipulator.network.MatterFabricationUploadPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.integration.useless.UselessBigIntegerApiBridge;
 import appeng.api.AECapabilities;
+import appeng.api.storage.StorageCells;
+import com.atir.molecularmanipulator.ae2.CreativeNegentropyInfoCellHandler;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
@@ -25,6 +27,7 @@ public final class MolecularManipulator {
     public MolecularManipulator(IEventBus modEventBus, ModContainer modContainer) {
         ModConfig.register(modContainer);
         ModContent.register(modEventBus);
+        StorageCells.addCellHandler(CreativeNegentropyInfoCellHandler.INSTANCE);
         modEventBus.addListener(MultiblockChunkLoading::register);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);

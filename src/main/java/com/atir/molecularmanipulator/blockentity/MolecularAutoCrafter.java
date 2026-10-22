@@ -77,11 +77,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private boolean scheduleDirty = true;
     private int scheduleCursor;
     private boolean suppressInventoryEvents;
-    private long decodedTick = Long.MIN_VALUE;
-    private Level decodedLevel;
-    private java.util.Collection<?> decodedRecipes;
-    private final java.util.Map<Integer, DecodedPattern> decodedPatterns = new java.util.HashMap<>();
-    private record DecodedPattern(AEItemKey definition, IPatternDetails details) {}
+    private final MolecularAutoCraftPatternCache<AEItemKey, IPatternDetails> decodedPatterns =
+            new MolecularAutoCraftPatternCache<>();
 
     public MolecularAutoCrafter(MolecularAutoCrafterHost host) {
         this.host = host;
@@ -184,7 +181,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
     @Override
     public void onChangeInventory(AppEngInternalInventory inventory, int slot) {
-        if (inventory == patternInventory) decodedPatterns.remove(slot);
+        if (inventory == patternInventory) decodedPatterns.invalidate(slot);
         if (!suppressInventoryEvents && inventory == patternInventory
                 && isIndependentSlot(slot)) {
             if (configs.remove(slot) != null) {
@@ -671,19 +668,22 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         if (!isIndependentSlot(slot)) return null;
         ItemStack stack = patternInventory.getStackInSlot(slot);
         Level level = host.getLevel();
-        if (stack.isEmpty() || level == null || !MolecularCenterLogic.isSupportedPattern(stack)) return null;
-        var recipes = level.getRecipeManager().getRecipes();
-        if (decodedLevel != level || decodedTick != level.getGameTime() || decodedRecipes != recipes) {
-            decodedLevel = level; decodedTick = level.getGameTime(); decodedRecipes = recipes; decodedPatterns.clear();
+        if (stack.isEmpty() || level == null || !MolecularCenterLogic.isSupportedPattern(stack)) {
+            decodedPatterns.invalidate(slot);
+            return null;
         }
-        var definition = AEItemKey.of(stack);
-        var cached = decodedPatterns.get(slot);
-        if (cached != null && cached.definition().equals(definition)) return cached.details();
-        IPatternDetails details;
-        try { details = PatternDetailsHelper.decodePattern(stack, level); }
-        catch (RuntimeException exception) { details = null; }
-        decodedPatterns.put(slot, new DecodedPattern(definition, details));
-        return details;
+        // In 1.21.1 getRecipes() is the cached values view of the immutable
+        // byName map: O(1), no full-recipe scan or collection rebuild. Both
+        // datapack reload and replaceRecipes/client sync replace that map.
+        // Keep decoded patterns across ticks until that view or the slot changes.
+        return decodedPatterns.get(slot, AEItemKey.of(stack), level,
+                level.getRecipeManager().getRecipes(), () -> {
+                    try {
+                        return PatternDetailsHelper.decodePattern(stack, level);
+                    } catch (RuntimeException exception) {
+                        return null;
+                    }
+                });
     }
 
     private PatternConfig ensureConfig(int slot, IPatternDetails details) {

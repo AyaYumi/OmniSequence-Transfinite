@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.atir.molecularmanipulator.client.render.ctm.MatterGoldEmissive;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import javax.imageio.ImageIO;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,8 @@ class MatterGoldMaskTest {
         for (String kind : new String[]{"input", "output"}) {
             String name = "matter_fabrication_fluid_" + kind;
             var texture = ResourceLocation.parse("molecularmanipulator:block/" + name);
-            var original = ImageIO.read(Path.of("tools/textures/static", name + ".png").toFile());
+            var original = ImageIO.read(Objects.requireNonNull(
+                    MatterGoldMaskTest.class.getResourceAsStream("/matter_gold/" + name + ".png")));
             var image = ImageIO.read(Path.of("src/main/resources/assets/molecularmanipulator/textures/block", name + ".png").toFile());
             int selected = 0;
             for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < 16; x++) {

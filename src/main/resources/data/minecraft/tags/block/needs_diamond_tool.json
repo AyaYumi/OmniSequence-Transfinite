@@ -24,6 +24,12 @@
     "molecularmanipulator:matter_fabrication_glass",
     "molecularmanipulator:matter_fabrication_coil",
     "molecularmanipulator:matter_fabrication_stabilizer",
-    "molecularmanipulator:matter_fabrication_core"
+    "molecularmanipulator:matter_fabrication_core",
+    "molecularmanipulator:negative_entropy_engine_core",
+    "molecularmanipulator:negative_entropy_engine_casing",
+    "molecularmanipulator:negative_entropy_observation_window",
+    "molecularmanipulator:base_entropy_anchor",
+    "molecularmanipulator:quantum_entropy_anchor",
+    "molecularmanipulator:terminal_entropy_anchor"
   ]
 }

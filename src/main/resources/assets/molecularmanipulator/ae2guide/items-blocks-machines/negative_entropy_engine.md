@@ -15,7 +15,7 @@ item_ids:
 
 # Negative Entropy Engine
 
-The Negative Entropy Engine is a **3×3×3** multiblock built from a core, casing and observation windows. Once formed, the shell renders as one continuous machine panel.
+The Negative Entropy Engine is a **3×3×3** multiblock built from a core, casing and observation windows. Once formed, the shell is covered by one continuous machine panel, with the observation windows left visible at the centre of each side.
 
 <Row>
 <BlockImage id="molecularmanipulator:negative_entropy_engine_core" scale="4" />

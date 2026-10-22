@@ -5,7 +5,9 @@ import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKey;
 import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKeyType;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
 import com.atir.molecularmanipulator.block.NegativeEntropyBuddingQuartzBlock;
+import com.atir.molecularmanipulator.block.NegativeEntropyEngineCasingBlock;
 import com.atir.molecularmanipulator.block.NegativeEntropyEngineCoreBlock;
+import com.atir.molecularmanipulator.block.NegativeEntropyObservationWindowBlock;
 import com.atir.molecularmanipulator.block.CosmicSingularityBlock;
 import com.atir.molecularmanipulator.block.GravityCrystalBlock;
 import com.atir.molecularmanipulator.block.GhostMatterBlock;
@@ -217,21 +219,22 @@ public final class ModContent {
             BLOCKS.register("negative_entropy_engine_core", () -> new NegativeEntropyEngineCoreBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> 8)));
+                            .lightLevel(state -> state.getValue(NegativeEntropyEngineCoreBlock.FORMED) ? 15 : 8)));
     public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_ENGINE_CORE_ITEM = registerBlockItem(
             "negative_entropy_engine_core", NEGATIVE_ENTROPY_ENGINE_CORE);
-    public static final DeferredBlock<OmniComputationPartBlock> NEGATIVE_ENTROPY_ENGINE_CASING =
-            BLOCKS.register("negative_entropy_engine_casing", () -> new OmniComputationPartBlock(
+    public static final DeferredBlock<NegativeEntropyEngineCasingBlock> NEGATIVE_ENTROPY_ENGINE_CASING =
+            BLOCKS.register("negative_entropy_engine_casing", () -> new NegativeEntropyEngineCasingBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> 3)));
+                            .lightLevel(state -> state.getValue(NegativeEntropyEngineCasingBlock.FORMED) ? 10 : 3)));
     public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_ENGINE_CASING_ITEM = registerBlockItem(
             "negative_entropy_engine_casing", NEGATIVE_ENTROPY_ENGINE_CASING);
-    public static final DeferredBlock<MolecularCenterGlassBlock> NEGATIVE_ENTROPY_OBSERVATION_WINDOW =
-            BLOCKS.register("negative_entropy_observation_window", () -> new MolecularCenterGlassBlock(
+    public static final DeferredBlock<NegativeEntropyObservationWindowBlock> NEGATIVE_ENTROPY_OBSERVATION_WINDOW =
+            BLOCKS.register("negative_entropy_observation_window", () -> new NegativeEntropyObservationWindowBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(5.0F, 1200.0F).requiresCorrectToolForDrops()
-                            .noOcclusion().lightLevel(state -> 8)));
+                            .noOcclusion()
+                            .lightLevel(state -> state.getValue(NegativeEntropyObservationWindowBlock.FORMED) ? 13 : 8)));
     public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_OBSERVATION_WINDOW_ITEM = registerBlockItem(
             "negative_entropy_observation_window", NEGATIVE_ENTROPY_OBSERVATION_WINDOW);
     public static final DeferredBlock<OmniComputationPartBlock> BASE_ENTROPY_ANCHOR =

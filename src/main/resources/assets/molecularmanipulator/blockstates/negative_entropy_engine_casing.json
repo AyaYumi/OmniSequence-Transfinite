@@ -1,1 +1,34 @@
-{"variants":{"facing=north":{"model":"molecularmanipulator:block/negative_entropy_engine_casing"},"facing=east":{"model":"molecularmanipulator:block/negative_entropy_engine_casing","y":90},"facing=south":{"model":"molecularmanipulator:block/negative_entropy_engine_casing","y":180},"facing=west":{"model":"molecularmanipulator:block/negative_entropy_engine_casing","y":270}}}
+{
+  "variants": {
+    "facing=north,formed=false": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing"
+    },
+    "facing=east,formed=false": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing",
+      "y": 90
+    },
+    "facing=south,formed=false": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing",
+      "y": 180
+    },
+    "facing=west,formed=false": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing",
+      "y": 270
+    },
+    "facing=north,formed=true": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing_formed"
+    },
+    "facing=east,formed=true": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing_formed",
+      "y": 90
+    },
+    "facing=south,formed=true": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing_formed",
+      "y": 180
+    },
+    "facing=west,formed=true": {
+      "model": "molecularmanipulator:block/negative_entropy_engine_casing_formed",
+      "y": 270
+    }
+  }
+}

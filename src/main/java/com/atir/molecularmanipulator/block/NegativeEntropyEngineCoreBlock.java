@@ -13,18 +13,23 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import org.jetbrains.annotations.Nullable;
 
 public final class NegativeEntropyEngineCoreBlock extends Block implements EntityBlock {
+    public static final BooleanProperty FORMED = BooleanProperty.create("formed");
+
     public NegativeEntropyEngineCoreBlock(Properties properties) {
         super(properties);
-        registerDefaultState(defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH));
+        registerDefaultState(defaultBlockState()
+                .setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH)
+                .setValue(FORMED, false));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
-        builder.add(HorizontalDirectionalBlock.FACING);
+        builder.add(HorizontalDirectionalBlock.FACING, FORMED);
     }
 
     @Override
@@ -38,6 +43,14 @@ public final class NegativeEntropyEngineCoreBlock extends Block implements Entit
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new NegativeEntropyEngineCoreBlockEntity(pos, state);
+    }
+
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!state.is(newState.getBlock())) {
+            NegativeEntropyEngineCoreBlockEntity.resetShell(level, pos);
+        }
+        super.onRemove(state, level, pos, newState, isMoving);
     }
 
     @Nullable

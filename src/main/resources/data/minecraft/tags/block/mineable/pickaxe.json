@@ -55,6 +55,12 @@
     "molecularmanipulator:negative_entropy_budding_quartz",
     "molecularmanipulator:negative_entropy_flawed_budding_quartz",
     "molecularmanipulator:negative_entropy_chipped_budding_quartz",
-    "molecularmanipulator:negative_entropy_damaged_budding_quartz"
+    "molecularmanipulator:negative_entropy_damaged_budding_quartz",
+    "molecularmanipulator:negative_entropy_engine_core",
+    "molecularmanipulator:negative_entropy_engine_casing",
+    "molecularmanipulator:negative_entropy_observation_window",
+    "molecularmanipulator:base_entropy_anchor",
+    "molecularmanipulator:quantum_entropy_anchor",
+    "molecularmanipulator:terminal_entropy_anchor"
   ]
 }

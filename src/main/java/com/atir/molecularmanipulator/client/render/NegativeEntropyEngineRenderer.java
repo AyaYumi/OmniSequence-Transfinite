@@ -16,15 +16,17 @@ import net.minecraft.world.phys.AABB;
 /**
  * Draws the formed 3x3x3 Negative Entropy Engine as one continuous shell.
  *
- * <p>The six faces are slightly outside the 3x3x3 block boundary so they cover
- * the loose casing/window models while the core block entity owns the formed
- * state. The texture is deliberately a standalone 64x64 panel, like ECO's
- * formed controller artwork.</p>
+ * <p>The four side faces use a copy of the 64x64 panel with the centre
+ * one-block cell cut out, so the observation windows stay visible. The top
+ * and bottom faces use the full panel. Both shells are slightly outside the
+ * 3x3x3 block boundary so they cover the loose casing models.</p>
  */
 public final class NegativeEntropyEngineRenderer
         implements BlockEntityRenderer<NegativeEntropyEngineCoreBlockEntity> {
-    private static final ResourceLocation TEXTURE =
+    private static final ResourceLocation FULL_TEXTURE =
             MolecularManipulator.id("textures/block/negative_entropy_engine_formed.png");
+    private static final ResourceLocation SIDE_TEXTURE =
+            MolecularManipulator.id("textures/block/negative_entropy_engine_formed_side.png");
 
     public NegativeEntropyEngineRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -40,14 +42,19 @@ public final class NegativeEntropyEngineRenderer
         pose.translate(-1.002F, -1.002F, -1.002F);
         pose.scale(3.004F, 3.004F, 3.004F);
         var vertexPose = pose.last();
-        var buffer = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+        var side = buffers.getBuffer(RenderType.entityCutoutNoCull(SIDE_TEXTURE));
+        var full = buffers.getBuffer(RenderType.entityCutoutNoCull(FULL_TEXTURE));
 
-        quad(buffer, vertexPose, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1);
-        quad(buffer, vertexPose, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, -1);
-        quad(buffer, vertexPose, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 0, 0);
-        quad(buffer, vertexPose, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0);
-        quad(buffer, vertexPose, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0);
-        quad(buffer, vertexPose, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, -1, 0);
+        // Side faces use the windowed copy; the centre cutout reveals the
+        // observation window block behind it.
+        quad(side, vertexPose, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1);
+        quad(side, vertexPose, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, -1);
+        quad(side, vertexPose, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, -1, 0, 0);
+        quad(side, vertexPose, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0);
+
+        // Top and bottom have no windows, so they use the full reactor face.
+        quad(full, vertexPose, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 1, 0);
+        quad(full, vertexPose, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, -1, 0);
 
         pose.popPose();
     }

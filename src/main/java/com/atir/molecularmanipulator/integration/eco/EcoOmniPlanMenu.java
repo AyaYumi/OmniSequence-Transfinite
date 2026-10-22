@@ -25,6 +25,7 @@ import cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlanningStatus;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -160,7 +161,7 @@ public final class EcoOmniPlanMenu {
         } catch (Rejected invalid) {
             return new Outcome(invalid.getMessage(), CraftingSubmitResult.INCOMPLETE_PLAN);
         } catch (RuntimeException | LinkageError invalid) {
-            org.slf4j.LoggerFactory.getLogger(EcoOmniPlanMenu.class).warn("Omni rejected ECO confirmation", invalid);
+            RateLimitedLog.warn("Omni rejected ECO confirmation", invalid);
             return new Outcome("EXACT_ORDER_INVALID", CraftingSubmitResult.INCOMPLETE_PLAN);
         }
     }

@@ -914,28 +914,6 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         return true;
     }
 
-    private void releasePendingServiceBlocks(ServerPlayer player) {
-        for (var stack : pendingMigrationServiceBlocks) {
-            returnPreservedServiceBlock(player, stack);
-        }
-        pendingMigrationServiceBlocks.clear();
-    }
-
-    private void returnPreservedServiceBlock(ServerPlayer player, ItemStack stack) {
-        if (stack.isEmpty()) {
-            return;
-        }
-        var remainder = insertIntoNetwork(stack);
-        if (remainder.isEmpty()) {
-            return;
-        }
-        var playerRemainder = remainder.copy();
-        player.getInventory().add(playerRemainder);
-        if (!playerRemainder.isEmpty()) {
-            player.drop(playerRemainder, false);
-        }
-    }
-
     public void startDismantle(ServerPlayer player) {
         if (level == null || level.isClientSide() || building || dismantling
                 || updatingStructure || !player.mayBuild()) {
@@ -1220,20 +1198,6 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         buildOwner = null;
         scheduleStructureCheck();
         saveChanges();
-    }
-
-    private void storeRecoveredMaterial(ServerPlayer player, ItemStack stack) {
-        if (stack.isEmpty() || player.getAbilities().instabuild) {
-            return;
-        }
-        var remainder = insertIntoNetwork(stack);
-        if (!remainder.isEmpty()) {
-            var playerRemainder = remainder.copy();
-            player.getInventory().add(playerRemainder);
-            if (!playerRemainder.isEmpty()) {
-                player.drop(playerRemainder, false);
-            }
-        }
     }
 
     private boolean takeBuildMaterial(ServerPlayer player, ItemStack template) {

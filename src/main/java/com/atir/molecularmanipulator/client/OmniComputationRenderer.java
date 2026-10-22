@@ -18,9 +18,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import java.util.List;
-import java.util.function.DoubleFunction;
-import java.util.function.DoublePredicate;
 
 /**
  * Vertex-built singularity computer for the omni computation array.

@@ -4,7 +4,6 @@ import appeng.api.stacks.GenericStack;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
-import com.atir.molecularmanipulator.research.ResearchDepth;
 import com.atir.molecularmanipulator.research.ResearchBatch;
 import net.minecraft.client.gui.screens.Screen;
 import com.google.gson.JsonObject;
@@ -434,15 +433,8 @@ final class MatterResearchPanel {
                 ? counts.get(id.toString()).getAsInt() : completed.contains(id.toString()) ? 1 : 0);
     }
     private boolean liveForSelected() { return selected != null && live.has("id") && selected.toString().equals(live.get("id").getAsString()); }
-    private static String number(long amount) {
-        return DisplayNumbers.compact(amount);
-    }
     private static Component quantity(String key, long amount) {
         return Component.translatable("gui.molecularmanipulator.research.quantity_" + key, DisplayNumbers.exact(amount));
-    }
-    private static List<Component> benefitTooltip(String title, ResearchDepth depth) {
-        return List.of(text(title), quantity("parallel", depth.parallel()), depth.processingTicks() > 0
-                ? quantity("ticks", depth.processingTicks()) : quantity("speed", depth.speedMultiplier()));
     }
     List<Component> tooltipAt(double x, double y) {
         if (!visible) return List.of();
@@ -450,9 +442,6 @@ final class MatterResearchPanel {
                 && y >= tip.y() && y < tip.y() + tip.height()).findFirst().map(QuantityTooltip::lines).orElse(List.of());
     }
     private record QuantityTooltip(int x, int y, int width, int height, List<Component> lines) {}
-    private Component shortLabel(Component label, int width) {
-        return font.width(label) <= width ? label : Component.literal(font.plainSubstrByWidth(label.getString(), width - font.width("…")) + "…");
-    }
     private static Component text(String key) { return Component.translatable("gui.molecularmanipulator.research." + key); }
     private static Component orderState(String key) {
         return Component.translatable("gui.molecularmanipulator.research.order_state." + key);
@@ -467,13 +456,5 @@ final class MatterResearchPanel {
 
     private record OrderEntry(GenericStack target, long queued, long active, String status,
                               List<GenericStack> missing, ResourceLocation owner) { }
-    private void fitted(GuiGraphics graphics, Component text, int x, int y, int width, int color) {
-        float scale = Math.min(1, width / (float) Math.max(1, font.width(text)));
-        graphics.pose().pushPose();
-        graphics.pose().translate(x, y, 0);
-        graphics.pose().scale(scale, scale, 1);
-        graphics.drawString(font, text, 0, 0, color, false);
-        graphics.pose().popPose();
-    }
 
 }

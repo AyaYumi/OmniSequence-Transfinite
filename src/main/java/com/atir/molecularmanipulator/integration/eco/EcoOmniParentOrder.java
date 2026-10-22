@@ -15,6 +15,7 @@ import cn.dancingsnow.neoecoae.crafting.execution.bigorder.ECOBigCraftingOrder;
 import cn.dancingsnow.neoecoae.crafting.planner.ECOBigOrderPlanner;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlanningStatus;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -157,7 +158,7 @@ public final class EcoOmniParentOrder {
         } catch (Exception | LinkageError failure) {
             stopPlanning();
             order.fail("PLANNING_FAILED");
-            org.slf4j.LoggerFactory.getLogger(EcoOmniParentOrder.class).warn("ECO Omni parent planning failed", failure);
+            RateLimitedLog.warn("ECO Omni parent planning failed", failure);
         }
         host.ecoParent$dirty();
     }

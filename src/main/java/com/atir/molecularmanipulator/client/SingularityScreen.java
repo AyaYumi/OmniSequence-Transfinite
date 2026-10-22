@@ -1,15 +1,11 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.blockentity.SingularityBlockEntity;
 import com.atir.molecularmanipulator.blockentity.SingularityDuplicationProcessor;
 import com.atir.molecularmanipulator.blockentity.SingularityStructure;
 import com.atir.molecularmanipulator.menu.SingularityMenu;
-import guideme.PageAnchor;
-import guideme.internal.GuideMEClient;
-import guideme.internal.GuideRegistry;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -142,19 +138,6 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         collectionPage=false;duplicationPage=true;rebuildWidgets();
     }
 
-    private void openGuide() {
-        String page = collectionPage ? "singularity_resource_collection"
-                : duplicationPage ? "singularity_matter_duplication"
-                : menu.getMachine().isSingleBlock() ? "compact_singularity_hub" : "event_horizon_singularity_hub";
-        var pageId = MolecularManipulator.id("items-blocks-machines/" + page + ".md");
-        GuideRegistry.getAll().stream().filter(guide -> guide.pageExists(pageId)).findFirst()
-                .ifPresent(guide -> GuideMEClient.openGuideAtAnchor(guide, PageAnchor.page(pageId)));
-    }
-
-    private Button button(int x, int y, int width, String text, Button.OnPress action) {
-        return addScreenWidget(AeUiTheme.button(leftPos + x, topPos + y, width, 18, tr(text), action));
-    }
-
     private void updateWidgets() {
         boolean operationActive = menu.operation != SingularityBlockEntity.Operation.IDLE;
         boolean secondaryPage = collectionPage || duplicationPage;
@@ -207,65 +190,12 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         if(ui!=null)ui.background(g,font,ox,oy);
     }
 
-    private void text(GuiGraphics g, Component text, int x, int y, int width, int color) {
-        AeUiTheme.label(g, font, text, x, y, width, color);
-    }
-
     @Override
     public void drawFG(GuiGraphics g, int ox, int oy, int mx, int my) {
         if(ui==null)return;ui.foreground(g,font);
         if(collectionPage){var resources=collectionResources();for(int i=0;i<12;i++){int index=collectionScroll*12+i;if(index>=resources.size())break;
             int x=17+i%3*108,y=111+i/3*23;var item=resources.get(index);g.renderItem(item,x+1,y+1);ui.smallText(g,item.getHoverName(),x+23,y+12,76);}}
 
-    }
-
-    private void drawOverview(GuiGraphics g) {
-        if (menu.getMachine().isSingleBlock()) {
-            text(g, tr("compact_ready"), 20, 55, 140, AeUiTheme.SUCCESS);
-            text(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 172, 55, 140,
-                    menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-            text(g, tr("running_status", overviewStatus()), 20, 76, 292, AeUiTheme.PRIMARY_TEXT);
-            text(g, tr("compact_collection"), 20, 100, 292, AeUiTheme.MUTED_TEXT);
-            text(g, tr("compact_duplication"), 20, 122, 292, AeUiTheme.MUTED_TEXT);
-            text(g, tr("compact_network"), 20, 145, 292, AeUiTheme.ACCENT);
-            text(g, tr("compact_chunks"), 20, 164, 292, AeUiTheme.MUTED_TEXT);
-            drawQuantumInput(g);
-            return;
-        }
-        text(g, tr(menu.formed ? "formed" : "incomplete"), 20, 55, 140,
-                menu.formed ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        text(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 172, 55, 140,
-                menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-        text(g, tr("running_status", overviewStatus()), 20, 72, 292,
-                menu.collectionActive && menu.motionMode == 1 ? AeUiTheme.SUCCESS : AeUiTheme.PRIMARY_TEXT);
-        text(g, tr("structure_count", menu.correct, SingularityStructure.parts(menu.structureVersion).size()), 20, 90, 292, AeUiTheme.PRIMARY_TEXT);
-        AeUiTheme.progress(g, 20, 104, 292, 6,
-                (float) menu.correct / Math.max(1, SingularityStructure.parts(menu.structureVersion).size()), AeUiTheme.CYAN);
-        text(g, tr("inspection", menu.missing, menu.conflicts, menu.unloaded), 20, 117, 292,
-                menu.conflicts > 0 ? AeUiTheme.ERROR : AeUiTheme.MUTED_TEXT);
-        if (menu.operation != SingularityBlockEntity.Operation.IDLE) {
-            text(g, tr("operation_count", menu.progress, menu.operationTotal), 20, 135, 292, AeUiTheme.MUTED_TEXT);
-            AeUiTheme.progress(g, 20, 147, 292, 5,
-                    (float) menu.progress / Math.max(1, menu.operationTotal), AeUiTheme.ACCENT);
-        }
-        Component detail = menu.neededMaterial >= 0 && menu.neededMaterial < SingularityStructure.Type.values().length
-                ? tr("waiting_material", SingularityStructure.block(SingularityStructure.Type.values()[menu.neededMaterial]).getName())
-                : menu.problem.isEmpty() ? tr("build_hint") : tr("problem", menu.problem);
-        text(g, detail, 20, 163, 292, menu.problem.isEmpty() ? AeUiTheme.MUTED_TEXT : AeUiTheme.WARNING);
-        boolean migrationAvailable = menu.structureVersion == SingularityStructure.LEGACY_VERSION
-                || menu.structureVersion == SingularityStructure.EMBEDDED_VERSION;
-        if (migrationAvailable && menu.operation == SingularityBlockEntity.Operation.IDLE) {
-            text(g, tr(menu.structureVersion == SingularityStructure.EMBEDDED_VERSION
-                    ? "upgrade_available" : "embed_available"), 20, 135, 292, AeUiTheme.MUTED_TEXT);
-        }
-        drawQuantumInput(g);
-    }
-
-    private void drawQuantumInput(GuiGraphics g) {
-        text(g, tr("quantum_input"), 50, 181, 254, AeUiTheme.PRIMARY_TEXT);
-        text(g, tr("quantum_input_hint"), 50, 192, 254, AeUiTheme.MUTED_TEXT);
-        text(g, tr("quantum_state", menu.quantumFrequency, Component.translatable("gui.molecularmanipulator.quantum_state." + quantumStateKey())), 50, 203, 254,
-                quantumConnected() ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
     }
 
     private Component overviewStatus() {
@@ -279,48 +209,6 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         if (menu.collectionActive && menu.motionMode == 1) return tr("status.running");
         if (menu.collectionActive) return tr("status.collection_paused");
         return tr("status." + menu.status.name().toLowerCase(Locale.ROOT));
-    }
-
-    private void drawCollection(GuiGraphics g) {
-        text(g, tr("collection_title"), 20, 54, 292, AeUiTheme.PRIMARY_TEXT);
-        boolean storageFull = menu.status == SingularityBlockEntity.Status.STORAGE_FULL;
-        text(g, tr(menu.getMachine().isSingleBlock() && menu.collectionActive && !menu.networkOnline ? "status.collection_paused"
-                : menu.collectionStarting ? "collection_starting_status"
-                : storageFull ? "status.storage_full"
-                : menu.collectionActive ? "collection_running" : "collection_stopped"),
-                20, 74, 292, storageFull ? AeUiTheme.ERROR
-                        : menu.collectionActive ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        text(g, tr("collection_network", menu.networkOnline ? tr("online") : tr("offline")),
-                20, 92, 292, menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        text(g, tr("quantum_state", menu.quantumFrequency, quantumStateKey()), 20, 110, 292,
-                quantumConnected() ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-        text(g, tr(menu.getMachine().isSingleBlock() ? "compact_collection_hint" : "collection_hint"), 20, 128, 292, AeUiTheme.MUTED_TEXT);
-
-        List<ItemStack> resources = collectionResources();
-        text(g, tr("collection_resources", resources.size(), menu.collectionBatchSize, menu.collectionIntervalTicks),
-                20, 143, 292, AeUiTheme.ACCENT);
-        int maxScroll = Math.max(0, (resources.size() + 2) / 3 - 4);
-        collectionScroll = Math.min(collectionScroll, maxScroll);
-        if (resources.isEmpty()) {
-            text(g, tr("collection_resources_empty"), 20, 166, 292, AeUiTheme.WARNING);
-            return;
-        }
-        int first = collectionScroll * 3;
-        for (int visible = 0; visible < 12; visible++) {
-            int index = first + visible;
-            if (index >= resources.size()) break;
-            int col = visible % 3;
-            int row = visible / 3;
-            int x = 20 + col * 97;
-            int y = 153 + row * 20;
-            ItemStack stack = resources.get(index);
-            g.renderItem(stack, x, y);
-            text(g, stack.getHoverName(), x + 18, y + 4, 77, AeUiTheme.PRIMARY_TEXT);
-        }
-        if (maxScroll > 0) {
-            text(g, tr("collection_scroll", collectionScroll + 1, maxScroll + 1), 236, 227, 76,
-                    AeUiTheme.MUTED_TEXT);
-        }
     }
 
     private List<ItemStack> collectionResources() {
@@ -341,25 +229,6 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         double x=logicalMouseX(mouseX)-leftPos,y=logicalMouseY(mouseY)-topPos;
         if(collectionPage&&x>=8&&x<342&&y>=110&&y<207&&scrollY!=0){collectionScroll=Math.clamp(collectionScroll+(scrollY<0?1:-1),0,Math.max(0,(collectionResources().size()-1)/12));return true;}
         return super.mouseScrolled(mouseX,mouseY,scrollX,scrollY);
-    }
-
-    private void drawDuplication(GuiGraphics g) {
-        text(g, tr("duplication_title"), 20, 54, 292, AeUiTheme.PRIMARY_TEXT);
-        text(g, tr("duplication_cost", SingularityDuplicationProcessor.MATTER_PER_ITEM), 20, 70, 292, AeUiTheme.WARNING);
-        text(g, tr("collection_network", menu.networkOnline ? tr("online") : tr("offline")),
-                20, 86, 292, menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        text(g, tr("duplication_energy", menu.duplicationEnergyPriority), 20, 102, 292, AeUiTheme.ACCENT);
-        text(g, tr("duplication_sample"), 20, 124, 130, AeUiTheme.PRIMARY_TEXT);
-        text(g, tr("duplication_black_hole"), 164, 124, 130, AeUiTheme.PRIMARY_TEXT);
-        text(g, tr("duplication_copy_rate"), 20, 174, 130, AeUiTheme.MUTED_TEXT);
-        text(g, tr("duplication_black_hole_count", menu.blackHoleCount), 164, 174, 130, AeUiTheme.ACCENT);
-        text(g, tr("duplication_speed", menu.duplicationMatterPerCycle, menu.duplicationIntervalTicks), 20, 186, 292,
-                menu.blackHoleCount > 0 ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-        text(g, tr("duplication_energy_fe", formatEnergy(menu.duplicationFePerCycle),
-                formatEnergy(menu.lastDuplicationFeConsumed)), 20, 200, 292, AeUiTheme.ACCENT);
-        text(g, tr("duplication_energy_ae", formatEnergy(menu.duplicationAePerCycle),
-                formatEnergy(menu.lastDuplicationAeConsumed)), 20, 214, 292, AeUiTheme.ACCENT);
-        text(g, tr("duplication_fluid_storage"), 20, 228, 292, AeUiTheme.MUTED_TEXT);
     }
 
     private static String formatEnergy(long value) {

@@ -1,13 +1,11 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
-import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -16,7 +14,6 @@ import java.util.List;
 
 /** Fabrication telemetry, quantum construction link and structure-management controls. */
 public final class MatterFabricationScreen extends ResponsiveContainerScreen<MatterFabricationMenu> {
-    private static final int PURPLE = AeUiTheme.ACCENT;
     private static final int CYAN = AeUiTheme.CYAN;
     private static final long DISMANTLE_CONFIRM_MILLIS = 3_000L;
     private static final long DISMANTLE_DEBOUNCE_MILLIS = 250L;
@@ -177,15 +174,6 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         ui.foreground(graphics,font);
     }
 
-    private void drawFittedText(GuiGraphics graphics, Component text, int x, int y, int maxWidth, int color) {
-        float scale = Math.min(1.0F, maxWidth / (float) Math.max(1, font.width(text)));
-        graphics.pose().pushPose();
-        graphics.pose().translate(x, y, 0);
-        graphics.pose().scale(scale, scale, 1.0F);
-        graphics.drawString(font, text, 0, 0, color, false);
-        graphics.pose().popPose();
-    }
-
     private float processRatio(){return menu.processingTime<=0?0:Math.min(1,menu.progress/(float)menu.processingTime);}
 
     private Component operationLabel() {
@@ -208,14 +196,5 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
     private Component stateLabel() {
         return Component.translatable("gui.molecularmanipulator.fabrication.state."
                 + menu.state.name().toLowerCase(Locale.ROOT));
-    }
-
-    private int stateColor() {
-        return switch (menu.state) {
-            case RUNNING -> AeUiTheme.SUCCESS;
-            case STRUCTURE_INCOMPLETE, NETWORK_OFFLINE, OUTPUT_BLOCKED,
-                    WAITING_POWER, BUILDING, DISMANTLING -> AeUiTheme.WARNING;
-            default -> AeUiTheme.MUTED_TEXT;
-        };
     }
 }

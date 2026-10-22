@@ -33,12 +33,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     static final int TAB_OVERVIEW = 0;
     static final int TAB_AUTO_CRAFT = 1;
     static final int TAB_COLORS = 2;
-    private static final int PANEL_LEFT = 198;
-    private static final int PANEL_RIGHT = 426;
-    private static final int LEFT_CONTENT_LEFT = 8;
-    private static final int LEFT_CONTENT_RIGHT = 188;
-    private static final int DETAIL_CONTENT_LEFT = PANEL_LEFT + 9;
-    private static final int DETAIL_CONTENT_RIGHT = PANEL_RIGHT - 7;
     private static final int DISMANTLE_CONFIRM_TICKS = 60;
     private static final int DISMANTLE_CONFIRM_DELAY_TICKS = 6;
     private static final int SEARCH_DEBOUNCE_TICKS = 5;
@@ -407,35 +401,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         if(ui!=null)ui.background(graphics,font,x,y);
     }
 
-    private void drawSlotGrid(GuiGraphics graphics, int startX, int startY, int columns, int rows) {
-        for (int row = 0; row < rows; row++) {
-            for (int column = 0; column < columns; column++) {
-                drawPlainSlotFrame(graphics, startX + column * 18, startY + row * 18);
-            }
-        }
-        AeUiTheme.slotGridOutline(graphics,
-                leftPos + startX - 1, topPos + startY - 1, columns, rows);
-    }
-
-    private void drawSlotFrame(GuiGraphics graphics, int slotX, int slotY, int borderColor) {
-        int x = leftPos + slotX;
-        int y = topPos + slotY;
-        AeUiTheme.slot(graphics, x - 1, y - 1);
-        graphics.fill(x - 1, y - 1, x + 17, y, borderColor);
-    }
-
-
-    private void drawPlainSlotFrame(GuiGraphics graphics, int slotX, int slotY) {
-        AeUiTheme.slot(graphics, leftPos + slotX - 1, topPos + slotY - 1);
-    }
-
-    private static void drawPanelBorder(GuiGraphics graphics, int left, int top, int right, int bottom, int color) {
-        graphics.fill(left, top, right, top + 1, color);
-        graphics.fill(left, bottom - 1, right, bottom, color);
-        graphics.fill(left, top, left + 1, bottom, color);
-        graphics.fill(right - 1, top, right, bottom, color);
-    }
-
     @Override
     public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
         if(ui==null)return;ui.foreground(graphics,font);
@@ -448,152 +413,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
             for(int c=0;c<3;c++)ui.smallText(graphics,Component.literal(Integer.toString((visualColor(i)>>(16-c*8))&255)),310+c*44,70.3f+i*21,16);
         }
         if(detailTab==TAB_OVERVIEW){ui.smallText(graphics,Component.literal("-"),344,195,10);ui.smallText(graphics,Component.literal("-"),372,195,10);ui.smallText(graphics,Component.literal("-"),409,195,8);}
-    }
-
-    private void renderOverview(GuiGraphics graphics) {
-        int width = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.overview_title"),
-                DETAIL_CONTENT_LEFT, 36, width, AeUiTheme.ACCENT);
-
-        Component structure = menu.legacyStructure
-                ? Component.translatable("gui.molecularmanipulator.structure_legacy_139")
-                : Component.translatable(menu.formed
-                        ? "gui.molecularmanipulator.formed"
-                        : "gui.molecularmanipulator.incomplete");
-        drawOverviewRow(graphics, "overview_structure", structure, 50,
-                menu.formed && !menu.legacyStructure ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        drawOverviewRow(graphics, "overview_network",
-                Component.translatable(menu.operational
-                        ? "gui.molecularmanipulator.overview_online"
-                        : "gui.molecularmanipulator.overview_offline"),
-                67, menu.operational ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        drawOverviewRow(graphics, "overview_patterns",
-                Component.literal(formatAmount(menu.usedPatternSlots) + " / "
-                        + formatAmount(menu.patternCapacity)), 84, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "overview_auto_craft",
-                Component.literal(Integer.bitCount(menu.autoCraftEnabledMask) + " / "
-                        + MolecularAutoCrafter.PATTERN_SLOTS), 101, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "overview_pipeline",
-                menu.activePipelineRecipes > 0
-                        ? Component.translatable("gui.molecularmanipulator.overview_pipeline_active",
-                                menu.activePipelineRecipes, formatAmount(menu.activePipelineCrafts))
-                        : Component.translatable("gui.molecularmanipulator.overview_pipeline_idle"),
-                118, menu.activePipelineRecipes > 0 ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-        drawOverviewRow(graphics, "overview_pending",
-                menu.pipelineBlocked
-                        ? Component.translatable("gui.molecularmanipulator.overview_output_blocked",
-                                formatAmount(menu.pendingOutputAmount))
-                        : Component.literal(formatAmount(menu.pendingOutputAmount)), 135,
-                menu.pipelineBlocked ? AeUiTheme.WARNING : AeUiTheme.PRIMARY_TEXT);
-
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.quantum_title"),
-                DETAIL_CONTENT_LEFT, 155, width, AeUiTheme.CYAN);
-        var state = menu.quantumLinkState;
-        int stateColor = switch (state) {
-            case CONNECTED -> AeUiTheme.SUCCESS;
-            case CONNECTED_BUILD_ONLY -> AeUiTheme.CYAN;
-            case EMPTY, SEARCHING -> AeUiTheme.MUTED_TEXT;
-            case REMOTE_MISSING, REMOTE_OFFLINE, STRUCTURE_INCOMPLETE -> AeUiTheme.WARNING;
-            default -> AeUiTheme.ERROR;
-        };
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_status",
-                Component.translatable("gui.molecularmanipulator.quantum_state."
-                        + state.name().toLowerCase(Locale.ROOT))),
-                DETAIL_CONTENT_LEFT, 171, width, stateColor);
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_frequency",
-                menu.quantumFrequency == 0 ? "-" : formatFrequency(menu.quantumFrequency)),
-                DETAIL_CONTENT_LEFT, 185, width, AeUiTheme.PRIMARY_TEXT);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.quantum_singularity"),
-                MolecularCenterMenu.QUANTUM_SLOT_X + 8, 198, 90, AeUiTheme.PRIMARY_TEXT);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            drawCenteredFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.quantum_upload_core"),
-                    MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X + 8, 198, 84, AeUiTheme.ACCENT);
-        }
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.overview_quantum_requirements",
-                        formatAmount((long) MolecularCenterBlockEntity.QUANTUM_LINK_POWER)),
-                DETAIL_CONTENT_LEFT, 230, width, AeUiTheme.MUTED_TEXT);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.quantum_upload_core_hint"),
-                    DETAIL_CONTENT_LEFT, 245, width, AeUiTheme.MUTED_TEXT);
-        }
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.spawn_protection"),
-                DETAIL_CONTENT_LEFT, menu.getMatrixUploadCoreSlot() == null ? 245 : 260,
-                width, AeUiTheme.SUCCESS);
-        if (menu.getMatrixUploadCoreSlot() == null && !menu.legacyStructure) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
-                    DETAIL_CONTENT_LEFT, 260, width, AeUiTheme.MUTED_TEXT);
-        }
-    }
-
-    private void drawOverviewRow(GuiGraphics graphics, String key, Component value, int y, int valueColor) {
-        drawKeyValueRow(graphics,
-                Component.translatable("gui.molecularmanipulator." + key), value,
-                DETAIL_CONTENT_LEFT, DETAIL_CONTENT_RIGHT, y, 6,
-                AeUiTheme.MUTED_TEXT, valueColor);
-    }
-
-
-    private void renderAutoCraftTab(GuiGraphics graphics) {
-        int contentWidth = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
-        if (menu.autoCraftSelectedSlot < 0) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.auto_craft_select_hint"),
-                    DETAIL_CONTENT_LEFT, 92, contentWidth, AeUiTheme.MUTED_TEXT);
-            return;
-        }
-
-        IPatternDetails details = selectedAutoCraftPattern();
-        GenericStack output = details == null ? null : details.getPrimaryOutput();
-        Component outputName = output == null
-                ? Component.translatable("gui.molecularmanipulator.auto_craft_invalid_pattern")
-                : output.what().getDisplayName();
-        if (output != null) {
-            AEStackIcon.draw(graphics, output, DETAIL_CONTENT_LEFT, 90);
-        }
-        autoCraftOutputLimit.setTooltip(Tooltip.create(Component.translatable(
-                "gui.molecularmanipulator.auto_craft_output_limit_for_tooltip", outputName)));
-
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.auto_craft_materials"),
-                DETAIL_CONTENT_LEFT, 111, contentWidth, AeUiTheme.ACCENT);
-
-        for (int inputIndex = 0; inputIndex < menu.autoCraftInputCount
-                && inputIndex < autoCraftInputReserves.length; inputIndex++) {
-            GenericStack input = selectedAutoCraftInput(details, inputIndex);
-            if (input == null) {
-                continue;
-            }
-            int columnX = inputIndex % 2 == 0 ? DETAIL_CONTENT_LEFT : 313;
-            int rowY = 123 + inputIndex / 2 * 22;
-            AEStackIcon.draw(graphics, input, columnX, rowY);
-            autoCraftInputReserves[inputIndex].setTooltip(Tooltip.create(Component.translatable(
-                    "gui.molecularmanipulator.auto_craft_input_reserve_for_tooltip",
-                    inputIndex + 1, input.what().getDisplayName())));
-        }
-
-    }
-
-    private void renderColorsTab(GuiGraphics graphics) {
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.visual_colors"),
-                210, 31, AeUiTheme.ACCENT, false);
-        for (int target = 0; target < 5; target++) {
-            int color = visualColor(target);
-            int y = 43 + target * 32;
-            graphics.drawString(font,
-                    Component.translatable("gui.molecularmanipulator.visual_color." + target),
-                    210, y, AeUiTheme.PRIMARY_TEXT, false);
-            graphics.drawString(font, String.format(Locale.ROOT, "#%06X", color),
-                    266, y, color, false);
-            graphics.fill(308, y + 2, 316, y + 10, 0xFF000000 | color);
-        }
     }
 
     private void configureLongField(EditBox field, long value, String tooltipKey) {
@@ -731,22 +550,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         return Component.translatable(MolecularCenterGhostPreview.isShowing(menu.getCenter())
                 ? "gui.molecularmanipulator.preview_hide"
                 : "gui.molecularmanipulator.preview");
-    }
-
-    private static String formatAmount(long amount) {
-        if (amount >= 1_000_000_000_000L) {
-            return String.format(Locale.ROOT, "%.1fT", amount / 1_000_000_000_000.0);
-        }
-        if (amount >= 1_000_000_000L) {
-            return String.format(Locale.ROOT, "%.1fG", amount / 1_000_000_000.0);
-        }
-        if (amount >= 1_000_000L) {
-            return String.format(Locale.ROOT, "%.1fM", amount / 1_000_000.0);
-        }
-        if (amount >= 1_000L) {
-            return String.format(Locale.ROOT, "%.1fK", amount / 1_000.0);
-        }
-        return Long.toString(amount);
     }
 
 

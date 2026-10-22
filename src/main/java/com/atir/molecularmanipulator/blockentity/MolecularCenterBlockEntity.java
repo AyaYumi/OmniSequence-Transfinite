@@ -16,17 +16,14 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.MEStorage;
 import appeng.api.util.AECableType;
-import appeng.block.crafting.PatternProviderBlock;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.blockentity.crafting.PatternProviderBlockEntity;
-import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.items.tools.powered.WirelessTerminalItem;
 import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
@@ -1360,33 +1357,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         saveChanges();
     }
 
-    private void rollbackStructureUpdate(BlockPos visualCenterPos, BlockState visualCenterState,
-            BlockPos upperCorePos, BlockState upperCoreState) {
-        try {
-            level.setBlock(upperCorePos, upperCoreState, 3);
-            if (!level.getBlockState(upperCorePos).equals(upperCoreState)) {
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                        "Failed to restore the molecular center upper stabilizer at {}", upperCorePos);
-            }
-        } catch (RuntimeException exception) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                    "Exception while restoring the molecular center upper stabilizer at {}",
-                    upperCorePos, exception);
-        }
-        try {
-            level.setBlock(visualCenterPos, visualCenterState, 3);
-            if (!level.getBlockState(visualCenterPos).equals(visualCenterState)) {
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                        "Failed to restore the molecular center visual core at {}", visualCenterPos);
-            }
-        } catch (RuntimeException exception) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                    "Exception while restoring the molecular center visual core at {}",
-                    visualCenterPos, exception);
-        }
-        refreshStructure();
-    }
-
     public void keepLegacyStructure(ServerPlayer player) {
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
@@ -2663,13 +2633,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         } catch (ArithmeticException exception) {
             return Long.MAX_VALUE;
         }
-    }
-
-    private static long saturatedMultiply(long first, long second) {
-        if (first <= 0 || second <= 0) {
-            return 0;
-        }
-        return first > Long.MAX_VALUE / second ? Long.MAX_VALUE : first * second;
     }
 
     public boolean schedulePatternRebuild(Runnable rebuild) {

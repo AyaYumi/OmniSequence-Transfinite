@@ -21,6 +21,7 @@ import appeng.me.service.CraftingService;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderProgress;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderRequest;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrder;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrderCpu;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpu;
@@ -279,7 +280,7 @@ public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, 
         } catch (RuntimeException | LinkageError failure) {
             molecularmanipulator$parentProblem = failure.toString();
             molecularmanipulator$logic().setJobSuspended(true);
-            org.slf4j.LoggerFactory.getLogger(EcoOmniParentOrder.class).warn("Suspended saved ECO Omni parent; original parent tag retained", failure);
+            RateLimitedLog.warn("Suspended saved ECO Omni parent; original parent tag retained", failure);
         }
     }
 }

@@ -62,7 +62,7 @@ Global configuration files are `config/omnisequence-transfinite-server.toml` and
 
 Modpack authors can define fabrication recipes and research through datapacks. Research, batch-provider and large-count processing interfaces for other mods are covered in the [developer documentation index](docs/README.md).
 
-ECO integration includes batch dispatch in both directions, reusable tools and containers, native FX exact batches, and ECO exact/phased/cyclic plans on Omni CPUs. See [ECO compatibility](docs/eco-compatibility.md) for quantity limits, cancellation and persistence contracts.
+ECO integration includes batch dispatch in both directions, reusable tools and containers, native FX exact batches, and ECO exact/phased/cyclic plans on Omni CPUs.
 
 ## Building from source
 

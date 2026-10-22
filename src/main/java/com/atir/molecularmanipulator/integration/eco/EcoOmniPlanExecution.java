@@ -18,7 +18,6 @@ import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
 import com.atir.molecularmanipulator.mixin.EcoOmniPlanRuntimeInvoker;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;

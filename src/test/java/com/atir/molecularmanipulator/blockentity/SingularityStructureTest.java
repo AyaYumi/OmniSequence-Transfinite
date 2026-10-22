@@ -59,7 +59,6 @@ class SingularityStructureTest {
         var newMoving = SingularityStructure.parts(3).stream().filter(p -> SingularityMotionGeometry.groupOf(p, 3) >= 0).toList();
         var oldMoving = SingularityStructure.parts(2).stream().filter(p -> SingularityMotionGeometry.groupOf(p, 2) >= 0).toList();
         assertEquals(oldMoving, newMoving, "Existing motion entities retain exactly the same parts and collision geometry");
-        System.out.println("SINGULARITY_EMBEDDED_COUNTS " + SingularityStructure.counts() + " total=" + SingularityStructure.parts().size());
     }
 
     @Test void suspendedDesignHasPhysicalGapsAndPreservesClassicBlueprintsAndRings() {
@@ -76,7 +75,6 @@ class SingularityStructureTest {
         }
         assertTrue(SingularityStructure.parts().stream().noneMatch(p->p.y()==77 && Math.hypot(p.x(),p.z())<16),
                 "The central crystal must be exposed, with no continuous old piers");
-        System.out.println("SINGULARITY_SUSPENDED_COUNTS " + SingularityStructure.counts() + " total=" + SingularityStructure.parts().size());
     }
 
     @Test void reanchoringPreservesWorldPositionsForEveryFacing() {

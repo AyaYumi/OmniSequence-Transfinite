@@ -16,7 +16,6 @@ import appeng.api.util.AECableType;
 import appeng.api.orientation.BlockOrientation;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -43,7 +42,6 @@ import java.util.List;
 /** Single-block host for the sequence array's passive auto-crafting subsystem. */
 public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockEntity
         implements InternalInventoryHost, MolecularAutoCrafterHost {
-    private static final String AUTO_CRAFTER_TAG = "sequence_auto_crafter";
     private static final String OUTPUTS_TAG = "outputs";
     private static final String OUTPUT_READY_TAG = "output_ready_tick";
     private static final String OUTPUT_MODE_TAG = "output_mode";

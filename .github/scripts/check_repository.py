@@ -8,8 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 properties = dict(re.findall(r"^([a-z_]+)=(.*)$", (ROOT / "gradle.properties").read_text(encoding="utf-8"), re.M))
 omni = properties["mod_id"] == "molecularmanipulator"
 allowed_docs = ({"README.md", "matter-research-api.md", "matter-research-api.zh-CN.md",
-                 "omni-batch-provider-api.md", "omni-batch-provider-api.zh-CN.md", "omni-exact-provider-api.md",
-                 "eco-compatibility.md"}
+                 "omni-batch-provider-api.md", "omni-batch-provider-api.zh-CN.md", "omni-exact-provider-api.md"}
                 if omni else {"README.md", "API_INTEGRATION.md", "API_INTEGRATION_ZH.md", "BATCH_EXECUTION_API.md",
                               "EXACT_CRAFTING_API.md", "SMART_DOUBLING_API.md"})
 paths = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],

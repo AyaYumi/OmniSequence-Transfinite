@@ -11,8 +11,6 @@ import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuHostLocator;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.integration.MatterFabricationPatternUpload;
-import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
-import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;

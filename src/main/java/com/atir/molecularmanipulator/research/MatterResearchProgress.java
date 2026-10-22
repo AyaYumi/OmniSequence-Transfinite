@@ -4,7 +4,6 @@ import appeng.api.config.Actionable;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.me.helpers.MachineSource;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

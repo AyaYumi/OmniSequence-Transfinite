@@ -1,7 +1,6 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.menu.AEBaseMenu;
-import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
 import com.atir.molecularmanipulator.client.gui.theme.*;
 import net.minecraft.client.Minecraft;

@@ -66,6 +66,9 @@ libs/*.jar
 *.hprof
 *.jfr
 
+### Local-only development tooling and scratch files ###
+/tools/
+
 # CI-only prerequisite checkout
 /.build-dependencies/
 

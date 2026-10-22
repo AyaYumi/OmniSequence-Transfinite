@@ -1,2 +1,0 @@
-// AE2 compatibility with the declared AppliedEnhancements 1.1.0 prerequisite.
-apply from: new File(gradle.startParameter.currentDir, 'tools/gametest/applied-110.init.gradle')

@@ -1,5 +1,7 @@
 # ECO compatibility / ECO 兼容
 
+Current source: OmniSequence **2.1.0**, Minecraft **1.21.1**, NeoForge **21.1.220+**, Java **21**.
+
 Neo ECO AE Extension is optional. When installed, **21.2.9 or newer** is required on both client and server. The integration compiles against the unmodified 21.2.9 release; it is not bundled. ECO already orders itself after OmniSequence, so OmniSequence declares no reverse load-order edge.
 
 Neo ECO AE Extension 为可选兼容；安装时客户端和服务端都必须使用 **21.2.9 或更新版本**。编译与隔离验证使用真实 21.2.9 发布 JAR，不将 ECO 打包进本模组。
@@ -30,7 +32,7 @@ If provider acceptance or a downstream delivery becomes uncertain, the CPU persi
 
 ## Verification / 验证
 
-Use the project's Gradle wrapper with Java 21. The ECO suite stages selected dependencies into a disposable directory under `build/`; it never writes player saves or installed mod JARs. See [GameTest instructions](../tools/gametest/README.md) for runtime setup. Unit tests cover material leases, exact output settlement, tool state, plan codecs, phase progress, parent orders and optional-mod class loading. Real GameTests additionally exercise transformed CPUs, actual providers, cancellation, reload and menu integration.
+Use the project's Gradle wrapper with Java 21. The ECO suite stages selected dependencies into a disposable directory under `build/`; it never writes player saves or installed mod JARs. Unit tests cover material leases, exact output settlement, tool state, plan codecs, phase progress, parent orders and optional-mod class loading. Real GameTests additionally exercise transformed CPUs, actual providers, cancellation, reload and menu integration.
 
 Verified against ECO 21.2.9, AE2 19.2.17, Applied Enhancements 1.1.4, Thunderbolt 2.0.0-beta.4 and LDLib2 2.2.40: **480 unit tests and 40 required GameTests passed**. Five hardware tests construct native F4/F9 hosts, including the full FX topology of eight F9 hosts and 88 workers. A native FX thread accepts `9,223,372,036,854,776,833` crafts in one exact batch; completion, worker reload, coolant blocking and cancellation conserve the full quantities. Cold recipe verification also advances exact and phase accounting exactly once. These tests verify execution and ownership using controlled finite ME storage and creative power; they do not measure survival throughput.
 

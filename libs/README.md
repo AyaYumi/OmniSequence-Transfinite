@@ -41,7 +41,7 @@ stage selected real JARs under `build/cpu-compat-runtime/<run-name>/`, replace
 the test process's LDLib2 dependency, and never write into the source mods directory.
 LDLib2 2.2.40 embeds Taffy, Yoga and Kotlin; ECO embeds Registrate. AE2 supplies
 GuideME through its runtime dependency. Explicit additional integration prerequisites
-can be selected with `cpuCompatExtraMods`; see the [test instructions](../tools/gametest/README.md).
+can be selected with `cpuCompatExtraMods`.
 
 The unmodified ECO 21.2.9 release declares `AFTER molecularmanipulator`.
 OmniSequence uses `ordering="NONE"` for ECO, preserving its optional version

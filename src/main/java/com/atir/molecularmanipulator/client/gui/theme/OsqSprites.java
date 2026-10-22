@@ -24,8 +24,8 @@ public final class OsqSprites {
     public static ResourceLocation resolve(OsqPalette p, String name) {
         return (p.dark ? COMMON_DARK : COMMON_LIGHT).contains(name) ? common(p, name) : id(p, name);
     }
-    static final java.util.Set<String> COMMON_LIGHT = java.util.Set.of("bar_fill_ok", "bar_fill_warn", "bar_track_block", "bar_track_dark", "button_confirm", "button_normal", "button_pressed", "card", "divider_dark", "dot_err", "dot_ok", "dot_warn", "edge_key", "field_error", "icons/lock_white_8", "icons/net_white_8", "icons/order_white_8", "icons/out_white_8", "icons/pause_white_8", "icons/shield_white_8", "icons/x_white_8", "key13_disabled", "key13_normal", "row_normal", "swatch_frame", "tab_normal");
-    static final java.util.Set<String> COMMON_DARK = java.util.Set.of("bar_fill_ok", "bar_fill_warn", "bar_track_block", "bar_track_dark", "button_confirm", "dot_err", "dot_ok", "dot_warn", "icons/back_white_8", "icons/check_white_8", "icons/cog_white_8", "icons/down_white_8", "icons/lock_white_8", "icons/net_white_8", "icons/order_white_8", "icons/out_white_8", "icons/pause_white_8", "icons/play_white_8", "icons/right_white_8", "icons/shield_white_8", "icons/up_white_8", "icons/x_white_8", "swatch_frame");
+    static final java.util.Set<String> COMMON_LIGHT = java.util.Set.of("bar_fill_ok", "bar_fill_warn", "bar_track_block", "bar_track_dark", "button_confirm", "button_normal", "button_pressed", "card", "divider_dark", "dot_err", "dot_ok", "dot_warn", "edge_key", "field_error", "icons/order_white_8", "icons/out_white_8", "icons/pause_white_8", "icons/x_white_8", "key13_disabled", "key13_normal", "row_normal", "swatch_frame", "tab_normal");
+    static final java.util.Set<String> COMMON_DARK = java.util.Set.of("bar_fill_ok", "bar_fill_warn", "bar_track_block", "bar_track_dark", "button_confirm", "dot_err", "dot_ok", "dot_warn", "icons/back_white_8", "icons/order_white_8", "icons/out_white_8", "icons/pause_white_8", "icons/play_white_8", "icons/x_white_8", "swatch_frame");
 
     /** 外扩留白 [左, 上, 右, 下]（GUI px）；path = 精灵路径，如 "osq_dark/sing/card" */
     public static int[] pad(String path) {

@@ -9,7 +9,7 @@
     {"ingredient": {"item": "advanced_ae:quantum_processor"}, "count": 64}
   ],
   "results": [{"id": "molecularmanipulator:transfinite_compute_nexus", "count": 1}],
-  "processing_time": 1200,
+  "processing_time": 400,
   "ae_per_tick": 4096,
   "requires_research": true,
   "neoforge:conditions": [{"type": "neoforge:mod_loaded", "modid": "advanced_ae"}]

@@ -15,7 +15,7 @@ class OsqLayoutResourcesTest {
     private static JsonObject json(Path path) throws IOException {
         return JsonParser.parseString(Files.readString(path)).getAsJsonObject();
     }
-    @Test void bothThemesContainTheSameTwentyLayoutsAndStableSpriteIds() throws Exception {
+    @Test void bothThemesContainTheSameTwentyOneLayoutsAndStableSpriteIds() throws Exception {
         int count=0;
         try(var paths=Files.list(LIGHT.resolve("osq_light/layout"))) {
             for(var lightPath:paths.filter(p->p.toString().endsWith(".json")).toList()) {
@@ -36,7 +36,7 @@ class OsqLayoutResourcesTest {
                 }
             }
         }
-        assertEquals(20,count);
+        assertEquals(21,count);
     }
     @Test void allLayoutTranslationsAndFontsResolve() throws Exception {
         var zh=json(LIGHT.resolve("lang/zh_cn.json"));var en=json(LIGHT.resolve("lang/en_us.json"));

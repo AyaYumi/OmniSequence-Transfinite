@@ -24,7 +24,7 @@ Miniature Black Holes transfer nearby dropped items and non-player entities to t
 
 ## Fabrication
 
-Complete **Tier 3: Event Horizon** and process these recipes through the well's [Pattern Assembly](matter_fabrication_pattern_assembly.md). After the first unlock, each recipe takes **30 seconds at 4096 AE/t**.
+Complete **Tier 3: Event Horizon** and process these recipes through the well's [Pattern Assembly](matter_fabrication_pattern_assembly.md). After the first unlock, each recipe has a base time of **20 seconds at 4096 AE/t**, before Negative Entropy Engine speed bonuses.
 
 | Result | Ingredients |
 | --- | --- |

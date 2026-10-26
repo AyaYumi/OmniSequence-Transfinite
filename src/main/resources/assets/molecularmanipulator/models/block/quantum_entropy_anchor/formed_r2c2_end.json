@@ -1,0 +1,138 @@
+{
+ "parent": "minecraft:block/block",
+ "render_type": "minecraft:cutout",
+ "textures": {
+  "panel": "molecularmanipulator:block/entropy_anchor/quantum/panel",
+  "particle": "molecularmanipulator:block/entropy_anchor/quantum/panel",
+  "north": "molecularmanipulator:block/entropy_anchor/quantum/cap_r2c2",
+  "north_l": "molecularmanipulator:block/entropy_anchor/quantum/cap_r2c2_light",
+  "west": "molecularmanipulator:block/entropy_anchor/quantum/band_west_r2c2_end",
+  "west_l": "molecularmanipulator:block/entropy_anchor/quantum/band_west_r2c2_end_light",
+  "down": "molecularmanipulator:block/entropy_anchor/quantum/band_down_r2c2_end",
+  "down_l": "molecularmanipulator:block/entropy_anchor/quantum/band_down_r2c2_end_light"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    0
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#north"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#panel"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#panel"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#west"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#panel"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#down"
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    0,
+    0
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "shade": false,
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#north_l",
+     "neoforge_data": {
+      "block_light": 15,
+      "sky_light": 15
+     }
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#west_l",
+     "neoforge_data": {
+      "block_light": 15,
+      "sky_light": 15
+     }
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#down_l",
+     "neoforge_data": {
+      "block_light": 15,
+      "sky_light": 15
+     }
+    }
+   }
+  }
+ ]
+}

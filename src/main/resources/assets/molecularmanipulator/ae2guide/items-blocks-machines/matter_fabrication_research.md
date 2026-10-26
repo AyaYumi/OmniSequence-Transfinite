@@ -59,21 +59,23 @@ Preparation continues to replenish shortages. Ordered products are reserved for 
 
 ## Deep research
 
-The four ordinary research branches each allow **nine completions** by default. The first unlocks recipes; later completions improve parallelism and speed for that branch's fabrication recipes. Later rounds cost 2, 4, 8, 16, 32, 64, 128 and 256 times the base materials.
+The four ordinary research branches each allow **nine completions** by default. The first unlocks recipes; later completions improve parallelism for that branch's fabrication recipes. Later rounds cost 2, 4, 8, 16, 32, 64, 128 and 256 times the base materials.
 
-| Completions | Parallel limit | Processing time |
-| --- | --- | --- |
-| 1 | 1 | Original |
-| 2 | 256 | 1/2 |
-| 3 | 65.54K | 1/4 |
-| 4 | 16.78M | 1/8 |
-| 5 | 4.29G | 1/16 |
-| 6 | 1.10T | 1/32 |
-| 7 | 281.47T | 1/64 |
-| 8 | 72.06P | 1/128 |
-| 9 | 9.22E | 1 tick |
+| Completions | Parallel limit |
+| --- | --- |
+| 1 | 1 |
+| 2 | 256 |
+| 3 | 65.54K |
+| 4 | 16.78M |
+| 5 | 4.29G |
+| 6 | 1.10T |
+| 7 | 281.47T |
+| 8 | 72.06P |
+| 9 | 9.22E |
 
-Ingredients, power and output capacity limit actual batches. Processing takes at least one tick. Speed bonuses do not shorten research itself or improve processing in other machines.
+Ingredients, power and output capacity limit actual batches. Deep research changes parallelism only, including the ninth round. Built-in fabrication recipes and generated bridge defaults take **20 seconds (400 ticks)** before speed bonuses; explicit custom recipe times are preserved.
+
+The [Negative Entropy Engine](negative_entropy_engine.md) on the well's ME network supplies production speed. Ordinary levels divide base ticks by the effective speed multiplier and round up, with a one-tick minimum. Level 9 overclocking forces one tick. Level and overclocking changes also rescale existing batches' completed progress to the new duration, rounded down to whole ticks. Research's own duration remains independent.
 
 ## Tier 3 materials
 

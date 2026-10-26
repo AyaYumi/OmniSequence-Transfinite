@@ -48,6 +48,11 @@ class MatterMachineImportRecipeTest {
                 }
                 """);
         var declaration = MatterMachineImportRecipe.CODEC.codec().parse(JsonOps.INSTANCE, json).getOrThrow();
+        assertEquals(400, declaration.processingTime());
+        var custom = json.deepCopy().getAsJsonObject();
+        custom.addProperty("processing_time", 73);
+        assertEquals(73, MatterMachineImportRecipe.CODEC.codec().parse(JsonOps.INSTANCE, custom).getOrThrow().processingTime());
+        assertEquals(1200, declaration.research().duration(), "Production defaults must not change research duration");
         var id = ResourceLocation.parse("kubejs:vanilla_furnace");
         var machines = MatterRecipeBridge.machines(List.of(new RecipeHolder<>(id, declaration)));
         var machine = machines.getLast();

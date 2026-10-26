@@ -195,7 +195,7 @@ public final class MatterRecipeBridge {
                 var fabrication = new MatterFabricationRecipe(branch.ingredients(), branch.catalysts(),
                         branch.output().items(), branch.fluid(),
                         outputFluids.isEmpty() ? FluidStack.EMPTY : outputFluids.getFirst(),
-                        branch.aeInputs(), aeOutputs, declaration == null ? 200 : declaration.processingTime(),
+                        branch.aeInputs(), aeOutputs, declaration == null ? MatterFabricationRecipe.DEFAULT_PROCESSING_TIME : declaration.processingTime(),
                         declaration == null ? 256 : declaration.aePerTick(), true);
                 result.add(new ImportedRecipe(new RecipeHolder<>(id, fabrication), group.machine.key,
                         group.machine.modId,

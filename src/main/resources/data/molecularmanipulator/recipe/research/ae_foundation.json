@@ -57,6 +57,8 @@
     "molecularmanipulator:fabrication/ae/logic_processor",
     "molecularmanipulator:fabrication/ae/calculation_processor",
     "molecularmanipulator:fabrication/ae/engineering_processor",
+    "molecularmanipulator:quantum_entropy_anchor",
+    "molecularmanipulator:terminal_entropy_anchor",
     "molecularmanipulator:fabrication/research_materials/advanced_ae/data_entangler",
     "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_accelerator",
     "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_alloy",
@@ -91,49 +93,39 @@
   "depths": [
     {
       "material_multiplier": "1",
-      "parallel": "1",
-      "speed_multiplier": "1"
+      "parallel": "1"
     },
     {
       "material_multiplier": "2",
-      "parallel": "256",
-      "speed_multiplier": "2"
+      "parallel": "256"
     },
     {
       "material_multiplier": "4",
-      "parallel": "65536",
-      "speed_multiplier": "4"
+      "parallel": "65536"
     },
     {
       "material_multiplier": "8",
-      "parallel": "16777216",
-      "speed_multiplier": "8"
+      "parallel": "16777216"
     },
     {
       "material_multiplier": "16",
-      "parallel": "4294967296",
-      "speed_multiplier": "16"
+      "parallel": "4294967296"
     },
     {
       "material_multiplier": "32",
-      "parallel": "1099511627776",
-      "speed_multiplier": "32"
+      "parallel": "1099511627776"
     },
     {
       "material_multiplier": "64",
-      "parallel": "281474976710656",
-      "speed_multiplier": "64"
+      "parallel": "281474976710656"
     },
     {
       "material_multiplier": "128",
-      "parallel": "72057594037927936",
-      "speed_multiplier": "128"
+      "parallel": "72057594037927936"
     },
     {
       "material_multiplier": "256",
-      "parallel": "9223372036854775807",
-      "speed_multiplier": "256",
-      "processing_ticks": 1
+      "parallel": "9223372036854775807"
     }
   ]
 }

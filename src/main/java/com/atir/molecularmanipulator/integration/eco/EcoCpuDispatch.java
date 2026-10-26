@@ -13,9 +13,12 @@ import appeng.me.service.CraftingService;
 import cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProviders;
-import cn.dancingsnow.neoecoae.blocks.entity.crafting.ECOCraftingPatternBusBlockEntity;
+import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
+import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,11 +58,23 @@ public final class EcoCpuDispatch {
             if (host.ecoOmni$managed() && execution == null) return 0;
             var patterns = execution == null ? List.copyOf(host.ecoOmni$tasks().keySet())
                     : execution.candidatePatterns();
+            if (execution == null) {
+                var preferred = host.ecoDispatch$preferredPattern();
+                // Yield to vanilla when the selected ordinary task needs it;
+                // another ready ECO task must not take that task's turn.
+                if (preferred != null && patterns.contains(preferred)) patterns = List.of(preferred);
+            }
+            var providerCache = new IdentityHashMap<ICraftingProvider, ProviderCandidate>();
             for (var pattern : patterns) {
                 if (host.ecoDispatch$stopped()) return 0;
+                // Filtering before the phase token and preview keeps unsupported patterns from
+                // touching the CPU inventory or starting phase preparation at all.
+                var candidates = supportedProviders(crafting, pattern, providerCache);
+                if (candidates.isEmpty()) continue;
                 var token = execution == null ? null : execution.begin(pattern);
                 if (execution != null && token == null) continue;
                 BigInteger limit = host.ecoDispatch$remaining(pattern);
+                if (!host.ecoDispatch$virtualCpu()) limit = limit.min(BigInteger.ONE);
                 if (token != null) limit = limit.min(token.maximum());
                 if (limit.signum() <= 0) continue;
                 var preview = new PreviewInventory(host.ecoDispatch$physicalView());
@@ -75,17 +90,24 @@ public final class EcoCpuDispatch {
                     limit = token.limit(inputs, host::ecoOmni$physicalAmount, limit);
                 if (limit.signum() <= 0) continue;
                 final var phase = token;
-                for (var provider : crafting.getProviders(pattern)) {
+                PrototypeCost cost = null;
+                for (var candidate : candidates) {
                     if (host.ecoDispatch$stopped()) return 0;
-                    var parallel = ECOParallelCraftingProviders.find(provider);
-                    if (!ECOFastPathFacade.supports(provider) && parallel == null) continue;
+                    var provider = candidate.provider();
+                    // Busy stays a live check, never part of the execute-scoped metadata cache.
                     if (provider.isBusy()) continue;
+                    // Power and unit totals belong to the extracted prototype, so every provider
+                    // attempt and the native-single fallback in this pattern share one snapshot.
+                    if (cost == null) cost = new PrototypeCost(
+                            CraftingCpuHelper.calculatePatternPower(inputs), totals(inputs));
                     try (var scope = phase == null ? null : phase.openProviderScope()) {
-                        var outcome = limit.compareTo(BigInteger.TWO) >= 0
-                                ? attempt(host, provider, pattern, inputs, outputs, remainders, limit, phase, power, level)
-                                : Outcome.REJECTED;
-                        if (outcome == Outcome.REJECTED && provider instanceof ECOCraftingPatternBusBlockEntity bus)
-                            outcome = attemptNativeSingle(host, bus, pattern, inputs, outputs, remainders, phase, power);
+                        // A final single copy (and a physical-mode CPU) still needs the same
+                        // UUID, input reservation and waiting transaction as a large batch.
+                        var outcome = attempt(host, provider, candidate.parallel(), pattern, inputs, outputs,
+                                remainders, limit, phase, power, level, cost);
+                        if (outcome == Outcome.REJECTED && candidate.nativeSingle())
+                            outcome = attemptNativeSingle(host, provider, candidate.parallel(), pattern, inputs,
+                                    outputs, remainders, phase, power, cost);
                         if (outcome == Outcome.ACCEPTED) return 1;
                         if (outcome == Outcome.PAUSED) return 0;
                     }
@@ -100,23 +122,27 @@ public final class EcoCpuDispatch {
     }
 
     /**
-     * A cold native bus verifies the recipe by accepting one real craft. ECO's legacy
-     * pushWithJob wrapper bypasses the shared CPU push hook, leaving exact/phase tasks
-     * unchanged. Keep this acceptance inside the same ownership transaction as batches.
+     * Cold crafting buses and blocking workstations may reject the fast-path preparation.
+     * Deliver one complete allocated copy through their job-aware entry, never the UUID-less
+     * vanilla fallback. Providers remain authoritative for locks, capacity and recipe validation.
      */
-    private Outcome attemptNativeSingle(EcoOmniPlanCpuAccess host, ECOCraftingPatternBusBlockEntity bus,
-            IPatternDetails pattern, KeyCounter[] prototype, KeyCounter outputs, KeyCounter remainders,
-            EcoOmniPlanExecution.Dispatch phase, IEnergyService power) {
-        double singlePower = CraftingCpuHelper.calculatePatternPower(prototype);
-        if (!Double.isFinite(singlePower) || singlePower < 0) return Outcome.REJECTED;
+    private Outcome attemptNativeSingle(EcoOmniPlanCpuAccess host, ICraftingProvider provider,
+            ECOParallelCraftingProvider parallel, IPatternDetails pattern,
+            KeyCounter[] prototype, KeyCounter outputs, KeyCounter remainders,
+            EcoOmniPlanExecution.Dispatch phase, IEnergyService power, PrototypeCost cost) {
+        // Per-slot preview guards do not aggregate overlapping keys. A DAG single-copy
+        // fallback must still leave other phases' startup seeds physically owned.
+        if (phase != null && phase.limit(prototype, host::ecoOmni$physicalAmount, BigInteger.ONE).signum() <= 0)
+            return Outcome.REJECTED;
+        if (!cost.usable()) return Outcome.REJECTED;
         var receipt = new EcoCpuDispatchReceipt(host.ecoDispatch$jobId(), pattern, BigInteger.ONE,
-                totals(prototype), totals(outputs), totals(remainders), false);
+                cost.units(), totals(outputs), totals(remainders), false);
         var lease = host.ecoDispatch$reserveExact(receipt.inputs());
         if (lease == null) return Outcome.REJECTED;
         return transact(host, receipt, lease, power, account -> {
-            var paid = account.reserve(singlePower);
+            var paid = account.reserve(cost.singlePower());
             if (paid == null) return false;
-            // The bus receives its own mutable holders; the phase token retains the unit
+            // The provider receives its own mutable holders; the phase token retains the unit
             // allocation needed to advance once after acceptance.
             var delivery = new KeyCounter[prototype.length];
             for (int slot = 0; slot < prototype.length; slot++) {
@@ -124,7 +150,11 @@ public final class EcoCpuDispatch {
                 delivery[slot].addAll(prototype[slot]);
             }
             boolean accepted;
-            try { accepted = bus.pushPattern(pattern, delivery, host.ecoDispatch$jobId()); }
+            try {
+                accepted = parallel != null
+                        ? parallel.eco$pushPatternBatch(pattern, delivery, 1, host.ecoDispatch$jobId())
+                        : ECOFastPathFacade.pushPatternForJob(provider, pattern, delivery, host.ecoDispatch$jobId());
+            }
             catch (RuntimeException uncertain) {
                 paid.commit();
                 throw new ECOIndeterminateBatchException("Native single-craft ownership is uncertain", uncertain);
@@ -134,12 +164,13 @@ public final class EcoCpuDispatch {
         }, () -> { if (phase != null) phase.accepted(BigInteger.ONE, prototype); });
     }
 
-    private Outcome attempt(EcoOmniPlanCpuAccess host, ICraftingProvider provider, IPatternDetails pattern,
+    private Outcome attempt(EcoOmniPlanCpuAccess host, ICraftingProvider provider,
+            ECOParallelCraftingProvider parallel, IPatternDetails pattern,
             KeyCounter[] prototype, KeyCounter outputs, KeyCounter remainders, BigInteger limit,
-            EcoOmniPlanExecution.Dispatch phase, IEnergyService power, Level level) {
-        double singlePower = CraftingCpuHelper.calculatePatternPower(prototype);
-        if (!Double.isFinite(singlePower) || singlePower < 0) return Outcome.REJECTED;
-        var units = totals(prototype);
+            EcoOmniPlanExecution.Dispatch phase, IEnergyService power, Level level, PrototypeCost cost) {
+        if (!cost.usable()) return Outcome.REJECTED;
+        double singlePower = cost.singlePower();
+        var units = cost.units();
         if (host.ecoDispatch$exactOrder() && remainders.isEmpty()) {
             BigInteger exactLimit = limit;
             for (var entry : units.entrySet()) exactLimit = exactLimit.min(
@@ -173,7 +204,6 @@ public final class EcoCpuDispatch {
                 }
             }
         }
-        var parallel = ECOParallelCraftingProviders.find(provider);
         long bounded = limit.min(LONG_MAX).longValueExact();
         var batch = parallel == null
                 ? ECOFastPathFacade.prepare(provider, pattern, prototype, outputs, remainders,
@@ -182,7 +212,7 @@ public final class EcoCpuDispatch {
                 : ECOFastPathFacade.prepareParallel(parallel, pattern, prototype, outputs, remainders,
                         host.ecoDispatch$inventory(), bounded, singlePower, energy.simulation(power),
                         level, host.ecoDispatch$jobId());
-        if (batch == null || batch.craftCount() < 2) return Outcome.REJECTED;
+        if (batch == null || batch.craftCount() < 1) return Outcome.REJECTED;
         if (BigInteger.valueOf(batch.craftCount()).compareTo(limit) > 0)
             throw new IllegalStateException("ECO batch exceeds its pinned phase/input-allocation allowance");
         // Exact totals remain exact even when per-key sums exceed the GenericStack long window.
@@ -286,6 +316,31 @@ public final class EcoCpuDispatch {
             failedSnapshot = tag.copy();
             journal.suspend("Invalid ECO dispatch persistence: " + failure);
         }
+    }
+
+    private static List<ProviderCandidate> supportedProviders(CraftingService crafting, IPatternDetails pattern,
+            Map<ICraftingProvider, ProviderCandidate> cache) {
+        var result = new ArrayList<ProviderCandidate>();
+        for (var provider : crafting.getProviders(pattern)) {
+            var candidate = cache.get(provider);
+            if (candidate == null) cache.put(provider, candidate = ProviderCandidate.of(provider));
+            if (candidate.supported()) result.add(candidate);
+        }
+        return result;
+    }
+
+    private record ProviderCandidate(ICraftingProvider provider, ECOParallelCraftingProvider parallel,
+            boolean fastPath, boolean jobAware) {
+        static ProviderCandidate of(ICraftingProvider provider) {
+            return new ProviderCandidate(provider, ECOParallelCraftingProviders.find(provider),
+                    ECOFastPathFacade.supports(provider), provider instanceof ECOJobAwareCraftingProvider);
+        }
+        boolean supported() { return fastPath || parallel != null || jobAware; }
+        boolean nativeSingle() { return parallel != null || jobAware; }
+    }
+
+    private record PrototypeCost(double singlePower, Map<AEKey, BigInteger> units) {
+        boolean usable() { return Double.isFinite(singlePower) && singlePower >= 0; }
     }
 
     private static Map<AEKey, BigInteger> totals(KeyCounter[] inputs) {

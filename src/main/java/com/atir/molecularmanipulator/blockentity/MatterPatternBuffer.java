@@ -23,6 +23,8 @@ public final class MatterPatternBuffer {
     private final Object2LongLinkedOpenHashMap<AEKey> inputs = new Object2LongLinkedOpenHashMap<>();
     private final Object2LongLinkedOpenHashMap<AEKey> refunds = new Object2LongLinkedOpenHashMap<>();
     private final Object2LongLinkedOpenHashMap<AEKey> outputs = new Object2LongLinkedOpenHashMap<>();
+    private final MatterOutputStaging stagedOutputs = new MatterOutputStaging();
+    private boolean flushing;
     private final MatterFabricationBatch active = new MatterFabricationBatch();
     private UUID activeCraftingId;
     private final AEKeyTransferScheduler outputTransfer = new AEKeyTransferScheduler();
@@ -33,7 +35,7 @@ public final class MatterPatternBuffer {
 
     MatterPatternBuffer(MatterFabricationPatternAssemblyBlockEntity assembly) { this.assembly = assembly; }
 
-    public boolean hasContents() { return !queued.isEmpty() || !refunds.isEmpty() || !outputs.isEmpty() || active.hasWork() || unavailable != null; }
+    public boolean hasContents() { return !queued.isEmpty() || !refunds.isEmpty() || !outputs.isEmpty() || !stagedOutputs.isEmpty() || active.hasWork() || unavailable != null; }
     public boolean hasQueuedInputs() { return !queued.isEmpty() || !refunds.isEmpty(); }
     public boolean isProcessing() { return active.hasWork(); }
     public boolean isUnavailable() { return unavailable != null || active.unavailable(); }
@@ -116,7 +118,7 @@ public final class MatterPatternBuffer {
                 long count = Math.min(work.crafts, active.capacity(controller, recipe, Map.of()));
                 if (count <= 0) { waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.WAITING_POWER, 0, 0, 0, false); continue; }
                 var unitOutputs = MatterFabricationBatch.outputs(recipe.value());
-                for (var output : unitOutputs.entrySet()) count = Math.min(count, (Long.MAX_VALUE - outputs.getLong(output.getKey())) / output.getValue());
+                for (var output : unitOutputs.entrySet()) count = Math.min(count, (Long.MAX_VALUE - stagedOutputs.storedAmount(outputs, output.getKey())) / output.getValue());
                 if (count <= 0) { waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.OUTPUT_BLOCKED, 0, 0, 0, false); continue; }
                 var supplied = MatterFabricationBatch.takeInputs(recipe.value(), work.inputs, work.crafts, count);
                 if (supplied == null) continue;
@@ -143,9 +145,7 @@ public final class MatterPatternBuffer {
     }
 
     private long storeOutput(AEKey key, long amount) {
-        long inserted = Math.min(amount, Long.MAX_VALUE - outputs.getLong(key));
-        if (inserted > 0) outputs.addTo(key, inserted);
-        return inserted;
+        return stagedOutputs.store(outputs, key, amount, assembly.getLevel().getGameTime());
     }
 
     void serverTick() { reconcileCancellations(); reconcile(); flushToNetwork(); }
@@ -218,8 +218,17 @@ public final class MatterPatternBuffer {
 
     private void flushToNetwork() {
         var node = assembly.getMainNode();
-        if (!node.isActive() || isUnavailable()) return;
-        var storage = node.getGrid().getStorageService().getInventory();
+        if (flushing || !node.isActive() || isUnavailable()) return;
+        flushing = true;
+        try {
+            stagedOutputs.release(outputs, assembly.getLevel().getGameTime());
+            flushToNetwork(node.getGrid().getStorageService().getInventory());
+        } finally {
+            flushing = false;
+        }
+    }
+
+    private void flushToNetwork(appeng.api.storage.MEStorage storage) {
         var source = new MachineSource(assembly);
         var budget = AEKeyTransferScheduler.defaultBudget();
         AEKeyTransferScheduler.Inserter insert = (key, amount) -> storage.insert(key, amount, Actionable.MODULATE, source);
@@ -238,7 +247,7 @@ public final class MatterPatternBuffer {
 
     public List<GenericStack> contents(boolean output) {
         var view = new LinkedHashMap<AEKey, Long>();
-        if (output) { outputs.forEach(view::put); merge(view, active.storedOutputs()); }
+        if (output) { outputs.forEach(view::put); stagedOutputs.addTo(view); merge(view, active.storedOutputs()); }
         else { inputs.forEach(view::put); merge(view, refunds); merge(view, active.storedInputs()); }
         return view.entrySet().stream().map(e -> new GenericStack(e.getKey(), e.getValue())).toList();
     }
@@ -253,7 +262,7 @@ public final class MatterPatternBuffer {
             if (work.craftingId != null) job.putUUID("crafting_id", work.craftingId);
             job.putLong("crafts", work.crafts); job.put("inputs", writeAmounts(work.inputs, registries)); jobs.add(job);
         });
-        tag.put("queued", jobs); tag.put("refunds", writeAmounts(refunds, registries)); tag.put("outputs", writeAmounts(outputs, registries));
+        tag.put("queued", jobs); tag.put("refunds", writeAmounts(refunds, registries)); tag.put("outputs", writeAmounts(storedOutputs(), registries));
         if (active.hasWork()) tag.put("active", active.save(registries));
         if (active.hasWork() && activeCraftingId != null) tag.putUUID("active_crafting_id", activeCraftingId);
         parent.put("fabrication_pattern_buffer", tag);
@@ -277,7 +286,7 @@ public final class MatterPatternBuffer {
                 supplied.forEach((item, amount) -> inputs.put(item, Math.addExact(inputs.getLong(item), amount)));
             }
             refunds.putAll(readAmounts(tag.getList("refunds", Tag.TAG_COMPOUND), registries));
-            outputs.putAll(readAmounts(tag.getList("outputs", Tag.TAG_COMPOUND), registries));
+            stagedOutputs.restore(readAmounts(tag.getList("outputs", Tag.TAG_COMPOUND), registries));
             active.load(tag.getCompound("active"), registries);
             activeCraftingId = readCraftingId(tag, "active_crafting_id");
             contents(false); contents(true); // Validate totals across queued, refunded and active ownership.
@@ -288,7 +297,14 @@ public final class MatterPatternBuffer {
         reconcilePatterns = true;
     }
 
-    void clear() { queued.clear(); inputs.clear(); refunds.clear(); outputs.clear(); active.clear(); activeCraftingId = null; unavailable = null; reconcilePatterns = true; }
+    private Map<AEKey, Long> storedOutputs() {
+        var amounts = new LinkedHashMap<AEKey, Long>();
+        outputs.forEach(amounts::put);
+        stagedOutputs.addTo(amounts);
+        return amounts;
+    }
+
+    void clear() { queued.clear(); inputs.clear(); refunds.clear(); outputs.clear(); stagedOutputs.clear(); active.clear(); activeCraftingId = null; unavailable = null; reconcilePatterns = true; }
     private void changed() { assembly.saveChanges(); }
     private static void subtract(Object2LongLinkedOpenHashMap<AEKey> map, AEKey key, long amount) {
         long left = map.getLong(key) - amount;

@@ -116,8 +116,10 @@ public final class CosmicSingularityPostRenderer {
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
+        var inverseProjection = SingularityLensProjection.inverseProjection(projection);
         shader.safeGetUniform("LensProjection").set(projection);
-        shader.safeGetUniform("InverseProjection").set(SingularityLensProjection.inverseProjection(projection));
+        shader.safeGetUniform("InverseProjection").set(inverseProjection);
+        shader.safeGetUniform("RayOrigin").set(SingularityLensProjection.rayOriginInViewSpace(inverseProjection));
         shader.safeGetUniform("LensTime").set(hole.time);
         shader.safeGetUniform("CoreRadius").set(0.30F);
         shader.safeGetUniform("FieldRadius").set(1.25F);

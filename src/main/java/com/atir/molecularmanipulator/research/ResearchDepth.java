@@ -25,8 +25,9 @@ public record ResearchDepth(long materialMultiplier, long parallel, long speedMu
         ingredients = ingredients.map(List::copyOf);
     }
 
+    /** Legacy speed fields remain decodable; research now grants parallelism only. */
     public int ticks(int baseTicks) {
-        return processingTicks > 0 ? processingTicks : (int) ((Math.max(1, baseTicks) - 1L) / speedMultiplier + 1);
+        return Math.max(1, baseTicks);
     }
 
     public List<MatterResearchRecipe.Cost> costs(List<MatterResearchRecipe.Cost> base) {
@@ -38,7 +39,7 @@ public record ResearchDepth(long materialMultiplier, long parallel, long speedMu
         var result = new ArrayList<ResearchDepth>();
         for (int i = 0; i < 9; i++) {
             result.add(new ResearchDepth(1L << i, i == 8 ? Long.MAX_VALUE : 1L << (i * 8),
-                    1L << i, i == 8 ? 1 : 0, Optional.empty()));
+                    1L, 0, Optional.empty()));
         }
         return List.copyOf(result);
     }

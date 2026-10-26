@@ -22,6 +22,7 @@ import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderProgress;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderRequest;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
+import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchRunner;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrder;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrderCpu;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpu;
@@ -41,7 +42,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** Outer lifecycle boundary; loaded by the existing ECO >=21.2.9 optional-mixin gate. */
 @Mixin(value = CraftingCpuLogic.class, priority = 800, remap = false)
-public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, EcoOmniParentOrder.Host {
+public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, EcoOmniParentOrder.Host, EcoCpuDispatchRunner {
     @Shadow @Final private CraftingCPUCluster cluster;
     @Shadow private ExecutingCraftingJob job;
     @Shadow private void postChange(AEKey key) { throw new AssertionError(); }
@@ -54,6 +55,7 @@ public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, 
 
     @Unique private CraftingCpuLogic molecularmanipulator$logic() { return (CraftingCpuLogic) (Object) this; }
     @Unique private EcoOmniPlanCpuAccess molecularmanipulator$access() { return (EcoOmniPlanCpuAccess) this; }
+    @Override public boolean ecoDispatch$continuingJob() { return molecularmanipulator$parentChildSubmission; }
     @Override public String ecoOmni$parentProblem() { return molecularmanipulator$parentProblem; }
     @Override public ECOBigOrderProgress ecoOmni$parentProgress() {
         return molecularmanipulator$parent == null ? null : molecularmanipulator$parent.progress(job == null ? 0

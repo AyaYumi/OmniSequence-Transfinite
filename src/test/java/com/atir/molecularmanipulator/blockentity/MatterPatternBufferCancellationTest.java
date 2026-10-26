@@ -194,6 +194,31 @@ class MatterPatternBufferCancellationTest {
         assertFalse(loaded.isProcessing());
     }
 
+    @Test void stagedAndReadyOutputsSurviveReloadAndCancellationWithoutBecomingInputs() throws Exception {
+        var buffer = buffer();
+        queue(buffer, FIRST, Map.of(IRON, 100L));
+        amounts(buffer, "outputs").put(OUTPUT, 12L);
+        var staged = (MatterOutputStaging) field(buffer, "stagedOutputs");
+        staged.store(amounts(buffer, "outputs"), OUTPUT, 25, 10);
+        var saved = new CompoundTag();
+        buffer.save(saved, REGISTRIES);
+        var loaded = buffer();
+        loaded.load(saved, REGISTRIES);
+        assertFalse(loaded.isUnavailable());
+        assertTrue(loaded.hasContents());
+        loaded.refundCanceledInputs(FIRST::equals);
+        assertEquals(Map.of(IRON, 100L), amounts(loaded, "refunds"));
+        assertEquals(Map.of(OUTPUT, 37L), contents(loaded, true));
+        assertTrue(amounts(loaded, "outputs").isEmpty(), "Restored output must wait for the CPU too");
+        var restored = (MatterOutputStaging) field(loaded, "stagedOutputs");
+        restored.release(amounts(loaded, "outputs"), 20);
+        assertTrue(amounts(loaded, "outputs").isEmpty());
+        restored.release(amounts(loaded, "outputs"), 21);
+        assertEquals(Map.of(OUTPUT, 37L), contents(loaded, true));
+        loaded.clear();
+        assertFalse(loaded.hasContents());
+    }
+
     @Test void legacyBufferLoadsWithoutInventingTaskOwnership() throws Exception {
         var buffer = buffer();
         queue(buffer, null, Map.of(IRON, 100L));

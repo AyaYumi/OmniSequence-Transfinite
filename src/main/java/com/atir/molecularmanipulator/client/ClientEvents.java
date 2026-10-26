@@ -5,13 +5,13 @@ import appeng.api.client.AEKeyRendering;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKey;
 import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKeyType;
+import com.atir.molecularmanipulator.client.render.NegativeEntropyEngineFormedGeometry;
 import com.atir.molecularmanipulator.client.render.NexusFormedGeometry;
 import com.atir.molecularmanipulator.client.render.AutoCrafterGlowGeometry;
 import com.atir.molecularmanipulator.client.render.OmniShaders;
 import com.atir.molecularmanipulator.client.render.SingularityWhiteHoleRenderer;
 import com.atir.molecularmanipulator.client.render.CosmicSingularityRenderer;
 import com.atir.molecularmanipulator.client.render.CosmicSingularityPostRenderer;
-import com.atir.molecularmanipulator.client.render.NegativeEntropyEngineRenderer;
 import com.atir.molecularmanipulator.client.render.NegativeEntropyInfoRenderer;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -71,6 +71,8 @@ public final class ClientEvents {
                 "/screens/molecular_center.json");
         InitScreens.register(event, ModContent.OMNI_COMPUTATION_MENU.get(), OmniComputationScreen::new,
                 "/screens/omni_computation.json");
+        InitScreens.register(event, ModContent.NEGATIVE_ENTROPY_ENGINE_MENU.get(), NegativeEntropyEngineScreen::new,
+                "/screens/negative_entropy_engine.json");
         InitScreens.register(event, ModContent.MATTER_FABRICATION_MENU.get(), MatterFabricationScreen::new,
                 "/screens/matter_fabrication.json");
         InitScreens.register(event, SingularityContent.MENU.get(), SingularityScreen::new, "/screens/event_horizon_singularity_hub.json");
@@ -83,6 +85,8 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerGeometryLoaders(ModelEvent.RegisterGeometryLoaders event) {
+        event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "negative_entropy_engine_formed"),
+                NegativeEntropyEngineFormedGeometry.LOADER);
         event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "nexus_formed"),
                 NexusFormedGeometry.LOADER);
         event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "auto_crafter_glow"),
@@ -102,8 +106,6 @@ public final class ClientEvents {
                 OmniComputationRenderer::new);
         event.registerBlockEntityRenderer(ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(),
                 MatterFabricationRenderer::new);
-        event.registerBlockEntityRenderer(ModContent.NEGATIVE_ENTROPY_ENGINE_CORE_BE.get(),
-                NegativeEntropyEngineRenderer::new);
     }
 
     @SubscribeEvent

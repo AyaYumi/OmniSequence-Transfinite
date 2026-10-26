@@ -91,8 +91,83 @@ class EcoCpuDispatchHostTest {
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$reflectionAvailable", true);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$dispatchOwner", allocate(OmniComputationCoreBlockEntity.class));
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$dispatchAllowance", 100L);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$unscaledDispatchAllowance", 100);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$compatDispatchDeadlineNanos", System.nanoTime() + 30_000_000_000L);
+        // Accounting tests must not race the production sub-millisecond per-pattern time slice.
+        @SuppressWarnings("unchecked")
+        var deadlines = (Map<IPatternDetails, Long>) get("molecularmanipulator$compatPatternDeadlines");
+        deadlines.put(pattern, System.nanoTime() + 30_000_000_000L);
         cpu.link = new Link();
+    }
+    @Test void compatPatternSlicesSurviveTheSameJobAndTickAndClearDispatch() throws Exception {
+        prepare(job, 40L);
+        @SuppressWarnings("unchecked")
+        var deadlines = (Map<IPatternDetails, Long>) get("molecularmanipulator$compatPatternDeadlines");
+        @SuppressWarnings("unchecked")
+        var blocked = (Set<IPatternDetails>) get("molecularmanipulator$compatPatternSliceBlocked");
+        long deadline = System.nanoTime() - 1L;
+        deadlines.put(pattern, deadline);
+        assertTrue(expired(pattern), "A manually expired slice must start blocking its pattern");
+        assertTrue(blocked.contains(pattern));
+
+        prepare(job, 40L);
+        assertEquals(deadline, deadlines.get(pattern).longValue(), "A same-tick retry must not renew the pattern deadline");
+        assertTrue(blocked.contains(pattern), "A same-tick retry must not unblock a timed-out pattern");
+        assertTrue(expired(pattern));
+
+        invoke("molecularmanipulator$clearDispatch");
+        assertEquals(deadline, deadlines.get(pattern).longValue(), "clearDispatch ends a tick, not the job's slice window");
+        assertTrue(blocked.contains(pattern));
+        assertSame(job, get("molecularmanipulator$compatPatternSliceJob"));
+        assertEquals(Long.valueOf(40L), get("molecularmanipulator$compatPatternSliceTick"));
+    }
+    @Test void compatPatternSlicesResetOnlyWhenTheJobOrTickChanges() throws Exception {
+        @SuppressWarnings("unchecked")
+        var deadlines = (Map<IPatternDetails, Long>) get("molecularmanipulator$compatPatternDeadlines");
+        @SuppressWarnings("unchecked")
+        var blocked = (Set<IPatternDetails>) get("molecularmanipulator$compatPatternSliceBlocked");
+        prepare(job, 7L);
+        deadlines.put(pattern, System.nanoTime() - 1L);
+        blocked.add(pattern);
+
+        prepare(job, 8L);
+        assertTrue(deadlines.isEmpty(), "A new tick starts a fresh per-pattern slice window");
+        assertTrue(blocked.isEmpty());
+
+        deadlines.put(pattern, 123L);
+        blocked.add(pattern);
+        var nextJob = new Object();
+        prepare(nextJob, 8L);
+        assertTrue(deadlines.isEmpty(), "A replacement job must not inherit slice state");
+        assertTrue(blocked.isEmpty());
+        assertSame(nextJob, get("molecularmanipulator$compatPatternSliceJob"));
+        assertEquals(Long.valueOf(8L), get("molecularmanipulator$compatPatternSliceTick"));
+
+        prepare(null, 8L);
+        deadlines.put(pattern, 123L);
+        blocked.add(pattern);
+        prepare(null, 8L);
+        assertEquals(1, deadlines.size(), "A null job is still a stable identity while the tick is unchanged");
+        assertTrue(blocked.contains(pattern));
+    }
+    @Test void batchBoundariesDoNotOwnTheCompatPatternSliceLifecycle() throws Exception {
+        var node = new ClassNode();
+        try (var stream = CraftingCpuLogicMixin.class.getResourceAsStream(
+                "/" + CraftingCpuLogicMixin.class.getName().replace('.', '/') + ".class")) {
+            new ClassReader(java.util.Objects.requireNonNull(stream)).accept(node, 0);
+        }
+        assertFalse(calls(node, "molecularmanipulator$beginBatchContext",
+                "molecularmanipulator$clearCompatPatternSlices"),
+                "A same-tick retry must not discard a timed-out pattern between batches");
+        assertFalse(calls(node, "molecularmanipulator$endBatchContext",
+                "molecularmanipulator$clearCompatPatternSlices"));
+        assertFalse(calls(node, "molecularmanipulator$clearDispatch",
+                "molecularmanipulator$clearCompatPatternSlices"),
+                "clearDispatch belongs to the tick boundary, not the job/tick slice boundary");
+        assertTrue(calls(node, "molecularmanipulator$beginOmniDispatch",
+                "molecularmanipulator$prepareCompatPatternSlices"));
+        assertTrue(calls(node, "molecularmanipulator$beginBatchContext",
+                "molecularmanipulator$prepareCompatPatternSlices"));
     }
     @Test void sharedHostAndItsDescriptorsLoadWithEveryEcoImplementationUnavailable() throws Exception {
         var urls = java.util.Arrays.stream(System.getProperty("java.class.path").split(java.io.File.pathSeparator))
@@ -115,11 +190,130 @@ class EcoCpuDispatchHostTest {
             assertNotNull(Class.forName(EcoCpuDispatchLedger.class.getName(), true, isolated).getConstructor().newInstance());
         }
     }
-    @Test void allTwelveHostHooksAreConcreteInTheSharedCpu() {
+    @Test void allHostHooksAreConcreteInTheSharedCpu() {
         long hooks = java.util.Arrays.stream(CraftingCpuLogicMixin.class.getDeclaredMethods())
                 .filter(method -> method.getName().startsWith("ecoDispatch$")).count();
-        assertEquals(12, hooks);
+        assertEquals(14, hooks);
     }
+    @Test void physicalQuotaRejectsAggregateReceiptsAndStillReceivesInFlightProducts() throws Exception {
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$virtualDispatch", false);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$unscaledDispatchAllowance", 2);
+        assertNull(cpu.ecoDispatch$stage(receipt(BigInteger.TWO)));
+        var first = cpu.ecoDispatch$stage(receipt(BigInteger.ONE));
+        assertNotNull(first);
+        first.commit();
+        var second = cpu.ecoDispatch$stage(receipt(BigInteger.ONE));
+        assertNotNull(second);
+        second.commit();
+        assertEquals(8, task.value);
+        assertTrue(cpu.ecoDispatch$stopped());
+        assertNull(cpu.ecoDispatch$stage(receipt(BigInteger.ONE)));
+        assertEquals(BigInteger.TWO, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), RETURNED,
+                BigInteger.TWO, Actionable.MODULATE), "An exhausted dispatch quota cannot block in-flight ownership reception");
+    }
+    @Test void virtualAggregateAlsoConsumesTheSharedPhysicalDispatchQuota() throws Exception {
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$unscaledDispatchAllowance", 1);
+        var batch = cpu.ecoDispatch$stage(receipt(BigInteger.valueOf(3)));
+        assertNotNull(batch);
+        batch.commit();
+        assertEquals(7, task.value);
+        assertEquals(1, get("molecularmanipulator$unscaledDispatchUsed"));
+        assertTrue(cpu.ecoDispatch$stopped());
+        assertNull(cpu.ecoDispatch$stage(receipt(BigInteger.ONE)));
+    }
+
+    @Test void physicalExtractionKeepsInputsUntilOneRecipeFitsTheWaitingWindow() throws Exception {
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$virtualDispatch", false);
+        cpu.inventory.list.add(CONTAINER, 1);
+        cpu.inventory.list.add(MATERIAL, 1);
+        cpu.waiting.set(OUTPUT, Long.MAX_VALUE - 3);
+        var outputs = new appeng.api.stacks.KeyCounter();
+        var containers = new appeng.api.stacks.KeyCounter();
+        com.llamalad7.mixinextras.injector.wrapoperation.Operation<appeng.api.stacks.KeyCounter[]> extract = args -> {
+            var inventory = (appeng.crafting.inv.ICraftingInventory) args[1];
+            assertEquals(1, inventory.extract(CONTAINER, 1, Actionable.MODULATE));
+            assertEquals(1, inventory.extract(MATERIAL, 1, Actionable.MODULATE));
+            outputs.add(OUTPUT, 4);
+            containers.add(RETURNED, 1);
+            return pattern.first();
+        };
+        var hook = EXACT_HOOKS.getDeclaredMethod("molecularmanipulator$extractBatch", CraftingCpuLogicMixin.class,
+                IPatternDetails.class, appeng.crafting.inv.ICraftingInventory.class, net.minecraft.world.level.Level.class,
+                appeng.api.stacks.KeyCounter.class, appeng.api.stacks.KeyCounter.class,
+                com.llamalad7.mixinextras.injector.wrapoperation.Operation.class);
+        assertNull(hook.invoke(null, cpu, pattern, cpu.inventory, EcoMolecularTestPattern.level(), outputs, containers, extract));
+        assertEquals(1, cpu.inventory.list.get(CONTAINER));
+        assertEquals(1, cpu.inventory.list.get(MATERIAL));
+        assertEquals(0, outputs.get(OUTPUT));
+        assertEquals(0, containers.get(RETURNED));
+        assertEquals(0, get("molecularmanipulator$unscaledDispatchUsed"), "No provider attempt after failed headroom check");
+        cpu.waiting.set(OUTPUT, Long.MAX_VALUE - 4);
+        assertNotNull(hook.invoke(null, cpu, pattern, cpu.inventory, EcoMolecularTestPattern.level(), outputs, containers, extract),
+                "The exact boundary still admits one physical recipe");
+        assertEquals(0, cpu.inventory.list.get(CONTAINER));
+        assertEquals(0, cpu.inventory.list.get(MATERIAL));
+        assertEquals(4, outputs.get(OUTPUT));
+        assertEquals(1, containers.get(RETURNED));
+    }
+
+    @Test void downgradeKeepsEcoPhasePatternIdentitiesPinned() throws Exception {
+        var scaled = new com.atir.molecularmanipulator.crafting.MolecularScaledPattern(pattern, 4);
+        job.tasks.clear();
+        job.tasks.put(scaled, task);
+        cpu.managed = true;
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizedPhysicalCpu", true);
+        var normalize = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$normalizeExternalScaledTasks",
+                appeng.crafting.execution.ExecutingCraftingJob.class);
+        normalize.setAccessible(true);
+        assertEquals(true, normalize.invoke(cpu, job));
+        assertSame(task, job.tasks.get(scaled), "ECO dispatches its original atomic recipe units under the physical quota");
+        assertEquals(10, task.value);
+    }
+
+    @Test void ordinaryScaledOrderCanDowngradePastTheLongRangeWithoutPausingOrTruncation() throws Exception {
+        var scaled = new com.atir.molecularmanipulator.crafting.MolecularScaledPattern(pattern, 4);
+        job.tasks.clear();
+        job.tasks.put(scaled, task);
+        task.value = Long.MAX_VALUE;
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizedPhysicalCpu", true);
+        var normalize = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$normalizeExternalScaledTasks",
+                appeng.crafting.execution.ExecutingCraftingJob.class);
+        normalize.setAccessible(true);
+        assertEquals(true, normalize.invoke(cpu, job));
+        assertEquals(BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.valueOf(4)),
+                cpu.ecoOmni$exactState().remaining(pattern));
+        assertEquals(OmniExactCraftingState.MAX_WINDOW, task.value);
+        assertEquals(BigInteger.valueOf(100), cpu.ecoOmni$exactState().outputProgress().remaining());
+        assertSame(task, job.tasks.get(pattern));
+    }
+
+    @Test void nativeOutputCallbackSurvivesPhysicalTaskNormalization() throws Exception {
+        var scaled = new com.atir.molecularmanipulator.crafting.MolecularScaledPattern(pattern, 4);
+        job.tasks.clear();
+        job.tasks.put(scaled, task);
+        var state = OmniExactCraftingState.create(Map.of(scaled, BigInteger.TEN), Map.of());
+        state.setOutputRemaining(HUGE);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$exactState", state);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizedPhysicalCpu", true);
+        var callbackType = Class.forName(CraftingCpuLogicMixin.class.getName() + "$NativeBigIntegerBatchCallback");
+        var constructor = callbackType.getDeclaredConstructor(CraftingCpuLogicMixin.class,
+                IPatternDetails.class, BigInteger.class, long.class);
+        constructor.setAccessible(true);
+        var callback = (com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks)
+                constructor.newInstance(cpu, pattern, BigInteger.ONE, 1L);
+        var normalize = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$normalizeExternalScaledTasks",
+                appeng.crafting.execution.ExecutingCraftingJob.class);
+        normalize.setAccessible(true);
+        assertEquals(true, normalize.invoke(cpu, job));
+        assertSame(state, cpu.ecoOmni$exactState(), "In-flight native callbacks must keep their original ledger identity");
+        assertEquals(BigInteger.valueOf(40), state.remaining(pattern));
+        assertEquals(40, task.value);
+        assertEquals(HUGE, state.outputProgress().remaining());
+        callback.onOutputs(java.util.List.of(new com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput(
+                RETURNED, BigInteger.ONE)));
+        assertEquals(BigInteger.ONE, state.uncreditedOutput(RETURNED));
+    }
+
     @Test void ordinaryCommitAdvancesExactlyCraftCountAndConsumesSharedWorkBudget() throws Exception {
         var stage = cpu.ecoDispatch$stage(receipt(BigInteger.valueOf(3)));
         assertNotNull(stage); assertEquals(3, job.waiting.list.get(OUTPUT)); assertEquals(3, job.waiting.list.get(RETURNED));
@@ -164,9 +358,9 @@ class EcoCpuDispatchHostTest {
     @Test void finalReceptionHonorsRequesterCapacityAndDefersCompletionUntilAfterCommit() throws Exception {
         cpu.link.capacity = 3;
         var stage = cpu.ecoDispatch$stage(receipt(BigInteger.TEN));
-        assertEquals(BigInteger.TEN, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, HUGE, Actionable.SIMULATE));
+        assertEquals(BigInteger.TEN, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, BigInteger.TEN, Actionable.SIMULATE));
         assertEquals(0, cpu.link.delivered);
-        assertEquals(BigInteger.TEN, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, HUGE, Actionable.MODULATE));
+        assertEquals(BigInteger.TEN, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, BigInteger.TEN, Actionable.MODULATE));
         assertEquals(0, cpu.link.delivered); assertEquals(100, job.remaining);
         invoke("molecularmanipulator$flushEcoFinalStock"); assertEquals(0, cpu.link.delivered, "A staged task cannot finish early");
         stage.commit(); cpu.suspended = true; invoke("molecularmanipulator$flushEcoFinalStock");
@@ -193,7 +387,7 @@ class EcoCpuDispatchHostTest {
                 new Class<?>[]{appeng.api.networking.IGrid.class},
                 (proxy, method, args) -> method.getName().equals("getStorageService") ? service : null);
         var stage = cpu.ecoDispatch$stage(receipt(BigInteger.TEN));
-        assertEquals(BigInteger.TEN, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, HUGE, Actionable.MODULATE));
+        assertEquals(BigInteger.TEN, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, BigInteger.TEN, Actionable.MODULATE));
         assertEquals(0, stored[0]); stage.commit(); invoke("molecularmanipulator$flushEcoFinalStock");
         assertEquals(4, stored[0]); assertEquals(0, cpu.link.delivered); assertEquals(96, job.remaining);
         assertEquals(0, job.waiting.list.get(OUTPUT));
@@ -202,7 +396,7 @@ class EcoCpuDispatchHostTest {
     @Test void fullRequesterRetainsOwnedProductsAndPauseAcknowledgesNoFurtherOwnership() throws Exception {
         cpu.link.capacity = 0;
         var stage = cpu.ecoDispatch$stage(receipt(BigInteger.valueOf(2)));
-        assertEquals(BigInteger.TWO, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, HUGE, Actionable.MODULATE));
+        assertEquals(BigInteger.TWO, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), OUTPUT, BigInteger.TWO, Actionable.MODULATE));
         assertEquals(0, job.waiting.list.get(OUTPUT));
         assertEquals(BigInteger.TWO, cpu.ecoOmni$physicalAmount(OUTPUT));
         assertEquals(100, job.remaining);
@@ -279,6 +473,61 @@ class EcoCpuDispatchHostTest {
         assertEquals(BigInteger.ONE, cpu.ecoOmni$physicalAmount(OUTPUT));
         assertFalse(ledger().hasFinalStock());
     }
+    @Test void workstationByproductsCanArriveBeforeExpectedOutputWithoutAdvancingTasks() throws Exception {
+        var stage = cpu.ecoDispatch$stage(receipt(BigInteger.valueOf(4)));
+        var id = cpu.link.getCraftingID();
+        assertEquals(HUGE, cpu.ecoDispatch$insertExact(id, MATERIAL, HUGE, Actionable.SIMULATE));
+        assertEquals(BigInteger.ZERO, cpu.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(HUGE, cpu.ecoDispatch$insertExact(id, MATERIAL, HUGE, Actionable.MODULATE));
+        assertEquals(HUGE, cpu.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(4, job.waiting.list.get(OUTPUT));
+        assertEquals(10, task.value);
+        assertEquals(100, job.remaining);
+        assertEquals(BigInteger.valueOf(7), cpu.ecoDispatch$insertExact(id, OUTPUT,
+                BigInteger.valueOf(7), Actionable.MODULATE));
+        assertEquals(0, job.waiting.list.get(OUTPUT));
+        assertEquals(BigInteger.valueOf(7), cpu.ecoOmni$physicalAmount(OUTPUT));
+        stage.commit();
+        assertEquals(6, task.value);
+        assertEquals(0, cpu.link.delivered, "Taking physical ownership must not deliver the goal reentrantly");
+    }
+
+    @Test void unexpectedSynchronousOutputPreventsRollbackEvenWithoutMatchingWaitingKey() throws Exception {
+        var stage = cpu.ecoDispatch$stage(receipt(BigInteger.ONE));
+        assertEquals(BigInteger.ONE, cpu.ecoDispatch$insertExact(cpu.link.getCraftingID(), MATERIAL,
+                BigInteger.ONE, Actionable.MODULATE));
+        assertThrows(IllegalStateException.class, stage::rollback);
+        assertEquals(BigInteger.ONE, cpu.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(1, job.waiting.list.get(OUTPUT));
+        stage.retain();
+        assertTrue(ledger().paused());
+    }
+
+    @Test void aboveLongSurplusIsRetainedButOnlyExpectedProductsCompleteWaiting() throws Exception {
+        var state = OmniExactCraftingState.create(Map.of(pattern, BigInteger.TEN), Map.of());
+        state.setOutputRemaining(BigInteger.valueOf(100));
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$exactState", state);
+        var stage = cpu.ecoDispatch$stage(receipt(BigInteger.TEN));
+        var id = cpu.link.getCraftingID();
+        assertEquals(HUGE, cpu.ecoDispatch$insertExact(id, OUTPUT, HUGE, Actionable.SIMULATE));
+        assertEquals(10, job.waiting.list.get(OUTPUT));
+        assertEquals(HUGE, cpu.ecoDispatch$insertExact(id, OUTPUT, HUGE, Actionable.MODULATE));
+        assertEquals(HUGE, cpu.ecoOmni$physicalAmount(OUTPUT));
+        assertEquals(BigInteger.TEN, state.completedOutputs().get(OUTPUT));
+        assertEquals(BigInteger.ZERO, state.uncreditedOutput(OUTPUT));
+        assertEquals(0, job.waiting.list.get(OUTPUT));
+        assertEquals(BigInteger.valueOf(100), state.outputProgress().remaining());
+        stage.commit();
+        var data = save();
+        nbtHook(CraftingCpuLogicMixin.class, "molecularmanipulator$resetPreviousExactInventory", cpu, data);
+        nbtHook(EXACT_HOOKS, "molecularmanipulator$readExactCraftingState", null, cpu, data);
+        assertEquals(HUGE, cpu.ecoOmni$physicalAmount(OUTPUT));
+        assertEquals(BigInteger.ZERO, cpu.ecoDispatch$insertExact(UUID.randomUUID(), OUTPUT, HUGE, Actionable.MODULATE));
+        set(CraftingCpuLogicMixin.class, cpu, "job", null);
+        assertEquals(BigInteger.ZERO, cpu.ecoDispatch$insertExact(id, OUTPUT, HUGE, Actionable.MODULATE));
+        assertEquals(HUGE, cpu.ecoOmni$physicalAmount(OUTPUT));
+    }
+
     @Test void aelisMetadataEnablesExactDispatchWithoutAnEcoPlanOrLargeTaskCount() throws Exception {
         var plan = aelisPlan();
         assertTrue(AelisExactCraftingPlanApi.read(plan).executionRequirement().requiresExactExecution());
@@ -384,7 +633,8 @@ class EcoCpuDispatchHostTest {
         String bridge = mixin + "$ExactAttachTest";
         String aeCpu = "appeng/crafting/execution/CraftingCpuLogic";
         var names = Set.of("molecularmanipulator$attachExactCraftingState",
-                "molecularmanipulator$readExactCraftingState", "molecularmanipulator$discardProjectedInfiniteInputs");
+                "molecularmanipulator$readExactCraftingState", "molecularmanipulator$discardProjectedInfiniteInputs",
+                "molecularmanipulator$extractBatch", "molecularmanipulator$hasWaitingForSingleCraftRoom");
         try (var stream = CraftingCpuLogicMixin.class.getResourceAsStream("/" + mixin + ".class")) {
             var original = new ClassNode(); new ClassReader(java.util.Objects.requireNonNull(stream)).accept(original, 0);
             var writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
@@ -425,6 +675,25 @@ class EcoCpuDispatchHostTest {
     private void invoke(String name) throws Exception {
         var method = CraftingCpuLogicMixin.class.getDeclaredMethod(name); method.setAccessible(true); method.invoke(cpu);
     }
+    private void prepare(Object currentJob, long tick) throws Exception {
+        var method = CraftingCpuLogicMixin.class.getDeclaredMethod(
+                "molecularmanipulator$prepareCompatPatternSlices", Object.class, long.class);
+        method.setAccessible(true); method.invoke(cpu, currentJob, tick);
+    }
+    private boolean expired(IPatternDetails patternDetails) throws Exception {
+        var method = CraftingCpuLogicMixin.class.getDeclaredMethod(
+                "molecularmanipulator$isCompatPatternSliceExpired", IPatternDetails.class);
+        method.setAccessible(true); return (boolean) method.invoke(cpu, patternDetails);
+    }
+    private static boolean calls(ClassNode node, String methodName, String callee) {
+        for (var method : node.methods) {
+            if (!method.name.equals(methodName)) continue;
+            for (var instruction : method.instructions) {
+                if (instruction instanceof MethodInsnNode call && call.name.equals(callee)) return true;
+            }
+        }
+        return false;
+    }
     private static void set(Class<?> type, Object instance, String name, Object value) throws Exception {
         var field = type.getDeclaredField(name); field.setAccessible(true); field.set(instance, value);
     }
@@ -435,14 +704,20 @@ class EcoCpuDispatchHostTest {
     private static final class Task { long value; }
     private static final class Cpu extends CraftingCpuLogicMixin {
         final ListCraftingInventory inventory = new ListCraftingInventory(key -> {});
-        Link link; boolean suspended; int legacyAccepted; BigInteger reserve = BigInteger.ZERO;
+        final appeng.api.stacks.KeyCounter waiting = new appeng.api.stacks.KeyCounter();
+        Link link; boolean suspended; boolean managed; int legacyAccepted; BigInteger reserve = BigInteger.ZERO;
+        @Override public boolean ecoOmni$managed() { return managed; }
         @Override public BigInteger ecoDispatch$reservedInput(AEKey key) { return reserve; }
         public ListCraftingInventory getInventory() { return inventory; }
         public ICraftingLink getLastLink() { return link; }
         public void setJobSuspended(boolean value) { suspended = value; }
         public boolean isJobSuspended() { return suspended; }
+        public int executeCrafting(int maximum, appeng.me.service.CraftingService crafting,
+                appeng.api.networking.energy.IEnergyService energy, net.minecraft.world.level.Level level) {
+            throw new AssertionError("The host fixture does not execute the AE2 loop");
+        }
         public boolean isOmniMaterialAllocator() { return true; }
-        public long getWaitingFor(AEKey key) { return 0; }
+        public long getWaitingFor(AEKey key) { return waiting.get(key); }
         public void ecoOmni$accepted(IPatternDetails pattern, BigInteger count) { legacyAccepted++; fail("Legacy phase hook used"); }
     }
     private static final class Core extends CraftingBlockEntity {

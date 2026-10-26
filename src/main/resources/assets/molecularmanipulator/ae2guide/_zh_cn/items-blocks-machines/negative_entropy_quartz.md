@@ -9,6 +9,8 @@ item_ids:
 - molecularmanipulator:negative_entropy_crystal
 - molecularmanipulator:negative_entropy_crystal_dust
 - molecularmanipulator:negative_entropy_alloy_ingot
+- molecularmanipulator:printed_negentropy_information_processor
+- molecularmanipulator:negentropy_information_processor
 - molecularmanipulator:negative_entropy_quartz_bud_small
 - molecularmanipulator:negative_entropy_quartz_bud_medium
 - molecularmanipulator:negative_entropy_quartz_bud_large
@@ -77,14 +79,34 @@ item_ids:
 用镐采集成熟晶簇：
 
 - 不带精准采集：掉落 **3 个负熵水晶**，受时运影响
-- 带精准采集：掉落晶簇本身，可以搬回家继续长
+- 带精准采集：掉落晶簇本身，便于搬运或装饰；持续产出水晶仍需母岩长芽
 
 ## 材料
 
 | 物品 | 用途 |
 | --- | --- |
 | 负熵水晶 | 晶簇的主要产物，负熵系列的基础材料 |
-| 负熵水晶粉 | 当前版本为材料预留，暂无生存配方 |
-| 负熵合金锭 | 当前版本为材料预留，暂无生存配方 |
+| 负熵水晶粉 | 压印器将负熵水晶磨成粉，用于合金化 |
+| 负熵合金锭 | AdvancedAE 反应仓合金化加工，作为引擎与熵锚的结构材料 |
+| 负熵信息电路板 | 压印器配合运算处理器压印模板加工负熵水晶 |
+| 负熵信息处理器 | 电路板、红石与硅板在压印器组装，用于引擎和熵锚 |
+
+### 水晶粉与合金锭
+
+不放模板时，压印器将 **1 个负熵水晶加工成 1 个水晶粉**。在 **AdvancedAE 反应仓** 中投入水晶粉 ×4、铁锭 ×4、福鲁伊克斯粉 ×1、天空石粉 ×1 和 **500 mB 水**，总能耗 **51,200 AE**，产出 **4 个负熵合金锭**。反应仓加工不需要构筑井研究；未安装 AdvancedAE 时，此合金配方不会加载。
+
+<RecipeFor id="molecularmanipulator:negative_entropy_crystal_dust" />
+
+<RecipeFor id="molecularmanipulator:negative_entropy_alloy_ingot" />
+
+### 电路板与处理器
+
+将 **运算处理器压印模板** 放在压印器上槽、负熵水晶放在中槽，产出负熵信息电路板；模板不消耗。
+
+再把电路板放在上槽、红石放在中槽、硅板放在下槽，组装成负熵信息处理器。两步配方都不消耗负熵信息流。
+
+<RecipeFor id="molecularmanipulator:printed_negentropy_information_processor" />
+
+<RecipeFor id="molecularmanipulator:negentropy_information_processor" />
 
 当前版本**无瑕负熵石英母岩**没有生存获取途径，可在创造模式获取；后续会接入负熵引擎转化。

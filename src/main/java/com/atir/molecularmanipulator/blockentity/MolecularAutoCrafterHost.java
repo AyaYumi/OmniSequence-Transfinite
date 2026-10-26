@@ -4,6 +4,7 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
+import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -28,6 +29,11 @@ public interface MolecularAutoCrafterHost {
     void saveChanges();
 
     boolean canRunAutoCrafting();
+
+    /** Remaining recipe allowance; hosts with other dispatch paths share their counter here. */
+    default long getAutoCraftingBudget() {
+        return NegativeEntropyNetwork.forGrid(getMainNode().getGrid()).assemblerParallel();
+    }
 
     boolean hasAutoCraftRecovery();
 

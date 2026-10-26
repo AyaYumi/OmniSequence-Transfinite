@@ -10,7 +10,7 @@ item_ids:
 
 # Fabrication Pattern Assembly
 
-The Pattern Assembly adds ME autocrafting to the [Fabrication Well](matter_fabrication_well.md). Each assembly holds **36 patterns** and uses its well's research unlocks, parallelism and speed bonuses.
+The Pattern Assembly adds ME autocrafting to the [Fabrication Well](matter_fabrication_well.md). Each assembly holds **36 patterns** and uses its well's research unlocks and parallelism, with production speed supplied by the [Negative Entropy Engine](negative_entropy_engine.md) on the controller's ME network.
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
@@ -54,7 +54,7 @@ Missing catalysts prevent new work from starting. Accepted work retains material
 | Output cache | Products waiting for ME capacity |
 | Catalysts | Reusable items for recipes in this well |
 
-Neo ECO, Data Energistics Trinity and Lightning Tech CPUs can submit batch work to assemblies. Research, ingredients, power and output capacity determine the actual processing rate.
+Neo ECO, Data Energistics Trinity and Lightning Tech CPUs can submit batch work to assemblies. Research sets recipe parallelism; the Negative Entropy Engine sets speed. Ingredients, power and output capacity also determine the actual processing rate.
 
 The Transfinite Compute Nexus can deliver a job's complete available material batch at once, up to **9,223,372,036,854,775,807 (9.22E)** per resource. Recipe input/output quantities and existing cache contents limit the accepted craft count. The well consumes processing power as queued work runs; it does not require the entire batch's processing power up front.
 

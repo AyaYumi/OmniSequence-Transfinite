@@ -26,6 +26,20 @@ class MatterFabricationRecipeOutputsTest {
     }
 
     @Test
+    void defaultsToTwentySecondsAndPreservesExplicitCustomTimes() {
+        var codec = new MatterFabricationRecipe.Serializer().codec().codec();
+        var json = JsonParser.parseString("""
+                {"ingredients":[{"ingredient":{"item":"minecraft:cobblestone"},"count":1}],
+                 "results":[{"id":"minecraft:stone","count":1}]}
+                """).getAsJsonObject();
+        assertEquals(400, codec.parse(JsonOps.INSTANCE, json).getOrThrow().processingTime());
+        for (int ticks : new int[] {1, 73, 1200}) {
+            json.addProperty("processing_time", ticks);
+            assertEquals(ticks, codec.parse(JsonOps.INSTANCE, json).getOrThrow().processingTime());
+        }
+    }
+
+    @Test
     void readsEveryResultFromAConvertedMachineRecipe() {
         var json = JsonParser.parseString("""
                 [{"id":"minecraft:diamond","count":1},

@@ -51,6 +51,10 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
         ui.text("gui.molecularmanipulator.omni.calculation_stats",()->tr("calculation_stats",menu.completedMaterialCalculations,menu.lastMaterialCalculationMillis));
         ui.text("gui.molecularmanipulator.quantum_state.connected",()->OsqUi.tr("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
         ui.number(252.39f,238.5f,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.at(253,96,()->capacity(menu.storageBytes, true));
+        ui.at(314,96,()->capacity(menu.cpuParallel, false));
+        ui.width(253,96,56);
+        ui.width(314,96,56);
         ui.number(252,147,()->menu.activeJobs);ui.number(314,147,()->menu.cpuLanes);
         ui.number(17,57,()->legacyLayout?"31×31×39 · 1.3.9":"65×35×65 · "+menu.missingParts);
         ui.number(16.5f,187,()->menu.correctParts);
@@ -68,6 +72,13 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
         ui.color("gui.molecularmanipulator.quantum_state.connected",()->menu.quantumFrequency==0?ui.palette.ink3:ui.palette.ok);
         if(legacyLayout)ui.number(230,221,()->"");
         refresh();
+    }
+    static Component capacity(long value, boolean storage) {
+        if (value == Long.MAX_VALUE) return Component.translatable("gui.molecularmanipulator.omni.infinite");
+        if (!storage) return Component.literal(DisplayNumbers.compact(value));
+        if (value >= 1L << 30) return Component.literal((value >> 30) + " GiB");
+        if (value >= 1L << 20) return Component.literal((value >> 20) + " MiB");
+        return Component.literal(value + " B");
     }
     private Component tr(String key,Object...args){return OsqUi.tr("gui.molecularmanipulator.omni."+key,args);}
     private void refresh(){

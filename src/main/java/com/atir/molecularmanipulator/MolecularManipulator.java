@@ -37,6 +37,13 @@ public final class MolecularManipulator {
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                ModContent.NEGATIVE_ENTROPY_ENGINE_CORE_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlock(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                (level, pos, state, blockEntity, side) ->
+                        com.atir.molecularmanipulator.entropy.NegativeEntropyInteraction.gridHost(level, pos),
+                ModContent.NEGATIVE_ENTROPY_ENGINE_CASING.get(), ModContent.NEGATIVE_ENTROPY_OBSERVATION_PORT.get(),
+                ModContent.BASE_ENTROPY_ANCHOR.get(), ModContent.QUANTUM_ENTROPY_ANCHOR.get(), ModContent.TERMINAL_ENTROPY_ANCHOR.get());
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.MOLECULAR_CENTER_SHELL_BE.get(), (blockEntity, context) -> blockEntity);

@@ -4,10 +4,11 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKey;
 import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKeyType;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
+import com.atir.molecularmanipulator.block.EntropyAnchorBlock;
 import com.atir.molecularmanipulator.block.NegativeEntropyBuddingQuartzBlock;
 import com.atir.molecularmanipulator.block.NegativeEntropyEngineCasingBlock;
 import com.atir.molecularmanipulator.block.NegativeEntropyEngineCoreBlock;
-import com.atir.molecularmanipulator.block.NegativeEntropyObservationWindowBlock;
+import com.atir.molecularmanipulator.block.NegativeEntropyObservationPortBlock;
 import com.atir.molecularmanipulator.block.CosmicSingularityBlock;
 import com.atir.molecularmanipulator.block.GravityCrystalBlock;
 import com.atir.molecularmanipulator.block.GhostMatterBlock;
@@ -55,6 +56,7 @@ import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterConfigMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
+import com.atir.molecularmanipulator.menu.NegativeEntropyEngineMenu;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.items.storage.BasicStorageCell;
@@ -229,30 +231,30 @@ public final class ModContent {
                             .lightLevel(state -> state.getValue(NegativeEntropyEngineCasingBlock.FORMED) ? 10 : 3)));
     public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_ENGINE_CASING_ITEM = registerBlockItem(
             "negative_entropy_engine_casing", NEGATIVE_ENTROPY_ENGINE_CASING);
-    public static final DeferredBlock<NegativeEntropyObservationWindowBlock> NEGATIVE_ENTROPY_OBSERVATION_WINDOW =
-            BLOCKS.register("negative_entropy_observation_window", () -> new NegativeEntropyObservationWindowBlock(
+    public static final DeferredBlock<NegativeEntropyObservationPortBlock> NEGATIVE_ENTROPY_OBSERVATION_PORT =
+            BLOCKS.register("negative_entropy_observation_port", () -> new NegativeEntropyObservationPortBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(5.0F, 1200.0F).requiresCorrectToolForDrops()
                             .noOcclusion()
-                            .lightLevel(state -> state.getValue(NegativeEntropyObservationWindowBlock.FORMED) ? 13 : 8)));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_OBSERVATION_WINDOW_ITEM = registerBlockItem(
-            "negative_entropy_observation_window", NEGATIVE_ENTROPY_OBSERVATION_WINDOW);
-    public static final DeferredBlock<OmniComputationPartBlock> BASE_ENTROPY_ANCHOR =
-            BLOCKS.register("base_entropy_anchor", () -> new OmniComputationPartBlock(
+                            .lightLevel(state -> state.getValue(NegativeEntropyObservationPortBlock.FORMED) ? 13 : 8)));
+    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_OBSERVATION_PORT_ITEM = registerBlockItem(
+            "negative_entropy_observation_port", NEGATIVE_ENTROPY_OBSERVATION_PORT);
+    public static final DeferredBlock<EntropyAnchorBlock> BASE_ENTROPY_ANCHOR =
+            BLOCKS.register("base_entropy_anchor", () -> new EntropyAnchorBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
                             .lightLevel(state -> 7)));
     public static final DeferredItem<BlockItem> BASE_ENTROPY_ANCHOR_ITEM = registerBlockItem(
             "base_entropy_anchor", BASE_ENTROPY_ANCHOR);
-    public static final DeferredBlock<OmniComputationPartBlock> QUANTUM_ENTROPY_ANCHOR =
-            BLOCKS.register("quantum_entropy_anchor", () -> new OmniComputationPartBlock(
+    public static final DeferredBlock<EntropyAnchorBlock> QUANTUM_ENTROPY_ANCHOR =
+            BLOCKS.register("quantum_entropy_anchor", () -> new EntropyAnchorBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(9.0F, 1500.0F).requiresCorrectToolForDrops()
                             .lightLevel(state -> 11)));
     public static final DeferredItem<BlockItem> QUANTUM_ENTROPY_ANCHOR_ITEM = registerBlockItem(
             "quantum_entropy_anchor", QUANTUM_ENTROPY_ANCHOR);
-    public static final DeferredBlock<OmniComputationPartBlock> TERMINAL_ENTROPY_ANCHOR =
-            BLOCKS.register("terminal_entropy_anchor", () -> new OmniComputationPartBlock(
+    public static final DeferredBlock<EntropyAnchorBlock> TERMINAL_ENTROPY_ANCHOR =
+            BLOCKS.register("terminal_entropy_anchor", () -> new EntropyAnchorBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
                             .lightLevel(state -> 15)));
@@ -264,6 +266,10 @@ public final class ModContent {
             "negative_entropy_crystal", () -> new Item(new Item.Properties()));
     public static final DeferredItem<Item> NEGATIVE_ENTROPY_CRYSTAL_DUST = ITEMS.register(
             "negative_entropy_crystal_dust", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> NEGENTROPY_INFORMATION_PROCESSOR = ITEMS.register(
+            "negentropy_information_processor", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> PRINTED_NEGENTROPY_INFORMATION_PROCESSOR = ITEMS.register(
+            "printed_negentropy_information_processor", () -> new Item(new Item.Properties()));
     public static final DeferredItem<Item> NEGENTROPY_SEED = ITEMS.register(
             "negentropy_seed", () -> new NegentropySeedItem(new Item.Properties()));
     public static final DeferredItem<BasicStorageCell> NEGENTROPY_INFORMATION_CELL = ITEMS.register(
@@ -461,6 +467,8 @@ public final class ModContent {
             MENUS.register("molecular_center", () -> MolecularCenterMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<OmniComputationMenu>> OMNI_COMPUTATION_MENU =
             MENUS.register("omni_computation", () -> OmniComputationMenu.TYPE);
+    public static final DeferredHolder<MenuType<?>, MenuType<NegativeEntropyEngineMenu>> NEGATIVE_ENTROPY_ENGINE_MENU =
+            MENUS.register("negative_entropy_engine", () -> NegativeEntropyEngineMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MolecularAutoCrafterMenu>> MOLECULAR_AUTO_CRAFTER_MENU =
             MENUS.register("molecular_auto_crafter", () -> MolecularAutoCrafterMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MolecularAutoCrafterConfigMenu>> MOLECULAR_AUTO_CRAFTER_CONFIG_MENU =
@@ -519,13 +527,15 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
                         output.accept(NEGATIVE_ENTROPY_ENGINE_CORE_ITEM.get());
                         output.accept(NEGATIVE_ENTROPY_ENGINE_CASING_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_OBSERVATION_WINDOW_ITEM.get());
+                        output.accept(NEGATIVE_ENTROPY_OBSERVATION_PORT_ITEM.get());
                         output.accept(BASE_ENTROPY_ANCHOR_ITEM.get());
                         output.accept(QUANTUM_ENTROPY_ANCHOR_ITEM.get());
                         output.accept(TERMINAL_ENTROPY_ANCHOR_ITEM.get());
                         output.accept(NEGATIVE_ENTROPY_ALLOY_INGOT.get());
                         output.accept(NEGATIVE_ENTROPY_CRYSTAL.get());
                         output.accept(NEGATIVE_ENTROPY_CRYSTAL_DUST.get());
+                        output.accept(NEGENTROPY_INFORMATION_PROCESSOR.get());
+                        output.accept(PRINTED_NEGENTROPY_INFORMATION_PROCESSOR.get());
                         output.accept(NEGENTROPY_SEED.get());
                         output.accept(NEGENTROPY_INFORMATION_CELL.get());
                         output.accept(CREATIVE_NEGENTROPY_INFORMATION_CELL.get());

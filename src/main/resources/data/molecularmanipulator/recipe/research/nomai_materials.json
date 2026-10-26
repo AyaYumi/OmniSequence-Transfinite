@@ -47,8 +47,7 @@
   "depths": [
     {
       "material_multiplier": "1",
-      "parallel": "1",
-      "speed_multiplier": "1"
+      "parallel": "1"
     }
   ]
 }

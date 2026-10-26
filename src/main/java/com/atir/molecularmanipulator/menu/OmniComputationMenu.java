@@ -64,6 +64,10 @@ public final class OmniComputationMenu extends AEBaseMenu {
     public boolean legacyStructureUpdateDismissed;
     @GuiSync(20)
     public int dismantlableBlocks;
+    @GuiSync(21)
+    public long storageBytes = 1024L * 1024;
+    @GuiSync(22)
+    public long cpuParallel = 16;
 
     private final OmniComputationCoreBlockEntity core;
 
@@ -160,6 +164,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
             conflictParts = inspection.conflicts();
             activeJobs = core.getActiveJobCount();
             cpuLanes = core.getCpuLaneCount();
+            storageBytes = core.getStorageBytes();
+            cpuParallel = core.getParallelismLimit();
             building = core.isBuilding();
             dismantling = core.isDismantling();
             buildProgress = core.getBuildProgress();

@@ -39,21 +39,15 @@ import java.util.UUID;
  * Quantum-crafter style passive crafting shared by the sequence-array controller
  * and its standalone single-block host.
  *
- * <p>Every configured pattern is evaluated independently. Each accepted passive
- * batch is bounded by {@link #MAX_BATCH_CRAFTS} for responsive controls; the implementation
- * delegates actual-key selection, substitution and reusable-input validation to
- * AE2 and the same molecular batch helpers used by crafting CPUs.</p>
+ * <p>Every configured pattern is evaluated independently, but all slots share
+ * the host's per-tick recipe allowance. Actual-key selection, substitution and
+ * reusable-input validation use the same molecular batch helpers as CPU crafting.</p>
  */
 public final class MolecularAutoCrafter implements InternalInventoryHost {
     public static final int PATTERN_SLOTS = MolecularAutoCraftSchema.PATTERN_SLOTS;
     public static final int MAX_INPUTS = 9;
-    /**
-     * A passive slot is checked every server tick. Keep one accepted batch
-     * bounded so that an unlimited or virtual ME input cannot turn one click
-     * into an uninterruptible Long.MAX_VALUE dispatch. The next tick can
-     * continue the same recipe, while disabling a slot remains responsive.
-     */
-    static final long MAX_BATCH_CRAFTS = Integer.MAX_VALUE;
+    /** Aggregate batches remain bounded by materials, power, output capacity and the host budget. */
+    static final long MAX_BATCH_CRAFTS = Long.MAX_VALUE;
     private static final String ROOT_TAG = "molecular_auto_crafter";
     private static final String VERSION_TAG = "version";
     static final int SCHEMA_VERSION = MolecularAutoCraftSchema.VERSION;
@@ -239,7 +233,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
 
         // Stable slot order and rotation keep every enabled slot progressing fairly.
-        // Each evaluation uses MAX_BATCH_CRAFTS so virtual inputs remain interruptible.
+        // All slots share the host's remaining per-tick recipe allowance.
         int[] slots = scheduledSlots();
         int start = slots.length == 0 ? 0 : Math.floorMod(scheduleCursor, slots.length);
         for (int offset = 0; offset < slots.length; offset++) {
@@ -339,8 +333,16 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             outputBlocked(config, gameTime);
             return;
         }
+        // Check before extracting even the first input. Other slots and CPU
+        // dispatches on this host have already spent part of the same allowance.
+        long remainingBudget = host.getAutoCraftingBudget();
+        if (remainingBudget <= 0) {
+            config.state = AutoCraftState.READY;
+            return;
+        }
         var outputAllowance = outputAllowance(details, config);
-        long maxCrafts = Math.min(outputAllowance.maxCrafts(), config.outputBatchLimit);
+        long maxCrafts = Math.min(remainingBudget,
+                Math.min(outputAllowance.maxCrafts(), config.outputBatchLimit));
         if (maxCrafts <= 0) {
             config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
             return;
@@ -495,7 +497,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                         slot, host.getBlockPos(), exception);
             }
             config.outputRetry.reset();
-            config.outputBatchLimit = Math.min(MAX_BATCH_CRAFTS, config.outputBatchLimit * 2);
+            config.outputBatchLimit = Math.min(MAX_BATCH_CRAFTS,
+                    MolecularAutoCraftMath.saturatedMultiply(config.outputBatchLimit, 2));
             config.state = AutoCraftState.RUNNING;
             config.lastBatch = craftCount;
             config.totalCrafts = MolecularAutoCraftMath.saturatedAdd(config.totalCrafts, craftCount);

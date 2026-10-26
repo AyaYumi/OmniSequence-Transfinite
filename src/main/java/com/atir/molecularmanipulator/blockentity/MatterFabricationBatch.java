@@ -31,6 +31,8 @@ final class MatterFabricationBatch {
     private final Map<AEKey, Long> outputsPerCraft = new LinkedHashMap<>();
     private final Map<AEKey, Long> outputDebt = new LinkedHashMap<>();
     private CompoundTag unavailable;
+    private long networkOutputReadyTick = Long.MIN_VALUE;
+    private boolean returningOutputs;
 
     boolean hasWork() { return crafts > 0 || !outputDebt.isEmpty() || unavailable != null; }
     long crafts() { return crafts; }
@@ -132,7 +134,7 @@ final class MatterFabricationBatch {
         if (!host.hasCatalysts(recipe)) return 0;
         var output = outputs(recipe);
         if (crafts > 0 && (!holder.id().equals(recipeId) || !output.equals(outputsPerCraft)
-                || duration != profile.ticks() || Double.compare(powerPerCraft, recipe.aePerTick()) != 0)) return 0;
+                || Double.compare(powerPerCraft, recipe.aePerTick()) != 0)) return 0;
         long limit = profile.parallel();
         limit = Math.min(limit, inputCapacity(recipe));
         for (long amount : output.values()) limit = Math.min(limit, Long.MAX_VALUE / amount);
@@ -168,6 +170,8 @@ final class MatterFabricationBatch {
             var profile = MatterResearchApi.productionProfile(host, holder);
             recipeId = holder.id(); duration = profile.ticks(); powerPerCraft = holder.value().aePerTick();
             crafts = total; inputs.clear(); inputs.putAll(nextInputs); outputsPerCraft.clear(); outputsPerCraft.putAll(output);
+            // Even a one-tick/accelerated batch must not return inside CPU dispatch.
+            networkOutputReadyTick = MolecularOutputScheduling.scheduleNextTick(Long.MIN_VALUE, host.getLevel().getGameTime());
             host.saveChanges(); return true;
         } catch (ArithmeticException error) { return false; }
     }
@@ -184,16 +188,35 @@ final class MatterFabricationBatch {
                 .min(java.math.BigDecimal.valueOf(limit)).longValue();
     }
     Update tick(MatterFabricationBlockEntity host) {
-        return tick(host, (key, amount) -> {
-            var storage = host.getMainNode().getGrid().getStorageService().getInventory();
-            long inserted = storage.insert(key, amount, Actionable.MODULATE, new MachineSource(host));
-            if (inserted < amount) inserted += host.offerBatchOutputToPort(key, amount - inserted);
-            return inserted;
-        });
+        if (returningOutputs) return update(MatterFabricationBlockEntity.ProcessingState.OUTPUT_BLOCKED, false);
+        returningOutputs = true;
+        try {
+            return tick(host, (key, amount) -> {
+                long gameTime = host.getLevel().getGameTime();
+                if (networkOutputReadyTick == Long.MIN_VALUE)
+                    networkOutputReadyTick = MolecularOutputScheduling.scheduleNextTick(Long.MIN_VALUE, gameTime);
+                if (gameTime < networkOutputReadyTick) return 0;
+                var storage = host.getMainNode().getGrid().getStorageService().getInventory();
+                long inserted = storage.insert(key, amount, Actionable.MODULATE, new MachineSource(host));
+                if (inserted < amount) inserted += host.offerBatchOutputToPort(key, amount - inserted);
+                return inserted;
+            });
+        } finally {
+            returningOutputs = false;
+        }
+    }
+
+    private void refreshDuration(MatterFabricationBlockEntity host, int ticks) {
+        if (duration == ticks) return;
+        progress = MatterFabricationTiming.rescaleProgress(progress, duration, ticks);
+        duration = ticks;
+        host.saveChanges();
     }
 
     Update tick(MatterFabricationBlockEntity host, com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler.Inserter output) {
         if (unavailable != null) return update(MatterFabricationBlockEntity.ProcessingState.NO_RECIPE, false);
+        var holder = crafts > 0 ? MatterRecipeIndex.get(host.getLevel()).fabrication(recipeId) : null;
+        if (holder != null) refreshDuration(host, MatterResearchApi.productionProfile(host, holder).ticks());
         if (!host.getMainNode().isActive()) return update(MatterFabricationBlockEntity.ProcessingState.NETWORK_OFFLINE, false);
         if (!outputDebt.isEmpty()) {
             flush(host, output);
@@ -202,7 +225,7 @@ final class MatterFabricationBatch {
         if (!host.isStructureFormed()) return update(MatterFabricationBlockEntity.ProcessingState.STRUCTURE_INCOMPLETE, false);
         // A saved batch keeps its inputs and outputs, but cannot validate prerequisites
         // while its recipe is absent (for example after a data-pack reload).
-        if (crafts > 0 && MatterRecipeIndex.get(host.getLevel()).fabrication(recipeId) == null) {
+        if (crafts > 0 && holder == null) {
             return update(MatterFabricationBlockEntity.ProcessingState.NO_RECIPE, false);
         }
         if (waitingForCatalyst(host)) return update(MatterFabricationBlockEntity.ProcessingState.WAITING_CATALYST, false);
@@ -231,7 +254,7 @@ final class MatterFabricationBatch {
         }
         if (outputDebt.isEmpty()) clear();
     }
-    void clear() { recipeId = null; crafts = 0; progress = 0; duration = 0; powerPerCraft = 0; inputs.clear(); outputsPerCraft.clear(); outputDebt.clear(); unavailable = null; }
+    void clear() { recipeId = null; crafts = 0; progress = 0; duration = 0; powerPerCraft = 0; inputs.clear(); outputsPerCraft.clear(); outputDebt.clear(); unavailable = null; networkOutputReadyTick = Long.MIN_VALUE; }
 
     CompoundTag save(HolderLookup.Provider registries) {
         if (unavailable != null) return unavailable.copy();

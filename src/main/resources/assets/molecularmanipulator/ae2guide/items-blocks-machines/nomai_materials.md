@@ -30,7 +30,7 @@ Research consumes 64 Certus Quartz Crystals, 32 Fluix Crystals, 32 Amethyst Shar
 | Ghost Matter ×4 | Ender Pearl ×8, Glowstone Dust ×16, Certus Quartz Crystal ×16 | None |
 | Gravity Crystal ×1 | Amethyst Shard ×16, Copper Ingot ×8, Fluix Crystal ×4 | Ghost Matter ×1 |
 
-Both recipes take **10 seconds at 256 AE/t**. Store Ghost Matter in the **Catalysts** page of any [Pattern Assembly](matter_fabrication_pattern_assembly.md) in the same well to supply its Gravity Crystal recipes. The catalyst is retained, excluded from processing patterns and does not need to be multiplied for batches.
+Both recipes have a base time of **20 seconds at 256 AE/t**, before Negative Entropy Engine speed bonuses. Store Ghost Matter in the **Catalysts** page of any [Pattern Assembly](matter_fabrication_pattern_assembly.md) in the same well to supply its Gravity Crystal recipes. The catalyst is retained, excluded from processing patterns and does not need to be multiplied for batches.
 
 ## Using Gravity Crystals
 

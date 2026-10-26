@@ -19,6 +19,8 @@ import cn.dancingsnow.neoecoae.api.me.pattern.ECOExecutionOptimizationRegistry;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
+import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
+import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
 import cn.dancingsnow.neoecoae.compat.ae2.AE2PatternIntrospection;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOCraftingFastPathCache;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
@@ -75,6 +77,89 @@ class EcoCpuDispatchTest {
         });
     }
     @AfterAll static void unregister() { ECOExecutionOptimizationRegistry.unregister(ADAPTER); }
+
+    @Test void physicalCpuDispatchesExactlyOneRecipeWithUuidAccounting() throws Exception {
+        var count = BigInteger.ONE.shiftLeft(80);
+        var f = normal(count);
+        f.host.exactOrder = true;
+        f.host.virtualCpu = false;
+        var provider = new Provider(f.host);
+        provider.nativeExact = true;
+        assertEquals(1, execute(f, provider));
+        assertEquals(0, provider.exactPrepares, "Physical CPUs must never request a virtual exact batch");
+        assertEquals(1, provider.pushes);
+        assertEquals(BigInteger.ONE, f.host.last.crafts());
+        assertEquals(count.subtract(BigInteger.ONE), f.host.remaining);
+        assertEquals(count.subtract(BigInteger.ONE), f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ONE, f.host.waiting.get(OUTPUT));
+        assertEquals(f.host.id, provider.job);
+    }
+
+    @Test void preferredVanillaTaskGetsItsTurnBeforeAnotherReadyEcoTask() throws Exception {
+        var f = normal(BigInteger.valueOf(73));
+        var ordinaryPattern = new EcoMolecularTestPattern(CATALYST, ignored -> null);
+        var ordinary = new ICraftingProvider() {
+            public List<IPatternDetails> getAvailablePatterns() { return List.of(ordinaryPattern); }
+            public boolean isBusy() { return false; }
+            public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+                throw new AssertionError("ECO must yield this ordinary task to the CPU fallback");
+            }
+        };
+        var eco = new Provider(f.host);
+        var crafting = service(eco);
+        crafting.byPattern = Map.of(ordinaryPattern, ordinary, f.host.pattern, eco);
+        f.host.taskOverride = Map.of(ordinaryPattern, new Object(), f.host.pattern, new Object());
+        f.host.preferred = ordinaryPattern;
+        for (int tick = 0; tick < 4; tick++) {
+            assertEquals(-1, f.dispatch.execute(f.host, 1, crafting, f.network.service, level()));
+            assertEquals(0, eco.pushes, "A ready ECO producer must not steal the vanilla task's turn");
+            assertEquals(BigInteger.valueOf(73), f.host.ecoOmni$physicalAmount(MATERIAL));
+        }
+        f.host.preferred = f.host.pattern;
+        assertEquals(1, f.dispatch.execute(f.host, 1, crafting, f.network.service, level()));
+        assertEquals(1, eco.pushes, "ECO progresses when the CPU selects its task");
+    }
+
+    @Test void noCompatibleProviderSkipsPreviewExtractionAndPhasePreparation() throws Exception {
+        var f = normal(BigInteger.valueOf(11));
+        attachPlan(f.host, 11);
+        var unsupported = new ICraftingProvider() {
+            int busyChecks;
+            public List<IPatternDetails> getAvailablePatterns() { return List.of(f.host.pattern); }
+            public boolean isBusy() { busyChecks++; return false; }
+            public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+                throw new AssertionError("Unsupported provider must never be pushed");
+            }
+        };
+        assertEquals(-1, f.dispatch.execute(f.host, 1, service(unsupported), f.network.service, level()));
+        assertEquals(0, unsupported.busyChecks, "Unsupported providers must be filtered before live checks");
+        assertEquals(0, f.host.physicalViews, "No preview inventory for a pattern with no compatible provider");
+        assertEquals(0, f.host.inventories, "No preparation may touch the real CPU inventory");
+        assertEquals(0, f.host.physicalReads, "Phase preparation must not start");
+        assertEquals(0, f.host.reserves);
+        assertEquals(0, f.host.stages);
+        assertNull(f.host.last);
+        assertTrue(f.host.waiting.isEmpty());
+        assertEquals(BigInteger.valueOf(11), f.host.remaining);
+        assertEquals(Map.of(0, BigInteger.valueOf(11)), f.host.execution.remainingByTask());
+        assertFalse(f.dispatch.suspended());
+    }
+
+    @Test void supportedCandidateStillChecksLiveBusyBeforePreparation() throws Exception {
+        var f = normal(BigInteger.valueOf(7));
+        var provider = new Provider(f.host);
+        provider.busy = true;
+        assertEquals(-1, execute(f, provider));
+        assertEquals(1, provider.busyChecks, "Supported providers must still be checked live");
+        assertEquals(0, provider.prepares);
+        assertEquals(0, provider.exactPrepares);
+        assertEquals(0, provider.pushes);
+        assertEquals(0, f.host.stages);
+        assertNull(f.host.last);
+        assertTrue(f.host.waiting.isEmpty());
+        assertEquals(BigInteger.valueOf(7), f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertFalse(f.dispatch.suspended());
+    }
 
     @Test void normalBatchUsesRealInventoryAndStagesWaitingBeforeDispatch() throws Exception {
         var f = normal(BigInteger.valueOf(73));
@@ -447,6 +532,107 @@ class EcoCpuDispatchTest {
         assertTrue(head.checkPriority(1000, 900));
     }
 
+    @Test void workstationParallelCapacityAndSingleTailRetainJobUuid() throws Exception {
+        var f = normal(BigInteger.valueOf(33));
+        var workstation = new WorkstationProvider(f.host);
+        for (int count : new int[]{16, 16, 1}) {
+            assertEquals(1, execute(f, workstation));
+            assertEquals(count, workstation.lastCount);
+            assertEquals(f.host.id, workstation.job);
+            assertEquals(BigInteger.valueOf(count), f.host.last.crafts());
+        }
+        assertEquals(3, workstation.calls);
+        assertEquals(BigInteger.ZERO, f.host.remaining);
+        assertEquals(BigInteger.ZERO, f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.valueOf(33), f.host.waiting.get(OUTPUT));
+    }
+
+    @Test void physicalCpuCanPushOneWorkstationCopyWithoutLosingUuid() throws Exception {
+        var f = normal(BigInteger.valueOf(17));
+        f.host.virtualCpu = false;
+        var workstation = new WorkstationProvider(f.host);
+        assertEquals(1, execute(f, workstation));
+        assertEquals(1, workstation.lastCount);
+        assertEquals(f.host.id, workstation.job);
+        assertEquals(BigInteger.valueOf(16), f.host.remaining);
+    }
+
+    @Test void workstationSingleFallbackUsesParallelEntryAndExactPhaseAccounting() throws Exception {
+        var f = normal(BigInteger.ONE);
+        attachPlan(f.host, 1);
+        var workstation = new WorkstationProvider(f.host);
+        workstation.capacity = 0; // No aggregate offer; the provider still validates its single-copy entry.
+        assertEquals(1, execute(f, workstation));
+        assertEquals(1, workstation.lastCount);
+        assertEquals(f.host.id, workstation.job);
+        assertTrue(f.host.execution.isComplete());
+        assertEquals(1, f.host.commits);
+        assertEquals(0, f.host.legacyPhaseCommits);
+    }
+
+    @Test void coldCraftingSubsystemSingleCopyUsesJobAwarePushAndCopiesItsHolders() throws Exception {
+        var f = normal(BigInteger.ONE);
+        attachPlan(f.host, 1);
+        var bus = new ColdBus(f.host);
+        assertEquals(1, execute(f, bus));
+        assertEquals(f.host.id, bus.job);
+        assertTrue(f.host.execution.isComplete());
+        assertEquals(BigInteger.ZERO, f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ONE, f.host.waiting.get(OUTPUT));
+        assertFalse(f.dispatch.suspended());
+    }
+
+    @Test void jobAwareOnlyProviderStillReceivesTheUuidPreservingSingleTransaction() throws Exception {
+        var f = normal(BigInteger.ONE);
+        attachPlan(f.host, 1);
+        var provider = new JobAwareOnlyProvider(f.host);
+        assertEquals(1, execute(f, provider));
+        assertEquals(f.host.id, provider.job);
+        assertEquals(1, provider.calls);
+        assertTrue(f.host.execution.isComplete());
+        assertEquals(BigInteger.ONE, f.host.waiting.get(OUTPUT));
+    }
+
+    @Test void singleFallbackCannotConsumeAnotherPhasesSeedAcrossOverlappingInputSlots() throws Exception {
+        var host = new Host(new EcoMolecularTestPattern(MATERIAL, ignored -> null), BigInteger.TWO);
+        host.ecoOmni$storePhysical(MATERIAL, BigInteger.TWO);
+        var f = new Fixture(host, new EcoCpuDispatch(), new Network());
+        attachPlan(host, List.of(), Map.of(MATERIAL, 1L), 1, 1);
+        assertEquals(Map.of(MATERIAL, 1L), host.execution.begin(host.pattern).protectedSeeds());
+        var bus = new ColdBus(host);
+        assertEquals(-1, execute(f, bus));
+        assertEquals(0, bus.calls);
+        assertEquals(BigInteger.TWO, host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(Map.of(0, BigInteger.ONE, 1, BigInteger.ONE), host.execution.remainingByTask());
+        assertTrue(host.waiting.isEmpty());
+        assertFalse(f.dispatch.suspended());
+    }
+
+    @Test void coldSubsystemRejectionRestoresItsSingleInputAndWaitingCredit() throws Exception {
+        var f = normal(BigInteger.ONE);
+        var bus = new ColdBus(f.host);
+        bus.reject = true;
+        assertEquals(-1, execute(f, bus));
+        assertEquals(BigInteger.ONE, f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ONE, f.host.remaining);
+        assertTrue(f.host.waiting.isEmpty());
+        assertFalse(f.dispatch.suspended());
+    }
+
+    @Test void coldSubsystemUncertainAcceptanceCannotReplayOrRefundTheCopy() throws Exception {
+        var f = normal(BigInteger.ONE);
+        var bus = new ColdBus(f.host);
+        bus.uncertain = true;
+        assertEquals(0, execute(f, bus));
+        assertTrue(f.dispatch.suspended());
+        assertEquals(BigInteger.ZERO, f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ONE, f.host.remaining);
+        assertEquals(BigInteger.ONE, f.host.waiting.get(OUTPUT));
+        assertEquals(0, f.host.refunds);
+        assertEquals(0, execute(f, bus));
+        assertEquals(1, bus.calls);
+    }
+
     private static org.objectweb.asm.tree.ClassNode bytecode(String name) throws Exception {
         var node = new org.objectweb.asm.tree.ClassNode();
         try (var stream = EcoCpuDispatchTest.class.getClassLoader().getResourceAsStream(name + ".class")) {
@@ -463,6 +649,11 @@ class EcoCpuDispatchTest {
     private static void attachPlan(Host host,
             List<cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation> allocations,
             long... counts) throws Exception {
+        attachPlan(host, allocations, Map.of(), counts);
+    }
+    private static void attachPlan(Host host,
+            List<cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation> allocations,
+            Map<AEKey, Long> delayedSeeds, long... counts) throws Exception {
         var tasks = new java.util.ArrayList<cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.TaskSpec>();
         var phases = new java.util.ArrayList<cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.PhaseSpec>();
         var schedule = new java.util.ArrayList<cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.ComponentExecutionPhase>();
@@ -473,11 +664,14 @@ class EcoCpuDispatchTest {
             tasks.add(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.TaskSpec(id, identity,
                     host.pattern, cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.PatternRuntimeInfo.from(host.pattern),
                     counts[id], id, cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.TaskKind.DAG, allocations));
+            boolean seeded = id == counts.length - 1 && !delayedSeeds.isEmpty();
+            var type = seeded ? cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.CYCLE
+                    : cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.DAG;
             phases.add(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.PhaseSpec(id, id,
-                    cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.DAG, List.of(id),
-                    List.of(), id == 0 ? List.of() : List.of(id - 1), Map.of(), Map.of()));
+                    type, List.of(id), seeded ? List.of(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.ExecutionStep(id, counts[id])) : List.of(),
+                    id == 0 ? List.of() : List.of(id - 1), Map.of(), seeded ? delayedSeeds : Map.of()));
             schedule.add(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.ComponentExecutionPhase(id,
-                    cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.DAG, java.util.Set.of(host.pattern), List.of()));
+                    type, java.util.Set.of(host.pattern), List.of()));
             totals.put(id, BigInteger.valueOf(counts[id]));
             total += counts[id];
         }
@@ -494,7 +688,7 @@ class EcoCpuDispatchTest {
         host.execution = (EcoOmniPlanExecution) execution.invoke(fixture);
     }
 
-    private static int execute(Fixture f, Provider provider) throws Exception {
+    private static int execute(Fixture f, ICraftingProvider provider) throws Exception {
         return f.dispatch.execute(f.host, 1, service(provider), f.network.service, level());
     }
     private static Fixture normal(BigInteger count) {
@@ -517,12 +711,16 @@ class EcoCpuDispatchTest {
         Mode mode = Mode.ACCEPT;
         boolean stateful;
         boolean nativeExact;
+        boolean busy;
+        int busyChecks;
+        int prepares;
         int pushes;
         int exactPrepares;
         UUID job;
         BigInteger exactCount;
         Provider(Host host) { this.host = host; }
         public Preparation eco$prepareFastPath(ECOBatchDispatchContext context) {
+            prepares++;
             var physicalBefore = host.ecoOmni$physicalAmount(MATERIAL);
             ECOStatefulBatchCalculator calculator = null;
             if (stateful) {
@@ -562,9 +760,64 @@ class EcoCpuDispatchTest {
                 case ASSERTION -> throw new AssertionError("unexpected provider failure");
             };
         }
-        public boolean isBusy() { return false; }
+        public boolean isBusy() { busyChecks++; return busy; }
         public List<IPatternDetails> getAvailablePatterns() { return List.of(host.pattern); }
         public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) { throw new AssertionError("Legacy provider lane used"); }
+    }
+
+    /** Uses ECO's real parallel adapter and material transaction, matching the workstation contract. */
+    private static final class WorkstationProvider implements ICraftingProvider, ECOParallelCraftingProvider {
+        final Host host;
+        int capacity = 16, calls;
+        long lastCount;
+        UUID job;
+        WorkstationProvider(Host host) { this.host = host; }
+        public int eco$getAvailableParallelSlots() { return capacity; }
+        public boolean eco$pushPatternBatch(IPatternDetails pattern, KeyCounter[] inputs, long count, UUID id) {
+            calls++; lastCount = count; job = id;
+            assertEquals(host.id, id);
+            assertEquals(host.pattern, pattern);
+            assertEquals(BigInteger.valueOf(count), host.last.crafts());
+            assertTrue(host.waiting.get(OUTPUT).compareTo(BigInteger.valueOf(count)) >= 0);
+            assertEquals(count, inputs[0].get(CATALYST));
+            assertEquals(count, inputs[1].get(MATERIAL));
+            for (var counter : inputs) counter.clear();
+            return true;
+        }
+        public boolean isBusy() { return false; }
+        public List<IPatternDetails> getAvailablePatterns() { return List.of(host.pattern); }
+        public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+            throw new AssertionError("Workstation must receive the owning job UUID, even for one copy");
+        }
+    }
+
+    /** A real ECO fast-path cache can be cold; its native single-copy path must warm it safely. */
+    private static final class ColdBus extends JobAwareOnlyProvider implements ECOFastPathDispatchProvider {
+        ColdBus(Host host) { super(host); }
+        public Preparation eco$prepareFastPath(ECOBatchDispatchContext context) { return null; }
+    }
+
+    private static class JobAwareOnlyProvider implements ECOJobAwareCraftingProvider {
+        final Host host;
+        boolean reject, uncertain;
+        UUID job;
+        int calls;
+        JobAwareOnlyProvider(Host host) { this.host = host; }
+        public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs, UUID id) {
+            calls++; job = id;
+            assertEquals(host.id, id);
+            assertEquals(BigInteger.ONE, host.waiting.get(OUTPUT));
+            assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(MATERIAL));
+            if (reject) return false;
+            for (var counter : inputs) counter.clear();
+            if (uncertain) throw new IllegalStateException("Single-copy ownership may have committed");
+            return true;
+        }
+        public boolean isBusy() { return false; }
+        public List<IPatternDetails> getAvailablePatterns() { return List.of(host.pattern); }
+        public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+            throw new AssertionError("Subsystem must receive its owning job UUID");
+        }
     }
 
     private static final class Host implements EcoOmniPlanCpuAccess, EcoOmniPlanCpu {
@@ -578,20 +831,31 @@ class EcoCpuDispatchTest {
         EcoOmniPlanExecution execution;
         int legacyPhaseCommits;
         boolean exactOrder;
+        boolean virtualCpu = true;
         boolean paused;
         boolean enabled = true;
+        IPatternDetails preferred;
+        Map<IPatternDetails, Object> taskOverride;
         boolean failCommit;
         int commits;
         int refunds;
+        int physicalViews;
+        int inventories;
+        int physicalReads;
+        int reserves;
+        int stages;
         Runnable onStage = () -> {};
         Host(EcoMolecularTestPattern pattern, BigInteger remaining) { this.pattern = pattern; this.remaining = remaining; }
         public boolean ecoDispatch$enabled() { return enabled; }
+        public IPatternDetails ecoDispatch$preferredPattern() { return preferred; }
         public UUID ecoDispatch$jobId() { return id; }
         public boolean ecoDispatch$exactOrder() { return exactOrder; }
-        public ListCraftingInventory ecoDispatch$inventory() { return window; }
-        public ICraftingInventory ecoDispatch$physicalView() { return stock.wrap(window); }
+        public boolean ecoDispatch$virtualCpu() { return virtualCpu; }
+        public ListCraftingInventory ecoDispatch$inventory() { inventories++; return window; }
+        public ICraftingInventory ecoDispatch$physicalView() { physicalViews++; return stock.wrap(window); }
         public BigInteger ecoDispatch$remaining(IPatternDetails pattern) { return remaining; }
         public Lease ecoDispatch$reserveExact(Map<AEKey, BigInteger> inputs) {
+            reserves++;
             for (var entry : inputs.entrySet()) if (ecoOmni$physicalAmount(entry.getKey()).compareTo(entry.getValue()) < 0) return null;
             inputs.forEach((key, amount) -> assertEquals(amount, stock.extract(window, key, amount, Actionable.MODULATE)));
             return new Lease() {
@@ -605,6 +869,7 @@ class EcoCpuDispatchTest {
             };
         }
         public Accounting ecoDispatch$stage(EcoCpuDispatchReceipt receipt) {
+            stages++;
             onStage.run();
             last = receipt;
             receipt.waiting().forEach((key, amount) -> waiting.merge(key, amount, BigInteger::add));
@@ -647,8 +912,10 @@ class EcoCpuDispatchTest {
         }
         public OmniExactCraftingState ecoOmni$exactState() { return null; }
         public void ecoOmni$installExactState(OmniExactCraftingState state) { throw new UnsupportedOperationException(); }
-        public Map<IPatternDetails, Object> ecoOmni$tasks() { return Map.of(pattern, new Object()); }
-        public BigInteger ecoOmni$physicalAmount(AEKey key) { return stock.amount(window, key); }
+        public Map<IPatternDetails, Object> ecoOmni$tasks() {
+            return taskOverride == null ? Map.of(pattern, new Object()) : taskOverride;
+        }
+        public BigInteger ecoOmni$physicalAmount(AEKey key) { physicalReads++; return stock.amount(window, key); }
         public void ecoOmni$storePhysical(AEKey key, BigInteger amount) { stock.insert(window, key, amount); }
         public void ecoOmni$queueEmitted(AEKey key, BigInteger amount) { throw new UnsupportedOperationException(); }
         public void ecoOmni$restoreRefundSnapshot(CompoundTag data, HolderLookup.Provider registries) { throw new UnsupportedOperationException(); }
@@ -673,13 +940,16 @@ class EcoCpuDispatchTest {
                     return null;
                 });
     }
-    private static Service service(Provider provider) throws Exception {
+    private static Service service(ICraftingProvider provider) throws Exception {
         var service = allocate(Service.class); service.provider = provider; return service;
     }
     private static final class Service extends CraftingService {
-        Provider provider;
+        ICraftingProvider provider;
+        Map<IPatternDetails, ICraftingProvider> byPattern;
         Service() { super(null, null, null); }
-        @Override public Iterable<ICraftingProvider> getProviders(IPatternDetails pattern) { return List.of(provider); }
+        @Override public Iterable<ICraftingProvider> getProviders(IPatternDetails pattern) {
+            return List.of(byPattern == null ? provider : byPattern.get(pattern));
+        }
     }
     private static final class OutputLogic extends CraftingCpuLogic implements EcoCpuDispatchHost, EcoCpuDispatchAccess {
         Host host;

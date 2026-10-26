@@ -49,6 +49,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     private static final int MAX_BUFFERED_TYPES = 256;
 
     private final MachineSource actionSource = new MachineSource(this);
+    private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final MolecularAutoCrafter autoCrafter = new MolecularAutoCrafter(this);
     // Safety recovery only (legacy saves, failed rollback or input refunds).
     // Normal production goes straight to the destination; there is no output inventory/menu.
@@ -133,6 +134,14 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
 
     public boolean isOperational() {
         return getLevel() != null && getMainNode().isActive();
+    }
+
+    @Override
+    public long getAutoCraftingBudget() {
+        var level = getLevel();
+        return level == null || getMainNode().getGrid() == null ? 0
+                : assemblerBudget.remaining(level.getGameTime(),
+                        MolecularAutoCrafterHost.super.getAutoCraftingBudget());
     }
 
     @Override
@@ -221,10 +230,22 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     public boolean deliverAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount,
             MolecularAutoCrafterHost.OutputDestination destination) {
+        var level = getLevel();
+        if (assembling || level == null || getMainNode().getGrid() == null) {
+            return false;
+        }
+        long reservationTick = level.getGameTime();
+        if (!assemblerBudget.tryConsume(reservationTick,
+                MolecularAutoCrafterHost.super.getAutoCraftingBudget(), craftCount)) {
+            return false;
+        }
         assembling = true;
         try {
             var result = MolecularAutoCraftOutput.deliver(primary, remainders, destination);
-            if (!result.committed()) return false;
+            if (!result.committed()) {
+                assemblerBudget.refund(reservationTick, craftCount);
+                return false;
+            }
             // Keep old saved outputs and exceptional recovery, never normal production.
             addOutputs(result.recovery());
             if (!bufferedOutputs.isEmpty()) outputReadyTick = gameTime + 1;

@@ -32,7 +32,7 @@
       "count": 4
     }
   ],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 256,
   "requires_research": true
 }

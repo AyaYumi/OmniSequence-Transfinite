@@ -33,7 +33,7 @@ public record MatterMachineImportRecipe(ResourceLocation machine, List<ResourceL
             MatterResearchRecipe.CODEC.codec().fieldOf("research").forGetter(MatterMachineImportRecipe::research),
             Fields.CODEC.optionalFieldOf("inputs").forGetter(MatterMachineImportRecipe::inputs),
             Fields.CODEC.optionalFieldOf("outputs").forGetter(MatterMachineImportRecipe::outputs),
-            Codec.intRange(1, Integer.MAX_VALUE).optionalFieldOf("processing_time", 200)
+            Codec.intRange(1, Integer.MAX_VALUE).optionalFieldOf("processing_time", MatterFabricationRecipe.DEFAULT_PROCESSING_TIME)
                     .forGetter(MatterMachineImportRecipe::processingTime),
             Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("ae_per_tick", 256.0)
                     .forGetter(MatterMachineImportRecipe::aePerTick)

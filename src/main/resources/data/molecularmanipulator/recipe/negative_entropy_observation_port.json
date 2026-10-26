@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "IGI",
+    "GCG",
+    "IGI"
+  ],
+  "key": {
+    "I": {
+      "item": "molecularmanipulator:negative_entropy_alloy_ingot"
+    },
+    "G": {
+      "item": "ae2:quartz_glass"
+    },
+    "C": {
+      "item": "molecularmanipulator:negative_entropy_crystal"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:negative_entropy_observation_port",
+    "count": 4
+  }
+}

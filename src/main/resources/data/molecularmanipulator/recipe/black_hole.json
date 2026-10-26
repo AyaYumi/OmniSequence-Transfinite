@@ -7,7 +7,7 @@
       "count": 1
     }
   ],
-  "processing_time": 600,
+  "processing_time": 400,
   "ae_per_tick": 4096,
   "requires_research": true,
   "ae_inputs": [

@@ -1,0 +1,19 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "top": {
+      "item": "molecularmanipulator:printed_negentropy_information_processor"
+    },
+    "middle": {
+      "item": "minecraft:redstone"
+    },
+    "bottom": {
+      "item": "ae2:printed_silicon"
+    }
+  },
+  "mode": "press",
+  "result": {
+    "id": "molecularmanipulator:negentropy_information_processor",
+    "count": 1
+  }
+}

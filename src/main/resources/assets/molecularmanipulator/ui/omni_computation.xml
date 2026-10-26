@@ -61,14 +61,14 @@
             <label class="ui-label left-label key-text" style="flex: 1; height: 9">
                 <lang key="gui.molecularmanipulator.omni.storage"/>
             </label>
-            <label class="ui-label right-label purple-text" style="width: 76; height: 9">∞</label>
+            <label id="storage-value" class="ui-label right-label purple-text" style="width: 76; height: 9"/>
         </element>
         <element id="row-parallel" class="placed"
                  style="left: 174; top: 75; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">
             <label class="ui-label left-label key-text" style="flex: 1; height: 9">
                 <lang key="gui.molecularmanipulator.omni.parallel"/>
             </label>
-            <label class="ui-label right-label cyan-text" style="width: 76; height: 9">∞</label>
+            <label id="parallel-value" class="ui-label right-label cyan-text" style="width: 76; height: 9"/>
         </element>
         <element id="row-active-jobs" class="placed"
                  style="left: 174; top: 95; width: 140; height: 9; flex-direction: row; align-items: center; gap: 6">

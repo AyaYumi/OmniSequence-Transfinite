@@ -16,6 +16,7 @@ import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchAccess;
 import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchRunner;
 import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpuAccess;
+import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanBridge;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -57,6 +58,21 @@ public abstract class EcoCpuDispatchMixin implements EcoCpuDispatchAccess, EcoCp
     }
     @Override public boolean ecoDispatch$isExactPlan(ICraftingPlan plan) {
         return plan instanceof ECOExactCraftingPlan;
+    }
+    @Override public java.math.BigInteger ecoDispatch$storageBytes(ICraftingPlan plan) {
+        if (!EcoOmniPlanBridge.owns(plan)) return java.math.BigInteger.valueOf(plan.bytes());
+        var prepared = EcoOmniPlanBridge.prepare(plan);
+        if (prepared.theoreticalBytes().signum() < 0) throw new IllegalArgumentException("Negative ECO storage allocation");
+        var amounts = new java.util.HashMap<>(prepared.deferredStock());
+        for (var entry : plan.usedItems()) {
+            amounts.merge(entry.getKey(), java.math.BigInteger.valueOf(entry.getLongValue()), java.math.BigInteger::add);
+        }
+        var initial = java.math.BigInteger.ZERO;
+        for (var entry : amounts.entrySet()) {
+            initial = initial.add(com.atir.molecularmanipulator.crafting.OmniCpuResources.itemBytes(
+                    entry.getValue(), entry.getKey().getAmountPerByte()));
+        }
+        return prepared.theoreticalBytes().max(initial);
     }
     @Override public void ecoDispatch$suspend(String reason) {
         ecoDispatch$dispatcher().suspend(reason);

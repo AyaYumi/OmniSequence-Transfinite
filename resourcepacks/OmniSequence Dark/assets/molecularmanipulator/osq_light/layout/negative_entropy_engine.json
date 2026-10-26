@@ -1,0 +1,864 @@
+{
+  "screen": "negative_entropy_engine",
+  "machine": "negative_entropy_engine",
+  "family": "sing",
+  "size": [
+    400,
+    300
+  ],
+  "left_room": 0,
+  "units": "GUI px; dynamic OSQ cards, text, controls and hologram are drawn by NegativeEntropyEngineScreen",
+  "draw": [
+    {
+      "type": "fill",
+      "id": "window",
+      "k": "window",
+      "rect": [
+        0,
+        0,
+        400,
+        300
+      ],
+      "pad": [
+        0,
+        0,
+        3,
+        12
+      ],
+      "color": "#FF131D19"
+    },
+    {
+      "type": "fill",
+      "rect": [
+        8,
+        33,
+        190,
+        169
+      ],
+      "color": "#33000000"
+    },
+    {
+      "type": "fill",
+      "rect": [
+        8,
+        32,
+        190,
+        168
+      ],
+      "color": "#FF1D2B24"
+    },
+    {
+      "type": "fill",
+      "rect": [
+        8,
+        207,
+        190,
+        89
+      ],
+      "color": "#33000000"
+    },
+    {
+      "type": "fill",
+      "rect": [
+        8,
+        206,
+        190,
+        88
+      ],
+      "color": "#FF1D2B24"
+    },
+    {
+      "type": "control",
+      "id": "overview",
+      "k": "ctl",
+      "rect": [
+        317,
+        9,
+        29,
+        15
+      ]
+    },
+    {
+      "type": "control",
+      "id": "recipes",
+      "k": "ctl",
+      "rect": [
+        346,
+        9,
+        46,
+        15
+      ]
+    },
+    {
+      "type": "control",
+      "id": "overclock",
+      "k": "ctl",
+      "rect": [
+        204,
+        253,
+        188,
+        20
+      ]
+    },
+    {
+      "type": "control",
+      "id": "unlock",
+      "k": "ctl",
+      "rect": [
+        204,
+        253,
+        188,
+        20
+      ]
+    },
+    {
+      "type": "control",
+      "id": "refresh",
+      "k": "ctl",
+      "rect": [
+        204,
+        277,
+        92,
+        17
+      ]
+    },
+    {
+      "type": "control",
+      "id": "prerequisites",
+      "k": "ctl",
+      "rect": [
+        204,
+        277,
+        92,
+        17
+      ]
+    },
+    {
+      "type": "control",
+      "id": "guide",
+      "k": "ctl",
+      "rect": [
+        300,
+        277,
+        92,
+        17
+      ]
+    },
+    {
+      "type": "control",
+      "id": "node.0",
+      "k": "ctl",
+      "rect": [
+        17,
+        99,
+        46,
+        29
+      ]
+    },
+    {
+      "type": "control",
+      "id": "node.1",
+      "k": "ctl",
+      "rect": [
+        78,
+        64,
+        47,
+        29
+      ]
+    },
+    {
+      "type": "control",
+      "id": "node.2",
+      "k": "ctl",
+      "rect": [
+        141,
+        64,
+        48,
+        29
+      ]
+    },
+    {
+      "type": "control",
+      "id": "node.3",
+      "k": "ctl",
+      "rect": [
+        78,
+        130,
+        47,
+        29
+      ]
+    },
+    {
+      "type": "control",
+      "id": "node.4",
+      "k": "ctl",
+      "rect": [
+        141,
+        130,
+        48,
+        29
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        22,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        40,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        58,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        76,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        94,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        112,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        130,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        148,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        166,
+        212,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        22,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        40,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        58,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        76,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        94,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        112,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        130,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        148,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        166,
+        230,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        22,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        40,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        58,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        76,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        94,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        112,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        130,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        148,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        166,
+        248,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        22,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        40,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        58,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        76,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        94,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        112,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        130,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        148,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "control",
+      "id": "inv",
+      "k": "slot",
+      "rect": [
+        166,
+        270,
+        18,
+        18
+      ]
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.paper",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF131D19"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.card",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF1D2B24"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.ink",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FFEDF5EF"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.ink2",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FFC3D3C8"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.muted",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF94AA9B"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.hair",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF344A3C"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.accent",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF83CDA5"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.accent_fill",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF83CDA5"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.soft",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF2B4435"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.feature",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF294A37"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.feature_ink",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FFF1FBF5"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.feature_muted",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FFB1CCBA"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.feature_track",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF456650"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.level",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF83CDA5"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.slot",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF273E2F"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.holo_line",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF83A08A"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.holo_grid",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#444F6E55"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.shadow",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#33000000"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.inverse",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF14251B"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.inverse_tab",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF131D19"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.disabled",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FF24362B"
+    },
+    {
+      "type": "fill",
+      "external": true,
+      "id": "color.warning",
+      "rect": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "color": "#FFD2B378"
+    }
+  ],
+  "theme": "dark"
+}

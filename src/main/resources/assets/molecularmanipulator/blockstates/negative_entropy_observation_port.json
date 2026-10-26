@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "facing=north,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port"
+    },
+    "facing=north,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed"
+    },
+    "facing=north,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port"
+    },
+    "facing=north,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed"
+    },
+    "facing=east,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port",
+      "y": 90
+    },
+    "facing=east,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed",
+      "y": 90
+    },
+    "facing=east,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port",
+      "y": 90
+    },
+    "facing=east,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed",
+      "y": 90
+    },
+    "facing=south,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port",
+      "y": 180
+    },
+    "facing=south,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed",
+      "y": 180
+    },
+    "facing=south,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port",
+      "y": 180
+    },
+    "facing=south,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed",
+      "y": 180
+    },
+    "facing=west,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port",
+      "y": 270
+    },
+    "facing=west,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed",
+      "y": 270
+    },
+    "facing=west,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port",
+      "y": 270
+    },
+    "facing=west,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/negative_entropy_observation_port_formed",
+      "y": 270
+    }
+  }
+}

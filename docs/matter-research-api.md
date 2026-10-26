@@ -41,14 +41,13 @@ ServerEvents.recipes(event => {
     unlocks: ['kubejs:stone_processing'],
     depths: [
       {parallel: '4'},
-      {material_multiplier: '3', parallel: '1024', speed_multiplier: '8'},
+      {material_multiplier: '3', parallel: '1024'},
       {
         ingredients: [
           {ingredient: {item: 'ae2:fluix_crystal'}, count: '512'},
           {ingredient: {item: 'minecraft:diamond'}, count: '64'}
         ],
-        parallel: '9223372036854775807',
-        processing_ticks: 1
+        parallel: '9223372036854775807'
       }
     ]
   }).id('kubejs:stone_research');
@@ -147,7 +146,7 @@ not migrate completion counts stored on existing controllers.
 | `serializers` | Required nonempty list of source recipe JSON `type` IDs: recipe **serializer IDs**, not JEI category IDs. |
 | `research` | Required; accepts all existing `matter_research` fields, including costs, prerequisites, `depths`, and `required_mods`. Imported recipe IDs are appended to `unlocks`; explicit additional unlocks are retained. |
 | `inputs` / `outputs` | Optional; each replaces automatic parsing for that direction. Omit it to use existing parsers. When specified, include every resource in that direction. |
-| `processing_time` | Imported recipes' base duration, default 200 ticks. |
+| `processing_time` | Imported recipes' base duration, default 400 ticks (20 seconds). Explicit custom values are preserved. |
 | `ae_per_tick` | Imported recipes' base power, default 256 AE/t. Separate from `research.ae_per_tick`. |
 
 ### Field paths
@@ -260,8 +259,8 @@ Each `depths` element:
 | `material_multiplier` | Round cost = base `ingredients` × this, default `1`. |
 | `ingredients` | Optional. When present it **fully replaces** the round's materials and the multiplier is ignored; `[]` means a free round. |
 | `parallel` | Total parallel limit after this round. Required positive long. |
-| `speed_multiplier` | Base recipe time is divided by this and rounded up, default `1`. |
-| `processing_ticks` | When greater than `0`, a fixed processing time that takes priority over `speed_multiplier`; `0` or omitted uses the multiplier. |
+| `speed_multiplier` | Legacy positive long, default `1`; accepted for compatibility and ignored. |
+| `processing_ticks` | Legacy nonnegative tick count, default `0`; accepted for compatibility and ignored, including `1`. |
 
 ### 2.2 Long values and `2^53 - 1`
 
@@ -277,27 +276,31 @@ or becoming free.
 
 ## 3. Default nine-round progression
 
-Used when `depths` is omitted, and by all three built-in researches. Costs are
+Used when `depths` is omitted, and by the four ordinary built-in branches. Costs are
 charged per round and are not the difference from the previous round. `parallel`
 is how many complete recipe executions a single craft may run.
 
-| Completions | Round cost / base cost | Parallel limit after | Processing time after |
-| --- | --- | --- | --- |
-| 1 | ×1 | 1 | base time |
-| 2 | ×2 | 256 | base time ÷ 2, rounded up |
-| 3 | ×4 | 65,536 | base time ÷ 4, rounded up |
-| 4 | ×8 | 16,777,216 | base time ÷ 8, rounded up |
-| 5 | ×16 | 4,294,967,296 | base time ÷ 16, rounded up |
-| 6 | ×32 | 1,099,511,627,776 | base time ÷ 32, rounded up |
-| 7 | ×64 | 281,474,976,710,656 | base time ÷ 64, rounded up |
-| 8 | ×128 | 72,057,594,037,927,936 | base time ÷ 128, rounded up |
-| 9 | ×256 | 9,223,372,036,854,775,807 (≈9.22E18) | fixed 1 tick |
+| Completions | Round cost / base cost | Parallel limit after |
+| --- | --- | --- |
+| 1 | ×1 | 1 |
+| 2 | ×2 | 256 |
+| 3 | ×4 | 65,536 |
+| 4 | ×8 | 16,777,216 |
+| 5 | ×16 | 4,294,967,296 |
+| 6 | ×32 | 1,099,511,627,776 |
+| 7 | ×64 | 281,474,976,710,656 |
+| 8 | ×128 | 72,057,594,037,927,936 |
+| 9 | ×256 | 9,223,372,036,854,775,807 (≈9.22E18) |
 
-Processing time never drops below one tick. Parallelism and speed apply only to
-the well recipes listed in that research's `unlocks`; they never shorten research
-itself. When several researches unlock the same recipe, the **highest** parallel
-limit and the **shortest** time win — bonuses are combined with max/min, not
-multiplied.
+Deep research increases recipe parallelism only, including round nine. Several
+researches owning the same recipe contribute their highest parallel limit.
+Production speed comes from the Negative Entropy Engine on the controller's ME
+grid: ordinary levels use `max(1, ceil(baseTicks / effectiveSpeedMultiplier))`,
+where the effective multiplier includes overclocking; level 9 overclocking forces
+one tick. Without an engine the multiplier is one. All built-in fabrication
+recipes and generated bridge defaults use 400 base ticks (20 seconds); explicit
+custom `processing_time` values are preserved. Research's own `duration` is
+independent of production speed and this default.
 
 ---
 
@@ -312,7 +315,7 @@ multiplied.
 | `fluid_result` | Optional single fluid output, same format. |
 | `ae_inputs` | Up to **12** generic AEKey inputs; see §4.1. |
 | `ae_outputs` | Up to **6** generic AEKey outputs, using the same stack codec as `ae_inputs`. |
-| `processing_time` | Base ticks, default `200`; values below `1` are raised to `1`. |
+| `processing_time` | Base ticks, default `400` (20 seconds); values below `1` are raised to `1`. |
 | `ae_per_tick` | Base power, default `64.0`; negative values are raised to `0`. |
 | `requires_research` | Default `false`. See §4.2. |
 
@@ -478,7 +481,7 @@ The 30 seconds applies to the first unlock and to every later deep-research roun
 of the built-in researches. Custom `duration` values stay free in ticks and still
 default to 1200; a started round keeps the duration snapshot from its start.
 
-Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts use 100× ordinary ingredient quantities, retaining outputs, duration and power. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
+Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts use 100× ordinary ingredient quantities, retaining outputs and power; built-in fabrication base durations are uniformly 400 ticks. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
 
 These stage-two branches require **one** `ae_foundation` completion by default.
 Built-in additions use IDs under
@@ -499,11 +502,11 @@ The Molecular Sequence Rewrite Array (`molecular_manipulator`) and the Assembler
 Matrix Sequence Rewrite Core (`assembler_matrix_molecular_core`) moved into the
 stage-two Sequence Array branch: their crafting recipes are now well recipes
 using the same materials and counts, at 400 ticks and 512 AE/t base. The branch's
-first completion unlocks both, and its deep research gives them the same speed
-and parallel bonuses. Already-built machines keep working.
+first completion unlocks both, and its deep research increases their recipe
+parallelism. Already-built machines keep working.
 
 The Transfinite Compute Nexus recipe, `molecularmanipulator:transfinite_compute_nexus`,
-is unlocked by the Omni-Computation branch at 1200 ticks and 4096 AE/t before
+is unlocked by the Omni-Computation branch at 400 ticks and 4096 AE/t before
 production bonuses, inherits that branch's well bonuses, and is itself gated on
 AdvancedAE. Once placed, the block's idle draw is configured separately through
 `transfinite_compute_nexus.idle_power`, defaulting to 16384 AE/t; that setting
@@ -564,11 +567,15 @@ Assembler Matrix providers prepare `Long.MAX_VALUE / 4` crafts with exact output
 counts and reject multiplication or buffer overflow without consuming inputs.
 That verifies capacity, not that any pack has free materials or power.
 
-Started work keeps its processing snapshot. New or not-yet-started work uses the
-current recipe permissions and bonuses; queued work stores material ownership and
-the recipe ID, so unstarted batches re-check the current recipe, permission and
-profile instead of reusing old figures. Work that can no longer proceed keeps its
-materials inside the assembly and can be returned as pending input.
+Started work keeps its materials, outputs and power snapshot. Its duration is
+recomputed from the current recipe and the controller's grid benefits, including
+engine level and overclocking changes, while completed progress is rescaled to
+keep the same proportion (rounded down to whole ticks). Old batches saved with
+`duration = 1` are recalculated too. Manual work also saves its duration for
+rescaling after reload; legacy manual saves without that field keep their elapsed
+ticks, bounded below completion. Queued work stores material ownership and the
+recipe ID and rechecks the current recipe, permission and profile before starting.
+Work that cannot proceed retains its materials inside the assembly.
 
 ### 7.1 Known limitations in 2.1.0
 
@@ -590,7 +597,7 @@ grants it; hovering shows the full research conditions, and a recipe granted by
 several researches lists all of them. Recipes without research show
 "Basic recipe · No research", and recipes whose research is not configured show
 "Research not configured". The time and power shown at the bottom are base
-values; deep-research bonuses are applied by the controller.
+values; research parallelism and engine speed are applied by the controller.
 
 | Port | Behaviour |
 | --- | --- |
@@ -693,7 +700,7 @@ API; the separate batch API stays at v1.
 | `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; ordinary manual tasks using `setPaused(..., false)` re-check the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
 | `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
 | `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
-| `productionProfile` | `(parallel, ticks)` for the current completed branches of that recipe: highest parallel, shortest time; an unowned recipe returns parallel `1` and its raw processing time. |
+| `productionProfile` | `(parallel, ticks)`: highest parallel limit among completed owner branches (or `1`); ticks come from the current recipe base duration and `NegativeEntropyNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)`, independently of research depth. |
 | `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
 | `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
 

@@ -18,6 +18,67 @@ import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
 class OmniExactCraftingStateTest {
+    @Test void downgradeExpandsScaledExactTasksWithoutLosingWaitingCreditsOrFinalProgress() {
+        var original = pattern(PATTERN);
+        var scaled = new MolecularScaledPattern(original, 16);
+        var huge = BigInteger.ONE.shiftLeft(80);
+        var state = OmniExactCraftingState.create(Map.of(scaled, huge), Map.of(INFINITE, BigInteger.ONE));
+        state.setOutputRemaining(huge.multiply(BigInteger.valueOf(16)));
+        state.queueOutput(FINITE, huge);
+        var normalized = state.normalizeTasks(Map.of(scaled,
+                new MolecularExternalScaledPattern.Unwrapped(original, 16)));
+        assertEquals(huge.multiply(BigInteger.valueOf(16)), normalized.remaining(original));
+        assertEquals(huge.multiply(BigInteger.valueOf(16)), normalized.outputProgress().remaining());
+        assertEquals(huge, normalized.uncreditedOutput(FINITE));
+        assertTrue(normalized.infiniteKeys().contains(INFINITE));
+        assertEquals(huge, state.remaining(scaled), "Normalization must be prepared before replacing live task identities");
+    }
+
+    @Test void ordinarySplitScaledTasksExpandTheirOwnCountsBeforeDefinitionsMerge() {
+        var original = pattern(PATTERN);
+        var seven = new MolecularScaledPattern(original, 7);
+        var four = new MolecularScaledPattern(original, 4);
+        var tasks = Map.<IPatternDetails, BigInteger>of(seven, BigInteger.TWO, four, BigInteger.ONE,
+                original, BigInteger.ONE);
+        var state = OmniExactCraftingState.createNormalized(tasks, Map.of(
+                seven, new MolecularExternalScaledPattern.Unwrapped(original, 7),
+                four, new MolecularExternalScaledPattern.Unwrapped(original, 4),
+                original, new MolecularExternalScaledPattern.Unwrapped(original, 1)));
+        assertEquals(BigInteger.valueOf(19), state.remaining(original), "7*2 + 4*1 + 1, not a merged count times each scale");
+        assertEquals(java.util.Set.of(PATTERN), state.taskDefinitions());
+        state.commit(original, state.nextRemaining(original, 1));
+        assertEquals(BigInteger.valueOf(18), state.remaining(original));
+        assertEquals(BigInteger.TWO, tasks.get(seven), "Preparing normalization must not mutate the source tasks");
+    }
+
+    @Test void ordinaryScaledTaskExpansionDoesNotOverflowLong() {
+        var original = pattern(PATTERN);
+        var scaled = new MolecularScaledPattern(original, 16);
+        var count = BigInteger.valueOf(Long.MAX_VALUE);
+        var state = OmniExactCraftingState.createNormalized(Map.of(scaled, count), Map.of(
+                scaled, new MolecularExternalScaledPattern.Unwrapped(original, 16)));
+        assertEquals(count.multiply(BigInteger.valueOf(16)), state.remaining(original));
+        assertEquals(OmniExactCraftingState.MAX_WINDOW, OmniExactCraftingState.window(state.remaining(original)));
+    }
+
+    @Test void applyingNormalizedTasksPreservesLiveCallbackLedgerAndAllOutputAccounting() {
+        var original = pattern(PATTERN);
+        var scaled = new MolecularScaledPattern(original, 16);
+        var state = OmniExactCraftingState.create(Map.of(scaled, BigInteger.TWO), Map.of());
+        state.setOutputRemaining(BigInteger.valueOf(32));
+        var progress = state.outputProgress();
+        state.queueOutput(FINITE, BigInteger.TEN);
+        state.recordCompleted(FINITE, BigInteger.valueOf(3));
+        state.applyNormalizedTasks(state.normalizeTasks(Map.of(scaled,
+                new MolecularExternalScaledPattern.Unwrapped(original, 16))));
+        assertEquals(BigInteger.valueOf(32), state.remaining(original));
+        assertTrue(progress == state.outputProgress(), "Do not detach an asynchronous provider's final-output progress");
+        assertEquals(BigInteger.TEN, state.uncreditedOutput(FINITE));
+        assertEquals(BigInteger.valueOf(3), state.completedOutputs().get(FINITE));
+        state.queueOutput(FINITE, BigInteger.ONE);
+        assertEquals(BigInteger.valueOf(11), state.uncreditedOutput(FINITE));
+    }
+
     @Test void latestBatchReplacesRatherThanAccumulatesPreviousPush() {
         var pattern = new IPatternDetails() {
             public AEItemKey getDefinition() { return PATTERN; }

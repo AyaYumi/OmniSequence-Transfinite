@@ -1,0 +1,13 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "middle": {
+      "item": "molecularmanipulator:negative_entropy_crystal"
+    }
+  },
+  "mode": "inscribe",
+  "result": {
+    "id": "molecularmanipulator:negative_entropy_crystal_dust",
+    "count": 1
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:base_entropy_anchor"
+      },
+      "count": 9
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:negentropy_information_processor"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_pearl"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:singularity"
+      },
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:quantum_entropy_anchor",
+      "count": 9
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 512,
+  "requires_research": true
+}

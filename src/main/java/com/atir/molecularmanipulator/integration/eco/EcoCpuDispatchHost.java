@@ -15,7 +15,11 @@ public interface EcoCpuDispatchHost {
     default boolean ecoDispatch$enabled() { return false; }
     default UUID ecoDispatch$jobId() { return null; }
     default boolean ecoDispatch$exactOrder() { return false; }
+    /** Physical CPUs use one real recipe per provider call; virtual CPUs may aggregate. */
+    default boolean ecoDispatch$virtualCpu() { return true; }
     default boolean ecoDispatch$stopped() { return false; }
+    /** Ordinary task selected by the CPU's shared native/fallback rotation. */
+    default IPatternDetails ecoDispatch$preferredPattern() { return null; }
     default ListCraftingInventory ecoDispatch$inventory() { throw new UnsupportedOperationException(); }
     /** Physical inventory plus Omni overflow; must never include projected/infinite planning stock. */
     default ICraftingInventory ecoDispatch$physicalView() { return ecoDispatch$inventory(); }
@@ -39,8 +43,9 @@ public interface EcoCpuDispatchHost {
     /**
      * Job-directed exact reception, including SIMULATE. Return accepted ownership, never an estimate.
      * Final products must honor requester/storage acceptance and retain any undeliverable owned tail.
-     * The CPU may own all expected products as physical stock, including feedback and surplus;
-     * only the amount actually accepted by the final destination advances the goal.
+     * A matched live job owns the entire offer as physical stock, including unexpected byproducts,
+     * feedback and surplus. Only its expected portion settles waiting, and only the amount actually
+     * accepted by the final destination advances the goal. Mismatched/retired jobs accept nothing.
      * This is a separate protocol from nativeBigInteger provider callbacks.
      */
     default BigInteger ecoDispatch$insertExact(UUID jobId, AEKey key, BigInteger amount, Actionable mode) {

@@ -5,6 +5,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -43,6 +48,37 @@ class RateLimitedLogTest {
             if (gate.allow("output return")) emitted.incrementAndGet();
         });
         assertEquals(1, emitted.get());
+    }
+
+    @Test
+    void nativeFailureReasonsRemainArgumentsInsteadOfRateLimitKeys() throws Exception {
+        var type = new ClassNode();
+        try (var input = getClass().getResourceAsStream(
+                "/com/atir/molecularmanipulator/mixin/CraftingCpuLogicMixin.class")) {
+            assertNotNull(input);
+            new ClassReader(input).accept(type, 0);
+        }
+        var failure = type.methods.stream().filter(method -> method.name.equals("omniNative$fail"))
+                .findFirst().orElseThrow();
+        boolean constantTemplate = false;
+        boolean limitedWarning = false;
+        boolean pausesCpu = false;
+        for (var instruction : failure.instructions) {
+            assertFalse(instruction instanceof InvokeDynamicInsnNode,
+                    "Failure reasons must not create a separate rate-limit key for each CPU");
+            if (instruction instanceof LdcInsnNode constant) {
+                constantTemplate |= "Native batch ownership/accounting is uncertain; CPU suspended: {}"
+                        .equals(constant.cst);
+            }
+            if (instruction instanceof MethodInsnNode call) {
+                limitedWarning |= call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
+                        && call.name.equals("warn");
+                pausesCpu |= call.name.equals("ecoDispatch$pause");
+            }
+        }
+        assertTrue(constantTemplate);
+        assertTrue(limitedWarning);
+        assertTrue(pausesCpu, "Logging cleanup must retain uncertain-ownership suspension");
     }
 
     @Test

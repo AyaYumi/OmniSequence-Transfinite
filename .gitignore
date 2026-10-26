@@ -55,6 +55,8 @@ libs/*.jar
 ### Local diagnostic scratch files ###
 /*.log
 /*_javap.txt
+/javac.*.args
+/nul
 /_tmp*
 /tmp-*
 /y-*.log
@@ -77,6 +79,8 @@ libs/*.jar
 /docs/development.md
 /docs/DEVELOPMENT.md
 /docs/performance.md
+/docs/design/
+/docs/negative-entropy-ui-sync.md
 /tools/client/
 /tools/pack/
 /tools/ui/

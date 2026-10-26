@@ -39,6 +39,20 @@ public final class NegativeEntropyEngineCoreBlock extends Block implements Entit
                 context.getHorizontalDirection().getOpposite());
     }
 
+    @Override
+    protected net.minecraft.world.InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
+            net.minecraft.world.entity.player.Player player, net.minecraft.world.phys.BlockHitResult hit) {
+        return com.atir.molecularmanipulator.entropy.NegativeEntropyInteraction.open(level, pos, player);
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, net.minecraft.world.entity.LivingEntity placer,
+            net.minecraft.world.item.ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (placer instanceof net.minecraft.server.level.ServerPlayer player
+                && level.getBlockEntity(pos) instanceof NegativeEntropyEngineCoreBlockEntity core) core.bindOwner(player);
+    }
+
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {

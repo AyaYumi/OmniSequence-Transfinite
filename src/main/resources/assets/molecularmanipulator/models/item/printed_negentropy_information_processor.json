@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "molecularmanipulator:item/printed_negentropy_information_processor"
+  }
+}

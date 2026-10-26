@@ -119,8 +119,10 @@ public final class SingularityWhiteHoleRenderer {
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
+        var inverseProjection = SingularityLensProjection.inverseProjection(projection);
         shader.safeGetUniform("LensProjection").set(projection);
-        shader.safeGetUniform("InverseProjection").set(SingularityLensProjection.inverseProjection(projection));
+        shader.safeGetUniform("InverseProjection").set(inverseProjection);
+        shader.safeGetUniform("RayOrigin").set(SingularityLensProjection.rayOriginInViewSpace(inverseProjection));
         shader.safeGetUniform("LensTime").set(lens.frame.time() % 24000);
         shader.safeGetUniform("CoreRadius").set(SingularityWhiteHoleProfile.radius(lens.frame));
         shader.safeGetUniform("FieldRadius").set(SingularityWhiteHoleProfile.FIELD_RADIUS);

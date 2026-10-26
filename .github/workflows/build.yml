@@ -64,7 +64,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: AyaYumi/AppliedEnhancements
-          ref: f11fea73897e954ea4cf0f9bf5d3fc41119fe194
+          ref: b992657c6ae3926c294e88c4b01babfc4a5209cc
           path: .build-dependencies/appliedenhancements
           persist-credentials: false
 

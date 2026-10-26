@@ -47,6 +47,8 @@ final class OmniComputationLdUi {
     private final Label structureParts;
     private final Label structureDetail;
     private final Label networkValue;
+    private final Label storageValue;
+    private final Label parallelValue;
     private final Label activeJobsValue;
     private final Label cpuLanesValue;
     private final Label calculationValue;
@@ -79,6 +81,8 @@ final class OmniComputationLdUi {
         structureProgress = progress(ui, "structure-progress", structureProgressTexture, false);
         structureDetail = label(ui, "structure-detail");
         networkValue = label(ui, "network-value");
+        storageValue = label(ui, "storage-value");
+        parallelValue = label(ui, "parallel-value");
         activeJobsValue = label(ui, "active-jobs-value");
         cpuLanesValue = label(ui, "cpu-lanes-value");
         calculationValue = label(ui, "calculation-value");
@@ -256,6 +260,8 @@ final class OmniComputationLdUi {
                         ? "gui.molecularmanipulator.omni.online"
                         : "gui.molecularmanipulator.omni.offline"),
                 menu.networkOnline ? GREEN : ORANGE);
+        storageValue.setValue(OmniComputationScreen.capacity(menu.storageBytes, true));
+        parallelValue.setValue(OmniComputationScreen.capacity(menu.cpuParallel, false));
         setLabel(activeJobsValue,
                 Component.literal(Integer.toString(menu.activeJobs)),
                 menu.activeJobs > 0 ? GREEN : PRIMARY_TEXT);

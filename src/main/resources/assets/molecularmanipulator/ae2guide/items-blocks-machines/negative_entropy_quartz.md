@@ -9,6 +9,8 @@ item_ids:
 - molecularmanipulator:negative_entropy_crystal
 - molecularmanipulator:negative_entropy_crystal_dust
 - molecularmanipulator:negative_entropy_alloy_ingot
+- molecularmanipulator:printed_negentropy_information_processor
+- molecularmanipulator:negentropy_information_processor
 - molecularmanipulator:negative_entropy_quartz_bud_small
 - molecularmanipulator:negative_entropy_quartz_bud_medium
 - molecularmanipulator:negative_entropy_quartz_bud_large
@@ -77,14 +79,34 @@ Buds can grow on all six faces of a parent rock:
 Mine a mature cluster with a pickaxe:
 
 - Without Silk Touch: **3 Negentropy Crystals**, affected by Fortune
-- With Silk Touch: the cluster block itself, so you can move it and keep growing
+- With Silk Touch: the cluster block itself, for moving or decoration; continued crystal production requires buds growing on a parent rock
 
 ## Materials
 
 | Item | Use |
 | --- | --- |
 | Negentropy Crystal | Main cluster drop and base material for the negative entropy series |
-| Negentropy Crystal Dust | Reserved material; no survival recipe in the current version |
-| Negative Entropy Alloy Ingot | Reserved material; no survival recipe in the current version |
+| Negentropy Crystal Dust | Grind crystals in an Inscriber for alloy processing |
+| Negative Entropy Alloy Ingot | Alloyed in the AdvancedAE Reaction Chamber; structural material for the engine and anchors |
+| Negentropy Information Circuit Board | Inscribe a crystal with the Calculation Processor Press |
+| Negentropy Information Processor | Assemble a circuit board, redstone and Printed Silicon in an Inscriber for the engine and anchors |
+
+### Crystal dust and alloy ingots
+
+Without a press installed, the Inscriber turns **1 Negentropy Crystal into 1 Crystal Dust**. In the **AdvancedAE Reaction Chamber**, combine 4 crystal dust, 4 iron ingots, 1 Fluix Dust, 1 Sky Stone Dust and **500 mB water**, using **51,200 AE** in total, to produce **4 Negative Entropy Alloy Ingots**. Reaction Chamber processing needs no Fabrication Well research. This alloy recipe only loads when AdvancedAE is installed.
+
+<RecipeFor id="molecularmanipulator:negative_entropy_crystal_dust" />
+
+<RecipeFor id="molecularmanipulator:negative_entropy_alloy_ingot" />
+
+### Circuit board and processor
+
+Put a **Calculation Processor Press** in the Inscriber's top slot and a Negentropy Crystal in the middle slot to print the circuit board. The press is not consumed.
+
+Then place the circuit board in the top slot, redstone in the middle slot and Printed Silicon in the bottom slot to assemble the processor. Neither step consumes Negentropy Information Flow.
+
+<RecipeFor id="molecularmanipulator:printed_negentropy_information_processor" />
+
+<RecipeFor id="molecularmanipulator:negentropy_information_processor" />
 
 The **Flawless** parent rock has no survival source in the current version. It is available in creative mode; the engine conversion will be added later.

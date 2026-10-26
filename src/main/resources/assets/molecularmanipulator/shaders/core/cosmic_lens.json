@@ -12,6 +12,7 @@
           "values": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
         { "name": "SceneSize", "type": "float", "count": 2, "values": [1, 1] },
         { "name": "CoreCenter", "type": "float", "count": 3, "values": [0, 0, -10] },
+        { "name": "RayOrigin", "type": "float", "count": 3, "values": [0, 0, 0] },
         { "name": "CoreRadius", "type": "float", "count": 1, "values": [0.3] },
         { "name": "FieldRadius", "type": "float", "count": 1, "values": [1.25] },
         { "name": "LensTime", "type": "float", "count": 1, "values": [0] },

@@ -44,7 +44,7 @@
       "count": 1
     }
   ],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 128.0,
   "requires_research": true
 }

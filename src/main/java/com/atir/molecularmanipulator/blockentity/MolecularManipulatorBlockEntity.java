@@ -19,6 +19,7 @@ import appeng.menu.locator.MenuHostLocator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
+import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
@@ -55,6 +56,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
+    private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
     private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
     private final ReferenceOpenHashSet<IPatternDetails> craftingEventsThisTick = new ReferenceOpenHashSet<>();
@@ -139,6 +141,20 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         }
     }
 
+    long getRemainingAssemblerBudget() {
+        var level = getLevel();
+        return level == null || getMainNode().getGrid() == null ? 0
+                : assemblerBudget.remaining(level.getGameTime(),
+                        NegativeEntropyNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
+    }
+
+    private boolean consumeAssemblerBudget(long crafts) {
+        var level = getLevel();
+        return level != null && getMainNode().getGrid() != null
+                && assemblerBudget.tryConsume(level.getGameTime(),
+                        NegativeEntropyNetwork.forGrid(getMainNode().getGrid()).assemblerParallel(), crafts);
+    }
+
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
         if (assembling || hasActiveReusableBatch()
                 || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
@@ -160,20 +176,25 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
                 return acceptReusablePattern(patternDetails, pattern, inputs,
                         batchContext);
             }
+            long remainingBudget = getRemainingAssemblerBudget();
+            if (remainingBudget <= 0) {
+                return false;
+            }
             boolean prepared = batchContext != null
                     ? craftingBatcher.prepareSelected(
                             patternDetails, inputs, level,
-                            VIRTUAL_PARALLEL_LIMIT,
+                            remainingBudget,
                             batchContext.firstInputs(),
                             batchContext.craftCount())
                     : craftingBatcher.prepare(
                             patternDetails, inputs, level,
-                            VIRTUAL_PARALLEL_LIMIT);
+                            remainingBudget);
             if (!prepared) {
                 return false;
             }
             var outputAmounts = craftingBatcher.getOutputAmounts();
-            if (!canQueueOutputs(outputAmounts)) {
+            if (!canQueueOutputs(outputAmounts)
+                    || !consumeAssemblerBudget(craftingBatcher.getCraftCount())) {
                 return false;
             }
 
@@ -209,7 +230,8 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs,
             MolecularBatchDispatchContext.Context context) {
         var level = getLevel();
-        if (level == null || activeReusableBatch != null) {
+        if (level == null || activeReusableBatch != null
+                || context.craftCount() > getRemainingAssemblerBudget()) {
             return false;
         }
 
@@ -379,10 +401,9 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             return;
         }
 
-        // Reusable batches are represented as long-count aggregates. Advancing
-        // the complete remainder is O(output types + tool groups), not O(crafts),
-        // so there is no reason to impose an artificial per-tick craft window.
-        long step = job.nextStep(Long.MAX_VALUE);
+        // Persisted jobs may predate the current engine level. Retain every
+        // input while advancing only this tick's remaining recipe allowance.
+        long step = job.nextStep(getRemainingAssemblerBudget());
         if (step <= 0) {
             return;
         }
@@ -392,7 +413,8 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         var remainders = completes
                 ? job.projectedFinalRemainders()
                 : new Object2LongOpenHashMap<AEKey>();
-        if (!canQueueOutputs(primary, remainders)) {
+        if (!canQueueOutputs(primary, remainders)
+                || !consumeAssemblerBudget(step)) {
             return;
         }
 

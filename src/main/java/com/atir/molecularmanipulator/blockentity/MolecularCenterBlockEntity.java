@@ -27,6 +27,7 @@ import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
@@ -125,6 +126,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
     private final AppEngInternalInventory matrixUploadCoreInventory = new AppEngInternalInventory(this, 1);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
+    private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final Object2LongOpenHashMap<AEKey> pendingPrimaryOutputs = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> pendingByproducts = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> reusableBatchRefunds = new Object2LongOpenHashMap<>();
@@ -678,6 +680,23 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return lastPipelineTransfer;
     }
 
+    long getRemainingAssemblerBudget() {
+        return level == null || getMainNode().getGrid() == null ? 0
+                : assemblerBudget.remaining(level.getGameTime(),
+                        NegativeEntropyNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
+    }
+
+    private boolean consumeAssemblerBudget(long crafts) {
+        return level != null && getMainNode().getGrid() != null
+                && assemblerBudget.tryConsume(level.getGameTime(),
+                        NegativeEntropyNetwork.forGrid(getMainNode().getGrid()).assemblerParallel(), crafts);
+    }
+
+    @Override
+    public long getAutoCraftingBudget() {
+        return getRemainingAssemblerBudget();
+    }
+
     @Override
     public boolean canRunAutoCrafting() {
         return !assembling && !pipelineBlocked && !hasActiveReusableBatch() && isOperational()
@@ -718,10 +737,17 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public boolean deliverAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount,
             MolecularAutoCrafterHost.OutputDestination destination) {
+        if (assembling || level == null || !consumeAssemblerBudget(craftCount)) {
+            return false;
+        }
+        long reservationTick = level.getGameTime();
         assembling = true;
         try {
             var result = MolecularAutoCraftOutput.deliver(primary, remainders, destination);
-            if (!result.committed()) return false;
+            if (!result.committed()) {
+                assemblerBudget.refund(reservationTick, craftCount);
+                return false;
+            }
             // Passive output no longer enters the CPU pipeline. The existing
             // persisted refund escrow retains only exceptional failed delivery.
             addOutputs(reusableBatchRefunds, result.recovery());
@@ -2298,21 +2324,26 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 return acceptReusablePattern(
                         patternDetails, pattern, inputs, batchContext);
             }
+            long remainingBudget = getRemainingAssemblerBudget();
+            if (remainingBudget <= 0) {
+                return false;
+            }
             boolean prepared = batchContext != null
                     ? craftingBatcher.prepareSelected(
                             patternDetails, inputs, level,
-                            VIRTUAL_PARALLEL_LIMIT,
+                            remainingBudget,
                             batchContext.firstInputs(),
                             batchContext.craftCount())
                     : craftingBatcher.prepare(
                             patternDetails, inputs, level,
-                            VIRTUAL_PARALLEL_LIMIT);
+                            remainingBudget);
             if (!prepared) {
                 return false;
             }
             var primaryOutputs = craftingBatcher.getPrimaryOutputAmounts();
             var remainderOutputs = craftingBatcher.getRemainderOutputAmounts();
-            if (!canQueueOutputs(primaryOutputs, remainderOutputs)) {
+            if (!canQueueOutputs(primaryOutputs, remainderOutputs)
+                    || !consumeAssemblerBudget(craftingBatcher.getCraftCount())) {
                 return false;
             }
             addOutputs(pendingPrimaryOutputs, primaryOutputs);
@@ -2345,7 +2376,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private boolean acceptReusablePattern(IPatternDetails patternDetails,
             IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs,
             MolecularBatchDispatchContext.Context context) {
-        if (level == null || activeReusableBatch != null) {
+        if (level == null || activeReusableBatch != null
+                || context.craftCount() > getRemainingAssemblerBudget()) {
             return false;
         }
 
@@ -2466,8 +2498,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
 
-        // The complete accepted batch is a constant-size aggregate operation.
-        long step = job.nextStep(Long.MAX_VALUE);
+        // Loaded jobs retain their inputs and share this allowance with passive crafting.
+        long step = job.nextStep(getRemainingAssemblerBudget());
         if (step <= 0) {
             return;
         }
@@ -2476,7 +2508,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         var remainders = completes
                 ? job.projectedFinalRemainders()
                 : new Object2LongOpenHashMap<AEKey>();
-        if (!canQueueOutputs(primary, remainders)) {
+        if (!canQueueOutputs(primary, remainders)
+                || !consumeAssemblerBudget(step)) {
             return;
         }
 

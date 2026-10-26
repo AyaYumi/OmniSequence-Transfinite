@@ -92,6 +92,14 @@ class MolecularAutoCraftMathTest {
     }
 
     @Test
+    void passiveBatchesDoNotTruncateInfiniteHostAllowanceToAnInt() {
+        assertEquals(Long.MAX_VALUE, MolecularAutoCrafter.MAX_BATCH_CRAFTS);
+        long reduced = Long.MAX_VALUE / 2 + 1;
+        assertEquals(Long.MAX_VALUE, MolecularAutoCraftMath.saturatedMultiply(reduced, 2),
+                "Successful retry growth must not wrap into a negative batch limit");
+    }
+
+    @Test
     void rejectsNegativeAmountsAndZeroSizedRecipeEntries() {
         assertThrows(IllegalArgumentException.class,
                 () -> MolecularAutoCraftMath.maxCraftsByIngredient(-1, 0, 1));

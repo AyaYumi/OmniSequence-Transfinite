@@ -377,7 +377,17 @@ final class MatterResearchPanel {
 
     private int progressTicks(){var holder=selected();if(holder==null)return 0;var task=task(holder);return task==null?0:task.get("progress").getAsInt();}
     private float progressRatio(){var holder=selected();return holder==null?0:Math.min(1,progressTicks()/(float)Math.max(1,holder.value().duration()));}
-    private String benefit(boolean next){var h=selected();if(h==null)return "";int n=count(h);if(!next&&n==0)return text("no_benefit").getString();var d=h.value().depths().get(Math.clamp(next?n:n-1,0,h.value().depths().size()-1));return DisplayNumbers.compact(d.parallel())+" 并行 · ×"+d.speedMultiplier();}
+    private String benefit(boolean next) {
+        var holder = selected();
+        if (holder == null) return "";
+        int completedCount = count(holder);
+        if (!next && completedCount == 0) return text("no_benefit").getString();
+        var depths = holder.value().depths();
+        int target = next && Screen.hasShiftDown() ? depths.size() - 1 : next ? completedCount : completedCount - 1;
+        var depth = depths.get(Math.clamp(target, 0, depths.size() - 1));
+        return Component.translatable("gui.molecularmanipulator.research." + (next ? "benefit" : "current_benefit"),
+                DisplayNumbers.compact(depth.parallel())).getString();
+    }
 
     private RecipeHolder<MatterResearchRecipe> selected() {
         return definitions.stream().filter(holder -> holder.id().equals(selected)).findFirst().orElse(null);

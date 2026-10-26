@@ -267,6 +267,27 @@ class EcoMolecularFastPathAdapterTest {
         assertEquals(700, counter(model(container).batchRemainders(List.of(), 700)).get(RETURNED));
     }
 
+    @Test
+    void dispatchRechecksRemainingQuotaAndReturnsTheEntireEcoLeaseOnRejection() throws Exception {
+        var catalyst = AEItemKey.of(Items.STICK);
+        var pattern = new EcoMolecularTestPattern(catalyst, key -> key);
+        var context = context(pattern);
+        var model = model(pattern);
+        var batch = batch(context, model, 23);
+        var stock = inventory(catalyst, 1, 23);
+        var provider = new Provider();
+        // The preparation admitted 23; an intervening dispatch spent most of its quota.
+        provider.batchLimit = 2;
+        var energy = new Energy();
+        assertFalse(ECOBatchExecutor.executePrepared(stock, batch.inputTotal(), Map.of(), energy,
+                () -> EcoMolecularFastPathAdapter.dispatch(provider, context, model, batch, 23)));
+        assertEquals(0, provider.pushes);
+        assertEquals(1, stock.list.get(catalyst));
+        assertEquals(23, stock.list.get(MATERIAL));
+        assertTrue(energy.refunded);
+        assertFalse(energy.committed);
+    }
+
     private static EcoMolecularBatchModel model(EcoMolecularTestPattern pattern) throws Exception {
         var result = EcoMolecularBatchModel.analyze(pattern, pattern.first(), level(), pattern.remainders());
         assertNotNull(result);
@@ -332,11 +353,13 @@ class EcoMolecularFastPathAdapterTest {
         int pushes;
         int flushes;
         long planCount;
+        long batchLimit = Long.MAX_VALUE;
         UUID jobId;
         KeyCounter[] lastInputs;
         public List<IPatternDetails> getAvailablePatterns() { return List.of(); }
         public boolean isBusy() { return false; }
         public boolean molecularmanipulator$supportsBatching(IPatternDetails pattern) { return true; }
+        public long molecularmanipulator$getBatchLimit(IPatternDetails pattern) { return batchLimit; }
         public boolean molecularmanipulator$supportsReusableBatching(IPatternDetails pattern) { return true; }
         public void molecularmanipulator$flushOutputsAfterCpuAccounting() { flushes++; }
         public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {

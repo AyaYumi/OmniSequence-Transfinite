@@ -30,6 +30,7 @@ public record MatterFabricationRecipe(
         int processingTime,
         double aePerTick,
         boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
+    public static final int DEFAULT_PROCESSING_TIME = 20 * 20;
     public static final int MAX_INPUTS = 12;
     public static final int MAX_OUTPUTS = 6;
 
@@ -204,7 +205,7 @@ public record MatterFabricationRecipe(
                                 .forGetter(MatterFabricationRecipe::aeInputs),
                         GenericStack.CODEC.listOf(0, MAX_OUTPUTS).optionalFieldOf("ae_outputs", List.of())
                                 .forGetter(MatterFabricationRecipe::aeOutputs),
-                        Codec.INT.optionalFieldOf("processing_time", 200)
+                        Codec.INT.optionalFieldOf("processing_time", DEFAULT_PROCESSING_TIME)
                                 .forGetter(MatterFabricationRecipe::processingTime),
                         Codec.DOUBLE.optionalFieldOf("ae_per_tick", 64.0)
                                 .forGetter(MatterFabricationRecipe::aePerTick),

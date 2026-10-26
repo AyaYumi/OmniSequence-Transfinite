@@ -133,8 +133,11 @@ public abstract class EcoOmniCpuPlanMixin implements EcoOmniPlanCpu, EcoOmniPlan
     @WrapOperation(method = "trySubmitJob", at = @At(value = "INVOKE",
             target = "Lappeng/api/networking/crafting/ICraftingPlan;bytes()J"))
     private long molecularmanipulator$validatedEcoStorage(ICraftingPlan plan, Operation<Long> original) {
+        // Shared admission has already pinned the exact theoretical allocation. Keep AE2's
+        // own finite comparison meaningful; only the long projection is saturated here.
         return molecularmanipulator$ecoPrepared != null && molecularmanipulator$ecoPrepared.original() == plan
-                ? 0L : original.call(plan);
+                ? molecularmanipulator$ecoPrepared.theoreticalBytes().min(BigInteger.valueOf(Long.MAX_VALUE)).longValueExact()
+                : original.call(plan);
     }
 
     @Override public Set<Map.Entry<IPatternDetails, Object>> ecoOmni$candidates(Map<IPatternDetails, Object> tasks) {

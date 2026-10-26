@@ -3,6 +3,8 @@ package com.atir.molecularmanipulator.research;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
+import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
+import com.atir.molecularmanipulator.entropy.NegativeEntropyRecipes;
 import java.util.List;
 import java.util.function.ToIntFunction;
 import net.minecraft.resources.ResourceLocation;
@@ -94,17 +96,16 @@ public final class MatterResearchApi {
     public record ProductionProfile(long parallel, int ticks) {}
 
     public static ProductionProfile productionProfile(MatterFabricationBlockEntity machine, RecipeHolder<MatterFabricationRecipe> recipe) {
-        long parallel = 1; int ticks = recipe.value().processingTime(); boolean hasOwner = false;
+        long parallel = 1;
         for (var holder : MatterRecipeIndex.get(machine.getLevel()).researchFor(recipe.id())) {
             int completed = machine.getResearch().completionCount(holder.id());
             if (completed > 0) {
                 var depth = holder.value().depths().get(Math.min(completed, holder.value().depths().size()) - 1);
                 parallel = Math.max(parallel, depth.parallel());
-                int target = depth.ticks(recipe.value().processingTime());
-                ticks = hasOwner ? Math.min(ticks, target) : target;
-                hasOwner = true;
             }
         }
+        int ticks = NegativeEntropyNetwork.forGrid(machine.getMainNode().getGrid())
+                .processingTicks(recipe.value().processingTime());
         return new ProductionProfile(parallel, ticks);
     }
 
@@ -125,6 +126,11 @@ public final class MatterResearchApi {
 
     private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked) {
         if (machine.getLevel() == null) return false;
+        // An engine unlock is an additional requirement, never a substitute for the original research.
+        if (NegativeEntropyRecipes.requiredMask(id) != 0
+                && !NegativeEntropyRecipes.isUnlocked(id, NegativeEntropyNetwork.unlockMask(machine.getMainNode().getGrid()))) {
+            return false;
+        }
         for (var definition : MatterRecipeIndex.get(machine.getLevel()).researchFor(id)) {
             locked = true;
             if (machine.getResearch().completionCount(definition.id()) > 0) return true;

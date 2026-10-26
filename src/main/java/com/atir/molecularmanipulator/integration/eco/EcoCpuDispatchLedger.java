@@ -72,6 +72,27 @@ public final class EcoCpuDispatchLedger {
         waiting.list.removeZeros();
         if (state != null) state.recordCompleted(key, amount);
     }
+    /**
+     * Take all physical output addressed to this live job, not just its expected portion.
+     * Workstations can deliver byproducts before the goal; rejecting those would stop their
+     * output iterator before it ever reaches the expected key. Only expected output settles waiting.
+     * The caller validates CPU ownership, UUID, activity and server-thread access first.
+     */
+    public BigInteger receive(ListCraftingInventory waiting, OmniExactCraftingState state,
+            OmniExactInventory stock, ListCraftingInventory window, AEKey key,
+            BigInteger offered, Actionable mode) {
+        if (paused() || key == null || offered == null || offered.signum() <= 0 || mode == null)
+            return BigInteger.ZERO;
+        var expected = offered.min(available(waiting, state, key));
+        if (mode == Actionable.SIMULATE) return offered;
+        stock.insertWithoutNotification(window, key, offered);
+        // Even an unexpected byproduct proves that the staged provider transferred ownership.
+        if (active != null) active.received = true;
+        if (expected.signum() > 0) consume(waiting, state, key, expected);
+        refillPhysical(stock, window);
+        return offered;
+    }
+
     private void withdraw(ListCraftingInventory waiting, OmniExactCraftingState state, AEKey key, BigInteger amount) {
         var fromCredit = amount.min(credit(state, key));
         debitCredit(state, key, fromCredit);

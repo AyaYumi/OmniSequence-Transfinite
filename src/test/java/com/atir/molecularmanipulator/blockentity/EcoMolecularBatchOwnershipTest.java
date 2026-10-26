@@ -187,6 +187,76 @@ class EcoMolecularBatchOwnershipTest {
         assertNull(MolecularReusableBatchJob.readFromTag(corrupt, registries));
     }
 
+    @Test
+    void ordinaryAndSelectedOverQuotaBatchesRetainEveryInputEvenWithACachedPlan() throws Exception {
+        var ingredient = AEItemKey.of(Items.STICK);
+        var pattern = new EcoMolecularTestPattern(ingredient, ignored -> null);
+        var inputs = new KeyCounter[] {counter(ingredient, 4097), counter(MATERIAL, 4097)};
+        var batcher = new MolecularCraftingBatcher();
+        assertFalse(batcher.prepare(pattern, inputs, level(), 4096));
+        assertEquals(4097, inputs[0].get(ingredient));
+        assertEquals(4097, inputs[1].get(MATERIAL));
+        assertTrue(batcher.prepare(pattern, inputs, level(), 4097));
+        assertFalse(batcher.prepare(pattern, inputs, level(), 4096));
+        assertFalse(batcher.prepareSelected(pattern, inputs, level(), 4096, pattern.first(), 4097));
+        assertEquals(4097, inputs[0].get(ingredient));
+        assertEquals(4097, inputs[1].get(MATERIAL));
+    }
+
+    @Test
+    void passiveCompatiblePreparationKeepsLongCraftCountsAndExactOwnership() throws Exception {
+        var ingredient = AEItemKey.of(Items.STICK);
+        var pattern = new EcoMolecularTestPattern(ingredient, ignored -> null);
+        long crafts = Integer.MAX_VALUE + 73L;
+        var inputs = new KeyCounter[] {counter(ingredient, crafts), counter(MATERIAL, crafts)};
+        var batcher = new MolecularCraftingBatcher();
+        assertTrue(batcher.prepareSelected(pattern, inputs, level(),
+                MolecularAutoCrafter.MAX_BATCH_CRAFTS, pattern.first(), crafts));
+        assertEquals(crafts, batcher.getCraftCount());
+        assertEquals(crafts, batcher.getPrimaryOutputAmounts().getLong(OUTPUT));
+        assertEquals(crafts, inputs[0].get(ingredient), "Preparation does not acquire caller inputs");
+        assertEquals(crafts, inputs[1].get(MATERIAL));
+        batcher.consumeInputs(inputs);
+        assertTrue(inputs[0].isEmpty());
+        assertTrue(inputs[1].isEmpty());
+    }
+
+    @Test
+    void existingReusableJobSharesRemainingQuotaAndPersistsPartialOwnership() throws Exception {
+        var catalyst = AEItemKey.of(Items.STICK);
+        var pattern = new EcoMolecularTestPattern(catalyst, key -> key);
+        var job = new MolecularCraftingBatcher().prepareReusable(pattern, pattern.supplied(17),
+                level(), UUID.randomUUID(), pattern.plan(17));
+        assertNotNull(job);
+        var budget = new MolecularAssemblerTickBudget();
+        assertTrue(budget.tryConsume(100, 4, 2), "Earlier ordinary or passive dispatch");
+        long step = job.nextStep(budget.remaining(100, 4));
+        assertEquals(2, step);
+        assertTrue(budget.tryConsume(100, 4, step));
+        job.advance(step);
+        assertEquals(0, job.nextStep(budget.remaining(100, 4)));
+        var registries = registries();
+        var restored = MolecularReusableBatchJob.readFromTag(job.writeToTag(registries), registries);
+        assertNotNull(restored);
+        assertEquals(2, restored.completedCrafts());
+        assertEquals(15, restored.cancellationRefunds().getLong(MATERIAL));
+        assertEquals(1, restored.cancellationRefunds().getLong(catalyst));
+        // Removing the engine reduces execution to one recipe without losing the owned batch.
+        step = restored.nextStep(budget.remaining(101, 1));
+        assertEquals(1, step);
+        assertTrue(budget.tryConsume(101, 1, step));
+        restored.advance(step);
+        assertEquals(3, restored.completedCrafts());
+        assertEquals(14, restored.cancellationRefunds().getLong(MATERIAL));
+        assertEquals(0, restored.nextStep(budget.remaining(101, 1)));
+        step = restored.nextStep(budget.remaining(102, Long.MAX_VALUE));
+        assertEquals(14, step);
+        assertTrue(budget.tryConsume(102, Long.MAX_VALUE, step));
+        restored.advance(step);
+        assertTrue(restored.isComplete());
+        assertEquals(1, restored.completedRemainders().getLong(catalyst));
+    }
+
     private static HolderLookup.Provider registries() throws Exception {
         if (testRegistries != null) return testRegistries;
         try { appeng.api.stacks.AEKeyTypesInternal.getRegistry(); }

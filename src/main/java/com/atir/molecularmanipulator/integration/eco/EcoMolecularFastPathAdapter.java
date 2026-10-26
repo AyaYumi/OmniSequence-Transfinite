@@ -68,6 +68,8 @@ public final class EcoMolecularFastPathAdapter {
     static boolean dispatch(ICraftingProvider provider, ECOBatchDispatchContext context,
             EcoMolecularBatchModel model, ECOFastPathDispatchProvider.Batch batch, long capacity) {
         if (batch == null || batch.craftCount() < 2 || batch.craftCount() > capacity
+                || batch.craftCount() > MolecularBatchCraftingProvider.getBatchLimit(
+                        provider, context.pattern())
                 || !batch.exactInputTotal().isEmpty()
                 || !MolecularBatchCraftingProvider.supportsReusable(provider, context.pattern())) {
             return false;

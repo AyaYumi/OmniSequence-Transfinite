@@ -1,8 +1,8 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.9**.
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.11**.
 Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.17+**, and the
-required prerequisite Applied Enhancements **1.1.0+** (paired release **1.1.2**). The Mod ID stays
+required prerequisite Applied Enhancements **1.1.2+** (compile API **1.1.4**). The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
@@ -293,11 +293,18 @@ is how many complete recipe executions a single craft may run.
 | 8 | ×128 | 72,057,594,037,927,936 | base time ÷ 128, rounded up |
 | 9 | ×256 | 9,223,372,036,854,775,807 (≈9.22E18) | fixed 1 tick |
 
-Processing time never drops below one tick. Parallelism and speed apply only to
-the well recipes listed in that research's `unlocks`; they never shorten research
+Processing time never drops below one tick. Parallelism and speed apply to the
+well recipes listed in that research's `unlocks`; they never shorten research
 itself. When several researches unlock the same recipe, the **highest** parallel
 limit and the **shortest** time win — bonuses are combined with max/min, not
 multiplied.
+
+A recipe with no research owner and `requires_research: false` remains usable
+without research, but inherits the completed depths of the tier-1 foundation
+research, `molecularmanipulator:research/ae_foundation`. Before foundation progress
+(or if that definition is absent), it keeps parallel `1` and its base processing
+time. Explicitly owned recipes continue to use only their own research bonuses;
+this fallback does not unlock research-gated recipes.
 
 ---
 
@@ -570,7 +577,7 @@ the recipe ID, so unstarted batches re-check the current recipe, permission and
 profile instead of reusing old figures. Work that can no longer proceed keeps its
 materials inside the assembly and can be returned as pending input.
 
-### 7.1 Known limitations in 2.0.9
+### 7.1 Known limitations in 2.0.11
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.
@@ -693,7 +700,7 @@ API; the separate batch API stays at v1.
 | `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; ordinary manual tasks using `setPaused(..., false)` re-check the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
 | `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
 | `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
-| `productionProfile` | `(parallel, ticks)` for the current completed branches of that recipe: highest parallel, shortest time; an unowned recipe returns parallel `1` and its raw processing time. |
+| `productionProfile` | `(parallel, ticks)` for the recipe's completed research: highest parallel, shortest time. Unowned, ungated recipes inherit completed `ae_foundation` depths; without that progress they use parallel `1` and base processing time. |
 | `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
 | `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
 

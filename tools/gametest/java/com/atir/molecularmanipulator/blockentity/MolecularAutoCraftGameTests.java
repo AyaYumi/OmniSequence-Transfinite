@@ -44,6 +44,78 @@ public final class MolecularAutoCraftGameTests {
     }
 
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 300)
+    public static void ninePatternsShareIndexAndEnforceLiveReserve(GameTestHelper helper) {
+        var machine = single(helper, new BlockPos(10040, 120, 10040));
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(machine.isOperational(), "Powered indexed crafter"))
+                .thenExecute(() -> {
+                    var service = machine.getMainNode().getGrid().getStorageService();
+                    var stock = new Stock();
+                    var logs = AEItemKey.of(Items.OAK_LOG);
+                    var planks = AEItemKey.of(Items.OAK_PLANKS);
+                    stock.stock.put(logs, 100);
+                    stock.limits.put(planks, Long.MAX_VALUE);
+                    IStorageProvider provider = mounts -> mounts.mount(stock, 0);
+                    service.addGlobalStorageProvider(provider);
+                    var crafter = machine.getAutoCrafter();
+                    try {
+                        for (int slot = 0; slot < 9; slot++) {
+                            crafter.getPatternInventory().setItemDirect(slot, planks(helper));
+                            crafter.setProtection(slot, 0, 99);
+                            crafter.setEnabled(slot, true);
+                        }
+                        stock.enumerations = 0;
+                        crafter.tick(helper.getLevel().getGameTime());
+                        helper.assertTrue(stock.stock.getLong(logs) == 99 && stock.stock.getLong(planks) == 4,
+                                "Nine independently enabled slots cannot spend the same protected input");
+                        helper.assertTrue(stock.enumerations <= 1,
+                                "One shared network-index refresh, not nine full scans: " + stock.enumerations);
+                    } finally {
+                        for (int slot = 0; slot < 9; slot++) crafter.setEnabled(slot, false);
+                        service.removeGlobalStorageProvider(provider);
+                    }
+                }).thenSucceed();
+    }
+
+    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 300)
+    public static void earlierSlotOutputFeedsLaterSlotBeforeIndexRefresh(GameTestHelper helper) {
+        var machine = single(helper, new BlockPos(10160, 120, 10160));
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(machine.isOperational(), "Powered chained crafter"))
+                .thenExecute(() -> {
+                    var service = machine.getMainNode().getGrid().getStorageService();
+                    var stock = new Stock();
+                    var logs = AEItemKey.of(Items.OAK_LOG);
+                    var planks = AEItemKey.of(Items.OAK_PLANKS);
+                    var sticks = AEItemKey.of(Items.STICK);
+                    stock.stock.put(logs, 1);
+                    stock.limits.put(planks, Long.MAX_VALUE);
+                    stock.limits.put(sticks, Long.MAX_VALUE);
+                    IStorageProvider provider = mounts -> mounts.mount(stock, 0);
+                    service.addGlobalStorageProvider(provider);
+                    var crafter = machine.getAutoCrafter();
+                    try {
+                        service.getCachedInventory();
+                        stock.enumerations = 0;
+                        crafter.getPatternInventory().setItemDirect(0, planks(helper));
+                        var inputs = new ItemStack[9]; Arrays.fill(inputs, ItemStack.EMPTY);
+                        inputs[0] = new ItemStack(Items.OAK_PLANKS);
+                        inputs[3] = new ItemStack(Items.OAK_PLANKS);
+                        crafter.getPatternInventory().setItemDirect(1, pattern(helper, "stick", inputs,
+                                new ItemStack(Items.STICK, 4)));
+                        crafter.setEnabled(0, true); crafter.setEnabled(1, true);
+                        crafter.tick(helper.getLevel().getGameTime());
+                        helper.assertTrue(stock.stock.getLong(logs) == 0 && stock.stock.getLong(planks) == 0
+                                        && stock.stock.getLong(sticks) == 8,
+                                "Exact-key outputs remain usable by later slots in the same tick");
+                        helper.assertTrue(stock.enumerations == 0 && !machine.hasAutoCraftRecovery(),
+                                "Chaining needs no additional listing or output escrow");
+                    } finally {
+                        crafter.setEnabled(0, false); crafter.setEnabled(1, false);
+                        service.removeGlobalStorageProvider(provider);
+                    }
+                }).thenSucceed();
+    }
+
+    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 300)
     public static void arrayDirectDeliveryPreservesCpuPipeline(GameTestHelper helper) {
         var level = helper.getLevel();
         var pos = new BlockPos(9440, 100, 9440);
@@ -118,6 +190,9 @@ public final class MolecularAutoCraftGameTests {
                     "Only two four-plank crafts fit, and their output arrives in the same tick");
             helper.assertTrue(!host.hasAutoCraftRecovery() && crafter.getView(0).lastBatch() == 2,
                     "Normal production creates no internal output buffer");
+            helper.assertTrue(stock.largestProbe == 4_000_000 && stock.probes == 2,
+                    "Probe only the actual material-bounded batch, then its capacity-reduced retry: "
+                            + stock.largestProbe + " / " + stock.probes);
             crafter.setEnabled(0, false);
             crafter.tick(tick + 1);
             helper.assertTrue(stock.stock.getLong(planks) == 8, "Disabling leaves no delayed output to drain");
@@ -135,8 +210,8 @@ public final class MolecularAutoCraftGameTests {
             crafter.tick(tick + 42);
             helper.assertTrue(stock.stock.getLong(planks) == 4_000_000 && stock.stock.getLong(logs) == 0,
                     "Capacity-aware crafting preserves million-item throughput");
-            helper.assertTrue(stock.probes - probes <= 2 && !host.hasAutoCraftRecovery(),
-                    "A million-item batch needs two output probes and no buffer");
+            helper.assertTrue(stock.probes - probes == 1 && !host.hasAutoCraftRecovery(),
+                    "A million-item batch needs one output probe and no buffer");
             if (host instanceof MolecularCenterBlockEntity center) {
                 helper.assertTrue(center.getLastPipelineTransfer() == 3_999_992,
                         "Array overview records direct delivery throughput");
@@ -319,6 +394,8 @@ public final class MolecularAutoCraftGameTests {
         final Object2LongOpenHashMap<AEKey> limits = new Object2LongOpenHashMap<>();
         long sharedCapacity = Long.MAX_VALUE;
         int probes;
+        int enumerations;
+        long largestProbe;
 
         @Override
         public long insert(AEKey key, long amount, Actionable mode, IActionSource source) {
@@ -327,7 +404,10 @@ public final class MolecularAutoCraftGameTests {
                 long used = 0;
                 for (var output : limits.keySet()) used += stock.getLong(output);
                 accepted = Math.min(amount, Math.max(0, Math.min(limits.getLong(key) - stock.getLong(key), sharedCapacity - used)));
-                if (mode == Actionable.SIMULATE) probes++;
+                if (mode == Actionable.SIMULATE) {
+                    probes++;
+                    largestProbe = Math.max(largestProbe, amount);
+                }
             }
             if (mode == Actionable.MODULATE && accepted > 0) stock.addTo(key, accepted);
             return accepted;
@@ -345,6 +425,7 @@ public final class MolecularAutoCraftGameTests {
 
         @Override
         public void getAvailableStacks(KeyCounter counter) {
+            enumerations++;
             for (var entry : stock.object2LongEntrySet()) if (entry.getLongValue() > 0) counter.add(entry.getKey(), entry.getLongValue());
         }
 

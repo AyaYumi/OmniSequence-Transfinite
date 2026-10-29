@@ -9,7 +9,6 @@ import appeng.api.stacks.AEKey;
 import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.me.service.CraftingService;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputAdapterRegistry;
 import com.atir.molecularmanipulator.crafting.AdvancedAEBatchDispatch;

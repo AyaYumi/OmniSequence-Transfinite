@@ -1,0 +1,47 @@
+// ECO 21.2.10+ integration tests. Java fixtures stay outside the production source set.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        if (!project.hasProperty('cpuCompatMods')) project.ext.cpuCompatMods = 'eco'
+        if (!project.findProperty('cpuCompatMods').toString().split(',').collect { it.trim() }.contains('eco'))
+            throw new GradleException('eco.init.gradle requires eco in cpuCompatMods')
+        if (!project.hasProperty('cpuCompatRunName')) project.ext.cpuCompatRunName = 'eco-compat-run'
+        apply from: file('tools/gametest/cpu-compat-runtime.gradle')
+        def regression = sourceSets.create('ecoCompatibility') {
+            java.srcDirs file('tools/gametest/java'), file('tools/gametest/eco')
+            java.include '**/*Eco*GameTests.java', '**/*ECO*GameTests.java',
+                    '**/MatterCpuBatchGameTests.java', '**/MatterNativeCpuChecks.java', '**/VerificationAEKey.java'
+            resources.srcDir file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output + configurations.localRuntime
+            // javac cannot see ECO's nested Registrate JAR when fixtures use its block registry.
+            compileClasspath += files(zipTree(file("libs/neoecoae-${project.neoeco_version}.jar")).matching {
+                include 'META-INF/jarjar/Registrate-*.jar'
+            })
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        def runDirectory = file('build/' + project.cpuCompatRunName)
+        server.gameDirectory = runDirectory
+        server.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileEcoCompatibilityJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        def expectedTests = project.findProperty('ecoCompatExpectedTests') ?: '28'
+        if (!(expectedTests.toString() ==~ /[1-9][0-9]*/))
+            throw new GradleException('ecoCompatExpectedTests must be a positive integer')
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                def report = new File(runDirectory, 'logs/latest.log').text
+                def passed = report =~ /All ([1-9][0-9]*) required tests passed/
+                if (!passed.find()) throw new GradleException('ECO compatibility checks did not pass')
+                if (passed.group(1).toInteger() != expectedTests.toString().toInteger())
+                    throw new GradleException('ECO required-test count differs from ecoCompatExpectedTests')
+                if (!report.contains('MATTER_ECO_API_PASS'))
+                    throw new GradleException('ECO fast-path API GameTest was not exercised')
+            }
+        }
+    }
+}

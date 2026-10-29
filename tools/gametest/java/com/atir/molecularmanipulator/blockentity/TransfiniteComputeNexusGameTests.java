@@ -97,7 +97,7 @@ public final class TransfiniteComputeNexusGameTests {
             helper.assertTrue(ordinary.getCluster().getAvailableStorage() == 1024,
                     "The ordinary AE CPU must not gain nexus storage");
             helper.assertTrue(core.getCluster().getAvailableStorage() == Long.MAX_VALUE
-                            && core.getCluster().getCoProcessors() == Integer.MAX_VALUE,
+                            && core.getCluster().getCoProcessors() == com.atir.molecularmanipulator.crafting.OmniCpuResources.coProcessors(Long.MAX_VALUE),
                     "Nexus must keep Omni storage and parallelism");
             helper.assertTrue(OmniBatchCraftingApi.isOmniManagedCpu(core.getCluster().craftingLogic),
                     "Nexus must use the existing material allocation integration");

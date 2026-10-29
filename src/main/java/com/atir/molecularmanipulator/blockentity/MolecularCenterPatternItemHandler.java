@@ -53,10 +53,16 @@ final class MolecularCenterPatternItemHandler implements IItemHandler {
 
     @Override
     public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-        if (!available(slot) || stack.isEmpty()) return stack;
+        // Ordinary and empty stacks are the overwhelmingly common automation
+        // input. Reject them with a constant number of item/component checks
+        // before touching crystal structure state or decoding pattern NBT.
+        if (stack.isEmpty() || !MolecularCenterLogic.isSupportedPattern(stack)) return stack;
+        if (!available(slot)) return stack;
         var inventory = controller.getLogic().getFullPatternInventory();
         if (!inventory.getStackInSlot(slot).isEmpty()) return stack;
-        if (!controller.canMutateExternalPatterns() || !controller.isSupportedExternalPattern(stack)) return stack;
+        // Supported patterns still need the crystal ownership guard and a real
+        // decode; simulation runs exactly the same validation as modification.
+        if (!controller.isSupportedExternalPattern(stack) || !controller.canMutateExternalPatterns()) return stack;
         var rejected = inventory.insertItem(slot, stack.copyWithCount(1), simulate);
         if (!rejected.isEmpty()) return stack;
         return stack.getCount() == 1 ? ItemStack.EMPTY : stack.copyWithCount(stack.getCount() - 1);
@@ -75,6 +81,7 @@ final class MolecularCenterPatternItemHandler implements IItemHandler {
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return available(slot) && controller.isSupportedExternalPattern(stack);
+        return MolecularCenterLogic.isSupportedPattern(stack)
+                && available(slot) && controller.isSupportedExternalPattern(stack);
     }
 }

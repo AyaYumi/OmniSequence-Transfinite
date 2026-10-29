@@ -137,7 +137,7 @@ configurations {
 
 dependencies {
     // Optional CPU contracts are compile-only; their mods are never bundled.
-    compileOnly files('libs/neoecoae-21.2.0.jar', 'libs/thunderbolt-batch-api.jar',
+    compileOnly files("libs/neoecoae-${neoeco_api_build}.jar", 'libs/thunderbolt-batch-api.jar',
             'libs/data_energistics-3.3.0-api.jar')
     compileOnly files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
     localRuntime files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
@@ -173,6 +173,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_license            : mod_license,
             mod_version            : mod_version,
             ldlib2_version         : ldlib2_version,
+            neoeco_version         : neoeco_version,
             applied_enhancements_version: applied_enhancements_version,
     ]
     inputs.properties replaceProperties
@@ -219,12 +220,6 @@ tasks.named('jar', Jar).configure {
     reproducibleFileOrder = true
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('CHANGELOG.md')
-    from('docs') {
-        include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
-                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
-        into 'docs'
-    }
 }
 
 tasks.named('compileTestJava', JavaCompile).configure {
@@ -258,7 +253,7 @@ var verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi'
         new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
             if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null
                     || archive.getEntry('com/appliedenhancements/api/AelisExactCraftingPlanApi.class') == null) {
-                throw new GradleException('The AppliedEnhancements JAR lacks the required 1.1.0 transaction/exact-plan API. See libs/README.md')
+                throw new GradleException('The AppliedEnhancements JAR lacks the required transaction/exact-plan API. See libs/README.md')
             }
         }
     }

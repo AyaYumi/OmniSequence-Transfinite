@@ -29,6 +29,13 @@ public abstract class ClusterAssemblerMatrixMixin implements MolecularMatrixClus
     }
 
     @Override
+    public long molecularmanipulator$getBatchLimit() {
+        var core = molecularmanipulator$getCore();
+        return core != null && core.canAcceptCrafting()
+                ? core.getRemainingAssemblerBudget() : 0;
+    }
+
+    @Override
     public void molecularmanipulator$flushOutputsAfterCpuAccounting() {
         var core = molecularmanipulator$getCore();
         if (core != null) {

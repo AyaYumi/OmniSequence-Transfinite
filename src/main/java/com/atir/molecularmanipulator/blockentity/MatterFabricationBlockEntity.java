@@ -1352,14 +1352,20 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         var recipe = holder.value();
         if (!holder.id().equals(activeRecipeId)) {
             progress = 0;
+            currentProcessingTime = 0;
             activeRecipeId = holder.id();
+        }
+        var profile = MatterResearchApi.productionProfile(this, holder);
+        if (currentProcessingTime != profile.ticks()) {
+            progress = MatterFabricationTiming.rescaleProgress(progress, currentProcessingTime, profile.ticks());
+            currentProcessingTime = profile.ticks();
+            saveChanges();
+            markForClientUpdate();
         }
         if (!hasCatalysts(recipe)) {
             setState(ProcessingState.WAITING_CATALYST);
             return;
         }
-        var profile = MatterResearchApi.productionProfile(this, holder);
-        currentProcessingTime = profile.ticks();
         if (progress == 0) manualCrafts = manualBatchLimit(recipe, input, profile.parallel());
         if (manualCrafts <= 0) {
             setState(outputsFit(recipe, 1) ? ProcessingState.WAITING_POWER : ProcessingState.OUTPUT_BLOCKED); return;
@@ -1944,6 +1950,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(registries)); else tag.remove(BATCH_TAG);
         tag.putLong("fabrication_manual_crafts", manualCrafts);
         tag.putInt(PROGRESS_TAG, progress);
+        tag.putInt("fabrication_processing_duration", currentProcessingTime);
         if (activeRecipeId != null) {
             tag.putString(ACTIVE_RECIPE_TAG, activeRecipeId.toString());
         }
@@ -1990,6 +1997,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         batch.load(tag.getCompound(BATCH_TAG), registries);
         manualCrafts = Math.max(1, tag.getLong("fabrication_manual_crafts"));
         progress = Math.max(0, tag.getInt(PROGRESS_TAG));
+        currentProcessingTime = Math.max(0, tag.getInt("fabrication_processing_duration"));
         activeRecipeId = ResourceLocation.tryParse(tag.getString(ACTIVE_RECIPE_TAG));
         patternRecipeId = ResourceLocation.tryParse(tag.getString(PATTERN_RECIPE_TAG));
         building = tag.getBoolean(BUILDING_TAG);

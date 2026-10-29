@@ -119,6 +119,13 @@ file="META-INF/accesstransformer.cfg"
     side="BOTH"
 
 [[dependencies.${mod_id}]]
+    modId="neoecoae"
+    type="optional"
+    versionRange="[${neoeco_version},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
     modId="extendedae_plus"
     type="optional"
     versionRange="[0,)"

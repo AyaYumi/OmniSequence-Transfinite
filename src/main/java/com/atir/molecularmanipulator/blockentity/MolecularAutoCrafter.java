@@ -33,8 +33,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Quantum-crafter style passive crafting shared by the sequence-array controller
@@ -351,8 +351,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
 
         var craftingInventory = new ProtectedNetworkCraftingInventory(
-                storage, source, details.getInputs(), config.protections, level,
-                host::queueAutoCraftRefund);
+                storage, grid.getStorageService()::getCachedInventory, source,
+                details.getInputs(), config.protections, level, host::queueAutoCraftRefund);
         var expectedOutputs = new KeyCounter();
         var expectedRemainders = new KeyCounter();
         KeyCounter[] firstInputs;
@@ -373,20 +373,15 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         MolecularAutoCrafterHost.OutputDestination destination;
         try {
             destination = host.autoCraftOutputDestination();
-            // Probe after selecting one real input: extraction may free cell space.
-            // Reusable tool remainders are validated against the final batch below,
-            // rather than incorrectly multiplying a single returned tool by crafts.
-            maxCrafts = MolecularAutoCraftOutput.capacity(copyCounter(expectedOutputs),
-                    new Object2LongOpenHashMap<>(), 1, maxCrafts, destination);
         } catch (RuntimeException exception) {
-            maxCrafts = 0;
-            destination = null;
-        }
-        if (maxCrafts <= 0) {
             CraftingCpuHelper.reinjectPatternInputs(craftingInventory, firstInputs);
             outputBlocked(config, gameTime);
             return;
         }
+        // Select the real, material- and power-bounded batch before probing.
+        // A theoretical MAX_BATCH_CRAFTS probe can be extremely expensive for
+        // virtual storage, and the final check below already covers every
+        // primary output and the actual reusable/container remainders.
 
         // At most one reduced retry. Never binary-search the entire ME network.
         for (int attempt = 0; attempt < 2; attempt++) {
@@ -513,14 +508,6 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private static void outputBlocked(PatternConfig config, long gameTime) {
         config.state = AutoCraftState.OUTPUT_BLOCKED;
         config.outputRetry.blocked(gameTime);
-    }
-
-    private static Object2LongOpenHashMap<AEKey> copyCounter(KeyCounter counter) {
-        var result = new Object2LongOpenHashMap<AEKey>();
-        for (var entry : counter) {
-            if (entry.getLongValue() > 0) result.put(entry.getKey(), entry.getLongValue());
-        }
-        return result;
     }
 
     private boolean prepareOutputs(IPatternDetails details, KeyCounter[] inputs,
@@ -891,7 +878,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     }
 
     @FunctionalInterface
-    private interface RefundSink {
+    interface RefundSink {
         void accept(AEKey key, long amount);
     }
 
@@ -900,19 +887,21 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
      * enforcing the configured per-input reserve. Failed rollback insertion is
      * transferred to the controller's persistent refund escrow.
      */
-    private static final class ProtectedNetworkCraftingInventory implements ICraftingInventory {
+    static final class ProtectedNetworkCraftingInventory implements ICraftingInventory {
         private final MEStorage storage;
+        private final Supplier<KeyCounter> availableKeys;
         private final IActionSource source;
         private final IPatternDetails.IInput[] inputs;
         private final long[] protections;
         private final Level level;
         private final RefundSink refundSink;
-        private KeyCounter availableKeys;
 
-        private ProtectedNetworkCraftingInventory(MEStorage storage, IActionSource source,
+        ProtectedNetworkCraftingInventory(MEStorage storage,
+                Supplier<KeyCounter> availableKeys, IActionSource source,
                 IPatternDetails.IInput[] inputs, long[] protections, Level level,
                 RefundSink refundSink) {
             this.storage = storage;
+            this.availableKeys = availableKeys;
             this.source = source;
             this.inputs = inputs;
             this.protections = protections;
@@ -955,19 +944,22 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
         @Override
         public Iterable<AEKey> findFuzzyTemplates(AEKey input) {
-            if (availableKeys == null) {
-                availableKeys = new KeyCounter();
-                try {
-                    storage.getAvailableStacks(availableKeys);
-                } catch (RuntimeException exception) {
-                    return List.of();
-                }
-            }
+            // AE2 maintains the network-wide fuzzy index. Never enumerate every
+            // mounted inventory again for each passive pattern. Counts in that
+            // index may lag this tick, so use it ONLY for candidate membership;
+            // extract() checks the current stock and reserve before every take.
             var result = new ArrayList<AEKey>();
-            for (var entry : availableKeys.findFuzzy(input, FuzzyMode.IGNORE_ALL)) {
-                if (entry.getLongValue() > protectedAmount(entry.getKey())) {
-                    result.add(entry.getKey());
+            // Include the requested key even if it was inserted after AE2's last
+            // refresh (for example by an earlier passive slot in this tick).
+            result.add(input);
+            try {
+                for (var entry : availableKeys.get().findFuzzy(input, FuzzyMode.IGNORE_ALL)) {
+                    if (entry.getLongValue() > 0 && !input.equals(entry.getKey())) {
+                        result.add(entry.getKey());
+                    }
                 }
+            } catch (RuntimeException exception) {
+                // Exact-key extraction remains live even if listing is unavailable.
             }
             return result;
         }

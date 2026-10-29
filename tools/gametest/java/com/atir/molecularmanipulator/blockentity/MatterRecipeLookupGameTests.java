@@ -78,6 +78,53 @@ public final class MatterRecipeLookupGameTests {
     }
 
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 400)
+    public static void ungatedRecipesFollowFoundationProductionBonuses(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var manager = level.getRecipeManager();
+        var original = List.copyOf(manager.getOrderedRecipes());
+        var controller = new MatterFabricationBlockEntity(BlockPos.ZERO,
+                ModContent.MATTER_FABRICATION_CONTROLLER.get().defaultBlockState());
+        controller.setLevel(level);
+        var basic = fabrication("basic", Items.DIAMOND, Items.STONE, false);
+        var gated = fabrication("gated", Items.DIAMOND, Items.GOLD_INGOT, true);
+        var foundation = new RecipeHolder<>(ResourceLocation.fromNamespaceAndPath("molecularmanipulator", "research/ae_foundation"),
+                new MatterResearchRecipe("Foundation", List.of(), List.of(), 20, 0, List.of(), List.of(), 0, 1,
+                        List.of(new ResearchDepth(1, 1, 1, 0, Optional.empty()),
+                                new ResearchDepth(1, 256, 2, 0, Optional.empty()),
+                                new ResearchDepth(1, 65_536, 4, 0, Optional.empty()))));
+        try {
+            manager.replaceRecipes(List.of(basic, gated, foundation));
+            var basicHolder = MatterRecipeIndex.get(level).fabrication(basic.id());
+            helper.assertTrue(MatterResearchApi.canUseRecipe(controller, basicHolder),
+                    "A basic recipe must remain available before any research");
+            helper.assertTrue(!MatterResearchApi.canUseRecipe(controller, MatterRecipeIndex.get(level).fabrication(gated.id())),
+                    "A research-gated recipe must remain locked without its owner");
+            var base = MatterResearchApi.productionProfile(controller, basicHolder);
+            helper.assertTrue(base.parallel() == 1 && base.ticks() == 20,
+                    "An unresearched basic recipe must retain its baseline profile");
+            MatterResearchApi.setCompletionCount(controller, foundation.id().toString(), 1);
+            var first = MatterResearchApi.productionProfile(controller, basicHolder);
+            helper.assertTrue(first.parallel() == 1 && first.ticks() == 20,
+                    "Foundation depth one must apply its own baseline bonus");
+            MatterResearchApi.setCompletionCount(controller, foundation.id().toString(), 2);
+            var second = MatterResearchApi.productionProfile(controller, basicHolder);
+            helper.assertTrue(second.parallel() == 256 && second.ticks() == 10,
+                    "Basic recipes must follow foundation parallel and speed at depth two");
+            MatterResearchApi.setCompletionCount(controller, foundation.id().toString(), 3);
+            var third = MatterResearchApi.productionProfile(controller, basicHolder);
+            helper.assertTrue(third.parallel() == 65_536 && third.ticks() == 5,
+                    "Basic recipes must follow foundation parallel and speed at depth three");
+            helper.assertTrue(MatterResearchApi.canUseRecipe(controller, basicHolder)
+                            && !MatterResearchApi.canUseRecipe(controller, MatterRecipeIndex.get(level).fabrication(gated.id())),
+                    "Production inheritance must not add an unlock requirement or unlock unrelated gated recipes");
+            System.out.println("MATTER_FOUNDATION_BONUS_PASS: ungated=true baseline=true parallel=true speed=true gatingPreserved=true");
+            helper.succeed();
+        } finally {
+            manager.replaceRecipes(original);
+        }
+    }
+
+    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 400)
     public static void lookupTracksResearchAndRecipeReload(GameTestHelper helper) throws Exception {
         var level = helper.getLevel(); var manager = level.getRecipeManager();
         var original = List.copyOf(manager.getOrderedRecipes());
@@ -137,7 +184,11 @@ public final class MatterRecipeLookupGameTests {
             otherController.getResearch().load(new CompoundTag(), level.registryAccess());
             helper.assertTrue(MatterResearchApi.canUseRecipe(otherController, first) && !MatterResearchApi.canUseRecipe(otherController, second),
                     "Data-pack reload must replace recipe-to-research ownership");
-            helper.assertTrue(MatterResearchApi.definitions(level).size() == 1, "Removed research definitions must leave the cache");
+            var reloadedOwners = MatterResearchApi.definitions(level).stream()
+                    .filter(holder -> holder.id().getNamespace().equals("molecularmanipulator")
+                            && holder.id().getPath().startsWith("verification/")).toList();
+            helper.assertTrue(reloadedOwners.equals(List.of(replacementOwner)),
+                    "Removed fixture research must leave the cache without excluding unrelated machine imports");
             System.out.println("MATTER_LOOKUP_SEMANTICS_PASS: candidate order, alternatives, per-controller unlock/revoke, loaded progress, depth bonuses and both reload paths");
             helper.succeed();
         } finally { manager.replaceRecipes(original); }

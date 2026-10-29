@@ -28,16 +28,52 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         var loadingModList = FMLLoader.getLoadingModList();
+        if (mixinClassName.endsWith(".SingularityLithiumCollisionMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("lithium") != null;
+        }
+        if (mixinClassName.endsWith(".MatterCpuJobContextMixin")) {
+            if (targetClassName.startsWith("net.pedroksl.advanced_ae.")) {
+                return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
+            }
+            if (targetClassName.startsWith("cn.dancingsnow.neoecoae.")) {
+                return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
+            }
+            return true;
+        }
+        if (mixinClassName.endsWith(".TrinityMatterCpuJobContextMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;
+        }
         if (mixinClassName.endsWith(".LegacyAelisTaskReconciliationMixin")) {
             var applied = loadingModList == null ? null : loadingModList.getModFileById("appliedenhancements");
             return applied != null && applied.getMods().stream().anyMatch(mod ->
                     mod.getModId().equals("appliedenhancements") && mod.getVersion().toString().equals("1.1.0"));
         }
-        if (mixinClassName.endsWith(".EcoMatterPatternBatchMixin")) {
-            return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
+        if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("Eco")) {
+            var eco = loadingModList == null ? null : loadingModList.getModFileById("neoecoae");
+            return eco != null && eco.getMods().stream().anyMatch(mod -> mod.getModId().equals("neoecoae")
+                    && mod.getVersion().compareTo(new org.apache.maven.artifact.versioning.DefaultArtifactVersion("21.2.10")) >= 0);
+        }
+        if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("LightningWireless")) {
+            // Private scheduler hooks are verified against this exact implementation.
+            // Do not guess compatible descriptors for older or future Lightning builds.
+            var lightning = loadingModList == null ? null : loadingModList.getModFileById("ae2lt");
+            return lightning != null && lightning.getMods().stream().anyMatch(mod ->
+                    mod.getModId().equals("ae2lt") && mod.getVersion().toString().equals("2.1.2-beta4"));
+        }
+        if (mixinClassName.endsWith(".ThunderboltOmniCpuDispatchMixin")) {
+            var thunderbolt = loadingModList == null ? null : loadingModList.getModFileById("thunderbolt");
+            return thunderbolt != null && thunderbolt.getMods().stream().anyMatch(mod ->
+                    mod.getModId().equals("thunderbolt") && mod.getVersion().compareTo(
+                            new org.apache.maven.artifact.versioning.DefaultArtifactVersion("2.0.3-beta3")) >= 0);
         }
         if (mixinClassName.endsWith(".ThunderboltMatterPatternBatchMixin")) {
             return loadingModList != null && loadingModList.getModFileById("thunderbolt") != null;
+        }
+        if (mixinClassName.endsWith(".DataEnergisticsDepotSimulationMixin")) {
+            var data = loadingModList == null ? null : loadingModList.getModFileById("data_energistics");
+            return data != null && data.getMods().stream().anyMatch(mod ->
+                    mod.getModId().equals("data_energistics")
+                            && java.util.Set.of("3.3.0", "3.3.5").contains(mod.getVersion().toString()));
         }
         if (mixinClassName.endsWith(".DataEnergisticsCpuIdentityMixin")) {
             return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;

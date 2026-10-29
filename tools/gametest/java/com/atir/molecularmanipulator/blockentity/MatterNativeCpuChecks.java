@@ -94,7 +94,7 @@ final class MatterNativeCpuChecks {
         var logic = assembly.getLogic();
         helper.assertTrue(CountedCraftingProviderAdapters.supportsCountedDispatch(logic), "Trinity must discover the registered counted API adapter");
         var prototype = MatterCpuBatchGameTests.counters(unit);
-        var snapshots = CountedCraftingProviderAdapters.captureCapacity(logic, new CraftingProviderId(1, 1),
+        var snapshots = captureCapacity(logic, new CraftingProviderId(1, 1),
                 pattern, prototype, 1026, "fabrication", 1, 1, helper.getLevel().getGameTime());
         helper.assertTrue(snapshots.size() == 1, "Trinity must publish one aggregate provider route");
         var prepared = CountedCraftingProviderAdapters.prepare(logic, pattern, prototype, 1026,
@@ -126,13 +126,31 @@ final class MatterNativeCpuChecks {
             helper.assertTrue(replacement.isOperational(), "Recreated assembly must reconnect to the formed well");
             var fresh = replacement.getLogic(); var restored = fresh.getAvailablePatterns().getFirst();
             var copy = MatterCpuBatchGameTests.counters(unit);
-            var route = CountedCraftingProviderAdapters.captureCapacity(fresh, new CraftingProviderId(1, 2), restored,
+            var route = captureCapacity(fresh, new CraftingProviderId(1, 2), restored,
                     copy, 8, "reloaded", 2, 2, helper.getLevel().getGameTime()).getFirst();
             helper.assertTrue(CountedCraftingProviderAdapters.prepare(fresh, restored, copy, 8,
                     route, CraftingDispatchTargetAvailability.all()).admission().count() == 8,
                     "Reloaded Trinity adapter must retain native batching");
             System.out.println("MATTER_TRINITY_API_PASS: real counted registry dispatched 1026 crafts and reloaded");
         });
+    }
+
+    /** Data Energistics 3.3 changes this internal helper's return descriptor from List to ObjectList. */
+    @SuppressWarnings("unchecked")
+    private static List<ProviderCapacitySnapshot> captureCapacity(
+            appeng.api.networking.crafting.ICraftingProvider provider, CraftingProviderId id,
+            IPatternDetails pattern, KeyCounter[] prototype, long requested, String name,
+            long providerRevision, long patternRevision, long tick) {
+        try {
+            var method = CountedCraftingProviderAdapters.class.getMethod("captureCapacity",
+                    appeng.api.networking.crafting.ICraftingProvider.class, CraftingProviderId.class,
+                    IPatternDetails.class, KeyCounter[].class, long.class, String.class,
+                    long.class, long.class, long.class);
+            return (List<ProviderCapacitySnapshot>) method.invoke(null, provider, id, pattern, prototype,
+                    requested, name, providerRevision, patternRevision, tick);
+        } catch (ReflectiveOperationException failure) {
+            throw new AssertionError("Installed Trinity capacity helper could not be exercised", failure);
+        }
     }
     }
 

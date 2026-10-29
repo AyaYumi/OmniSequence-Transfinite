@@ -120,8 +120,8 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.multiblocks")
                 .push("multiblocks");
         FORCE_LOAD_CHUNKS = server.comment(
-                "Keep chunks occupied by the Sequence Array, Omni-Computation Core, Matter Fabrication Well, and Singularity Creation Nexus loaded while formed or being built. Required for Singularity physical motion.",
-                "成型或施工期间是否保持构序阵列、万物演算核心、物质构筑井和视界奇点天枢占用的区块加载；天枢运动需要开启。白洞区块始终强制加载，不受此选项影响。")
+                "Keep chunks occupied by the Sequence Array, Omni-Computation Core, Matter Fabrication Well, and Singularity Creation Nexus loaded while formed or being built. When disabled, Singularity motion still works while its entire motion footprint is loaded. White holes always force-load their chunks independently.",
+                "成型或施工期间是否保持构序阵列、万物演算核心、物质构筑井和视界奇点天枢占用的区块加载；关闭后，只要完整运动范围的区块已加载，天枢仍可运行。白洞区块始终强制加载，不受此选项影响。")
                 .translation("molecularmanipulator.configuration.force_load_chunks")
                 .define("force_load_chunks", true);
         server.pop();

@@ -7,6 +7,7 @@ allprojects {
             java.include '**/SingularityPaletteGameTests.java'
             java.include '**/SingularityConstructionGameTests.java'
             java.include '**/SingularityMotionGameTests.java'
+            java.include '**/SingularityChunkLoadingGameTests.java'
             java.include '**/SingularityEmbeddingGameTests.java'
             java.include '**/SingularitySuspendedGameTests.java'
             java.include '**/CompactSingularityGameTests.java'

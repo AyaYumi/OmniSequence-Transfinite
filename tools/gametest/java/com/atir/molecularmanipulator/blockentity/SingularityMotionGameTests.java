@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.blockentity;
 
+import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.entity.SingularityAssemblyEntity;
 import com.atir.molecularmanipulator.registry.SingularityContent;
 import com.atir.molecularmanipulator.world.SingularityMotionWorld;
@@ -16,6 +17,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.phys.*;
+import net.neoforged.neoforge.common.NeoForgeMod;
 import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.level.BlockEvent;
@@ -104,15 +106,44 @@ public final class SingularityMotionGameTests {
         var player = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("cc6f0f85-c3f9-4a09-b398-ecadbf66fabc"), "SingularityRider"));
         var field = PlayerList.class.getDeclaredField("playersByUUID"); field.setAccessible(true);
         @SuppressWarnings("unchecked") var players = (Map<UUID, ServerPlayer>) field.get(level.getServer().getPlayerList());
-        players.put(player.getUUID(), player);
+        // A real client supplies the online operator. Keep the kinematic fake rider
+        // out of the online map: Apotheosis resolves a fake player's owner by UUID
+        // and would otherwise resolve this fixture back to itself recursively.
+        var operator = level.getServer().getPlayerList().getPlayers().stream()
+                .filter(candidate -> !(candidate instanceof net.neoforged.neoforge.common.util.FakePlayer))
+                .findFirst().orElse(player);
+        var operatorPosition = operator.position();
+        var operatorMode = operator.gameMode.getGameModeForPlayer();
+        boolean operatorFlying = operator.getAbilities().flying;
+        boolean forceLoadChunks = ModConfig.FORCE_LOAD_CHUNKS.get();
+        var operatorInventory = operator.getInventory().save(new net.minecraft.nbt.ListTag());
+        float operatorYaw = operator.getYRot(), operatorPitch = operator.getXRot();
+        if (operator == player) players.put(player.getUUID(), player);
         try {
+            ModConfig.FORCE_LOAD_CHUNKS.set(true);
             player.setGameMode(GameType.SURVIVAL); player.getInventory().clearContent(); nearController(player);
-            machine.requestInspection(player); machine.serverTick();
+            operator.setGameMode(GameType.SURVIVAL); operator.getInventory().clearContent(); nearController(operator);
+            machine.requestInspection(operator); machine.serverTick();
             helper.assertTrue(machine.formed(), "Motion fixture must form before conversion");
-            machine.motion().startForCollection(player);
+            machine.motion().startForCollection(operator);
             helper.assertTrue(machine.motion().hasBodies(), "Activation must convert complete groups");
             helper.assertTrue(bodies(level).size() == 11, "Three rings and eight towers must be separate entities");
             assertPositionUpdatesPreserveBounds(helper, bodies(level));
+            // A kinematic body's AABB spans the complete ring. Vanilla's fluid scan would
+            // inspect every block in that AABB; a single water block far from the origin
+            // must therefore not mark the body as touching water or ignite it.
+            var fluidBody = bodies(level).stream().filter(b -> b.groupId() == 0).findFirst().orElseThrow();
+            var water = BlockPos.containing(fluidBody.toWorld(new Vec3(.5, 35.5, .5), fluidBody.pose(0)));
+            level.setBlock(water, Blocks.WATER.defaultBlockState(), 2);
+            try {
+                helper.assertTrue(fluidBody.getBoundingBox().contains(Vec3.atCenterOf(water)), "Fluid probe must lie inside the assembly's full bounds");
+                fluidBody.tick();
+                helper.assertFalse(fluidBody.isInWater(), "Assembly bodies must not treat fluid inside their full AABB as contact");
+                helper.assertFalse(fluidBody.isInLava(), "Assembly bodies must not react to lava inside their full AABB");
+                helper.assertTrue(fluidBody.getFluidTypeHeight(NeoForgeMod.WATER_TYPE.value()) == 0,
+                        "The wide fluid scan must leave assembly fluid heights clear");
+                helper.assertFalse(fluidBody.isOnFire() || fluidBody.getRemainingFireTicks() > 0, "Fluid scanning must not ignite assemblies");
+            } finally { level.setBlock(water, Blocks.AIR.defaultBlockState(), 3); }
             for (var group : SingularityMotionGeometry.groups()) for (var part : group.parts())
                 helper.assertTrue(level.getBlockState(SingularityStructure.worldPos(ANCHOR, Direction.NORTH, part)).isAir(), "Moving geometry cannot leave duplicate static blocks behind");
             var ring = bodies(level).stream().filter(b -> b.groupId() == 0).findFirst().orElseThrow();
@@ -127,6 +158,13 @@ public final class SingularityMotionGameTests {
                 SingularityMotionWorld.carry(new EntityTickEvent.Pre(player));
             }
             helper.assertTrue(machine.motion().mode() == SingularityMotionState.RUNNING, "Clear motion path must stay active: " + machine.motion().message());
+            ModConfig.FORCE_LOAD_CHUNKS.set(false);
+            com.atir.molecularmanipulator.world.MultiblockChunkLoading.maintain(machine);
+            helper.assertTrue(com.atir.molecularmanipulator.world.MultiblockChunkLoading.ownedChunks(level, ANCHOR).isEmpty(),
+                    "Disabling force-loading must release the controller's tickets");
+            stepMotion(machine);
+            helper.assertTrue(machine.motion().mode() == SingularityMotionState.RUNNING,
+                    "Already-loaded motion must continue after disabling force-loading");
             assertPositionUpdatesPreserveBounds(helper, bodies(level));
             helper.assertTrue(start.distanceTo(player.position()) > 3, "Standing players must travel with the rotating ring");
             helper.assertTrue(player.position().distanceTo(ring.toWorld(localFeet, ring.pose(0))) < .2, "Ring carriage must not accumulate slip");
@@ -142,17 +180,22 @@ public final class SingularityMotionGameTests {
             var beforeJump = player.position(); advance(level);
             SingularityMotionWorld.carry(new EntityTickEvent.Pre(player));
             helper.assertTrue(player.position().equals(beforeJump), "Jumping away must release the rider from carriage");
-            player.setDeltaMovement(Vec3.ZERO); nearController(player);
+            player.setDeltaMovement(Vec3.ZERO); nearController(operator);
             var obstacle = BlockPos.containing(ring.toWorld(new Vec3(.5, 36.5, 28.5), ring.pose(0)));
             level.setBlock(obstacle, Blocks.STONE.defaultBlockState(), 2);
             for (int tick = 0; tick < 10; tick++) { advance(level); stepMotion(machine); }
             helper.assertTrue(machine.motion().mode() == SingularityMotionState.PAUSED && machine.motion().message().equals("obstacle"), "Foreign blocks must stop running motion");
             helper.assertTrue(level.getBlockState(obstacle).is(Blocks.STONE), "Obstacle detection cannot overwrite foreign blocks");
-            level.setBlock(obstacle, Blocks.AIR.defaultBlockState(), 2); machine.motion().startForCollection(player);
+            level.setBlock(obstacle, Blocks.AIR.defaultBlockState(), 2); machine.motion().startForCollection(operator);
+            var legacyPause = machine.motion().save();
+            legacyPause.putInt("mode", SingularityMotionState.PAUSED); legacyPause.putString("message", "chunks_required");
+            machine.motion().load(legacyPause); stepMotion(machine);
+            helper.assertTrue(machine.motion().mode() == SingularityMotionState.RUNNING,
+                    "Old force-loading pauses must recover with force-loading still disabled");
             int[] counts = machine.motion().portableCounts();
             machine = reload(level, machine); stepMotion(machine);
             helper.assertTrue(Arrays.equals(counts, machine.motion().portableCounts()) && bodies(level).size() == 11, "Reload must preserve every owned material and recreate exactly eleven bodies");
-            nearController(player); machine.motion().dock(player, false);
+            nearController(operator); machine.motion().dock(operator, false);
             for (int tick = 0; tick < 10; tick++) { advance(level); stepMotion(machine); }
             ring = bodies(level).stream().filter(b -> b.groupId() == 0).findFirst().orElseThrow();
             obstacle = BlockPos.containing(ring.toWorld(new Vec3(.5, 36.5, 28.5), ring.pose(0)));
@@ -179,10 +222,10 @@ public final class SingularityMotionGameTests {
             for (int tick = 0; tick < 1000 && machine.motion().hasBodies(); tick++) { advance(level); stepMotion(machine); }
             helper.assertTrue(!machine.motion().hasBodies() && bodies(level).isEmpty(), "Docking must remove derived bodies");
             helper.assertTrue(SingularityStructure.inspect(level, ANCHOR, Direction.NORTH).formed(), "Docking must restore the original blocks and orientations exactly");
-            machine.requestInspection(player); machine.serverTick(); machine.motion().startForCollection(player);
+            machine.requestInspection(operator); machine.serverTick(); machine.motion().startForCollection(operator);
             helper.assertTrue(machine.motion().hasBodies(), "Second activation must own materials before removal");
             for (var old : level.getEntitiesOfClass(ItemEntity.class, new AABB(ANCHOR).inflate(4))) old.discard();
-            level.destroyBlock(ANCHOR, true, player);
+            level.destroyBlock(ANCHOR, true, operator);
             bodies(level).forEach(SingularityAssemblyEntity::tick);
             helper.assertTrue(bodies(level).isEmpty(), "Removing the controller must remove all derived bodies");
             var drops = level.getEntitiesOfClass(ItemEntity.class, new AABB(ANCHOR).inflate(4));
@@ -193,23 +236,32 @@ public final class SingularityMotionGameTests {
             machine = (SingularityBlockEntity) level.getBlockEntity(ANCHOR);
             machine.loadWithComponents(packed.get(DataComponents.BLOCK_ENTITY_DATA).copyTag(), level.registryAccess());
             helper.assertTrue(!machine.motion().hasBodies() && Arrays.equals(counts, machine.motion().portableCounts()), "Replacing a packed controller must restore all owned materials without duplicating geometry");
-            machine = reload(level, machine); machine.setRecoveryOwner(player);
+            machine = reload(level, machine); machine.setRecoveryOwner(operator);
             int[] recovered = new int[counts.length];
             for (int tick = 0; tick < 1000 && (machine.motion().hasPortable() || !machine.getInternalInventory().isEmpty()); tick++) {
                 machine.serverTick();
-                for (var stack : player.getInventory().items) if (!stack.isEmpty()) {
+                for (var stack : operator.getInventory().items) if (!stack.isEmpty()) {
                     for (var type : SingularityStructure.Type.values()) if (stack.is(SingularityStructure.block(type).asItem())) recovered[type.ordinal()] += stack.getCount();
                 }
-                player.getInventory().clearContent();
+                operator.getInventory().clearContent();
             }
             helper.assertTrue(Arrays.equals(counts, recovered), "Portable recovery must return every material exactly once after another reload");
-            System.out.println("SINGULARITY_MOTION_PASS bodies=11 ringCarriage=true towerCarriage=true jump=true collision=true resume=true docking=true obstacleFreeze=true permissionRollback=true packedRecovery=true");
+            System.out.println("SINGULARITY_MOTION_PASS bodies=11 ringCarriage=true towerCarriage=true jump=true collision=true fluidIgnored=true resume=true docking=true obstacleFreeze=true permissionRollback=true packedRecovery=true forceLoadDisabled=true legacyPauseRecovery=true");
             helper.succeed();
         } finally {
             var existing = level.getBlockEntity(ANCHOR);
             if (existing instanceof SingularityBlockEntity controller) { controller.clearContent(); controller.motion().discardBodies(); }
-            level.setBlock(ANCHOR, Blocks.AIR.defaultBlockState(), 3); players.remove(player.getUUID());
+            level.setBlock(ANCHOR, Blocks.AIR.defaultBlockState(), 3);
+            if (operator == player) players.remove(player.getUUID());
+            else {
+                operator.getInventory().load(operatorInventory);
+                operator.setGameMode(operatorMode);
+                operator.getAbilities().flying = operatorFlying;
+                operator.onUpdateAbilities();
+                operator.connection.teleport(operatorPosition.x, operatorPosition.y, operatorPosition.z, operatorYaw, operatorPitch);
+            }
             for (var chunk : footprint) level.setChunkForced(chunk.x, chunk.z, false);
+            ModConfig.FORCE_LOAD_CHUNKS.set(forceLoadChunks);
         }
     }
     private static SingularityBlockEntity reload(ServerLevel level, SingularityBlockEntity machine) {

@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.9, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
+Current source: 2.0.11, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 
@@ -18,7 +18,7 @@ AppliedEnhancements configuration.
 | `sequence_array.pattern_pages` | 200 | 1–300; 36 slots/page |
 | `sequence_array.build_blocks_per_tick` | 32 | 1–256; construction/dismantling blocks per tick |
 | `sequence_array.idle_power` | 128 | 1–4096 AE/t |
-| `multiblocks.force_load_chunks` | true | Keep registered multiblock footprint loaded |
+| `multiblocks.force_load_chunks` | true | Control mod-owned chunk tickets for registered multiblock footprints, not Singularity motion permission |
 | `singularity_hub.singularity_collection.item_tags` | `#c:raw_ores`, `#c:raw_materials`, `#minecraft:raw_ores`, `#minecraft:logs`, `#c:logs` | Arbitrary item tags; optional `#`; merge and deduplicate; empty list disables production |
 | `singularity_hub.singularity_collection.item_blacklist` | `[]` | Exact namespaced item IDs; overrides every tag |
 | `singularity_hub.singularity_collection.batch_size` | 1000 | 1–1,000,000 items for each eligible type per cycle |
@@ -35,6 +35,22 @@ AppliedEnhancements configuration.
 | `omni_computation.dispatch.omni_coalesce_return_notifications` | true | Notify each changed key after settling its exact ledgers |
 | `omni_computation.dispatch.omni_direct_native_output_return` | true | Direct live-bound compatible native intermediate-output return |
 | `transfinite_compute_nexus.idle_power` | 16384 | 1–2,147,483,647 AE/t; powered network and one channel |
+
+## Chunk loading and Singularity motion
+
+`multiblocks.force_load_chunks` controls this mod's chunk tickets for registered
+multiblock footprints; it is not permission to move a Singularity Hub. Set it to
+`false` to disable those tickets. The hub can still start, run and dock when every
+chunk in its entire motion footprint is already loaded, for example by players
+or another chunk loader.
+
+If any required chunk is unavailable, motion cannot start or dock, and active
+motion pauses/freezes until the required chunks are loaded again. These checks
+do not synchronously load unavailable chunks. Obstacle and permission checks
+and material-conservation guarantees remain unchanged.
+
+Miniature White Holes remain an exception: they keep their own chunks loaded
+regardless of this setting.
 
 ## Client option
 
@@ -101,6 +117,12 @@ changes; routine successful crafting does not produce trace logs.
 配置文件属于正在使用的实例目录。修改已有节，保存并重启；不要重复添加同名节。
 上表列出当前全部有效参数。采集白名单统一为物品标签，先合并去重，再按完整物品
 ID 黑名单排除。空白名单不生产，多个命中标签不会让一个物品重复生产。
+
+`multiblocks.force_load_chunks` 只控制本模组为已登记多方块占地区块持有的加载票据，
+不决定天枢是否允许运动。设为 `false` 后，只要整个运动范围所需区块都已加载，
+奇点天枢仍可启动、运行和停靠；所需区块不可用时，禁止启动或停靠，并暂停／冻结
+进行中的运动，等待区块重新加载，不会同步加载缺失区块。障碍、权限检查与材料
+守恒保证保持不变。微型白洞仍为例外，不论该选项为何值都会保持其所在区块加载。
 
 FE 来自控制器相邻六面的能源能力；AE 来自连接的 ME 电网。序质产量与黑洞数量
 和每黑洞产量相乘，每 mB 的 FE/AE 费用独立配置。无限磁盘解决存储容量，仍需要

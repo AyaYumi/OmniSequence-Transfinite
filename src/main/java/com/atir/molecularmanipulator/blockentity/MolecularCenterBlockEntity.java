@@ -82,6 +82,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final MolecularCenterCrystalBlockEntity[] patternCrystals =
             new MolecularCenterCrystalBlockEntity[MolecularCenterPatternShards.CRYSTAL_COUNT];
     private final long[] patternCrystalRevisions = new long[MolecularCenterPatternShards.CRYSTAL_COUNT];
+    private BlockPos[] patternCrystalPositions = new BlockPos[0];
+    private Direction patternCrystalPositionsFacing;
+    private MolecularCenterStructure.StructureLayout patternCrystalPositionsLayout;
     public static final long VIRTUAL_PARALLEL_LIMIT = Long.MAX_VALUE;
     private static final int MAX_BUFFERED_TYPES = 256;
     private static final String LEGACY_OUTPUT_BUFFER_TAG = "molecular_center_output_buffer";
@@ -128,6 +131,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
     private final AppEngInternalInventory matrixUploadCoreInventory = new AppEngInternalInventory(this, 1);
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
+    private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final Object2LongOpenHashMap<AEKey> pendingPrimaryOutputs = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> pendingByproducts = new Object2LongOpenHashMap<>();
     private final Object2LongOpenHashMap<AEKey> reusableBatchRefunds = new Object2LongOpenHashMap<>();
@@ -225,8 +229,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     boolean canMutateExternalPatterns() {
-        return canAccessExternalPatterns() && (!patternsInCrystals
-                || allPatternCrystalsPresent() && !patternShardsChanged());
+        // A single live pass checks presence, mirror identity and the immediate
+        // crystal revision. A crystal broken or replaced in this tick is seen
+        // here before any extraction or insertion can duplicate ownership.
+        return canAccessExternalPatterns()
+                && (!patternsInCrystals || patternCrystalsUnchanged());
     }
 
     boolean isSupportedExternalPattern(ItemStack stack) {
@@ -1919,11 +1926,51 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private boolean allPatternCrystalsPresent() {
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        for (var part : MolecularCenterPatternShards.crystals()) {
-            if (crystalAt(part, facing) == null) return false;
+        for (var pos : patternCrystalPositions()) {
+            if (crystalAt(pos) == null) return false;
         }
         return true;
+    }
+
+    /**
+     * One live pass over the 14 crystals: every crystal must exist, must still
+     * be the exact block entity mirrored by the controller, and must not have
+     * changed since the mirror consumed its revision. World lookups are never
+     * deferred to a later tick.
+     */
+    private boolean patternCrystalsUnchanged() {
+        if (!usesPatternShards()) return false;
+        var positions = patternCrystalPositions();
+        for (int shard = 0; shard < positions.length; shard++) {
+            var crystal = crystalAt(positions[shard]);
+            if (crystal == null
+                    || crystal != patternCrystals[shard]
+                    || crystal.patternRevision() != patternCrystalRevisions[shard]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Cache only the immutable world positions; crystals are always queried live. */
+    private BlockPos[] patternCrystalPositions() {
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        var layout = structureLayout;
+        if (patternCrystalPositions.length == MolecularCenterPatternShards.CRYSTAL_COUNT
+                && patternCrystalPositionsFacing == facing
+                && patternCrystalPositionsLayout == layout) {
+            return patternCrystalPositions;
+        }
+        var parts = MolecularCenterPatternShards.crystals();
+        var positions = new BlockPos[parts.size()];
+        for (int shard = 0; shard < parts.size(); shard++) {
+            positions[shard] = MolecularCenterStructure.worldPos(
+                    worldPosition, facing, parts.get(shard), layout);
+        }
+        patternCrystalPositions = positions;
+        patternCrystalPositionsFacing = facing;
+        patternCrystalPositionsLayout = layout;
+        return positions;
     }
 
     private void discardPatternMirror() {
@@ -1939,10 +1986,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     private boolean patternShardsChanged() {
         if (!usesPatternShards()) return false;
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        var parts = MolecularCenterPatternShards.crystals();
-        for (int i = 0; i < parts.size(); i++) {
-            var crystal = crystalAt(parts.get(i), facing);
+        var positions = patternCrystalPositions();
+        for (int i = 0; i < positions.length; i++) {
+            var crystal = crystalAt(positions[i]);
             if (crystal != patternCrystals[i] || crystal != null && crystal.patternRevision() != patternCrystalRevisions[i]) return true;
         }
         return false;
@@ -1992,7 +2038,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private MolecularCenterCrystalBlockEntity crystalAt(MolecularCenterStructure.Part part, Direction facing) {
-        var pos = MolecularCenterStructure.worldPos(worldPosition, facing, part, structureLayout);
+        return crystalAt(MolecularCenterStructure.worldPos(worldPosition, facing, part, structureLayout));
+    }
+
+    private MolecularCenterCrystalBlockEntity crystalAt(BlockPos pos) {
         if (!level.hasChunkAt(pos)) return null;
         var blockEntity = level.getBlockEntity(pos);
         return blockEntity instanceof MolecularCenterCrystalBlockEntity crystal ? crystal : null;
@@ -2310,6 +2359,16 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         workCursor++;
     }
 
+    long getRemainingAssemblerBudget() {
+        return level == null || getMainNode().getGrid() == null ? 0
+                : assemblerBudget.remaining(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT);
+    }
+
+    private boolean consumeAssemblerBudget(long crafts) {
+        return level != null && getMainNode().getGrid() != null
+                && assemblerBudget.tryConsume(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT, crafts);
+    }
+
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
         if (assembling || hasActiveReusableBatch() || !isOperational()
                 || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
@@ -2328,21 +2387,26 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 return acceptReusablePattern(
                         patternDetails, pattern, inputs, batchContext);
             }
+            long remainingBudget = getRemainingAssemblerBudget();
+            if (remainingBudget <= 0) {
+                return false;
+            }
             boolean prepared = batchContext != null
                     ? craftingBatcher.prepareSelected(
                             patternDetails, inputs, level,
-                            VIRTUAL_PARALLEL_LIMIT,
+                            remainingBudget,
                             batchContext.firstInputs(),
                             batchContext.craftCount())
                     : craftingBatcher.prepare(
                             patternDetails, inputs, level,
-                            VIRTUAL_PARALLEL_LIMIT);
+                            remainingBudget);
             if (!prepared) {
                 return false;
             }
             var primaryOutputs = craftingBatcher.getPrimaryOutputAmounts();
             var remainderOutputs = craftingBatcher.getRemainderOutputAmounts();
-            if (!canQueueOutputs(primaryOutputs, remainderOutputs)) {
+            if (!canQueueOutputs(primaryOutputs, remainderOutputs)
+                    || !consumeAssemblerBudget(craftingBatcher.getCraftCount())) {
                 return false;
             }
             addOutputs(pendingPrimaryOutputs, primaryOutputs);
@@ -2375,7 +2439,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private boolean acceptReusablePattern(IPatternDetails patternDetails,
             IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs,
             MolecularBatchDispatchContext.Context context) {
-        if (level == null || activeReusableBatch != null) {
+        if (level == null || activeReusableBatch != null
+                || context.craftCount() > getRemainingAssemblerBudget()) {
             return false;
         }
 
@@ -2497,7 +2562,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
 
         // The complete accepted batch is a constant-size aggregate operation.
-        long step = job.nextStep(Long.MAX_VALUE);
+        long step = job.nextStep(getRemainingAssemblerBudget());
         if (step <= 0) {
             return;
         }
@@ -2506,7 +2571,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         var remainders = completes
                 ? job.projectedFinalRemainders()
                 : new Object2LongOpenHashMap<AEKey>();
-        if (!canQueueOutputs(primary, remainders)) {
+        if (!canQueueOutputs(primary, remainders)
+                || !consumeAssemblerBudget(step)) {
             return;
         }
 

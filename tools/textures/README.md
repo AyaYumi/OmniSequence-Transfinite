@@ -1,6 +1,6 @@
 # Texture maintenance / 贴图维护
 
-Current source: 2.0.8. Runtime textures and metadata live in
+Runtime textures and metadata live in
 `src/main/resources/assets/molecularmanipulator/textures/`. Editable source images
 under `static/` are required to regenerate animations; they are not unused assets.
 

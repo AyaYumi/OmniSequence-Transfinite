@@ -91,11 +91,23 @@ public final class MatterResearchApi {
         return definitions.size();
     }
 
+    private static final ResourceLocation FOUNDATION_RESEARCH =
+            ResourceLocation.fromNamespaceAndPath("molecularmanipulator", "research/ae_foundation");
+
     public record ProductionProfile(long parallel, int ticks) {}
 
     public static ProductionProfile productionProfile(MatterFabricationBlockEntity machine, RecipeHolder<MatterFabricationRecipe> recipe) {
+        var index = MatterRecipeIndex.get(machine.getLevel());
+        var owners = index.researchFor(recipe.id());
+        // Basic recipes are intentionally usable before research. They still use the
+        // completed depth of the first research branch as the shared machine bonus.
+        // A recipe with an explicit owner keeps the normal owner-specific behavior.
+        if (owners.isEmpty() && !recipe.value().requiresResearch()) {
+            var foundation = index.research(FOUNDATION_RESEARCH);
+            if (foundation != null) owners = List.of(foundation);
+        }
         long parallel = 1; int ticks = recipe.value().processingTime(); boolean hasOwner = false;
-        for (var holder : MatterRecipeIndex.get(machine.getLevel()).researchFor(recipe.id())) {
+        for (var holder : owners) {
             int completed = machine.getResearch().completionCount(holder.id());
             if (completed > 0) {
                 var depth = holder.value().depths().get(Math.min(completed, holder.value().depths().size()) - 1);

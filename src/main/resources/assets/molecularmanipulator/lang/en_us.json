@@ -211,7 +211,7 @@
   "molecularmanipulator.configuration.idle_power": "Idle Power (AE/t)",
   "molecularmanipulator.configuration.idle_power.tooltip": "Idle power used by the Sequence Array controller while connected. Range: 1-4096 AE/t; default: 128 AE/t.",
   "molecularmanipulator.configuration.force_load_chunks": "Force-Load Machine Chunks",
-  "molecularmanipulator.configuration.force_load_chunks.tooltip": "Keep Sequence Array, Omni-Computation Core, Matter Fabrication Well and Singularity Hub chunks loaded while formed or under construction. Hub motion requires this option. Disabling it releases tickets on machine ticks. White holes always load their chunks independently. Enabled by default.",
+  "molecularmanipulator.configuration.force_load_chunks.tooltip": "Keep Sequence Array, Omni-Computation Core, Matter Fabrication Well and Singularity Hub chunks loaded while formed or under construction. Disabling it releases tickets on machine ticks. The Hub can still start, run and dock while its entire motion footprint is loaded, and pauses when required chunks are unavailable. White holes always load their chunks independently. Enabled by default.",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority": "Sequence Matter Energy Priority",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority.tooltip": "Try fe and ae in order. fe scans adjacent energy capabilities; ae uses the connected ME network.",
   "molecularmanipulator.configuration.singularity_duplication_fe_per_unit": "FE per mB of Singularity Sequence Matter",

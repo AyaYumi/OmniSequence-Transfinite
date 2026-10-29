@@ -1,6 +1,6 @@
 # 万象构序：超限 / OmniSequence: Transfinite
 
-[English](README.md) · [接口文档](docs/README.md) · [更新记录](CHANGELOG.md)
+[English](README.md) · [接口文档](docs/README.md)
 
 面向 AE2 和 ExtendedAE 后期自动化的扩展模组，提供材料研究、多方块加工、大容量样板库、合成 CPU，以及资源采集与物品复制。模组 ID 为 `molecularmanipulator`。
 
@@ -8,7 +8,7 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.9，源码分支 `1.21.1-neoforge` |
+| 本模组 | 2.0.11，源码分支 `old-1.21.1-neoforge` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 或更高 |
 | AppliedEnhancements | 1.1.2 或更高，客户端和服务端都需要 |
@@ -63,12 +63,12 @@
 
 ## 从源码构建
 
-使用 Java 21，将 `appliedenhancements-1.1.2.jar` 放入 `libs/`，然后运行：
+使用 Java 21，将 `appliedenhancements-1.1.4.jar` 放入 `libs/`，然后运行：
 
 ```sh
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.9.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.11.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 使用 [MIT 许可证](LICENSE)。

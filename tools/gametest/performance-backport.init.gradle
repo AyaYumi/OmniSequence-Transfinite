@@ -1,0 +1,32 @@
+// Focused backport regressions in an isolated disposable world.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        apply from: file('tools/gametest/cpu-compat-runtime.gradle')
+        def verification = sourceSets.create('performanceBackportVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/MolecularCenterPatternPortGameTests.java', '**/SingularityMotionGameTests.java',
+                    '**/SingularityChunkLoadingGameTests.java',
+                    '**/MatterCpuBatchGameTests.java', '**/MatterNativeCpuChecks.java', '**/VerificationAEKey.java'
+            resources.srcDir file('tools/gametest/resources')
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def server = neoForge.runs.getByName('gameTestServer')
+        def runName = (project.findProperty('cpuCompatRunName') ?: 'performance-backport-regression').toString()
+        server.gameDirectory = file('build/' + runName)
+        server.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compilePerformanceBackportVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                if (!file('build/' + runName + '/logs/latest.log').text.contains('All 8 required tests passed'))
+                    throw new GradleException('Performance backport regressions did not all pass')
+            }
+        }
+    }
+}

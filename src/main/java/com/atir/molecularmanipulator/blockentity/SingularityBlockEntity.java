@@ -223,10 +223,15 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity {
     public int operationTotal() { return isSingleBlock() ? 1 : operation == Operation.DISMANTLE && dismantle != null ? dismantle.total() : structureParts().size(); }
     public Set<ChunkPos> getChunkLoadingChunks() {
         if (isSingleBlock()) return Set.of();
-        if (motion.hasBodies()) return MultiblockChunkLoading.rectangle(
-                worldPos(new BlockPos(-50, 0, -50)), worldPos(new BlockPos(50, 128, 50)));
+        if (motion.hasBodies()) return getMotionChunks();
         if (operation == Operation.DISMANTLE && dismantle != null) return dismantle.remainingChunks();
         return operation != Operation.IDLE || formed || scanRequested ? SingularityStructure.chunks(worldPosition, facing(), structureVersion) : Set.of();
+    }
+
+    /** Full motion footprint, including clearance beyond the static blueprint. */
+    Set<ChunkPos> getMotionChunks() {
+        return MultiblockChunkLoading.rectangle(
+                worldPos(new BlockPos(-50, 0, -50)), worldPos(new BlockPos(50, 128, 50)));
     }
 
     private void updateQuantumLink() {
@@ -444,9 +449,17 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity {
         if (level.getGameTime() >= nextInspection) refreshInspection();
         repairMisplacedBlackHoles();
         if (level.getGameTime() % 20 == 0) updateQuantumLink();
+        motion.serverTick();
+        if (inspection.unloaded() > 0 && motion.mode() == SingularityMotionState.RUNNING) refreshInspection();
+        boolean waitingForMotionChunks = motion.mode() == SingularityMotionState.PAUSED
+                && motion.message().equals("unloaded");
+        boolean waitingForStructureChunks = inspection.unloaded() > 0
+                && inspection.missing() == 0 && inspection.conflicts() == 0;
+        boolean waitingForNetworkBoot = !networkOnline() && !getMainNode().hasGridBooted();
         if (collectionActive) {
-            if (!formed || !networkOnline() || operation != Operation.IDLE || embedRequested
-                    || motion.mode() != SingularityMotionState.RUNNING) {
+            if ((!formed && !waitingForStructureChunks) || (!networkOnline() && !waitingForNetworkBoot)
+                    || operation != Operation.IDLE || embedRequested
+                    || motion.mode() != SingularityMotionState.RUNNING && !waitingForMotionChunks) {
                 collectionActive = false;
                 collectionStartTick = Long.MIN_VALUE;
                 nextCollectionTick = Long.MIN_VALUE;
@@ -454,6 +467,14 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity {
                 var player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
                 if (player != null && canManage(player)) motion.stopForCollection(player);
                 saveChanges();
+            } else if (waitingForMotionChunks || waitingForStructureChunks) {
+                // A missing swept chunk pauses the carriage, not the collection
+                // session. The motion state can resume when the footprint returns.
+                status = Status.UNLOADED;
+            } else if (waitingForNetworkBoot) {
+                // Restored nodes need their normal AE2 initialization/pathing
+                // cycle before an inactive grid means a genuine disconnection.
+                status = Status.STARTING;
             } else if (collectionStartTick != Long.MIN_VALUE
                     && level.getGameTime() - collectionStartTick >= 40) {
                 collectionStartTick = Long.MIN_VALUE;
@@ -462,9 +483,13 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity {
                 saveChanges();
             }
         }
-        if (collectionActive && !collectionStarting()) collectResource();
+        if (collectionActive && formed && networkOnline() && motion.mode() == SingularityMotionState.RUNNING && !collectionStarting()) collectResource();
         tickDuplication();
-        motion.serverTick();
+        if (collectionActive && (status == Status.UNLOADED || status == Status.STARTING) && formed
+                && networkOnline() && !collectionStarting() && motion.mode() == SingularityMotionState.RUNNING) {
+            status = Status.COLLECTING;
+            saveChanges();
+        }
         // Motion is owned by the collection device. Old saves or a failed
         // restart cannot leave a standalone running carriage behind.
         if (!collectionActive && operation == Operation.IDLE && motion.hasBodies() && motion.mode() != SingularityMotionState.DOCKING) {

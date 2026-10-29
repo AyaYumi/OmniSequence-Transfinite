@@ -1,15 +1,17 @@
 # Isolated engine regressions / 隔离游戏测试
 
-Current source: 2.0.9. Test source sets are excluded from a normal runtime JAR.
+Current source: 2.0.11. Test source sets are excluded from a normal runtime JAR.
 [Dependency setup](../../libs/README.md)
 
 ## Suites
 
 | Init script | Coverage |
 | --- | --- |
-| `auto-crafting.init.gradle` | Real powered Sequence Array and single-block passive crafting: capacity-limited same-tick ME/adjacent delivery, blocked probe counts, million-item batches, returned buckets/shared-capacity rollback, old long output retention and CPU pipeline preservation |
+| `auto-crafting.init.gradle` | Seven real powered Array/single-block passive crafting regressions: one material-bounded output probe, shared fuzzy index with live reserves, same-tick slot chaining, ME/adjacent delivery, million-item batches, returned buckets/shared-capacity rollback, saved long outputs and CPU pipeline preservation; an eighth test verifies the real optional digital depot |
 | `performance-regression.init.gradle` | Long-count providers, well AEKey inputs/codecs/queues, recipe lookup invalidation, research stock scan counts and admission conservation, dismantling, Nexus and actual storage-bus pattern access |
 | `cpu-batch-compat.init.gradle` | Real ECO, Trinity and Thunderbolt API dispatch into a formed well, scaled input conservation, durable queues, adapter reload and optional-mod absence |
+| `eco.init.gradle` | ECO 21.2.10+: 28 real CPU/provider, native scheduler, exact-input, phase/cycle, output, menu-admission and cancellation regressions |
+| `performance-backport.init.gradle` | Eight focused regressions: pattern-port rejection and same-tick crystal ownership, native CPU batches, assembly fluid handling, carriage, obstruction and migration; public Hub collection/docking with force-loading disabled, released tickets, old paused saves and safe waits for actually unloaded chunks |
 | `singularity.init.gradle` | Hub registry/palette, build/dismantle, old motion/embedding migrations, protection events and material conservation |
 | `compact-singularity.init.gradle` | Single-block hub: six-face ME connections, tag collection, fluid production/copying, capacity waits and retained drops; collection batch/interval bounds, live changes, missed cycles and reload |
 | `cosmic-holes.init.gradle` | Real hole item placement, optional FTB team ownership, nearest exit, multiple exits, item preservation, removal fallback, saved bindings and recipes |
@@ -35,6 +37,18 @@ Current source: 2.0.9. Test source sets are excluded from a normal runtime JAR.
 .\gradlew.bat -I tools/gametest/aae.init.gradle "-PaaeJar=libs/AdvancedAE-1.6.11-1.21.1.jar" "-PgeckoJar=libs/geckolib-neoforge-1.21.1-4.9.2.jar" runGameTestServer --no-configuration-cache
 ```
 
+For the Spark auto-crafting follow-up, the default suite runs **7** tests without
+Data Energistics. To include the real depot capacity regression (**8** tests),
+pass `-PautoCraftingDataJar=<isolated Data Energistics JAR>` and
+`-PautoCraftingLdlibJar=<isolated LDLib 2.2.40+ all JAR>`, and choose a fresh
+`-PautoCraftingRegressionDirectory=build/<run-name>`. The optional simulation
+mixin is limited to the verified Data Energistics **3.3.0** and **3.3.5** versions.
+It checks `Long.MAX_VALUE` item-insertion simulation against actual physical
+slot room, unchanged contents, full/partial slots and a capacity-card upgrade.
+Nine-slot index/protection and same-tick chained-output assertions use real AE2
+storage services. Probe/listing/slot counts are algorithmic regression evidence,
+not a server TPS benchmark.
+
 Native fabrication CPU compatibility uses the real optional JARs listed in
 `libs/README.md`. Run `cpu-batch-compat.init.gradle` with
 `"-PcpuCompatMods=eco,thunderbolt,data,lightning"` and
@@ -46,6 +60,38 @@ input/output accounting, long resource capacity, failed pushes, scaled Omni
 deliveries, NBT retention, refunds, adapter lifecycle and local doubling bypass.
 Without `cpuCompatMods`, it verifies loading and ordinary/local dispatch with
 every optional CPU absent. Test resources and API dependencies are not packaged.
+
+The backport and 2.0.11 chunk-loading fix can be checked without optional CPU mods
+and against the AppliedEnhancements 1.1.2 runtime floor. The eight-test suite uses
+fixture-owned tickets to keep the motion footprint loaded independently of the
+mod's disabled ticket option. It checks public collection and real ME production,
+continued carriage after disabling the option, legacy pause recovery, docking,
+obstacles and permission rollback. A separate unloaded-site test checks activation
+and resume rejection, frozen running/docking clocks, conserved ownership and no
+synchronous chunk loading. Test configuration changes are restored afterwards:
+
+
+```powershell
+.\gradlew.bat -I tools/gametest/performance-backport.init.gradle -PcpuCompatPackMods=libs -PcpuCompatAppliedJar=appliedenhancements-1.1.2.jar -PcpuCompatRunName=performance-backport-floor runGameTestServer --no-configuration-cache
+.\gradlew.bat -I tools/gametest/eco.init.gradle '-PcpuCompatPackMods=<isolated dependency directory>' -PecoCompatExpectedTests=28 runGameTestServer --no-configuration-cache
+```
+
+The ECO suite uses `libs/neoecoae-21.2.10.jar` and one LDLib2 `all` JAR >= 2.2.40
+from the selected dependency directory. To test a newer runtime without changing
+the compile target or optional dependency floor, put that JAR in the dependency
+directory and pass `-PcpuCompatEcoJar=neoecoae-21.2.11.jar`. The runtime must be
+21.2.10 or newer. To test the Applied runtime floor with ECO, also place
+`appliedenhancements-1.1.2.jar` in that directory and pass
+`-PcpuCompatAppliedJar=appliedenhancements-1.1.2.jar`. Only explicitly selected
+JARs are staged below `build/`; no player installation is changed.
+
+The native-scheduler regression submits a million-craft job through ECO's real
+submission, inventory and provider-dispatch logic on a powered well/grid. Only
+the computation-host environment is controlled; this is not a physical ECO
+multiblock or throughput benchmark. It checks missing-catalyst and power rejection,
+batch intake with zero ordinary-push budget, waiting/input conservation, no replay,
+NBT retention, unchanged physical well power, and exact-once cancellation refunds.
+The suite defaults to 28 required tests and has passed with ECO 21.2.10 and 21.2.11.
 
 Fabrication Pattern Assembly page synchronization and full-long Nexus delivery:
 

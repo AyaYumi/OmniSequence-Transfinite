@@ -217,6 +217,207 @@ public final class MolecularCenterPatternPortGameTests {
         }).thenSucceed();
     }
 
+    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 800)
+    public static void cheapRejectionAndSameTickCrystalOwnership(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var pos = new BlockPos(600_001 + (int) (level.getGameTime() % 100_000) * 256, 100, -1_200);
+        var center = buildFormedCenter(helper, pos, Direction.NORTH);
+        var patterns = patterns(helper);
+        var pattern = patterns.get(0);
+        var second = patterns.get(1);
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(
+                center.isFormed() && center.canMutateExternalPatterns(),
+                "Formed center must expose crystal-owned patterns: formed=" + center.isFormed()))
+                .thenExecute(() -> {
+                    var handler = center.getExternalPatternInventory();
+                    var logic = center.getLogic();
+                    int shardSize = MolecularCenterPatternShards.shardSize();
+                    int activeSlots = handler.getSlots();
+                    helper.assertTrue(activeSlots > shardSize * 8, "Fixture must span at least nine crystals");
+
+                    // An unbound handler has no controller to consult: any world,
+                    // inventory or crystal access on ordinary rejection would fail.
+                    var unbound = new MolecularCenterPatternItemHandler(null);
+                    int initialRevision = logic.getPatternRevision();
+                    var processing = PatternDetailsHelper.encodeProcessingPattern(
+                            List.of(new GenericStack(AEItemKey.of(Items.STONE), 1)),
+                            List.of(new GenericStack(AEItemKey.of(Items.DIRT), 1)));
+                    var ordinary = List.of(new ItemStack(Items.COBBLESTONE), new ItemStack(Items.DIAMOND),
+                            AEItems.BLANK_PATTERN.stack());
+                    int attempts = 0;
+                    for (int slot = 0; slot < Math.min(activeSlots, 256); slot++) {
+                        for (var rejected : ordinary) {
+                            helper.assertTrue(ItemStack.matches(rejected, unbound.insertItem(slot, rejected, true))
+                                            && ItemStack.matches(rejected, unbound.insertItem(slot, rejected, false)),
+                                    "Ordinary inputs must reject before consulting any controller state");
+                            helper.assertTrue(ItemStack.matches(rejected, handler.insertItem(slot, rejected, true)),
+                                    "Simulated ordinary insertion must return the exact stack");
+                            helper.assertTrue(ItemStack.matches(rejected, handler.insertItem(slot, rejected, false)),
+                                    "Actual ordinary insertion must return the exact stack");
+                            attempts += 2;
+                        }
+                    }
+                    helper.assertTrue(attempts >= 512, "Bulk ordinary rejection must be exercised");
+                    helper.assertTrue(handler.insertItem(0, pattern, true).isEmpty()
+                                    && logic.getPatternRevision() == initialRevision
+                                    && logic.getFullPatternInventory().isEmpty(),
+                            "Supported simulation must validate but not store");
+                    // AE2 recognizes a crafting-pattern item before decoding its
+                    // components. Unlike ordinary items, it needs a real controller.
+                    var undecodable = AEItems.CRAFTING_PATTERN.stack();
+                    helper.assertTrue(ItemStack.matches(undecodable, handler.insertItem(0, undecodable, true))
+                                    && ItemStack.matches(undecodable, handler.insertItem(0, undecodable, false)),
+                            "Unencoded crafting patterns must reject without changing inventory");
+                    helper.assertTrue(ItemStack.matches(processing, handler.insertItem(0, processing, true)),
+                            "Encoded non-assembler patterns still need decode validation");
+                    helper.assertTrue(ItemStack.matches(processing, handler.insertItem(0, processing, false)),
+                            "Encoded non-assembler patterns are rejected on the live path too");
+
+                    helper.assertTrue(handler.insertItem(0, pattern, false).isEmpty(), "Supported pattern insertion");
+                    var crystalZero = crystalAt(level, pos, Direction.NORTH, 0);
+                    helper.assertTrue(ItemStack.matches(pattern, handler.getStackInSlot(0))
+                                    && crystalZero.patterns().size() == 1,
+                            "Insertion must update the owning crystal immediately");
+                    int revision = logic.getPatternRevision();
+
+                    // Same-tick missing crystal: every mutation must stay blocked until
+                    // the owner is rebuilt, and the stored pattern must not be copied out.
+                    int missingShard = 5;
+                    var missingPos = MolecularCenterStructure.worldPos(pos, Direction.NORTH,
+                            MolecularCenterPatternShards.crystals().get(missingShard));
+                    var missingCrystal = (MolecularCenterCrystalBlockEntity) level.getBlockEntity(missingPos);
+                    helper.assertTrue(missingCrystal != null && missingCrystal.patterns().isEmpty(),
+                            "Missing-crystal fixture must start empty");
+                    int missingSlot = missingShard * shardSize + 3;
+                    helper.assertTrue(missingSlot < activeSlots && handler.getStackInSlot(missingSlot).isEmpty(),
+                            "Missing-crystal slot must be empty and exposed");
+                    level.setBlock(missingPos, Blocks.AIR.defaultBlockState(), 3);
+                    helper.assertTrue(!center.canMutateExternalPatterns(),
+                            "A crystal broken in this tick must block mutation immediately");
+                    helper.assertTrue(ItemStack.matches(pattern, handler.insertItem(missingSlot, pattern, true)),
+                            "Simulated insertion cannot use a missing crystal");
+                    helper.assertTrue(ItemStack.matches(pattern, handler.insertItem(missingSlot, pattern, false)),
+                            "Actual insertion cannot use a missing crystal");
+                    helper.assertTrue(handler.extractItem(0, 1, true).isEmpty()
+                                    && handler.extractItem(0, 1, false).isEmpty(),
+                            "Simulated and actual extraction require the same live ownership");
+                    helper.assertTrue(ItemStack.matches(pattern, handler.getStackInSlot(0))
+                                    && crystalZero.patterns().size() == 1
+                                    && logic.getPatternRevision() == revision,
+                            "Blocked same-tick operations must not lose, copy or rebuild the pattern");
+
+                    // A blank replacement is a different block entity: the old mirror is
+                    // not allowed to write through it until the structure is re-read.
+                    level.setBlock(missingPos, MolecularCenterStructure.partState(
+                            MolecularCenterPatternShards.crystals().get(missingShard).partType()), 3);
+                    var replacement = (MolecularCenterCrystalBlockEntity) level.getBlockEntity(missingPos);
+                    helper.assertTrue(replacement != null && replacement != missingCrystal,
+                            "Replacement must be a fresh crystal block entity");
+                    helper.assertTrue(!center.canMutateExternalPatterns(),
+                            "A replacement crystal identity must block mutation immediately");
+                    helper.assertTrue(ItemStack.matches(pattern, handler.insertItem(missingSlot, pattern, false)),
+                            "Replacement crystal cannot receive external patterns before verification");
+                    helper.assertTrue(handler.extractItem(0, 1, false).isEmpty(),
+                            "Replacement crystal cannot release patterns before verification");
+                    center.refreshStructure();
+                    helper.assertTrue(center.canMutateExternalPatterns(),
+                            "A re-read crystal mirror must allow mutation again");
+                    helper.assertTrue(handler.insertItem(missingSlot, pattern, false).isEmpty(),
+                            "Verified replacement crystal accepts a pattern");
+                    helper.assertTrue(replacement.patterns().size() == 1
+                                    && replacement.patterns().getCompound(0).getInt("Slot") == 3,
+                            "Verified replacement crystal stores the changed local slot");
+
+                    // Same-tick revision change: a crystal that changed without the
+                    // controller mirror must block both directions until re-read.
+                    int directShard = 7;
+                    var directPos = MolecularCenterStructure.worldPos(pos, Direction.NORTH,
+                            MolecularCenterPatternShards.crystals().get(directShard));
+                    var directCrystal = (MolecularCenterCrystalBlockEntity) level.getBlockEntity(directPos);
+                    int directLocalSlot = 2;
+                    int directGlobalSlot = directShard * shardSize + directLocalSlot;
+                    helper.assertTrue(handler.getStackInSlot(directGlobalSlot).isEmpty(),
+                            "Direct-revision slot must start empty");
+                    directCrystal.setPattern(directLocalSlot, second, level.registryAccess());
+                    helper.assertTrue(!center.canMutateExternalPatterns(),
+                            "A same-tick crystal revision change must block mutation immediately");
+                    helper.assertTrue(ItemStack.matches(pattern, handler.insertItem(missingSlot + 1, pattern, true)),
+                            "Simulated insertion cannot cross a changed revision");
+                    helper.assertTrue(ItemStack.matches(pattern, handler.insertItem(missingSlot + 1, pattern, false)),
+                            "Actual insertion cannot cross a changed revision");
+                    helper.assertTrue(handler.extractItem(0, 1, true).isEmpty()
+                                    && handler.extractItem(0, 1, false).isEmpty(),
+                            "Changed revision blocks simulated and actual extraction");
+                    center.refreshStructure();
+                    helper.assertTrue(center.canMutateExternalPatterns(),
+                            "Re-reading the changed crystal restores a verified mirror");
+                    helper.assertTrue(ItemStack.matches(second, handler.getStackInSlot(directGlobalSlot)),
+                            "A directly changed crystal revision is merged without loss");
+
+                    // Conservation: exactly the three distinct patterns remain, once each.
+                    int stored = 0;
+                    for (int slot = 0; slot < activeSlots; slot++) {
+                        if (!logic.getFullPatternInventory().getStackInSlot(slot).isEmpty()) stored++;
+                    }
+                    int crystalStored = 0;
+                    for (var part : MolecularCenterPatternShards.crystals()) {
+                        var crystal = (MolecularCenterCrystalBlockEntity) level.getBlockEntity(
+                                MolecularCenterStructure.worldPos(pos, Direction.NORTH, part));
+                        helper.assertTrue(crystal != null, "Every crystal must still exist");
+                        crystalStored += crystal.patterns().size();
+                    }
+                    helper.assertTrue(stored == 3 && crystalStored == 3,
+                            "Ownership checks must neither lose nor duplicate patterns: controller="
+                                    + stored + ", crystals=" + crystalStored);
+                    helper.assertTrue(ItemStack.matches(pattern, handler.getStackInSlot(0))
+                                    && ItemStack.matches(pattern, handler.getStackInSlot(missingSlot))
+                                    && ItemStack.matches(second, handler.getStackInSlot(directGlobalSlot)),
+                            "Every accepted pattern must remain byte-identical");
+
+                    int afterRefresh = logic.getPatternRevision();
+                    int emptySlot = missingSlot + 1;
+                    helper.assertTrue(handler.insertItem(emptySlot, pattern, true).isEmpty(),
+                            "Simulated insertion succeeds on a verified mirror");
+                    helper.assertTrue(logic.getPatternRevision() == afterRefresh
+                                    && logic.getFullPatternInventory().getStackInSlot(emptySlot).isEmpty(),
+                            "Simulated insertion cannot mutate the library or schedule a rebuild");
+                    helper.assertTrue(ItemStack.matches(pattern, handler.extractItem(0, 1, true))
+                                    && ItemStack.matches(pattern, handler.getStackInSlot(0)),
+                            "Simulated extraction preserves the stored pattern");
+                    System.out.println("PATTERN_PORT_BUDGET_PASS: cheap rejection, bulk ordinary inputs, "
+                            + "same-tick missing/replaced/revision ownership and exact conservation");
+                }).thenSucceed();
+    }
+
+    private static MolecularCenterBlockEntity buildFormedCenter(GameTestHelper helper, BlockPos pos, Direction facing) {
+        var level = helper.getLevel();
+        for (var chunk : MolecularCenterStructure.chunkFootprint(pos, facing,
+                MolecularCenterStructure.StructureLayout.CURRENT, MolecularCenterStructure.StructureLayout.CURRENT)) {
+            level.setChunkForced(chunk.x, chunk.z, true);
+            level.getChunk(chunk.x, chunk.z);
+        }
+        // Revisiting the same coordinates in another isolated run must not inherit blocks.
+        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+        for (var part : MolecularCenterPatternShards.crystals()) {
+            level.setBlock(MolecularCenterStructure.worldPos(pos, facing, part), Blocks.AIR.defaultBlockState(), 3);
+        }
+        for (var part : MolecularCenterStructure.parts()) {
+            if (!MolecularCenterStructure.isController(part)) {
+                level.setBlock(MolecularCenterStructure.worldPos(pos, facing, part),
+                        MolecularCenterStructure.partState(part.partType()), 3);
+            }
+        }
+        level.setBlock(pos, ModContent.MOLECULAR_CENTER_CONTROLLER.get().defaultBlockState(), 3);
+        return (MolecularCenterBlockEntity) level.getBlockEntity(pos);
+    }
+
+    private static MolecularCenterCrystalBlockEntity crystalAt(net.minecraft.world.level.Level level,
+            BlockPos pos, Direction facing, int shard) {
+        return (MolecularCenterCrystalBlockEntity) level.getBlockEntity(
+                MolecularCenterStructure.worldPos(pos, facing,
+                        MolecularCenterPatternShards.crystals().get(shard)));
+    }
+
     @SuppressWarnings("unchecked")
     private static List<ItemStack> patterns(GameTestHelper helper) {
         var recipes = helper.getLevel().getRecipeManager();

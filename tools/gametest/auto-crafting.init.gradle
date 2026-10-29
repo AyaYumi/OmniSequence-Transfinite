@@ -1,10 +1,21 @@
 allprojects {
     afterEvaluate { project ->
         if (project != rootProject) return
+        def dataJar = project.findProperty('autoCraftingDataJar')
+        if (dataJar) {
+            def ldlibJar = project.findProperty('autoCraftingLdlibJar')
+            if (!ldlibJar || !file(dataJar).isFile() || !file(ldlibJar).isFile())
+                throw new GradleException('Depot tests require explicit readable data and LDLib runtime JARs')
+            configurations.implementation.dependencies.removeAll { it.group == 'com.lowdragmc.ldlib2' }
+            dependencies.add('localRuntime', files(dataJar))
+            dependencies.add('implementation', files(ldlibJar))
+        }
         def regression = sourceSets.create('autoCraftingRegression') {
             java.srcDir file('tools/gametest/java')
             java.include '**/MolecularAutoCraftGameTests.java'
+            if (dataJar) java.include '**/MolecularDepotCapacityGameTests.java'
             resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/verification_ae_inputs.json'
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
             runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
         }

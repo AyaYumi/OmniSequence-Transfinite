@@ -211,7 +211,7 @@
   "molecularmanipulator.configuration.idle_power": "待机耗电（AE/t）",
   "molecularmanipulator.configuration.idle_power.tooltip": "设置构序阵列控制器维持联网时的待机耗电。范围 1～4096 AE/t，默认 128 AE/t。",
   "molecularmanipulator.configuration.force_load_chunks": "强制加载机器区块",
-  "molecularmanipulator.configuration.force_load_chunks.tooltip": "成型或施工期间保持构序阵列、万物演算核心、物质构筑井和视界奇点天枢占用的区块加载。天枢运动需要开启此项；关闭后机器 tick 时释放已有加载票据。微型白洞始终强制加载，不受此项影响；默认开启。",
+  "molecularmanipulator.configuration.force_load_chunks.tooltip": "成型或施工期间保持构序阵列、万物演算核心、物质构筑井和视界奇点天枢占用的区块加载。关闭后机器 tick 时释放已有加载票据；只要完整运动范围的区块已加载，天枢仍可启动、运行和归位，实际缺块时暂停。微型白洞始终强制加载，不受此项影响；默认开启。",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority": "奇点序质能源优先级",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority.tooltip": "按顺序尝试 fe 和 ae。fe 扫描相邻能源能力，ae 使用连接的 ME 网络。",
   "molecularmanipulator.configuration.singularity_duplication_fe_per_unit": "每 mB 奇点序质 FE 消耗",

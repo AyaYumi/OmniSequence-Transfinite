@@ -2,23 +2,7 @@
 allprojects {
     afterEvaluate { project ->
         if (project != rootProject) return
-        def enabled = (project.findProperty('cpuCompatMods') ?: '').toString().split(',').toList()
-        def pack = project.findProperty('cpuCompatPackMods')
-        def runtime = []
-        if (enabled.contains('eco')) runtime += file('libs/neoecoae-21.2.0.jar')
-        if (enabled.contains('thunderbolt')) runtime += file('libs/thunderbolt-2.0.0-beta.4.jar')
-        if (enabled.contains('data')) runtime += file('libs/data_energistics-3.3.0-api.jar')
-        if (enabled.contains('data') || enabled.contains('lightning')) {
-            if (!pack) throw new GradleException('cpuCompatPackMods is required for the matching runtime dependencies')
-            if (enabled.contains('data')) {
-                def ldlib = fileTree(pack).matching { include 'ldlib2-neoforge-1.21.1-2.2.40-all.jar' }.singleFile
-                configurations.implementation.dependencies.removeAll { it.group == 'com.lowdragmc.ldlib2' }
-                dependencies.add('implementation', files(ldlib))
-            }
-            if (enabled.contains('lightning')) runtime += fileTree(pack).matching { include 'ae2lt-2.1.0-beta.6.jar' }.singleFile
-        }
-        runtime.each { if (!it.isFile()) throw new GradleException('Missing CPU runtime: ' + it) }
-        dependencies.add('localRuntime', files(runtime))
+        apply from: file('tools/gametest/cpu-compat-runtime.gradle')
         def regression = sourceSets.create('cpuBatchCompatibility') {
             java.srcDir file('tools/gametest/java')
             java.include '**/MatterCpuBatchGameTests.java', '**/MatterNativeCpuChecks.java', '**/VerificationAEKey.java'

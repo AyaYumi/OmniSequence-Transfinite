@@ -1,8 +1,8 @@
 # 物质构筑井：配方与研究 API
 
-自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.9**。
+自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.0.11**。
 目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.17+**，以及必需前置
-Applied Enhancements **1.1.0+**（本次配套 **1.1.1**）。模组 ID 仍为 `molecularmanipulator`。
+Applied Enhancements **1.1.2+**（编译 API **1.1.4**）。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.zh-CN.md)。
@@ -276,9 +276,14 @@ ServerEvents.recipes(event => {
 | 8 | ×128 | 72,057,594,037,927,936 | 原始耗时 ÷128，向上取整 |
 | 9 | ×256 | 9,223,372,036,854,775,807（约 9.22E18） | 固定 1 tick |
 
-加工时间至少 1 tick。并行与速度加成只作用于该研究 `unlocks` 列出的构筑井配方，不改变研究
+加工时间至少 1 tick。并行与速度加成作用于该研究 `unlocks` 列出的构筑井配方，不改变研究
 自身耗时。不同研究若解锁同一配方，取**最高**并行与**最短**耗时——加成以取最大值/最小值
 合并，不相乘。
+
+没有归属研究且 `requires_research: false` 的基础配方仍然无需研究即可使用，但会继承一阶
+基础研究 `molecularmanipulator:research/ae_foundation` 已完成深度的并行与速度加成。尚未完成
+该研究（或定义不存在）时，仍使用并行 `1` 和基础加工时间。明确归属研究的配方继续只使用
+其所属研究的加成；该回退不会开放任何研究门控配方。
 
 ---
 
@@ -495,7 +500,7 @@ tick 功耗乘本批份数计收。
 批次保存原料所有权与配方 ID，因此未开工批次会按当前配方、权限与参数重新检查，而不是沿用
 旧数值。无法继续加工时，原料仍留在总成内，可作为待加工原料退回。
 
-### 7.1 2.0.9 尚存的边界
+### 7.1 2.0.11 尚存的边界
 
 - 产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。
@@ -596,7 +601,7 @@ var definitions = MatterResearchApi.definitions(serverLevel);
 | `start(controller, id)`、`setPaused(controller, id, paused)` | 返回操作是否被接受。`start` 对已存在的任务执行恢复而不是失败；研究不存在、不可用、已满级、有待退款或不满足前置时返回 `false`。下单启动的任务拒绝 `setPaused`；普通手动任务的 `setPaused(..., false)` 会重新检查结构、网络、退款与前置并补扣未支付部分，因此也可能返回 `false`。 |
 | `completionCount`、`isCompleted` | 查询完成次数；`isCompleted` 表示至少完成 1 次，不是满级。 |
 | `canUseRecipe`、`isRecipeUnlocked` | 供其他配方执行器使用的权限检查，调用方需自行调用以实施自己的规则。`canUseRecipe` 接收 `RecipeHolder<MatterFabricationRecipe>`。 |
-| `productionProfile` | 返回该配方当前已完成分支的 `(parallel, ticks)`：取最高并行、最短耗时；无归属研究时并行为 `1`、耗时为基础值。 |
+| `productionProfile` | 返回配方已完成研究对应的 `(parallel, ticks)`：取最高并行、最短耗时。无归属且无需研究的配方继承 `ae_foundation` 已完成深度的加成；尚无该进度时使用并行 `1` 和基础耗时。 |
 | `setCompletionCount`、`setCompleted`、`unlockAll` | 管理性修改，按当前最大深度钳制并结束受影响的在研任务；退回备料缓存，已开始研究的费用仍被消耗。负数会抛异常；次数为 `int`，`unlockAll` 返回处理过的定义数量。三者都不检查权限——由调用方负责。 |
 | `prerequisitesMet`、`requiredPrerequisiteLevel` | 每个前置默认要求 1 次；前置不在传入的 `available` 列表中时返回 `false`，因此应传入 `definitions(level)`。Java 映射值 `0` 对应数据包中的 `"max"`。 |
 

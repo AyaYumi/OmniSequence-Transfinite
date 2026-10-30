@@ -8,7 +8,7 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.11-forge，源码分支 `1.20.1-forge` |
+| 本模组 | 2.0.12-forge，源码分支 `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 或更高 |
 | AppliedEnhancements | 1.1.2-forge 或更高，客户端和服务端都需要；编译 API 为 1.1.4-forge |
@@ -69,9 +69,9 @@
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.11-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.12-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
-运行回归位于 `src/gameTest`。使用 `./gradlew -PgameTestSuite=<suite> runGameTestServer` 运行 `cpu`、`performance`、`fabrication`、`research`、`singularity` 或 `singularity-unload`。每组使用 `build/gametest-<suite>`，全新运行前删除对应目录中的 `world`。
+运行回归位于 `src/gameTest`。使用 `./gradlew -PgameTestSuite=<suite> runGameTestServer` 运行 `cpu`、`performance`、`fabrication`、`research`、`singularity` 或 `singularity-unload`。`adaptive` 组还需指定 `-PgameTestRecipeModsDir=/path/to/reference-pack/mods`，目录内包含 ExtendedAE Plus 1.6.2，用于验证普通自定义供应器和该附属的真实原生翻倍样板。每组使用 `build/gametest-<suite>`，全新运行前删除对应目录中的 `world`。
 
 `eco`、`essence`、`native-essence` 和 `machines` 使用客户端内置服务端测试入口：
 

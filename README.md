@@ -8,7 +8,7 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.11-forge, branch `1.20.1-forge` |
+| OmniSequence | 2.0.12-forge, branch `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 or later |
 | AppliedEnhancements | 1.1.2-forge or later, client and server; build API 1.1.4-forge |
@@ -69,9 +69,9 @@ Use Java 17, place `appliedenhancements-1.1.4-forge.jar` in `libs/`, then run:
 ./gradlew build apiJavadoc
 ```
 
-The runtime JAR is `build/libs/omnisequence-transfinite-2.0.11-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.12-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
 
-Runtime regressions are under `src/gameTest`. Run `cpu`, `performance`, `fabrication`, `research`, `singularity` or `singularity-unload` with `./gradlew -PgameTestSuite=<suite> runGameTestServer`. Each suite uses `build/gametest-<suite>`; remove its `world` directory before a fresh run.
+Runtime regressions are under `src/gameTest`. Run `cpu`, `performance`, `fabrication`, `research`, `singularity` or `singularity-unload` with `./gradlew -PgameTestSuite=<suite> runGameTestServer`. The `adaptive` suite additionally requires `-PgameTestRecipeModsDir=/path/to/reference-pack/mods` containing ExtendedAE Plus 1.6.2; it tests ordinary custom providers and the addon's real native doubled pattern. Each suite uses `build/gametest-<suite>`; remove its `world` directory before a fresh run.
 
 Run `eco`, `essence`, `native-essence` or `machines` through the integrated client:
 

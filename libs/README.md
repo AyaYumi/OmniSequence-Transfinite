@@ -1,6 +1,6 @@
 # Local Forge dependencies
 
-Minecraft 1.20.1 / Java 17, OmniSequence 2.0.11-forge requires AppliedEnhancements
+Minecraft 1.20.1 / Java 17, OmniSequence 2.0.12-forge requires AppliedEnhancements
 1.1.2-forge or later on the client and server. The default build uses the independently
 installed `appliedenhancements-1.1.4-forge.jar`; place it in this directory before building.
 To compile against another compatible API build, set `-Papplied_enhancements_api_build=<version>`

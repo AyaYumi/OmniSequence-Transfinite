@@ -15,11 +15,6 @@ public abstract class UselessExactOutputReturnMixin {
         callback.setReturnValue(com.atir.molecularmanipulator.integration.useless.OmniDirectAdmission.segmentBudget(this, callback.getReturnValue()));
     }
 
-    @Inject(method = "hardOutputChunkBudget", at = @At("RETURN"), cancellable = true, require = 0)
-    private void omnisequence$directHardChunkBudget(CallbackInfoReturnable<Long> callback) {
-        callback.setReturnValue(com.atir.molecularmanipulator.integration.useless.UselessExactOutputReturn
-                .directChunkBudget(this, callback.getReturnValue()));
-    }
     // The 2.3.8 API moved output budgeting inside the flush pass and removed
     // updateOutputSegmentBudget().  Running at the pass head works for both
     // layouts: the exact receiver removes/debits what it owns, then UselessMod

@@ -37,6 +37,17 @@ public final class MolecularBatchDispatchSafety {
         }
     }
 
+    /** AE2 keeps zero-count keys after reset; compare quantities in both directions. */
+    public static boolean amountsMatch(KeyCounter expected, KeyCounter observed) {
+        for (var entry : expected) {
+            if (observed.get(entry.getKey()) != entry.getLongValue()) return false;
+        }
+        for (var entry : observed) {
+            if (expected.get(entry.getKey()) != entry.getLongValue()) return false;
+        }
+        return true;
+    }
+
     public static long getAvailableBatchLimit(CraftingService craftingService,
             IPatternDetails patternDetails, KeyCounter[] firstInputs,
             Predicate<ICraftingProvider> supportsProvider) {

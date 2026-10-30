@@ -57,7 +57,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: omnisequence-2.0.11-forge-${{ matrix.name }}
+          name: omnisequence-2.0.12-forge-${{ matrix.name }}
           path: |
             build/libs/*.jar
             build/docs/api/

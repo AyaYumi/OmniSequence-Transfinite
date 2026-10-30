@@ -1,6 +1,6 @@
 # Exact-count provider API / 大数供应器接口
 
-Current source: Minecraft 1.20.1, 2.0.11-forge, Java 17, AE2 15.4.10, Applied Enhancements 1.1.2-forge+ (build API 1.1.4-forge).
+Current source: Minecraft 1.20.1, 2.0.12-forge, Java 17, AE2 15.4.10, Applied Enhancements 1.1.2-forge+ (build API 1.1.4-forge).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is

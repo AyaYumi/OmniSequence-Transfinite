@@ -252,6 +252,9 @@ tasks.withType(JavaCompile).configureEach {
 tasks.withType(ProcessResources).configureEach {
     filteringCharset = 'UTF-8'
     includeEmptyDirs = false
+    exclude '**/*.bak', '**/*.old', '**/*.tmp', '**/*.log', '**/*~',
+            '**/*.bbmodel', '**/*.psd', '**/*.xcf', '**/*.blend',
+            '**/.DS_Store', '**/Thumbs.db', '**/desktop.ini'
 }
 
 // Optional CPU contracts are Java 17 ABI declarations, never runtime implementations.
@@ -356,6 +359,7 @@ tasks.named('check').configure { dependsOn verifyReleaseMixins }
 def gameTestSuite = providers.gradleProperty('gameTestSuite').getOrElse('cpu')
 def gameTestSuites = [
         cpu: ['MatterCpuBatchGameTests', 'MatterNativeCpuChecks'],
+        adaptive: ['AdaptiveDispatchGameTests'],
         performance: ['MatterRecipeLookupGameTests', 'MatterAEKeyGameTests', 'MolecularLongBatchGameTests',
                       'TransfiniteComputeNexusGameTests', 'MolecularCenterPatternPortGameTests'],
         fabrication: ['MolecularAutoCraftGameTests', 'MatterAssemblyDispatchGameTests'],
@@ -388,7 +392,7 @@ if (project.hasProperty('gameTestEco') || gameTestSuite in ['eco', 'essence']) {
     dependencies.add('localRuntime', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
     dependencies.add('gameTestCompileOnly', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
 }
-if (gameTestSuite in ['essence', 'native-essence', 'machines']) {
+if (gameTestSuite in ['essence', 'native-essence', 'machines', 'adaptive']) {
     def recipeModsDirectory = providers.gradleProperty('gameTestRecipeModsDir').orNull
     if (recipeModsDirectory == null) {
         throw new GradleException("The ${gameTestSuite} suite requires -PgameTestRecipeModsDir=<reference-pack mods directory>")
@@ -397,9 +401,12 @@ if (gameTestSuite in ['essence', 'native-essence', 'machines']) {
     def recipeMods = gameTestSuite in ['essence', 'native-essence']
             ? ['Cucumber-1.20.1-7.0.16', 'MysticalAgriculture-1.20.1-7.0.24',
                'MysticalAgradditions-1.20.1-7.0.12', 'matc-1.6.0']
+            : gameTestSuite == 'adaptive' ? ['extendedae_plus-1.6.2']
             : ['AdvancedAE-1.3.6-1.20.1', 'geckolib-forge-1.20.1-4.8.4']
     recipeMods.each { name ->
-        dependencies.add('localRuntime', fg.deobf("pack.local:${name}:reference"))
+        def dependency = fg.deobf("pack.local:${name}:reference")
+        dependencies.add('localRuntime', dependency)
+        if (gameTestSuite == 'adaptive') dependencies.add('gameTestCompileOnly', dependency)
     }
 }
 if (project.hasProperty('gameTestAdvanced')) {

@@ -139,9 +139,13 @@ public final class MolecularReusableInputAdapters {
             return false;
         }
         var initial = analyze(input, template, level, 1);
-        return initial.mode() == Mode.DETERMINISTIC_DAMAGE && initial.finalKey() != null
-                && physicalUses(candidate) > 0
-                && analyze(input, candidate, level, 1).mode() == Mode.DETERMINISTIC_DAMAGE;
+        var actual = analyze(input, candidate, level, 1);
+        // A terminal prototype may still share its pool with a usable returned
+        // state. Either concrete state must prove a deterministic wear step.
+        return initial.mode() == Mode.DETERMINISTIC_DAMAGE
+                && actual.mode() == Mode.DETERMINISTIC_DAMAGE
+                && (initial.finalKey() != null || actual.finalKey() != null)
+                && physicalUses(template) > 0 && physicalUses(candidate) > 0;
     }
 
     public static boolean isExactDamageStep(AEKey current, AEKey next) {

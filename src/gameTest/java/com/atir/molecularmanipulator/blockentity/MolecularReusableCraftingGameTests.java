@@ -156,6 +156,46 @@ public final class MolecularReusableCraftingGameTests {
                 }).thenSucceed();
     }
 
+    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 40)
+    public static void terminalCrystalPrototypeAcceptsTheSameReusableWearPool(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var recipe = (CraftingRecipe) level.getRecipeManager().byKey(
+                new ResourceLocation("matc:insanium_essence")).orElseThrow();
+        var inputs = new ItemStack[9];
+        Arrays.fill(inputs, ItemStack.EMPTY);
+        for (int slot = 0; slot < recipe.getIngredients().size(); slot++) {
+            var choices = recipe.getIngredients().get(slot).getItems();
+            if (choices.length > 0) inputs[slot] = Arrays.stream(choices)
+                    .filter(stack -> BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().equals("matc"))
+                    .findFirst().orElse(choices[0]).copy();
+        }
+        var pattern = PatternDetailsHelper.decodePattern(PatternDetailsHelper.encodeCraftingPattern(
+                recipe, inputs, recipe.getResultItem(level.registryAccess()), true, true), level);
+        var fresh = item("matc:supremium_crystal");
+        var toolInput = Arrays.stream(pattern.getInputs()).filter(input -> Arrays.stream(input.getPossibleInputs())
+                .anyMatch(stack -> stack.what() instanceof AEItemKey key && key.getItem() == fresh.getItem()))
+                .findFirst().orElseThrow();
+        var terminalStack = fresh.toStack();
+        terminalStack.setDamageValue(terminalStack.getMaxDamage());
+        var terminal = AEItemKey.of(terminalStack);
+        helper.assertTrue(MolecularReusableInputAdapters.analyze(toolInput, terminal, level, 1).finalKey() == null,
+                "The real MATC prototype must be on its terminal no-remainder use");
+        helper.assertTrue(MolecularReusableInputAdapters.isDeterministicDamageVariant(toolInput, terminal, fresh, level)
+                        && MolecularReusableInputAdapters.isDeterministicDamageVariant(toolInput, fresh, terminal, level),
+                "A terminal extracted prototype and a usable crystal must share the same validated wear pool");
+        var foreign = fresh.toStack();
+        foreign.getOrCreateTag().putString("essenceRegression", "different components");
+        helper.assertTrue(!MolecularReusableInputAdapters.isDeterministicDamageVariant(
+                        toolInput, terminal, AEItemKey.of(foreign), level),
+                "Non-damage NBT must remain pinned when the prototype is terminal");
+        var unbreakable = fresh.toStack();
+        unbreakable.getOrCreateTag().putBoolean("Unbreakable", true);
+        helper.assertTrue(!MolecularReusableInputAdapters.isDeterministicDamageVariant(
+                        toolInput, terminal, AEItemKey.of(unbreakable), level),
+                "An unbreakable crystal cannot enter a finite durability pool");
+        helper.succeed();
+    }
+
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 500)
     public static void nexusCompletesNativeSmithingTemplateCycle(GameTestHelper helper) {
         smithingTemplateCycle(helper, false);

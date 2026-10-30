@@ -537,24 +537,6 @@ public final class OmniRenderGeometry {
         }
     }
 
-    /** Draw a four-sided technical frame in an arbitrary plane. */
-    public static void rectangleFrame(PoseStack.Pose pose,
-            VertexConsumer consumer, Vec3 center,
-            Vec3 firstAxis, Vec3 secondAxis, float width, int color) {
-        Vec3 first = center.subtract(firstAxis).subtract(secondAxis);
-        Vec3 second = center.add(firstAxis).subtract(secondAxis);
-        Vec3 third = center.add(firstAxis).add(secondAxis);
-        Vec3 fourth = center.subtract(firstAxis).add(secondAxis);
-        taperedBeam(pose, consumer, first, second,
-                width, width, width, width, color, color);
-        taperedBeam(pose, consumer, second, third,
-                width, width, width, width, color, color);
-        taperedBeam(pose, consumer, third, fourth,
-                width, width, width, width, color, color);
-        taperedBeam(pose, consumer, fourth, first,
-                width, width, width, width, color, color);
-    }
-
     /** Draw a regular diagnostic grid in an arbitrary plane. */
     public static void gridPlane(PoseStack.Pose pose, VertexConsumer consumer,
             Vec3 center, Vec3 firstAxis, Vec3 secondAxis,
@@ -572,39 +554,6 @@ public final class OmniRenderGeometry {
                     center.add(alongSecond).subtract(firstAxis),
                     center.add(alongSecond).add(firstAxis),
                     width, width, width, width, color, color);
-        }
-    }
-
-    /**
-     * Draw a diagnostic spacetime grid bent toward (or away from) a focal
-     * point. Positive depth produces a gravity well; negative depth produces
-     * the outward distortion used around a white-hole exhaust.
-     */
-    public static void gravityWellGrid(PoseStack.Pose pose,
-            VertexConsumer consumer, Vec3 center, double halfExtent,
-            int divisions, int samples, double depth,
-            float radius, int color, boolean softGlow) {
-        int safeDivisions = Math.max(4, divisions);
-        int safeSamples = Math.max(8, samples);
-        double sigma = Math.max(0.5D, halfExtent * 0.42D);
-        for (int line = 0; line <= safeDivisions; line++) {
-            double fixed = -halfExtent
-                    + halfExtent * 2.0D * line / safeDivisions;
-            Vec3[] alongX = new Vec3[safeSamples + 1];
-            Vec3[] alongZ = new Vec3[safeSamples + 1];
-            for (int sample = 0; sample <= safeSamples; sample++) {
-                double variable = -halfExtent
-                        + halfExtent * 2.0D * sample / safeSamples;
-                double radialSquared = fixed * fixed + variable * variable;
-                double displacement = depth
-                        * Math.exp(-radialSquared / (sigma * sigma));
-                alongX[sample] = center.add(variable, -displacement, fixed);
-                alongZ[sample] = center.add(fixed, -displacement, variable);
-            }
-            smoothTubePath(pose, consumer, alongX,
-                    radius, radius, 6, color, color, softGlow);
-            smoothTubePath(pose, consumer, alongZ,
-                    radius, radius, 6, color, color, softGlow);
         }
     }
 

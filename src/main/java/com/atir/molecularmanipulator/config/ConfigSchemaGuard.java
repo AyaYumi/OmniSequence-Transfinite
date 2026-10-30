@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.config;
 
-import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.electronwill.nightconfig.core.CommentedConfig;
 import com.electronwill.nightconfig.core.io.ParsingMode;
@@ -49,7 +49,7 @@ public final class ConfigSchemaGuard {
             unexpectedPaths = findUnexpectedPaths(readToml(file), spec.getSpec());
         } catch (IOException | RuntimeException exception) {
             unexpectedPaths = List.of("<invalid TOML>");
-            MolecularManipulator.LOGGER.warn(
+            RateLimitedLog.warn(
                     "Could not parse {} configuration {}; it will be backed up and regenerated",
                     displayName, file, exception);
         }
@@ -60,13 +60,13 @@ public final class ConfigSchemaGuard {
         try {
             backUpConfig(file);
             writeDefaults(file, spec);
-            MolecularManipulator.LOGGER.warn(
+            RateLimitedLog.warn(
                     "Regenerated outdated {} configuration {} from current defaults; "
                             + "unsupported options were: {}",
                     displayName, file, summarize(unexpectedPaths));
             return true;
         } catch (IOException | RuntimeException exception) {
-            MolecularManipulator.LOGGER.error(
+            RateLimitedLog.error(
                     "Could not regenerate outdated {} configuration {}; "
                             + "the existing file was left in place",
                     displayName, file, exception);
@@ -108,12 +108,9 @@ public final class ConfigSchemaGuard {
                 removeEmptySection(view, "sequence_array");
             }
             writeAtomically(config, file);
-            MolecularManipulator.LOGGER.info(
-                    "Removed retired options {} from {} configuration {}",
-                    removed, displayName, file);
             return true;
         } catch (IOException | RuntimeException exception) {
-            MolecularManipulator.LOGGER.warn(
+            RateLimitedLog.warn(
                     "Could not remove retired options {} from {} configuration {}; "
                             + "the existing file was left in place",
                     optionPaths, displayName, file, exception);
@@ -133,7 +130,7 @@ public final class ConfigSchemaGuard {
 
         try {
             var config = readToml(file);
-            var movedPaths = new ArrayList<String>();
+            boolean moved = false;
             {
                 var view = config;
                 for (var relocation : relocations.entrySet()) {
@@ -147,22 +144,19 @@ public final class ConfigSchemaGuard {
                     }
                     view.remove(oldPath);
                     view.removeComment(oldPath);
-                    movedPaths.add(oldPath + " -> " + newPath);
+                    moved = true;
                 }
                 removeEmptySection(view, "matter_speed_cards");
                 }
-            if (movedPaths.isEmpty()) {
+            if (!moved) {
                 return false;
             }
 
             backUpConfig(file);
             writeAtomically(config, file);
-            MolecularManipulator.LOGGER.info(
-                    "Categorized {} configuration {} while preserving values: {}",
-                    displayName, file, summarize(movedPaths));
             return true;
         } catch (IOException | RuntimeException exception) {
-            MolecularManipulator.LOGGER.warn(
+            RateLimitedLog.warn(
                     "Could not categorize {} configuration {}; the existing file was left in place",
                     displayName, file, exception);
             return false;
@@ -197,10 +191,10 @@ public final class ConfigSchemaGuard {
                 for (var path : existing) { view.remove(path); view.removeComment(path); }
                 }
             new TomlWriter().write(config, file, WritingMode.REPLACE);
-            MolecularManipulator.LOGGER.info("Merged collector item tags in {} configuration {}", displayName, file);
             return true;
         } catch (IOException | RuntimeException exception) {
-            MolecularManipulator.LOGGER.warn("Could not merge collector tags in {}; existing file retained", file, exception);
+            RateLimitedLog.warn("Could not merge collector tags in {} configuration {}; existing file retained",
+                    displayName, file, exception);
             return false;
         }
     }

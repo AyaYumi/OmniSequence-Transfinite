@@ -11,7 +11,7 @@ Mod ID: `molecularmanipulator`.
 | Well recipe JSON, generic AEKey inputs, research, machine imports and KubeJS | [Well and research API](matter-research-api.md) | [构筑井与研究 API](matter-research-api.zh-CN.md) |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
-AppliedEnhancements mod. Use its [Forge API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/README.md).
+AppliedEnhancements mod. Use its [Forge API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/API_INTEGRATION.md).
 The runtime minimum is **1.1.2-forge**; the default compile-time API is **1.1.4-forge**.
 Omni's internal planner/Mixin classes are not integration entry points.
 

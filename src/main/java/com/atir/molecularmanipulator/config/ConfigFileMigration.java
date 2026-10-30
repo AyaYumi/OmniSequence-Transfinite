@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.config;
 
-import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.common.ForgeConfigSpec;
 
@@ -153,11 +153,10 @@ public final class ConfigFileMigration {
 
         try {
             Files.copy(legacyFile, file);
-            MolecularManipulator.LOGGER.info("Migrated config file {} to {}", legacyFile, file);
         } catch (FileAlreadyExistsException ignored) {
             // Another startup path completed the same non-overwriting migration.
         } catch (IOException exception) {
-            MolecularManipulator.LOGGER.warn("Could not migrate config file {} to {}",
+            RateLimitedLog.warn("Could not migrate config file {} to {}",
                     legacyFile, file, exception);
         }
     }

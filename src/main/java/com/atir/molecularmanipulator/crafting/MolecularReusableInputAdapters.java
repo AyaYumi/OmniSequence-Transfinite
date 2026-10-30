@@ -117,6 +117,35 @@ public final class MolecularReusableInputAdapters {
         }
     }
 
+    /** Accepts only deterministic wear variants, retaining every other item component. */
+    public static boolean isDeterministicDamageVariant(IPatternDetails.IInput input,
+            AEKey template, AEKey candidate, Level level) {
+        if (!(template instanceof AEItemKey templateItem)
+                || !(candidate instanceof AEItemKey candidateItem)) {
+            return false;
+        }
+        var templateStack = templateItem.toStack();
+        var candidateStack = candidateItem.toStack();
+        if (!hasFiniteMutableDurability(templateStack)
+                || !hasFiniteMutableDurability(candidateStack)) {
+            return false;
+        }
+        templateStack.setDamageValue(0);
+        candidateStack.setDamageValue(0);
+        if (!AEItemKey.of(templateStack).equals(AEItemKey.of(candidateStack))) {
+            return false;
+        }
+        var initial = analyze(input, template, level, 1);
+        var actual = analyze(input, candidate, level, 1);
+        // Extraction may select the most-worn, terminal tool first. Either
+        // concrete state can prove the +1 transition; a no-remainder state
+        // alone must never authorize unrelated consumed tools as a wear pool.
+        return initial.mode() == Mode.DETERMINISTIC_DAMAGE
+                && actual.mode() == Mode.DETERMINISTIC_DAMAGE
+                && (initial.finalKey() != null || actual.finalKey() != null)
+                && physicalUses(template) > 0 && physicalUses(candidate) > 0;
+    }
+
     public static boolean isExactDamageStep(AEKey current, AEKey next) {
         if (!(current instanceof AEItemKey currentItem)
                 || !(next instanceof AEItemKey nextItem)) {

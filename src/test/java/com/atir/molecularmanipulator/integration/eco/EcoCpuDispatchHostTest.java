@@ -99,6 +99,38 @@ class EcoCpuDispatchHostTest {
         deadlines.put(pattern, System.nanoTime() + 30_000_000_000L);
         cpu.link = new Link();
     }
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void acceptedOrdinaryInputsStayAcceptedWhenThePostPushBusyQueryFails(boolean linkage) throws Exception {
+        var provider = (appeng.api.networking.crafting.ICraftingProvider) Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{appeng.api.networking.crafting.ICraftingProvider.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "isBusy" -> {
+                        if (linkage) throw new NoClassDefFoundError("post-push busy dependency");
+                        throw new IllegalStateException("post-push busy unavailable");
+                    }
+                    case "getAvailablePatterns" -> java.util.List.of(pattern);
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> throw new AssertionError(method.getName());
+                });
+        var inputs = new appeng.api.stacks.KeyCounter[]{new appeng.api.stacks.KeyCounter()};
+        inputs[0].add(MATERIAL, 1);
+        com.llamalad7.mixinextras.injector.wrapoperation.Operation<Boolean> original = args -> {
+            inputs[0].reset();
+            return true;
+        };
+        var push = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$pushBatchWithinCycle",
+                appeng.api.networking.crafting.ICraftingProvider.class, IPatternDetails.class,
+                appeng.api.stacks.KeyCounter[].class, com.llamalad7.mixinextras.injector.wrapoperation.Operation.class);
+        push.setAccessible(true);
+        assertEquals(true, push.invoke(cpu, provider, pattern, inputs, original),
+                "AE2 must receive success and account waiting outputs after material ownership transfers");
+        assertEquals(0, inputs[0].get(MATERIAL));
+        var adaptive = (com.atir.molecularmanipulator.crafting.MolecularAdaptiveBatchController)
+                get("molecularmanipulator$adaptiveBatchController");
+        assertEquals(0, adaptive.getAvailableCrafts(provider, pattern, 100),
+                "An unavailable busy signal must end probing for this tick");
+    }
     @Test void compatPatternSlicesSurviveTheSameJobAndTickAndClearDispatch() throws Exception {
         prepare(job, 40L);
         @SuppressWarnings("unchecked")

@@ -72,6 +72,58 @@ class EcoMolecularFastPathAdapterTest {
     }
 
     @Test
+    void singleCraftAndTerminalUseKeepTheLeaseWithoutAnAggregateContext() throws Exception {
+        for (boolean terminal : new boolean[]{false, true}) {
+            var reusable = terminal ? tool(5, 5, UUID.randomUUID()) : AEItemKey.of(Items.STICK);
+            var pattern = new EcoMolecularTestPattern(reusable,
+                    key -> terminal ? worn(key, 6) : key);
+            var context = context(pattern);
+            var model = model(pattern);
+            var stock = inventory(reusable, 1, 1);
+            var contract = calculator(pattern, model).prepareBatch(stock, 100);
+            assertNotNull(contract);
+            assertEquals(1, contract.craftCount());
+            var batch = new ECOFastPathDispatchProvider.Batch(1, contract.inputs(),
+                    List.of(new GenericStack(OUTPUT, 1)), contract.remainders());
+            var provider = new Provider();
+            provider.single = true;
+            var energy = new Energy();
+            assertTrue(ECOBatchExecutor.executePrepared(stock, batch.inputTotal(), Map.of(), energy,
+                    () -> EcoMolecularFastPathAdapter.dispatch(provider, context, model, batch, 100)));
+            assertEquals(1, provider.pushes);
+            assertEquals(1, provider.planCount);
+            assertTrue(stock.list.isEmpty());
+            assertTrue(energy.committed);
+            assertFalse(energy.refunded);
+            assertEquals(terminal ? 0 : 1, counter(batch.remainingTotal()).get(reusable));
+            assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
+            assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+        }
+    }
+
+    @Test
+    void singleCraftRejectionRestoresEveryInputAndEnergyReservation() throws Exception {
+        var catalyst = AEItemKey.of(Items.STICK);
+        var pattern = new EcoMolecularTestPattern(catalyst, key -> key);
+        var context = context(pattern);
+        var model = model(pattern);
+        var batch = batch(context, model, 1);
+        var stock = inventory(catalyst, 1, 1);
+        var provider = new Provider();
+        provider.single = true;
+        provider.reject = true;
+        var energy = new Energy();
+        assertFalse(ECOBatchExecutor.executePrepared(stock, batch.inputTotal(), Map.of(), energy,
+                () -> EcoMolecularFastPathAdapter.dispatch(provider, context, model, batch, 100)));
+        assertEquals(1, stock.list.get(catalyst));
+        assertEquals(1, stock.list.get(MATERIAL));
+        assertTrue(energy.refunded);
+        assertFalse(energy.committed);
+        assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
+        assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+    }
+
+    @Test
     void realEcoCalculatorCountsInvariantOnceAndReturnsItOnce() throws Exception {
         var catalyst = AEItemKey.of(Items.STICK);
         var pattern = new EcoMolecularTestPattern(catalyst, key -> key);
@@ -350,6 +402,7 @@ class EcoMolecularFastPathAdapterTest {
     private static final class Provider implements ICraftingProvider, MolecularBatchCraftingProvider {
         boolean reject;
         boolean fail;
+        boolean single;
         int pushes;
         int flushes;
         long planCount;
@@ -366,12 +419,17 @@ class EcoMolecularFastPathAdapterTest {
             pushes++;
             lastInputs = inputs;
             var context = MolecularBatchDispatchContext.current(pattern, inputs);
-            assertNotNull(context);
-            assertNotNull(context.reusablePlan());
-            assertTrue(context.reusablePlan().matchesProvidedInputs(inputs));
+            if (single) {
+                assertNull(context, "One craft must retain ordinary molecular recipe validation");
+                planCount = 1;
+            } else {
+                assertNotNull(context);
+                assertNotNull(context.reusablePlan());
+                assertTrue(context.reusablePlan().matchesProvidedInputs(inputs));
+                jobId = context.craftingId();
+                planCount = context.craftCount();
+            }
             assertNotNull(EcoMolecularRemainderContext.expected(pattern, inputs));
-            jobId = context.craftingId();
-            planCount = context.craftCount();
             if (reject) return false;
             for (var holder : inputs) holder.clear();
             if (fail) throw new IllegalStateException("after acquiring ownership");

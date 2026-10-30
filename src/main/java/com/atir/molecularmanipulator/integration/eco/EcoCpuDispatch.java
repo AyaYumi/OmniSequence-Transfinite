@@ -15,6 +15,7 @@ import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProviders;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
+import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -67,6 +68,10 @@ public final class EcoCpuDispatch {
             var providerCache = new IdentityHashMap<ICraftingProvider, ProviderCandidate>();
             for (var pattern : patterns) {
                 if (host.ecoDispatch$stopped()) return 0;
+                // Native AELIS cycles must retain the shared executor's ordered
+                // progress and seed accounting, not an ECO-only transaction.
+                if (execution == null && AelisBatchExecutionContext.acquire(pattern.getDefinition(),
+                        host.ecoDispatch$physicalView()).hasCycleProtection()) return -1;
                 // Filtering before the phase token and preview keeps unsupported patterns from
                 // touching the CPU inventory or starting phase preparation at all.
                 var candidates = supportedProviders(crafting, pattern, providerCache);
@@ -220,9 +225,9 @@ public final class EcoCpuDispatch {
                 BigInteger.valueOf(batch.craftCount()), batch.exactInputTotal(), totals(batch.outputs()),
                 totals(batch.remainders()), false);
         if (phase != null) {
-            // Stateful calculators inspect real stock directly. They must not switch to an input
-            // variant outside the allocation pinned by the prototype, even within a DAG phase.
-            if (!units.keySet().containsAll(receipt.inputs().keySet())) return Outcome.REJECTED;
+            // Preserve allocated consumables and components, while allowing the
+            // deterministic damage states returned by previous tool batches.
+            if (!phase.allowsInputKeys(prototype, receipt.inputs().keySet(), level)) return Outcome.REJECTED;
             var seeds = phase.protectedSeeds();
             for (var entry : receipt.inputs().entrySet()) {
                 var free = host.ecoOmni$physicalAmount(entry.getKey())

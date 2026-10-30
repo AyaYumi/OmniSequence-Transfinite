@@ -2,7 +2,7 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.0.11 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
+Current for OmniSequence 2.0.12 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
 and Applied Enhancements 1.1.2+ (compile API 1.1.4). The runtime ABI remains **1**.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
@@ -17,6 +17,15 @@ This SPI is for AE2 machines that store encoded patterns and act as
 one craft at a time. Implement this SPI only when the machine wants an
 Omni-Computation Core or Transfinite Compute Nexus to allocate several complete crafts and deliver them as
 one atomic transaction.
+
+Ordinary providers also receive adaptive dispatch through their existing
+`pushPattern` contract, including multi-input recipes and custom implementations.
+The first ordinary call contains one original task. Further complete calls grow
+in same-tick rounds of 1, 2, 4, ... until the provider becomes busy or rejects a
+call. Omni retains the successful calls per tick and, after 20 ticks, probes that
+baseline plus 1, 2, 4, ... again. Native doubled tasks retain their identity and
+counts. This requires no additional provider interface; the atomic SPI below
+remains available for providers that can accept one counted transaction.
 
 Advanced AE quantum CPUs also use this provider contract through the optional
 integration. The single-block nexus adds no new provider ABI or resource format.

@@ -188,6 +188,56 @@ class EcoCpuDispatchTest {
         assertEquals(BigInteger.ZERO, f.host.ecoOmni$physicalAmount(CATALYST));
     }
 
+    @Test void allocatedStatefulPoolAdmitsCompatibleWearStatesWithoutSpendingForeignTools() throws Exception {
+        var identity = UUID.randomUUID();
+        var selected = tool(2, 5, identity);
+        var worn = tool(4, 5, identity);
+        var fresh = tool(0, 5, identity);
+        var foreign = tool(0, 5, UUID.randomUUID());
+        var f = fixture(new EcoMolecularTestPattern(selected, key -> worn(key, 5)), BigInteger.valueOf(8), 1, 8);
+        f.host.ecoOmni$storePhysical(worn, BigInteger.valueOf(3));
+        f.host.ecoOmni$storePhysical(fresh, BigInteger.ONE);
+        f.host.ecoOmni$storePhysical(foreign, BigInteger.TEN);
+        var allocation = new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation(0,
+                List.of(new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation.Run(selected, 1, 8)));
+        attachPlan(f.host, List.of(allocation), 8);
+        var provider = new Provider(f.host);
+        provider.stateful = true;
+        assertEquals(1, execute(f, provider));
+        assertEquals(BigInteger.valueOf(8), f.host.last.crafts());
+        assertEquals(BigInteger.valueOf(3), f.host.last.inputs().get(worn));
+        assertEquals(BigInteger.ONE, f.host.last.inputs().get(fresh));
+        assertFalse(f.host.last.inputs().containsKey(foreign));
+        assertEquals(BigInteger.TEN, f.host.ecoOmni$physicalAmount(foreign));
+        assertEquals(BigInteger.ZERO, f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertTrue(f.host.execution.isComplete());
+        assertEquals(1, provider.pushes);
+        assertFalse(f.dispatch.suspended());
+    }
+
+    @Test void nativeAelisCycleYieldsBeforeEcoPreparationAndLeavesItsProgressUntouched() throws Exception {
+        var f = normal(BigInteger.valueOf(7));
+        var step = new com.appliedenhancements.api.AelisCycleExecutionPlan.Step(
+                f.host.pattern.getDefinition(), 7, Map.of(CATALYST, 1L, MATERIAL, 1L), java.util.Set.of());
+        var cycle = new com.appliedenhancements.api.AelisCycleRuntimeController(
+                new com.appliedenhancements.api.AelisCycleExecutionPlan(
+                        List.of(step), Map.of(CATALYST, 1L), java.util.Set.of(CATALYST, MATERIAL)));
+        var before = cycle.snapshot();
+        var provider = new Provider(f.host);
+        try (var scope = com.appliedenhancements.runtime.AelisCycleDispatchScope.open(cycle)) {
+            assertEquals(-1, execute(f, provider), "Native cycles belong to the shared cycle-aware executor");
+        }
+        assertEquals(before, cycle.snapshot());
+        assertEquals(0, provider.prepares);
+        assertEquals(0, provider.pushes);
+        assertEquals(0, f.host.stages);
+        assertEquals(0, f.host.reserves);
+        assertEquals(BigInteger.valueOf(7), f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.valueOf(7), f.host.remaining);
+        assertTrue(f.host.waiting.isEmpty());
+        assertFalse(f.dispatch.suspended());
+    }
+
     @Test void returnedContainersUseActualEcoStatefulContract() throws Exception {
         var f = fixture(new EcoMolecularTestPattern(CONTAINER, ignored -> RETURNED), BigInteger.valueOf(23), 23, 23);
         var provider = new Provider(f.host);

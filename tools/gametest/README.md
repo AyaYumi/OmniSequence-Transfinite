@@ -1,6 +1,6 @@
 # Isolated engine regressions / 隔离游戏测试
 
-Current source: 2.0.11. Test source sets are excluded from a normal runtime JAR.
+Current source: 2.0.12. Test source sets are excluded from a normal runtime JAR.
 [Dependency setup](../../libs/README.md)
 
 ## Suites
@@ -10,6 +10,7 @@ Current source: 2.0.11. Test source sets are excluded from a normal runtime JAR.
 | `auto-crafting.init.gradle` | Seven real powered Array/single-block passive crafting regressions: one material-bounded output probe, shared fuzzy index with live reserves, same-tick slot chaining, ME/adjacent delivery, million-item batches, returned buckets/shared-capacity rollback, saved long outputs and CPU pipeline preservation; an eighth test verifies the real optional digital depot |
 | `performance-regression.init.gradle` | Long-count providers, well AEKey inputs/codecs/queues, recipe lookup invalidation, research stock scan counts and admission conservation, dismantling, Nexus and actual storage-bus pattern access |
 | `cpu-batch-compat.init.gradle` | Real ECO, Trinity and Thunderbolt API dispatch into a formed well, scaled input conservation, durable queues, adapter reload and optional-mod absence |
+| `processing-dispatch.init.gradle` | Real ExtendedAE/Lightning providers and 13-process Mekanism Extras factories: single-input smelting and iron/carbon infusion, buffered inputs, per-input backpressure, blocking mode, exact accounting and 10,000-product completion |
 | `eco.init.gradle` | ECO 21.2.10+: 28 real CPU/provider, native scheduler, exact-input, phase/cycle, output, menu-admission and cancellation regressions |
 | `performance-backport.init.gradle` | Eight focused regressions: pattern-port rejection and same-tick crystal ownership, native CPU batches, assembly fluid handling, carriage, obstruction and migration; public Hub collection/docking with force-loading disabled, released tickets, old paused saves and safe waits for actually unloaded chunks |
 | `singularity.init.gradle` | Hub registry/palette, build/dismantle, old motion/embedding migrations, protection events and material conservation |
@@ -122,6 +123,53 @@ AE2 version can be selected with `-Pae2_version=19.2.17` or the default in
 The cosmic-hole suite runs once without FTB Teams (personal ownership fallback)
 and once with `-PcosmicFtbTests` (real FTB party members). That option adds FTB
 Teams, FTB Library and Architectury only to the isolated test runtime.
+
+## External processing dispatch
+
+`processing-dispatch.init.gradle` runs twelve required tests. Eight use real ExtendedAE
+and Lightning wireless providers and Mekanism Extras Supreme factories (13
+processes). Four smelting tests check buffered inputs, full-receiver backpressure,
+and completion of 10,000 cobblestone → stone → smooth-stone chains with exactly
+20,000 actual smelts. Four ExtendedAE infusion tests use the real Applied
+Mekanistics chemical key and the actual iron + 10 carbon → enriched iron recipe.
+They check at least a stack in every input slot, the 1:10 input ratio, both sparse
+input orders, independent item/chemical backpressure, unchanged provider blocking
+mode, and completion of 10,000 infusions with no leftover iron or carbon. Finished
+orders leave no CPU waiting quantities, machine items or provider queues. The
+fixture supplies machine power and imports real output each tick.
+
+Four more tests drive a real CPU through custom providers implementing only
+`ICraftingProvider`. They verify complete original multi-input calls, capacity
+reached in the first dispatch tick, a stable rate for 20 ticks, repeated recovery
+above that rate, independent provider backpressure, and immediate stop when the
+first push fills the receiver. A real ExtendedAE Plus native doubled pattern
+retains its identity and receives no second multiplier. Every accepted/rejected
+call checks both retained CPU materials and output waiting quantities.
+
+Select JARs explicitly, including Mekanism Generators (used by Mekanism Extras),
+and use a fresh run directory:
+
+```powershell
+.\gradlew.bat --no-configuration-cache -I tools/gametest/processing-dispatch.init.gradle `
+  '-PcpuCompatPackMods=<dependency directory>' '-Pae2_version=19.2.17' `
+  '-PcpuCompatMods=eco,thunderbolt,lightning' `
+  '-PcpuCompatEcoJar=neoecoae-21.2.13.jar' `
+  '-PcpuCompatThunderboltJar=thunderbolt-2.0.3.jar' `
+  '-PcpuCompatLightningJar=ae2lt-2.1.2.jar' `
+  '-PcpuCompatAppliedJar=appliedenhancements-1.1.4-remainder-fix.jar' `
+  '-PcpuCompatExtendedJar=ExtendedAE-1.21-2.2.38-neoforge.jar' `
+  '-PcpuCompatExtraMods=Mekanism-1.21.1-10.7.19.85.jar,MekanismGenerators-1.21.1-10.7.19.85.jar,mekanism_extras-1.21.1-1.4.1.jar,extendedae_plus-1.6.4.1.jar,ae2-batchcraft-1.21.1-1.0.3-neoforge.jar,Applied-Mekanistics-1.6.3.jar' `
+  '-PcpuCompatRunName=processing-current' runGameTestServer
+```
+
+Use the actual filenames in the selected directory, including launcher-added
+prefixes. The checked combination is AE2 19.2.17, ExtendedAE 2.2.38, Applied
+1.1.4 remainder-fix, ECO 21.2.13, Thunderbolt 2.0.3, Lightning 2.1.2,
+ExtendedAE Plus 1.6.4.1, BatchCraft 1.0.3, Mekanism 10.7.19, Mekanism Extras
+1.4.1 and Applied Mekanistics 1.6.3. All twelve tests also pass without ECO, using
+`-PcpuCompatMods=thunderbolt,lightning` and a fresh run directory. These isolated
+checks establish fixture behavior; they do not measure throughput or server load
+in an existing modpack world.
 
 ## Worlds and assertions
 

@@ -67,7 +67,7 @@ public final class EcoMolecularFastPathAdapter {
 
     static boolean dispatch(ICraftingProvider provider, ECOBatchDispatchContext context,
             EcoMolecularBatchModel model, ECOFastPathDispatchProvider.Batch batch, long capacity) {
-        if (batch == null || batch.craftCount() < 2 || batch.craftCount() > capacity
+        if (batch == null || batch.craftCount() < 1 || batch.craftCount() > capacity
                 || batch.craftCount() > MolecularBatchCraftingProvider.getBatchLimit(
                         provider, context.pattern())
                 || !batch.exactInputTotal().isEmpty()
@@ -105,8 +105,11 @@ public final class EcoMolecularFastPathAdapter {
                     EcoMolecularBatchModel.counter(batch.remainingTotal()))) {
             return false;
         }
-        try (var molecular = MolecularBatchDispatchContext.open(context.craftingJobId(),
-                context.pattern(), inputs, context.inputCounters(), count, plan);
+        // A verified aggregate preparation can be stock-bounded to one craft,
+        // including a tool's final use. Keep its ECO lease and ordinary recipe
+        // validation, without opening a context reserved for aggregate delivery.
+        try (var molecular = count > 1 ? MolecularBatchDispatchContext.open(context.craftingJobId(),
+                context.pattern(), inputs, context.inputCounters(), count, plan) : null;
                 var remainders = EcoMolecularRemainderContext.open(context.pattern(),
                         inputs, expectedRemainders)) {
             try {

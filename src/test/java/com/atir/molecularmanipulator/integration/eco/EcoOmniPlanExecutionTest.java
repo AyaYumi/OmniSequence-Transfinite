@@ -182,6 +182,67 @@ class EcoOmniPlanExecutionTest {
         assertEquals(6, stock.list.get(IRON));
     }
 
+    @Test void fixedAllocationFollowsReturnedToolDamageButKeepsAllOtherComponentsExact() throws Exception {
+        var identity = UUID.randomUUID();
+        var initial = EcoMolecularTestPattern.tool(0, 5, identity);
+        var returned = EcoMolecularTestPattern.tool(2, 5, identity);
+        var foreign = EcoMolecularTestPattern.tool(2, 5, UUID.randomUUID());
+        var pattern = new EcoMolecularTestPattern(initial, key -> EcoMolecularTestPattern.worn(key, 6));
+        var allocation = new PlannedInputAllocation(0,
+                List.of(new PlannedInputAllocation.Run(initial, 1, 3)));
+        var task = new ECOExecutionPlan.TaskSpec(0, PlanIdentity.patternIdentityFor(pattern), pattern,
+                ECOExecutionPlan.PatternRuntimeInfo.from(pattern), 3, 0,
+                ECOExecutionPlan.TaskKind.DAG, List.of(allocation));
+        var plan = plan(List.of(task), List.of(phase(0, Type.DAG, List.of(0),
+                List.of(), List.of(), Map.of(), Map.of())), ExecutionMode.NATIVE);
+        var fixture = fixture(plan, Map.of(0, BigInteger.valueOf(3)), Map.of(), Map.of());
+        var stock = new ListCraftingInventory(key -> {});
+        stock.insert(initial, 1, Actionable.MODULATE);
+        stock.insert(EcoMolecularTestPattern.MATERIAL, 3, Actionable.MODULATE);
+        var level = EcoMolecularTestPattern.level();
+        var first = fixture.execution.begin(pattern);
+        var inputs = first.extractInputs(stock, level, new KeyCounter(), new KeyCounter());
+        assertNotNull(inputs);
+        first.accepted(BigInteger.ONE, inputs);
+        stock.insert(returned, 1, Actionable.MODULATE);
+        var next = fixture.execution.begin(pattern);
+        var wornInputs = next.extractInputs(stock, level, new KeyCounter(), new KeyCounter());
+        assertNotNull(wornInputs, "Returned wear must not require the original pristine allocation key");
+        assertEquals(1, wornInputs[0].get(returned));
+        assertTrue(next.allowsInputKeys(pattern.first(), Set.of(returned, EcoMolecularTestPattern.MATERIAL), level));
+        assertFalse(next.allowsInputKeys(pattern.first(), Set.of(foreign), level));
+        assertFalse(next.allowsInputKeys(pattern.first(), Set.of(GOLD), level), "Consumables remain allocated");
+        next.accepted(BigInteger.ONE, wornInputs);
+        stock.insert(foreign, 1, Actionable.MODULATE);
+        assertNull(fixture.execution.begin(pattern).extractInputs(stock, level, new KeyCounter(), new KeyCounter()));
+        assertEquals(1, stock.list.get(foreign));
+        assertEquals(1, stock.list.get(EcoMolecularTestPattern.MATERIAL), "Rejected variants must not consume ingredients");
+    }
+
+    @Test void wearVariantsCannotChangeDurabilityOrUnbreakableComponents() throws Exception {
+        var initial = EcoMolecularTestPattern.tool(0, 5, UUID.randomUUID());
+        var pattern = new EcoMolecularTestPattern(initial, key -> EcoMolecularTestPattern.worn(key, 6));
+        var input = pattern.getInputs()[0];
+        var level = EcoMolecularTestPattern.level();
+        var terminal = EcoMolecularTestPattern.worn(EcoMolecularTestPattern.worn(initial, 6), 6);
+        assertTrue(com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters
+                .isDeterministicDamageVariant(input, initial, terminal, level));
+        var changed = ((AEItemKey) terminal).toStack();
+        changed.set(net.minecraft.core.component.DataComponents.MAX_DAMAGE, 0);
+        assertFalse(com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters
+                .isDeterministicDamageVariant(input, initial, AEItemKey.of(changed), level));
+        changed = ((AEItemKey) terminal).toStack();
+        changed.set(net.minecraft.core.component.DataComponents.UNBREAKABLE,
+                new net.minecraft.world.item.component.Unbreakable(true));
+        assertFalse(com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters
+                .isDeterministicDamageVariant(input, initial, AEItemKey.of(changed), level));
+        changed = ((AEItemKey) terminal).toStack();
+        changed.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+                net.minecraft.network.chat.Component.literal("different tool"));
+        assertFalse(com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters
+                .isDeterministicDamageVariant(input, initial, AEItemKey.of(changed), level));
+    }
+
     @Test void deferredStockTransfersOnlyRealExtractionAndEmissionsRemainExpectations() {
         var pattern = pattern(Items.PAPER, IRON, 1, 1);
         var plan = plan(List.of(task(0, pattern, 1, 0)), List.of(phase(0, Type.DAG, List.of(0), List.of(), List.of(), Map.of(), Map.of())), ExecutionMode.NATIVE);

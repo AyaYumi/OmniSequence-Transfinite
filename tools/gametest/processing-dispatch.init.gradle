@@ -1,0 +1,33 @@
+// Real ExtendedAE/Lightning providers -> Mekanism Extras factory, in a disposable world only.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        if (!project.hasProperty('cpuCompatMods')) project.ext.cpuCompatMods = 'thunderbolt,lightning'
+        if (!project.hasProperty('cpuCompatRunName')) project.ext.cpuCompatRunName = 'processing-dispatch'
+        apply from: file('tools/gametest/cpu-compat-runtime.gradle')
+        def regression = sourceSets.create('processingDispatch') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/ProcessingDispatchGameTests.java', '**/AdaptiveDispatchGameTests.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/**'
+            compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output + project.cpuCompatRuntimeFiles
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(regression)
+        def server = neoForge.runs.getByName('gameTestServer')
+        def runDirectory = file('build/' + project.cpuCompatRunName)
+        server.gameDirectory = runDirectory
+        server.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileProcessingDispatchJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                if (!new File(runDirectory, 'logs/latest.log').text.contains('All 12 required tests passed'))
+                    throw new GradleException('Processing dispatch regression did not pass')
+            }
+        }
+    }
+}

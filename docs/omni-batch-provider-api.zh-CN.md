@@ -1,6 +1,6 @@
 # 万物演算批量样板供应器 API v1
 
-对应 2.0.11，Minecraft 1.21.1 / Java 21 / AE2 19.2.17+ / Applied Enhancements 1.1.2+（编译 API 1.1.4）。
+对应 2.0.12，Minecraft 1.21.1 / Java 21 / AE2 19.2.17+ / Applied Enhancements 1.1.2+（编译 API 1.1.4）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 
@@ -13,6 +13,12 @@
 此 SPI 面向“机器自身保存编码样板，并作为 AE2 `ICraftingProvider` 接单”的设备。
 普通供应器本来就能按单份配方使用 AE2；只有希望由万物演算核心或超限算枢一次分配多份完整
 材料时，才需要实现 `OmniBatchCraftingProvider`。
+
+普通供应器可直接通过既有 `pushPattern` 使用自适应推送，多材料配方和自定义实现也适用，
+不需要额外接口。首发为一份原始任务；后续完整调用在同一 tick 按 1、2、4……轮次增长，
+直到供应器忙碌或拒绝接收。之后维持本轮实际成功调用数，满 20 tick 再按基线加
+1、2、4……探测。原生翻倍任务保留原有身份和数量。以下原子批量 SPI 继续负责一次
+带明确份数的整批事务交付。
 
 Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算枢没有新增供应器 ABI 或资源格式。
 

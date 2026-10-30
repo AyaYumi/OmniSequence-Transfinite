@@ -21,3 +21,11 @@ source files or assets are included in this project.
 
 All resources distributed under the `molecularmanipulator` namespace are
 project-authored assets released under the project license.
+
+## NeoForged MDK template
+
+The Gradle wrapper, `build.gradle`, `settings.gradle` and `gradle.properties`
+derive from the NeoForged Mod Development Kit (MDK) template.
+Copyright (c) 2023 NeoForged project. These template-derived files are licensed
+under the [MIT License](LICENSE), whose full permission and warranty text is
+bundled alongside this notice.

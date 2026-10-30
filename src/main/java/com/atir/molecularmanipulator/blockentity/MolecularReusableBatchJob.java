@@ -4,6 +4,7 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
+import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.DamageGroup;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputMode;
@@ -228,7 +229,8 @@ final class MolecularReusableBatchJob {
                 return null;
             }
             UUID craftingId = tag.getUUID(CRAFTING_ID_TAG);
-            AEItemKey definition = AEItemKey.fromTag(tag.getCompound(PATTERN_TAG));
+            AEItemKey definition = AEItemKey.fromTag(
+                    tag.getCompound(PATTERN_TAG));
             long totalCrafts = tag.getLong(TOTAL_CRAFTS_TAG);
             long completedCrafts = tag.getLong(COMPLETED_CRAFTS_TAG);
             if (definition == null || totalCrafts <= 1
@@ -245,8 +247,7 @@ final class MolecularReusableBatchJob {
                 var inputTag = inputList.getCompound(index);
                 InputMode mode = InputMode.valueOf(inputTag.getString(MODE_TAG));
                 AEKey initialKey = readKey(inputTag, INITIAL_KEY_TAG);
-                AEKey finalKey = inputTag.contains(FINAL_KEY_TAG, Tag.TAG_COMPOUND)
-                        ? readKey(inputTag, FINAL_KEY_TAG) : null;
+                AEKey finalKey = readOptionalKey(inputTag, FINAL_KEY_TAG);
                 long amountPerCraft = inputTag.getLong(AMOUNT_PER_CRAFT_TAG);
                 if (mode == null || initialKey == null
                         || amountPerCraft <= 0) {
@@ -260,7 +261,9 @@ final class MolecularReusableBatchJob {
                     plans[index] = new InputPlan(initialKey, amountPerCraft,
                             mode, finalKey);
                     if (!isValidLegacyAmount(inputTag, mode,
-                            amountPerCraft, totalCrafts, completedCrafts)) {
+                            amountPerCraft, totalCrafts, completedCrafts)
+                            || mode == InputMode.INVARIANT_REUSABLE
+                                    && !initialKey.equals(readKey(inputTag, CURRENT_KEY_TAG))) {
                         return null;
                     }
                 }
@@ -277,11 +280,24 @@ final class MolecularReusableBatchJob {
                 return null;
             }
             for (var entry : primaryOutputs.object2LongEntrySet()) {
-                Math.multiplyExact(entry.getLongValue(),
-                        totalCrafts - completedCrafts);
+                Math.multiplyExact(entry.getLongValue(), totalCrafts);
             }
-            return new MolecularReusableBatchJob(craftingId, definition,
+            var restored = new MolecularReusableBatchJob(craftingId, definition,
                     totalCrafts, completedCrafts, plans, primaryOutputs);
+            // Validate aggregate checkpoints before the machine acquires this
+            // state. Invalid NBT stays quarantined with all original contents.
+            restored.projectedFinalRemainders();
+            restored.cancellationRefunds();
+            var initialRefunds = new Object2LongOpenHashMap<AEKey>();
+            for (var input : plans) {
+                if (input.mode() == InputMode.CONSUMABLE) {
+                    addChecked(initialRefunds, input.initialKey(),
+                            Math.multiplyExact(input.amountPerCraft(), totalCrafts));
+                } else {
+                    addCheckpointRemainders(initialRefunds, input, 0);
+                }
+            }
+            return restored;
         } catch (RuntimeException exception) {
             return null;
         }
@@ -316,23 +332,28 @@ final class MolecularReusableBatchJob {
 
         var groupTags = inputTag.getList(
                 DAMAGE_GROUPS_TAG, Tag.TAG_COMPOUND);
-        if (!groupTags.isEmpty()) {
+        if (inputTag.contains(DAMAGE_GROUPS_TAG)) {
+            if (groupTags.isEmpty()) {
+                return null;
+            }
             var groups = new ArrayList<DamageGroup>(groupTags.size());
             for (var entry : groupTags) {
                 var groupTag = (CompoundTag) entry;
-                AEKey groupInitial = readKey(groupTag, INITIAL_KEY_TAG);
-                AEKey groupFinal = groupTag.contains(
-                        FINAL_KEY_TAG, Tag.TAG_COMPOUND)
-                                ? readKey(groupTag, FINAL_KEY_TAG)
-                                : null;
+                AEKey groupInitial = readKey(
+                        groupTag, INITIAL_KEY_TAG);
+                AEKey groupFinal = readOptionalKey(groupTag, FINAL_KEY_TAG);
                 if (!(groupInitial instanceof AEItemKey groupInitialItem)
                         || groupFinal != null
                                 && !(groupFinal instanceof AEItemKey)) {
                     return null;
                 }
+                long uses = groupTag.getLong(USES_PER_TOOL_TAG);
+                if (uses > MolecularReusableInputAdapters.physicalUses(groupInitialItem)
+                        || uses > MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS) {
+                    return null;
+                }
                 groups.add(new DamageGroup(groupInitialItem,
-                        groupTag.getLong(COUNT_TAG),
-                        groupTag.getLong(USES_PER_TOOL_TAG),
+                        groupTag.getLong(COUNT_TAG), uses,
                         (AEItemKey) groupFinal));
             }
             var result = InputPlan.deterministicDamage(groups);
@@ -346,6 +367,8 @@ final class MolecularReusableBatchJob {
                         : null;
         long remainingAmount = inputTag.getLong(REMAINING_AMOUNT_TAG);
         if (!(currentKey instanceof AEItemKey)
+                || totalCrafts > MolecularReusableInputAdapters.physicalUses(initialItem)
+                || totalCrafts > MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS
                 || legacyFinalKey != null
                         && !(legacyFinalKey instanceof AEItemKey)
                 || remainingAmount != 1
@@ -393,7 +416,19 @@ final class MolecularReusableBatchJob {
     @Nullable
     private static AEKey readKey(CompoundTag parent, String name) {
         var stack = GenericStack.readTag(parent.getCompound(name));
-        return stack == null ? null : stack.what();
+        return stack == null || stack.amount() != 1 ? null : stack.what();
+    }
+
+    @Nullable
+    private static AEKey readOptionalKey(CompoundTag parent, String name) {
+        if (!parent.contains(name)) {
+            return null;
+        }
+        var key = readKey(parent, name);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid persisted reusable key: " + name);
+        }
+        return key;
     }
 
     private static ListTag writeMap(Object2LongOpenHashMap<AEKey> values) {

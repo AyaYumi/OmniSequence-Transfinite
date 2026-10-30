@@ -7,5 +7,7 @@ public interface MolecularMatrixCluster {
 
     boolean molecularmanipulator$hasCore();
 
+    long molecularmanipulator$getBatchLimit();
+
     void molecularmanipulator$flushOutputsAfterCpuAccounting();
 }

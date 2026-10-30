@@ -1,6 +1,6 @@
 # 万物演算批量样板供应器 API v1
 
-对应 2.0.9-forge，Minecraft 1.20.1 / Java 17 / AE2 15.4.10 / UELM 15.5.4 / Applied Enhancements 1.1.1-forge+（本次配套 1.1.1）。
+对应 2.0.11-forge，Minecraft 1.20.1 / Java 17 / AE2 15.4.10 / Applied Enhancements 1.1.2-forge+（编译 API 为 1.1.4-forge）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 
@@ -126,16 +126,15 @@ API 中没有任何特定模组的类名或硬编码适配。第三方应把 Omn
 `beginDispatch(actualInputs, actualCrafts)`，持久所有权移交时确认 `accepted()`。
 拒绝后关闭事务会恢复循环记账；CPU 仍负责退回自己持有的实物。库存为 null 时
 本次不可发配，`maximumCrafts()` 只表示当前阶段上限，不保证材料或队列容量。
-该共享接口支持 AES 1.1.0+，不要在首次抽料后重新获取上下文。
+支持的 AES Forge 运行时为 1.1.2-forge 或更新版本；不要在首次抽料后重新获取上下文。
 
 完整记录主产物与所有物品、流体副产物。优化或外部批量包装不可识别时，保留
 原始完整任务账本并回退普通规划/发配，不能因副产物直接中断规划，也不能将
 long 预览窗口当成完整订单。供应器仍须满足真实材料、容量和持久所有权契约。
 
-AES 1.1.1 新接入可通过 `AelisSmartDoublingApi.isExternallyManaged(pattern)`
+使用支持的 AES Forge 运行时接入时，通过 `AelisSmartDoublingApi.isExternallyManaged(pattern)`
 判断是否已由外部管理倍率。保留原生样板包装、供应器分配与原样板尾数，避免
-再次倍增；仅安装附属不会让全部样板绕过本地处理。该查询不代表所有权或大数执行能力，
-仅在 1.1.1 运行时存在时加载这些新增类型。
+再次倍增；仅安装附属不会让全部样板绕过本地处理。该查询不代表所有权或大数执行能力。
 
 ## Forge 可选原生 CPU API
 
@@ -151,11 +150,11 @@ AES 1.1.1 新接入可通过 `AelisSmartDoublingApi.isExternallyManaged(pattern)
 原生计数派发跳过本地智能翻倍。外部倍率样板仍按完整输入/输出比例处理，接收的批次
 保存完整材料向量；容量查询不移交材料，也不授权额外倍增。
 
-`src/optionalCpuApi` 是供 Java 17 编译使用的签名声明，不进入运行时或发布 JAR；
-不要复制或嵌入其他模组。仅安装附属不足以启用新版接口：ECO/Thunderbolt 的 Mixin
-还检查公开接口是否存在，Data Energistics 契约不可用时保留普通 AE 派发。
-该回退无法修复附属自身不兼容的 CPU Mixin。Forge ECO 20.4.2 没有新版 fast-path API；
-此文档不宣称其他新版契约的最低 Forge 发布版本。
+ECO 使用真实 Forge **20.5.0** API 编译，只有该版本或更高版本才启用兼容。
+`src/optionalCpuApi` 为其他可选接口提供 Java 17 编译签名，不进入运行时或发布 JAR。
+Thunderbolt 还须提供公开批量接口；Data Energistics 契约不可用时保留普通 AE 派发。
+这些 Forge 依赖没有 legacy 的 Thunderbolt 原生执行器与 Trinity 计数 CPU 契约，
+因此本移植不提供对应执行器钩子。匹配的 Forge 附属需单独安装。
 
 ## 大数能力
 

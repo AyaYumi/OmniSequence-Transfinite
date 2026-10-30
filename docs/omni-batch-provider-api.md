@@ -2,8 +2,8 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.0.9-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10 / UELM 15.5.4
-and Applied Enhancements 1.1.1-forge+ (paired release 1.1.2-forge). The runtime ABI remains **1**.
+Current for OmniSequence 2.0.11-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10
+and Applied Enhancements 1.1.2-forge+ (build API 1.1.4-forge). The runtime ABI remains **1**.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -255,8 +255,9 @@ inputs and refunds. Open `beginDispatch(actualInputs, actualCrafts)` before
 provider delivery; call `accepted()` at durable ownership transfer. Closing a
 rejected dispatch restores cycle accounting, while the CPU refunds still-owned
 physical inputs. A null inventory declines this attempt; `maximumCrafts()` is a
-phase bound and does not promise materials or queue capacity. The shared context
-is available in AES 1.1.0+ and must not be reacquired after the first extraction.
+phase bound and does not promise materials or queue capacity. The supported AES
+Forge runtime is 1.1.2-forge or later; do not reacquire the shared context after the
+first extraction.
 
 Retain every expected output, including item/fluid byproducts. Unsupported
 optimization or an unreadable external batch wrapper must preserve the complete
@@ -264,12 +265,12 @@ original task ledger and permit ordinary planning/dispatch. It must not turn a
 secondary output into a planning exception or truncate work to a long preview.
 Providers still enforce actual material ownership and capacity.
 
-For new integrations using AES 1.1.1, query
+For integrations using the supported AES Forge runtime, query
 `AelisSmartDoublingApi.isExternallyManaged(pattern)` before adding a local scale.
 Preserve native enabled patterns, existing external wrappers, provider splits
 and the original-pattern remainder. An installed addon alone does not enable
 this bypass. The query describes external management, not ownership or exact
-execution support; load 1.1.1-only types only with that runtime present.
+execution support.
 
 ## Optional native CPU APIs on Forge
 
@@ -289,13 +290,14 @@ still retain their complete input/output ratio; an accepted batch persists the
 entire material vector. Capacity queries do not transfer inputs or authorize an
 additional material multiplier.
 
-Compile-only declarations under `src/optionalCpuApi` supply Java 17 signatures;
-they are excluded from runtime classpaths and release JARs. Do not copy or shade
-them into another mod. Mod presence alone is insufficient: ECO/Thunderbolt Mixin
-activation also checks for the public interface, and unavailable Data Energistics
-contracts leave ordinary AE dispatch available. A fallback cannot repair an
-addon's own incompatible CPU Mixins. Forge ECO 20.4.2 lacks the new fast-path API;
-no minimum Forge release for the other new contracts is asserted here.
+ECO is compiled against the real Forge **20.5.0** API and its integration is enabled
+only for that version or newer. Compile-only declarations under `src/optionalCpuApi`
+supply the other optional Java 17 signatures; they are excluded from runtime
+classpaths and release JARs. Thunderbolt also requires its public batch interface;
+unavailable Data Energistics contracts leave ordinary AE dispatch available.
+The legacy Thunderbolt native executor and Trinity counted-CPU contract are absent
+from these Forge dependencies, so this port provides no corresponding executor hooks.
+Install matching Forge addons separately.
 
 ## Exact-count capabilities
 

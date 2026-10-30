@@ -116,6 +116,34 @@ public final class MolecularReusableInputAdapters {
         }
     }
 
+    /**
+     * A planned reusable input keeps its item, tags and capabilities while its
+     * damage changes between batches. Both concrete states must still satisfy
+     * the recipe's input and deterministic remainder rules.
+     */
+    public static boolean isDeterministicDamageVariant(IPatternDetails.IInput input,
+            AEKey template, AEKey candidate, Level level) {
+        if (!(template instanceof AEItemKey templateItem)
+                || !(candidate instanceof AEItemKey candidateItem)) {
+            return false;
+        }
+        var templateStack = templateItem.toStack();
+        var candidateStack = candidateItem.toStack();
+        if (!hasFiniteMutableDurability(templateStack)
+                || !hasFiniteMutableDurability(candidateStack)) {
+            return false;
+        }
+        templateStack.setDamageValue(0);
+        candidateStack.setDamageValue(0);
+        if (!AEItemKey.of(templateStack).equals(AEItemKey.of(candidateStack))) {
+            return false;
+        }
+        var initial = analyze(input, template, level, 1);
+        return initial.mode() == Mode.DETERMINISTIC_DAMAGE && initial.finalKey() != null
+                && physicalUses(candidate) > 0
+                && analyze(input, candidate, level, 1).mode() == Mode.DETERMINISTIC_DAMAGE;
+    }
+
     public static boolean isExactDamageStep(AEKey current, AEKey next) {
         if (!(current instanceof AEItemKey currentItem)
                 || !(next instanceof AEItemKey nextItem)) {

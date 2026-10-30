@@ -75,7 +75,6 @@ class SingularityStructureEffectsTest {
     void lowDetailCutsGeometryAndAmbientClockWrapIsStable() {
         var reduced = render(0, false, null);
         var full = render(0, true, null);
-        System.out.println("TIANYI_VERTEX_COUNTS full=" + full.vertices().size() + " reduced=" + reduced.vertices().size());
         assertTrue(reduced.vertices().size() * 2 < full.vertices().size());
         assertEquals(full.vertices(), render(24000, true, null).vertices());
         assertNotEquals(full.vertices(), render(40, true, null).vertices(), "Ambient geometry must animate");

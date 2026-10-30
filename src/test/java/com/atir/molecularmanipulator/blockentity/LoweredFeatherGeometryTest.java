@@ -5,13 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure.Part;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure.PartType;
-import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure.StructureLayout;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import org.junit.jupiter.api.Test;
 
 class LoweredFeatherGeometryTest {
@@ -40,8 +35,6 @@ class LoweredFeatherGeometryTest {
         assertEquals(32, parts.stream().mapToInt(Part::y).max().orElseThrow());
     }
 
-
-
     @Test
     void currentHeightLimitsUseSixBlocksBelowAndTwentyTwoAbove() {
         int[][] dimensions = {{-64, 320, -58, 297}, {0, 256, 6, 233}, {0, 384, 6, 361}};
@@ -56,14 +49,5 @@ class LoweredFeatherGeometryTest {
             assertTrue(parts.stream().anyMatch(p -> minimum - 1 + p.y() - 10 < bounds[0]));
             assertTrue(parts.stream().anyMatch(p -> maximum + 1 + p.y() - 10 >= bounds[1]));
         }
-    }
-
-    @Test
-    void exportCurrentLoweredCoordinatesForVisualInspection() throws Exception {
-        Path output = Path.of("build/reports/lowered-feather/parts.json");
-        Files.createDirectories(output.getParent());
-        Files.writeString(output, MolecularCenterStructure.parts().stream()
-                .map(p -> "[" + p.x() + "," + p.y() + "," + p.z() + ",\"" + p.partType() + "\"]")
-                .collect(Collectors.joining(",\n", "[\n", "\n]\n")));
     }
 }

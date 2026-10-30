@@ -12,6 +12,7 @@ import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvi
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public final class MolecularBatchDispatchSafety {
     private MolecularBatchDispatchSafety() {
@@ -107,17 +108,19 @@ public final class MolecularBatchDispatchSafety {
     public static List<BatchOffer> getAvailableBatchOffers(CraftingService craftingService,
             IPatternDetails patternDetails, KeyCounter[] firstInputs,
             Predicate<ICraftingProvider> supportsProvider) {
+        return getAvailableBatchOffers(() -> craftingService.getProviders(patternDetails),
+                patternDetails, firstInputs, supportsProvider);
+    }
+
+    public static List<BatchOffer> getAvailableBatchOffers(
+            Supplier<? extends Iterable<ICraftingProvider>> providers,
+            IPatternDetails patternDetails, KeyCounter[] firstInputs,
+            Predicate<ICraftingProvider> supportsProvider) {
         try {
-            if (!isBatchablePattern(patternDetails)) {
-                return List.of();
-            }
-
-            var providers = craftingService.getProviders(patternDetails);
-            if (providers == null) {
-                return List.of();
-            }
-
-            var iterator = providers.iterator();
+            if (!isBatchablePattern(patternDetails)) return List.of();
+            var snapshot = providers.get();
+            if (snapshot == null) return List.of();
+            var iterator = snapshot.iterator();
             var offers = new ArrayList<BatchOffer>();
             while (iterator.hasNext()) {
                 var provider = iterator.next();

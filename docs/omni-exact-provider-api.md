@@ -1,6 +1,6 @@
 # Exact-count provider API / 大数供应器接口
 
-Current source: Minecraft 1.20.1, 2.0.9-forge, Java 17, AE2 15.4.10 / UELM 15.5.4, Applied Enhancements 1.1.1-forge+ (paired release 1.1.2-forge).
+Current source: Minecraft 1.20.1, 2.0.11-forge, Java 17, AE2 15.4.10, Applied Enhancements 1.1.2-forge+ (build API 1.1.4-forge).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is
@@ -80,9 +80,10 @@ the current documented method signatures and isolate optional class loading.
 
 ## Complete plans and secondary outputs
 
-With AES 1.1.1, read `AelisExactCraftingPlanApi.read(plan)` and its
-`executionRequirement()` before building an exact CPU ledger. On the supported
-1.1.0 runtime, use the existing exact quantity getters. Exact pattern counts are
+With the supported AES Forge runtime (1.1.2-forge or later), read
+`AelisExactCraftingPlanApi.read(plan)` and its `executionRequirement()` before
+building an exact CPU ledger. The default build uses the 1.1.4-forge API.
+Exact pattern counts are
 a complete replacement ledger, not an additive overflow patch; do not merge them
 with the long task map. Keep the returned plan from metadata attachment/copying.
 
@@ -110,8 +111,9 @@ execution support. Cancellation and rollback still follow material ownership.
 所有资源同时提交的保证。扣减回调必须可靠完成且不能抛出异常。调用方负责权限、
 线程、数据持久化和具体第三方机器的语义。
 
-AES 1.1.1 可通过 `AelisExactCraftingPlanApi.read(plan)` 与结构化能力查询读取完整计划；
-最低兼容的 1.1.0 使用原有精确数量读取方法。精确样板次数替换 long 任务表，不能叠加。
+在支持的 AES Forge 运行时（1.1.2-forge 或更新版本）中，通过
+`AelisExactCraftingPlanApi.read(plan)` 与结构化能力查询读取完整计划；默认使用
+1.1.4-forge 的 API 编译。精确样板次数替换 long 任务表，不能叠加。
 保留元数据接口返回的计划、原生包装身份、整批与原样板尾数。可选改写无法换算时
 继续原始完整工作量；主产物和副产物逐 AEKey 记账，按真实接收数量报告，不能用
 计划产量代替已经交付的产量。long 投影饱和不等于拒绝，也不保证 CPU 具备精确执行能力。

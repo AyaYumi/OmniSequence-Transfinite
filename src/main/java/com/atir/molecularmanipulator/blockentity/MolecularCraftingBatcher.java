@@ -8,6 +8,7 @@ import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.menu.AutoCraftingMenu;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.integration.eco.EcoMolecularRemainderContext;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.world.inventory.TransientCraftingContainer;
@@ -101,6 +102,8 @@ final class MolecularCraftingBatcher {
         if (expectedPrimaryPerCraft == null) {
             return false;
         }
+        var expectedRemainders = EcoMolecularRemainderContext.expected(
+                patternDetails, inputs);
         var selectedPrimaryOutputs = new Object2LongOpenHashMap<AEKey>();
         var selectedRemainderOutputs = new Object2LongOpenHashMap<AEKey>();
         ItemStack selectedCraftedOutput = ItemStack.EMPTY;
@@ -150,10 +153,13 @@ final class MolecularCraftingBatcher {
                     return failSelectedPreparation();
                 }
                 for (var remainder : pattern.getRemainingItems(craftingInput)) {
-                    // A non-reusable expanded context is admitted only when AE2's
-                    // actual-key analysis reported no crafting remainder. Do not
-                    // invent untracked byproducts if a contextual recipe disagrees.
-                    if (!remainder.isEmpty()) {
+                    // Only an explicit ECO contract may carry linear
+                    // containers. Verify the complete actual remainder total
+                    // before any machine acquires ownership.
+                    if (!remainder.isEmpty()
+                            && (expectedRemainders == null
+                                    || !addScaledOutput(selectedRemainderOutputs,
+                                            remainder, consumption.repeats()))) {
                         return failSelectedPreparation();
                     }
                 }
@@ -176,7 +182,10 @@ final class MolecularCraftingBatcher {
         if (completedCrafts != selectedCraftCount
                 || !allInputsEmpty(remainingInputs)
                 || selectedGrid == null
-                || selectedPrimaryOutputs.isEmpty()) {
+                || selectedPrimaryOutputs.isEmpty()
+                || expectedRemainders != null
+                        && !EcoMolecularRemainderContext.matches(expectedRemainders,
+                                selectedRemainderOutputs.object2LongEntrySet())) {
             return failSelectedPreparation();
         }
 

@@ -3,27 +3,57 @@ package com.atir.molecularmanipulator.crafting;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.hooks.ticking.TickHandler;
+import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider.PushResult;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.LongSupplier;
 
 /**
  * Learns one safe, complete-recipe batch size for each job/provider/pattern.
  *
  * <p>The probe grows as {@code 1, 2, 4, ...} across server ticks while complete
- * batches are accepted. Each provider/pattern pair may advance at most one
- * growth step per tick; the doubled size only becomes available on the next
- * tick. After rejection, the last successful size remains the next tick's
- * baseline. Single-only compatibility dispatch keeps its separate per-tick
- * quota. A provider-owned remainder queue blocks further pushes until it
- * drains.</p>
+ * batches are accepted. Growth and stable dispatch are separate: at most one
+ * growth step is admitted per provider/pattern pair per tick, while a verified
+ * batch may be repeated in the same tick only when the provider explicitly
+ * supports repeated scaled delivery ({@link MolecularScaledBatchProvider} and
+ * its {@code supportsScaledBatch} contract). Ordinary providers still receive
+ * at most one adaptive push per tick. Queued, unverified and rejected pushes
+ * keep their same-tick backpressure.</p>
+ *
+ * <p>A rejection records a transient upper bound. Repeated successful batches
+ * below that bound recover with small, spaced probes instead of causing a
+ * success/failure doubling oscillation. A failed growth probe retains the
+ * last verified size; rejection at that size backs off by 1/8, then 1/4 and
+ * finally 1/2 on consecutive failed ticks. Because rejection is not proof of
+ * a capacity limit, the bound expires after
+ * {@link #TRANSIENT_FAILURE_COOLDOWN_TICKS}, without resuming doubling.
+ * A separately forced single-only decision, such as a status-accounting
+ * mismatch, stays permanent until the active job changes.</p>
  */
 public final class MolecularAdaptiveBatchController {
+    /**
+     * Number of server ticks a rejection-derived upper bound remains in force.
+     * After expiry the next verified batch may resume the growth probe.
+     */
+    static final long TRANSIENT_FAILURE_COOLDOWN_TICKS = 200L;
+    static final long RECOVERY_PROBE_INTERVAL_TICKS = 20L;
+
     private final Map<ICraftingProvider, Map<IPatternDetails, State>> states =
             new IdentityHashMap<>();
+    private final LongSupplier tickSupplier;
     private Object activeJob;
     private long attemptSequence;
+
+    public MolecularAdaptiveBatchController() {
+        this(() -> TickHandler.instance().getCurrentTick());
+    }
+
+    MolecularAdaptiveBatchController(LongSupplier tickSupplier) {
+        this.tickSupplier = Objects.requireNonNull(tickSupplier, "tickSupplier");
+    }
 
     public void setActiveJob(Object job) {
         if (activeJob == job) {
@@ -41,8 +71,34 @@ public final class MolecularAdaptiveBatchController {
         }
 
         var state = getState(provider, patternDetails);
+        var tick = currentTick();
         state.applyLimit(maxWindow);
-        return state.isBlocked(currentTick()) ? 0 : state.nextBatch();
+        state.expireTransientFailure(tick);
+        if (state.isBlocked(tick)) {
+            return 0;
+        }
+        if (state.lastAcceptedTick == tick
+                && (!state.repeatVerified || !supportsStableRepeat(provider, patternDetails))) {
+            // The target path can change after a successful push in this tick.
+            // An earlier capability result cannot authorize another delivery.
+            state.repeatVerified = false;
+            state.block(tick);
+            return 0;
+        }
+        if (state.singleOnly) {
+            return 1;
+        }
+
+        long candidate = state.effectiveNextBatch(tick);
+        if (candidate > state.stableBatch && state.lastGrowthTick == tick) {
+            // This tick already consumed its one growth step for this pair.
+            // Only a previously verified full batch may be repeated now.
+            if (!state.repeatVerified || state.stableBatch <= 0) {
+                return 0;
+            }
+            return Math.max(1, Math.min(state.stableBatch, state.maxWindow));
+        }
+        return Math.max(1, candidate);
     }
 
     public long getLastAttemptOrder(ICraftingProvider provider, IPatternDetails patternDetails) {
@@ -76,17 +132,28 @@ public final class MolecularAdaptiveBatchController {
         var tick = currentTick();
         var state = getState(provider, patternDetails);
         state.lastAttemptOrder = nextAttemptOrder();
-        state.lastAccepted = acceptedCrafts;
+        state.lastAcceptedTick = tick;
+        if (result != PushResult.REJECTED) {
+            // Accepted ownership ends a run of failed deliveries even when it
+            // cannot establish a verified stable size or authorize repeats.
+            state.consecutiveRejections = 0;
+        }
 
         if (result == PushResult.ACCEPTED_QUEUED) {
-            state.nextBatch = Math.min(state.maxWindow, Math.max(1, acceptedCrafts));
-            state.probing = false;
+            // The provider still owns a remainder queue. Do not repeat within
+            // this tick and do not advertise the queued batch as a stable one.
+            state.repeatVerified = false;
+            state.nextBatch = state.capByTransientFailure(
+                    Math.max(1, acceptedCrafts));
             state.block(tick);
             return;
         }
         if (result == PushResult.ACCEPTED_UNVERIFIED) {
+            // Ownership/accounting could not be verified. Forget the learned
+            // stable size and regrow conservatively from one.
+            state.stableBatch = 0;
             state.nextBatch = 1;
-            state.probing = false;
+            state.repeatVerified = false;
             state.block(tick);
             return;
         }
@@ -94,24 +161,52 @@ public final class MolecularAdaptiveBatchController {
             onRejected(provider, patternDetails, requestedCrafts);
             return;
         }
+
         if (state.singleOnly) {
             state.nextBatch = 1;
-            state.probing = false;
-            state.unblock();
+            state.repeatVerified = supportsStableRepeat(provider, patternDetails);
+            if (state.repeatVerified) {
+                state.unblock();
+            } else {
+                state.block(tick);
+            }
             return;
         }
 
-        long doubled = saturatingDouble(acceptedCrafts);
-        if (acceptedCrafts < requestedCrafts) {
-            // Inventory or energy, rather than the target, limited this attempt.
-            state.nextBatch = Math.min(state.maxWindow, Math.max(requestedCrafts, doubled));
-            state.probing = false;
-            state.block(tick);
+        long previousStable = state.stableBatch;
+        if (acceptedCrafts > previousStable) {
+            state.stableBatch = acceptedCrafts;
+            state.lastGrowthTick = tick;
+            if (state.recovering) {
+                state.nextRecoveryProbeTick = saturatingAdd(tick, RECOVERY_PROBE_INTERVAL_TICKS);
+            }
         } else {
-            state.nextBatch = Math.min(state.maxWindow, doubled);
-            // Grow only across ticks. The next tick may try the doubled batch,
-            // but this provider/pattern pair cannot immediately run 1, 2, 4, ...
-            // in the same server tick.
+            state.stableBatch = Math.max(previousStable, acceptedCrafts);
+        }
+
+        // A success at or above the remembered failure bound disproves the
+        // transient limit immediately; no cooldown is needed in that case.
+        if (acceptedCrafts >= state.transientFailureLimit) {
+            state.clearTransientFailure();
+        }
+
+        if (state.recovering) {
+            // Congestion recovery must not return to exponential probing just
+            // because a timer expired or a smaller batch worked.
+            state.nextBatch = state.recoveryTarget(state.stableBatch);
+        } else {
+            // Keep a learned probe target even when a transient maxWindow was
+            // smaller than this accepted batch. getAvailableCrafts applies the
+            // current window without destroying the learned target.
+            state.nextBatch = max(requestedCrafts,
+                    saturatingDouble(acceptedCrafts),
+                    saturatingDouble(state.stableBatch));
+        }
+
+        state.repeatVerified = supportsStableRepeat(provider, patternDetails);
+        if (state.repeatVerified) {
+            state.unblock();
+        } else {
             state.block(tick);
         }
     }
@@ -128,7 +223,6 @@ public final class MolecularAdaptiveBatchController {
         }
         var state = getState(provider, patternDetails);
         state.enterSingleOnly();
-        state.lastAccepted = 0;
         state.block(currentTick());
     }
 
@@ -138,22 +232,60 @@ public final class MolecularAdaptiveBatchController {
             return;
         }
 
+        var tick = currentTick();
         var state = getState(provider, patternDetails);
         state.lastAttemptOrder = nextAttemptOrder();
-        if (attemptedCrafts > 1 && state.lastAccepted == 1) {
-            state.enterSingleOnly();
-            state.block(currentTick());
+        state.repeatVerified = false;
+        if (state.lastRejectionTick == tick && state.isBlocked(tick)) {
             return;
         }
-        long next;
-        if (state.lastAccepted > 0 && attemptedCrafts > state.lastAccepted) {
-            next = state.lastAccepted;
+        state.recovering = true;
+        state.consecutiveRejections = Math.min(3, state.consecutiveRejections + 1);
+        state.lastRejectionTick = tick;
+        state.nextRecoveryProbeTick = saturatingAdd(tick, RECOVERY_PROBE_INTERVAL_TICKS);
+        state.rememberTransientFailure(attemptedCrafts, tick);
+
+        long fallback;
+        if (state.stableBatch > 0 && attemptedCrafts > state.stableBatch) {
+            fallback = state.stableBatch;
         } else {
-            next = Math.max(1, attemptedCrafts / 2);
+            fallback = rejectionBackoff(attemptedCrafts, state.consecutiveRejections);
+            if (state.stableBatch > fallback) {
+                // A failure at or below the historical stable size means that
+                // size is not currently trusted. Recover from the reduced
+                // fallback instead of jumping straight back to the old probe.
+                state.stableBatch = fallback;
+            }
         }
-        state.nextBatch = Math.min(state.maxWindow, next);
-        state.probing = false;
-        state.block(currentTick());
+        state.nextBatch = state.capByTransientFailure(fallback);
+        state.block(tick);
+    }
+
+    /** Busy is backpressure, not evidence that the batch is too large. */
+    public void onBusy(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (provider != null && patternDetails != null) {
+            var state = getState(provider, patternDetails);
+            state.lastAttemptOrder = nextAttemptOrder();
+            state.block(currentTick());
+        }
+    }
+
+    /** Recheck busy after a rejected push; availability can change since selection. */
+    public void onProviderRejected(ICraftingProvider provider, IPatternDetails patternDetails,
+            long attemptedCrafts) {
+        if (provider == null || patternDetails == null || attemptedCrafts <= 0) {
+            return;
+        }
+        try {
+            if (provider.isBusy()) {
+                onBusy(provider, patternDetails);
+                return;
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            // An unavailable busy signal cannot authorize a retry this tick.
+            // Retain the ordinary conservative rejection feedback instead.
+        }
+        onRejected(provider, patternDetails, attemptedCrafts);
     }
 
     private long nextAttemptOrder() {
@@ -173,12 +305,45 @@ public final class MolecularAdaptiveBatchController {
         return providerStates.computeIfAbsent(patternDetails, ignored -> new State());
     }
 
-    private static long currentTick() {
-        return TickHandler.instance().getCurrentTick();
+    private long currentTick() {
+        return tickSupplier.getAsLong();
+    }
+
+    private static boolean supportsStableRepeat(ICraftingProvider provider,
+            IPatternDetails patternDetails) {
+        if (!(provider instanceof MolecularScaledBatchProvider scaledProvider)) {
+            // Unknown providers do not explicitly promise that two scaled
+            // pushes in one tick are independent and safe.
+            return false;
+        }
+        try {
+            return scaledProvider.molecularmanipulator$supportsScaledBatch(patternDetails);
+        } catch (RuntimeException | LinkageError exception) {
+            // Unknown capability must not authorize repeated delivery.
+            return false;
+        }
     }
 
     private static long saturatingDouble(long value) {
         return value > Long.MAX_VALUE / 2 ? Long.MAX_VALUE : Math.max(1, value * 2);
+    }
+
+    private static long recoveryGrowth(long value) {
+        return saturatingAdd(value, Math.max(1, value / 16));
+    }
+
+    private static long rejectionBackoff(long value, int failures) {
+        int divisor = failures <= 1 ? 8 : failures == 2 ? 4 : 2;
+        long reduction = value / divisor + (value % divisor == 0 ? 0 : 1);
+        return Math.max(1, value - reduction);
+    }
+
+    private static long saturatingAdd(long value, long increment) {
+        return value > Long.MAX_VALUE - increment ? Long.MAX_VALUE : value + increment;
+    }
+
+    private static long max(long first, long second, long third) {
+        return Math.max(first, Math.max(second, third));
     }
 
     /**
@@ -206,7 +371,23 @@ public final class MolecularAdaptiveBatchController {
         if (provider == null || patternDetails == null) {
             return;
         }
-        getState(provider, patternDetails).block(currentTick());
+        onBusy(provider, patternDetails);
+    }
+
+    public void onReusableProviderRejected(ICraftingProvider provider,
+            IPatternDetails patternDetails, long attemptedCrafts) {
+        if (provider == null || patternDetails == null || attemptedCrafts <= 0) {
+            return;
+        }
+        try {
+            if (provider.isBusy()) {
+                onReusableBusy(provider, patternDetails);
+                return;
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            // Unknown availability retains conservative rejection feedback.
+        }
+        onReusableRejected(provider, patternDetails, attemptedCrafts);
     }
 
     public void onReusableRejected(ICraftingProvider provider,
@@ -215,34 +396,123 @@ public final class MolecularAdaptiveBatchController {
             return;
         }
         var state = getState(provider, patternDetails);
+        var tick = currentTick();
+        if (state.lastReusableRejectionTick == tick && state.isBlocked(tick)) {
+            return;
+        }
+        state.reusableRejections = Math.min(3, state.reusableRejections + 1);
+        state.lastReusableRejectionTick = tick;
         long reference = Math.min(state.reusableWindowCap, attemptedCrafts);
-        state.reusableWindowCap = Math.max(1, reference / 2);
-        state.block(currentTick());
+        state.reusableWindowCap = rejectionBackoff(reference, state.reusableRejections);
+        state.block(tick);
+    }
+
+    public void onReusableAccepted(ICraftingProvider provider, IPatternDetails patternDetails) {
+        if (provider != null && patternDetails != null) {
+            getState(provider, patternDetails).reusableRejections = 0;
+        }
     }
 
     private static final class State {
+        /** Next probe target; may exceed the transient maxWindow. */
         private long nextBatch = 1;
-        private long lastAccepted;
+        /** Last fully accepted batch size that may be safely repeated. */
+        private long stableBatch;
         private long maxWindow = Long.MAX_VALUE;
         private long reusableWindowCap = Long.MAX_VALUE;
+        private long lastReusableRejectionTick = Long.MIN_VALUE;
+        private int reusableRejections;
         private long blockedTick = Long.MIN_VALUE;
         private long lastAttemptOrder = Long.MIN_VALUE;
-        private boolean probing = true;
+        private long lastGrowthTick = Long.MIN_VALUE;
+        private long lastAcceptedTick = Long.MIN_VALUE;
+        private long transientFailureLimit = Long.MAX_VALUE;
+        private long transientFailureExpiresTick = Long.MIN_VALUE;
+        private long nextRecoveryProbeTick = Long.MIN_VALUE;
+        private long lastRejectionTick = Long.MIN_VALUE;
+        private int consecutiveRejections;
+        private boolean recovering;
+        private boolean transientFailureActive;
+        private boolean repeatVerified;
         private boolean singleOnly;
 
         private void applyLimit(long limit) {
+            // A temporary lack of materials must not erase the learned target.
+            // nextBatch is clamped only while reading it in getAvailableCrafts.
             maxWindow = Math.max(1, limit);
-            nextBatch = Math.max(1, Math.min(nextBatch, maxWindow));
         }
 
-        private long nextBatch() {
-            return Math.max(1, Math.min(nextBatch, maxWindow));
+        private long effectiveNextBatch(long tick) {
+            long target = nextBatch;
+            if (recovering && tick < nextRecoveryProbeTick && stableBatch > 0) {
+                target = Math.min(target, stableBatch);
+            }
+            return Math.max(1, Math.min(capByTransientFailure(target), maxWindow));
+        }
+
+        private long recoveryTarget(long base) {
+            long target = recoveryGrowth(base);
+            if (!transientFailureActive) {
+                // A cooldown grants one recheck of the observed boundary, not
+                // permission to forget it and binary-search the same gap again.
+                return Math.min(target, transientFailureLimit);
+            }
+            long ceiling = Math.max(1, transientFailureLimit - 1);
+            if (ceiling <= base) {
+                return ceiling;
+            }
+            // Narrow the remaining safe/failed interval rather than testing
+            // a near-identical oversized batch on every recovery probe.
+            long midpoint = base + Math.max(1, (ceiling - base) / 2);
+            return Math.min(target, midpoint);
+        }
+
+        private void rememberTransientFailure(long attemptedCrafts, long tick) {
+            long limit = transientFailureActive
+                    ? Math.min(transientFailureLimit, attemptedCrafts)
+                    : attemptedCrafts;
+            transientFailureLimit = Math.max(1, limit);
+            transientFailureActive = true;
+            transientFailureExpiresTick = saturatingAdd(
+                    tick, TRANSIENT_FAILURE_COOLDOWN_TICKS);
+        }
+
+        private long capByTransientFailure(long value) {
+            long positive = Math.max(1, value);
+            if (!transientFailureActive) {
+                return positive;
+            }
+            return Math.min(positive, Math.max(1, transientFailureLimit - 1));
+        }
+
+        private void expireTransientFailure(long tick) {
+            if (!transientFailureActive || tick < transientFailureExpiresTick) {
+                return;
+            }
+            transientFailureActive = false;
+            transientFailureExpiresTick = Long.MIN_VALUE;
+            if (singleOnly || stableBatch <= 0) {
+                // An unverified delivery must still restart from one and earn
+                // a full acceptance before any growth, even at cooldown expiry.
+                return;
+            }
+            // Keep the observed boundary until a full acceptance disproves it.
+            // Near capacity expiry rechecks just that boundary, rather than
+            // repeatedly opening a fresh 6.25% overshoot and searching it again.
+            long base = stableBatch > 0 ? stableBatch : Math.max(1, nextBatch);
+            nextBatch = recoveryTarget(base);
+        }
+
+        private void clearTransientFailure() {
+            transientFailureActive = false;
+            transientFailureLimit = Long.MAX_VALUE;
+            transientFailureExpiresTick = Long.MIN_VALUE;
         }
 
         private void enterSingleOnly() {
             singleOnly = true;
             nextBatch = 1;
-            probing = false;
+            repeatVerified = false;
         }
 
         private void block(long tick) {

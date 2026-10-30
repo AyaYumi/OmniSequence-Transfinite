@@ -5,6 +5,7 @@ import com.atir.molecularmanipulator.mixin.RecipeManagerAccessor;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializer;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
@@ -101,14 +102,18 @@ public final class ForgeMachineRecipeJson {
     }
 
     public static JsonElement encode(Level level, Recipe<?> recipe) {
-        synchronized (SOURCES) {
-            var snapshot = SOURCES.get(level.getRecipeManager());
-            if (snapshot != null && (snapshot.client || snapshot.recipes.get(recipe.getId()) == recipe)) {
-                var json = snapshot.json.get(recipe.getId());
-                if (json != null) return json.deepCopy();
-            }
-        }
         try {
+            // Read live machine fields first: conditional wrappers and script replacements
+            // need not have the same shape as the serializer's original reload JSON.
+            var supported = encodeSupportedMachine(recipe);
+            if (supported != null) return supported;
+            synchronized (SOURCES) {
+                var snapshot = SOURCES.get(level.getRecipeManager());
+                if (snapshot != null && (snapshot.client || snapshot.recipes.get(recipe.getId()) == recipe)) {
+                    var json = snapshot.json.get(recipe.getId());
+                    if (json != null) return json.deepCopy();
+                }
+            }
             return encodeFields(recipe);
         } catch (RuntimeException | StackOverflowError exception) {
             com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
@@ -117,7 +122,45 @@ public final class ForgeMachineRecipeJson {
         }
     }
 
-    static JsonElement encodeFields(Object recipe) { return GSON.toJsonTree(recipe); }
+    static JsonElement encodeFields(Object recipe) {
+        var supported = encodeSupportedMachine(recipe);
+        return supported == null ? GSON.toJsonTree(recipe) : supported;
+    }
+
+    private static JsonObject encodeSupportedMachine(Object recipe) {
+        var root = new com.google.gson.JsonObject();
+        if (recipe instanceof appeng.recipes.handlers.InscriberRecipe inscriber) {
+            var inputs = new com.google.gson.JsonObject();
+            inputs.add("middle", inscriber.getMiddleInput().toJson());
+            if (!inscriber.getTopOptional().isEmpty()) inputs.add("top", inscriber.getTopOptional().toJson());
+            if (!inscriber.getBottomOptional().isEmpty()) inputs.add("bottom", inscriber.getBottomOptional().toJson());
+            root.add("ingredients", inputs);
+            root.addProperty("mode", inscriber.getProcessType().name().toLowerCase(java.util.Locale.ROOT));
+            root.add("result", GSON.toJsonTree(inscriber.getResultItem()));
+        } else if (recipe instanceof appeng.recipes.handlers.ChargerRecipe charger) {
+            root.add("ingredient", charger.getIngredient().toJson());
+            root.add("result", GSON.toJsonTree(charger.getResultItem()));
+        } else if (recipe instanceof com.glodblock.github.extendedae.recipe.CircuitCutterRecipe cutter) {
+            root.add("item_input", cutter.getInput().toJson());
+            root.add("fluid_input", cutter.getFluid().toJson());
+            root.add("output", GSON.toJsonTree(cutter.output));
+        } else if (recipe.getClass().getName().equals("net.pedroksl.advanced_ae.recipes.ReactionChamberRecipe")) {
+            // AdvancedAE is optional. These methods belong to its installed Forge 1.3.6 API.
+            try {
+                var inputs = new com.google.gson.JsonArray();
+                for (var input : (java.util.List<?>) recipe.getClass().getMethod("getInputs").invoke(recipe)) {
+                    inputs.add((JsonElement) input.getClass().getMethod("toJson").invoke(input));
+                }
+                root.add("input_items", inputs);
+                var fluid = recipe.getClass().getMethod("getFluid").invoke(recipe);
+                root.add("fluid", (JsonElement) fluid.getClass().getMethod("toJson").invoke(fluid));
+                root.add("output", GSON.toJsonTree(recipe.getClass().getField("output").get(recipe)));
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalArgumentException("Cannot read AdvancedAE reaction recipe", failure);
+            }
+        } else return null;
+        return root;
+    }
 
     private record Snapshot(Map<ResourceLocation, Recipe<?>> recipes, Map<ResourceLocation, JsonElement> json,
             boolean client) {}

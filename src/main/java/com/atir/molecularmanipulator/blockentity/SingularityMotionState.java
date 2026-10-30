@@ -1,9 +1,9 @@
 package com.atir.molecularmanipulator.blockentity;
 
-import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.entity.SingularityAssemblyEntity;
 import com.atir.molecularmanipulator.registry.SingularityContent;
 import com.atir.molecularmanipulator.world.SingularityMotionWorld;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.core.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.*;
@@ -41,7 +41,7 @@ public final class SingularityMotionState {
     private void changed() { machine.saveChanges(); machine.markForUpdate(); }
     private void fail(String reason) { message = reason; changed(); }
     private boolean allLoaded() {
-        for (var chunk : machine.getChunkLoadingChunks()) if (!machine.getLevel().hasChunk(chunk.x, chunk.z)) return false;
+        for (var chunk : machine.getMotionChunks()) if (!machine.getLevel().hasChunk(chunk.x, chunk.z)) return false;
         return true;
     }
     /** Starts motion as part of the resource-collection device lifecycle. */
@@ -76,7 +76,6 @@ public final class SingularityMotionState {
         }
         if (!migrateFixedJoints()) return;
         if (!hasBodies()) { activate(player); return; }
-        if (!ModConfig.FORCE_LOAD_CHUNKS.get()) { fail("chunks_required"); return; }
         if (!allLoaded()) { fail("unloaded"); return; }
         epoch = now(); mode = RUNNING;
         if (blockedAhead()) { mode = PAUSED; fail("obstacle"); return; }
@@ -84,7 +83,9 @@ public final class SingularityMotionState {
         configureBodies(); changed();
     }
     private void activate(ServerPlayer player) {
-        if (!ModConfig.FORCE_LOAD_CHUNKS.get()) { fail("chunks_required"); return; }
+        // Tickets are optional; the entire swept footprint must already be loaded
+        // before any physical blocks are converted into moving bodies.
+        if (!allLoaded()) { fail("unloaded"); return; }
         if (!machine.formed() || hasPortable()) { fail("incomplete"); return; }
         var level = machine.getLevel(); var parts = movingParts();
         for (int x : new int[]{-50, 50}) for (int z : new int[]{-50, 50}) {
@@ -123,12 +124,12 @@ public final class SingularityMotionState {
         if (!migrateFixedJoints()) return;
         if (!loaded) { epoch = now() - (mode == DOCKING ? restoredDockingElapsed : 0); loaded = true; configureBodies(); }
         if (now() % 20 == 0) configureBodies();
-        String unavailable = !ModConfig.FORCE_LOAD_CHUNKS.get() ? "chunks_required" : !allLoaded() ? "unloaded" : null;
-        if (unavailable != null) {
-            if (mode == RUNNING) { phase = clock(); epoch = now(); mode = PAUSED; message = unavailable; configureBodies(); changed(); }
-            else if (mode == DOCKING) freezeDocking(unavailable);
+        if (!allLoaded()) {
+            if (mode == RUNNING) { phase = clock(); epoch = now(); mode = PAUSED; message = "unloaded"; configureBodies(); changed(); }
+            else if (mode == DOCKING) freezeDocking("unloaded");
             return;
         }
+        // Retain recovery for saves paused by the former force-loading requirement.
         if (mode == PAUSED && (message.equals("unloaded") || message.equals("chunks_required"))) {
             epoch = now(); mode = RUNNING;
             if (blockedAhead()) { mode = PAUSED; message = "obstacle"; } else message = "running";
@@ -185,29 +186,38 @@ public final class SingularityMotionState {
         restoredDockingElapsed = dockingElapsed(); dockingFrozen = true; message = reason;
         configureBodies(); changed();
     }
-    private SingularityMotionGeometry.Pose futurePose(int group, int ticks) {
-        return mode == DOCKING ? SingularityMotionGeometry.dockingPose(group, phase, dockingElapsed() + ticks)
-                : SingularityMotionGeometry.runningPose(group, clock() + ticks);
-    }
     /** A component-sized check every ten ticks, looking farther ahead than the next check. */
     private boolean blockedAhead() {
         var level = machine.getLevel();
-        var origin = SingularityMotionGeometry.origin(machine.getBlockPos(), machine.facing(), machine.structureVersion());
-        for (var group : SingularityMotionGeometry.groups(machine.structureVersion())) {
+        var facing = machine.facing();
+        var version = machine.structureVersion();
+        var origin = SingularityMotionGeometry.origin(machine.getBlockPos(), facing, version);
+        // The pose only depends on the group and the sample step. Computing it
+        // once per group instead of once per authored block removes thousands
+        // of identical runningPose/dockingPose trig evaluations per check.
+        long ticks = mode == DOCKING ? dockingElapsed() : clock();
+        var poses = new SingularityMotionGeometry.Pose[5];
+        var frames = new SingularityMotionGeometry.Frame[poses.length];
+        var checked = new LongOpenHashSet();
+        var probe = new BlockPos.MutableBlockPos();
+        for (var group : SingularityMotionGeometry.groups(version)) {
             if ((mask & 1 << group.id()) == 0) continue;
-            var checked = new HashSet<BlockPos>();
+            checked.clear();
+            for (int sample = 0; sample < poses.length; sample++) {
+                int step = sample * 3;
+                poses[sample] = mode == DOCKING
+                        ? SingularityMotionGeometry.dockingPose(group.id(), phase, ticks + step)
+                        : SingularityMotionGeometry.runningPose(group.id(), ticks + step);
+                frames[sample] = SingularityMotionGeometry.frame(origin, facing, poses[sample]);
+            }
             for (var part : group.parts()) {
-                AABB bounds = null;
-                for (int step = 0; step <= 12; step += 3) {
-                    var pose = futurePose(group.id(), step);
-                    var sample = SingularityMotionGeometry.transform(new AABB(part.pos()), p -> SingularityMotionGeometry.toWorld(p, origin, machine.facing(), pose));
-                    bounds = bounds == null ? sample : bounds.minmax(sample);
-                }
-                bounds = bounds.inflate(.02);
-                for (var probe : BlockPos.betweenClosed((int) Math.floor(bounds.minX), (int) Math.floor(bounds.minY), (int) Math.floor(bounds.minZ),
-                        (int) Math.floor(bounds.maxX), (int) Math.floor(bounds.maxY), (int) Math.floor(bounds.maxZ))) {
-                    if (!checked.add(probe.immutable())) continue;
-                    if (!level.hasChunkAt(probe) || !level.getWorldBorder().isWithinBounds(probe)) return true;
+                var bounds = SingularityMotionGeometry.sweepBlock(part.x(), part.y(), part.z(), frames).inflate(.02);
+                int minX = (int) Math.floor(bounds.minX), minY = (int) Math.floor(bounds.minY), minZ = (int) Math.floor(bounds.minZ);
+                int maxX = (int) Math.floor(bounds.maxX), maxY = (int) Math.floor(bounds.maxY), maxZ = (int) Math.floor(bounds.maxZ);
+                for (int x = minX; x <= maxX; x++) for (int y = minY; y <= maxY; y++) for (int z = minZ; z <= maxZ; z++) {
+                    if (!checked.add(BlockPos.asLong(x, y, z))) continue;
+                    probe.set(x, y, z);
+                    if (!level.hasChunkAt(x, z) || !level.getWorldBorder().isWithinBounds(probe)) return true;
                     var state = level.getBlockState(probe);
                     if (state.isAir() || state.getCollisionShape(level, probe).isEmpty()) continue;
                     // Fixed access joints remain stationary and participate in ordinary rider collision.

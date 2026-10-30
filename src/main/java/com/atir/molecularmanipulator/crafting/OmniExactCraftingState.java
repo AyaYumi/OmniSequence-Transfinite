@@ -67,6 +67,20 @@ public final class OmniExactCraftingState {
         return new OmniExactCraftingState(remaining, infiniteKeys);
     }
 
+    /** Expand ordinary split tasks before create() merges tasks sharing an encoded definition. */
+    public static OmniExactCraftingState createNormalized(
+            Map<IPatternDetails, BigInteger> patternTimes,
+            Map<IPatternDetails, MolecularExternalScaledPattern.Unwrapped> patterns) {
+        var normalized = new LinkedHashMap<IPatternDetails, BigInteger>();
+        patternTimes.forEach((pattern, count) -> {
+            if (count == null || count.signum() <= 0) throw new IllegalArgumentException("Invalid crafting task count");
+            var unwrapped = Objects.requireNonNull(patterns.get(pattern), "Unwrapped task");
+            normalized.merge(unwrapped.patternDetails(), count.multiply(BigInteger.valueOf(unwrapped.multiplier())),
+                    BigInteger::add);
+        });
+        return create(normalized, Map.of());
+    }
+
     public BigInteger remaining(IPatternDetails pattern) {
         return pattern == null ? BigInteger.ZERO
                 : remaining.getOrDefault(pattern.getDefinition(), BigInteger.ZERO);
@@ -168,6 +182,33 @@ public final class OmniExactCraftingState {
         state.completedOutputs.putAll(completedOutputs);
         state.lastBatches.putAll(lastBatches);
         return state;
+    }
+
+    /** Expand saved scaled tasks without losing exact counts, waiting credits, or final-output progress. */
+    public OmniExactCraftingState normalizeTasks(
+            Map<IPatternDetails, MolecularExternalScaledPattern.Unwrapped> patterns) {
+        var normalized = new LinkedHashMap<AEItemKey, BigInteger>();
+        var seen = new LinkedHashSet<AEItemKey>();
+        for (var entry : patterns.entrySet()) {
+            var definition = entry.getKey().getDefinition();
+            if (!seen.add(definition)) throw new IllegalStateException("Ambiguous exact scaled task definition");
+            var count = remaining.getOrDefault(definition, BigInteger.ZERO);
+            if (count.signum() > 0) normalized.merge(entry.getValue().patternDetails().getDefinition(),
+                    count.multiply(BigInteger.valueOf(entry.getValue().multiplier())), BigInteger::add);
+        }
+        remaining.forEach((key, amount) -> { if (!seen.contains(key)) normalized.merge(key, amount, BigInteger::add); });
+        var state = new OmniExactCraftingState(normalized, infiniteKeys);
+        state.outputProgress = outputProgress;
+        state.uncreditedOutputs.putAll(uncreditedOutputs);
+        state.completedOutputs.putAll(completedOutputs);
+        state.lastBatches.putAll(lastBatches);
+        return state;
+    }
+
+    /** Keep this ledger's identity: native providers may still hold output callbacks for it. */
+    public void applyNormalizedTasks(OmniExactCraftingState prepared) {
+        remaining.clear();
+        remaining.putAll(prepared.remaining);
     }
 
     public Set<AEKey> infiniteKeys() {

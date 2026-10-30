@@ -1,16 +1,21 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.client.gui.widgets.CPUSelectionList;
+import appeng.client.gui.widgets.InfoBar;
+import appeng.core.localization.Tooltips;
 import appeng.menu.me.crafting.CraftingStatusMenu;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
-/** Omni names stay local; AppliedEnhancements owns all shared amount formatting. */
+/** Keeps unlimited Omni rows and tooltips consistent with AppliedEnhancements' 9.2E label. */
 @Mixin(value = CPUSelectionList.class, remap = false)
 public abstract class CPUSelectionListMixin {
     @WrapOperation(method = "drawBackgroundLayer", at = @At(value = "INVOKE",
@@ -39,4 +44,34 @@ public abstract class CPUSelectionListMixin {
         return fullName;
     }
 
+    @WrapOperation(method = "drawBackgroundLayer", at = @At(value = "INVOKE",
+            target = "Lappeng/client/gui/widgets/InfoBar;add(Ljava/lang/String;IF)V", ordinal = 2))
+    private void molecularmanipulator$unlimitedParallelismLabel(InfoBar bar, String text, int color,
+            float scale, Operation<Void> original,
+            @Local CraftingStatusMenu.CraftingCpuListEntry cpu) {
+        if (molecularmanipulator$isUnlimitedOmniCpu(cpu)) text = "9.2E";
+        original.call(bar, text, color, scale);
+    }
+
+    @WrapOperation(method = "getTooltip", at = @At(value = "INVOKE",
+            target = "Lappeng/core/localization/Tooltips;ofNumber(J)Lnet/minecraft/network/chat/MutableComponent;",
+            ordinal = 1))
+    private MutableComponent molecularmanipulator$unlimitedParallelismTooltip(long value,
+            Operation<MutableComponent> original,
+            @Local CraftingStatusMenu.CraftingCpuListEntry cpu) {
+        return molecularmanipulator$isUnlimitedOmniCpu(cpu)
+                ? Component.literal("9.2E").withStyle(Tooltips.NUMBER_TEXT)
+                : original.call(value);
+    }
+
+    @Unique
+    private static boolean molecularmanipulator$isUnlimitedOmniCpu(CraftingStatusMenu.CraftingCpuListEntry cpu) {
+        // The execution adapter leaves room for AE2's +1. This saturated int is
+        // an internal representation of long-sized parallelism, not a 2.1G limit.
+        return cpu.storage() == OmniComputationCoreBlockEntity.INFINITE_STORAGE
+                && cpu.coProcessors() >= Integer.MAX_VALUE - 1
+                && cpu.name() != null && cpu.name().getContents() instanceof TranslatableContents translation
+                && ("gui.molecularmanipulator.nexus.cpu_name".equals(translation.getKey())
+                || "gui.molecularmanipulator.omni.cpu_name".equals(translation.getKey()));
+    }
 }

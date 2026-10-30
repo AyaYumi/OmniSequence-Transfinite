@@ -47,6 +47,25 @@ There are **44 service positions**: 24 on the front steps and four groups of fiv
 
 Research and processing can run together. If work cannot start, check the structure, power, research requirements and output capacity.
 
+## Machine recipe compatibility
+
+The well can also run recipes from these AE machines. A machine appears in research only when it is installed and at least one of its recipes can be imported; each machine gets its own branch.
+
+| Machine | Supported recipes | Notes |
+| --- | --- | --- |
+| AE2 Inscriber | Inscriber recipes | INSCRIBE mode treats both presses as reusable catalysts; PRESS mode consumes every listed item |
+| AE2 Charger | Charger recipes | — |
+| ExtendedAE Extended Inscriber | The same AE2 inscriber recipes | Shares AE2's recipe type, but has its own research branch |
+| ExtendedAE Extended Charger | The same AE2 charger recipes | Shares AE2's recipe type, but has its own research branch |
+| ExtendedAE Circuit Slicer | Circuit Slicer recipes | Keeps exact item counts and mB fluid amounts |
+| AdvancedAE Reaction Chamber | Reaction Chamber recipes | Item and fluid amounts are kept for inputs and outputs; pack-modified recipes included |
+
+**How to unlock.** Complete tier 1 AE fabrication first, then start the machine's branch from [Research](matter_fabrication_research.md). Researching a branch spends one of that machine, takes 30 seconds (600 ticks) at 512 AE/t, and unlocks that machine's recipes. Later rounds follow the usual depth progression for more parallelism and speed.
+
+**Inscriber presses.** In INSCRIBE mode the top and bottom presses are reusable catalysts. Put them on the [Pattern Assembly](matter_fabrication_pattern_assembly.md) Catalysts page instead of encoding them in the processing pattern. In PRESS mode every listed item, including presses, is consumed and must be encoded.
+
+**Not imported.** The Crystal Fixer in this Forge version repairs world blocks by randomly consuming charged quartz. It has no fixed recipe, so its repair operation is not imported and random repair is not supported here. The older Crystal Assembler belongs to another game version and is not present.
+
 ## Quantum connection
 
 Place one **Quantum Entangled Singularity** in the controller's quantum slot and its partner in a powered AE2 quantum bridge to connect remote ME storage. The link requires an additional **512 AE/t and one channel** and can supply construction materials before the well is formed.

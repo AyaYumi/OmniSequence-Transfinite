@@ -8,12 +8,13 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.9-forge, branch `1.20.1-forge` |
+| OmniSequence | 2.0.11-forge, branch `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 or later |
-| AppliedEnhancements | 1.1.1-forge or later, client and server |
-| AE2 | 15.4.10 or later; tested with 15.4.10 / UELM 15.5.4 |
-| ExtendedAE | 1.20-1.4.19-forge or later |
+| AppliedEnhancements | 1.1.2-forge or later, client and server; build API 1.1.4-forge |
+| AE2 | 15.4.10 |
+| ExtendedAE | 1.20-1.4.20-forge or later |
+| NeoECOAE | Optional; native integration requires 20.5.0 or later |
 | JEI / AdvancedAE | Optional; AdvancedAE enables its research/integration |
 
 Install the mod and required dependencies separately in client and server `mods/` folders. Use matching builds on both sides. ExpandedAE 2.1.1 is incompatible with this mod.
@@ -62,12 +63,24 @@ Modpack authors can define fabrication recipes and research through datapacks. R
 
 ## Building from source
 
-Use Java 17, place `appliedenhancements-1.1.1-forge.jar` in `libs/`, then run:
+Use Java 17, place `appliedenhancements-1.1.4-forge.jar` in `libs/`, then run:
 
 ```sh
 ./gradlew build apiJavadoc
 ```
 
-The runtime JAR is `build/libs/omnisequence-transfinite-2.0.9-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.11-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+
+Runtime regressions are under `src/gameTest`. Run `cpu`, `performance`, `fabrication`, `research`, `singularity` or `singularity-unload` with `./gradlew -PgameTestSuite=<suite> runGameTestServer`. Each suite uses `build/gametest-<suite>`; remove its `world` directory before a fresh run.
+
+Run `eco`, `essence`, `native-essence` or `machines` through the integrated client:
+
+```sh
+./gradlew --no-daemon -I src/gameTest/integrated-client.init.gradle -PgameTestSuite=<suite> "-PgameTestRecipeModsDir=/path/to/reference-pack/mods" runClient
+```
+
+Omit `gameTestRecipeModsDir` for `eco`. The essence suites need Cucumber, Mystical Agriculture, Mystical Agradditions and MATC; `native-essence` runs without NeoECOAE. The `machines` suite needs AdvancedAE and GeckoLib. Dependency versions are specified in `build.gradle`.
+
+The client runner creates a fresh world under `build/gametest-client-<suite>` and writes `gametest-result.json`; required-test failures fail the Gradle task. Test classes, fixtures and recipe mods are excluded from the release JAR.
 
 Licensed under the [MIT License](LICENSE).

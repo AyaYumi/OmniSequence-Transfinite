@@ -23,7 +23,6 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file(findProperty('run_directory') ?: 'run')
-            property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'info'
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', project.file('build/createSrgToMcp/output.srg').absolutePath
@@ -156,13 +155,15 @@ dependencies {
             ? "appeng:appliedenergistics2-forge:${project.property('ae2_uelm_version')}"
             : "maven.modrinth:ae2:${ae2_version}")
     implementation fg.deobf("maven.modrinth:glodium:${glodium_version}")
-    implementation fg.deobf("maven.modrinth:extended-ae:${extendedae_version}")
+    // The pinned Forge 1.4.20 release is published on CurseForge, not Modrinth Maven.
+    implementation fg.deobf("curse.maven:extendedae-892005:${extendedae_curse_file}")
+    compileOnly fg.deobf("maven.modrinth:neoecoae:${neoeco_version}")
     implementation fg.deobf("maven.modrinth:guideme:${guideme_version}")
 
     compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}")
 
     // Separate required mods. Deobfuscate published Forge jars for development.
-    implementation fg.deobf("com.appliedenhancements:appliedenhancements:${applied_enhancements_version}")
+    implementation fg.deobf("com.appliedenhancements:appliedenhancements:${applied_enhancements_api_build}")
 
     testImplementation fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}")
     testImplementation "io.github.llamalad7:mixinextras-common:${mixinextras_version}"
@@ -193,6 +194,7 @@ tasks.named('processResources', ProcessResources).configure {
             mod_authors            : mod_authors,
             mod_description        : mod_description,
             applied_enhancements_version: applied_enhancements_version,
+            neoeco_version: neoeco_version,
     ]
     inputs.properties replaceProperties
 
@@ -262,7 +264,7 @@ sourceSets.main.compileClasspath += optionalCpuApi.output
 
 // Fail clearly before compiling against an older local prerequisite.
 def verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi') {
-    def dependencyJar = layout.projectDirectory.file("libs/appliedenhancements-${applied_enhancements_version}.jar")
+    def dependencyJar = layout.projectDirectory.file("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
     inputs.file(dependencyJar)
     doLast {
         def jarFile = dependencyJar.asFile
@@ -271,16 +273,21 @@ def verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi'
         }
         new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
             if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null
-                    || archive.getEntry('com/appliedenhancements/api/AelisSmartDoublingApi.class') == null) {
-                throw new GradleException('The AppliedEnhancements JAR lacks the required updated 1.1.0-forge transaction/smart-doubling API. See libs/README.md')
+                    || archive.getEntry('com/appliedenhancements/api/AelisSmartDoublingApi.class') == null
+                    || archive.getEntry('com/appliedenhancements/api/AelisExactCraftingPlanApi.class') == null) {
+                throw new GradleException('The AppliedEnhancements JAR lacks the required transaction/smart-doubling/exact-plan API. See libs/README.md')
             }
         }
     }
 }
 tasks.named('compileJava').configure { dependsOn verifyAppliedEnhancementsApi }
 
+tasks.named('compileTestJava', JavaCompile).configure {
+    classpath += sourceSets.main.compileClasspath
+}
 tasks.named('test', Test).configure {
     useJUnitPlatform()
+    classpath += sourceSets.main.compileClasspath
 }
 
 idea {
@@ -321,6 +328,7 @@ def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
             }
             def refmap = parser.parse(archive.getInputStream(archive.getEntry(refmapName)), 'UTF-8')
             [
+                'EcoOmniPlanMenuMixin': ['broadcastChanges', 'm_38946_'],
                 'SingularityEntityCollisionMixin': ['tick', 'm_8119_'],
                 'SingularityPlayerCarriageMixin': ['tick', 'm_9933_'],
                 'ForgeMachineRecipeJsonMixin': ['apply', 'm_5787_'],
@@ -343,6 +351,72 @@ def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
     }
 }
 tasks.named('check').configure { dependsOn verifyReleaseMixins }
+
+// Disposable server regressions; these classes and fixtures never enter a release JAR.
+def gameTestSuite = providers.gradleProperty('gameTestSuite').getOrElse('cpu')
+def gameTestSuites = [
+        cpu: ['MatterCpuBatchGameTests', 'MatterNativeCpuChecks'],
+        performance: ['MatterRecipeLookupGameTests', 'MatterAEKeyGameTests', 'MolecularLongBatchGameTests',
+                      'TransfiniteComputeNexusGameTests', 'MolecularCenterPatternPortGameTests'],
+        fabrication: ['MolecularAutoCraftGameTests', 'MatterAssemblyDispatchGameTests'],
+        machines: ['MatterMachineCompatibilityGameTests'],
+        research: ['ResearchStockGameTests'],
+        singularity: ['SingularityPaletteGameTests', 'SingularityConstructionGameTests', 'SingularityMotionGameTests',
+                      'SingularityEmbeddingGameTests', 'SingularitySuspendedGameTests', 'CosmicSingularityGameTests',
+                      'CompactSingularityGameTests'],
+        'singularity-unload': ['SingularityChunkLoadingGameTests'],
+        essence: ['MolecularReusableCraftingGameTests'],
+        'native-essence': ['MolecularReusableCraftingGameTests'],
+        eco: ['EcoCpuGameTests', 'EcoMatterGameTests', 'EcoOutputGameTests', 'EcoOmniParentOrderGameTests', 'EcoOmniMenuGameTests']
+]
+if (!gameTestSuites.containsKey(gameTestSuite)) throw new GradleException("Unknown gameTestSuite: ${gameTestSuite}")
+def gameTests = sourceSets.create('gameTest') {
+    java.setSrcDirs(['src/gameTest/java'])
+    java.setIncludes((gameTestSuites[gameTestSuite] + ['VerificationAEKey', 'RegressionConfigFixture'])
+            .collect { "**/${it}.java" })
+    resources.setSrcDirs(['src/gameTest/resources'])
+    if (!(gameTestSuite in ['cpu', 'performance', 'eco'])) resources.exclude 'data/molecularmanipulator/recipes/**'
+    compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+    runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+}
+minecraft.runs.gameTestServer {
+    workingDirectory project.file("build/gametest-${gameTestSuite}")
+    mods { "${mod_id}" { source gameTests } }
+}
+if (project.hasProperty('gameTestEco') || gameTestSuite in ['eco', 'essence']) {
+    dependencies.add('localRuntime', fg.deobf("maven.modrinth:neoecoae:${neoeco_version}"))
+    dependencies.add('localRuntime', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
+    dependencies.add('gameTestCompileOnly', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
+}
+if (gameTestSuite in ['essence', 'native-essence', 'machines']) {
+    def recipeModsDirectory = providers.gradleProperty('gameTestRecipeModsDir').orNull
+    if (recipeModsDirectory == null) {
+        throw new GradleException("The ${gameTestSuite} suite requires -PgameTestRecipeModsDir=<reference-pack mods directory>")
+    }
+    repositories.flatDir { dirs file(recipeModsDirectory) }
+    def recipeMods = gameTestSuite in ['essence', 'native-essence']
+            ? ['Cucumber-1.20.1-7.0.16', 'MysticalAgriculture-1.20.1-7.0.24',
+               'MysticalAgradditions-1.20.1-7.0.12', 'matc-1.6.0']
+            : ['AdvancedAE-1.3.6-1.20.1', 'geckolib-forge-1.20.1-4.8.4']
+    recipeMods.each { name ->
+        dependencies.add('localRuntime', fg.deobf("pack.local:${name}:reference"))
+    }
+}
+if (project.hasProperty('gameTestAdvanced')) {
+    dependencies.add('localRuntime', fg.deobf('maven.modrinth:advancedae:1.3.6-1.20.1'))
+    dependencies.add('localRuntime', fg.deobf('maven.modrinth:geckolib:4.8.4'))
+}
+tasks.named('compileGameTestJava', JavaCompile).configure {
+    dependsOn tasks.named('classes')
+    options.release.set(17)
+}
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    doLast {
+        def log = project.file("build/gametest-${gameTestSuite}/logs/latest.log")
+        if (!log.isFile() || !(log.text =~ /All [1-9][0-9]* required tests passed/))
+            throw new GradleException("GameTests did not pass: ${gameTestSuite}")
+    }
+}
 
 // Public contracts are documented independently from Minecraft implementation classes.
 tasks.register('apiJavadoc', Javadoc) {

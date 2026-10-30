@@ -35,7 +35,7 @@ public final class ForgeRecipeCodecs {
         var keyData = object.deepCopy();
         keyData.remove("#"); keyData.remove("#t");
         var tag = object.has("key_nbt") ? parseTag(object.get("key_nbt")) : parseTag(keyData);
-        tag.putString("#c", object.get("#t").getAsString());
+        tag.putString("#c", object.get(object.has("#t") ? "#t" : "#c").getAsString());
         tag.remove("#t");
         tag.putLong("#", amount);
         var stack = GenericStack.readTag(tag);

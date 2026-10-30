@@ -5,23 +5,27 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.stacks.*;
 import appeng.me.helpers.MachineSource;
-import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.crafting.MatterCraftingJobContext;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
 import java.util.*;
 import net.minecraft.nbt.*;
 import net.minecraft.resources.ResourceLocation;
 
-/** Pattern-isolated input queues and an independent, long-valued output cache. */
+/** Job- and pattern-isolated input queues and an independent, long-valued output cache. */
 public final class MatterPatternBuffer {
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private final MatterFabricationPatternAssemblyBlockEntity assembly;
     private final List<QueuedWork> queued = new ArrayList<>();
     // Derived from the queued recipes, never persisted as a second copy of their materials.
     private final Object2LongLinkedOpenHashMap<AEKey> inputs = new Object2LongLinkedOpenHashMap<>();
     private final Object2LongLinkedOpenHashMap<AEKey> refunds = new Object2LongLinkedOpenHashMap<>();
     private final Object2LongLinkedOpenHashMap<AEKey> outputs = new Object2LongLinkedOpenHashMap<>();
+    private final MatterOutputStaging stagedOutputs = new MatterOutputStaging();
+    private boolean flushing;
     private final MatterFabricationBatch active = new MatterFabricationBatch();
+    private UUID activeCraftingId;
     private final AEKeyTransferScheduler outputTransfer = new AEKeyTransferScheduler();
     private final AEKeyTransferScheduler refundTransfer = new AEKeyTransferScheduler();
     private CompoundTag unavailable;
@@ -30,7 +34,7 @@ public final class MatterPatternBuffer {
 
     MatterPatternBuffer(MatterFabricationPatternAssemblyBlockEntity assembly) { this.assembly = assembly; }
 
-    public boolean hasContents() { return !queued.isEmpty() || !refunds.isEmpty() || !outputs.isEmpty() || active.hasWork() || unavailable != null; }
+    public boolean hasContents() { return !queued.isEmpty() || !refunds.isEmpty() || !outputs.isEmpty() || !stagedOutputs.isEmpty() || active.hasWork() || unavailable != null; }
     public boolean hasQueuedInputs() { return !queued.isEmpty() || !refunds.isEmpty(); }
     public boolean isProcessing() { return active.hasWork(); }
     public boolean isUnavailable() { return unavailable != null || active.unavailable(); }
@@ -58,8 +62,13 @@ public final class MatterPatternBuffer {
     }
 
     boolean enqueue(IPatternDetails pattern, Map<AEKey, Long> supplied, long crafts) {
+        return enqueue(pattern, supplied, crafts, MatterCraftingJobContext.currentJobId());
+    }
+
+    boolean enqueue(IPatternDetails pattern, Map<AEKey, Long> supplied, long crafts, UUID craftingId) {
         try {
             if (crafts <= 0 || isUnavailable() || !assembly.isOperational() || supplied.isEmpty()) return false;
+            if (MolecularBatchCancellationData.isCanceled(assembly.getLevel(), craftingId)) return false;
             var controller = assembly.getController();
             var candidates = MatterFabricationBatch.candidates(controller, pattern);
             var recipe = MatterFabricationBatch.match(controller, candidates, supplied, crafts);
@@ -71,14 +80,14 @@ public final class MatterPatternBuffer {
             }
             QueuedWork merge = null;
             for (var work : queued) {
-                if (!work.pattern.equals(pattern.getDefinition()) || !work.recipe.equals(recipe.id()) || crafts > Long.MAX_VALUE - work.crafts) continue;
+                if (!work.canMerge(pattern.getDefinition(), recipe.id(), craftingId, crafts)) continue;
                 var existing = MatterFabricationBatch.match(controller, candidates, work.inputs, work.crafts);
                 if (existing == null || !existing.id().equals(work.recipe)) continue;
                 long total = crafts + work.crafts;
                 if (total > MatterFabricationBatch.inputCapacity(recipe.value())) continue;
                 merge = work; break;
             }
-            if (merge == null) queued.add(new QueuedWork(pattern.getDefinition(), recipe.id(), crafts, supplied));
+            if (merge == null) queued.add(new QueuedWork(pattern.getDefinition(), recipe.id(), crafts, supplied, craftingId));
             else { merge.crafts += crafts; merge(merge.inputs, supplied); }
             supplied.forEach(inputs::addTo);
             changed();
@@ -88,6 +97,7 @@ public final class MatterPatternBuffer {
 
     /** Called by one controller, at most once per controller tick. */
     MatterFabricationBatch.Update process(MatterFabricationBlockEntity controller) {
+        reconcileCancellations();
         if (isUnavailable() || !assembly.isOperational() || assembly.getController() != controller) return null;
         reconcile();
         MatterFabricationBatch.Update waiting = null;
@@ -107,11 +117,12 @@ public final class MatterPatternBuffer {
                 long count = Math.min(work.crafts, active.capacity(controller, recipe, Map.of()));
                 if (count <= 0) { waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.WAITING_POWER, 0, 0, 0, false); continue; }
                 var unitOutputs = MatterFabricationBatch.outputs(recipe.value());
-                for (var output : unitOutputs.entrySet()) count = Math.min(count, (Long.MAX_VALUE - outputs.getLong(output.getKey())) / output.getValue());
+                for (var output : unitOutputs.entrySet()) count = Math.min(count, (Long.MAX_VALUE - stagedOutputs.storedAmount(outputs, output.getKey())) / output.getValue());
                 if (count <= 0) { waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.OUTPUT_BLOCKED, 0, 0, 0, false); continue; }
                 var supplied = MatterFabricationBatch.takeInputs(recipe.value(), work.inputs, work.crafts, count);
                 if (supplied == null) continue;
                 if (!active.accept(controller, recipe, supplied, count, scaled(unitOutputs, count))) continue;
+                activeCraftingId = work.craftingId;
                 queued.remove(work);
                 work.crafts -= count;
                 supplied.forEach((item, amount) -> {
@@ -126,18 +137,47 @@ public final class MatterPatternBuffer {
         }
         if (!active.hasWork()) return waiting;
         var update = active.tick(controller, this::storeOutput);
+        if (!active.hasWork()) activeCraftingId = null;
         changed();
         flushToNetwork();
         return update;
     }
 
     private long storeOutput(AEKey key, long amount) {
-        long inserted = Math.min(amount, Long.MAX_VALUE - outputs.getLong(key));
-        if (inserted > 0) outputs.addTo(key, inserted);
-        return inserted;
+        return stagedOutputs.store(outputs, key, amount, assembly.getLevel().getGameTime());
     }
 
-    void serverTick() { reconcile(); flushToNetwork(); }
+    void serverTick() { reconcileCancellations(); reconcile(); flushToNetwork(); }
+
+    private void reconcileCancellations() {
+        refundCanceledInputs(id -> MolecularBatchCancellationData.isCanceled(assembly.getLevel(), id));
+    }
+
+    /** Transfer only this job's remaining ownership, never another job with the same pattern/key. */
+    boolean refundCanceledInputs(java.util.function.Predicate<UUID> canceled) {
+        if (isUnavailable()) return false;
+        boolean refunded = false;
+        for (var iterator = queued.iterator(); iterator.hasNext();) {
+            var work = iterator.next();
+            if (work.craftingId == null || !canceled.test(work.craftingId)) continue;
+            work.inputs.forEach((key, amount) -> {
+                subtract(inputs, key, amount);
+                refunds.put(key, Math.addExact(refunds.getLong(key), amount));
+            });
+            iterator.remove();
+            refunded = true;
+        }
+        if (activeCraftingId != null && canceled.test(activeCraftingId)) {
+            // Progress spends energy, but material consumption happens only at batch completion.
+            // Completed products/output debt are not inputs and must never be refunded twice.
+            active.cancelInputs().forEach((key, amount) ->
+                    refunds.put(key, Math.addExact(refunds.getLong(key), amount)));
+            activeCraftingId = null;
+            refunded = true;
+        }
+        if (refunded) changed();
+        return refunded;
+    }
 
     public boolean waitingForCatalyst() {
         var controller = assembly.getController();
@@ -177,8 +217,17 @@ public final class MatterPatternBuffer {
 
     private void flushToNetwork() {
         var node = assembly.getMainNode();
-        if (!node.isActive() || isUnavailable()) return;
-        var storage = node.getGrid().getStorageService().getInventory();
+        if (flushing || !node.isActive() || isUnavailable()) return;
+        flushing = true;
+        try {
+            stagedOutputs.release(outputs, assembly.getLevel().getGameTime());
+            flushToNetwork(node.getGrid().getStorageService().getInventory());
+        } finally {
+            flushing = false;
+        }
+    }
+
+    private void flushToNetwork(appeng.api.storage.MEStorage storage) {
         var source = new MachineSource(assembly);
         var budget = AEKeyTransferScheduler.defaultBudget();
         AEKeyTransferScheduler.Inserter insert = (key, amount) -> storage.insert(key, amount, Actionable.MODULATE, source);
@@ -197,7 +246,7 @@ public final class MatterPatternBuffer {
 
     public List<GenericStack> contents(boolean output) {
         var view = new LinkedHashMap<AEKey, Long>();
-        if (output) { outputs.forEach(view::put); merge(view, active.storedOutputs()); }
+        if (output) { outputs.forEach(view::put); stagedOutputs.addTo(view); merge(view, active.storedOutputs()); }
         else { inputs.forEach(view::put); merge(view, refunds); merge(view, active.storedInputs()); }
         return view.entrySet().stream().map(e -> new GenericStack(e.getKey(), e.getValue())).toList();
     }
@@ -209,10 +258,12 @@ public final class MatterPatternBuffer {
         queued.forEach(work -> {
             var job = new CompoundTag(); job.put("pattern", GenericStack.writeTag(new GenericStack(work.pattern, 1)));
             job.putString("recipe", work.recipe.toString());
+            if (work.craftingId != null) job.putUUID("crafting_id", work.craftingId);
             job.putLong("crafts", work.crafts); job.put("inputs", writeAmounts(work.inputs)); jobs.add(job);
         });
-        tag.put("queued", jobs); tag.put("refunds", writeAmounts(refunds)); tag.put("outputs", writeAmounts(outputs));
+        tag.put("queued", jobs); tag.put("refunds", writeAmounts(refunds)); tag.put("outputs", writeAmounts(storedOutputs()));
         if (active.hasWork()) tag.put("active", active.save());
+        if (active.hasWork() && activeCraftingId != null) tag.putUUID("active_crafting_id", activeCraftingId);
         parent.put("fabrication_pattern_buffer", tag);
     }
 
@@ -221,19 +272,22 @@ public final class MatterPatternBuffer {
         if (!parent.contains("fabrication_pattern_buffer", Tag.TAG_COMPOUND)) return;
         var tag = parent.getCompound("fabrication_pattern_buffer");
         try {
-            if (tag.getInt("version") != VERSION) throw new IllegalArgumentException("Unsupported buffer version");
+            int version = tag.getInt("version");
+            if (version != 1 && version != VERSION) throw new IllegalArgumentException("Unsupported buffer version");
             for (var value : tag.getList("queued", Tag.TAG_COMPOUND)) {
                 var job = (CompoundTag) value; var definition = GenericStack.readTag(job.getCompound("pattern"));
                 if (definition == null || !(definition.what() instanceof AEItemKey pattern)) throw new IllegalArgumentException("Missing buffered pattern");
                 long crafts = job.getLong("crafts"); var supplied = readAmounts(job.getList("inputs", Tag.TAG_COMPOUND));
                 var recipe = ResourceLocation.tryParse(job.getString("recipe"));
                 if (crafts <= 0 || supplied.isEmpty() || recipe == null || recipe.getPath().isEmpty()) throw new IllegalArgumentException("Invalid buffered inputs");
-                queued.add(new QueuedWork(pattern, recipe, crafts, supplied));
+                // Version 1 had no job IDs. Preserve those inputs; never guess ownership from a pattern.
+                queued.add(new QueuedWork(pattern, recipe, crafts, supplied, readCraftingId(job, "crafting_id")));
                 supplied.forEach((item, amount) -> inputs.put(item, Math.addExact(inputs.getLong(item), amount)));
             }
             refunds.putAll(readAmounts(tag.getList("refunds", Tag.TAG_COMPOUND)));
-            outputs.putAll(readAmounts(tag.getList("outputs", Tag.TAG_COMPOUND)));
+            stagedOutputs.restore(readAmounts(tag.getList("outputs", Tag.TAG_COMPOUND)));
             active.load(tag.getCompound("active"));
+            activeCraftingId = readCraftingId(tag, "active_crafting_id");
             contents(false); contents(true); // Validate totals across queued, refunded and active ownership.
         } catch (RuntimeException error) {
             clear(); unavailable = tag.copy();
@@ -242,7 +296,14 @@ public final class MatterPatternBuffer {
         reconcilePatterns = true;
     }
 
-    void clear() { queued.clear(); inputs.clear(); refunds.clear(); outputs.clear(); active.clear(); unavailable = null; reconcilePatterns = true; }
+    private Map<AEKey, Long> storedOutputs() {
+        var amounts = new LinkedHashMap<AEKey, Long>();
+        outputs.forEach(amounts::put);
+        stagedOutputs.addTo(amounts);
+        return amounts;
+    }
+
+    void clear() { queued.clear(); inputs.clear(); refunds.clear(); outputs.clear(); stagedOutputs.clear(); active.clear(); activeCraftingId = null; unavailable = null; reconcilePatterns = true; }
     private void changed() { assembly.saveChanges(); }
     private static void subtract(Object2LongLinkedOpenHashMap<AEKey> map, AEKey key, long amount) {
         long left = map.getLong(key) - amount;
@@ -264,13 +325,25 @@ public final class MatterPatternBuffer {
         }
         return result;
     }
-    private static final class QueuedWork {
+    private static UUID readCraftingId(CompoundTag tag, String key) {
+        if (!tag.contains(key)) return null;
+        if (!tag.hasUUID(key)) throw new IllegalArgumentException("Invalid buffered crafting job ID");
+        return tag.getUUID(key);
+    }
+
+    static final class QueuedWork {
         private final AEItemKey pattern;
         private final ResourceLocation recipe;
         private final Map<AEKey, Long> inputs;
+        private final UUID craftingId;
         private long crafts;
-        private QueuedWork(AEItemKey pattern, ResourceLocation recipe, long crafts, Map<AEKey, Long> inputs) {
+        QueuedWork(AEItemKey pattern, ResourceLocation recipe, long crafts, Map<AEKey, Long> inputs, UUID craftingId) {
             this.pattern = pattern; this.recipe = recipe; this.crafts = crafts; this.inputs = new LinkedHashMap<>(inputs);
+            this.craftingId = craftingId;
+        }
+        boolean canMerge(AEItemKey pattern, ResourceLocation recipe, UUID craftingId, long crafts) {
+            return this.pattern.equals(pattern) && this.recipe.equals(recipe)
+                    && Objects.equals(this.craftingId, craftingId) && crafts <= Long.MAX_VALUE - this.crafts;
         }
     }
 }

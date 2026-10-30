@@ -196,7 +196,7 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
                         inputs.merge(input.key(), input.amount(), Math::addExact);
                     }
                     accepted = batch.matches(request.pattern())
-                            && batch.commit(inputs, batchInputs(request.expectedOutputs()), request.craftCount());
+                            && batch.commit(inputs, batchInputs(request.expectedOutputs()), request.craftCount(), request.craftingJobId());
                 } catch (ArithmeticException | IllegalArgumentException ignored) { }
                 if (accepted) delivery.accept(new OmniBatchDelivery.Receipt(OmniBatchDelivery.Ownership.PERSISTED_PROVIDER_QUEUE, OmniBatchDelivery.Backpressure.RECHECK_NEXT_TICK));
                 else delivery.reject(OmniBatchDelivery.Rejection.reject(OmniBatchDelivery.RejectReason.CAPACITY_CHANGED));
@@ -316,13 +316,32 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
 
         /** ECO supplies the full vector; ownership transfers only after durable enqueue succeeds. */
         public boolean commit(Map<AEKey, Long> totalInputs, Map<AEKey, Long> totalOutputs, long crafts) {
+            return commit(totalInputs, totalOutputs, crafts,
+                    com.atir.molecularmanipulator.crafting.MatterCraftingJobContext.currentJobId());
+        }
+
+        public boolean commit(Map<AEKey, Long> totalInputs, Map<AEKey, Long> totalOutputs, long crafts,
+                java.util.UUID craftingId) {
             if (used) return false;
             used = true;
             try {
                 return crafts > 0 && crafts <= limit && canDispatchBatch()
                         && assembly.getController() == controller && patternSet.contains(pattern)
+                        && MatterPatternBuffer.scaled(unitInputs, crafts).equals(totalInputs)
                         && MatterPatternBuffer.scaled(unitOutputs, crafts).equals(totalOutputs)
-                        && assembly.getBuffer().enqueue(pattern, totalInputs, Math.multiplyExact(crafts, multiplier));
+                        && assembly.getBuffer().enqueue(pattern, totalInputs, Math.multiplyExact(crafts, multiplier), craftingId);
+            } catch (ArithmeticException | IllegalArgumentException error) { return false; }
+        }
+
+        /**
+         * Native exact dispatch has already reserved this preparation's input vector.
+         * Materialize that complete vector once; never narrow a caller's BigInteger totals.
+         * The durable queue and each expected output amount must fit the advertised long limit.
+         */
+        public boolean commitReserved(long crafts, java.util.UUID craftingId) {
+            try {
+                return commit(MatterPatternBuffer.scaled(unitInputs, crafts),
+                        MatterPatternBuffer.scaled(unitOutputs, crafts), crafts, craftingId);
             } catch (ArithmeticException | IllegalArgumentException error) { return false; }
         }
 

@@ -1,7 +1,7 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.9-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
-Java **17**, AE2 **15.4.10 / UELM 15.5.4**, Applied Enhancements **1.1.1-forge+** (paired release **1.1.2-forge**).
+Current source: OmniSequence **2.0.11-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
+Java **17**, AE2 **15.4.10**, Applied Enhancements **1.1.2-forge+** (build API **1.1.4-forge**).
 Mod ID: `molecularmanipulator`.
 
 | Contract | English | 中文 |
@@ -11,8 +11,9 @@ Mod ID: `molecularmanipulator`.
 | Well recipe JSON, generic AEKey inputs, research, machine imports and KubeJS | [Well and research API](matter-research-api.md) | [构筑井与研究 API](matter-research-api.zh-CN.md) |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
-AppliedEnhancements mod. Use its [1.1.1 API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/README.md). The minimum 1.1.0 runtime remains supported; new 1.1.1 API types require 1.1.1 at compile time and runtime. Omni's internal
-planner/Mixin classes are not integration entry points.
+AppliedEnhancements mod. Use its [Forge API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/README.md).
+The runtime minimum is **1.1.2-forge**; the default compile-time API is **1.1.4-forge**.
+Omni's internal planner/Mixin classes are not integration entry points.
 
 Use `compileOnly` with the separate JARs and install each mod at runtime. Do not
 shade or copy their API packages. Optional compatibility classes must load only
@@ -29,7 +30,7 @@ thread unless the caller has obtained an immutable snapshot.
 - 添加配方、研究和整机导入：使用数据包/KubeJS 格式及 MatterResearchApi。
 - 循环种子与批量回滚：使用 AES 的 `AelisBatchExecutionContext`，首份、追加抽料和退款共享库存视图。
 
-最低兼容 AES 1.1.0，本次推荐搭配 1.1.1；新增的 1.1.1 查询不能直接用于旧 JAR。
+最低兼容 AES **1.1.2-forge**，默认使用 **1.1.4-forge** 的 API 编译。
 游戏配置参考位于项目根目录 [CONFIGURATION.md](../CONFIGURATION.md)。
 发布 JAR 的 `docs/` 仅包含本索引与 API 文档，配置参考放在 JAR 根目录。
 

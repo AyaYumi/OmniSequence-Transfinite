@@ -37,7 +37,7 @@ description='''${mod_description}
 [[dependencies.${mod_id}]]
     modId="expatternprovider"
     mandatory=true
-    versionRange="[1.20-1.4.12-forge,)"
+    versionRange="[1.20-1.4.20-forge,)"
     ordering="AFTER"
     side="BOTH"
 
@@ -53,6 +53,13 @@ description='''${mod_description}
     mandatory=false
     versionRange="[0,)"
     ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="neoecoae"
+    mandatory=false
+    versionRange="[${neoeco_version},)"
+    ordering="NONE"
     side="BOTH"
 
 [[dependencies.${mod_id}]]

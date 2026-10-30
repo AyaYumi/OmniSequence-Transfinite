@@ -14,7 +14,7 @@ class MatterGoldMaskTest {
         for (String kind : new String[]{"input", "output"}) {
             String name = "matter_fabrication_fluid_" + kind;
             var texture = new ResourceLocation("molecularmanipulator:block/" + name);
-            var original = ImageIO.read(Path.of("tools/textures/static", name + ".png").toFile());
+            var original = ImageIO.read(Path.of("src/test/resources/texture-sources", name + ".png").toFile());
             var image = ImageIO.read(Path.of("src/main/resources/assets/molecularmanipulator/textures/block", name + ".png").toFile());
             int selected = 0;
             for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < 16; x++) {
@@ -39,7 +39,7 @@ class MatterGoldMaskTest {
             for (var path : paths.filter(p -> p.getFileName().toString().matches("matter_fabrication_.*\\.png")).toList()) {
                 var image = ImageIO.read(path.toFile());
                 assertEquals(16, image.getWidth()); assertEquals(0, image.getHeight() % 16);
-                var source = Path.of("tools/textures/static", path.getFileName().toString());
+                var source = Path.of("src/test/resources/texture-sources", path.getFileName().toString());
                 var original = Files.exists(source) ? ImageIO.read(source.toFile()) : image;
                 int selected = 0;
                 for (int y=0;y<image.getHeight();y++) for(int x=0;x<16;x++) {

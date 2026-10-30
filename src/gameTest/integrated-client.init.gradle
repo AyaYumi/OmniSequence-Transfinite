@@ -1,0 +1,25 @@
+// Run the selected GameTest suite in a disposable integrated server.
+allprojects { p ->
+    p.afterEvaluate {
+        if (!p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        def suite = p.providers.gradleProperty('gameTestSuite').getOrElse('cpu')
+        def instance = p.file("build/gametest-client-${suite}")
+        def report = new File(instance, 'gametest-result.json')
+        p.sourceSets.gameTest.java.include('**/IntegratedGameTestClient.java')
+        p.minecraft.runs.client {
+            workingDirectory instance
+            property 'forge.enableGameTest', 'true'
+            property 'forge.enabledGameTestNamespaces', 'molecularmanipulator'
+            property 'molecularmanipulator.gameTestSuite', suite
+            mods { molecularmanipulator { source p.sourceSets.gameTest } }
+        }
+        p.tasks.matching { it.name == 'runClient' }.configureEach {
+            doFirst { report.delete() }
+            doLast {
+                if (!report.isFile() || new groovy.json.JsonSlurper().parse(report).passed != true) {
+                    throw new GradleException("Integrated GameTests failed: ${suite}; see ${report}")
+                }
+            }
+        }
+    }
+}

@@ -117,8 +117,7 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
         drawRightAlignedFittedString(graphics, Component.literal(usedPatterns + "/" + menu.getPatternSlots().size()),
                 178, 22, 32, OmniUiTheme.MUTED_TEXT);
         graphics.drawString(font, Component.translatable("gui.ae2.Patterns"), 12, 39, OmniUiTheme.PRIMARY_TEXT, false);
-        graphics.drawString(font, Component.translatable("gui.ae2.ReturnInventory"), 12, 136, OmniUiTheme.PRIMARY_TEXT, false);
-        graphics.drawString(font, playerInventoryTitle, 12, 178, OmniUiTheme.PRIMARY_TEXT, false);
+        graphics.drawString(font, playerInventoryTitle, 12, 136, OmniUiTheme.PRIMARY_TEXT, false);
     }
 
     @Override

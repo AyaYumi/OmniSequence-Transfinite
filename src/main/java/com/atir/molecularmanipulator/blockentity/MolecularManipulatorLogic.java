@@ -32,20 +32,22 @@ final class MolecularManipulatorLogic extends PatternProviderLogic implements Mo
 
     @Override
     public boolean isBusy() {
-        return machine.hasActiveReusableBatch() || super.isBusy();
+        return machine.hasActiveReusableBatch()
+                || machine.getRemainingAssemblerBudget() <= 0 || super.isBusy();
     }
 
     @Override
     public boolean molecularmanipulator$supportsBatching(IPatternDetails patternDetails) {
         return machine.getMainNode().isActive()
                 && !machine.hasActiveReusableBatch()
+                && machine.getRemainingAssemblerBudget() > 0
                 && availablePatterns.contains(patternDetails)
                 && patternDetails instanceof IMolecularAssemblerSupportedPattern;
     }
 
     @Override
     public long molecularmanipulator$getBatchLimit(IPatternDetails patternDetails) {
-        return MolecularManipulatorBlockEntity.VIRTUAL_PARALLEL_LIMIT;
+        return machine.getRemainingAssemblerBudget();
     }
 
     @Override

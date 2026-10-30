@@ -8,12 +8,13 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.9-forge，源码分支 `1.20.1-forge` |
+| 本模组 | 2.0.11-forge，源码分支 `1.20.1-forge` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 或更高 |
-| AppliedEnhancements | 1.1.1-forge 或更高，客户端和服务端都需要 |
-| AE2 | 15.4.10 或更高；已使用 15.4.10 / UELM 15.5.4 验证 |
-| ExtendedAE | 1.20-1.4.19-forge 或更高 |
+| AppliedEnhancements | 1.1.2-forge 或更高，客户端和服务端都需要；编译 API 为 1.1.4-forge |
+| AE2 | 15.4.10 |
+| ExtendedAE | 1.20-1.4.20-forge 或更高 |
+| NeoECOAE | 可选；原生兼容要求 20.5.0 或更高 |
 | JEI / AdvancedAE | 可选；AdvancedAE 启用对应研究与兼容 |
 
 将本模组和必需依赖分别安装到客户端与服务端的 `mods/` 文件夹，两端使用相同构建。ExpandedAE 2.1.1 与本模组不兼容。
@@ -62,12 +63,24 @@
 
 ## 从源码构建
 
-使用 Java 17，将 `appliedenhancements-1.1.1-forge.jar` 放入 `libs/`，然后运行：
+使用 Java 17，将 `appliedenhancements-1.1.4-forge.jar` 放入 `libs/`，然后运行：
 
 ```sh
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.9-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.11-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+
+运行回归位于 `src/gameTest`。使用 `./gradlew -PgameTestSuite=<suite> runGameTestServer` 运行 `cpu`、`performance`、`fabrication`、`research`、`singularity` 或 `singularity-unload`。每组使用 `build/gametest-<suite>`，全新运行前删除对应目录中的 `world`。
+
+`eco`、`essence`、`native-essence` 和 `machines` 使用客户端内置服务端测试入口：
+
+```sh
+./gradlew --no-daemon -I src/gameTest/integrated-client.init.gradle -PgameTestSuite=<suite> "-PgameTestRecipeModsDir=/path/to/reference-pack/mods" runClient
+```
+
+`eco` 无需 `gameTestRecipeModsDir`。两个精华测试组需要 Cucumber、Mystical Agriculture、Mystical Agradditions 和 MATC，其中 `native-essence` 不加载 NeoECOAE。`machines` 需要 AdvancedAE 和 GeckoLib。依赖版本见 `build.gradle`。
+
+客户端入口每次在 `build/gametest-client-<suite>` 下创建全新世界并写入 `gametest-result.json`；必需用例失败时，Gradle 任务也会失败。测试类、测试资源与配方模组均不会进入发布 JAR。
 
 使用 [MIT 许可证](LICENSE)。

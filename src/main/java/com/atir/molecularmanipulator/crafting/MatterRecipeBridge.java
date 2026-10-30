@@ -25,9 +25,13 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fluids.FluidStack;
 
-/** Converts supported addon machine recipes into Matter Fabrication recipes at runtime. */
+/** Converts supported machine recipes into Matter Fabrication recipes at runtime. */
 public final class MatterRecipeBridge {
     private static final List<MachineSpec> MACHINES = List.of(
+            machine("ae2_inscriber", "ae2", "ae2:inscriber", "ae2:inscriber"),
+            machine("ae2_charger", "ae2", "ae2:charger", "ae2:charger"),
+            machine("eae_inscriber", "expatternprovider", "expatternprovider:ex_inscriber", "ae2:inscriber"),
+            machine("eae_charger", "expatternprovider", "expatternprovider:ex_charger", "ae2:charger"),
             machine("data_reassembler", "data_energistics", "data_energistics:data_reassembler",
                     "data_energistics:data_reassembler"),
             machine("data_charger", "data_energistics", "data_energistics:data_charger",
@@ -52,8 +56,6 @@ public final class MatterRecipeBridge {
                     "ae2cs:circuit_etcher_recipe_serializer"),
             machine("crystal_pulverizer", "ae2cs", "ae2cs:crystal_pulverizer",
                     "ae2cs:crystal_pulverizer_recipe_serializer"),
-            machine("eae_crystal_assembler", "expatternprovider", "expatternprovider:crystal_assembler",
-                    "expatternprovider:crystal_assembler"),
             machine("eae_circuit_slicer", "expatternprovider", "expatternprovider:circuit_cutter",
                     "expatternprovider:circuit_cutter"),
             machine("aae_reaction_chamber", "advanced_ae", "advanced_ae:reaction_chamber",
@@ -111,12 +113,16 @@ public final class MatterRecipeBridge {
 
     public static List<ImportedRecipe> importRecipes(Level level, Collection<Recipe<?>> source,
             List<MachineSpec> machines) {
-        var byType = new LinkedHashMap<String, MachineSpec>();
+        var byType = new LinkedHashMap<String, List<MachineSpec>>();
         for (var machine : machines) {
             if (!BuiltInRegistries.ITEM.containsKey(machine.machineItem)
                     || machine.declaration == null && !ModList.get().isLoaded(machine.modId)
                     || machine.declaration != null && !machine.declaration.research().available()) continue;
-            for (var type : machine.recipeTypes) byType.put(type, machine);
+            for (var type : machine.recipeTypes) {
+                // Explicit data-pack declarations retain their existing override priority.
+                if (machine.declaration != null) byType.put(type, new ArrayList<>(List.of(machine)));
+                else byType.computeIfAbsent(type, ignored -> new ArrayList<>()).add(machine);
+            }
         }
         var grouped = new LinkedHashMap<String, List<Branch>>();
         var info = new LinkedHashMap<String, GroupInfo>();
@@ -126,30 +132,32 @@ public final class MatterRecipeBridge {
             if (recipe instanceof MatterFabricationRecipe || recipe instanceof MatterMachineImportRecipe) continue;
             var serializerId = BuiltInRegistries.RECIPE_SERIALIZER.getKey(recipe.getSerializer());
             var type = serializerId == null ? "" : serializerId.toString();
-            var machine = byType.get(type);
-            if (machine == null) continue;
+            var supported = byType.get(type);
+            if (supported == null) continue;
             var encoded = encode(level, recipe);
-            if (encoded == null) {
-                recordFailure(failures, machine, holder.getId());
-                continue;
+            for (var machine : supported) {
+                if (encoded == null) {
+                    recordFailure(failures, machine, holder.getId());
+                    continue;
+                }
+                var output = machine.declaration != null && machine.declaration.outputs().isPresent()
+                        ? mappedOutput(level, encoded, machine.declaration.outputs().get())
+                        : output(level, recipe, encoded, type);
+                if (output == null || output.items().isEmpty() && output.fluids().isEmpty() && output.resources().isEmpty()
+                        || output.items().size() > MatterFabricationRecipe.MAX_OUTPUTS
+                        || output.resources().size() + Math.max(0, output.fluids().size() - 1) > MatterFabricationRecipe.MAX_OUTPUTS) {
+                    recordFailure(failures, machine, holder.getId());
+                    continue;
+                }
+                var branch = convert(level, recipe, output, encoded, type, machine);
+                if (branch == null) {
+                    recordFailure(failures, machine, holder.getId());
+                    continue;
+                }
+                var key = machine.key + "|" + outputKey(output) + "|" + branch.signature;
+                grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(branch);
+                info.putIfAbsent(key, new GroupInfo(machine, output, branch.signature));
             }
-            var output = machine.declaration != null && machine.declaration.outputs().isPresent()
-                    ? mappedOutput(level, encoded, machine.declaration.outputs().get())
-                    : output(level, recipe, encoded, type);
-            if (output == null || output.items().isEmpty() && output.fluids().isEmpty() && output.resources().isEmpty()
-                    || output.items().size() > MatterFabricationRecipe.MAX_OUTPUTS
-                    || output.resources().size() + Math.max(0, output.fluids().size() - 1) > MatterFabricationRecipe.MAX_OUTPUTS) {
-                recordFailure(failures, machine, holder.getId());
-                continue;
-            }
-            var branch = convert(level, recipe, output, encoded, type, machine);
-            if (branch == null) {
-                recordFailure(failures, machine, holder.getId());
-                continue;
-            }
-            var key = machine.key + "|" + outputKey(output) + "|" + branch.signature;
-            grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(branch);
-            info.putIfAbsent(key, new GroupInfo(machine, output, branch.signature));
         }
         failures.forEach((machine, ids) -> com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
                 "Matter machine import {} skipped {} recipes with unreadable fields/resources or unsupported slot counts: {}",
@@ -418,6 +426,16 @@ public final class MatterRecipeBridge {
     }
 
     private static Output output(Level level, Recipe<?> recipe, JsonElement encoded, String type) {
+        if (type.equals("advanced_ae:reaction") && encoded instanceof JsonObject root
+                && root.get("output") instanceof JsonObject value) {
+            var stack = ForgeRecipeCodecs.GENERIC_STACK.parse(JsonOps.INSTANCE, value).result().orElse(null);
+            if (stack == null) return null;
+            if (stack.what() instanceof appeng.api.stacks.AEItemKey item && stack.amount() <= Integer.MAX_VALUE)
+                return singleOutput(item.toStack((int) stack.amount()), FluidStack.EMPTY);
+            if (stack.what() instanceof appeng.api.stacks.AEFluidKey fluid && stack.amount() <= Integer.MAX_VALUE)
+                return singleOutput(ItemStack.EMPTY, fluid.toStack((int) stack.amount()));
+            return new Output(List.of(), List.of(), List.of(stack));
+        }
         if (type.equals("data_energistics:data_reassembler") && encoded instanceof JsonObject root) {
             var items = new ArrayList<ItemStack>();
             var fluids = new ArrayList<FluidStack>();
@@ -477,7 +495,7 @@ public final class MatterRecipeBridge {
         }
         if (!(element instanceof JsonObject object)) return List.of();
         if (object.get("items") != null) return readItemOutputs(ops, object.get("items"));
-        if (object.has("#t")) {
+        if (object.has("#t") || object.has("#c")) {
             var generic = ForgeRecipeCodecs.GENERIC_STACK.parse(ops, object).result().orElse(null);
             if (generic != null && generic.what() instanceof appeng.api.stacks.AEItemKey item
                     && generic.amount() > 0 && generic.amount() <= Integer.MAX_VALUE)
@@ -578,9 +596,22 @@ public final class MatterRecipeBridge {
                     catalysts.add(new MatterFabricationRecipe.CountedIngredient(ingredient, (int) count));
                 }
             }
+            if (type.equals("ae2:inscriber") && recipe instanceof appeng.recipes.handlers.InscriberRecipe inscriber
+                    && inscriber.getProcessType() == appeng.recipes.handlers.InscriberProcessType.INSCRIBE) {
+                for (var press : List.of(inscriber.getTopOptional(), inscriber.getBottomOptional())) {
+                    if (!press.isEmpty()) catalysts.add(new MatterFabricationRecipe.CountedIngredient(press, 1));
+                }
+            }
             if (mapped != null) {
                 parsed.addAll(mapped.items());
                 aeInputs.addAll(mapped.resources());
+            } else if (type.equals("ae2:inscriber") && recipe instanceof appeng.recipes.handlers.InscriberRecipe inscriber) {
+                parsed.add(new Input(inscriber.getMiddleInput(), 1));
+                if (inscriber.getProcessType() == appeng.recipes.handlers.InscriberProcessType.PRESS) {
+                    for (var input : List.of(inscriber.getTopOptional(), inscriber.getBottomOptional())) {
+                        if (!input.isEmpty()) parsed.add(new Input(input, 1));
+                    }
+                }
             } else if (encoded != null) {
                 if (!type.equals("ae2lt:crystal_catalyzer")) {
                     collectInputs(level, encoded, parsed, false);
@@ -660,9 +691,10 @@ public final class MatterRecipeBridge {
             parseIngredient(level, object, amount(object)).ifPresent(value -> result.add(new Input(value, amount(object))));
             return;
         }
-        if (!outputContext && object.has("ingredient") && object.get("ingredient") instanceof JsonObject ingredient
-                && !ingredient.has("fluid")) {
-            parseIngredient(level, ingredient, amount(object)).ifPresent(value -> result.add(new Input(value, amount(object))));
+        if (!outputContext && object.has("ingredient")
+                && !(object.get("ingredient") instanceof JsonObject ingredient && ingredient.has("fluid"))) {
+            parseIngredient(level, object.get("ingredient"), amount(object))
+                    .ifPresent(value -> result.add(new Input(value, amount(object))));
             return;
         }
         for (var entry : object.entrySet()) {
@@ -752,6 +784,15 @@ public final class MatterRecipeBridge {
         }
         if (!(element instanceof JsonObject object)) return;
         if (!outputContext && fluidContext) {
+            if (object.has("FluidName")) {
+                try {
+                    var stack = FluidStack.loadFluidStackFromNBT(net.minecraft.nbt.TagParser.parseTag(object.toString()));
+                    if (!stack.isEmpty()) result.add(stack);
+                    return;
+                } catch (com.mojang.brigadier.exceptions.CommandSyntaxException failure) {
+                    throw new IllegalArgumentException("Invalid Forge fluid input", failure);
+                }
+            }
             var id = text(object, "fluid");
             if (id == null) id = text(object, "id");
             var fluidId = id == null ? null : ResourceLocation.tryParse(id);

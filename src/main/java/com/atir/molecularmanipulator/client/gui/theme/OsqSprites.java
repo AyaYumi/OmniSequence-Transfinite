@@ -8,7 +8,7 @@ import net.minecraft.resources.ResourceLocation;
  *   亮：assets/molecularmanipulator/textures/gui/sprites/osq_light/&lt;family|common&gt;/&lt;name&gt;.png       id molecularmanipulator:osq_light/...
  *   暗：assets/molecularmanipulator/textures/gui/sprites/osq_dark/&lt;family|common&gt;/&lt;name&gt;.png  id molecularmanipulator:osq_dark/...
  * 两套贴图名完全相同，主题只换根目录：{@code resolve(OsqPalette.SING_DARK, "button_normal")}。
- * 4× 密度；九宫格写在 .png.mcmeta；阴影在控件矩形外，绘制矩形 = 布局矩形外扩 {@link #pad}。由 tools/gen_java.py 生成。
+ * 4× 密度；九宫格写在 .png.mcmeta；阴影在控件矩形外，绘制矩形 = 布局矩形外扩 {@link #pad}。
  */
 public final class OsqSprites {
     private OsqSprites() {}

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "GGG",
+    "ASA",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "A": {
+      "item": "molecularmanipulator:star_marrow_alloy_ingot"
+    },
+    "S": {
+      "item": "minecraft:quartz"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:entropy_armillary_plinth",
+    "count": 32
+  }
+}

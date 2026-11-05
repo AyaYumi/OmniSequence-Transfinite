@@ -8,16 +8,16 @@
   ],
   "key": {
     "I": {
-      "item": "molecularmanipulator:negative_entropy_alloy_ingot"
+      "item": "molecularmanipulator:star_marrow_alloy_ingot"
     },
     "C": {
-      "item": "molecularmanipulator:negative_entropy_engine_casing"
+      "item": "molecularmanipulator:star_computation_engine_casing"
     },
     "Q": {
-      "item": "molecularmanipulator:negative_entropy_crystal"
+      "item": "molecularmanipulator:star_marrow_crystal"
     },
     "P": {
-      "item": "molecularmanipulator:negentropy_information_processor"
+      "item": "molecularmanipulator:star_chart_processor"
     }
   },
   "result": {

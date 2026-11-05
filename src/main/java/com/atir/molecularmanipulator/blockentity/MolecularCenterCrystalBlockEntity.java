@@ -25,6 +25,7 @@ public final class MolecularCenterCrystalBlockEntity extends BlockEntity {
     }
 
     public void setPatterns(ListTag patterns) {
+        if (this.patterns.equals(patterns) || patterns == null && this.patterns.isEmpty()) return;
         this.patterns = patterns == null ? new ListTag() : patterns.copy();
         patternRevision++;
         setChanged();

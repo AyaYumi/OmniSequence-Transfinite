@@ -22,8 +22,8 @@ import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.OmniCpuResources;
 import com.atir.molecularmanipulator.crafting.OmniDispatchBudgetLedger;
 import com.atir.molecularmanipulator.crafting.OmniDispatchLaneRotation;
-import com.atir.molecularmanipulator.entropy.NegativeEntropyBenefits;
-import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
+import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.OmniCpuStorage;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
@@ -230,8 +230,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return structureFormed ? entropyBenefits().cpuParallel() : 0;
     }
 
-    public NegativeEntropyBenefits entropyBenefits() {
-        return NegativeEntropyNetwork.forGrid(getMainNode().getGrid());
+    public StarComputationBenefits entropyBenefits() {
+        return StarComputationNetwork.forGrid(getMainNode().getGrid());
     }
 
     private boolean hasUnrestoredCpuStates() {
@@ -277,6 +277,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void onReady() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         super.onReady();
         scheduleStructureCheck();
         updateQuantumLink();
@@ -454,6 +455,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void serverTick() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         if (level == null || level.isClientSide()) {
             return;
         }
@@ -1233,6 +1235,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public OmniComputationStructure.Inspection getInspection() {
         return inspection;
     }
+
+    public OmniComputationStructure.StructureLayout getFoldingLayout() { return knownLayout; }
 
     public boolean hasLegacyStructure() {
         return structureFormed

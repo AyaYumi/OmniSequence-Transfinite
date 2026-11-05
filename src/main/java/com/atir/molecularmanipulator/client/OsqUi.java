@@ -160,7 +160,7 @@ final class OsqUi {
             if (color != null) e.color = String.format("#%08X", color.getAsInt());
             if (supplied != null) layout.renderSingleLine(g, font, e, supplied.get(), 0, 0);
             else if (!e.dynamic && e.langArgs == null)
-                layout.renderText(g, font, e, e.lang == null ? Component.literal(e.text) : tr(e.lang), 0, 0);
+                layout.renderText(g, font, e, e.staticText(), 0, 0);
         }
     }
     void smallText(GuiGraphics g, Component value, float x, float y, float maxWidth) {
@@ -177,11 +177,41 @@ final class OsqUi {
         layout.renderSingleLine(g, Minecraft.getInstance().font, e, value, 0, 0);
     }
     static String compact(long number) { return DisplayNumbers.compact(number); }
+    private static boolean spriteExists(String sprite) {
+        var id = ResourceLocation.parse(sprite);
+        return Minecraft.getInstance().getResourceManager().getResource(ResourceLocation.fromNamespaceAndPath(
+                id.getNamespace(), "textures/gui/sprites/" + id.getPath() + ".png")).isPresent();
+    }
+    private record ButtonKey(String kind, String status, boolean enabled, String sourceSprite) {}
+    private static final class ButtonVisual {
+        final String sprite;
+        final int[] pad;
+        private String textColor;
+        private int textArgb;
+        ButtonVisual(String sprite, int[] pad) { this.sprite = sprite; this.pad = pad; }
+        String textColor(OsqPalette palette, String kind, String status, boolean enabled) {
+            int color = palette.controlText(kind, status, enabled);
+            if (textColor == null || textArgb != color) {
+                textArgb = color;
+                textColor = String.format("#%08X", color);
+            }
+            return textColor;
+        }
+    }
     private class SkinButton extends Button {
         private final OsqLayout.Entry box;
         private final Supplier<Component> label;
         private final OsqLayout.Entry labelTemplate;
         private final List<OsqLayout.Entry> icons;
+        private final OsqLayout.Entry background = new OsqLayout.Entry();
+        private final OsqLayout.Entry fallbackLabel = new OsqLayout.Entry();
+        private final OsqButtonIconCache iconSprites = new OsqButtonIconCache();
+        private final Map<ButtonKey, ButtonVisual> visuals = new LinkedHashMap<>(8, .75f, true) {
+            @Override protected boolean removeEldestEntry(Map.Entry<ButtonKey, ButtonVisual> entry) { return size() > 32; }
+        };
+        private long resourceGeneration = Long.MIN_VALUE;
+        private ButtonKey lastKey;
+        private ButtonVisual lastVisual;
         private Supplier<String> state;
         private Supplier<String> iconName;
         private Supplier<ItemStack> itemIcon;
@@ -197,6 +227,31 @@ final class OsqUi {
             icons=layout.draw.stream().filter(e -> "sprite".equals(e.type) && e.sprite!=null
                     && e.sprite.contains("/icons/") && e.x>=box.x && e.y>=box.y
                     && e.x+e.w<=box.x+box.w+1 && e.y+e.h<=box.y+box.h+1).toList();
+            fallbackLabel.size=6; fallbackLabel.fontId="molecularmanipulator:osq_nsc_600_6";
+            fallbackLabel.alignment="center";
+        }
+        private ButtonVisual visual(String kind, String status, long generation) {
+            if (resourceGeneration != generation) {
+                resourceGeneration = generation;
+                visuals.clear();
+                lastKey = null;
+            }
+            if (lastKey != null && lastKey.kind.equals(kind) && Objects.equals(lastKey.status, status)
+                    && lastKey.enabled == active && Objects.equals(lastKey.sourceSprite, box.sprite)) return lastVisual;
+            var key = new ButtonKey(kind, status, active, box.sprite);
+            var visual = visuals.get(key);
+            if (visual == null) {
+                String sprite = kind.equals("edge_key") ? status.equals("active") ? "edge_key_active" : "edge_key" : kind+"_"+status;
+                var id = OsqSprites.resolve(palette, sprite);
+                id = ResourceLocation.fromNamespaceAndPath(OsqSprites.NS, id.getPath().replace("osq_dark/", "osq_light/"));
+                if (!spriteExists(id.toString())) id = ResourceLocation.parse(box.sprite);
+                int[] pad = OsqSprites.pad((palette.dark ? "osq_dark/" : "osq_light/")
+                        + id.getPath().substring("osq_light/".length()));
+                visual = new ButtonVisual(id.toString(), pad);
+                visuals.put(key, visual);
+            }
+            lastKey = key;
+            return lastVisual = visual;
         }
         @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
             if (label != null) setMessage(label.get());
@@ -204,22 +259,15 @@ final class OsqUi {
             String kind = box.sprite != null && box.sprite.contains("edge_key") ? "edge_key"
                     : box.sprite != null && box.sprite.contains("tab_") ? "tab"
                     : box.sprite != null && box.sprite.contains("row_") ? "row" : small ? "key13" : "button";
+            // Resolve the live status every draw; only its resource decisions are cached.
             String status=!active ? "disabled" : state != null ? state.get()
                     : isHoveredOrFocused() ? "hover"
                     : box.sprite != null && box.sprite.endsWith("button_danger") ? "danger" : "normal";
-            String sprite=kind.equals("edge_key") ? status.equals("active")?"edge_key_active":"edge_key" : kind+"_"+status;
-            var rm=Minecraft.getInstance().getResourceManager();
-            ResourceLocation id=OsqSprites.resolve(palette,sprite);
-            id=ResourceLocation.fromNamespaceAndPath(OsqSprites.NS,id.getPath().replace("osq_dark/","osq_light/"));
-            if (!rm.getResource(ResourceLocation.fromNamespaceAndPath(id.getNamespace(),
-                    "textures/gui/sprites/"+id.getPath()+".png")).isPresent()) {
-                id=ResourceLocation.parse(box.sprite);
-            }
-            int[] pad=OsqSprites.pad((palette.dark ? "osq_dark/" : "osq_light/")
-                    +id.getPath().substring("osq_light/".length()));
-            var draw=new OsqLayout.Entry(); draw.sprite=id.toString(); draw.x=getX(); draw.y=getY();
-            draw.w=getWidth(); draw.h=getHeight(); draw.pad=pad;
-            OsqLayout.drawSprite(g,draw,0,0);
+            long generation = OsqFonts.resourceGeneration();
+            var visual = visual(kind, status, generation);
+            background.sprite=visual.sprite; background.x=getX(); background.y=getY();
+            background.w=getWidth(); background.h=getHeight(); background.pad=visual.pad;
+            OsqLayout.drawSprite(g,background,0,0);
             if (outlined || itemIcon != null) {
                 int color = isHoveredOrFocused() || "active".equals(status) ? palette.acc : palette.ink4;
                 g.renderOutline(getX(),getY(),getWidth(),getHeight(),color);
@@ -232,19 +280,10 @@ final class OsqUi {
             }
             for (var icon : icons) {
                 String original=icon.sprite;
-                if(iconName!=null)icon.sprite=original.replaceAll("/icons/[^/]+_(ink2|ink|mute|white|acc|dis|inv)_(\\d+)$",
-                        "/icons/"+iconName.get()+"_$1_$2");
+                String name=iconName==null?null:String.valueOf(iconName.get());
                 String tint=!active?"dis":status.equals("active")||status.equals("danger")||status.equals("confirm")
                         ?palette.dark?"inv":"white":"ink";
-                String candidate=icon.sprite.replaceAll("_(ink2|ink|mute|white|acc|dis|inv)_(\\d+)$","_"+tint+"_$2");
-                var candidateId=ResourceLocation.parse(candidate);
-                if(rm.getResource(ResourceLocation.fromNamespaceAndPath(candidateId.getNamespace(),
-                        "textures/gui/sprites/"+candidateId.getPath()+".png")).isPresent())icon.sprite=candidate;
-                else {
-                    String fallback=icon.sprite.replaceAll("_(ink2|ink|mute|white|acc|dis|inv)_\\d+$","_"+tint+"_8");
-                    var fallbackId=ResourceLocation.parse(fallback);
-                    if(rm.getResource(ResourceLocation.fromNamespaceAndPath(fallbackId.getNamespace(),"textures/gui/sprites/"+fallbackId.getPath()+".png")).isPresent())icon.sprite=fallback;
-                }
+                icon.sprite=iconSprites.resolve(generation,original,name,tint,OsqUi::spriteExists);
                 float originalX=icon.x,originalY=icon.y;
                 if(small&&icons.size()==1)icon.x=box.x+(getWidth()-icon.w)/2;
                 icon.y=box.y+(getHeight()-icon.h)/2;
@@ -266,7 +305,7 @@ final class OsqUi {
                 String originalColor = labelTemplate.color;
                 Float originalCenter = labelTemplate.centerY;
                 labelTemplate.centerY = box.y + getHeight() / 2f;
-                labelTemplate.color = String.format("#%08X", palette.controlText(kind,status,active));
+                labelTemplate.color = visual.textColor(palette,kind,status,active);
                 layout.renderSingleLine(g,Minecraft.getInstance().font,labelTemplate,getMessage(),
                         getX()-Math.round(box.x), getY()-Math.round(box.y));
                 labelTemplate.w = originalWidth;
@@ -277,57 +316,75 @@ final class OsqUi {
                 return;
             }
             if (!icons.isEmpty()) return;
-            var text=new OsqLayout.Entry();text.x=getX()+3; text.baseline=getY()+getHeight()/2f+2;text.centerY=getY()+getHeight()/2f;
-            text.w=getWidth()-6; text.size=6; text.fontId="molecularmanipulator:osq_nsc_600_6";
-            text.alignment="center";
-            text.color=String.format("#%08X",palette.controlText(kind,status,active));
-            layout.renderSingleLine(g,Minecraft.getInstance().font,text,getMessage(),0,0);
+            fallbackLabel.x=getX()+3; fallbackLabel.baseline=getY()+getHeight()/2f+2;fallbackLabel.centerY=getY()+getHeight()/2f;
+            fallbackLabel.w=getWidth()-6; fallbackLabel.color=visual.textColor(palette,kind,status,active);
+            layout.renderSingleLine(g,Minecraft.getInstance().font,fallbackLabel,getMessage(),0,0);
+        }
+    }
+    private static int fieldScaleKey(Object splitter) {
+        return splitter.getClass().getName().equals("icyllis.modernui.mc.text.ModernStringSplitter")
+                ? ModernFieldMetrics.baseSizeKey() : 0;
+    }
+    /** Same optional, live base-size input as OsqFonts; resource generation alone cannot track it. */
+    private static final class ModernFieldMetrics {
+        private static final java.lang.reflect.Field SIZE = sizeField();
+        private static java.lang.reflect.Field sizeField() {
+            try {
+                return Class.forName("icyllis.modernui.mc.text.TextLayoutProcessor", false,
+                        OsqUi.class.getClassLoader()).getField("sBaseFontSize");
+            } catch (ReflectiveOperationException | LinkageError ignored) { return null; }
+        }
+        static int baseSizeKey() {
+            try { return Float.floatToIntBits(SIZE == null ? 8 : SIZE.getFloat(null)); }
+            catch (IllegalAccessException ignored) { return Float.floatToIntBits(8); }
         }
     }
     private class SkinField extends EditBox {
         private final OsqLayout.Entry box;
         private final ResourceLocation face = ResourceLocation.parse("molecularmanipulator:osq_nsc_600_6");
         private final Component hint;
+        private final OsqLayout.Entry background = new OsqLayout.Entry();
+        private final OsqFieldMeasurements measurements = new OsqFieldMeasurements();
+        private final OsqFieldMeasurements.Measure measure = text -> OsqFonts.widthF(Minecraft.getInstance().font,text,face);
+        private String shownValue = "";
+        private Component shownText = Component.literal("");
         private int display, highlight, color;
         SkinField(OsqLayout.Entry box,int left,int top,Font font,Component hint) {
             super(font,left+Math.round(box.x)+4,top+Math.round(box.y)+3,
                     Math.round(box.w)-8,Math.round(box.h)-4,hint);
             this.box=box;this.hint=hint;setBordered(false);setMaxLength(64);setTextColor(palette.ink);
             setTextColorUneditable(palette.disT);setTextShadow(false);
-            setFormatter((text,position)->OsqFonts.styled(Component.literal(text),
-                    ResourceLocation.parse("molecularmanipulator:osq_nsc_600_6")).getVisualOrderText());
+            setFormatter((text,position)->OsqFonts.styled(Component.literal(text),face).getVisualOrderText());
         }
         @Override public void setTextColor(int color) { super.setTextColor(color); this.color=color; }
         @Override public void setHighlightPos(int position) { super.setHighlightPos(position); highlight=position; }
         @Override public void onClick(double mouseX, double mouseY) {
-            String value=getValue(); int position=Math.min(display,value.length());
-            while(position<value.length()) {
-                int next=value.offsetByCodePoints(position,1);
-                float width=OsqFonts.widthF(Minecraft.getInstance().font,value.substring(display,next),face);
-                if(width>mouseX-getX())break;position=next;
-            }
+            var font=Minecraft.getInstance().font; var splitter=font.getSplitter();
+            int position=measurements.positionAt(getValue(),display,mouseX-getX(),font,splitter,
+                    OsqFonts.metricsGeneration(font),fieldScaleKey(splitter),measure);
             moveCursorTo(position,net.minecraft.client.gui.screens.Screen.hasShiftDown());
         }
         @Override public void renderWidget(GuiGraphics g,int mx,int my,float pt) {
             if (!visible) return;
-            var e=new OsqLayout.Entry();e.sprite=sprite(isFocused()?"field_focus":"field_normal");e.x=getX()-4;e.y=getY()-3;
-            e.w=box.w;e.h=box.h;e.pad=box.pad;OsqLayout.drawSprite(g,e,0,0);
+            background.sprite=sprite(isFocused()?"field_focus":"field_normal");background.x=getX()-4;background.y=getY()-3;
+            background.w=box.w;background.h=box.h;background.pad=box.pad;OsqLayout.drawSprite(g,background,0,0);
             var font=Minecraft.getInstance().font;String value=getValue();int cursor=getCursorPosition();
-            display=Math.clamp(display,0,Math.min(cursor,value.length()));
-            while(display<cursor&&OsqFonts.widthF(font,value.substring(display,cursor),face)>getWidth()-2)
-                display=value.offsetByCodePoints(display,1);
-            int end=display;
-            while(end<value.length()) {int next=value.offsetByCodePoints(end,1);
-                if(OsqFonts.widthF(font,value.substring(display,next),face)>getWidth())break;end=next;}
-            Component displayedText=value.isEmpty()?hint:Component.literal(value.substring(display,end));
+            var splitter=font.getSplitter();
+            measurements.layout(value,cursor,display,getWidth(),font,splitter,
+                    OsqFonts.metricsGeneration(font),fieldScaleKey(splitter),measure);
+            display=measurements.display();int end=measurements.end();
+            String shown=measurements.visibleText();
+            if(!shownValue.equals(shown)) {shownValue=shown;shownText=Component.literal(shown);}
+            // Keep the actual hint Component live: translations/arguments may change without editing the field.
+            Component displayedText=value.isEmpty()?hint:shownText;
             float baseline=getY()-3+box.h/2+OsqFonts.centeredBaselineOffset(displayedText,face,6);
             if(value.isEmpty()&&!isFocused())OsqFonts.draw(g,font,hint,face,6,getX(),baseline,palette.ink3,0);
-            else OsqFonts.draw(g,font,Component.literal(value.substring(display,end)),face,6,getX(),baseline,active?color:palette.disT,0);
-            float cx=getX()+OsqFonts.widthF(font,value.substring(display,Math.min(cursor,end)),face);
+            else OsqFonts.draw(g,font,shownText,face,6,getX(),baseline,active?color:palette.disT,0);
+            float cx=getX()+measurements.cursorWidth();
             if(isFocused()&&net.minecraft.Util.getMillis()/300%2==0)g.fill(Math.round(cx),getY(),Math.round(cx)+1,getY()+7,active?color:palette.disT);
             int selected=Math.clamp(highlight,display,end);
             if(selected!=cursor&&!getHighlighted().isEmpty()) {
-                int hx=Math.round(getX()+OsqFonts.widthF(font,value.substring(display,selected),face));
+                int hx=Math.round(getX()+measurements.widthTo(selected,measure));
                 g.fill(net.minecraft.client.renderer.RenderType.guiTextHighlight(),Math.min(hx,Math.round(cx)),getY(),Math.max(hx,Math.round(cx)),getY()+7,0xFF6688FF);
             }
         }

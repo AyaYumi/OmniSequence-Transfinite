@@ -1,4 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {"layer0": "molecularmanipulator:block/negative_entropy_quartz_bud_small"}
-}

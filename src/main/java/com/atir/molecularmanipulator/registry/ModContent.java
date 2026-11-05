@@ -1,14 +1,14 @@
 package com.atir.molecularmanipulator.registry;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
-import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKey;
-import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKeyType;
+import com.atir.molecularmanipulator.ae2.StarSignalKey;
+import com.atir.molecularmanipulator.ae2.StarSignalKeyType;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
 import com.atir.molecularmanipulator.block.EntropyAnchorBlock;
-import com.atir.molecularmanipulator.block.NegativeEntropyBuddingQuartzBlock;
-import com.atir.molecularmanipulator.block.NegativeEntropyEngineCasingBlock;
-import com.atir.molecularmanipulator.block.NegativeEntropyEngineCoreBlock;
-import com.atir.molecularmanipulator.block.NegativeEntropyObservationPortBlock;
+import com.atir.molecularmanipulator.block.StarMarrowParentRockBlock;
+import com.atir.molecularmanipulator.block.StarComputationEngineCasingBlock;
+import com.atir.molecularmanipulator.block.StarComputationEngineCoreBlock;
+import com.atir.molecularmanipulator.block.StarComputationObservationPortBlock;
 import com.atir.molecularmanipulator.block.CosmicSingularityBlock;
 import com.atir.molecularmanipulator.block.GravityCrystalBlock;
 import com.atir.molecularmanipulator.block.GhostMatterBlock;
@@ -40,10 +40,12 @@ import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafterBlockEntity
 import com.atir.molecularmanipulator.blockentity.MolecularCenterCrystalBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
-import com.atir.molecularmanipulator.blockentity.NegativeEntropyEngineCoreBlockEntity;
+import com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
-import com.atir.molecularmanipulator.item.CreativeNegentropyInfoCellItem;
-import com.atir.molecularmanipulator.item.NegentropySeedItem;
+import com.atir.molecularmanipulator.item.CreativeStarSignalDiskItem;
+import com.atir.molecularmanipulator.item.StarMarrowSeedItem;
+import com.atir.molecularmanipulator.item.BuildingTerminalItem;
+import com.atir.molecularmanipulator.menu.BuildingTerminalMenu;
 import com.atir.molecularmanipulator.item.SingularityCosmicItem;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterMachineImportRecipe;
@@ -56,7 +58,7 @@ import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterConfigMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
-import com.atir.molecularmanipulator.menu.NegativeEntropyEngineMenu;
+import com.atir.molecularmanipulator.menu.StarComputationEngineMenu;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.items.storage.BasicStorageCell;
@@ -95,6 +97,10 @@ public final class ModContent {
             DeferredRegister.create(Registries.RECIPE_SERIALIZER, MolecularManipulator.MOD_ID);
     public static final DeferredBlock<MolecularManipulatorBlock> MOLECULAR_MANIPULATOR =
             BLOCKS.register("molecular_manipulator", MolecularManipulatorBlock::new);
+    public static final DeferredItem<BuildingTerminalItem> BUILDING_ACCESS_TERMINAL = ITEMS.register(
+            "building_access_terminal", () -> new BuildingTerminalItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<com.atir.molecularmanipulator.item.FoldedBuildingPackageItem> FOLDED_BUILDING_PACKAGE = ITEMS.register(
+            "folded_building_package", () -> new com.atir.molecularmanipulator.item.FoldedBuildingPackageItem(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<BlockItem> MOLECULAR_MANIPULATOR_ITEM =
             ITEMS.register("molecular_manipulator",
                     () -> new BlockItem(MOLECULAR_MANIPULATOR.get(), new Item.Properties()));
@@ -217,28 +223,41 @@ public final class ModContent {
     public static final DeferredItem<BlockItem> MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM = registerBlockItem(
             "matter_fabrication_pattern_assembly", MATTER_FABRICATION_PATTERN_ASSEMBLY);
 
-    public static final DeferredBlock<NegativeEntropyEngineCoreBlock> NEGATIVE_ENTROPY_ENGINE_CORE =
-            BLOCKS.register("negative_entropy_engine_core", () -> new NegativeEntropyEngineCoreBlock(
+    public static final DeferredBlock<StarComputationEngineCoreBlock> STAR_COMPUTATION_ENGINE_CORE =
+            BLOCKS.register("star_computation_engine_core", () -> new StarComputationEngineCoreBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> state.getValue(NegativeEntropyEngineCoreBlock.FORMED) ? 15 : 8)));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_ENGINE_CORE_ITEM = registerBlockItem(
-            "negative_entropy_engine_core", NEGATIVE_ENTROPY_ENGINE_CORE);
-    public static final DeferredBlock<NegativeEntropyEngineCasingBlock> NEGATIVE_ENTROPY_ENGINE_CASING =
-            BLOCKS.register("negative_entropy_engine_casing", () -> new NegativeEntropyEngineCasingBlock(
+                            .lightLevel(state -> state.getValue(StarComputationEngineCoreBlock.FORMED) ? 15 : 8)));
+    public static final DeferredItem<BlockItem> STAR_COMPUTATION_ENGINE_CORE_ITEM = registerBlockItem(
+            "star_computation_engine_core", STAR_COMPUTATION_ENGINE_CORE);
+    public static final DeferredBlock<StarComputationEngineCasingBlock> STAR_COMPUTATION_ENGINE_CASING =
+            BLOCKS.register("star_computation_engine_casing", () -> new StarComputationEngineCasingBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
-                            .lightLevel(state -> state.getValue(NegativeEntropyEngineCasingBlock.FORMED) ? 10 : 3)));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_ENGINE_CASING_ITEM = registerBlockItem(
-            "negative_entropy_engine_casing", NEGATIVE_ENTROPY_ENGINE_CASING);
-    public static final DeferredBlock<NegativeEntropyObservationPortBlock> NEGATIVE_ENTROPY_OBSERVATION_PORT =
-            BLOCKS.register("negative_entropy_observation_port", () -> new NegativeEntropyObservationPortBlock(
+                            .lightLevel(state -> state.getValue(StarComputationEngineCasingBlock.FORMED) ? 10 : 3)));
+    public static final DeferredItem<BlockItem> STAR_COMPUTATION_ENGINE_CASING_ITEM = registerBlockItem(
+            "star_computation_engine_casing", STAR_COMPUTATION_ENGINE_CASING);
+    /** Real foundation blocks retain collision and drops beneath the formed pedestal model. */
+    public static final DeferredBlock<com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock> ENTROPY_ARMILLARY_PLINTH = BLOCKS.register(
+            "entropy_armillary_plinth", () -> new com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()));
+    public static final DeferredItem<BlockItem> ENTROPY_ARMILLARY_PLINTH_ITEM = registerBlockItem(
+            "entropy_armillary_plinth", ENTROPY_ARMILLARY_PLINTH);
+    public static final DeferredBlock<com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock> ENTROPY_ARMILLARY_TRIM = BLOCKS.register(
+            "entropy_armillary_trim", () -> new com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops().lightLevel(state -> 5)));
+    public static final DeferredItem<BlockItem> ENTROPY_ARMILLARY_TRIM_ITEM = registerBlockItem(
+            "entropy_armillary_trim", ENTROPY_ARMILLARY_TRIM);
+    public static final DeferredBlock<StarComputationObservationPortBlock> STAR_COMPUTATION_OBSERVATION_PORT =
+            BLOCKS.register("star_computation_observation_port", () -> new StarComputationObservationPortBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(5.0F, 1200.0F).requiresCorrectToolForDrops()
                             .noOcclusion()
-                            .lightLevel(state -> state.getValue(NegativeEntropyObservationPortBlock.FORMED) ? 13 : 8)));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_OBSERVATION_PORT_ITEM = registerBlockItem(
-            "negative_entropy_observation_port", NEGATIVE_ENTROPY_OBSERVATION_PORT);
+                            .lightLevel(state -> state.getValue(StarComputationObservationPortBlock.FORMED) ? 13 : 8)));
+    public static final DeferredItem<BlockItem> STAR_COMPUTATION_OBSERVATION_PORT_ITEM = registerBlockItem(
+            "star_computation_observation_port", STAR_COMPUTATION_OBSERVATION_PORT);
     public static final DeferredBlock<EntropyAnchorBlock> BASE_ENTROPY_ANCHOR =
             BLOCKS.register("base_entropy_anchor", () -> new EntropyAnchorBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
@@ -260,62 +279,67 @@ public final class ModContent {
                             .lightLevel(state -> 15)));
     public static final DeferredItem<BlockItem> TERMINAL_ENTROPY_ANCHOR_ITEM = registerBlockItem(
             "terminal_entropy_anchor", TERMINAL_ENTROPY_ANCHOR);
-    public static final DeferredItem<Item> NEGATIVE_ENTROPY_ALLOY_INGOT = ITEMS.register(
-            "negative_entropy_alloy_ingot", () -> new Item(new Item.Properties()));
-    public static final DeferredItem<Item> NEGATIVE_ENTROPY_CRYSTAL = ITEMS.register(
-            "negative_entropy_crystal", () -> new Item(new Item.Properties()));
-    public static final DeferredItem<Item> NEGATIVE_ENTROPY_CRYSTAL_DUST = ITEMS.register(
-            "negative_entropy_crystal_dust", () -> new Item(new Item.Properties()));
-    public static final DeferredItem<Item> NEGENTROPY_INFORMATION_PROCESSOR = ITEMS.register(
-            "negentropy_information_processor", () -> new Item(new Item.Properties()));
-    public static final DeferredItem<Item> PRINTED_NEGENTROPY_INFORMATION_PROCESSOR = ITEMS.register(
-            "printed_negentropy_information_processor", () -> new Item(new Item.Properties()));
-    public static final DeferredItem<Item> NEGENTROPY_SEED = ITEMS.register(
-            "negentropy_seed", () -> new NegentropySeedItem(new Item.Properties()));
-    public static final DeferredItem<BasicStorageCell> NEGENTROPY_INFORMATION_CELL = ITEMS.register(
-            "negentropy_information_cell",
-            () -> new BasicStorageCell(new Item.Properties().stacksTo(1), 0.5, 4096, 1, 1,
-                    NegativeEntropyInfoKeyType.INSTANCE));
-    public static final DeferredItem<Item> CREATIVE_NEGENTROPY_INFORMATION_CELL = ITEMS.register(
-            "creative_negentropy_information_cell",
-            () -> new CreativeNegentropyInfoCellItem(new Item.Properties().stacksTo(1)));
-    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL =
-            registerEntropyQuartzCluster("negative_entropy_quartz_bud_small", 0.35F, 3.0F, 4.0F, 4);
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL_ITEM =
-            registerBlockItem("negative_entropy_quartz_bud_small", NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL);
-    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM =
-            registerEntropyQuartzCluster("negative_entropy_quartz_bud_medium", 0.45F, 4.0F, 3.0F, 6);
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM_ITEM =
-            registerBlockItem("negative_entropy_quartz_bud_medium", NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM);
-    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE =
-            registerEntropyQuartzCluster("negative_entropy_quartz_bud_large", 0.55F, 5.0F, 3.0F, 8);
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE_ITEM =
-            registerBlockItem("negative_entropy_quartz_bud_large", NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE);
-    public static final DeferredBlock<AmethystClusterBlock> NEGATIVE_ENTROPY_QUARTZ_CLUSTER =
-            registerEntropyQuartzCluster("negative_entropy_quartz_cluster", 0.7F, 7.0F, 3.0F, 12);
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_QUARTZ_CLUSTER_ITEM =
-            registerBlockItem("negative_entropy_quartz_cluster", NEGATIVE_ENTROPY_QUARTZ_CLUSTER);
-    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ =
-            BLOCKS.register("negative_entropy_damaged_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
+    public static final DeferredItem<Item> STAR_MARROW_ALLOY_INGOT = ITEMS.register(
+            "star_marrow_alloy_ingot", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> STAR_MARROW_CRYSTAL = ITEMS.register(
+            "star_marrow_crystal", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> STAR_MARROW_CRYSTAL_DUST = ITEMS.register(
+            "star_marrow_crystal_dust", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> STAR_CHART_PROCESSOR = ITEMS.register(
+            "star_chart_processor", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> STAR_CHART_CIRCUIT_BOARD = ITEMS.register(
+            "star_chart_circuit_board", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> STAR_SIGNAL_STORAGE_COMPONENT = ITEMS.register(
+            "star_signal_storage_component", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> PRIMORDIAL_CRYSTAL_CORE = ITEMS.register(
+            "primordial_crystal_core", () -> new Item(new Item.Properties()));
+    public static final DeferredItem<Item> STAR_MARROW_SEED = ITEMS.register(
+            "star_marrow_seed", () -> new StarMarrowSeedItem(new Item.Properties()));
+    public static final DeferredItem<BasicStorageCell> STAR_SIGNAL_STORAGE_CELL = ITEMS.register(
+            "star_signal_storage_cell",
+            // AE2 takes capacity in KiB: 256 * 1024 KiB = 256 MiB.
+            () -> new BasicStorageCell(new Item.Properties().stacksTo(1), 0.5, 256 * 1024, 1, 1,
+                    StarSignalKeyType.INSTANCE));
+    public static final DeferredItem<Item> CREATIVE_STAR_SIGNAL_DISK = ITEMS.register(
+            "creative_star_signal_disk",
+            () -> new CreativeStarSignalDiskItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredBlock<AmethystClusterBlock> STAR_MARROW_CRYSTAL_BUD_SMALL =
+            registerEntropyQuartzCluster("star_marrow_crystal_bud_small", 0.35F, 3.0F, 4.0F, 4);
+    public static final DeferredItem<BlockItem> STAR_MARROW_CRYSTAL_BUD_SMALL_ITEM =
+            registerBlockItem("star_marrow_crystal_bud_small", STAR_MARROW_CRYSTAL_BUD_SMALL);
+    public static final DeferredBlock<AmethystClusterBlock> STAR_MARROW_CRYSTAL_BUD_MEDIUM =
+            registerEntropyQuartzCluster("star_marrow_crystal_bud_medium", 0.45F, 4.0F, 3.0F, 6);
+    public static final DeferredItem<BlockItem> STAR_MARROW_CRYSTAL_BUD_MEDIUM_ITEM =
+            registerBlockItem("star_marrow_crystal_bud_medium", STAR_MARROW_CRYSTAL_BUD_MEDIUM);
+    public static final DeferredBlock<AmethystClusterBlock> STAR_MARROW_CRYSTAL_BUD_LARGE =
+            registerEntropyQuartzCluster("star_marrow_crystal_bud_large", 0.55F, 5.0F, 3.0F, 8);
+    public static final DeferredItem<BlockItem> STAR_MARROW_CRYSTAL_BUD_LARGE_ITEM =
+            registerBlockItem("star_marrow_crystal_bud_large", STAR_MARROW_CRYSTAL_BUD_LARGE);
+    public static final DeferredBlock<AmethystClusterBlock> STAR_MARROW_CRYSTAL_CLUSTER =
+            registerEntropyQuartzCluster("star_marrow_crystal_cluster", 0.7F, 7.0F, 3.0F, 12);
+    public static final DeferredItem<BlockItem> STAR_MARROW_CRYSTAL_CLUSTER_ITEM =
+            registerBlockItem("star_marrow_crystal_cluster", STAR_MARROW_CRYSTAL_CLUSTER);
+    public static final DeferredBlock<StarMarrowParentRockBlock> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("heavily_damaged_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
                     parentRockProperties(1), null, 0));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ_ITEM =
-            registerBlockItem("negative_entropy_damaged_budding_quartz", NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ);
-    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ =
-            BLOCKS.register("negative_entropy_chipped_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
-                    parentRockProperties(2), () -> NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ.get(), 12));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ_ITEM =
-            registerBlockItem("negative_entropy_chipped_budding_quartz", NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ);
-    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ =
-            BLOCKS.register("negative_entropy_flawed_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
-                    parentRockProperties(3), () -> NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ.get(), 12));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ_ITEM =
-            registerBlockItem("negative_entropy_flawed_budding_quartz", NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ);
-    public static final DeferredBlock<NegativeEntropyBuddingQuartzBlock> NEGATIVE_ENTROPY_BUDDING_QUARTZ =
-            BLOCKS.register("negative_entropy_budding_quartz", () -> new NegativeEntropyBuddingQuartzBlock(
+    public static final DeferredItem<BlockItem> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("heavily_damaged_star_marrow_parent_rock", HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK);
+    public static final DeferredBlock<StarMarrowParentRockBlock> DAMAGED_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("damaged_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
+                    parentRockProperties(2), () -> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK.get(), 12));
+    public static final DeferredItem<BlockItem> DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("damaged_star_marrow_parent_rock", DAMAGED_STAR_MARROW_PARENT_ROCK);
+    public static final DeferredBlock<StarMarrowParentRockBlock> FLAWED_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("flawed_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
+                    parentRockProperties(3), () -> DAMAGED_STAR_MARROW_PARENT_ROCK.get(), 12));
+    public static final DeferredItem<BlockItem> FLAWED_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("flawed_star_marrow_parent_rock", FLAWED_STAR_MARROW_PARENT_ROCK);
+    public static final DeferredBlock<StarMarrowParentRockBlock> FLAWLESS_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("flawless_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
                     // Flawless parent rock is permanent; only damaged stages decay.
                     parentRockProperties(4), null, 0));
-    public static final DeferredItem<BlockItem> NEGATIVE_ENTROPY_BUDDING_QUARTZ_ITEM =
-            registerBlockItem("negative_entropy_budding_quartz", NEGATIVE_ENTROPY_BUDDING_QUARTZ);
+    public static final DeferredItem<BlockItem> FLAWLESS_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("flawless_star_marrow_parent_rock", FLAWLESS_STAR_MARROW_PARENT_ROCK);
 
     public static final DeferredBlock<TransfiniteComputeNexusBlock> TRANSFINITE_COMPUTE_NEXUS =
             BLOCKS.register("transfinite_compute_nexus", TransfiniteComputeNexusBlock::new);
@@ -439,10 +463,10 @@ public final class ModContent {
             OMNI_COMPUTATION_CONTROLLER_BE = BLOCK_ENTITIES.register("omni_computation_controller",
                     () -> BlockEntityType.Builder.of(OmniComputationCoreBlockEntity::new,
                             OMNI_COMPUTATION_CONTROLLER.get(), TRANSFINITE_COMPUTE_NEXUS.get()).build(null));
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<NegativeEntropyEngineCoreBlockEntity>>
-            NEGATIVE_ENTROPY_ENGINE_CORE_BE = BLOCK_ENTITIES.register("negative_entropy_engine_core",
-                    () -> BlockEntityType.Builder.of(NegativeEntropyEngineCoreBlockEntity::new,
-                            NEGATIVE_ENTROPY_ENGINE_CORE.get()).build(null));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<StarComputationEngineCoreBlockEntity>>
+            STAR_COMPUTATION_ENGINE_CORE_BE = BLOCK_ENTITIES.register("star_computation_engine_core",
+                    () -> BlockEntityType.Builder.of(StarComputationEngineCoreBlockEntity::new,
+                            STAR_COMPUTATION_ENGINE_CORE.get()).build(null));
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MolecularAutoCrafterBlockEntity>>
             MOLECULAR_AUTO_CRAFTER_BE = BLOCK_ENTITIES.register("molecular_auto_crafter",
                     () -> BlockEntityType.Builder.of(MolecularAutoCrafterBlockEntity::new,
@@ -461,14 +485,16 @@ public final class ModContent {
                     "matter_fabrication_pattern_assembly",
                     () -> BlockEntityType.Builder.of(MatterFabricationPatternAssemblyBlockEntity::new,
                             MATTER_FABRICATION_PATTERN_ASSEMBLY.get()).build(null));
+    public static final DeferredHolder<MenuType<?>, MenuType<BuildingTerminalMenu>> BUILDING_ACCESS_TERMINAL_MENU =
+            MENUS.register("building_access_terminal", () -> BuildingTerminalMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MolecularManipulatorMenu>> MOLECULAR_MANIPULATOR_MENU =
             MENUS.register("molecular_manipulator", () -> MolecularManipulatorMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MolecularCenterMenu>> MOLECULAR_CENTER_MENU =
             MENUS.register("molecular_center", () -> MolecularCenterMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<OmniComputationMenu>> OMNI_COMPUTATION_MENU =
             MENUS.register("omni_computation", () -> OmniComputationMenu.TYPE);
-    public static final DeferredHolder<MenuType<?>, MenuType<NegativeEntropyEngineMenu>> NEGATIVE_ENTROPY_ENGINE_MENU =
-            MENUS.register("negative_entropy_engine", () -> NegativeEntropyEngineMenu.TYPE);
+    public static final DeferredHolder<MenuType<?>, MenuType<StarComputationEngineMenu>> STAR_COMPUTATION_ENGINE_MENU =
+            MENUS.register("star_computation_engine", () -> StarComputationEngineMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MolecularAutoCrafterMenu>> MOLECULAR_AUTO_CRAFTER_MENU =
             MENUS.register("molecular_auto_crafter", () -> MolecularAutoCrafterMenu.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<MolecularAutoCrafterConfigMenu>> MOLECULAR_AUTO_CRAFTER_CONFIG_MENU =
@@ -505,6 +531,12 @@ public final class ModContent {
                     .title(Component.translatable("itemGroup.molecularmanipulator"))
                     .icon(() -> MOLECULAR_MANIPULATOR_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
+                        output.accept(BUILDING_ACCESS_TERMINAL.get());
+                        output.accept(FOLDED_BUILDING_PACKAGE.get());
+                        output.accept(BuildingContent.CALIBRATOR.get());
+                        output.accept(BuildingContent.ASSEMBLER_ITEM.get());
+                        for (var building : com.atir.molecularmanipulator.building.BuildingType.values())
+                            output.accept(com.atir.molecularmanipulator.building.BuildingPackage.fresh(building));
                         output.accept(MOLECULAR_MANIPULATOR_ITEM.get());
                         output.accept(ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get());
                         output.accept(MOLECULAR_AUTO_CRAFTER_ITEM.get());
@@ -525,29 +557,40 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_FLUID_INPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_FLUID_OUTPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_ENGINE_CORE_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_ENGINE_CASING_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_OBSERVATION_PORT_ITEM.get());
+                        output.accept(STAR_COMPUTATION_ENGINE_CORE_ITEM.get());
+                        output.accept(STAR_COMPUTATION_ENGINE_CASING_ITEM.get());
+                        output.accept(ENTROPY_ARMILLARY_PLINTH_ITEM.get());
+                        output.accept(ENTROPY_ARMILLARY_TRIM_ITEM.get());
+                        output.accept(STAR_COMPUTATION_OBSERVATION_PORT_ITEM.get());
                         output.accept(BASE_ENTROPY_ANCHOR_ITEM.get());
                         output.accept(QUANTUM_ENTROPY_ANCHOR_ITEM.get());
                         output.accept(TERMINAL_ENTROPY_ANCHOR_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_ALLOY_INGOT.get());
-                        output.accept(NEGATIVE_ENTROPY_CRYSTAL.get());
-                        output.accept(NEGATIVE_ENTROPY_CRYSTAL_DUST.get());
-                        output.accept(NEGENTROPY_INFORMATION_PROCESSOR.get());
-                        output.accept(PRINTED_NEGENTROPY_INFORMATION_PROCESSOR.get());
-                        output.accept(NEGENTROPY_SEED.get());
-                        output.accept(NEGENTROPY_INFORMATION_CELL.get());
-                        output.accept(CREATIVE_NEGENTROPY_INFORMATION_CELL.get());
-                        output.accept(GenericStack.wrapInItemStack(NegativeEntropyInfoKey.INSTANCE, 1));
-                        output.accept(NEGATIVE_ENTROPY_QUARTZ_BUD_SMALL_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_QUARTZ_BUD_MEDIUM_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_QUARTZ_BUD_LARGE_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_QUARTZ_CLUSTER_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_BUDDING_QUARTZ_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_FLAWED_BUDDING_QUARTZ_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_CHIPPED_BUDDING_QUARTZ_ITEM.get());
-                        output.accept(NEGATIVE_ENTROPY_DAMAGED_BUDDING_QUARTZ_ITEM.get());
+                        output.accept(STAR_MARROW_ALLOY_INGOT.get());
+                        output.accept(STAR_MARROW_CRYSTAL.get());
+                        output.accept(STAR_MARROW_CRYSTAL_DUST.get());
+                        output.accept(STAR_CHART_PROCESSOR.get());
+                        output.accept(STAR_CHART_CIRCUIT_BOARD.get());
+                        output.accept(STAR_SIGNAL_STORAGE_COMPONENT.get());
+                        output.accept(PRIMORDIAL_CRYSTAL_CORE.get());
+                        output.accept(STAR_MARROW_SEED.get());
+                        output.accept(STAR_SIGNAL_STORAGE_CELL.get());
+                        output.accept(CREATIVE_STAR_SIGNAL_DISK.get());
+                        output.accept(GenericStack.wrapInItemStack(StarSignalKey.INSTANCE, 1));
+                        output.accept(STAR_MARROW_CRYSTAL_BUD_SMALL_ITEM.get());
+                        output.accept(STAR_MARROW_CRYSTAL_BUD_MEDIUM_ITEM.get());
+                        output.accept(STAR_MARROW_CRYSTAL_BUD_LARGE_ITEM.get());
+                        output.accept(STAR_MARROW_CRYSTAL_CLUSTER_ITEM.get());
+                        output.accept(FLAWLESS_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(FLAWED_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(HighEnergyLabContent.POWER_INTERFACE_ITEM.get());
+                        output.accept(HighEnergyLabContent.PLATFORM_ITEM.get());
+                        output.accept(HighEnergyLabContent.INPUT_CRADLE_ITEM.get());
+                        output.accept(HighEnergyLabContent.OUTPUT_CRADLE_ITEM.get());
+                        output.accept(WarpContent.WARP_PAD_ITEM.get());
+                        output.accept(WarpContent.COORDINATE_INSCRIPTION_ITEM.get());
+                        output.accept(GreenFireLanternContent.ITEM.get());
                         SingularityContent.displayItems(output);
                         output.accept(BLACK_HOLE.get());
                         output.accept(WHITE_HOLE.get());
@@ -633,6 +676,10 @@ public final class ModContent {
 
     public static void register(IEventBus eventBus) {
         ModFluids.register(eventBus);
+        HighEnergyLabContent.init();
+        WarpContent.init();
+        GreenFireLanternContent.init();
+        BuildingContent.init();
         SingularityContent.init();
         SingularityContent.registerEntities(eventBus);
         BLOCKS.register(eventBus);
@@ -651,12 +698,14 @@ public final class ModContent {
         }
         event.register(
                 AEKeyType.REGISTRY_KEY,
-                NegativeEntropyInfoKeyType.INSTANCE.getId(),
-                () -> NegativeEntropyInfoKeyType.INSTANCE
+                StarSignalKeyType.INSTANCE.getId(),
+                () -> StarSignalKeyType.INSTANCE
         );
     }
 
     public static void bindBlockEntity() {
+        HighEnergyLabContent.bindBlockEntity();
+        BuildingContent.bind();
         SingularityContent.bindBlockEntity();
         TRANSFINITE_COMPUTE_NEXUS.get().setBlockEntity(
                 OmniComputationCoreBlockEntity.class, OMNI_COMPUTATION_CONTROLLER_BE.get(), null, null);

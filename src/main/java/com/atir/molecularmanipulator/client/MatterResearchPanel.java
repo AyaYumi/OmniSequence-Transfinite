@@ -6,6 +6,7 @@ import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
 import com.atir.molecularmanipulator.research.ResearchBatch;
 import net.minecraft.client.gui.screens.Screen;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
@@ -14,10 +15,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import com.atir.molecularmanipulator.integration.jei.ResearchJeiBookmarks;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -44,14 +47,17 @@ final class MatterResearchPanel {
     private final List<Button> rows = new ArrayList<>();
     private final Button action, order, bookmark, orderDetails, stop, unlocks;
     private List<RecipeHolder<MatterResearchRecipe>> definitions = List.of();
+    private final Map<ResourceLocation, RecipeHolder<MatterResearchRecipe>> definitionsById = new HashMap<>();
+    private RecipeHolder<MatterResearchRecipe> selectedDefinition;
     private Set<String> completed = Set.of();
     private JsonObject tasks = new JsonObject(), preparations = new JsonObject();
     private JsonObject counts = new JsonObject(), live = new JsonObject();
     private String notice = "";
-    private String orderStatus = "idle";
-    private int orderQueued;
-    private int orderActive;
-    private List<OrderEntry> orderEntries = List.of(), allOrderEntries = List.of();
+    private JsonArray orderItems, decodedOrderItems;
+    private HolderLookup.Provider orderRegistries;
+    private List<MatterResearchOrders.Entry> allOrderEntries = List.of();
+    private final MatterResearchOrders orderCache = new MatterResearchOrders();
+    private MatterResearchOrders.View orders = MatterResearchOrders.EMPTY;
     private boolean showOrderDetails;
     private boolean showUnlocks;
     private MatterRecipeIndex unlockIndex;
@@ -108,7 +114,7 @@ final class MatterResearchPanel {
         for(var e:ui.layout.draw)if("text".equals(e.type)&&((e.x>=210&&e.baseline>=157&&e.baseline<219)||(e.x<195&&e.baseline>=49&&e.baseline<144)))ui.at(e.x,e.baseline,Component::empty);
         ui.text("gui.molecularmanipulator.fab.s050",()->selected()==null?text("empty"):Component.translatable(selected().value().title()));
         ui.number(42.36f,191,()->"");ui.number(106.81f,191,()->"");ui.at(47.23f,191,Component::empty);
-        ui.text("gui.molecularmanipulator.research.order_state.submitted",()->orderState(orderStatus));
+        ui.text("gui.molecularmanipulator.research.order_state.submitted",()->orderState(orders.status()));
         ui.number(212.5f,76,()->selected()==null?0:count(selected()));
         ui.number(223.47f,76,()->selected()==null?"":"/ "+selected().value().depths().size());
         ui.number(299.5f,76,()->selected()==null?0:Math.round(100*progressRatio()));
@@ -122,7 +128,7 @@ final class MatterResearchPanel {
         for(int i=0;i<9;i++){final int index=i;ui.sprite(213+i*19,84,()->"molecularmanipulator:osq_light/fab/depth_seg_"
                 +(selected()!=null&&index<count(selected())?"on":selected()!=null&&index==count(selected())&&task(selected())!=null?"cur":"off"));}
         ui.width(213,110.5f,80);ui.width(300,110.5f,84);ui.width(265.11f,124,90);
-        ui.sprite(17,171.75f,()->ui.sprite("dot_"+(orderActive>0?"ok":orderStatus.equals("idle")?"mute":"warn")));
+        ui.sprite(17,171.75f,()->ui.sprite("dot_"+(orders.active()>0?"ok":orders.status().equals("idle")?"mute":"warn")));
         ui.at(24,173.75f,Component::empty);ui.at(17,191,Component::empty);
         ui.state(orderDetails,()->showOrderDetails?"active":"normal");
         ui.visible=e->!(showOrderDetails?materialLayer:detailLayer).contains(e);
@@ -135,7 +141,7 @@ final class MatterResearchPanel {
     void update(boolean visible) {
         this.visible = visible;
         var level = Minecraft.getInstance().level;
-        if (level != null) definitions = MatterResearchApi.definitions(level);
+        updateDefinitions(level != null ? MatterResearchApi.definitions(level) : definitions);
         if (!lastState.equals(menu.researchState.json())) {
             lastState = menu.researchState.json();
             var state = JsonParser.parseString(lastState).getAsJsonObject();
@@ -147,29 +153,7 @@ final class MatterResearchPanel {
             counts = state.has("counts") ? state.getAsJsonObject("counts") : new JsonObject();
             live = state.has("live") ? state.getAsJsonObject("live") : new JsonObject();
             notice = state.has("notice") ? state.get("notice").getAsString() : "";
-            if (state.has("orders")) {
-                var orders = state.getAsJsonObject("orders");
-                orderStatus = orders.has("status") ? orders.get("status").getAsString() : "idle";
-                orderQueued = orders.has("queued") ? orders.get("queued").getAsInt() : 0;
-                orderActive = orders.has("active") ? orders.get("active").getAsInt() : 0;
-                var parsed = new ArrayList<OrderEntry>();
-                if (level != null && orders.has("items")) {
-                    var ops = level.registryAccess().createSerializationContext(JsonOps.INSTANCE);
-                    for (var element : orders.getAsJsonArray("items")) {
-                        var entry = element.getAsJsonObject();
-                        var target = GenericStack.CODEC.parse(ops, entry.get("target")).result();
-                        if (target.isEmpty()) continue;
-                        var missing = new ArrayList<GenericStack>();
-                        for (var value : entry.getAsJsonArray("missing")) {
-                            GenericStack.CODEC.parse(ops, value).result().ifPresent(missing::add);
-                        }
-                        parsed.add(new OrderEntry(target.get(), entry.get("queued").getAsLong(),
-                                entry.get("active").getAsLong(), entry.get("status").getAsString(),
-                                List.copyOf(missing), entry.has("owner") ? ResourceLocation.tryParse(entry.get("owner").getAsString()) : null));
-                    }
-                }
-                allOrderEntries = List.copyOf(parsed);
-            }
+            orderItems = state.has("orders") ? state.getAsJsonObject("orders").getAsJsonArray("items") : null;
             var allTerms = new JsonObject();
             tasks.entrySet().forEach(entry -> allTerms.add(entry.getKey(), entry.getValue()));
             preparations.entrySet().forEach(entry -> allTerms.add(entry.getKey(), entry.getValue()));
@@ -185,22 +169,16 @@ final class MatterResearchPanel {
             taskTerms.keySet().retainAll(retained);
             termSources.keySet().retainAll(retained);
         }
+        updateOrderEntries(level != null ? level.registryAccess() : null);
         projectScroll = OsqScrollList.clamp(projectScroll,definitions.size(),PROJECT_BOTTOM-PROJECT_TOP,PROJECT_ROW_HEIGHT);
-        if (definitions.stream().noneMatch(holder -> holder.id().equals(selected))) {
-            selected = definitions.isEmpty() ? null : definitions.getFirst().id();
-            scroll = 0;
-        }
         if (level != null) {
             var index=MatterRecipeIndex.get(level);
-            if (index!=unlockIndex || !java.util.Objects.equals(selected,unlockSelection)) {
+            if (index!=unlockIndex || !Objects.equals(selected,unlockSelection)) {
                 unlockEntries=MatterResearchUnlocks.entries(level,index,selected());
                 unlockIndex=index;unlockSelection=selected;
             }
         } else {unlockEntries=List.of();unlockIndex=null;unlockSelection=null;}
-        orderEntries = allOrderEntries.stream().filter(entry -> entry.owner() == null || entry.owner().equals(selected)).toList();
-        orderQueued = (int) orderEntries.stream().filter(entry -> entry.queued() > 0).count();
-        orderActive = (int) orderEntries.stream().filter(entry -> entry.active() > 0).count();
-        orderStatus = orderEntries.isEmpty() ? "idle" : orderEntries.getFirst().status();
+        orders = orderCache.forSelection(allOrderEntries, selected);
         if (visible && selected != null) menu.selectResearch(selected.toString());
         for (int row = 0; row < ROWS; row++) {
             int position = firstProject() + row;
@@ -216,13 +194,13 @@ final class MatterResearchPanel {
         }
         var holder = selected();
         if(showUnlocks)contentRows=unlockEntries.size();
-        else if(showOrderDetails)contentRows=orderEntries.stream().mapToInt(e->1+e.missing().size()).sum();
+        else if(showOrderDetails)contentRows=orders.rows().size();
         unlocks.visible=visible && holder!=null;
         unlocks.active=holder!=null;
         action.visible = visible && holder != null;
         order.visible = visible && holder != null;
         orderDetails.visible = visible && holder != null
-                && (showOrderDetails || !orderEntries.isEmpty() || !orderStatus.equals("idle"));
+                && (showOrderDetails || !orders.entries().isEmpty() || !orders.status().equals("idle"));
         orderDetails.setMessage(text(showOrderDetails ? "order_materials" : "order_details"));
         stop.visible = visible && holder != null;
         stop.active = selected != null && preparations.has(selected.toString());
@@ -252,8 +230,8 @@ final class MatterResearchPanel {
     void drawForeground(GuiGraphics graphics) {
         if(!visible)return;quantityTooltips.clear();ui.foreground(graphics,font);
         drawProjectScrollbar(graphics);
-        ui.centeredText(graphics,orderState(orderStatus),24,173.75f,110,ui.palette.ink);
-        ui.smallText(graphics,Component.translatable("gui.molecularmanipulator.research.order_summary",orderQueued,orderActive),17,191,173);
+        ui.centeredText(graphics,orderState(orders.status()),24,173.75f,110,ui.palette.ink);
+        ui.smallText(graphics,Component.translatable("gui.molecularmanipulator.research.order_summary",orders.queued(),orders.active()),17,191,173);
         var holder=selected();if(holder==null)return;
         if(showOrderDetails){drawOrderDetails(graphics);return;}
         if(showUnlocks){drawUnlocks(graphics);return;}
@@ -285,18 +263,23 @@ final class MatterResearchPanel {
     }
 
     private void drawOrderDetails(GuiGraphics graphics) {
-        long missingCount=orderEntries.stream().flatMap(e->e.missing().stream()).map(GenericStack::what).distinct().count();
+        int missingCount=orders.missingCount();
         ui.smallText(graphics,Component.translatable("gui.molecularmanipulator.research.order_missing_count",missingCount),213,151,98,
                 missingCount>0?ui.palette.warn:ui.palette.ink3);
-        contentRows=orderEntries.stream().mapToInt(e->1+e.missing().size()).sum();
+        var orderRows=orders.rows();
+        contentRows=orderRows.size();
         scroll=OsqScrollList.clamp(scroll,contentRows,SCROLL_HEIGHT,ROW_HEIGHT);
+        int first=(int)scroll/ROW_HEIGHT;
+        int end=Math.min(contentRows,first+OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT));
         beginList(graphics);
-        try{int row=0;for(var e:orderEntries){
-            drawOrderRow(graphics,e.target(),Component.literal(DisplayNumbers.compact(e.target().amount())+" · ").append(orderState(e.status())),row++,false);
-            for(var missing:e.missing())drawOrderRow(graphics,missing,quantity("remaining",missing.amount()),row++,true);
+        try{for(int i=first;i<end;i++){
+            var row=orderRows.get(i);var stack=row.stack();
+            Component amount=row.missing()?quantity("remaining",stack.amount())
+                    :Component.literal(DisplayNumbers.compact(stack.amount())+" · ").append(orderState(row.status()));
+            drawOrderRow(graphics,stack,amount,i-first,row.missing());
         }}finally{endList(graphics);}
         drawScrollbar(graphics);
-        if(orderEntries.isEmpty())ui.centeredText(graphics,text("order_empty"),213,187,170,ui.palette.ink3);
+        if(orders.entries().isEmpty())ui.centeredText(graphics,text("order_empty"),213,187,170,ui.palette.ink3);
     }
 
     private void drawUnlocks(GuiGraphics graphics) {
@@ -332,10 +315,8 @@ final class MatterResearchPanel {
         graphics.fill(187,y,189,y+thumb,ui.palette.acc);
     }
 
-    private void drawOrderRow(GuiGraphics graphics, GenericStack stack, Component amount, int row, boolean missing) {
-        int first=(int)scroll/ROW_HEIGHT;
-        if(row<first||row>=first+OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT))return;
-        int x=missing?221:213,y=158+(row-first)*ROW_HEIGHT;
+    private void drawOrderRow(GuiGraphics graphics, GenericStack stack, Component amount, int visibleRow, boolean missing) {
+        int x=missing?221:213,y=158+visibleRow*ROW_HEIGHT;
         ui.slotBackground(graphics,x-1,y);
         appeng.api.client.AEKeyRendering.drawInGui(Minecraft.getInstance(),graphics,x,y+1,stack.what());
         ui.smallText(graphics,stack.what().getDisplayName(),x+22,y+8,378-x-22);
@@ -389,8 +370,47 @@ final class MatterResearchPanel {
                 DisplayNumbers.compact(depth.parallel())).getString();
     }
 
-    private RecipeHolder<MatterResearchRecipe> selected() {
-        return definitions.stream().filter(holder -> holder.id().equals(selected)).findFirst().orElse(null);
+    private void updateDefinitions(List<RecipeHolder<MatterResearchRecipe>> source) {
+        if (definitions != source) {
+            definitions = source;
+            definitionsById.clear();
+            for (var holder : definitions) definitionsById.putIfAbsent(holder.id(), holder);
+        }
+        selectedDefinition = definitionsById.get(selected);
+        if (selectedDefinition == null) {
+            selectedDefinition = definitions.isEmpty() ? null : definitions.getFirst();
+            selected = selectedDefinition == null ? null : selectedDefinition.id();
+            scroll = 0;
+        }
+    }
+
+    private RecipeHolder<MatterResearchRecipe> selected() { return selectedDefinition; }
+
+    private void updateOrderEntries(HolderLookup.Provider registries) {
+        // Progress/stock updates can replace the outer JSON without changing the order source.
+        if (orderRegistries == registries && Objects.equals(decodedOrderItems, orderItems)) {
+            decodedOrderItems = orderItems;
+            return;
+        }
+        var parsed = new ArrayList<MatterResearchOrders.Entry>();
+        if (registries != null && orderItems != null) {
+            var ops = registries.createSerializationContext(JsonOps.INSTANCE);
+            for (var element : orderItems) {
+                var entry = element.getAsJsonObject();
+                var target = GenericStack.CODEC.parse(ops, entry.get("target")).result();
+                if (target.isEmpty()) continue;
+                var missing = new ArrayList<GenericStack>();
+                for (var value : entry.getAsJsonArray("missing")) {
+                    GenericStack.CODEC.parse(ops, value).result().ifPresent(missing::add);
+                }
+                parsed.add(new MatterResearchOrders.Entry(target.get(), entry.get("queued").getAsLong(),
+                        entry.get("active").getAsLong(), entry.get("status").getAsString(), missing,
+                        entry.has("owner") ? ResourceLocation.tryParse(entry.get("owner").getAsString()) : null));
+            }
+        }
+        allOrderEntries = List.copyOf(parsed);
+        decodedOrderItems = orderItems;
+        orderRegistries = registries;
     }
 
     private void bookmarkSelected() {
@@ -463,8 +483,5 @@ final class MatterResearchPanel {
         }
         return cachedCosts;
     }
-
-    private record OrderEntry(GenericStack target, long queued, long active, String status,
-                              List<GenericStack> missing, ResourceLocation owner) { }
 
 }

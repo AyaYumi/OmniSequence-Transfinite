@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "molecularmanipulator:block/star_computation_engine/casing_formed"
+  }
+}

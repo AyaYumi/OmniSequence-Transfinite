@@ -3,16 +3,17 @@ package com.atir.molecularmanipulator.client;
 import appeng.init.client.InitScreens;
 import appeng.api.client.AEKeyRendering;
 import com.atir.molecularmanipulator.MolecularManipulator;
-import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKey;
-import com.atir.molecularmanipulator.ae2.NegativeEntropyInfoKeyType;
-import com.atir.molecularmanipulator.client.render.NegativeEntropyEngineFormedGeometry;
+import com.atir.molecularmanipulator.ae2.StarSignalKey;
+import com.atir.molecularmanipulator.ae2.StarSignalKeyType;
+import com.atir.molecularmanipulator.client.render.EntropyArmillaryRenderer;
+import com.atir.molecularmanipulator.client.render.StarComputationEngineFormedGeometry;
 import com.atir.molecularmanipulator.client.render.NexusFormedGeometry;
 import com.atir.molecularmanipulator.client.render.AutoCrafterGlowGeometry;
 import com.atir.molecularmanipulator.client.render.OmniShaders;
 import com.atir.molecularmanipulator.client.render.SingularityWhiteHoleRenderer;
 import com.atir.molecularmanipulator.client.render.CosmicSingularityRenderer;
 import com.atir.molecularmanipulator.client.render.CosmicSingularityPostRenderer;
-import com.atir.molecularmanipulator.client.render.NegativeEntropyInfoRenderer;
+import com.atir.molecularmanipulator.client.render.StarSignalRenderer;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.registry.SingularityContent;
@@ -46,11 +47,20 @@ public final class ClientEvents {
                         net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,
                         (minecraft, parent) -> new net.neoforged.neoforge.client.gui.ConfigurationScreen(container, parent))));
         event.enqueueWork(SingularityRenderCompatibility::initialize);
+        event.enqueueWork(() -> com.atir.molecularmanipulator.network.WarpScreenPayload.setClientHandler(
+                com.atir.molecularmanipulator.client.render.WarpTransitionOverlay::begin));
+        event.enqueueWork(() -> {
+            com.atir.molecularmanipulator.network.LanternPayloads.setClientHandler(LanternClient::receive);
+            net.minecraft.client.renderer.item.ItemProperties.register(
+                    com.atir.molecularmanipulator.registry.GreenFireLanternContent.ITEM.get(),
+                    MolecularManipulator.id("lit"), (stack, level, entity, seed) ->
+                            com.atir.molecularmanipulator.registry.GreenFireLanternContent.isLit(stack) ? 1 : 0);
+        });
         event.enqueueWork(SingularityFluidClient::registerRenderLayers);
         event.enqueueWork(() -> AEKeyRendering.register(
-                NegativeEntropyInfoKeyType.INSTANCE,
-                NegativeEntropyInfoKey.class,
-                new NegativeEntropyInfoRenderer()));
+                StarSignalKeyType.INSTANCE,
+                StarSignalKey.class,
+                new StarSignalRenderer()));
     }
 
     @SubscribeEvent
@@ -61,6 +71,8 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
+        InitScreens.register(event, ModContent.BUILDING_ACCESS_TERMINAL_MENU.get(), BuildingTerminalScreen::new,
+                "/screens/building_access_terminal.json");
         InitScreens.register(event, MolecularManipulatorMenu.TYPE, MolecularManipulatorScreen::new,
                 "/screens/molecular_manipulator.json");
         InitScreens.register(event, ModContent.MOLECULAR_AUTO_CRAFTER_MENU.get(),
@@ -71,8 +83,8 @@ public final class ClientEvents {
                 "/screens/molecular_center.json");
         InitScreens.register(event, ModContent.OMNI_COMPUTATION_MENU.get(), OmniComputationScreen::new,
                 "/screens/omni_computation.json");
-        InitScreens.register(event, ModContent.NEGATIVE_ENTROPY_ENGINE_MENU.get(), NegativeEntropyEngineScreen::new,
-                "/screens/negative_entropy_engine.json");
+        InitScreens.register(event, ModContent.STAR_COMPUTATION_ENGINE_MENU.get(), StarComputationEngineScreen::new,
+                "/screens/star_computation_engine.json");
         InitScreens.register(event, ModContent.MATTER_FABRICATION_MENU.get(), MatterFabricationScreen::new,
                 "/screens/matter_fabrication.json");
         InitScreens.register(event, SingularityContent.MENU.get(), SingularityScreen::new, "/screens/event_horizon_singularity_hub.json");
@@ -85,8 +97,8 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerGeometryLoaders(ModelEvent.RegisterGeometryLoaders event) {
-        event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "negative_entropy_engine_formed"),
-                NegativeEntropyEngineFormedGeometry.LOADER);
+        event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "star_computation_engine_formed"),
+                StarComputationEngineFormedGeometry.LOADER);
         event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "nexus_formed"),
                 NexusFormedGeometry.LOADER);
         event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "auto_crafter_glow"),
@@ -94,7 +106,20 @@ public final class ClientEvents {
     }
 
     @SubscribeEvent
+    public static void registerAdditionalModels(ModelEvent.RegisterAdditional event) {
+        for (String form : EntropyArmillaryRenderer.FORMS) {
+            for (String part : EntropyArmillaryRenderer.PARTS) event.register(EntropyArmillaryRenderer.model(form, part));
+            for (int ring = 1; ring <= 9; ring++) {
+                event.register(EntropyArmillaryRenderer.model(form, "ring_" + ring));
+            }
+        }
+    }
+
+    @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(ModContent.STAR_COMPUTATION_ENGINE_CORE_BE.get(), EntropyArmillaryRenderer::new);
+        event.registerBlockEntityRenderer(com.atir.molecularmanipulator.registry.WarpContent.WARP_PAD_BE.get(),
+                com.atir.molecularmanipulator.client.render.EndWarpPadRenderer::new);
         event.registerBlockEntityRenderer(ModContent.GHOST_MATTER_BE.get(), GhostMatterRenderer::new);
         event.registerBlockEntityRenderer(SingularityContent.CORE_BE.get(), SingularityCoreRenderer::new);
         event.registerBlockEntityRenderer(ModContent.COSMIC_SINGULARITY_BE.get(), CosmicSingularityRenderer::new);
@@ -118,6 +143,11 @@ public final class ClientEvents {
         event.registerReloadListener((ResourceManagerReloadListener) resourceManager -> {
             com.atir.molecularmanipulator.client.gui.theme.OsqSpriteRenderer.clear();
             com.atir.molecularmanipulator.client.gui.theme.OsqFonts.clearInkMetrics();
+            com.atir.molecularmanipulator.client.render.EarlyFrameGeometry.clear();
+            com.atir.molecularmanipulator.client.render.ParallelEffectGeometry.clear();
+            com.atir.molecularmanipulator.client.render.GpuEffectLayers.clear();
+            EntropyArmillaryRenderer.clear();
+            com.atir.molecularmanipulator.client.render.EntropyArmillaryNebulaRenderer.release();
             MolecularCenterGhostPreview.onResourceReload();
             OmniComputationGhostPreview.onResourceReload();
             MatterFabricationGhostPreview.onResourceReload();
@@ -125,6 +155,7 @@ public final class ClientEvents {
             SingularityAssemblyRenderer.clear();
             SingularityWhiteHoleRenderer.release();
             CosmicSingularityPostRenderer.release();
+            com.atir.molecularmanipulator.client.render.LanternSimulationRenderer.release();
             com.atir.molecularmanipulator.client.render.GhostMatterExposureRenderer.release();
         });
     }

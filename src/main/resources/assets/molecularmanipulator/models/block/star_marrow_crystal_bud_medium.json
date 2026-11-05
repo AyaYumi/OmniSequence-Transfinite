@@ -1,0 +1,5 @@
+{
+  "parent": "minecraft:block/cross",
+  "render_type": "minecraft:cutout",
+  "textures": {"cross": "molecularmanipulator:block/star_marrow_crystal_bud_medium"}
+}

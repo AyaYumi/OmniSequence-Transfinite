@@ -4,7 +4,6 @@ import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
 import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
@@ -32,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-public final class MolecularCenterMenu extends AEBaseMenu implements PatternSearchIndexReceiver {
+public final class MolecularCenterMenu extends BuildingMenu implements PatternSearchIndexReceiver {
     private static final String ACTION_SET_PAGE = "set_page";
     private static final String ACTION_PREVIEW = "preview";
     private static final String ACTION_BUILD = "build";

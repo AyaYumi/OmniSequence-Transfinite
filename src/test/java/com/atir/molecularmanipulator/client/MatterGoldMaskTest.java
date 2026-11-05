@@ -41,13 +41,11 @@ class MatterGoldMaskTest {
             for (var path : paths.filter(p -> p.getFileName().toString().matches("matter_fabrication_.*\\.png")).toList()) {
                 var image = ImageIO.read(path.toFile());
                 assertEquals(16, image.getWidth()); assertEquals(0, image.getHeight() % 16);
-                var source = Path.of("tools/textures/static", path.getFileName().toString());
-                var original = Files.exists(source) ? ImageIO.read(source.toFile()) : image;
                 int selected = 0;
                 for (int y=0;y<image.getHeight();y++) for(int x=0;x<16;x++) {
                     int argb=image.getRGB(x,y);
                     int abgr=(argb&0xFF00FF00)|((argb&255)<<16)|((argb>>>16)&255);
-                    int originalArgb = original.getRGB(x, y % 16);
+                    int originalArgb = image.getRGB(x, y % 16);
                     int originalAbgr = (originalArgb & 0xFF00FF00) | ((originalArgb & 255) << 16) | ((originalArgb >>> 16) & 255);
                     assertEquals(MatterGoldEmissive.isGoldPixel(originalAbgr), MatterGoldEmissive.isGoldPixel(abgr), path + " " + x + "," + y);
                     var texture = ResourceLocation.parse("molecularmanipulator:block/" + path.getFileName().toString().replace(".png", ""));

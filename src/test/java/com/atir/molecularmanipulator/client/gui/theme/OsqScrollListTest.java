@@ -15,6 +15,18 @@ class OsqScrollListTest {
         assertEquals(0,OsqScrollList.clamp(133,4,95,19));
     }
 
+    @Test void terminalDirectoryScrollsOneBuildingAndClampsAtCapacityAndAfterRemoval() {
+        int height = 5 * 39;
+        for (int rows : new int[]{0, 1, 5}) assertEquals(0, OsqScrollList.scroll(0, -100, rows, height, 39));
+        assertEquals(39, OsqScrollList.scroll(0, -1, 17, height, 39));
+        assertEquals(78, OsqScrollList.scroll(39, -1, 17, height, 39));
+        assertEquals(39, OsqScrollList.scroll(78, 1, 17, height, 39));
+        assertEquals(12 * 39, OsqScrollList.scroll(0, -100, 17, height, 39));
+        assertEquals(59 * 39, OsqScrollList.scroll(0, -100, 64, height, 39));
+        assertEquals(58 * 39, OsqScrollList.clamp(59 * 39, 63, height, 39));
+        assertEquals(0, OsqScrollList.clamp(58 * 39, 3, height, 39));
+    }
+
     @Test void threeCompleteRowsFitInTheResearchViewport() {
         assertEquals(3,OsqScrollList.visibleRows(62,20));
         assertEquals(0,OsqScrollList.maxScroll(0,62,20));

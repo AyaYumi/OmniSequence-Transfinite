@@ -1,0 +1,19 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "top": {
+      "item": "molecularmanipulator:star_chart_circuit_board"
+    },
+    "middle": {
+      "item": "minecraft:redstone"
+    },
+    "bottom": {
+      "item": "ae2:printed_silicon"
+    }
+  },
+  "mode": "press",
+  "result": {
+    "id": "molecularmanipulator:star_chart_processor",
+    "count": 1
+  }
+}

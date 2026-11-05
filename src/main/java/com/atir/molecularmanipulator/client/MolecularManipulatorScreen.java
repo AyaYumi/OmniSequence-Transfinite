@@ -6,6 +6,7 @@ import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -21,6 +22,7 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     private net.minecraft.client.gui.components.Button previousPageButton;
     private net.minecraft.client.gui.components.Button nextPageButton;
     private final PatternSearchIndexState patternSearchIndex = new PatternSearchIndexState();
+    private final PatternSearchCandidates patternSearchCandidates = new PatternSearchCandidates();
     private List<Integer> filteredPatternSlots = List.of();
     private String patternSearchQuery = "";
     private int patternSearchDebounce;
@@ -74,11 +76,12 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
         if (patternSearchDebounce > 0 && --patternSearchDebounce == 0) {
             applyPatternSearchQuery();
         }
-        if (!patternSearchQuery.isBlank()
-                && indexedPatternRevision != menu.patternRevision
-                && !patternSearchIndexPending
-                && patternSearchDebounce == 0) {
-            requestPatternSearchIndex();
+        if (!patternSearchQuery.isBlank() && !patternSearchIndexPending && patternSearchDebounce == 0) {
+            if (indexedPatternRevision != menu.patternRevision) {
+                requestPatternSearchIndex();
+            } else if (patternSearchIndex.complete() && !patternSearchCandidates.isCurrent(patternSearchIndex, Language.getInstance())) {
+                rebuildPatternSearchResults();
+            }
         }
         refreshPageButtons();
         if (patternSearchQuery.isBlank() && autoPageRevision != menu.patternRevision) {
@@ -102,6 +105,7 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     @Override
     public void removed() {
         menu.setPatternSearchIndexListener(null);
+        patternSearchCandidates.clear();
         super.removed();
     }
 
@@ -236,9 +240,10 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     }
 
     private void rebuildPatternSearchResults() {
-        filteredPatternSlots = patternSearchIndex.entries().stream()
-                .filter(entry -> ClientSearchMatcher.matchesPattern(entry, patternSearchQuery))
-                .map(entry -> entry.sourceSlot())
+        var query = ClientSearchMatcher.compile(patternSearchQuery);
+        filteredPatternSlots = patternSearchCandidates.snapshot(patternSearchIndex, Language.getInstance()).stream()
+                .filter(entry -> query.matches(entry.candidates()))
+                .map(PatternSearchCandidates.Entry::sourceSlot)
                 .toList();
         showPatternSearchPage(0);
     }

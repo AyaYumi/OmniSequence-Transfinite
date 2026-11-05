@@ -154,6 +154,12 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'it.unimi.dsi:fastutil:8.5.12'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // Native vertex-buffer tests need LWJGL's allocator, but do not open a window or GL context.
+    def nativeOs = System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT)
+    def nativeArch = System.getProperty('os.arch').toLowerCase(java.util.Locale.ROOT)
+    def nativePlatform = nativeOs.contains('win') ? 'windows' : nativeOs.contains('mac') ? 'macos' : 'linux'
+    def nativeSuffix = nativeArch in ['aarch64', 'arm64'] ? '-arm64' : nativeArch in ['x86', 'i386'] ? '-x86' : ''
+    testRuntimeOnly "org.lwjgl:lwjgl:3.3.3:natives-${nativePlatform}${nativeSuffix}"
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.menu;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
@@ -24,7 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-public final class MolecularManipulatorMenu extends AEBaseMenu implements PatternSearchIndexReceiver {
+public final class MolecularManipulatorMenu extends BuildingMenu implements PatternSearchIndexReceiver {
     private static final String ACTION_SET_PAGE = "set_page";
     private static final String ACTION_REQUEST_PATTERN_SEARCH_INDEX = "request_pattern_search_index";
     private static final String ACTION_SET_PATTERN_SEARCH_PAGE = "set_pattern_search_page";

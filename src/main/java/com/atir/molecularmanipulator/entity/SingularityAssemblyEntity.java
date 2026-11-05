@@ -51,16 +51,22 @@ public final class SingularityAssemblyEntity extends Entity {
             default -> SingularityMotionGeometry.runningPose(groupId(), phase);
         };
     }
-    public Vec3 toWorld(Vec3 local, SingularityMotionGeometry.Pose pose) { return SingularityMotionGeometry.toWorld(local, origin(), facing(), pose); }
-    public Vec3 toLocal(Vec3 world, SingularityMotionGeometry.Pose pose) { return SingularityMotionGeometry.toLocal(world, origin(), facing(), pose); }
+    public Vec3 toWorld(Vec3 local, SingularityMotionGeometry.Pose pose) {
+        return SingularityMotionGeometry.frame(origin(), facing(), pose).apply(local);
+    }
+    public Vec3 toLocal(Vec3 world, SingularityMotionGeometry.Pose pose) {
+        return SingularityMotionGeometry.inverse(origin(), facing(), pose).apply(world);
+    }
     @Override protected AABB makeBoundingBox() {
         // Position packets call setPos/lerpTo between client ticks. The registered
         // 1x1 size is only a spawn placeholder; rebuilding from it hides whole
         // rings/towers until the next tick. Preserve the physical component here.
         // Entity's constructor calls this before synchronized data exists.
         if (entityData == null || !configured()) return super.makeBoundingBox();
-        return SingularityMotionGeometry.transform(SingularityMotionGeometry.group(groupId(), structureVersion()).bounds(),
-                p -> toWorld(p, pose(0))).inflate(.05);
+        var version = structureVersion(); var facing = facing();
+        var frame = SingularityMotionGeometry.frame(
+                SingularityMotionGeometry.origin(controller(), facing, version), facing, pose(0));
+        return frame.apply(SingularityMotionGeometry.group(groupId(), version).bounds()).inflate(.05);
     }
     private void updateBounds() {
         if (configured()) setBoundingBox(makeBoundingBox());
@@ -73,6 +79,17 @@ public final class SingularityAssemblyEntity extends Entity {
         }
         updateBounds();
     }
+    /**
+     * Assembly bodies are kinematic: their bounding box spans an entire ring or
+     * tower for rendering and rider collision. Vanilla would scan every block in
+     * that AABB for fluid height/current on every base tick even though this
+     * noPhysics body never moves itself. Keep the synchronized bounds and let
+     * ordinary entity ticks run, but do not treat far-away fluid as contact.
+     */
+    @Override public void updateFluidHeightAndDoFluidPushing() {
+        if (configured()) return;
+        super.updateFluidHeightAndDoFluidPushing();
+    }
     @Override public void onSyncedDataUpdated(EntityDataAccessor<?> key) { super.onSyncedDataUpdated(key); if (ASSEMBLY.equals(key)) { collisionCache.clear(); updateBounds(); } }
     @Override public boolean isPickable() { return false; }
     @Override public boolean isPushable() { return false; }
@@ -83,22 +100,26 @@ public final class SingularityAssemblyEntity extends Entity {
 
     public List<AABB> collisionBoxes(AABB query, double partialTick) {
         if (!configured()) return List.of();
-        var pose = pose(partialTick); var group = SingularityMotionGeometry.group(groupId(), structureVersion());
-        var local = SingularityMotionGeometry.transform(query.inflate(.01), p -> toLocal(p, pose));
+        var pose = pose(partialTick); var version = structureVersion();
+        var group = SingularityMotionGeometry.group(groupId(), version);
+        var facing = facing();
+        var origin = SingularityMotionGeometry.origin(controller(), facing, version);
+        var local = SingularityMotionGeometry.inverse(origin, facing, pose).apply(query.inflate(.01));
         if (!group.bounds().inflate(.01).intersects(local)) return List.of();
         if (cachedTick != level().getGameTime()) { cachedTick = level().getGameTime(); collisionCache.clear(); }
+        var frame = SingularityMotionGeometry.frame(origin, facing, pose);
         var result = new ArrayList<AABB>();
         for (var pos : BlockPos.betweenClosed((int) Math.floor(local.minX), (int) Math.floor(local.minY), (int) Math.floor(local.minZ),
                 (int) Math.floor(local.maxX), (int) Math.floor(local.maxY), (int) Math.floor(local.maxZ))) {
             var part = group.index().get(pos); if (part == null) continue;
             List<AABB> boxes;
-            if (partialTick == 0) boxes = collisionCache.computeIfAbsent(part.pos(), ignored -> transformedBoxes(part, pose));
-            else boxes = transformedBoxes(part, pose);
+            if (partialTick == 0) boxes = collisionCache.computeIfAbsent(part.pos(), ignored -> transformedBoxes(part, pose, frame));
+            else boxes = transformedBoxes(part, pose, frame);
             for (var box : boxes) if (box.intersects(query)) result.add(box);
         }
         return result;
     }
-    private List<AABB> transformedBoxes(SingularityStructure.Part part, SingularityMotionGeometry.Pose pose) {
+    private List<AABB> transformedBoxes(SingularityStructure.Part part, SingularityMotionGeometry.Pose pose, SingularityMotionGeometry.Frame frame) {
         var result = new ArrayList<AABB>();
         var shape = SingularityStructure.state(part, Direction.NORTH).getCollisionShape(level(), part.pos());
         boolean axisAligned = Math.abs(pose.angle() % 90) < 1.0e-8;
@@ -108,7 +129,7 @@ public final class SingularityAssemblyEntity extends Entity {
             double dx = (box.maxX - box.minX) / steps, dz = (box.maxZ - box.minZ) / steps;
             var cell = new AABB(box.minX + dx * x, box.minY, box.minZ + dz * z,
                     box.minX + dx * (x + 1), box.maxY, box.minZ + dz * (z + 1)).move(part.x(), part.y(), part.z());
-            result.add(SingularityMotionGeometry.transform(cell, p -> toWorld(p, pose)));
+            result.add(frame.apply(cell));
         }
         return List.copyOf(result);
     }
@@ -119,6 +140,8 @@ public final class SingularityAssemblyEntity extends Entity {
         return false;
     }
     public Vec3 carriage(Entity rider) {
-        return toWorld(toLocal(rider.position(), pose(-1)), pose(0)).subtract(rider.position());
+        var origin = origin(); var facing = facing();
+        var before = SingularityMotionGeometry.inverse(origin, facing, pose(-1)).apply(rider.position());
+        return SingularityMotionGeometry.frame(origin, facing, pose(0)).apply(before).subtract(rider.position());
     }
 }

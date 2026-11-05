@@ -17,6 +17,7 @@ import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
@@ -43,6 +44,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private final List<CompactCogButton> autoCraftConfigButtons = new java.util.ArrayList<>();
     private final List<AECheckbox> autoCraftToggleButtons = new java.util.ArrayList<>();
     private final PatternSearchIndexState patternSearchIndex = new PatternSearchIndexState();
+    private final PatternSearchCandidates patternSearchCandidates = new PatternSearchCandidates();
     private List<Integer> filteredPatternSlots = List.of();
     private String patternSearchQuery = "";
     private int patternSearchDebounce;
@@ -246,9 +248,10 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     }
 
     private void rebuildPatternSearchResults() {
-        filteredPatternSlots = patternSearchIndex.entries().stream()
-                .filter(entry -> ClientSearchMatcher.matchesPattern(entry, patternSearchQuery))
-                .map(entry -> entry.sourceSlot())
+        var query = ClientSearchMatcher.compile(patternSearchQuery);
+        filteredPatternSlots = patternSearchCandidates.snapshot(patternSearchIndex, Language.getInstance()).stream()
+                .filter(entry -> query.matches(entry.candidates()))
+                .map(PatternSearchCandidates.Entry::sourceSlot)
                 .toList();
         showPatternSearchPage(0);
     }
@@ -298,11 +301,12 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         if (patternSearchDebounce > 0 && --patternSearchDebounce == 0) {
             applyPatternSearchQuery();
         }
-        if (!patternSearchQuery.isBlank()
-                && indexedPatternRevision != menu.patternRevision
-                && !patternSearchIndexPending
-                && patternSearchDebounce == 0) {
-            requestPatternSearchIndex();
+        if (!patternSearchQuery.isBlank() && !patternSearchIndexPending && patternSearchDebounce == 0) {
+            if (indexedPatternRevision != menu.patternRevision) {
+                requestPatternSearchIndex();
+            } else if (patternSearchIndex.complete() && !patternSearchCandidates.isCurrent(patternSearchIndex, Language.getInstance())) {
+                rebuildPatternSearchResults();
+            }
         }
         if (dismantleConfirmTicks > 0) {
             --dismantleConfirmTicks;
@@ -317,6 +321,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     @Override
     public void removed() {
         menu.setPatternSearchIndexListener(null);
+        patternSearchCandidates.clear();
 
         super.removed();
     }

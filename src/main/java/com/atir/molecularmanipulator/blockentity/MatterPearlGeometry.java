@@ -24,13 +24,15 @@ public final class MatterPearlGeometry {
     private static final int CONDUIT = 30;
     private static final int NODE = 40;
     private static final int REQUIRED = 100;
+    private static final List<BlockPos> FIELD_EMITTERS = List.of(
+            new BlockPos(-4, 4, -4), new BlockPos(4, 4, -4),
+            new BlockPos(-4, 4, 4), new BlockPos(4, 4, 4));
 
     private MatterPearlGeometry() {
     }
 
     public static List<BlockPos> fieldEmitters() {
-        return List.of(new BlockPos(-4, 4, -4), new BlockPos(4, 4, -4),
-                new BlockPos(-4, 4, 4), new BlockPos(4, 4, 4));
+        return FIELD_EMITTERS;
     }
 
     public static BlockPos scannerPoint() {

@@ -1,7 +1,6 @@
 package com.atir.molecularmanipulator.menu;
 
 import appeng.client.gui.Icon;
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
@@ -22,7 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-public final class SingularityMenu extends AEBaseMenu {
+public final class SingularityMenu extends BuildingMenu {
     public static final SlotSemantic QUANTUM_INPUT = SlotSemantics.register(
             "molecularmanipulator:SINGULARITY_QUANTUM_INPUT", false);
     public static final SlotSemantic DUPLICATION_SAMPLE = SlotSemantics.register(

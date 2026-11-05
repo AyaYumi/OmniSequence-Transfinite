@@ -1,0 +1,83 @@
+#version 430 core
+
+// One invocation owns a complete quad. Iris's 54-byte vertices are not word-aligned,
+// but four vertices are, so byte updates never race with another invocation.
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) readonly buffer SourceVertices { uint sourceWords[]; };
+layout(std430, binding = 1) buffer TransformedVertices { uint targetWords[]; };
+uniform mat4 Pose;
+uniform mat3 NormalPose;
+uniform ivec4 Layout; // stride, color, light, normal
+uniform ivec3 Extended; // material IDs, midpoint UV, tangent
+uniform uint QuadCount;
+uniform uint SceneLight;
+uniform uint Color;
+uniform uvec2 Material;
+uniform bool NormalizeNormal;
+uniform bool Mirrored;
+
+uint read32(uint offset) {
+    uint word = offset >> 2u, shift = (offset & 3u) * 8u;
+    if (shift == 0u) return sourceWords[word];
+    return (sourceWords[word] >> shift) | (sourceWords[word + 1u] << (32u - shift));
+}
+uint read8(uint offset) { return (sourceWords[offset >> 2u] >> ((offset & 3u) * 8u)) & 255u; }
+void write8(uint offset, uint value) {
+    uint word = offset >> 2u, shift = (offset & 3u) * 8u;
+    targetWords[word] = (targetWords[word] & ~(255u << shift)) | ((value & 255u) << shift);
+}
+void write32(uint offset, uint value) {
+    uint word = offset >> 2u, shift = (offset & 3u) * 8u;
+    if (shift == 0u) { targetWords[word] = value; return; }
+    uint lowMask = 0xffffffffu << shift, highMask = (1u << shift) - 1u;
+    targetWords[word] = (targetWords[word] & ~lowMask) | (value << shift);
+    targetWords[word + 1u] = (targetWords[word + 1u] & ~highMask) | (value >> (32u - shift));
+}
+vec3 direction(uint offset) {
+    ivec3 bytes = ivec3(read8(offset), read8(offset + 1u), read8(offset + 2u));
+    bytes -= ivec3(greaterThan(bytes, ivec3(127))) * 256;
+    return vec3(bytes) / 127.0;
+}
+uint component(float value) {
+    if (isnan(value) || isinf(value)) return 0u;
+    return uint(int(clamp(value, -1.0, 1.0) * 127.0)) & 255u;
+}
+uint packDirection(vec3 value) {
+    return component(value.x) | (component(value.y) << 8u) | (component(value.z) << 16u);
+}
+void writeDirection(uint offset, uint value) {
+    write8(offset, value); write8(offset + 1u, value >> 8u); write8(offset + 2u, value >> 16u);
+}
+
+void main() {
+    uint quad = gl_GlobalInvocationID.x;
+    if (quad >= QuadCount) return;
+    uint stride = uint(Layout.x), start = quad * stride * 4u;
+    for (uint word = start >> 2u; word < (start + stride * 4u) >> 2u; ++word)
+        targetWords[word] = sourceWords[word];
+    vec3 normal = NormalPose * direction(start + uint(Layout.w));
+    if (NormalizeNormal) normal = normalize(normal);
+    if (Mirrored) normal = -normal;
+    uint faceNormal = packDirection(normal);
+    vec3 tangent = mat3(Pose) * direction(start + uint(Extended.z));
+    if (dot(tangent, tangent) > 0.0) tangent = normalize(tangent);
+    uint faceTangent = packDirection(tangent);
+    for (uint corner = 0u; corner < 4u; ++corner) {
+        uint vertex = start + corner * stride;
+        vec3 local = vec3(uintBitsToFloat(read32(vertex)), uintBitsToFloat(read32(vertex + 4u)),
+                          uintBitsToFloat(read32(vertex + 8u)));
+        vec3 position = (Pose * vec4(local, 1.0)).xyz;
+        write32(vertex, floatBitsToUint(position.x));
+        write32(vertex + 4u, floatBitsToUint(position.y));
+        write32(vertex + 8u, floatBitsToUint(position.z));
+        write32(vertex + uint(Layout.y), Color);
+        uint baked = read32(vertex + uint(Layout.z));
+        write32(vertex + uint(Layout.z), max(SceneLight & 65535u, baked & 65535u)
+                | (max(SceneLight >> 16u, baked >> 16u) << 16u));
+        writeDirection(vertex + uint(Layout.w), faceNormal);
+        writeDirection(vertex + uint(Extended.z), faceTangent);
+        write32(vertex + uint(Extended.x), Material.x);
+        write8(vertex + uint(Extended.x) + 4u, Material.y);
+        write8(vertex + uint(Extended.x) + 5u, Material.y >> 8u);
+    }
+}

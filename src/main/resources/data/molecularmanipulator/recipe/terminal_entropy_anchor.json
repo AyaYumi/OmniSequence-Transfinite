@@ -9,13 +9,13 @@
     },
     {
       "ingredient": {
-        "item": "molecularmanipulator:negentropy_information_processor"
+        "item": "molecularmanipulator:star_chart_processor"
       },
       "count": 8
     },
     {
       "ingredient": {
-        "item": "molecularmanipulator:negative_entropy_alloy_ingot"
+        "item": "molecularmanipulator:star_marrow_alloy_ingot"
       },
       "count": 16
     },

@@ -1,8 +1,8 @@
 # Third-Party Notices
 
 OmniSequence: Transfinite integrates with the following separately installed
-Minecraft mods. Their binaries, source files, models and textures are not
-bundled in the produced mod JAR:
+Minecraft mods. Their binaries and source files are not bundled in the produced
+mod JAR. Adapted artwork is identified below:
 
 - Applied Energistics 2, version 19.2.17 or later.
 - AppliedEnhancements, revised version 1.1.0.
@@ -19,8 +19,18 @@ ExtendedAE Plus' pattern upload implementation was inspected to implement
 compatibility through AE2's public PatternContainer API. No ExtendedAE Plus
 source files or assets are included in this project.
 
-All resources distributed under the `molecularmanipulator` namespace are
-project-authored assets released under the project license.
+Resources distributed under the `molecularmanipulator` namespace are
+project-authored assets released under the project license, with this exception:
+
+- `textures/item/star_signal_storage_component.png` adapts Applied
+  Energistics 2 19.2.17's `assets/ae2/textures/item/cell_component_64k.png`.
+  The crystal palette was recolored green and a six-second animation was added;
+  the original silhouette and metalwork are retained. Original textures and
+  models: (c) 2020 Ridanisaurus Rid, (c) 2013-2020 AlgorithmX2 et al.
+  This adapted texture remains under **CC BY-NC-SA 3.0 Unported**, separate from
+  the project's MIT license. License text: `licenses/CC-BY-NC-SA-3.0.txt`.
+  Source: https://github.com/AppliedEnergistics/Applied-Energistics-2/tree/neoforge/v19.2.17
+  License: https://creativecommons.org/licenses/by-nc-sa/3.0/
 
 The GUI uses bundled Inter, Inter Tight, JetBrains Mono, and Source Han Sans SC
 font files. Their SIL Open Font License texts are included in

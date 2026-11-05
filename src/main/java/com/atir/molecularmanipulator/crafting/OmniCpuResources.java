@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.crafting;
 
-import com.atir.molecularmanipulator.entropy.NegativeEntropyBenefits;
+import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import java.math.BigInteger;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -14,7 +14,7 @@ public final class OmniCpuResources {
         return (int) Math.max(0L, Math.min(Integer.MAX_VALUE - 1L, parallelism - 1L));
     }
 
-    public static boolean acceptsNewJob(NegativeEntropyBenefits benefits, boolean primary) {
+    public static boolean acceptsNewJob(StarComputationBenefits benefits, boolean primary) {
         return primary || benefits.virtualCpu();
     }
 

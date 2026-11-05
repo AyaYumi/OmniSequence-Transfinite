@@ -4,11 +4,12 @@ import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
 import com.atir.molecularmanipulator.network.MatterFabricationUploadPayload;
+import com.atir.molecularmanipulator.network.WarpScreenPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.integration.useless.UselessBigIntegerApiBridge;
 import appeng.api.AECapabilities;
 import appeng.api.storage.StorageCells;
-import com.atir.molecularmanipulator.ae2.CreativeNegentropyInfoCellHandler;
+import com.atir.molecularmanipulator.ae2.CreativeStarSignalDiskHandler;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
@@ -27,21 +28,34 @@ public final class MolecularManipulator {
     public MolecularManipulator(IEventBus modEventBus, ModContainer modContainer) {
         ModConfig.register(modContainer);
         ModContent.register(modEventBus);
-        StorageCells.addCellHandler(CreativeNegentropyInfoCellHandler.INSTANCE);
+        com.atir.molecularmanipulator.registry.HighEnergyLabContent.register(modEventBus);
+        com.atir.molecularmanipulator.registry.WarpContent.register(modEventBus);
+        StorageCells.addCellHandler(CreativeStarSignalDiskHandler.INSTANCE);
         modEventBus.addListener(MultiblockChunkLoading::register);
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(PatternSearchIndexPayload::register);
         modEventBus.addListener(MatterFabricationUploadPayload::register);
+        modEventBus.addListener(WarpScreenPayload::register);
+        modEventBus.addListener(com.atir.molecularmanipulator.network.LanternPayloads::register);
+        modEventBus.addListener(com.atir.molecularmanipulator.network.BuildingPayloads::register);
     }
 
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
-                ModContent.NEGATIVE_ENTROPY_ENGINE_CORE_BE.get(), (blockEntity, context) -> blockEntity);
+                com.atir.molecularmanipulator.registry.BuildingContent.ASSEMBLER_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                com.atir.molecularmanipulator.registry.HighEnergyLabContent.POWER_INTERFACE_BE.get(),
+                (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK,
+                com.atir.molecularmanipulator.registry.HighEnergyLabContent.POWER_INTERFACE_BE.get(),
+                (blockEntity, side) -> blockEntity.getEnergyStorage(side));
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                ModContent.STAR_COMPUTATION_ENGINE_CORE_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlock(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 (level, pos, state, blockEntity, side) ->
-                        com.atir.molecularmanipulator.entropy.NegativeEntropyInteraction.gridHost(level, pos),
-                ModContent.NEGATIVE_ENTROPY_ENGINE_CASING.get(), ModContent.NEGATIVE_ENTROPY_OBSERVATION_PORT.get(),
+                        com.atir.molecularmanipulator.starcomputation.StarComputationInteraction.gridHost(level, pos),
+                ModContent.STAR_COMPUTATION_ENGINE_CASING.get(), ModContent.STAR_COMPUTATION_OBSERVATION_PORT.get(),
                 ModContent.BASE_ENTROPY_ANCHOR.get(), ModContent.QUANTUM_ENTROPY_ANCHOR.get(), ModContent.TERMINAL_ENTROPY_ANCHOR.get());
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
@@ -60,21 +74,22 @@ public final class MolecularManipulator {
                 (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
                 ModContent.MOLECULAR_CENTER_CONTROLLER_BE.get(),
-                (blockEntity, side) -> blockEntity.getExternalPatternInventory());
+                (blockEntity, side) -> com.atir.molecularmanipulator.building.BuildingTransfer.restoring(blockEntity) ? null : blockEntity.getExternalPatternInventory());
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
                 ModContent.MATTER_FABRICATION_CONTROLLER_BE.get(),
-                (blockEntity, side) -> blockEntity.getExposedItemHandler(side));
+                (blockEntity, side) -> com.atir.molecularmanipulator.building.BuildingTransfer.restoring(blockEntity) ? null : blockEntity.getExposedItemHandler(side));
         event.registerBlockEntity(Capabilities.ItemHandler.BLOCK,
                 ModContent.MATTER_FABRICATION_PORT_BE.get(),
-                (blockEntity, side) -> blockEntity.getExternalItemHandler());
+                (blockEntity, side) -> com.atir.molecularmanipulator.building.BuildingTransfer.restoring(blockEntity) ? null : blockEntity.getExternalItemHandler());
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK,
                 ModContent.MATTER_FABRICATION_PORT_BE.get(),
-                (blockEntity, side) -> blockEntity.getExternalFluidHandler());
+                (blockEntity, side) -> com.atir.molecularmanipulator.building.BuildingTransfer.restoring(blockEntity) ? null : blockEntity.getExternalFluidHandler());
     }
 
 
     private void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            com.atir.molecularmanipulator.terminal.BuildingTerminalLocator.register();
             UselessBigIntegerApiBridge.register();
             validateMixins();
             ModContent.bindBlockEntity();

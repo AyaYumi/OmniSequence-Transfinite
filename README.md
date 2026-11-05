@@ -47,10 +47,11 @@ Use the AE2 guide hotkey (default **G**) on an item, JEI entry or associated blo
 | Miniature Black Hole / White Hole | Transfer dropped items and non-player entities to the nearest same-team exit |
 | Gravity Crystal | Walk on walls and ceilings or build repulsion lifts |
 | Ghost Matter | Water-suppressed hazard and retained Gravity Crystal catalyst |
+| Green Fire Lantern | Portable light; its personal simulation shows flawed parent rock as flawless and yields permanent flawless blocks |
 
 ## Research, collection and duplication
 
-Ordinary research branches each have nine rounds by default. The first unlocks recipes; later rounds increase parallelism for that branch's fabrication recipes. Fabrication defaults to 20 seconds (400 ticks); production speed comes from the Negative Entropy Engine on the well's ME network, with level 9 overclocking forcing one tick. Research rounds retain their own duration. Normal ordering prepares the next round. Shift ordering prepares every remaining round and reaches maximum depth after one research run. Preparation can be canceled; ordered research cannot stop or pause once running.
+Ordinary research branches each have nine rounds by default. The first unlocks recipes; later rounds increase parallelism for that branch's fabrication recipes. Fabrication defaults to 20 seconds (400 ticks); production speed comes from the Star Computation Engine on the well's ME network, with level 9 overclocking forcing one tick. Research rounds retain their own duration. Normal ordering prepares the next round. Shift ordering prepares every remaining round and reaches maximum depth after one research run. Preparation can be canceled; ordered research cannot stop or pause once running.
 
 The hub produces 1000 of each listed resource every 20 ticks by default. Its duplication page holds up to 64 miniature black holes, each generating 20 mB of Sequence Matter every 20 ticks. Default cost is 1000 FE or 256 AE per mB. Copying one item uses 1000 mB and retains the original sample. Matter generation needs ME fluid storage; collected and copied products need ME item storage.
 

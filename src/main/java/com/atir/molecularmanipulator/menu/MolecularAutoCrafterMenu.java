@@ -1,12 +1,10 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.menu.MenuOpener;
-import appeng.menu.locator.MenuLocators;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafterBlockEntity;
@@ -15,7 +13,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 /** Configuration menu for the nine persistent passive-crafting slots. */
-public final class MolecularAutoCrafterMenu extends AEBaseMenu {
+public final class MolecularAutoCrafterMenu extends BuildingMenu {
     private static final String ACTION_SELECT = "select_auto_craft_slot";
     private static final String ACTION_TOGGLE = "toggle_auto_craft_slot";
     private static final String ACTION_LIMIT = "set_auto_craft_limit";
@@ -149,7 +147,7 @@ public final class MolecularAutoCrafterMenu extends AEBaseMenu {
                 || machine.getAutoCrafter().getPatternInventory().getStackInSlot(slot).isEmpty()) return;
         machine.setMenuSelectedSlot(slot);
         MenuOpener.open(MolecularAutoCrafterConfigMenu.TYPE, getPlayer(),
-                MenuLocators.forBlockEntity(machine));
+                buildingLocator());
     }
 
     private void select(int slot) {

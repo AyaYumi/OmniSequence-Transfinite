@@ -2,7 +2,7 @@ package com.atir.molecularmanipulator.crafting;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.atir.molecularmanipulator.entropy.NegativeEntropyBenefits;
+import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import java.math.BigInteger;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -15,24 +15,24 @@ class OmniCpuResourcesTest {
     @Test void levelSixUsesThePhysicalCpuAndLevelSevenCanAddVirtualLanes() {
         for (int level = 0; level <= 9; level++) {
             for (boolean overclocked : new boolean[] {false, true}) {
-                var benefits = new NegativeEntropyBenefits(level, overclocked);
+                var benefits = new StarComputationBenefits(level, overclocked);
                 assertTrue(OmniCpuResources.acceptsNewJob(benefits, true));
                 assertEquals(level >= 7, OmniCpuResources.acceptsNewJob(benefits, false));
                 assertEquals(level >= 7, benefits.virtualCpu());
             }
         }
-        assertEquals(16, NegativeEntropyBenefits.NONE.cpuParallel());
-        assertEquals(1024 * 1024, NegativeEntropyBenefits.NONE.storageBytes());
-        assertEquals(16384, new NegativeEntropyBenefits(6, false).cpuParallel());
-        assertEquals(32768, new NegativeEntropyBenefits(6, true).cpuParallel());
-        assertEquals(1L << 40, new NegativeEntropyBenefits(6, false).storageBytes());
-        assertEquals(Long.MAX_VALUE, new NegativeEntropyBenefits(9, true).storageBytes());
+        assertEquals(16, StarComputationBenefits.NONE.cpuParallel());
+        assertEquals(1024 * 1024, StarComputationBenefits.NONE.storageBytes());
+        assertEquals(16384, new StarComputationBenefits(6, false).cpuParallel());
+        assertEquals(32768, new StarComputationBenefits(6, true).cpuParallel());
+        assertEquals(1L << 40, new StarComputationBenefits(6, false).storageBytes());
+        assertEquals(Long.MAX_VALUE, new StarComputationBenefits(9, true).storageBytes());
     }
 
     @Test void finiteParallelismMapsToPMinusOneWithoutOverflow() {
         for (int level = 0; level <= 9; level++) {
             for (boolean overclocked : new boolean[] {false, true}) {
-                long parallel = new NegativeEntropyBenefits(level, overclocked).cpuParallel();
+                long parallel = new StarComputationBenefits(level, overclocked).cpuParallel();
                 int coProcessors = OmniCpuResources.coProcessors(parallel);
                 assertTrue(coProcessors + 1 > 0);
                 assertEquals(Math.min(Integer.MAX_VALUE, parallel), (long) coProcessors + 1);
@@ -44,7 +44,7 @@ class OmniCpuResourcesTest {
     @Test void oldLanesShareOnePhysicalDispatchAllowanceEvenWhenThereAreMoreLanesThanSlots() {
         for (int level : new int[] {0, 6, 7, 9}) {
             for (boolean overclocked : new boolean[] {false, true}) {
-                long parallel = new NegativeEntropyBenefits(level, overclocked).cpuParallel();
+                long parallel = new StarComputationBenefits(level, overclocked).cpuParallel();
                 int total = OmniCpuResources.singleDispatchLimit(parallel, Integer.MAX_VALUE);
                 for (int lanes : new int[] {1, 3, 17, 31}) {
                     long sum = 0;

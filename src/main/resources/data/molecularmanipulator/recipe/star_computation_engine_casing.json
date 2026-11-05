@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ISI",
+    "SPS",
+    "ISI"
+  ],
+  "key": {
+    "I": {
+      "item": "molecularmanipulator:star_marrow_alloy_ingot"
+    },
+    "S": {
+      "item": "ae2:sky_stone_block"
+    },
+    "P": {
+      "item": "molecularmanipulator:star_chart_processor"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:star_computation_engine_casing",
+    "count": 4
+  }
+}

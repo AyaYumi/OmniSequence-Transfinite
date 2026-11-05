@@ -115,6 +115,80 @@ class SingularityLensProjectionTest {
         }
     }
 
+    @Test
+    void postProcessingSkipsFieldsOutsideTheScreenAndBoundsSmallVisibleFields() {
+        var projection = perspective(70);
+        for (var center : new Vector3f[] {new Vector3f(-200, 0, -10), new Vector3f(200, 0, -10),
+                new Vector3f(0, -200, -10), new Vector3f(0, 200, -10), new Vector3f(0, 0, 10)}) {
+            assertTrue(SingularityLensProjection.screenBounds(center, 1, projection, 1920, 1080).isEmpty());
+        }
+        var bounds = SingularityLensProjection.screenBounds(new Vector3f(4, -2, -100), 2,
+                projection, 1920, 1080);
+        assertFalse(bounds.isEmpty());
+        assertTrue(bounds.width() * bounds.height() < 1920 * 1080 / 100,
+                "A small field should shade less than one percent of this screen");
+    }
+
+    @Test
+    void projectedBoundsContainTheWholeFieldDuringCameraBobbingAndAtScreenEdges() {
+        int width = 1920, height = 1080;
+        for (float fov : new float[] {40, 70, 110}) {
+            var bob = new Matrix4f().translation(.08F, -.12F, .02F).rotateZ(.03F).rotateX(.04F);
+            var projection = perspective(fov).mul(bob);
+            for (float x : new float[] {-28, -4, 0, 4, 28}) {
+                var pose = new Matrix4f().translation(x, 3, -35).rotateY(.7F).rotateZ(.4F).scale(1.2F);
+                var view = new Matrix4f().rotationY(.1F);
+                var clipFromLocal = new Matrix4f(projection).mul(view).mul(pose);
+                var before = new Matrix4f(clipFromLocal);
+                var bounds = SingularityLensProjection.screenBounds(clipFromLocal, 3.8F, width, height);
+                assertEquals(before, clipFromLocal);
+                for (int longitude = 0; longitude < 48; longitude++) {
+                    for (int latitude = -12; latitude <= 12; latitude++) {
+                        double lon = longitude * Math.TAU / 48, lat = latitude * Math.PI / 24;
+                        var point = clipFromLocal.transform(new Vector4f(
+                                (float) (3.8 * Math.cos(lat) * Math.cos(lon)),
+                                (float) (3.8 * Math.sin(lat)),
+                                (float) (3.8 * Math.cos(lat) * Math.sin(lon)), 1));
+                        float px = (point.x / point.w * .5F + .5F) * width;
+                        float py = (point.y / point.w * .5F + .5F) * height;
+                        if (px < 0 || px > width || py < 0 || py > height) continue;
+                        assertFalse(bounds.isEmpty());
+                        assertTrue(px >= bounds.x() && px <= bounds.x() + bounds.width());
+                        assertTrue(py >= bounds.y() && py <= bounds.y() + bounds.height());
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    void enteringAFieldKeepsFullScreenCoverageAndFieldsBeforeTheNearPlaneRemainVisible() {
+        var projection = perspective(70);
+        var full = new SingularityLensProjection.ScreenBounds(0, 0, 1920, 1080);
+        assertEquals(full, SingularityLensProjection.screenBounds(new Vector3f(), 13.4F,
+                projection, 1920, 1080));
+        assertEquals(full, SingularityLensProjection.screenBounds(new Vector3f(0, 0, -.5F), 1,
+                projection, 1920, 1080));
+        assertFalse(SingularityLensProjection.screenBounds(new Vector3f(0, 0, -.02F), .001F,
+                projection, 1920, 1080).isEmpty());
+    }
+
+    @Test
+    void sceneCopyPaddingIncludesEveryRefractionTapAndClampsToTheFramebuffer() {
+        int width = 1920, height = 1080;
+        var bounds = new SingularityLensProjection.ScreenBounds(4, 7, 100, 90);
+        int padding = (int) Math.ceil(height * .12D) + 2;
+        var copied = bounds.expand(padding, width, height);
+        assertEquals(0, copied.x());
+        assertEquals(0, copied.y());
+        assertEquals(104 + padding, copied.width());
+        assertEquals(97 + padding, copied.height());
+        var full = new SingularityLensProjection.ScreenBounds(0, 0, width, height);
+        assertEquals(full, full.expand(padding, width, height));
+        var empty = new SingularityLensProjection.ScreenBounds(0, 0, 0, 0);
+        assertTrue(empty.expand(padding, width, height).isEmpty());
+    }
+
     private static Matrix4f perspective(float fov) {
         return new Matrix4f().perspective((float) Math.toRadians(fov), 16F / 9F, .05F, 512F);
     }

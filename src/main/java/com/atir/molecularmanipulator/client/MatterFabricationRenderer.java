@@ -5,8 +5,10 @@ import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.Part;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure.PartType;
 import com.atir.molecularmanipulator.blockentity.MatterPearlGeometry;
+import com.atir.molecularmanipulator.client.render.EarlyFrameGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
+import com.atir.molecularmanipulator.client.render.ParallelEffectGeometry;
 import com.atir.molecularmanipulator.client.render.MatterRasterEffects;
 import com.atir.molecularmanipulator.client.render.MatterStellarEffects;
 import com.atir.molecularmanipulator.config.ModConfig;
@@ -27,8 +29,14 @@ import java.util.WeakHashMap;
 
 /** Renders a vacuum-condensation and additive-manufacturing cell. */
 public final class MatterFabricationRenderer
-        implements BlockEntityRenderer<MatterFabricationBlockEntity> {
+        implements BlockEntityRenderer<MatterFabricationBlockEntity>,
+        EarlyFrameGeometry.Source<MatterFabricationBlockEntity, MatterFabricationRenderer.Snapshot> {
 
+    private static final int[] SPLIT_PASS_ENDS = {1, 2, 4, 6};
+    // Clipping dominates execution; launch both built meshes before their cheaper previews.
+    private static final int[] SPLIT_LAUNCH_ORDER = {3, 5, 0, 1, 2, 4};
+
+    private final ParallelEffectGeometry geometry = new ParallelEffectGeometry();
     private final Map<MatterFabricationBlockEntity, MatterRasterEffects.Animation> fabricationAnimations = new WeakHashMap<>();
     private final Map<MatterFabricationBlockEntity, MatterStellarEffects.Animation> stellarAnimations = new WeakHashMap<>();
 
@@ -39,10 +47,30 @@ public final class MatterFabricationRenderer
     public void render(MatterFabricationBlockEntity machine, float partialTick,
             PoseStack poseStack, MultiBufferSource buffers, int packedLight, int packedOverlay) {
         MatterFabricationPlacementPreview.render(machine, poseStack, buffers);
+        var snapshot = EarlyFrameGeometry.take(this, machine, partialTick, poseStack);
+        if (snapshot == null) snapshot = capture(machine, partialTick, poseStack, geometry);
+        if (snapshot == null) return;
+        var frame = snapshot;
+        try (frame) {
+            var poses = snapshot.poses();
+            for (var pass : FoundryPass.values()) {
+                // The clipped workpiece and light raster share the same per-frame progress snapshot.
+                var layer = pass.glow() ? OmniRenderLayers.additiveColor() : OmniRenderLayers.translucentEmissiveColor();
+                var target = buffers.getBuffer(layer);
+                if (snapshot.prepared() != null) snapshot.prepared().submit(pass.ordinal(), target);
+                else renderFabricationPass(poses, target, snapshot.time(), snapshot.detailed(),
+                        true, snapshot.facing(), pass, snapshot.animation(), snapshot.stellar());
+            }
+        }
+    }
+
+    @Override
+    public Snapshot capture(MatterFabricationBlockEntity machine, float partialTick,
+            PoseStack base, ParallelEffectGeometry geometry) {
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || machine.getLevel() == null
                 || !machine.isClientStructureFormed()) {
-            return;
+            return null;
         }
         Direction facing = machine.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         Part centerPart = new Part(0, MatterFabricationStructure.EFFECT_CENTER_Y,
@@ -60,18 +88,77 @@ public final class MatterFabricationRenderer
         var stellar = stellarAnimations.computeIfAbsent(machine, ignored -> new MatterStellarEffects.Animation())
                 .sample(time, running, animation.completion(), machine.getClientResearchVisualState(),
                         machine.sampleClientResearchElapsed(partialTick), machine.sampleClientResearchCompletionPulse(partialTick));
+        var poses = localPose(base, center, machine.getBlockPos());
+        var prepared = preparePasses(geometry, poses, time, detailed, facing, animation, stellar);
+        return new Snapshot(poses.last().copy(), time, detailed, facing, animation, stellar, prepared);
+    }
 
-        poseStack.pushPose();
-        poseStack.translate(center.getX() - machine.getBlockPos().getX() + 0.5D,
-                center.getY() - machine.getBlockPos().getY() + 0.5D,
-                center.getZ() - machine.getBlockPos().getZ() + 0.5D);
-        for (var pass : FoundryPass.values()) {
-            // The clipped workpiece and light raster share the same per-frame progress snapshot.
-            var layer = pass.glow() ? OmniRenderLayers.additiveColor() : OmniRenderLayers.translucentEmissiveColor();
-            renderFabricationPass(poseStack, buffers.getBuffer(layer), time, detailed,
-                    machine.isClientStructureFormed(), facing, pass, animation, stellar);
+    private static PoseStack localPose(PoseStack base, BlockPos center, BlockPos blockPos) {
+        var poses = new PoseStack();
+        poses.last().pose().set(base.last().pose());
+        poses.last().normal().set(base.last().normal());
+        poses.translate(center.getX() - blockPos.getX() + 0.5D,
+                center.getY() - blockPos.getY() + 0.5D,
+                center.getZ() - blockPos.getZ() + 0.5D);
+        return poses;
+    }
+
+    /** Immutable sampled animation values plus the optional prepared color geometry for one capture. */
+    public record Snapshot(PoseStack.Pose pose, float time, boolean detailed, Direction facing,
+            MatterRasterEffects.Frame animation, MatterStellarEffects.Frame stellar,
+            ParallelEffectGeometry.Frame prepared) implements EarlyFrameGeometry.Snapshot {
+        private PoseStack poses() {
+            var poses = new PoseStack();
+            poses.last().pose().set(pose.pose());
+            poses.last().normal().set(pose.normal());
+            return poses;
         }
-        poseStack.popPose();
+
+        @Override
+        public void close() {
+            if (prepared != null) prepared.close();
+        }
+    }
+
+    static ParallelEffectGeometry.Frame preparePasses(ParallelEffectGeometry geometry, PoseStack poses,
+            float time, boolean detailed, Direction facing, MatterRasterEffects.Frame animation,
+            MatterStellarEffects.Frame stellar) {
+        if (!detailed || !ParallelEffectGeometry.isAvailable()) return null;
+        var input = new GeometryFrame(poses.last().copy(), time, detailed, facing, animation, stellar);
+        if (!animation.constructing() || animation.completion() != 0 || animation.progress() <= 0
+                || animation.opacity() < 0.001F) {
+            return geometry.prepare(out -> input.renderPass(out, FoundryPass.FRAME_DEPTH),
+                    out -> input.renderPass(out, FoundryPass.FRAME_GLOW),
+                    out -> input.renderPass(out, FoundryPass.CRYSTAL_DEPTH),
+                    out -> input.renderPass(out, FoundryPass.CRYSTAL_GLOW));
+        }
+        // Each original preview/built draw runs once; submission concatenates them inside its pass.
+        return geometry.prepareGroups(SPLIT_PASS_ENDS, SPLIT_LAUNCH_ORDER,
+                out -> input.renderPass(out, FoundryPass.FRAME_DEPTH),
+                out -> input.renderPass(out, FoundryPass.FRAME_GLOW),
+                out -> input.renderObject(out, false, 0, 1), out -> input.renderObject(out, false, 1, 3),
+                out -> input.renderObject(out, true, 0, 1), out -> input.renderObject(out, true, 1, 3));
+    }
+
+    private record GeometryFrame(PoseStack.Pose pose, float time, boolean detailed, Direction facing,
+            MatterRasterEffects.Frame animation, MatterStellarEffects.Frame stellar) {
+        private PoseStack poses() {
+            var stack = new PoseStack();
+            stack.last().pose().set(pose.pose()); stack.last().normal().set(pose.normal());
+            return stack;
+        }
+
+        private void renderPass(VertexConsumer out, FoundryPass pass) {
+            renderFabricationPass(poses(), out, time, detailed, true, facing, pass, animation, stellar);
+        }
+
+        private void renderObject(VertexConsumer out, boolean glow, int from, int to) {
+            var stack = poses();
+            stack.pushPose();
+            stack.mulPose(Axis.YP.rotationDegrees(180.0F - facing.toYRot()));
+            MatterRasterEffects.renderObjectRange(stack, out, time, animation, glow, from, to);
+            stack.popPose();
+        }
     }
 
     enum FoundryPass {

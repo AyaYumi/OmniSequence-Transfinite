@@ -1,0 +1,36 @@
+{
+  "variants": {
+    "facing=south,lit=false": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle",
+      "y": 0
+    },
+    "facing=south,lit=true": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle_on",
+      "y": 0
+    },
+    "facing=west,lit=false": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle",
+      "y": 90
+    },
+    "facing=west,lit=true": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle_on",
+      "y": 90
+    },
+    "facing=north,lit=false": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle",
+      "y": 180
+    },
+    "facing=north,lit=true": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle_on",
+      "y": 180
+    },
+    "facing=east,lit=false": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle",
+      "y": 270
+    },
+    "facing=east,lit=true": {
+      "model": "molecularmanipulator:block/high_energy_lab_output_cradle_on",
+      "y": 270
+    }
+  }
+}

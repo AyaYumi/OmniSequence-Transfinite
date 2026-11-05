@@ -1,9 +1,9 @@
 {
   "replace": false,
   "values": [
-    "molecularmanipulator:negative_entropy_budding_quartz",
-    "molecularmanipulator:negative_entropy_flawed_budding_quartz",
-    "molecularmanipulator:negative_entropy_chipped_budding_quartz",
-    "molecularmanipulator:negative_entropy_damaged_budding_quartz"
+    "molecularmanipulator:flawless_star_marrow_parent_rock",
+    "molecularmanipulator:flawed_star_marrow_parent_rock",
+    "molecularmanipulator:damaged_star_marrow_parent_rock",
+    "molecularmanipulator:heavily_damaged_star_marrow_parent_rock"
   ]
 }

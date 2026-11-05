@@ -276,7 +276,7 @@ ServerEvents.recipes(event => {
 | 9 | ×256 | 9,223,372,036,854,775,807（约 9.22E18） |
 
 深度研究仅提升所属配方并行，包括第 9 轮。多个研究解锁同一配方时取最高并行上限。
-生产速度由控制器所在 ME 网络的负熵引擎提供：普通等级采用
+生产速度由控制器所在 ME 网络的星算引擎提供：普通等级采用
 `max(1, ceil(配方基础ticks / 有效speedMultiplier))`，有效倍率已包含超频；L9 超频强制
 1 tick。没有引擎时倍率为 1。所有内置构筑配方与桥接生成默认均为 400 tick（20 秒）；
 显式自定义 `processing_time` 仍会保留。研究自身的 `duration` 独立于生产速度与此默认值。
@@ -599,7 +599,7 @@ var definitions = MatterResearchApi.definitions(serverLevel);
 | `start(controller, id)`、`setPaused(controller, id, paused)` | 返回操作是否被接受。`start` 对已存在的任务执行恢复而不是失败；研究不存在、不可用、已满级、有待退款或不满足前置时返回 `false`。下单启动的任务拒绝 `setPaused`；普通手动任务的 `setPaused(..., false)` 会重新检查结构、网络、退款与前置并补扣未支付部分，因此也可能返回 `false`。 |
 | `completionCount`、`isCompleted` | 查询完成次数；`isCompleted` 表示至少完成 1 次，不是满级。 |
 | `canUseRecipe`、`isRecipeUnlocked` | 供其他配方执行器使用的权限检查，调用方需自行调用以实施自己的规则。`canUseRecipe` 接收 `RecipeHolder<MatterFabricationRecipe>`。 |
-| `productionProfile` | 返回 `(parallel, ticks)`：取已完成归属研究的最高并行，无归属时为 `1`；耗时由当前配方基础时间与 `NegativeEntropyNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)` 决定，独立于研究深度。 |
+| `productionProfile` | 返回 `(parallel, ticks)`：取已完成归属研究的最高并行，无归属时为 `1`；耗时由当前配方基础时间与 `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)` 决定，独立于研究深度。 |
 | `setCompletionCount`、`setCompleted`、`unlockAll` | 管理性修改，按当前最大深度钳制并结束受影响的在研任务；退回备料缓存，已开始研究的费用仍被消耗。负数会抛异常；次数为 `int`，`unlockAll` 返回处理过的定义数量。三者都不检查权限——由调用方负责。 |
 | `prerequisitesMet`、`requiredPrerequisiteLevel` | 每个前置默认要求 1 次；前置不在传入的 `available` 列表中时返回 `false`，因此应传入 `definitions(level)`。Java 映射值 `0` 对应数据包中的 `"max"`。 |
 

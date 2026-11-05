@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "ae2:item_cell_housing"
+    },
+    {
+      "item": "molecularmanipulator:star_signal_storage_component"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "molecularmanipulator:star_signal_storage_cell"
+  }
+}

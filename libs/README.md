@@ -23,8 +23,7 @@ here before building, or run `python .github/scripts/prepare_cpu_apis.py` to fet
 pinned compatible public releases. These are compile-only dependencies;
 they are not embedded in the output and are optional at runtime.
 
-上述 CPU JAR 仅提供编译接口，不嵌入产物，也不成为必需运行依赖。兼容测试使用
-真实 JAR；数据能源在隔离测试目录启用，不会更改玩家整合包中禁用的模组。
+上述 CPU JAR 仅提供编译接口，不嵌入产物，也不成为必需运行依赖。
 
 `neoeco_api_build=21.2.10` in `gradle.properties` selects the ECO compile-only JAR;
 `neoeco_version=21.2.9` remains the optional runtime version floor. ECO can be absent.
@@ -40,16 +39,13 @@ Older ECO JARs may remain here but are not selected by the default compilation.
 也保留任务 UUID；定向返回的副产物和超产余量保存在 CPU 中，只有等待部分结算合成进度。
 仅复制真实发布 JAR 作为编译依赖，不复制 ECO 源码或将其类打包。
 
-Isolated ECO tests require an LDLib2 `all` JAR >= 2.2.40. The CPU init scripts
-stage selected real JARs under `build/cpu-compat-runtime/<run-name>/`, replace
-the test process's LDLib2 dependency, and never write into the source mods directory.
-LDLib2 2.2.40 embeds Taffy, Yoga and Kotlin; ECO embeds Registrate. AE2 supplies
-GuideME through its runtime dependency. Explicit additional integration prerequisites
-can be selected with `cpuCompatExtraMods`.
-
 The unmodified ECO 21.2.9 release declares `AFTER molecularmanipulator`.
 OmniSequence uses `ordering="NONE"` for ECO, preserving its optional version
 floor without introducing a reverse loading-order edge.
 
-The isolated Thunderbolt suite uses `thunderbolt-2.0.0-beta.4.jar` separately so
-tests match the installed pack while compilation can use the compatible public API.
+Fabrication wells use their native durable-queue FastPath before ECO's generic
+AE2 processing-pattern scaling ramp. This preserves full long-sized intake;
+ECO still owns material/energy accounting, exact dispatch and blocking checks.
+
+构筑井优先使用自己的持久化队列 FastPath，避免先被 ECO 通用加工倍率爬坡截成小批次；
+材料、能量、精确数量及阻挡校验仍由 ECO 事务控制。

@@ -1,0 +1,13 @@
+{
+  "type": "ae2:inscriber",
+  "ingredients": {
+    "middle": {
+      "item": "molecularmanipulator:star_marrow_crystal"
+    }
+  },
+  "mode": "inscribe",
+  "result": {
+    "id": "molecularmanipulator:star_marrow_crystal_dust",
+    "count": 1
+  }
+}

@@ -24,7 +24,7 @@ import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipeInput;
-import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchProgress;
@@ -239,6 +239,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
 
     @Override
     public void onReady() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         super.onReady();
         migrateTeamBinding();
         scheduleStructureCheck();
@@ -504,6 +505,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     }
 
     public void serverTick() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         if (level == null || level.isClientSide()) {
             return;
         }
@@ -1364,7 +1366,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         long fluidRevision = fluids == null ? 0 : fluids.contentsRevision();
         var index = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level);
         long researchRevision = research.permissionRevision();
-        int entropyUnlockMask = NegativeEntropyNetwork.unlockMask(getMainNode().getGrid());
+        int entropyUnlockMask = StarComputationNetwork.unlockMask(getMainNode().getGrid());
         if (selectionCached && selectionIndex == index && selectionItems == items && selectionFluids == fluids
                 && selectionItemRevision == itemRevision && selectionFluidRevision == fluidRevision
                 && selectionResearchRevision == researchRevision && selectionEntropyUnlockMask == entropyUnlockMask

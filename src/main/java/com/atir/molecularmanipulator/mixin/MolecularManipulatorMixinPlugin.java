@@ -28,6 +28,9 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         var loadingModList = FMLLoader.getLoadingModList();
+        if (mixinClassName.endsWith(".SingularityLithiumCollisionMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("lithium") != null;
+        }
         if (mixinClassName.endsWith(".MatterCpuJobContextMixin")) {
             if (targetClassName.startsWith("net.pedroksl.advanced_ae.")) {
                 return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;

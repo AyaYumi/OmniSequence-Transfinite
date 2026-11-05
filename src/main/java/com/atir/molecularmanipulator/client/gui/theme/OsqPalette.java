@@ -4,7 +4,7 @@ package com.atir.molecularmanipulator.client.gui.theme;
  * 直角风格配色（ARGB），亮色与暗色两套。常量 = 家族 + 主题：SEQ / OMNI / SING / FAB 为亮色，*_DARK 为暗色。
  * 家族：seq = 构序阵列 / 构序操纵器 / 构序自动合成器；omni = 万物演算核心；sing = 视界奇点天枢（含单方块）；fab = 物质构筑井（含端口、样板总成）。
  * 角色：paper 窗口 · card 卡片 · raise 按钮/页签/小键 · sunk 输入框/按下 · feat 重点卡 · blk 计数块 · inv/invT 反色（危险键、选中页签、提示框）
- * · accB 主色按钮底 · disT 禁用文字 · dis 禁用底。由 tools/gen_java.py 从 src/common.css 生成。
+ * · accB 主色按钮底 · disT 禁用文字 · dis 禁用底。
  */
 public enum OsqPalette {
     SEQ("seq", false, 0xFFF6F0F1, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFF6F0F1, 0xFF1E1519, 0xFF1E1519, 0xFF54444B, 0xFF957F88, 0xFFC5B6BC, 0xFFC5B6BC, 0xFFEEE3E6, 0xFFC8436F, 0xFFC8436F, 0xFFFBE9EF, 0xFFAE8A4E, 0xFFF6EEDF, 0xFFDE5427, 0xFF2F9E6E, 0xFFBDAFB5, 0xFFC8436F, 0xFF1E1519, 0xFFFFFFFF, 0xFFE9E8E4),

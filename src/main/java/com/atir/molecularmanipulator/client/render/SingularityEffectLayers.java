@@ -40,14 +40,21 @@ public final class SingularityEffectLayers extends RenderType {
     public static VertexConsumer glow(MultiBufferSource buffers) { return consumer(buffers, false); }
     public static VertexConsumer crystal(MultiBufferSource buffers) { return consumer(buffers, true); }
     public static VertexConsumer star(MultiBufferSource buffers) {
-        return shadersActive() ? new SingularityShaderVertices(buffers.getBuffer(STAR)) : buffers.getBuffer(CRYSTAL);
+        if (!shadersActive()) return buffers.getBuffer(CRYSTAL);
+        var gpu = GpuEffectLayers.consumer(buffers, STAR);
+        return gpu != null ? gpu : new SingularityShaderVertices(buffers.getBuffer(STAR));
     }
 
     private static VertexConsumer consumer(MultiBufferSource buffers, boolean crystal) {
         boolean shaders = shadersActive();
         boolean entity = shaders && entityEffectsActive();
-        var target = buffers.getBuffer(shaders ? entity ? crystal ? HELIAN_CRYSTAL : HELIAN_GLOW
-                : crystal ? SHADER_CRYSTAL : SHADER_GLOW : crystal ? CRYSTAL : GLOW);
+        var layer = shaders ? entity ? crystal ? HELIAN_CRYSTAL : HELIAN_GLOW
+                : crystal ? SHADER_CRYSTAL : SHADER_GLOW : crystal ? CRYSTAL : GLOW;
+        if (shaders) {
+            var gpu = GpuEffectLayers.consumer(buffers, layer);
+            if (gpu != null) return gpu;
+        }
+        var target = buffers.getBuffer(layer);
         return shaders ? new SingularityShaderVertices(target) : target;
     }
     private static Method irisActiveMethod() {

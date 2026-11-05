@@ -294,7 +294,7 @@ is how many complete recipe executions a single craft may run.
 
 Deep research increases recipe parallelism only, including round nine. Several
 researches owning the same recipe contribute their highest parallel limit.
-Production speed comes from the Negative Entropy Engine on the controller's ME
+Production speed comes from the Star Computation Engine on the controller's ME
 grid: ordinary levels use `max(1, ceil(baseTicks / effectiveSpeedMultiplier))`,
 where the effective multiplier includes overclocking; level 9 overclocking forces
 one tick. Without an engine the multiplier is one. All built-in fabrication
@@ -700,7 +700,7 @@ API; the separate batch API stays at v1.
 | `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; ordinary manual tasks using `setPaused(..., false)` re-check the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
 | `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
 | `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
-| `productionProfile` | `(parallel, ticks)`: highest parallel limit among completed owner branches (or `1`); ticks come from the current recipe base duration and `NegativeEntropyNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)`, independently of research depth. |
+| `productionProfile` | `(parallel, ticks)`: highest parallel limit among completed owner branches (or `1`); ticks come from the current recipe base duration and `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)`, independently of research depth. |
 | `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
 | `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
 

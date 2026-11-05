@@ -29,6 +29,7 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
     private boolean dispatchingLogicalInput;
     private int rawMouseX;
     private int rawMouseY;
+    private net.minecraft.client.gui.components.Button terminalButton;
 
     protected ResponsiveContainerScreen(T menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -41,8 +42,24 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
     }
 
     @Override
+    protected void init() {
+        super.init();
+        terminalButton = null;
+        if (menu instanceof com.atir.molecularmanipulator.menu.BuildingMenu building) {
+            // Screen-space navigation, outside the controller panel and independent of its fitted scale.
+            terminalButton = addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
+                    Component.translatable("gui.molecularmanipulator.building_terminal.return"),
+                    button -> building.requestTerminal()).bounds(6, 6, 90, 20).build());
+            terminalButton.visible = building.terminalAccess;
+        }
+    }
+
+    @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         restoreScreenWidgets();
+        if (terminalButton != null && menu instanceof com.atir.molecularmanipulator.menu.BuildingMenu building) {
+            terminalButton.visible = building.terminalAccess;
+        }
         rawMouseX = mouseX;
         rawMouseY = mouseY;
         float scale = responsiveScale();

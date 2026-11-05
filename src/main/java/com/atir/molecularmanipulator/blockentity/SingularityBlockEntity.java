@@ -367,7 +367,8 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity {
     }
     public boolean canManage(ServerPlayer player) {
         return player != null && level != null && !isRemoved() && player.level() == level && player.mayBuild()
-                && player.distanceToSqr(worldPosition.getCenter()) <= 64
+                && (player.distanceToSqr(worldPosition.getCenter()) <= 64
+                || com.atir.molecularmanipulator.terminal.BuildingTerminal.canAccess(player, this))
                 && level.mayInteract(player, worldPosition);
     }
     public void requestInspection(ServerPlayer player) {

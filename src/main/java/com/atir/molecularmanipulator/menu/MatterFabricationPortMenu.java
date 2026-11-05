@@ -1,7 +1,6 @@
 package com.atir.molecularmanipulator.menu;
 
 import appeng.api.stacks.GenericStack;
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
@@ -19,7 +18,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 
 /** Menu shared by the four material service ports. */
-public final class MatterFabricationPortMenu extends AEBaseMenu {
+public final class MatterFabricationPortMenu extends BuildingMenu {
     private static final String ACTION_TRANSFER_FLUID = "transfer_fluid";
     private static final String ACTION_INTERACT_FLUID = "interact_fluid";
     private static final String ACTION_RETURN = "return_inputs";

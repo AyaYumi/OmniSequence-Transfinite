@@ -1,0 +1,312 @@
+{
+  "credit": "Approved lab power platform / Downloads model export",
+  "ambientocclusion": true,
+  "textures": {
+    "atlas": "molecularmanipulator:block/lab_power_platform",
+    "particle": "#atlas"
+  },
+  "elements": [
+    {
+      "name": "paving_2_2_0_body",
+      "from": [
+        0.0,
+        8.8,
+        0
+      ],
+      "to": [
+        16.0,
+        11.84,
+        12.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.8,
+            0.19
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.2,
+            0.0,
+            12.0,
+            0.19
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.2,
+            12.0,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.8
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.19
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.19
+          ]
+        }
+      }
+    },
+    {
+      "name": "paving_2_2_0_top",
+      "from": [
+        0.192,
+        11.84,
+        0
+      ],
+      "to": [
+        15.808,
+        12.8,
+        12.608
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            1.0,
+            0.0,
+            1.788,
+            0.06
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            1.188,
+            0.0,
+            1.976,
+            0.06
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            1.0,
+            0.188,
+            1.976,
+            0.976
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            1.0,
+            0.0,
+            1.976,
+            0.788
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            1.0,
+            0.0,
+            1.976,
+            0.06
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            1.0,
+            0.0,
+            1.976,
+            0.06
+          ]
+        }
+      }
+    },
+    {
+      "name": "front_border_1",
+      "from": [
+        0,
+        12.0,
+        11.04
+      ],
+      "to": [
+        16,
+        13.44,
+        12.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            3.0,
+            0.0,
+            3.11,
+            0.09
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            3.0,
+            0.0,
+            3.11,
+            0.09
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            3.25,
+            0.0,
+            3.75,
+            0.11
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            3.25,
+            0.0,
+            3.75,
+            0.11
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            3.25,
+            0.0,
+            3.75,
+            0.09
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            3.25,
+            0.0,
+            3.75,
+            0.09
+          ]
+        }
+      }
+    },
+    {
+      "name": "paving_2_2_0_body_mount",
+      "from": [
+        0.0,
+        0,
+        0
+      ],
+      "to": [
+        16.0,
+        8.8,
+        12.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.8,
+            0.55
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.2,
+            0.0,
+            12.0,
+            0.55
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.2,
+            12.0,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.8
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.55
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.55
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.35,
+        0.35,
+        0.35
+      ]
+    }
+  }
+}

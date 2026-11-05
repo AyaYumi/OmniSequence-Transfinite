@@ -47,20 +47,33 @@ public final class MatterRasterEffects {
     private static double bob(float time,Frame frame){return frame.constructing()||frame.completion()>0?0:Math.sin(time*0.021)*0.16;}
 
     public static void renderObject(PoseStack stack,VertexConsumer output,float time,Frame frame,boolean glow){
+        renderObjectRange(stack,output,time,frame,glow,0,3);
+    }
+
+    /** Disjoint original draw calls, in order: unbuilt preview, built surface, built outline. */
+    public static void renderObjectRange(PoseStack stack,VertexConsumer output,float time,Frame frame,boolean glow,
+            int fromInclusive,int toExclusive){
+        java.util.Objects.checkFromToIndex(fromInclusive,toExclusive,3);
         if(frame.opacity()<0.001)return;
         stack.pushPose();stack.translate(0,bob(time,frame),0);stack.mulPose(Axis.YP.rotationDegrees(frame.rotation()));
         int lineAlpha=Math.round(frame.opacity()*(glow?30:235));
         float width=glow?0.065F:0.024F;
-        if(frame.constructing()&&frame.completion()==0){
-            MatterProjectionShapes.render(stack.last(),output,frame.item(),glow?3:14,glow?0.025F:0.009F);
-            if(frame.progress()>0){
-                var clipped=new MatterLayerClipper(output,stack.last(),frame.scanHeight());
-                if(!glow)MatterProjectionShapes.render(stack.last(),clipped,frame.item(),185,0);
-                MatterProjectionShapes.render(stack.last(),clipped,frame.item(),lineAlpha,width);
+        boolean constructing=frame.constructing()&&frame.completion()==0;
+        VertexConsumer built=constructing&&frame.progress()>0&&toExclusive>1
+                ?new MatterLayerClipper(output,stack.last(),frame.scanHeight()):output;
+        for(int part=fromInclusive;part<toExclusive;part++){
+            switch(part){
+                case 0 -> {
+                    if(constructing)MatterProjectionShapes.render(stack.last(),output,frame.item(),glow?3:14,glow?0.025F:0.009F);
+                }
+                case 1 -> {
+                    if(!glow&&(!constructing||frame.progress()>0))MatterProjectionShapes.render(stack.last(),built,frame.item(),
+                            constructing?185:Math.round(frame.opacity()*165),0);
+                }
+                case 2 -> {
+                    if(!constructing||frame.progress()>0)MatterProjectionShapes.render(stack.last(),built,frame.item(),lineAlpha,width);
+                }
             }
-        }else{
-            if(!glow)MatterProjectionShapes.render(stack.last(),output,frame.item(),Math.round(frame.opacity()*165),0);
-            MatterProjectionShapes.render(stack.last(),output,frame.item(),lineAlpha,width);
         }
         stack.popPose();
     }

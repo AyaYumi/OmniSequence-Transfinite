@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
@@ -12,7 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 
-public final class OmniComputationMenu extends AEBaseMenu {
+public final class OmniComputationMenu extends BuildingMenu {
     private static final String ACTION_BUILD = "omni_build";
     private static final String ACTION_DISMANTLE = "omni_dismantle";
     private static final String ACTION_REFRESH = "omni_refresh";

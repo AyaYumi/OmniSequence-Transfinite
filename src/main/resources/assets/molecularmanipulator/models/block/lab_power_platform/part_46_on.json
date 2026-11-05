@@ -1,0 +1,411 @@
+{
+  "credit": "Approved lab power platform / Downloads model export",
+  "ambientocclusion": true,
+  "textures": {
+    "atlas": "molecularmanipulator:block/lab_power_platform_on",
+    "particle": "#atlas"
+  },
+  "elements": [
+    {
+      "name": "entry_lower_step",
+      "from": [
+        0,
+        8.8,
+        0
+      ],
+      "to": [
+        12.0,
+        10.8,
+        12.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.8,
+            0.125
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.2,
+            0.0,
+            12.0,
+            0.125
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.7,
+            0.2,
+            12.0,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.7,
+            0.0,
+            12.0,
+            0.8
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.7,
+            0.0,
+            12.0,
+            0.125
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.3,
+            0.125
+          ]
+        }
+      }
+    },
+    {
+      "name": "entry_upper_step",
+      "from": [
+        0,
+        10.8,
+        0
+      ],
+      "to": [
+        16.0,
+        12.8,
+        4.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.3,
+            0.125
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            0.2,
+            0.0,
+            0.5,
+            0.125
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            0.66666667,
+            0.2,
+            1.0,
+            0.5
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            0.66666667,
+            0.0,
+            1.0,
+            0.3
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            0.66666667,
+            0.0,
+            1.0,
+            0.125
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.33333333,
+            0.125
+          ]
+        }
+      }
+    },
+    {
+      "name": "entry_light_1",
+      "from": [
+        6.08,
+        10.832,
+        5.6
+      ],
+      "to": [
+        7.04,
+        11.04,
+        10.56
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.31,
+            0.01875
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.31,
+            0.01875
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.06,
+            0.31
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.06,
+            0.31
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.06,
+            0.01875
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.06,
+            0.01875
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        }
+      }
+    },
+    {
+      "name": "entry_lower_step_mount",
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        12.0,
+        8.8,
+        12.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.8,
+            0.55
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.2,
+            0.0,
+            12.0,
+            0.55
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.7,
+            0.2,
+            12.0,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.7,
+            0.0,
+            12.0,
+            0.8
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.7,
+            0.0,
+            12.0,
+            0.55
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.3,
+            0.55
+          ]
+        }
+      }
+    },
+    {
+      "name": "entry_upper_step_mount_1",
+      "from": [
+        12.0,
+        0,
+        0
+      ],
+      "to": [
+        16.0,
+        10.8,
+        4.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.3,
+            0.675
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            0.2,
+            0.0,
+            0.5,
+            0.675
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.2,
+            1.0,
+            0.5
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            1.0,
+            0.3
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            1.0,
+            0.675
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            1.0,
+            0.675
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.35,
+        0.35,
+        0.35
+      ]
+    }
+  }
+}

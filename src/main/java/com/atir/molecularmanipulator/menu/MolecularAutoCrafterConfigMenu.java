@@ -1,11 +1,9 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.menu.AEBaseMenu;
 import appeng.menu.MenuOpener;
 import appeng.menu.SlotSemantics;
 import appeng.menu.slot.InaccessibleSlot;
 import appeng.util.inv.AppEngInternalInventory;
-import appeng.menu.locator.MenuLocators;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import com.atir.molecularmanipulator.MolecularManipulator;
@@ -16,7 +14,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 /** Detail menu opened from one of the standalone auto-crafter's pattern slots. */
-public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
+public final class MolecularAutoCrafterConfigMenu extends BuildingMenu {
     private static final String ACTION_LIMIT = "set_auto_craft_limit";
     private static final String ACTION_LIMIT_MODE = "toggle_auto_craft_limit_mode";
     private static final String ACTION_RESERVE = "set_auto_craft_reserve";
@@ -100,7 +98,7 @@ public final class MolecularAutoCrafterConfigMenu extends AEBaseMenu {
     private void back() {
         if (isServerSide() && getPlayer() != null) {
             MenuOpener.open(MolecularAutoCrafterMenu.TYPE, getPlayer(),
-                    MenuLocators.forBlockEntity(machine));
+                    buildingLocator());
         }
     }
 

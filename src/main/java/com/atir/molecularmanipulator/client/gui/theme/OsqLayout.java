@@ -31,6 +31,38 @@ public final class OsqLayout {
         public String alignment = "left";
         public JsonArray langArgs;
         public int[] pad = {0, 0, 0, 0};
+        private String spriteSource, colorSource, componentText, componentLang;
+        private ResourceLocation spriteId;
+        private int parsedColor;
+        private JsonArray componentArgs;
+        private Component component;
+
+        private ResourceLocation spriteId() {
+            if (!java.util.Objects.equals(spriteSource, sprite)) {
+                spriteId = ResourceLocation.parse(sprite); spriteSource = sprite;
+            }
+            return spriteId;
+        }
+
+        private int color() {
+            if (!java.util.Objects.equals(colorSource, color)) {
+                parsedColor = argb(color); colorSource = color;
+            }
+            return parsedColor;
+        }
+
+        /** Reused translatable components follow Language changes through vanilla's own cache. */
+        public Component staticText() {
+            if (component == null || !java.util.Objects.equals(componentText, text)
+                    || !java.util.Objects.equals(componentLang, lang) || !java.util.Objects.equals(componentArgs, langArgs)) {
+                Object[] args = langArgs == null ? new Object[0]
+                        : langArgs.asList().stream().map(JsonElement::getAsString).toArray();
+                component = lang == null ? Component.literal(text) : Component.translatable(lang, args);
+                componentText = text; componentLang = lang;
+                componentArgs = langArgs == null ? null : langArgs.deepCopy();
+            }
+            return component;
+        }
     }
     public final String screen, family;
     public final int width, height, leftRoom;
@@ -85,20 +117,17 @@ public final class OsqLayout {
 
     /** 画静态层；filter 决定画哪些项（例如 e -> !e.dynamic && !"ctl".equals(e.kind) 只画底板）。 */
     public void render(GuiGraphics g, Font font, int left, int top, Predicate<Entry> filter) {
+        try (var batch = OsqSpriteRenderer.batch()) {
         for (Entry e : draw) {
             if (e.external || !filter.test(e)) continue;
+            if (!"sprite".equals(e.type) && !"holo".equals(e.type)) batch.flush();
             switch (e.type) {
                 case "sprite", "holo" -> { if (e.sprite != null) drawSprite(g, e, left, top); }
-                case "fill" -> g.fill(Math.round(left + e.x), Math.round(top + e.y), Math.round(left + e.x + e.w), Math.round(top + e.y + e.h), argb(e.color));
+                case "fill" -> g.fill(Math.round(left + e.x), Math.round(top + e.y), Math.round(left + e.x + e.w), Math.round(top + e.y + e.h), e.color());
                 case "text" -> {
-                    Object[] args = e.langArgs == null
-                            ? new Object[0]
-                            : e.langArgs.asList().stream().map(JsonElement::getAsString).toArray();
-                    Component c = e.lang == null
-                            ? Component.literal(e.text)
-                            : Component.translatable(e.lang, args);
+                    Component c = e.staticText();
                     ResourceLocation fid = OsqFonts.id(e.fontId);
-                    int col = OsqPalette.withAlpha(argb(e.color), e.opacity);
+                    int col = OsqPalette.withAlpha(e.color(), e.opacity);
                     // 设计稿里多行文字（提示框等）在布局里是一项、width = 框宽：按 width 逐字折行，行高 1.45×字号
                     if (e.w > 0 && Math.abs(e.letterSpacing) < 0.05f && (e.wrap || OsqFonts.widthF(font, c.getString(), fid) > e.w * 1.2f)) { // 只折真正的多行文字；单行文字因字形度量差 1~2 px 不折
                         renderText(g, font, e, c, left, top);
@@ -109,6 +138,7 @@ public final class OsqLayout {
                 default -> { }
             }
         }
+        }
     }
 
     /** Use the loaded layout's padding, including padding overridden by a resource pack. */
@@ -118,7 +148,7 @@ public final class OsqLayout {
         g.pose().pushPose();
         float x = left + e.x - e.pad[0], y = top + e.y - e.pad[1];
         g.pose().translate(x, y, 0);
-        OsqSpriteRenderer.draw(g, ResourceLocation.parse(e.sprite), 0, 0,
+        OsqSpriteRenderer.draw(g, e.spriteId(), 0, 0,
                 Math.round(e.w) + e.pad[0] + e.pad[2], Math.round(e.h) + e.pad[1] + e.pad[3]);
         g.pose().popPose();
     }
@@ -154,7 +184,7 @@ public final class OsqLayout {
 
     public void renderText(GuiGraphics g, Font font, Entry e, Component value, int left, int top) {
         ResourceLocation fid = OsqFonts.id(e.fontId);
-        int col = OsqPalette.withAlpha(argb(e.color), e.opacity);
+        int col = OsqPalette.withAlpha(e.color(), e.opacity);
         if (e.w > 0 && Math.abs(e.letterSpacing) < 0.05f
                 && (e.wrap || OsqFonts.widthF(font, value.getString(), fid) > e.w * 1.2f)) {
             var lines = OsqFonts.wrap(font, value.getString(), fid, e.w + 0.5f);
@@ -174,13 +204,14 @@ public final class OsqLayout {
     public void renderSingleLine(GuiGraphics g, Font font, Entry e, Component value, int left, int top) {
         if (e.wrap) { renderText(g, font, e, value, left, top); return; }
         drawFittedText(g, font, value, OsqFonts.id(e.fontId), e, left, top,
-                OsqPalette.withAlpha(argb(e.color), e.opacity));
+                OsqPalette.withAlpha(e.color(), e.opacity));
     }
 
     private static void drawFittedText(GuiGraphics g, Font font, Component text, ResourceLocation fontId,
             Entry entry, int left, int top, int color) {
-        float width = OsqFonts.widthF(font, text.getString(), fontId);
-        int characters = text.getString().codePointCount(0, text.getString().length());
+        String plain = text.getString();
+        float width = OsqFonts.widthF(font, plain, fontId);
+        int characters = plain.codePointCount(0, plain.length());
         width = Math.max(0, width + Math.max(0, characters - 1) * entry.letterSpacing);
         float scale = entry.w > 0 && width > entry.w ? entry.w / width : 1.0f;
         float x = textX(entry, width * scale);

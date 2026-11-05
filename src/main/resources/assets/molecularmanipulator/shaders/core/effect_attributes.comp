@@ -1,0 +1,78 @@
+#version 430 core
+
+// Each invocation owns four output vertices: even Iris's 54-byte stride ends on a word boundary.
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) readonly buffer ColorVertices { uint inputWords[]; };
+layout(std430, binding = 1) buffer EntityVertices { uint outputWords[]; };
+#ifdef PROCEDURAL_RAIN
+layout(std430, binding = 2) readonly buffer RainCommand { uint rainCommands[]; };
+#define EFFECT_QUAD_COUNT (rainCommands[0] / 6u)
+#else
+uniform uint QuadCount;
+#define EFFECT_QUAD_COUNT QuadCount
+#endif
+uniform ivec4 Layout; // stride, position, color, UV
+uniform ivec4 Attributes; // overlay, light, normal, material IDs
+uniform ivec2 Extended; // midpoint UV, tangent
+
+vec3 position(uint vertex) {
+    uint offset = vertex * 6u;
+    return vec3(uintBitsToFloat(inputWords[offset]), uintBitsToFloat(inputWords[offset + 1u]),
+                uintBitsToFloat(inputWords[offset + 2u]));
+}
+void write32(uint offset, uint value) {
+    uint word = offset >> 2u, shift = (offset & 3u) * 8u;
+    if (shift == 0u) { outputWords[word] = value; return; }
+    uint lowMask = 0xffffffffu << shift, highMask = (1u << shift) - 1u;
+    outputWords[word] = (outputWords[word] & ~lowMask) | (value << shift);
+    outputWords[word + 1u] = (outputWords[word + 1u] & ~highMask) | (value >> (32u - shift));
+}
+void write8(uint offset, uint value) {
+    uint word = offset >> 2u, shift = (offset & 3u) * 8u;
+    outputWords[word] = (outputWords[word] & ~(255u << shift)) | ((value & 255u) << shift);
+}
+uint component(float value) {
+    if (isnan(value)) return 0u;
+    return uint(int(clamp(value, -1.0, 1.0) * 127.0)) & 255u;
+}
+uint packDirection(vec3 value, float w) {
+    return component(value.x) | (component(value.y) << 8u) | (component(value.z) << 16u)
+        | (component(w) << 24u);
+}
+float inverseLength(vec3 value) {
+    float squared = dot(value, value);
+    return squared == 0.0 ? 1.0 : 1.0 / sqrt(squared);
+}
+void main() {
+    uint quad = gl_GlobalInvocationID.x;
+    if (quad >= EFFECT_QUAD_COUNT) return;
+    uint first = quad * 4u, stride = uint(Layout.x), start = first * stride;
+    for (uint word = start >> 2u; word < (start + stride * 4u) >> 2u; ++word) outputWords[word] = 0u;
+    vec3 a = position(first), b = position(first + 1u), c = position(first + 2u), d = position(first + 3u);
+    vec3 diagonal = cross(c - a, d - b);
+    bool degenerate = all(equal(diagonal, vec3(0.0)));
+    vec3 normal = degenerate ? vec3(0.0) : normalize(diagonal);
+    vec3 tangent = b - a, bitangent = (c - a) - tangent;
+    tangent *= inverseLength(tangent);
+    bitangent *= inverseLength(bitangent);
+    float handedness = !degenerate && dot(bitangent, cross(tangent, normal)) < 0.0 ? -1.0 : 1.0;
+    uint faceNormal = packDirection(normal, 0.0), faceTangent = packDirection(tangent, handedness);
+    for (uint corner = 0u; corner < 4u; ++corner) {
+        uint vertex = first + corner, target = vertex * stride, source = vertex * 6u;
+        write32(target + uint(Layout.y), inputWords[source]);
+        write32(target + uint(Layout.y) + 4u, inputWords[source + 1u]);
+        write32(target + uint(Layout.y) + 8u, inputWords[source + 2u]);
+        write32(target + uint(Layout.z), inputWords[source + 3u]);
+        write32(target + uint(Layout.w), (corner == 1u || corner == 2u) ? 0x3f800000u : 0u);
+        write32(target + uint(Layout.w) + 4u, corner >= 2u ? 0x3f800000u : 0u);
+        write32(target + uint(Attributes.x), 0x000a0000u);
+        write32(target + uint(Attributes.y), 0x00f000f0u);
+        write32(target + uint(Attributes.z), faceNormal);
+        write32(target + uint(Attributes.w), inputWords[source + 4u]);
+        write8(target + uint(Attributes.w) + 4u, inputWords[source + 5u]);
+        write8(target + uint(Attributes.w) + 5u, inputWords[source + 5u] >> 8u);
+        write32(target + uint(Extended.x), 0x3f000000u);
+        write32(target + uint(Extended.x) + 4u, 0x3f000000u);
+        write32(target + uint(Extended.y), faceTangent);
+    }
+}

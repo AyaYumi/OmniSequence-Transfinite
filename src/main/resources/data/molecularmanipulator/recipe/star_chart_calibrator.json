@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " iq",
+    " rp",
+    "i  "
+  ],
+  "key": {
+    "i": {
+      "item": "minecraft:iron_ingot"
+    },
+    "q": {
+      "item": "ae2:certus_quartz_crystal"
+    },
+    "r": {
+      "item": "minecraft:redstone"
+    },
+    "p": {
+      "item": "ae2:calculation_processor"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:star_chart_calibrator",
+    "count": 1
+  }
+}

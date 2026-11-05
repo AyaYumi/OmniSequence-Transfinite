@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.world.phys.Vec3;
 import static com.atir.molecularmanipulator.client.render.OmniRenderGeometry.argb;
+import static org.joml.Math.fma;
 
 /** Faceted seed, six open petals, three sigil rings and twelve light-feathers. */
 final class FeatherResonanceEffects {
@@ -437,9 +438,15 @@ final class FeatherResonanceEffects {
 
     private static void arc(PoseStack.Pose pose, VertexConsumer out, double radius, double y,
             double start, double sweep, int segments, float width, int color, int alpha) {
-        for (int step = 0; step < segments; step++) stroke(pose, out,
-                circle(radius, y, start + sweep * step / segments),
-                circle(radius, y, start + sweep * (step + 1) / segments), width, color, alpha);
+        if (segments <= 0) return;
+        // Every sample is also the next segment's start; reuse it instead of rebuilding the
+        // same angle and Vec3 twice, while keeping the original phase expression and order.
+        Vec3 previous = circle(radius, y, start + sweep * 0 / segments);
+        for (int step = 0; step < segments; step++) {
+            Vec3 next = circle(radius, y, start + sweep * (step + 1) / segments);
+            stroke(pose, out, previous, next, width, color, alpha);
+            previous = next;
+        }
     }
 
     private static void diamond(PoseStack.Pose pose, VertexConsumer out, Vec3 center,
@@ -459,11 +466,44 @@ final class FeatherResonanceEffects {
     }
 
     private static void face(PoseStack.Pose pose, VertexConsumer out, Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color) {
-        vertex(pose, out, a, color); vertex(pose, out, b, color); vertex(pose, out, c, color); vertex(pose, out, d, color);
-        vertex(pose, out, d, color); vertex(pose, out, c, color); vertex(pose, out, b, color); vertex(pose, out, a, color);
+        var matrix = pose.pose();
+        float m00 = matrix.m00(), m01 = matrix.m01(), m02 = matrix.m02();
+        float m10 = matrix.m10(), m11 = matrix.m11(), m12 = matrix.m12();
+        float m20 = matrix.m20(), m21 = matrix.m21(), m22 = matrix.m22();
+        float m30 = matrix.m30(), m31 = matrix.m31(), m32 = matrix.m32();
+
+        float ax = (float) a.x, ay = (float) a.y, az = (float) a.z;
+        float bx = (float) b.x, by = (float) b.y, bz = (float) b.z;
+        float cx = (float) c.x, cy = (float) c.y, cz = (float) c.z;
+        float dx = (float) d.x, dy = (float) d.y, dz = (float) d.z;
+
+        // Scalar JOML transformPosition math. org.joml.Math.fma() honors
+        // joml.useMathFma, so each corner rounds exactly as the matrix call did.
+        float tax = fma(m00, ax, fma(m10, ay, fma(m20, az, m30)));
+        float tay = fma(m01, ax, fma(m11, ay, fma(m21, az, m31)));
+        float taz = fma(m02, ax, fma(m12, ay, fma(m22, az, m32)));
+        float tbx = fma(m00, bx, fma(m10, by, fma(m20, bz, m30)));
+        float tby = fma(m01, bx, fma(m11, by, fma(m21, bz, m31)));
+        float tbz = fma(m02, bx, fma(m12, by, fma(m22, bz, m32)));
+        float tcx = fma(m00, cx, fma(m10, cy, fma(m20, cz, m30)));
+        float tcy = fma(m01, cx, fma(m11, cy, fma(m21, cz, m31)));
+        float tcz = fma(m02, cx, fma(m12, cy, fma(m22, cz, m32)));
+        float tdx = fma(m00, dx, fma(m10, dy, fma(m20, dz, m30)));
+        float tdy = fma(m01, dx, fma(m11, dy, fma(m21, dz, m31)));
+        float tdz = fma(m02, dx, fma(m12, dy, fma(m22, dz, m32)));
+
+        // Both windings keep the same four transformed corners, color and vertex count.
+        vertex(out, tax, tay, taz, color);
+        vertex(out, tbx, tby, tbz, color);
+        vertex(out, tcx, tcy, tcz, color);
+        vertex(out, tdx, tdy, tdz, color);
+        vertex(out, tdx, tdy, tdz, color);
+        vertex(out, tcx, tcy, tcz, color);
+        vertex(out, tbx, tby, tbz, color);
+        vertex(out, tax, tay, taz, color);
     }
 
-    private static void vertex(PoseStack.Pose pose, VertexConsumer out, Vec3 point, int color) {
-        out.addVertex(pose, (float) point.x, (float) point.y, (float) point.z).setColor(color);
+    private static void vertex(VertexConsumer out, float x, float y, float z, int color) {
+        out.addVertex(x, y, z).setColor(color);
     }
 }

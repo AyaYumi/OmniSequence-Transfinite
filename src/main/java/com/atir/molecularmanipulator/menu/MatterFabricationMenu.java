@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.menu.guisync.GuiSync;
@@ -17,7 +16,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 /** Status and structure-management terminal; all material I/O lives in service ports. */
-public final class MatterFabricationMenu extends AEBaseMenu {
+public final class MatterFabricationMenu extends BuildingMenu {
     private static final String ACTION_REFRESH = "refresh_structure";
     private static final String ACTION_BUILD = "build_structure";
     private static final String ACTION_DISMANTLE = "dismantle_structure";

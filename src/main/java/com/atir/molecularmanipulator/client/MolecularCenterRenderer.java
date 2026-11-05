@@ -2,8 +2,11 @@ package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
+import com.atir.molecularmanipulator.client.render.EarlyFrameGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
+import com.atir.molecularmanipulator.client.render.ParallelEffectGeometry;
+import com.atir.molecularmanipulator.client.render.SingularityShaderVertices;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -23,9 +26,11 @@ import java.util.TimeZone;
  * Layout-aware fields rendered through the built-in molecular spectral pipeline.
  * The outer field never writes depth, so the transparent sphere cannot mask its core.
  */
-public final class MolecularCenterRenderer implements BlockEntityRenderer<MolecularCenterBlockEntity> {
+public final class MolecularCenterRenderer implements BlockEntityRenderer<MolecularCenterBlockEntity>,
+        EarlyFrameGeometry.Source<MolecularCenterBlockEntity, MolecularCenterRenderer.Snapshot> {
     private static final float FIELD_RADIUS = 6.35F;
     private static final float CORE_RADIUS = 1.82F;
+    private final ParallelEffectGeometry geometry = new ParallelEffectGeometry();
 
     public MolecularCenterRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -33,10 +38,44 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
     @Override
     public void render(MolecularCenterBlockEntity center, float partialTick, PoseStack poseStack,
             MultiBufferSource buffers, int packedLight, int packedOverlay) {
+        var snapshot = EarlyFrameGeometry.take(this, center, partialTick, poseStack);
+        if (snapshot == null) snapshot = capture(center, partialTick, poseStack, geometry);
+        if (snapshot == null) return;
+        var frame = snapshot;
+        try (frame) {
+            var poses = snapshot.poses();
+            var depth = OmniRenderLayers.molecularSpectralDepth(buffers);
+            if (snapshot.prepared() != null) snapshot.prepared().submit(0, depth);
+            else renderLayoutPass(snapshot.layout(), poses, depth,
+                    snapshot.angle(), snapshot.visualMode(), snapshot.effectLevel(), false,
+                    snapshot.fieldColor(), snapshot.coreColor(), snapshot.primaryColor(),
+                    snapshot.secondaryColor(), snapshot.latticeColor(), snapshot.activity(),
+                    snapshot.completion(), snapshot.clockTicks());
+            if (snapshot.crystalFeathers()) {
+                var surface = OmniRenderLayers.molecularSurface(buffers);
+                if (snapshot.prepared() != null) snapshot.prepared().submit(1, surface);
+                else try (var batch = SingularityShaderVertices.batch(surface)) {
+                    FeatherResonanceEffects.renderCoreSurface(poses, surface, snapshot.angle(),
+                            snapshot.coreColor(), snapshot.secondaryColor());
+                }
+            }
+            var glow = OmniRenderLayers.molecularSpectralGlow(buffers);
+            if (snapshot.prepared() != null) snapshot.prepared().submit(2, glow);
+            else renderLayoutPass(snapshot.layout(), poses, glow,
+                    snapshot.angle(), snapshot.visualMode(), snapshot.effectLevel(), true,
+                    snapshot.fieldColor(), snapshot.coreColor(), snapshot.primaryColor(),
+                    snapshot.secondaryColor(), snapshot.latticeColor(), snapshot.activity(),
+                    snapshot.completion(), snapshot.clockTicks());
+        }
+    }
+
+    @Override
+    public Snapshot capture(MolecularCenterBlockEntity center, float partialTick, PoseStack base,
+            ParallelEffectGeometry geometry) {
         int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
         if (effectLevel <= 0 || center.getLevel() == null
                 || !center.getBlockState().getValue(BlockStateProperties.POWERED)) {
-            return;
+            return null;
         }
 
         Direction facing = center.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
@@ -54,33 +93,80 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
         long now = System.currentTimeMillis();
         double clockTicks = FeatherResonanceEffects.wallClockTicks(now, TimeZone.getDefault().getOffset(now));
 
-        poseStack.pushPose();
-        poseStack.translate(visualCenter.x - center.getBlockPos().getX(),
-                visualCenter.y - center.getBlockPos().getY(),
-                visualCenter.z - center.getBlockPos().getZ());
-        boolean fixedOrbits = crystalFeathers;
-        if (fixedOrbits) {
+        var poses = localPose(base, visualCenter, center.getBlockPos(), facing, crystalFeathers);
+        int fieldColor = center.getFieldColor(), coreColor = center.getCoreColor();
+        int primaryColor = center.getPrimaryRingColor(), secondaryColor = center.getSecondaryRingColor();
+        int latticeColor = center.getLatticeColor();
+        var prepared = crystalFeathers ? prepareFeatherPasses(geometry, poses,
+                angle, crown.activity(), completion, effectLevel, fieldColor, coreColor,
+                primaryColor, secondaryColor, latticeColor, clockTicks) : null;
+        return new Snapshot(poses.last().copy(), layout, visualMode, effectLevel, angle,
+                crown.activity(), completion, fieldColor, coreColor, primaryColor, secondaryColor,
+                latticeColor, clockTicks, crystalFeathers, prepared);
+    }
+
+    private static PoseStack localPose(PoseStack base, Vec3 visualCenter, net.minecraft.core.BlockPos blockPos,
+            Direction facing, boolean crystalFeathers) {
+        var poses = new PoseStack();
+        poses.last().pose().set(base.last().pose());
+        poses.last().normal().set(base.last().normal());
+        poses.translate(visualCenter.x - blockPos.getX(), visualCenter.y - blockPos.getY(),
+                visualCenter.z - blockPos.getZ());
+        if (crystalFeathers) {
             // Match worldPoint's right/back axes so fixed trails follow the blocks
             // for every controller facing, including asymmetric tilted orbits.
-            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - facing.toYRot()));
+            poses.mulPose(Axis.YP.rotationDegrees(180.0F - facing.toYRot()));
+        }
+        return poses;
+    }
+
+    /** Immutable frame values plus the optional prepared color geometry for one renderer capture. */
+    public record Snapshot(PoseStack.Pose pose, MolecularCenterStructure.StructureLayout layout,
+            int visualMode, int effectLevel, float angle, float activity, float completion,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor,
+            double clockTicks, boolean crystalFeathers, ParallelEffectGeometry.Frame prepared)
+            implements EarlyFrameGeometry.Snapshot {
+        private PoseStack poses() {
+            var poses = new PoseStack();
+            poses.last().pose().set(pose.pose());
+            poses.last().normal().set(pose.normal());
+            return poses;
         }
 
-        // Finish emitting each pass before obtaining the next buffer: switching an
-        // unfixed RenderType can flush the previous consumer in MultiBufferSource.
-        renderLayoutPass(layout, poseStack, OmniRenderLayers.molecularSpectralDepth(buffers),
-                angle, visualMode, effectLevel, false, center.getFieldColor(), center.getCoreColor(),
-                center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
-                crown.activity(), completion, clockTicks);
-        if (crystalFeathers) {
-            FeatherResonanceEffects.renderCoreSurface(poseStack,
-                    OmniRenderLayers.molecularSurface(buffers), angle,
-                    center.getCoreColor(), center.getSecondaryRingColor());
+        @Override
+        public void close() {
+            if (prepared != null) prepared.close();
         }
-        renderLayoutPass(layout, poseStack, OmniRenderLayers.molecularSpectralGlow(buffers),
-                angle, visualMode, effectLevel, true, center.getFieldColor(), center.getCoreColor(),
-                center.getPrimaryRingColor(), center.getSecondaryRingColor(), center.getLatticeColor(),
-                crown.activity(), completion, clockTicks);
-        poseStack.popPose();
+    }
+
+    /** Current layout only; the historical molecular renderer stays synchronous. */
+    static ParallelEffectGeometry.Frame prepareFeatherPasses(ParallelEffectGeometry geometry,
+            PoseStack poses, float angle, float activity, float completion, int effectLevel,
+            int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor,
+            double clockTicks) {
+        if (effectLevel < 2 || !ParallelEffectGeometry.isAvailable()) return null;
+        var input = new FeatherFrame(poses.last().copy(), angle, activity, completion, effectLevel,
+                fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, clockTicks);
+        return geometry.prepare(out -> input.render(out, false), input::surface, out -> input.render(out, true));
+    }
+
+    private record FeatherFrame(PoseStack.Pose pose, float angle, float activity, float completion,
+            int effectLevel, int field, int core, int primary, int secondary, int lattice, double clockTicks) {
+        private PoseStack poses() {
+            var poses = new PoseStack();
+            poses.last().pose().set(pose.pose());
+            poses.last().normal().set(pose.normal());
+            return poses;
+        }
+
+        private void render(VertexConsumer out, boolean glow) {
+            renderFeatherPass(poses(), out, angle, activity, completion, effectLevel, glow,
+                    field, core, primary, secondary, lattice, clockTicks);
+        }
+
+        private void surface(VertexConsumer out) {
+            FeatherResonanceEffects.renderCoreSurface(poses(), out, angle, core, secondary);
+        }
     }
 
     static void renderLayoutPass(MolecularCenterStructure.StructureLayout layout,
@@ -106,12 +192,14 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
             PoseStack poseStack, VertexConsumer consumer, float angle, int visualMode, int effectLevel, boolean glow,
             int fieldColor, int coreColor, int primaryColor, int secondaryColor, int latticeColor,
             float activity, float completion, double clockTicks) {
-        if (layout == MolecularCenterStructure.StructureLayout.CURRENT) {
-            renderFeatherPass(poseStack, consumer, angle, activity, completion, effectLevel, glow,
-                    fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, clockTicks);
-        } else if (layout == MolecularCenterStructure.StructureLayout.LEGACY_1_3_9) {
-            renderPass(poseStack, consumer, angle, visualMode, effectLevel, glow,
-                    fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+        try (var batch = SingularityShaderVertices.batch(consumer)) {
+            if (layout == MolecularCenterStructure.StructureLayout.CURRENT) {
+                renderFeatherPass(poseStack, consumer, angle, activity, completion, effectLevel, glow,
+                        fieldColor, coreColor, primaryColor, secondaryColor, latticeColor, clockTicks);
+            } else if (layout == MolecularCenterStructure.StructureLayout.LEGACY_1_3_9) {
+                renderPass(poseStack, consumer, angle, visualMode, effectLevel, glow,
+                        fieldColor, coreColor, primaryColor, secondaryColor, latticeColor);
+            }
         }
     }
 

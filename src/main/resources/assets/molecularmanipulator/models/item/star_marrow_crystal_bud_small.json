@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {"layer0": "molecularmanipulator:block/star_marrow_crystal_bud_small"}
+}

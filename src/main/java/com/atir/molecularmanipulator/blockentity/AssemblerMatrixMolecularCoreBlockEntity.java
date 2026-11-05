@@ -15,7 +15,7 @@ import appeng.me.helpers.MachineSource;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
-import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -89,14 +89,14 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         var level = getLevel();
         return level == null || getMainNode().getGrid() == null ? 0
                 : assemblerBudget.remaining(level.getGameTime(),
-                        NegativeEntropyNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
     }
 
     private boolean consumeAssemblerBudget(long crafts) {
         var level = getLevel();
         return level != null && getMainNode().getGrid() != null
                 && assemblerBudget.tryConsume(level.getGameTime(),
-                        NegativeEntropyNetwork.forGrid(getMainNode().getGrid()).assemblerParallel(), crafts);
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel(), crafts);
     }
 
     public boolean hasRemovalRecovery() {

@@ -25,6 +25,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     private boolean collectionPage, duplicationPage;
     private long armedAt;
     private int collectionScroll;
+    private String collectionSource;
+    private List<ItemStack> cachedCollectionResources = List.of();
     private OsqUi ui;
 
     public SingularityScreen(SingularityMenu menu, Inventory inventory, Component title, ScreenStyle style) {
@@ -212,8 +214,10 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     }
 
     private List<ItemStack> collectionResources() {
+        String source = menu.collectionItems;
+        if (source.equals(collectionSource)) return cachedCollectionResources;
         List<ItemStack> result = new ArrayList<>();
-        for (String raw : menu.collectionItems.split(",")) {
+        for (String raw : source.split(",")) {
             if (raw.isBlank()) continue;
             ResourceLocation id = ResourceLocation.tryParse(raw.trim());
             if (id == null) continue;
@@ -221,7 +225,10 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
             ItemStack stack = new ItemStack(item);
             if (!stack.isEmpty()) result.add(stack);
         }
-        return result;
+        // Only item identities are cached. Hover names still resolve in the active language at draw time.
+        cachedCollectionResources = List.copyOf(result);
+        collectionSource = source;
+        return cachedCollectionResources;
     }
 
     @Override

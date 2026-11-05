@@ -17,9 +17,11 @@ public final class SingularityRenderCompatibility {
             var config = Class.forName("toni.sodiumextras.EmbyConfig");
             allow(config, "entityWhitelist", "molecularmanipulator:singularity_assembly");
             allow(config, "tileEntityWhitelist", "molecularmanipulator:event_horizon_singularity_hub");
+            allow(config, "tileEntityWhitelist", "molecularmanipulator:star_computation_engine_core");
         } catch (ReflectiveOperationException | RuntimeException | LinkageError ex) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Could not register Singularity distance-culling compatibility. "
-                    + "Allow molecularmanipulator:singularity_assembly and event_horizon_singularity_hub in Sodium Extras.", ex);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Could not register oversized-renderer distance-culling compatibility. "
+                    + "Allow molecularmanipulator:singularity_assembly, event_horizon_singularity_hub and "
+                    + "star_computation_engine_core in Sodium Extras.", ex);
         }
     }
 

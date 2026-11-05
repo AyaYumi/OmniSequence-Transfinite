@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "molecularmanipulator:block/green_fire_lantern"
+    },
+    "lit=true": {
+      "model": "molecularmanipulator:block/green_fire_lantern_lit"
+    }
+  }
+}

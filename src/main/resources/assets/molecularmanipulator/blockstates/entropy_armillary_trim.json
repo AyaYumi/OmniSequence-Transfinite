@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "formed=false": {
+      "model": "molecularmanipulator:block/entropy_armillary_trim"
+    },
+    "formed=true": {
+      "model": "molecularmanipulator:block/entropy_armillary_trim"
+    }
+  }
+}

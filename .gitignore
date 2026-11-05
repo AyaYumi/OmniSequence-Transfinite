@@ -80,7 +80,7 @@ libs/*.jar
 /docs/DEVELOPMENT.md
 /docs/performance.md
 /docs/design/
-/docs/negative-entropy-ui-sync.md
+/docs/star-computation-ui-sync.md
 /tools/client/
 /tools/pack/
 /tools/ui/

@@ -19,6 +19,10 @@ public final class OmniShaders {
     private static volatile ShaderInstance singularityLens;
     private static volatile ShaderInstance cosmicLens;
     private static volatile ShaderInstance ghostExposure;
+    private static volatile ShaderInstance armillaryNebula;
+    private static volatile ShaderInstance armillaryWellInk;
+    private static volatile ShaderInstance armillaryColor;
+    private static volatile ShaderInstance lanternSimulation;
 
     private OmniShaders() {
     }
@@ -45,6 +49,21 @@ public final class OmniShaders {
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
                         MolecularManipulator.id("ghost_exposure"), DefaultVertexFormat.POSITION),
                 shader -> ghostExposure = shader);
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("armillary_nebula"), DefaultVertexFormat.POSITION),
+                shader -> armillaryNebula = shader);
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("armillary_well_ink"), DefaultVertexFormat.POSITION_TEX_COLOR),
+                shader -> armillaryWellInk = shader);
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("armillary_color"), DefaultVertexFormat.POSITION_COLOR),
+                shader -> armillaryColor = shader);
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("lantern_simulation"), DefaultVertexFormat.POSITION),
+                shader -> {
+                    LanternSimulationRenderer.release();
+                    lanternSimulation = shader;
+                });
     }
 
     public static ShaderInstance molecularSpectral() {
@@ -66,4 +85,8 @@ public final class OmniShaders {
 
     public static ShaderInstance cosmicLens() { return cosmicLens; }
     public static ShaderInstance ghostExposure() { return ghostExposure; }
+    public static ShaderInstance armillaryNebula() { return armillaryNebula; }
+    public static ShaderInstance armillaryWellInk() { return armillaryWellInk; }
+    public static ShaderInstance armillaryColor() { return armillaryColor; }
+    public static ShaderInstance lanternSimulation() { return lanternSimulation; }
 }

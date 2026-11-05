@@ -46,6 +46,20 @@ public final class OmniRenderLayers extends RenderType {
             createTranslucentEmissiveColor();
     private static final RenderType ADDITIVE_DEPTH_COLOR = createAdditiveDepthColor();
     private static final RenderType ADDITIVE_COLOR = createAdditiveColor();
+    private static final RenderType ARMILLARY_CRYSTAL = createArmillaryColor("omni_armillary_crystal", true);
+    private static final RenderType ARMILLARY_GLOW = createArmillaryColor("omni_armillary_glow", false);
+    private static final RenderType ARMILLARY_RAIN_DEPTH = createArmillaryRain("omni_armillary_rain_depth", true);
+    private static final RenderType ARMILLARY_RAIN_GLOW = createArmillaryRain("omni_armillary_rain_glow", false);
+    // The ink sheet is alpha-blended and depth-tested, but never seals the well
+    // with a depth-writing disk. UVs encode machine space, not camera-facing art.
+    private static final RenderType ARMILLARY_WELL_INK = RenderType.create(
+            "omni_armillary_well_ink", DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS,
+            256, false, true, CompositeState.builder()
+                    .setShaderState(new ShaderStateShard(OmniShaders::armillaryWellInk))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                    .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                    .setWriteMaskState(COLOR_WRITE).createCompositeState(false));
     private static final RenderType PLACEMENT_LINES = RenderType.create(
             "omni_placement_lines", DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 1536,
             CompositeState.builder()
@@ -122,6 +136,11 @@ public final class OmniRenderLayers extends RenderType {
         return ADDITIVE_COLOR;
     }
 
+    /** Translucent ink diffusion inside the open armillary well; no depth writes. */
+    public static RenderType armillaryWellInk() {
+        return ARMILLARY_WELL_INK;
+    }
+
     /** Service sockets remain visible through the well without changing scene depth. */
     public static RenderType placementLines() {
         return PLACEMENT_LINES;
@@ -176,8 +195,55 @@ public final class OmniRenderLayers extends RenderType {
     }
 
     private static VertexConsumer shaderCompatible(MultiBufferSource buffers, RenderType vanilla, RenderType shader) {
-        return SingularityEffectLayers.shadersActive()
-                ? new SingularityShaderVertices(buffers.getBuffer(shader)) : buffers.getBuffer(vanilla);
+        if (!SingularityEffectLayers.shadersActive()) return buffers.getBuffer(vanilla);
+        var gpu = GpuEffectLayers.consumer(buffers, shader);
+        return gpu != null ? gpu : new SingularityShaderVertices(buffers.getBuffer(shader));
+    }
+
+    /** Armillary-only color geometry uses the same distance fog as the model sheets. */
+    public static VertexConsumer armillaryCrystal(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, ARMILLARY_CRYSTAL, SHADER_EFFECT_DEPTH);
+    }
+
+    public static VertexConsumer armillaryGlow(MultiBufferSource buffers) {
+        // The vanilla emissive shader fades emission rather than adding fog-colored light.
+        return shaderCompatible(buffers, ARMILLARY_GLOW, additiveEmissive(EFFECT_TEXTURE));
+    }
+
+    /**
+     * Falling code is emissive along its whole trail. Iris maps the ordinary
+     * entity shaders back to block-entity materials while a BER is active;
+     * its beacon program keeps a dedicated emissive path in that same phase.
+     */
+    public static VertexConsumer armillaryRain(MultiBufferSource buffers, boolean glow) {
+        return shaderCompatible(buffers, glow ? ARMILLARY_GLOW : ARMILLARY_CRYSTAL, armillaryRainShader(glow));
+    }
+
+    static RenderType armillaryRainShader(boolean glow) {
+        return glow ? ARMILLARY_RAIN_GLOW : ARMILLARY_RAIN_DEPTH;
+    }
+
+    private static RenderType createArmillaryRain(String name, boolean writeDepth) {
+        return RenderType.create(name, DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS,
+                4096, false, false, CompositeState.builder()
+                        .setShaderState(RENDERTYPE_BEACON_BEAM_SHADER)
+                        .setTextureState(new TextureStateShard(EFFECT_TEXTURE, false, false))
+                        .setTransparencyState(writeDepth ? TRANSLUCENT_TRANSPARENCY : LIGHTNING_TRANSPARENCY)
+                        .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                        .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                        .setWriteMaskState(writeDepth ? COLOR_DEPTH_WRITE : COLOR_WRITE)
+                        .createCompositeState(false));
+    }
+
+    private static RenderType createArmillaryColor(String name, boolean writeDepth) {
+        return RenderType.create(name, DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS,
+                4096, false, false, CompositeState.builder()
+                        .setShaderState(new ShaderStateShard(OmniShaders::armillaryColor))
+                        .setTransparencyState(writeDepth ? TRANSLUCENT_TRANSPARENCY : LIGHTNING_TRANSPARENCY)
+                        .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                        .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                        .setWriteMaskState(writeDepth ? COLOR_DEPTH_WRITE : COLOR_WRITE)
+                        .createCompositeState(false));
     }
 
     private static RenderType createShaderEffect(String name, boolean writeDepth) {

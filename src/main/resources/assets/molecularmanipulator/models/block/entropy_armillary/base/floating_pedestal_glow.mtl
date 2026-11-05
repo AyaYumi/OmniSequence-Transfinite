@@ -1,0 +1,5 @@
+newmtl ped_glow
+map_Kd molecularmanipulator:block/entropy_armillary/base/floating_pedestal_glow
+
+newmtl rim_light
+map_Kd molecularmanipulator:block/entropy_armillary/base/floating_pedestal_lightband

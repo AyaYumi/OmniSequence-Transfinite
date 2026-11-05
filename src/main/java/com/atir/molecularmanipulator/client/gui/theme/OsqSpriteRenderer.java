@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.client.gui.theme;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
@@ -22,23 +23,67 @@ public final class OsqSpriteRenderer {
         @Override protected boolean removeEldestEntry(Map.Entry<Key, Mesh> entry) { return size() > 256; }
     };
 
+    private static Batch active;
     private OsqSpriteRenderer() {}
 
     public static void clear() { CACHE.clear(); }
+
+    /** Limited to consecutive layout sprites; callers flush before text, fills, items or scissors. */
+    public static Batch batch() {
+        if (active != null) throw new IllegalStateException("Nested OSQ sprite batch");
+        return active = new Batch();
+    }
+
+    public static final class Batch implements AutoCloseable {
+        private BufferBuilder buffer;
+        private ResourceLocation atlas;
+        private boolean closed;
+
+        private Batch() {}
+
+        private BufferBuilder buffer(ResourceLocation nextAtlas) {
+            if (buffer != null && !atlas.equals(nextAtlas)) flush();
+            if (buffer == null) {
+                atlas = nextAtlas;
+                buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            }
+            return buffer;
+        }
+
+        public void flush() {
+            if (buffer == null) return;
+            var pending = buffer;
+            buffer = null;
+            RenderSystem.setShaderTexture(0, atlas);
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            BufferUploader.drawWithShader(pending.buildOrThrow());
+        }
+
+        @Override public void close() {
+            if (closed) return;
+            try { flush(); }
+            finally { active = null; closed = true; }
+        }
+    }
 
     public static void draw(GuiGraphics graphics, ResourceLocation id, int x, int y, int width, int height) {
         if (width <= 0 || height <= 0) return;
         var mesh = CACHE.computeIfAbsent(new Key(id, width, height), OsqSpriteRenderer::build);
         if (mesh.vertices.length == 0) return;
         // Identical shader, blend/depth/scissor state, UVs, pose and ordering to GuiGraphics.innerBlit.
-        RenderSystem.setShaderTexture(0, mesh.atlas);
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
         var matrix = graphics.pose().last().pose();
-        var buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        var scope = active;
+        var buffer = scope == null
+                ? Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
+                : scope.buffer(mesh.atlas);
         var data = mesh.vertices;
         for (int i = 0; i < data.length; i += 4)
             buffer.addVertex(matrix, x+data[i], y+data[i+1], 0).setUv(data[i+2], data[i+3]);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        if (scope == null) {
+            RenderSystem.setShaderTexture(0, mesh.atlas);
+            RenderSystem.setShader(GameRenderer::getPositionTexShader);
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
+        }
     }
 
     private static Mesh build(Key key) {

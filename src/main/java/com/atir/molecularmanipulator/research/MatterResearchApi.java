@@ -3,8 +3,8 @@ package com.atir.molecularmanipulator.research;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
-import com.atir.molecularmanipulator.entropy.NegativeEntropyNetwork;
-import com.atir.molecularmanipulator.entropy.NegativeEntropyRecipes;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
+import com.atir.molecularmanipulator.starcomputation.StarComputationRecipes;
 import java.util.List;
 import java.util.function.ToIntFunction;
 import net.minecraft.resources.ResourceLocation;
@@ -104,7 +104,7 @@ public final class MatterResearchApi {
                 parallel = Math.max(parallel, depth.parallel());
             }
         }
-        int ticks = NegativeEntropyNetwork.forGrid(machine.getMainNode().getGrid())
+        int ticks = StarComputationNetwork.forGrid(machine.getMainNode().getGrid())
                 .processingTicks(recipe.value().processingTime());
         return new ProductionProfile(parallel, ticks);
     }
@@ -127,8 +127,8 @@ public final class MatterResearchApi {
     private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked) {
         if (machine.getLevel() == null) return false;
         // An engine unlock is an additional requirement, never a substitute for the original research.
-        if (NegativeEntropyRecipes.requiredMask(id) != 0
-                && !NegativeEntropyRecipes.isUnlocked(id, NegativeEntropyNetwork.unlockMask(machine.getMainNode().getGrid()))) {
+        if (StarComputationRecipes.requiredMask(id) != 0
+                && !StarComputationRecipes.isUnlocked(id, StarComputationNetwork.unlockMask(machine.getMainNode().getGrid()))) {
             return false;
         }
         for (var definition : MatterRecipeIndex.get(machine.getLevel()).researchFor(id)) {

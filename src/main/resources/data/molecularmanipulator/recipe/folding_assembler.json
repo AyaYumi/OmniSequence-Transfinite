@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "iqi",
+    "pcp",
+    "iri"
+  ],
+  "key": {
+    "i": {
+      "item": "minecraft:iron_ingot"
+    },
+    "q": {
+      "item": "ae2:quartz_glass"
+    },
+    "p": {
+      "item": "ae2:engineering_processor"
+    },
+    "c": {
+      "item": "ae2:crafting_unit"
+    },
+    "r": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:folding_assembler",
+    "count": 1
+  }
+}

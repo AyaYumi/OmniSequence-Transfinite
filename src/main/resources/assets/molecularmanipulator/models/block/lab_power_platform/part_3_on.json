@@ -1,0 +1,480 @@
+{
+  "credit": "Approved lab power platform / Downloads model export",
+  "ambientocclusion": true,
+  "textures": {
+    "atlas": "molecularmanipulator:block/lab_power_platform_on",
+    "particle": "#atlas"
+  },
+  "elements": [
+    {
+      "name": "paving_0_-2_0_body",
+      "from": [
+        0.0,
+        8.8,
+        12.8
+      ],
+      "to": [
+        16.0,
+        11.84,
+        16
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.8,
+            0.0,
+            12.0,
+            0.19
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.2,
+            0.19
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.2
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.8,
+            12.0,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.19
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.19
+          ]
+        }
+      }
+    },
+    {
+      "name": "paving_0_-2_0_top",
+      "from": [
+        0.192,
+        11.84,
+        12.992
+      ],
+      "to": [
+        15.808,
+        12.8,
+        16
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            0.788,
+            0.0,
+            0.976,
+            0.06
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.188,
+            0.06
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.976,
+            0.188
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.788,
+            0.976,
+            0.976
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.976,
+            0.06
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.976,
+            0.06
+          ]
+        }
+      }
+    },
+    {
+      "name": "lab_feed_nozzle",
+      "from": [
+        2.4,
+        12.8,
+        13.12
+      ],
+      "to": [
+        13.6,
+        14.88,
+        16
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            0.14,
+            0.0,
+            0.32,
+            0.13
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.18,
+            0.13
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.7,
+            0.18
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.14,
+            0.7,
+            0.32
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.7,
+            0.13
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.7,
+            0.13
+          ]
+        }
+      }
+    },
+    {
+      "name": "lab_feed_nozzle_collar",
+      "from": [
+        1.76,
+        14.88,
+        12.96
+      ],
+      "to": [
+        14.24,
+        16.48,
+        16
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            2.1,
+            0.0,
+            2.29,
+            0.1
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            2.0,
+            0.0,
+            2.19,
+            0.1
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            2.0,
+            0.0,
+            2.78,
+            0.19
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            2.0,
+            0.1,
+            2.78,
+            0.29
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            2.0,
+            0.0,
+            2.78,
+            0.1
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            2.0,
+            0.0,
+            2.78,
+            0.1
+          ]
+        }
+      }
+    },
+    {
+      "name": "lab_feed_contact",
+      "from": [
+        5.28,
+        13.6,
+        12.8
+      ],
+      "to": [
+        10.72,
+        15.36,
+        13.12
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.02,
+            0.11
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.02,
+            0.11
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.34,
+            0.02
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.34,
+            0.02
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.34,
+            0.11
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            5.0,
+            0.0,
+            5.34,
+            0.11
+          ],
+          "neoforge_data": {
+            "block_light": 15,
+            "sky_light": 15,
+            "ambient_occlusion": false
+          }
+        }
+      }
+    },
+    {
+      "name": "paving_0_-2_0_body_mount",
+      "from": [
+        0.0,
+        0,
+        12.8
+      ],
+      "to": [
+        16.0,
+        8.8,
+        16
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.8,
+            0.0,
+            12.0,
+            0.55
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.2,
+            0.55
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.2
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.8,
+            12.0,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.55
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            12.0,
+            0.55
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.35,
+        0.35,
+        0.35
+      ]
+    }
+  }
+}

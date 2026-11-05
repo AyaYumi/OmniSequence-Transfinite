@@ -1,5 +1,0 @@
-{
-  "parent": "minecraft:block/cross",
-  "render_type": "minecraft:cutout",
-  "textures": {"cross": "molecularmanipulator:block/negative_entropy_quartz_bud_small"}
-}

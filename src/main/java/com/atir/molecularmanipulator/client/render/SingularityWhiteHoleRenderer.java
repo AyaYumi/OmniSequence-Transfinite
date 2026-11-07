@@ -124,14 +124,14 @@ public final class SingularityWhiteHoleRenderer {
             SingularityLensProjection.ScreenBounds bounds) {
         var shader = OmniShaders.singularityLens();
         var center = SingularityLensProjection.centerInViewSpace(lens.pose, 12.5F, view);
+        var inverseProjection = SingularityLensProjection.inverseProjection(projection);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
-        var inverseProjection = SingularityLensProjection.inverseProjection(projection);
+        shader.safeGetUniform("ViewOrigin").set(SingularityLensProjection.viewOrigin(inverseProjection));
         shader.safeGetUniform("LensProjection").set(projection);
         shader.safeGetUniform("InverseProjection").set(inverseProjection);
-        shader.safeGetUniform("RayOrigin").set(SingularityLensProjection.rayOriginInViewSpace(inverseProjection));
         shader.safeGetUniform("LensTime").set(lens.frame.time() % 24000);
         shader.safeGetUniform("CoreRadius").set(SingularityWhiteHoleProfile.radius(lens.frame));
         shader.safeGetUniform("FieldRadius").set(SingularityWhiteHoleProfile.FIELD_RADIUS);

@@ -25,7 +25,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class MolecularAutoCrafterBlock extends AEBaseEntityBlock<MolecularAutoCrafterBlockEntity> {
@@ -70,6 +73,17 @@ public final class MolecularAutoCrafterBlock extends AEBaseEntityBlock<Molecular
             getBlockEntity(level, pos).openMenu(player, MenuLocators.forBlockEntity(getBlockEntity(level, pos)));
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+
+    @Override
+    public List<ItemStack> getDrops(BlockState state, LootParams.Builder builder) {
+        var drops = new ArrayList<>(super.getDrops(state, builder));
+        if (builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof MolecularAutoCrafterBlockEntity machine
+                && machine.hasRemovalRecovery()) {
+            // Additional drops already contain the one machine holding its patterns and recovery outputs.
+            drops.removeIf(stack -> stack.is(asItem()));
+        }
+        return drops;
     }
 
     @Override

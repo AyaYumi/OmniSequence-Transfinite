@@ -10,6 +10,7 @@ import java.util.function.ToIntFunction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 /** Public server API; recipe definitions are owned by the current RecipeManager, including KubeJS reloads. */
 public final class MatterResearchApi {
@@ -93,20 +94,37 @@ public final class MatterResearchApi {
         return definitions.size();
     }
 
+    private static final ResourceLocation FOUNDATION_RESEARCH =
+            ResourceLocation.fromNamespaceAndPath("molecularmanipulator", "research/ae_foundation");
+
     public record ProductionProfile(long parallel, int ticks) {}
 
     public static ProductionProfile productionProfile(MatterFabricationBlockEntity machine, RecipeHolder<MatterFabricationRecipe> recipe) {
+        var index = MatterRecipeIndex.get(machine.getLevel());
+        long parallel = productionParallel(recipe.value().requiresResearch(), index.researchFor(recipe.id()),
+                index.research(FOUNDATION_RESEARCH), machine.getResearch()::completionCount);
+        int ticks = StarComputationNetwork.forGrid(machine.getMainNode().getGrid())
+                .processingTicks(recipe.value().processingTime());
+        return new ProductionProfile(parallel, ticks);
+    }
+
+    static long productionParallel(boolean requiresResearch, List<RecipeHolder<MatterResearchRecipe>> owners,
+            @Nullable RecipeHolder<MatterResearchRecipe> foundation, ToIntFunction<ResourceLocation> completions) {
+        // Ownerless basic recipes stay usable before research and inherit only
+        // foundation parallelism. Explicit owners (including unfinished ones) win;
+        // research never substitutes for StarComputation speed or recipe unlocks.
+        if (owners.isEmpty() && !requiresResearch && foundation != null) {
+            owners = List.of(foundation);
+        }
         long parallel = 1;
-        for (var holder : MatterRecipeIndex.get(machine.getLevel()).researchFor(recipe.id())) {
-            int completed = machine.getResearch().completionCount(holder.id());
+        for (var holder : owners) {
+            int completed = completions.applyAsInt(holder.id());
             if (completed > 0) {
                 var depth = holder.value().depths().get(Math.min(completed, holder.value().depths().size()) - 1);
                 parallel = Math.max(parallel, depth.parallel());
             }
         }
-        int ticks = StarComputationNetwork.forGrid(machine.getMainNode().getGrid())
-                .processingTicks(recipe.value().processingTime());
-        return new ProductionProfile(parallel, ticks);
+        return parallel;
     }
 
     public static boolean canUseRecipe(MatterFabricationBlockEntity machine, RecipeHolder<MatterFabricationRecipe> recipe) {

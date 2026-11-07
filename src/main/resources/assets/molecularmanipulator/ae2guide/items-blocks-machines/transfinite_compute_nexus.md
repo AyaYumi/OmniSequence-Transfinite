@@ -10,7 +10,7 @@ item_ids:
 
 # Transfinite Compute Nexus
 
-The Transfinite Compute Nexus provides the Omni Computation Core's crafting CPU functions in a single block. It can manage multiple ME crafting requests at once.
+The Transfinite Compute Nexus provides the Omni Computation Core's crafting CPU functions in a single block. High-tier Star Computation Engine benefits enable multiple independent ME crafting requests.
 
 <Row>
 <BlockImage id="molecularmanipulator:transfinite_compute_nexus" scale="4" />
@@ -31,7 +31,7 @@ The nexus needs a cable or another external ME device. A group of adjacent nexus
 
 ## Operation
 
-The nexus provides the same crafting storage and parallelism as the [Omni Computation Core](omni_computation_core.md). Pattern Providers and machines still execute recipes. Ingredients, power, machines and output acceptance determine the actual rate.
+The nexus follows the [Omni Computation Core](omni_computation_core.md)'s storage and parallel limits: **1 MiB and parallelism 16** without Star Computation Engine benefits. L7 enables virtual CPU lanes, and only paid L9 overclocking provides unlimited storage and parallelism. Adaptive dispatch, supported tool reuse and final single-craft handling use the same rules as the core. Pattern Providers and machines still execute recipes; ingredients, power and output acceptance determine the actual rate.
 
 ## Relocation
 

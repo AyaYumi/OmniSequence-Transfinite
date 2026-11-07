@@ -19,7 +19,7 @@ item_ids:
 
 # Omni Computation Core
 
-The Omni Computation Core is a large ME crafting CPU that runs multiple independent crafting requests. It manages jobs; the network's Pattern Providers and machines perform the recipes.
+The Omni Computation Core is a large ME crafting CPU. High-tier Star Computation Engine benefits let it run multiple independent requests. It manages jobs; the network's Pattern Providers and machines perform the recipes.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:omni_computation_controller" />
@@ -51,9 +51,15 @@ Complete **Tier 2: Omni Computation** in the well, then fabricate the controller
 
 ## Crafting requests
 
-The core provides independent crafting capacity for multiple requests and can continue accepting new orders. Large orders still require ingredients, energy, Pattern Providers, machines and output space.
+Without Star Computation Engine benefits, the core has **1 MiB of crafting storage and parallelism 16**, using its physical CPU rather than unlimited virtual jobs. The [Star Computation Engine](star_computation_engine.md) raises these limits; L7 enables virtual CPU lanes, and only paid L9 overclocking provides unlimited storage and parallelism. Large orders still need ingredients, energy, Pattern Providers, machines and output space.
 
-Cyclic recipes need initial seed materials. If a job stalls, check missing ingredients in crafting status and whether the required machines can receive inputs and return products.
+Ordinary providers adapt to the number of complete recipes their machines accept: calls grow in the same tick until the provider becomes busy, with another capacity probe after 20 ticks. A final single craft can still run without waiting for a batch. Returned tools and deterministic durability changes are reused for later crafts where supported; they are not copied or silently replaced with fresh tools.
+
+Cyclic recipes need initial seed materials. Blocked cycle phases yield to other runnable work instead of monopolizing dispatch. If a job stalls, check missing ingredients, seeds and machine input/output conditions in crafting status. Optional ECO compatibility requires **21.2.10+** and preserves job identity through full batches, final single crafts and blocking fallback.
+
+With Data Energistics **3.3.0 or 3.3.5**, the Digital Storage Depot's simulation counts actual room in each slot once. It does not enlarge storage or insert items during the capacity check.
+
+The controller's **Effects** button selects 0 off, 1 reduced or 2 full for this machine and its viewers. Shift-click restores each client's global effects setting; production is unchanged.
 
 ## Quantum connection
 
@@ -63,7 +69,7 @@ Place one **Quantum Entangled Singularity** in the quantum slot and its partner 
 
 Structure damage and chunk unloading retain tasks, materials and progress until operating conditions recover. Normal controller removal carries jobs and quantum contents with the block.
 
-**Dismantle** keeps the controller and returns materials to ME before your inventory. Recovery pauses if both are full. Server-enabled multiblock chunk loading keeps required chunks loaded during operation, construction and updates. Occupied chunks prevent natural mob spawning.
+**Reclaim Package** seals the controller, installed structure and contents into a lightweight package backed by this world's archive. Finish or cancel and settle crafting jobs first. See [Folded Buildings and Relocation](folded_buildings.md). Server-enabled multiblock chunk loading keeps required chunks loaded during operation, construction and updates. Occupied chunks prevent natural mob spawning.
 
 Legacy **1.3.9** radial structures support **Update Structure**. Inspect the new projection and materials first. Click once to confirm, then again within five seconds to execute. The update relocates the controller and its jobs.
 

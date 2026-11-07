@@ -26,6 +26,8 @@ import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOCraftingFastPathCa
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.crafting.OmniExactInventory;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchReceipt;
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -43,6 +45,9 @@ import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -120,9 +125,10 @@ class EcoCpuDispatchTest {
         assertEquals(1, eco.pushes, "ECO progresses when the CPU selects its task");
     }
 
-    @Test void noCompatibleProviderSkipsPreviewExtractionAndPhasePreparation() throws Exception {
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void noCompatibleProviderSkipsPreviewExtractionAndPhasePreparation(boolean managed) throws Exception {
         var f = normal(BigInteger.valueOf(11));
-        attachPlan(f.host, 11);
+        if (managed) attachPlan(f.host, 11);
         var unsupported = new ICraftingProvider() {
             int busyChecks;
             public List<IPatternDetails> getAvailablePatterns() { return List.of(f.host.pattern); }
@@ -141,7 +147,8 @@ class EcoCpuDispatchTest {
         assertNull(f.host.last);
         assertTrue(f.host.waiting.isEmpty());
         assertEquals(BigInteger.valueOf(11), f.host.remaining);
-        assertEquals(Map.of(0, BigInteger.valueOf(11)), f.host.execution.remainingByTask());
+        if (managed) assertEquals(Map.of(0, BigInteger.valueOf(11)), f.host.execution.remainingByTask());
+        else assertNull(f.host.execution);
         assertFalse(f.dispatch.suspended());
     }
 
@@ -186,6 +193,60 @@ class EcoCpuDispatchTest {
         assertEquals(BigInteger.valueOf(29), f.host.last.inputs().get(MATERIAL));
         assertEquals(BigInteger.valueOf(29), f.host.last.crafts());
         assertEquals(BigInteger.ZERO, f.host.ecoOmni$physicalAmount(CATALYST));
+    }
+
+    @Test void allocatedStatefulPoolAdmitsCompatibleWearStatesWithoutSpendingForeignTools() throws Exception {
+        var identity = UUID.randomUUID();
+        var selected = tool(2, 5, identity);
+        var worn = tool(4, 5, identity);
+        var fresh = tool(0, 5, identity);
+        var foreign = tool(0, 5, UUID.randomUUID());
+        var f = fixture(new EcoMolecularTestPattern(selected, key -> worn(key, 5)), BigInteger.valueOf(8), 1, 8);
+        f.host.ecoOmni$storePhysical(worn, BigInteger.valueOf(3));
+        f.host.ecoOmni$storePhysical(fresh, BigInteger.ONE);
+        f.host.ecoOmni$storePhysical(foreign, BigInteger.TEN);
+        var allocation = new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation(0,
+                List.of(new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation.Run(selected, 1, 8)));
+        attachPlan(f.host, List.of(allocation), 8);
+        var provider = new Provider(f.host);
+        provider.stateful = true;
+        assertEquals(1, execute(f, provider));
+        assertEquals(BigInteger.valueOf(8), f.host.last.crafts());
+        assertEquals(BigInteger.valueOf(3), f.host.last.inputs().get(worn));
+        assertEquals(BigInteger.ONE, f.host.last.inputs().get(fresh));
+        assertFalse(f.host.last.inputs().containsKey(foreign));
+        assertEquals(BigInteger.TEN, f.host.ecoOmni$physicalAmount(foreign));
+        assertEquals(BigInteger.ZERO, f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertTrue(f.host.execution.isComplete());
+        assertEquals(1, provider.pushes);
+        assertFalse(f.dispatch.suspended());
+    }
+
+    @ParameterizedTest @CsvSource({"6,false", "7,false", "9,true"})
+    void nativeAelisCycleYieldsBeforeEcoPreparationAndLeavesItsProgressUntouched(
+            int level, boolean overclocked) throws Exception {
+        var f = normal(BigInteger.valueOf(7));
+        f.host.virtualCpu = new com.atir.molecularmanipulator.starcomputation.StarComputationBenefits(
+                level, overclocked).virtualCpu();
+        var step = new com.appliedenhancements.api.AelisCycleExecutionPlan.Step(
+                f.host.pattern.getDefinition(), 7, Map.of(CATALYST, 1L, MATERIAL, 1L), java.util.Set.of());
+        var cycle = new com.appliedenhancements.api.AelisCycleRuntimeController(
+                new com.appliedenhancements.api.AelisCycleExecutionPlan(
+                        List.of(step), Map.of(CATALYST, 1L), java.util.Set.of(CATALYST, MATERIAL)));
+        var before = cycle.snapshot();
+        var provider = new Provider(f.host);
+        try (var scope = com.appliedenhancements.runtime.AelisCycleDispatchScope.open(cycle)) {
+            assertEquals(-1, execute(f, provider), "Native cycles belong to the shared cycle-aware executor");
+        }
+        assertEquals(before, cycle.snapshot());
+        assertEquals(0, provider.prepares);
+        assertEquals(0, provider.pushes);
+        assertEquals(0, f.host.stages);
+        assertEquals(0, f.host.reserves);
+        assertEquals(BigInteger.valueOf(7), f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.valueOf(7), f.host.remaining);
+        assertTrue(f.host.waiting.isEmpty());
+        assertFalse(f.dispatch.suspended());
     }
 
     @Test void returnedContainersUseActualEcoStatefulContract() throws Exception {
@@ -354,7 +415,7 @@ class EcoCpuDispatchTest {
     @Test void interruptedIntentIsNotAutomaticallyRefundedEvenWithoutSuspendedFlag() throws Exception {
         var f = normal(BigInteger.valueOf(5));
         var journal = new EcoCpuDispatchJournal();
-        journal.arm(new EcoCpuDispatchReceipt(f.host.id, f.host.pattern, BigInteger.valueOf(5),
+        journal.arm(new OmniCpuDispatchReceipt(f.host.id, f.host.pattern, BigInteger.valueOf(5),
                 Map.of(MATERIAL, BigInteger.valueOf(5)), Map.of(OUTPUT, BigInteger.valueOf(5)), Map.of(), true));
         var saved = journal.write(REGISTRIES);
         assertFalse(saved.getBoolean("suspended"));
@@ -479,7 +540,7 @@ class EcoCpuDispatchTest {
         assertEquals(BigInteger.TWO, f.host.last.crafts());
         assertEquals(BigInteger.TWO, f.host.last.inputs().get(MATERIAL));
         assertFalse(f.host.last.inputs().containsKey(variant));
-        assertEquals(BigInteger.ONE, f.host.ecoDispatch$insertExact(f.host.id, CATALYST, BigInteger.ONE, Actionable.MODULATE));
+        assertEquals(BigInteger.ONE, f.host.omniDispatch$insertExact(f.host.id, CATALYST, BigInteger.ONE, Actionable.MODULATE));
         assertEquals(1, execute(f, provider));
         assertEquals(BigInteger.valueOf(3), f.host.last.crafts());
         assertEquals(BigInteger.valueOf(3), f.host.last.inputs().get(variant));
@@ -490,14 +551,14 @@ class EcoCpuDispatchTest {
 
     @Test void reloadingAStateWithoutDispatchTagDoesNotInheritAnEarlierPause() throws Exception {
         var optional = new com.atir.molecularmanipulator.mixin.EcoCpuDispatchMixin() {};
-        optional.ecoDispatch$suspend("previous job"); assertTrue(optional.ecoDispatch$dispatcher().suspended());
+        optional.omniDispatch$suspend("previous job"); assertTrue(optional.omniDispatch$dispatcher().suspended());
         var read = com.atir.molecularmanipulator.mixin.EcoCpuDispatchMixin.class.getDeclaredMethod(
                 "molecularmanipulator$readEcoDispatch", CompoundTag.class, HolderLookup.Provider.class,
                 com.llamalad7.mixinextras.injector.wrapoperation.Operation.class);
         read.setAccessible(true);
         read.invoke(optional, new CompoundTag(), REGISTRIES,
                 (com.llamalad7.mixinextras.injector.wrapoperation.Operation<Void>) args -> null);
-        assertFalse(optional.ecoDispatch$dispatcher().suspended());
+        assertFalse(optional.omniDispatch$dispatcher().suspended());
     }
 
     @Test void ordinaryEnergyCoversTheExactPerCopyProduct() throws Exception {
@@ -608,13 +669,24 @@ class EcoCpuDispatchTest {
         assertFalse(f.dispatch.suspended());
     }
 
-    @Test void coldSubsystemRejectionRestoresItsSingleInputAndWaitingCredit() throws Exception {
+    @ParameterizedTest @CsvSource({"0,false", "6,true", "7,false", "9,true"})
+    void coldSubsystemRejectionRestoresItsSingleInputAndWaitingCredit(
+            int level, boolean overclocked) throws Exception {
         var f = normal(BigInteger.ONE);
+        f.host.virtualCpu = new com.atir.molecularmanipulator.starcomputation.StarComputationBenefits(
+                level, overclocked).virtualCpu();
+        attachPlan(f.host, 1);
         var bus = new ColdBus(f.host);
         bus.reject = true;
         assertEquals(-1, execute(f, bus));
+        assertEquals(f.host.id, bus.job, "Even a rejected single tail keeps its owning UUID");
         assertEquals(BigInteger.ONE, f.host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ONE, f.host.ecoOmni$physicalAmount(CATALYST));
         assertEquals(BigInteger.ONE, f.host.remaining);
+        assertEquals(Map.of(0, BigInteger.ONE), f.host.execution.remainingByTask());
+        assertEquals(0, f.host.commits);
+        assertEquals(0, f.host.legacyPhaseCommits);
+        assertEquals(1, f.host.refunds);
         assertTrue(f.host.waiting.isEmpty());
         assertFalse(f.dispatch.suspended());
     }
@@ -827,7 +899,7 @@ class EcoCpuDispatchTest {
         final OmniExactInventory stock = new OmniExactInventory();
         final Map<AEKey, BigInteger> waiting = new LinkedHashMap<>();
         BigInteger remaining;
-        EcoCpuDispatchReceipt last;
+        OmniCpuDispatchReceipt last;
         EcoOmniPlanExecution execution;
         int legacyPhaseCommits;
         boolean exactOrder;
@@ -846,15 +918,15 @@ class EcoCpuDispatchTest {
         int stages;
         Runnable onStage = () -> {};
         Host(EcoMolecularTestPattern pattern, BigInteger remaining) { this.pattern = pattern; this.remaining = remaining; }
-        public boolean ecoDispatch$enabled() { return enabled; }
-        public IPatternDetails ecoDispatch$preferredPattern() { return preferred; }
-        public UUID ecoDispatch$jobId() { return id; }
-        public boolean ecoDispatch$exactOrder() { return exactOrder; }
-        public boolean ecoDispatch$virtualCpu() { return virtualCpu; }
-        public ListCraftingInventory ecoDispatch$inventory() { inventories++; return window; }
-        public ICraftingInventory ecoDispatch$physicalView() { physicalViews++; return stock.wrap(window); }
-        public BigInteger ecoDispatch$remaining(IPatternDetails pattern) { return remaining; }
-        public Lease ecoDispatch$reserveExact(Map<AEKey, BigInteger> inputs) {
+        public boolean omniDispatch$enabled() { return enabled; }
+        public IPatternDetails omniDispatch$preferredPattern() { return preferred; }
+        public UUID omniDispatch$jobId() { return id; }
+        public boolean omniDispatch$exactOrder() { return exactOrder; }
+        public boolean omniDispatch$virtualCpu() { return virtualCpu; }
+        public ListCraftingInventory omniDispatch$inventory() { inventories++; return window; }
+        public ICraftingInventory omniDispatch$physicalView() { physicalViews++; return stock.wrap(window); }
+        public BigInteger omniDispatch$remaining(IPatternDetails pattern) { return remaining; }
+        public Lease omniDispatch$reserveExact(Map<AEKey, BigInteger> inputs) {
             reserves++;
             for (var entry : inputs.entrySet()) if (ecoOmni$physicalAmount(entry.getKey()).compareTo(entry.getValue()) < 0) return null;
             inputs.forEach((key, amount) -> assertEquals(amount, stock.extract(window, key, amount, Actionable.MODULATE)));
@@ -868,7 +940,7 @@ class EcoCpuDispatchTest {
                 }
             };
         }
-        public Accounting ecoDispatch$stage(EcoCpuDispatchReceipt receipt) {
+        public Accounting omniDispatch$stage(OmniCpuDispatchReceipt receipt) {
             stages++;
             onStage.run();
             last = receipt;
@@ -891,9 +963,9 @@ class EcoCpuDispatchTest {
                 public void retain() { settled = true; }
             };
         }
-        public void ecoDispatch$markDirty() { }
-        public void ecoDispatch$pause(EcoCpuDispatchReceipt receipt, String reason) { paused = true; }
-        public BigInteger ecoDispatch$insertExact(UUID job, AEKey key, BigInteger amount, Actionable mode) {
+        public void omniDispatch$markDirty() { }
+        public void omniDispatch$pause(OmniCpuDispatchReceipt receipt, String reason) { paused = true; }
+        public BigInteger omniDispatch$insertExact(UUID job, AEKey key, BigInteger amount, Actionable mode) {
             if (!id.equals(job)) return BigInteger.ZERO;
             var take = amount.min(waiting.getOrDefault(key, BigInteger.ZERO));
             if (mode == Actionable.MODULATE && take.signum() > 0) {
@@ -951,15 +1023,15 @@ class EcoCpuDispatchTest {
             return List.of(byPattern == null ? provider : byPattern.get(pattern));
         }
     }
-    private static final class OutputLogic extends CraftingCpuLogic implements EcoCpuDispatchHost, EcoCpuDispatchAccess {
+    private static final class OutputLogic extends CraftingCpuLogic implements OmniCpuDispatchHost, EcoCpuDispatchAccess {
         Host host;
         EcoCpuDispatch dispatch;
         OutputLogic() { super(null); }
-        public boolean ecoDispatch$enabled() { return true; }
-        public UUID ecoDispatch$jobId() { return host.id; }
-        public EcoCpuDispatch ecoDispatch$dispatcher() { return dispatch; }
-        public BigInteger ecoDispatch$insertExact(UUID id, AEKey key, BigInteger amount, Actionable mode) {
-            return host.ecoDispatch$insertExact(id, key, amount, mode);
+        public boolean omniDispatch$enabled() { return true; }
+        public UUID omniDispatch$jobId() { return host.id; }
+        public EcoCpuDispatch omniDispatch$dispatcher() { return dispatch; }
+        public BigInteger omniDispatch$insertExact(UUID id, AEKey key, BigInteger amount, Actionable mode) {
+            return host.omniDispatch$insertExact(id, key, amount, mode);
         }
     }
     private static <T> T allocate(Class<T> type) throws Exception {

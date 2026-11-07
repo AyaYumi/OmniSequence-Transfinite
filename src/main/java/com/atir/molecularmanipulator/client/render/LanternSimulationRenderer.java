@@ -215,7 +215,7 @@ public final class LanternSimulationRenderer {
         shader.safeGetUniform("InverseProjection").set(inverseProjection);
         shader.safeGetUniform("InverseView").set(new Matrix4f(view).invert());
         shader.safeGetUniform("RayOrigin").set(
-                SingularityLensProjection.rayOriginInViewSpace(inverseProjection));
+                SingularityLensProjection.viewOrigin(inverseProjection));
         shader.safeGetUniform("CameraFrac").set(
                 (float) (camera.x - Math.floor(camera.x)),
                 (float) (camera.y - Math.floor(camera.y)),

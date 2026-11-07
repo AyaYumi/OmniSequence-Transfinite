@@ -1,7 +1,7 @@
 # Integration APIs / 接口文档
 
 Current source: OmniSequence **2.1.0**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
-Java **21**, AE2 **19.2.17+**, Applied Enhancements **1.1.0+** (paired release **1.1.2**).
+Java **21**, AE2 **19.2.18**, AppliedEnhancements **1.1.2+** (compile API **1.1.4**).
 Mod ID: `molecularmanipulator`.
 
 | Contract | English | 中文 |
@@ -11,8 +11,14 @@ Mod ID: `molecularmanipulator`.
 | Well recipe JSON, generic AEKey inputs, research, machine imports and KubeJS | [Well and research API](matter-research-api.md) | [构筑井与研究 API](matter-research-api.zh-CN.md) |
 
 AELIS planning, cycle execution and shared AE enhancements belong to the separate
-AppliedEnhancements mod. Use its [1.1.1 API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/docs/README.md). The minimum 1.1.0 runtime remains supported; new 1.1.1 API types require 1.1.1 at compile time and runtime. Omni's internal
-planner/Mixin classes are not integration entry points.
+AppliedEnhancements mod. Use its [API documentation](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/docs/README.md).
+This branch compiles against 1.1.4 and supports runtime 1.1.2 or later. Omni's
+internal planner/Mixin classes are not integration entry points.
+
+Optional ECO integration requires **21.2.10+**. The additional ExtendedAE Plus
+provider-selection/upload hooks target **1.6.4.1** only; the Data Energistics depot
+capacity-simulation fix targets **3.3.0** and **3.3.5** only. These version-specific
+hooks do not add public APIs or make those mods mandatory. See [dependency setup](../libs/README.md).
 
 Use `compileOnly` with the separate JARs and install each mod at runtime. Do not
 shade or copy their API packages. Optional compatibility classes must load only
@@ -28,7 +34,7 @@ thread unless the caller has obtained an immutable snapshot.
 - 添加配方、研究和整机导入：使用数据包/KubeJS 格式及 MatterResearchApi。
 - 循环种子与批量回滚：使用 AES 的 `AelisBatchExecutionContext`，首份、追加抽料和退款共享库存视图。
 
-最低兼容 AES 1.1.0，本次推荐搭配 1.1.1；新增的 1.1.1 查询不能直接用于旧 JAR。
+使用 AES 1.1.4 编译，运行时最低要求 1.1.2；前置单独安装，不嵌入本模组。
 游戏配置参考移至项目根目录 `CONFIGURATION.md`。
 
 `blockentity`、`mixin` 和渲染内部类不承诺通用二进制兼容。研究权限、长期材料

@@ -40,19 +40,51 @@ class OsqLayoutResourcesTest {
     }
     @Test void allLayoutTranslationsAndFontsResolve() throws Exception {
         var zh=json(LIGHT.resolve("lang/zh_cn.json"));var en=json(LIGHT.resolve("lang/en_us.json"));
-        try(var paths=Files.list(LIGHT.resolve("osq_light/layout"))) {
+        for(var root:new Path[]{LIGHT,DARK})try(var paths=Files.list(root.resolve("osq_light/layout"))) {
             for(var path:paths.filter(p->p.toString().endsWith(".json")).toList()) {
                 for(var element:json(path).getAsJsonArray("draw")) {
                     var entry=element.getAsJsonObject();
                     if(entry.has("lang")) {
                         String key=entry.get("lang").getAsString();
-                        assertTrue(zh.has(key),key);assertTrue(en.has(key),key);
+                        assertTrue(zh.has(key),path+" zh_cn "+key);assertTrue(en.has(key),path+" en_us "+key);
                     }
                     if(entry.has("font_id"))assertTrue(Files.isRegularFile(LIGHT.resolve("font/"
                             +entry.get("font_id").getAsString().split(":",2)[1]+".json")));
                 }
             }
         }
+    }
+
+    @Test void centerPagesUseLivePatternTransfersInsteadOfRetiredCoreAssets() throws Exception {
+        for(var root:new Path[]{LIGHT,DARK})for(String name:new String[]{"seq_center_overview","seq_center_autocraft","seq_center_colors"}) {
+            var path=root.resolve("osq_light/layout/"+name+".json");var layout=json(path);
+            assertFalse(Files.readString(path).contains("quantum_upload_core"),"Remove retired keys, do not restore or omit them");
+            for(String section:new String[]{"draw","boxes"})for(var element:layout.getAsJsonArray(section)) {
+                var entry=element.getAsJsonObject();
+                if(entry.has("id"))assertNotEquals("core",entry.get("id").getAsString(),path+" "+section);
+            }
+            var entries=layout.getAsJsonArray("draw").asList().stream().map(e->e.getAsJsonObject()).toList();
+            for(String id:new String[]{"pattern_upload","migrate_patterns"}) {
+                var controls=entries.stream().filter(e->e.has("id")&&id.equals(e.get("id").getAsString())).toList();
+                assertEquals(1,controls.size(),path+" "+id);var control=controls.getFirst();
+                assertEquals("ctl",control.get("k").getAsString());
+                assertTrue(control.getAsJsonArray("rect").get(3).getAsFloat()>=22,"Keep native OSQ hit-target height");
+                var labels=entries.stream().filter(e->e.has("owner")&&id.equals(e.get("owner").getAsString())&&"text".equals(e.get("type").getAsString())).toList();
+                assertEquals(1,labels.size(),path+" "+id+" owns exactly one label");
+                assertEquals(id.equals("pattern_upload")?"gui.molecularmanipulator.pattern_upload.off"
+                        :"gui.molecularmanipulator.pattern_migration.button",labels.getFirst().get("lang").getAsString());
+            }
+            for(var count:java.util.Map.of("pat",36,"inv",36,"qes",1).entrySet())
+                assertEquals(count.getValue().longValue(),entries.stream().filter(e->e.has("k")&&"slot".equals(e.get("k").getAsString())
+                        &&count.getKey().equals(e.get("id").getAsString())).count(),path+" retains native "+count.getKey()+" slots");
+        }
+        var screen=Files.readString(Path.of("src/main/java/com/atir/molecularmanipulator/client/MolecularCenterScreen.java"));
+        assertTrue(screen.contains("initPatternTransferControls();"));
+        assertTrue(screen.contains("ui.button(\"pattern_upload\""));assertTrue(screen.contains("ui.button(\"migrate_patterns\""));
+        assertTrue(screen.contains("menu.requestSetPatternUpload(!menu.automaticPatternUpload)"));
+        assertTrue(screen.contains("menu::requestMigratePatterns"));
+        assertFalse(screen.contains("quantum_upload_core"),"No omission-based workaround may hide stale resources");
+        assertFalse(screen.contains("getUploadCoreSlot"),"The screen must not recreate a retired functional slot");
     }
     @Test void researchUnlockTranslationsKeepUnicodeAndFormatArguments() throws Exception {
         var zh=json(LIGHT.resolve("lang/zh_cn.json"));var en=json(LIGHT.resolve("lang/en_us.json"));

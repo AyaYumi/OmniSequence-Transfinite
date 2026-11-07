@@ -2,12 +2,13 @@ package com.atir.molecularmanipulator.integration.eco;
 
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlannerOptions;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult;
+import com.atir.molecularmanipulator.MolecularManipulator;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.slf4j.LoggerFactory;
+
 
 /** Accesses ECO fields only after the menu's actual runtime class has been transformed. */
 public final class EcoOmniPlanMenuAccess {
@@ -55,8 +56,8 @@ public final class EcoOmniPlanMenuAccess {
 
     public void report(Throwable failure) {
         if (reported.compareAndSet(false, true)) {
-            LoggerFactory.getLogger(EcoOmniPlanMenuAccess.class)
-                    .error("Disabled Omni ECO confirmation: runtime menu access failed for " + type.getName(), failure);
+            MolecularManipulator.LOGGER.error(
+                    "Disabled Omni ECO confirmation: runtime menu access failed for {}", type.getName(), failure);
         }
     }
 

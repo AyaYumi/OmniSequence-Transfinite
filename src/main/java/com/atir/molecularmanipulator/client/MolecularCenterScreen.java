@@ -62,6 +62,9 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private final net.minecraft.client.gui.components.Button[] runControls=new net.minecraft.client.gui.components.Button[9], reserveControls=new net.minecraft.client.gui.components.Button[9];
     private net.minecraft.client.gui.components.Button limitControl;
     private final StructureUpdateConfirmation colorUpdateConfirmation=new StructureUpdateConfirmation();
+    private MachineEffectButton effectsButton;
+    private net.minecraft.client.gui.components.Button patternUploadButton;
+    private net.minecraft.client.gui.components.Button migratePatternsButton;
 
     public MolecularCenterScreen(MolecularCenterMenu menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -106,7 +109,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         imageWidth=ui.layout.width;imageHeight=ui.layout.height;super.init();
         menu.setPatternSearchIndexListener(this::acceptPatternSearchIndexChunk);
         ui.inventory(menu);ui.slots(menu.getPatternSlots(),"pat");
-        ui.slot(menu.getQuantumSlot(),"qes");ui.slot(menu.getMatrixUploadCoreSlot(),"core");
+        ui.slot(menu.getQuantumSlot(),"qes");
         patternSearch=addScreenWidget(ui.field("search",leftPos,topPos,font,OsqUi.tr("gui.molecularmanipulator.pattern_search")));
         patternSearch.setValue(patternSearchQuery);patternSearch.setResponder(this::patternSearchChanged);
         if(!patternSearchQuery.isBlank())patternSearchDebounce=1;
@@ -124,9 +127,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         ui.state(dismantle,()->dismantleConfirming()?"confirm":"danger");
         ui.text("gui.molecularmanipulator.formed",()->OsqUi.tr(menu.formed?"gui.molecularmanipulator.formed":"gui.molecularmanipulator.incomplete"));
         ui.text("gui.molecularmanipulator.overview_online",()->OsqUi.tr("gui.molecularmanipulator.overview_"+(menu.operational?"online":"offline")));
-        ui.text("gui.molecularmanipulator.quantum_state.connected",()->OsqUi.tr("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
-        ui.number(65.39f,179.5f,()->formatFrequency(menu.quantumFrequency));ui.width(46,165.89f,155);
-        ui.text("gui.molecularmanipulator.overview_quantum_requirements",()->OsqUi.tr("gui.molecularmanipulator.overview_quantum_requirements",512));
+        bindQuantumLink();
         ui.sprite(201,42.5f,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
         ui.sprite(240.95f,228,()->ui.sprite("dot_"+(menu.operational?"ok":"mute")));
         ui.sprite(39,167,()->ui.sprite("dot_"+(menu.quantumFrequency==0?"mute":"ok")));
@@ -178,6 +179,9 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 addScreenWidget(ui.button("keep",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.structure_update_keep_legacy"),menu::requestKeepLegacyStructure));
             }
         }
+        effectsButton = addScreenWidget(new MachineEffectButton(leftPos + 200, topPos + 166, 136,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
+        initPatternTransferControls();
         ui.visible=e->{
             if("tip".equals(e.kind))return false;
             if(detailTab==TAB_AUTO_CRAFT&&e.requiresSelection&&!hasSelectedAutoCraftDetails())return false;
@@ -286,9 +290,8 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
             slot.setActive(autoCraftVisible);
         }
         menu.getQuantumSlot().setActive(ui.layout.find("qes") != null);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            menu.getMatrixUploadCoreSlot().setActive(ui.layout.find("core") != null);
-        }
+        effectsButton.visible = detailTab == TAB_COLORS;
+        refreshPatternTransferControls();
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
         if(buildControl!=null)buildControl.active=!menu.formed&&!menu.building&&!menu.dismantling;
@@ -317,6 +320,42 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
         if(buildControl!=null)buildControl.active=!menu.formed&&!menu.building&&!menu.dismantling;
         if(dismantleControl!=null)dismantleControl.active=!menu.building&&!menu.dismantling&&menu.formed;
+        refreshPatternTransferControls();
+    }
+
+    private void bindQuantumLink() {
+        ui.text("gui.molecularmanipulator.quantum_state.connected", () -> OsqUi.tr(
+                "gui.molecularmanipulator.quantum_state." + menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
+        ui.number(65.39f, 179.5f, () -> formatFrequency(menu.quantumFrequency));
+        ui.width(46, 165.89f, 155);
+        ui.text("gui.molecularmanipulator.overview_quantum_requirements", () -> OsqUi.tr(
+                "gui.molecularmanipulator.overview_quantum_requirements", 512));
+    }
+
+    /** Shared by all three pages; layout-owned controls never cover overview status text. */
+    private void initPatternTransferControls() {
+        patternUploadButton = addScreenWidget(ui.button("pattern_upload", leftPos, topPos,
+                this::patternUploadLabel, () -> menu.requestSetPatternUpload(!menu.automaticPatternUpload)));
+        patternUploadButton.setTooltip(Tooltip.create(Component.translatable(
+                "gui.molecularmanipulator.pattern_upload.tooltip")));
+        ui.state(patternUploadButton, () -> menu.automaticPatternUpload ? "active" : "normal");
+        migratePatternsButton = addScreenWidget(ui.button("migrate_patterns", leftPos, topPos,
+                () -> Component.translatable("gui.molecularmanipulator.pattern_migration.button"),
+                menu::requestMigratePatterns));
+        migratePatternsButton.setTooltip(Tooltip.create(Component.translatable(
+                "gui.molecularmanipulator.pattern_migration.tooltip")));
+        refreshPatternTransferControls();
+    }
+
+    private void refreshPatternTransferControls() {
+        if (migratePatternsButton != null) {
+            migratePatternsButton.active = menu.operational && !menu.building && !menu.dismantling;
+        }
+    }
+
+    private Component patternUploadLabel() {
+        return Component.translatable(menu.automaticPatternUpload
+                ? "gui.molecularmanipulator.pattern_upload.on" : "gui.molecularmanipulator.pattern_upload.off");
     }
 
     @Override

@@ -129,14 +129,14 @@ public final class CosmicSingularityPostRenderer {
             SingularityLensProjection.ScreenBounds bounds) {
         var shader = OmniShaders.cosmicLens();
         var center = SingularityLensProjection.centerInViewSpace(hole.pose, 0, view);
+        var inverseProjection = SingularityLensProjection.inverseProjection(projection);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
-        var inverseProjection = SingularityLensProjection.inverseProjection(projection);
+        shader.safeGetUniform("ViewOrigin").set(SingularityLensProjection.viewOrigin(inverseProjection));
         shader.safeGetUniform("LensProjection").set(projection);
         shader.safeGetUniform("InverseProjection").set(inverseProjection);
-        shader.safeGetUniform("RayOrigin").set(SingularityLensProjection.rayOriginInViewSpace(inverseProjection));
         shader.safeGetUniform("LensTime").set(hole.time);
         shader.safeGetUniform("CoreRadius").set(hole.coreRadius);
         shader.safeGetUniform("FieldRadius").set(hole.fieldRadius);

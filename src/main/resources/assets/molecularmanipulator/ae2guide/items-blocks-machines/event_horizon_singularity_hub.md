@@ -59,15 +59,21 @@ Use the **Star Chart Calibrator** to select the site, package and facing, then c
 
 Start collection and wait for startup, then products enter ME. Stopping collection docks the structure. Black-hole matter generation and sample duplication do not require active resource collection.
 
+The **Effects** button chooses 0 off, 1 reduced or 2 full for this controller and all viewers. Shift-click restores each client's global setting; production and motion rules are unchanged.
+
 ## Quantum connection
 
 Overview's quantum slot accepts only a **Quantum Entangled Singularity**. Put its partner in a powered AE2 quantum bridge to connect a remote network, including construction materials before formation. The link requires an additional **512 AE/t and one channel**.
+
+After reloading, let the loaded endpoints complete normal AE2 initialization to reconnect. A destroyed, unloaded or retuned remote ring is no longer mistaken for a live endpoint because of a stale frequency entry. A genuinely occupied pair still rejects the link.
 
 ## Dismantling and relocation
 
 Stop collection and wait for docking before selecting **Dismantle**. The controller stays in place. Materials return to ME before your inventory, pausing if there is no room.
 
 Normal controller removal retains the quantum slot, sample, miniature black holes and pending recovery contents. Continuous production needs loaded chunks; the server's multiblock chunk-loading setting can keep the structure's required chunks loaded.
+
+That setting controls this mod's chunk tickets, not motion permission. With it off, the hub can still start, move and dock while every required chunk in the full motion area is loaded by other means. Missing chunks pause motion and block starting or docking; these checks do not synchronously load them.
 
 ## Recipes
 

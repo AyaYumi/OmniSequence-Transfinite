@@ -8,7 +8,7 @@ import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
 import com.atir.molecularmanipulator.client.render.ParallelEffectGeometry;
 import com.atir.molecularmanipulator.client.render.SingularityShaderVertices;
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import appeng.block.crafting.AbstractCraftingUnitBlock;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -82,7 +82,7 @@ public final class OmniComputationRenderer
     public Snapshot capture(OmniComputationCoreBlockEntity core, float partialTick,
             PoseStack base, ParallelEffectGeometry geometry) {
         if (core.isSingleBlock()) return null;
-        int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        int effectLevel = MachineEffectLevels.forMachine(core);
         if (effectLevel <= 0 || core.getLevel() == null
                 || !core.getBlockState().getValue(AbstractCraftingUnitBlock.POWERED)) return null;
         var layout = core.getVisualLayout();

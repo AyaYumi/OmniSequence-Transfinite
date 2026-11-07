@@ -75,6 +75,8 @@ The four ordinary research branches each allow **nine completions** by default. 
 | 8 | 72.06P |
 | 9 | 9.22E |
 
+Basic recipes with no owning research remain usable before research and inherit tier 1's completed parallel limit; without that progress their parallel limit is one. This does not unlock gated recipes or add research-based speed.
+
 Ingredients, power and output capacity limit actual batches. Deep research changes parallelism only, including the ninth round. Built-in fabrication recipes and generated bridge defaults take **20 seconds (400 ticks)** before speed bonuses; explicit custom recipe times are preserved.
 
 The [Star Computation Engine](star_computation_engine.md) on the well's ME network supplies production speed. Ordinary levels divide base ticks by the effective speed multiplier and round up, with a one-tick minimum. Level 9 overclocking forces one tick. Level and overclocking changes also rescale existing batches' completed progress to the new duration, rounded down to whole ticks. Research's own duration remains independent.

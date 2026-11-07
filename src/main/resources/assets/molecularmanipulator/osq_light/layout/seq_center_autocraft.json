@@ -1367,7 +1367,7 @@
    "font_id": "molecularmanipulator:osq_nsc_500_7_5",
    "lang": "gui.molecularmanipulator.quantum_title",
    "dynamic": false,
-   "center_y": 162,
+   "center_y": 156,
    "width_en": 70
   },
   {
@@ -1388,7 +1388,7 @@
     4
    ],
    "draw_x": 16,
-   "draw_y": 175
+   "draw_y": 169
   },
   {
    "z": 79,
@@ -1406,7 +1406,7 @@
    "font_id": "molecularmanipulator:osq_nsc_600_7_5",
    "lang": "gui.molecularmanipulator.quantum_state.connected",
    "dynamic": false,
-   "center_y": 177,
+   "center_y": 171,
    "draw_x": 23
   },
   {
@@ -1426,7 +1426,7 @@
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s025",
    "lang_new": true,
-   "center_y": 190,
+   "center_y": 182,
    "draw_x": 16
   },
   {
@@ -1444,28 +1444,38 @@
    "opacity": 1,
    "font_id": "molecularmanipulator:osq_jetbrainsmono_600_7_5",
    "dynamic": true,
-   "center_y": 190,
+   "center_y": 182,
    "draw_x": 52
   },
   {
    "z": 82,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/seq/button_normal",
+   "slicing": "nine",
+   "pad": [0, 0, 0, 0],
+   "rect": [16, 202, 79, 22],
+   "k": "ctl",
+   "id": "pattern_upload"
+  },
+  {
+   "z": 82.1,
    "type": "text",
-   "text": "上传核心",
-   "x": 133.61,
-   "baseline": 163.5,
-   "width": 40,
+   "text": "自动上传：关闭",
+   "x": 23,
+   "baseline": 213.5,
+   "width": 65,
    "font": "NSC",
-   "weight": 500,
+   "weight": 600,
    "size": 7.5,
-   "color": "#FF5D637D",
+   "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
-   "lang": "gui.molecularmanipulator.quantum_upload_core",
+   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "lang": "gui.molecularmanipulator.pattern_upload.off",
    "dynamic": false,
-   "center_y": 162,
-   "draw_x": 114,
-   "width_en": 40
+   "center_y": 211.5,
+   "align": "center",
+   "owner": "pattern_upload"
   },
   {
    "z": 83,
@@ -1480,7 +1490,7 @@
    ],
    "rect": [
     16,
-    198,
+    189,
     162,
     0.5
    ]
@@ -1504,45 +1514,46 @@
     "512"
    ],
    "dynamic": false,
-   "center_y": 207,
+   "center_y": 194,
    "draw_x": 16
   },
   {
    "z": 85,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/seq/button_normal",
+   "slicing": "nine",
+   "pad": [0, 0, 0, 0],
+   "rect": [99, 202, 79, 22],
+   "k": "ctl",
+   "id": "migrate_patterns"
+  },
+  {
+   "z": 85.1,
    "type": "text",
-   "text": "EAEP：编码终端样板自动进入构序矩阵",
-   "x": 16,
-   "baseline": 203,
-   "width": 162,
+   "text": "一键迁移样板",
+   "x": 106,
+   "baseline": 213.5,
+   "width": 65,
    "font": "NSC",
-   "weight": 500,
+   "weight": 600,
    "size": 7.5,
-   "color": "#FF2E2C40",
+   "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
-   "lang": "gui.molecularmanipulator.quantum_upload_core_hint",
+   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "lang": "gui.molecularmanipulator.pattern_migration.button",
    "dynamic": false,
-   "center_y": 220,
-   "draw_x": 16
+   "center_y": 211.5,
+   "align": "center",
+   "owner": "migrate_patterns"
   },
   {
    "z": 86,
    "type": "sprite",
    "sprite": "molecularmanipulator:osq_light/seq/slot",
    "slicing": "fixed",
-   "pad": [
-    0,
-    0,
-    0,
-    0
-   ],
-   "rect": [
-    16,
-    153,
-    18,
-    18
-   ],
+   "pad": [0, 0, 0, 0],
+   "rect": [16, 147, 18, 18],
    "k": "slot",
    "id": "qes"
   },
@@ -1552,28 +1563,8 @@
    "item": "img:qes",
    "count": "1",
    "x": 17,
-   "y": 158,
+   "y": 148,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
-  },
-  {
-   "z": 88,
-   "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/slot_ghost",
-   "slicing": "fixed",
-   "pad": [
-    0,
-    0,
-    0,
-    0
-   ],
-   "rect": [
-    160,
-    153,
-    18,
-    18
-   ],
-   "k": "slot",
-   "id": "core"
   },
   {
    "z": 89,
@@ -5376,7 +5367,7 @@
     "x": 8,
     "y": 145,
     "w": 178,
-    "h": 65
+    "h": 82
    },
    "par": -1,
    "item": null,
@@ -5387,7 +5378,7 @@
    "id": "qes",
    "r": {
     "x": 16,
-    "y": 157,
+    "y": 147,
     "w": 18,
     "h": 18
    },
@@ -5396,13 +5387,13 @@
    "n": "1"
   },
   {
-   "k": "slot",
-   "id": "core",
+   "k": "ctl",
+   "id": "pattern_upload",
    "r": {
-    "x": 160,
-    "y": 153,
-    "w": 18,
-    "h": 18
+    "x": 16,
+    "y": 202,
+    "w": 79,
+    "h": 22
    },
    "par": 41,
    "item": null,
@@ -6731,6 +6722,19 @@
     "h": 13
    },
    "par": 115,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "ctl",
+   "id": "migrate_patterns",
+   "r": {
+    "x": 99,
+    "y": 202,
+    "w": 79,
+    "h": 22
+   },
+   "par": 41,
    "item": null,
    "n": ""
   }

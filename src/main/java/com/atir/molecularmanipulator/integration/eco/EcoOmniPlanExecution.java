@@ -15,6 +15,8 @@ import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime.DispatchCa
 import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
+import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
 import com.atir.molecularmanipulator.mixin.EcoOmniPlanRuntimeInvoker;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -174,7 +176,7 @@ public final class EcoOmniPlanExecution {
         var exactInputs = BigInteger.ZERO;
         for (var task : plan.tasks()) {
             var count = remaining.getOrDefault(task.id(), BigInteger.ZERO);
-            exactInputs = exactInputs.add(EcoCpuDispatchLedger.reservedInput(bindings.get(task.id()), count, key));
+            exactInputs = exactInputs.add(OmniCpuDispatchLedger.reservedInput(bindings.get(task.id()), count, key));
         }
         // Keep startup stock in addition to exact demand even when ECO's long sum saturates.
         var startup = BigInteger.valueOf(access.ecoOmni$protectedSeed(null).getOrDefault(key, 0L));
@@ -383,6 +385,27 @@ public final class EcoOmniPlanExecution {
             return upper;
         }
 
+        /** Stateful tool pools may spend validated wear variants of the extracted prototype. */
+        public boolean allowsInputKeys(KeyCounter[] prototype, Set<AEKey> actualKeys, Level level) {
+            check();
+            var inputs = pattern().getInputs();
+            for (var key : actualKeys) {
+                boolean allowed = false;
+                for (int slot = 0; slot < prototype.length && !allowed; slot++) {
+                    for (var entry : prototype[slot]) {
+                        if (entry.getLongValue() > 0 && (entry.getKey().equals(key)
+                                || MolecularReusableInputAdapters.isDeterministicDamageVariant(
+                                        inputs[slot], entry.getKey(), key, level))) {
+                            allowed = true;
+                            break;
+                        }
+                    }
+                }
+                if (!allowed) return false;
+            }
+            return true;
+        }
+
         /** Use this instead of CraftingCpuHelper for ECO inputs; provider sees the original pattern. */
         public KeyCounter[] extractInputs(ICraftingInventory guardedPhysical, Level level,
                 KeyCounter expectedOutputs, KeyCounter containers) {
@@ -415,7 +438,11 @@ public final class EcoOmniPlanExecution {
                             if (ECOProcessingComponentMatching.enabled(original, possible.what(), owner.fuzzy)
                                     && ECOProcessingComponentMatching.sameItem(key, possible.what())) fuzzyMatch = true;
                         }
-                        if (allocationRun != null && !allocationRun.key().equals(key) && !fuzzyMatch) return false;
+                        // Pin components and consumables, not the damage state
+                        // returned by a previous accepted reusable-tool batch.
+                        if (allocationRun != null && !allocationRun.key().equals(key) && !fuzzyMatch
+                                && !MolecularReusableInputAdapters.isDeterministicDamageVariant(
+                                        delegate, allocationRun.key(), key, world)) return false;
                         return delegate.isValid(key, world) || fuzzyMatch;
                     }
                     @Override public AEKey getRemainingKey(AEKey key) { return delegate.getRemainingKey(key); }

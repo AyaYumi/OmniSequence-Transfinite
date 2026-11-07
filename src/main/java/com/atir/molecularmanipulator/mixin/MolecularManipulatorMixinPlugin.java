@@ -51,7 +51,7 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("Eco")) {
             var eco = loadingModList == null ? null : loadingModList.getModFileById("neoecoae");
             return eco != null && eco.getMods().stream().anyMatch(mod -> mod.getModId().equals("neoecoae")
-                    && mod.getVersion().compareTo(new org.apache.maven.artifact.versioning.DefaultArtifactVersion("21.2.9")) >= 0);
+                    && mod.getVersion().compareTo(new org.apache.maven.artifact.versioning.DefaultArtifactVersion("21.2.10")) >= 0);
         }
         if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("LightningWireless")) {
             // Private scheduler hooks are verified against this exact implementation.
@@ -68,6 +68,12 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         }
         if (mixinClassName.endsWith(".ThunderboltMatterPatternBatchMixin")) {
             return loadingModList != null && loadingModList.getModFileById("thunderbolt") != null;
+        }
+        if (mixinClassName.endsWith(".DataEnergisticsDepotSimulationMixin")) {
+            var data = loadingModList == null ? null : loadingModList.getModFileById("data_energistics");
+            return data != null && data.getMods().stream().anyMatch(mod ->
+                    mod.getModId().equals("data_energistics")
+                            && java.util.Set.of("3.3.0", "3.3.5").contains(mod.getVersion().toString()));
         }
         if (mixinClassName.endsWith(".DataEnergisticsCpuIdentityMixin")) {
             return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;
@@ -92,6 +98,12 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
                 || mixinClassName.endsWith(".Ae2UtilityJeiKeyMixin")) {
             return loadingModList != null && loadingModList.getModFileById("jei") != null
                     && loadingModList.getModFileById("ae2utility") != null;
+        }
+        if (mixinClassName.endsWith(".ExtendedAEPlusFabricationProviderCacheMixin")
+                || mixinClassName.endsWith(".ExtendedAEPlusFabricationProviderUploadMixin")) {
+            var eaep = loadingModList == null ? null : loadingModList.getModFileById("extendedae_plus");
+            return eaep != null && eaep.getMods().stream().anyMatch(mod ->
+                    mod.getModId().equals("extendedae_plus") && mod.getVersion().toString().equals("1.6.4.1"));
         }
         if (EXTENDEDAE_PLUS_UPLOAD_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("extendedae_plus") != null;

@@ -1,8 +1,8 @@
 # 物质构筑井：配方与研究 API
 
 自 OmniSequence: Transfinite **2.0.0** 起提供，当前对应 **2.1.0**。
-目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.17+**，以及必需前置
-Applied Enhancements **1.1.0+**（本次配套 **1.1.1**）。模组 ID 仍为 `molecularmanipulator`。
+目标环境：Minecraft **1.21.1** / NeoForge、Java **21**、AE2 **19.2.18**，以及必需前置
+Applied Enhancements **1.1.2+**（编译 API **1.1.4**）。模组 ID 仍为 `molecularmanipulator`。
 
 其他语言：[English](matter-research-api.md)。
 另见[接口索引](README.md)与独立的[批量供应器 API v1](omni-batch-provider-api.zh-CN.md)。
@@ -281,6 +281,11 @@ ServerEvents.recipes(event => {
 1 tick。没有引擎时倍率为 1。所有内置构筑配方与桥接生成默认均为 400 tick（20 秒）；
 显式自定义 `processing_time` 仍会保留。研究自身的 `duration` 独立于生产速度与此默认值。
 
+没有归属研究且 `requires_research: false` 的基础配方仍然无需研究即可使用，但会继承一阶
+基础研究 `molecularmanipulator:research/ae_foundation` 已完成深度的并行上限。尚未完成
+该研究（或定义不存在）时，并行上限仍为 `1`。明确归属研究的配方只使用所属研究的并行
+上限。两种情况下的生产速度都由网络中的星算引擎提供；该回退不会开放研究门控配方。
+
 ---
 
 ## 4. 构筑井配方：`molecularmanipulator:matter_fabrication`
@@ -386,8 +391,11 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 
 JEI 编码以服务端配方定义和玩家选择的合法物品替代项为准，包含所有消耗物品、
 流体、通用 AE 输入及全部副产物；催化剂不写入样板输入。上传需要有效的编码
-终端、一张空白样板和玩家所属队伍有空位的总成。服务端重新检查当前配方、输入
-选择和目标，客户端数量不能改写配方。上传辅助类和载荷属于内部实现，不是公开 Java API。
+终端、一张可提取的空白样板，以及玩家所属队伍已加载、已成型构筑井中有空位的总成。
+先用终端空白槽，槽为空时再从相连 ME 网络提取；网络中只有一张也可使用。总成名称仅用于
+显示，不作为目标身份。新增的 ExtendedAE Plus 自动选取供应器与上传兼容仅针对 1.6.4.1，
+按机器类型和队伍识别，支持重命名总成。服务端重新检查当前配方、输入选择和目标，客户端
+数量不能改写配方。上传辅助类和载荷属于内部实现，不是公开 Java API。
 
 ## 5. 材料、扣料与保存
 
@@ -510,7 +518,7 @@ tick 功耗乘本批份数计收。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。
 - 无样板队列只在样板定义消失时退款，匹配到的配方变化不会触发退款。
 
-产物索引与 API 准入都不应被视为这两类问题的修复。
+产物索引与 API 准入都不应被视为这些问题的修复。
 
 ---
 
@@ -605,7 +613,7 @@ var definitions = MatterResearchApi.definitions(serverLevel);
 | `start(controller, id)`、`setPaused(controller, id, paused)` | 返回操作是否被接受。`start` 对已存在的任务执行恢复而不是失败；研究不存在、不可用、已满级、有待退款或不满足前置时返回 `false`。下单启动的任务拒绝 `setPaused`；普通手动任务的 `setPaused(..., false)` 会重新检查结构、网络、退款与前置并补扣未支付部分，因此也可能返回 `false`。 |
 | `completionCount`、`isCompleted` | 查询完成次数；`isCompleted` 表示至少完成 1 次，不是满级。 |
 | `canUseRecipe`、`isRecipeUnlocked` | 供其他配方执行器使用的权限检查，调用方需自行调用以实施自己的规则。`canUseRecipe` 接收 `RecipeHolder<MatterFabricationRecipe>`。 |
-| `productionProfile` | 返回 `(parallel, ticks)`：取已完成归属研究的最高并行，无归属时为 `1`；耗时由当前配方基础时间与 `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)` 决定，独立于研究深度。 |
+| `productionProfile` | 返回 `(parallel, ticks)`：取已完成归属研究的最高并行；无归属且无需研究的配方继承 `ae_foundation` 已完成深度的并行，否则为 `1`。耗时由当前配方基础时间与 `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)` 决定，独立于研究深度。 |
 | `setCompletionCount`、`setCompleted`、`unlockAll` | 管理性修改，按当前最大深度钳制并结束受影响的在研任务；退回备料缓存，已开始研究的费用仍被消耗。负数会抛异常；次数为 `int`，`unlockAll` 返回处理过的定义数量。三者都不检查权限——由调用方负责。 |
 | `prerequisitesMet`、`requiredPrerequisiteLevel` | 每个前置默认要求 1 次；前置不在传入的 `available` 列表中时返回 `false`，因此应传入 `definitions(level)`。Java 映射值 `0` 对应数据包中的 `"max"`。 |
 

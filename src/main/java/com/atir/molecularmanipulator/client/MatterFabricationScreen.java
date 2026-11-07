@@ -39,7 +39,10 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
     @Override
     protected void init() {
         var selection=researchPanel==null?null:researchPanel.selection();
-        ui=new OsqUi("fab_overview");imageWidth=ui.layout.width;imageHeight=ui.layout.height;super.init();
+        ui=new OsqUi("fab_overview");imageWidth=ui.layout.width;imageHeight=ui.layout.height+24;super.init();
+        // A fitted footer keeps the effect control clear of both research tabs and native inventory slots.
+        addScreenWidget(new MachineEffectButton(leftPos + imageWidth - 128, topPos + ui.layout.height + 3, 120,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         ui.inventory(menu);ui.slots(menu.getSlots(appeng.menu.SlotSemantics.MACHINE_INPUT),"qes");
         buildButton=addScreenWidget(ui.button("build",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fabrication.build"),menu::requestBuild));
         updateButton=addScreenWidget(ui.button("build",leftPos,topPos,()->Component.translatable(updateConfirmation.isArmed()

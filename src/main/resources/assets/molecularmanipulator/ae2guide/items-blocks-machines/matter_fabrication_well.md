@@ -47,13 +47,15 @@ There are **44 service positions**: 24 on the front steps and four groups of fiv
 
 Research and processing can run together. If work cannot start, check the structure, power, research requirements and output capacity.
 
+The controller's **Effects** button chooses 0 off, 1 reduced or 2 full for this well and all viewers, without changing production. Shift-click restores each client's global setting.
+
 ## Quantum connection
 
 Place one **Quantum Entangled Singularity** in the controller's quantum slot and its partner in a powered AE2 quantum bridge to connect remote ME storage. The link requires an additional **512 AE/t and one channel** and can supply construction materials before the well is formed.
 
 ## Dismantling and relocation
 
-**Dismantle** keeps the controller and returns structure materials to ME first, then your inventory. If both destinations are full, clear space to resume recovery.
+**Reclaim Package** seals the controller, installed structure and all internal contents into one lightweight package. Click once, then confirm within three seconds. Research, patterns, catalysts, fluids and settings stay in this world's archive; settle external ME crafting jobs first. See [Folded Buildings and Relocation](folded_buildings.md).
 
 Normal controller removal retains research progress, accepted work and the quantum slot. Ports retain their caches, and assemblies retain patterns and processing materials. Restore the structure, network and power to continue.
 

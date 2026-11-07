@@ -30,7 +30,7 @@ The hub produces every item in its resource list simultaneously. Defaults includ
 
 By default, each resource produces **1000 items every 20 ticks**, about one second at normal TPS. An item matching multiple tags appears only once. There is no need to switch collection targets.
 
-The page displays the server's current batch size and interval. Select **Guide** to open this page from the controller.
+The complete resource list, batch size and interval come from the server, using the same filtered list as production. Client-local tags and configuration do not replace it. Large lists arrive in bounded chunks and replace the display only after a complete snapshot is received. Select **Guide** to open this page from the controller.
 
 ## Resource list
 
@@ -50,4 +50,4 @@ Only tag members present in the pack enter the list. Blacklisted items are neith
 
 ## Stopping and waiting
 
-Select **Stop Collection** to stop production and dock the multiblock hub. An offline network, incomplete structure or insufficient storage makes the device wait for operating conditions to recover. Products do not spill into the world when storage is full.
+Select **Stop Collection** to stop production and dock the multiblock hub. Temporary chunk unavailability pauses motion and preserves the collection session; normal AE2 network startup after a reload also waits for initialization. Missing structure, a genuinely disconnected network or a construction operation may stop collection, so check the status and restart after fixing it. Insufficient storage blocks production without spilling products into the world. Missed cycles are not replayed.

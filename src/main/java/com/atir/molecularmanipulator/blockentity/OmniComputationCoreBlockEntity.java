@@ -65,7 +65,7 @@ import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity implements InternalInventoryHost {
+public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity implements InternalInventoryHost, MachineEffectHost {
     public static final long INFINITE_STORAGE = Long.MAX_VALUE;
     public static final long INFINITE_PARALLELISM = Long.MAX_VALUE;
     public static final int AE2_MAX_THREADS_PER_BLOCK = 16;
@@ -113,6 +113,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private final AtomicLong completedMaterialCalculations = new AtomicLong();
     private final AtomicLong lastMaterialCalculationNanos = new AtomicLong();
     private final boolean singleBlock;
+    private final MachineEffectSettings machineEffects = new MachineEffectSettings();
     private final AppEngInternalInventory quantumInventory;
     private OmniComputationStructure.Inspection inspection =
             new OmniComputationStructure.Inspection(OmniComputationStructure.structureBlockCount(), 0,
@@ -175,6 +176,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         getMainNode()
                 .setFlags(GridFlags.MULTIBLOCK, GridFlags.REQUIRE_CHANNEL)
                 .setIdlePowerUsage(idlePowerUsage());
+    }
+
+    @Override
+    public MachineEffectSettings getMachineEffects() {
+        return machineEffects;
     }
 
     public boolean isSingleBlock() {
@@ -1173,6 +1179,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         data.writeVarInt(syncedVisualActivity);
         data.writeBoolean(visualFormed);
         data.writeVarInt(getVisualLayout().ordinal());
+        machineEffects.write(data);
     }
 
     @Override
@@ -1195,6 +1202,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         visualFormed = nextFormed;
         visualLayout = nextLayout;
         structureFormed = singleBlock || nextFormed;
+        changed |= machineEffects.read(data);
         return changed;
     }
 
@@ -1784,6 +1792,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        machineEffects.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
         tag.putBoolean(STRUCTURE_FORMED_TAG, structureFormed);
@@ -1860,6 +1869,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             tag.remove(DISMANTLE_PLAN_TAG);
         }
         super.loadTag(tag, registries);
+        machineEffects.load(tag);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         legacyStructureUpdateDismissed = tag.getBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG);
         try {

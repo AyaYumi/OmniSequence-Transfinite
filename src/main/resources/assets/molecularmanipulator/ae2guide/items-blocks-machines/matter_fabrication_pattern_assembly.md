@@ -31,9 +31,9 @@ Manage multiple assemblies through a Pattern Access Terminal. Naming them makes 
 
 ## Uploading from JEI
 
-Open a fabrication recipe in JEI from a **Pattern Encoding Terminal**, then select **Encode and upload to fabrication well**. This uses one blank pattern from the terminal, encodes the recipe quantities and uploads it to a formed well belonging to your team. It prefers the nearest assembly with space in your dimension.
+Open a fabrication recipe in JEI from a **Pattern Encoding Terminal**, then select **Encode and upload to fabrication well**. This uses one blank pattern from the terminal, or from its connected ME network when the local slot is empty, encodes the recipe quantities and uploads it to a formed well belonging to your team. A single network blank is enough. It prefers the nearest assembly with space in your dimension.
 
-The destination chunk must be loaded. Missing assemblies, full inventories, duplicate patterns and missing blanks do not consume a blank pattern.
+The destination chunk must be loaded. Missing assemblies, full inventories, duplicate patterns and missing blanks do not consume a blank pattern. Custom assembly names do not affect destination lookup. The additional ExtendedAE Plus automatic-provider selection and upload hooks target **1.6.4.1** only and identify assemblies by machine type and team.
 
 Wells bind to the placer's FTB team when placed, or to the individual without FTB Teams. Re-place the controller to change its team binding. If no upload destination is found, check team ownership, formation and chunk loading.
 

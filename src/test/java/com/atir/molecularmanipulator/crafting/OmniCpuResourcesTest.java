@@ -39,6 +39,10 @@ class OmniCpuResourcesTest {
             }
         }
         assertEquals(Integer.MAX_VALUE - 1, OmniCpuResources.coProcessors(Long.MAX_VALUE));
+        assertEquals(0, OmniCpuResources.coProcessors(0));
+        for (long parallel : new long[] {1, 2, 64, 1L << 20}) {
+            assertEquals(parallel, (long) OmniCpuResources.coProcessors(parallel) + 1);
+        }
     }
 
     @Test void oldLanesShareOnePhysicalDispatchAllowanceEvenWhenThereAreMoreLanesThanSlots() {
@@ -54,6 +58,7 @@ class OmniCpuResourcesTest {
                     assertEquals(total, sum);
                     assertTrue(sum <= parallel);
                 }
+                assertEquals(Math.min(parallel, Integer.MAX_VALUE), (long) total);
             }
         }
     }

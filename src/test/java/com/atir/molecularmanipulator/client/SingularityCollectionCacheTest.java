@@ -3,7 +3,10 @@ package com.atir.molecularmanipulator.client;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.atir.molecularmanipulator.menu.SingularityMenu;
+import com.atir.molecularmanipulator.network.SingularityCollectionPayload;
+import com.atir.molecularmanipulator.network.SingularityCollectionState;
 import java.util.List;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,15 +15,15 @@ import org.junit.jupiter.api.Test;
 class SingularityCollectionCacheTest {
     @BeforeAll static void bootstrap() throws Exception { Class.forName(UiRenderRecorder.class.getName()); }
 
-    @Test void sameRawSourceReusesBothTheListAndItsDisplayStacks() throws Exception {
-        var menu = ResponsiveScreenTestFixture.allocate(SingularityMenu.class);
+    @Test void completedSnapshotReusesBothTheListAndItsDisplayStacksAcrossFrames() throws Exception {
+        var menu = menu();
         var screen = screen(menu);
-        menu.collectionItems = "minecraft:iron_ingot,minecraft:copper_ingot";
+        assertTrue(menu.acceptCollectionResources(chunk(1, 0, 2, Items.IRON_INGOT, Items.COPPER_INGOT)));
         var first = resources(screen);
-        menu.collectionItems = new String(menu.collectionItems);
+        assertSame(menu.collectionResources(), first);
         menu.collectionBatchSize = 10_000;
         menu.collectionActive = true;
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1_000; i++) {
             var reused = resources(screen);
             assertSame(first, reused);
             assertSame(first.getFirst(), reused.getFirst());
@@ -29,39 +32,58 @@ class SingularityCollectionCacheTest {
         assertTrue(first.stream().allMatch(stack -> stack.getCount() == 1), "Batch quantities must not alter display stacks");
     }
 
-    @Test void parsingKeepsOrderDuplicatesAndTheExistingInvalidIdRules() throws Exception {
-        var menu = ResponsiveScreenTestFixture.allocate(SingularityMenu.class);
+    @Test void screenKeepsThePreviousCompleteListWhileReplacementChunksAreInFlight() throws Exception {
+        var menu = menu();
         var screen = screen(menu);
-        menu.collectionItems = " , minecraft:iron_ingot,INVALID ID,test:not_registered,minecraft:air,diamond,minecraft:iron_ingot,,";
-        var parsed = resources(screen);
-        assertEquals(List.of(Items.IRON_INGOT, Items.DIAMOND, Items.IRON_INGOT), parsed.stream().map(ItemStack::getItem).toList());
-        assertNotSame(parsed.getFirst(), parsed.getLast(), "Duplicate entries still represent separate display stacks");
-        assertThrows(UnsupportedOperationException.class, () -> parsed.clear());
+        assertTrue(menu.acceptCollectionResources(chunk(1, 0, 1, Items.IRON_INGOT)));
+        var previous = resources(screen);
+        assertTrue(menu.acceptCollectionResources(chunk(2, 0, 4, Items.COPPER_INGOT, Items.DIAMOND)));
+        assertSame(previous, resources(screen));
+        assertFalse(menu.acceptCollectionResources(new SingularityCollectionPayload(8, 3, 0, 0, List.of())),
+                "Another container's packet must not reset this menu's receiver");
+        assertSame(previous, resources(screen));
+        assertTrue(menu.acceptCollectionResources(chunk(2, 2, 4, Items.AIR, Items.COPPER_INGOT)));
+        var complete = resources(screen);
+        assertEquals(List.of(Items.COPPER_INGOT, Items.DIAMOND, Items.COPPER_INGOT),
+                complete.stream().map(ItemStack::getItem).toList());
+        assertNotSame(complete.getFirst(), complete.getLast(), "Duplicate identities still represent separate display stacks");
+        assertThrows(UnsupportedOperationException.class, complete::clear);
+        assertEquals(Items.IRON_INGOT, previous.getFirst().getItem());
     }
 
-    @Test void replacingAndClearingTheSourceInvalidatesWithoutChangingPageState() throws Exception {
-        var menu = ResponsiveScreenTestFixture.allocate(SingularityMenu.class);
+    @Test void replacingAndClearingTheSnapshotDoesNotRebuildScreenPageState() throws Exception {
+        var menu = menu();
         var screen = screen(menu);
         ResponsiveScreenTestFixture.set(screen, "collectionScroll", 2);
-        menu.collectionItems = "minecraft:iron_ingot";
+        assertTrue(menu.acceptCollectionResources(chunk(1, 0, 1, Items.IRON_INGOT)));
         var first = resources(screen);
-        menu.collectionItems = "minecraft:diamond";
+        assertTrue(menu.acceptCollectionResources(chunk(2, 0, 1, Items.DIAMOND)));
         var changed = resources(screen);
         assertNotSame(first, changed);
         assertEquals(Items.DIAMOND, changed.getFirst().getItem());
-        menu.collectionItems = "";
+        assertTrue(menu.acceptCollectionResources(chunk(3, 0, 0)));
         assertEquals(List.of(), resources(screen));
         assertSame(resources(screen), resources(screen));
         var scroll = SingularityScreen.class.getDeclaredField("collectionScroll");
         scroll.setAccessible(true);
-        assertEquals(2, scroll.getInt(screen), "Data caching does not introduce new paging/input behavior");
+        assertEquals(2, scroll.getInt(screen), "Snapshot caching does not rebuild the screen or its input state");
+    }
+
+    private static SingularityMenu menu() throws Exception {
+        var menu = ResponsiveScreenTestFixture.allocate(SingularityMenu.class);
+        ResponsiveScreenTestFixture.set(menu, "containerId", 7);
+        ResponsiveScreenTestFixture.set(menu, "collectionState", new SingularityCollectionState());
+        return menu;
     }
 
     private static SingularityScreen screen(SingularityMenu menu) throws Exception {
         var screen = ResponsiveScreenTestFixture.allocate(SingularityScreen.class);
         ResponsiveScreenTestFixture.set(screen, "menu", menu);
-        ResponsiveScreenTestFixture.set(screen, "cachedCollectionResources", List.of());
         return screen;
+    }
+
+    private static SingularityCollectionPayload chunk(long generation, int offset, int total, Item... items) {
+        return new SingularityCollectionPayload(7, generation, offset, total, List.of(items));
     }
 
     @SuppressWarnings("unchecked")

@@ -15,6 +15,9 @@ import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProviders;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
+import com.appliedenhancements.api.AelisBatchExecutionContext;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchReceipt;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -49,9 +52,9 @@ public final class EcoCpuDispatch {
     public int execute(EcoOmniPlanCpuAccess host, int maxPatterns, CraftingService crafting,
             IEnergyService power, Level level) {
         if (suspended() || dispatching) return 0;
-        if (!host.ecoDispatch$enabled()) return -1;
-        if (host.ecoDispatch$stopped() || host.ecoOmni$paused() || maxPatterns <= 0) return 0;
-        if (host.ecoDispatch$jobId() == null) return -1;
+        if (!host.omniDispatch$enabled()) return -1;
+        if (host.omniDispatch$stopped() || host.ecoOmni$paused() || maxPatterns <= 0) return 0;
+        if (host.omniDispatch$jobId() == null) return -1;
         dispatching = true;
         try {
             var execution = host instanceof EcoOmniPlanCpu plan ? plan.ecoOmni$getExecution() : null;
@@ -59,25 +62,29 @@ public final class EcoCpuDispatch {
             var patterns = execution == null ? List.copyOf(host.ecoOmni$tasks().keySet())
                     : execution.candidatePatterns();
             if (execution == null) {
-                var preferred = host.ecoDispatch$preferredPattern();
+                var preferred = host.omniDispatch$preferredPattern();
                 // Yield to vanilla when the selected ordinary task needs it;
                 // another ready ECO task must not take that task's turn.
                 if (preferred != null && patterns.contains(preferred)) patterns = List.of(preferred);
             }
             var providerCache = new IdentityHashMap<ICraftingProvider, ProviderCandidate>();
             for (var pattern : patterns) {
-                if (host.ecoDispatch$stopped()) return 0;
+                if (host.omniDispatch$stopped()) return 0;
                 // Filtering before the phase token and preview keeps unsupported patterns from
                 // touching the CPU inventory or starting phase preparation at all.
                 var candidates = supportedProviders(crafting, pattern, providerCache);
                 if (candidates.isEmpty()) continue;
+                // Native AELIS cycles must retain the shared executor's ordered
+                // progress and seed accounting, not an ECO-only transaction.
+                if (execution == null && AelisBatchExecutionContext.acquire(pattern.getDefinition(),
+                        host.omniDispatch$physicalView()).hasCycleProtection()) return -1;
                 var token = execution == null ? null : execution.begin(pattern);
                 if (execution != null && token == null) continue;
-                BigInteger limit = host.ecoDispatch$remaining(pattern);
-                if (!host.ecoDispatch$virtualCpu()) limit = limit.min(BigInteger.ONE);
+                BigInteger limit = host.omniDispatch$remaining(pattern);
+                if (!host.omniDispatch$virtualCpu()) limit = limit.min(BigInteger.ONE);
                 if (token != null) limit = limit.min(token.maximum());
                 if (limit.signum() <= 0) continue;
-                var preview = new PreviewInventory(host.ecoDispatch$physicalView());
+                var preview = new PreviewInventory(host.omniDispatch$physicalView());
                 ICraftingInventory guarded = token == null ? preview
                         : token.guard(preview, host::ecoOmni$physicalAmount);
                 var outputs = new KeyCounter();
@@ -92,7 +99,7 @@ public final class EcoCpuDispatch {
                 final var phase = token;
                 PrototypeCost cost = null;
                 for (var candidate : candidates) {
-                    if (host.ecoDispatch$stopped()) return 0;
+                    if (host.omniDispatch$stopped()) return 0;
                     var provider = candidate.provider();
                     // Busy stays a live check, never part of the execute-scoped metadata cache.
                     if (provider.isBusy()) continue;
@@ -135,9 +142,9 @@ public final class EcoCpuDispatch {
         if (phase != null && phase.limit(prototype, host::ecoOmni$physicalAmount, BigInteger.ONE).signum() <= 0)
             return Outcome.REJECTED;
         if (!cost.usable()) return Outcome.REJECTED;
-        var receipt = new EcoCpuDispatchReceipt(host.ecoDispatch$jobId(), pattern, BigInteger.ONE,
+        var receipt = new OmniCpuDispatchReceipt(host.omniDispatch$jobId(), pattern, BigInteger.ONE,
                 cost.units(), totals(outputs), totals(remainders), false);
-        var lease = host.ecoDispatch$reserveExact(receipt.inputs());
+        var lease = host.omniDispatch$reserveExact(receipt.inputs());
         if (lease == null) return Outcome.REJECTED;
         return transact(host, receipt, lease, power, account -> {
             var paid = account.reserve(cost.singlePower());
@@ -152,8 +159,8 @@ public final class EcoCpuDispatch {
             boolean accepted;
             try {
                 accepted = parallel != null
-                        ? parallel.eco$pushPatternBatch(pattern, delivery, 1, host.ecoDispatch$jobId())
-                        : ECOFastPathFacade.pushPatternForJob(provider, pattern, delivery, host.ecoDispatch$jobId());
+                        ? parallel.eco$pushPatternBatch(pattern, delivery, 1, host.omniDispatch$jobId())
+                        : ECOFastPathFacade.pushPatternForJob(provider, pattern, delivery, host.omniDispatch$jobId());
             }
             catch (RuntimeException uncertain) {
                 paid.commit();
@@ -171,7 +178,7 @@ public final class EcoCpuDispatch {
         if (!cost.usable()) return Outcome.REJECTED;
         double singlePower = cost.singlePower();
         var units = cost.units();
-        if (host.ecoDispatch$exactOrder() && remainders.isEmpty()) {
+        if (host.omniDispatch$exactOrder() && remainders.isEmpty()) {
             BigInteger exactLimit = limit;
             for (var entry : units.entrySet()) exactLimit = exactLimit.min(
                     host.ecoOmni$physicalAmount(entry.getKey()).divide(entry.getValue()));
@@ -179,12 +186,12 @@ public final class EcoCpuDispatch {
             exactLimit = energy.maximum(power, singlePower, exactLimit);
             var exact = exactLimit.compareTo(BigInteger.TWO) < 0 ? null
                     : ECOFastPathFacade.prepareExactAllocated(provider, pattern, prototype,
-                            exactLimit, level, host.ecoDispatch$jobId());
+                            exactLimit, level, host.omniDispatch$jobId());
             if (exact != null) {
                 var count = exact.craftCount();
-                var receipt = new EcoCpuDispatchReceipt(host.ecoDispatch$jobId(), pattern, count,
+                var receipt = new OmniCpuDispatchReceipt(host.omniDispatch$jobId(), pattern, count,
                         multiply(units, count), multiply(totals(outputs), count), Map.of(), true);
-                var lease = host.ecoDispatch$reserveExact(receipt.inputs());
+                var lease = host.omniDispatch$reserveExact(receipt.inputs());
                 if (lease != null) {
                     var result = transact(host, receipt, lease, power, account -> {
                         // Exact API has no energy transaction; the CPU pays every copy before submit.
@@ -207,22 +214,22 @@ public final class EcoCpuDispatch {
         long bounded = limit.min(LONG_MAX).longValueExact();
         var batch = parallel == null
                 ? ECOFastPathFacade.prepare(provider, pattern, prototype, outputs, remainders,
-                        host.ecoDispatch$inventory(), bounded, singlePower, energy.simulation(power),
-                        level, host.ecoDispatch$jobId())
+                        host.omniDispatch$inventory(), bounded, singlePower, energy.simulation(power),
+                        level, host.omniDispatch$jobId())
                 : ECOFastPathFacade.prepareParallel(parallel, pattern, prototype, outputs, remainders,
-                        host.ecoDispatch$inventory(), bounded, singlePower, energy.simulation(power),
-                        level, host.ecoDispatch$jobId());
+                        host.omniDispatch$inventory(), bounded, singlePower, energy.simulation(power),
+                        level, host.omniDispatch$jobId());
         if (batch == null || batch.craftCount() < 1) return Outcome.REJECTED;
         if (BigInteger.valueOf(batch.craftCount()).compareTo(limit) > 0)
             throw new IllegalStateException("ECO batch exceeds its pinned phase/input-allocation allowance");
         // Exact totals remain exact even when per-key sums exceed the GenericStack long window.
-        var receipt = new EcoCpuDispatchReceipt(host.ecoDispatch$jobId(), pattern,
+        var receipt = new OmniCpuDispatchReceipt(host.omniDispatch$jobId(), pattern,
                 BigInteger.valueOf(batch.craftCount()), batch.exactInputTotal(), totals(batch.outputs()),
                 totals(batch.remainders()), false);
         if (phase != null) {
-            // Stateful calculators inspect real stock directly. They must not switch to an input
-            // variant outside the allocation pinned by the prototype, even within a DAG phase.
-            if (!units.keySet().containsAll(receipt.inputs().keySet())) return Outcome.REJECTED;
+            // Preserve allocated consumables and components, while allowing the
+            // deterministic damage states returned by previous tool batches.
+            if (!phase.allowsInputKeys(prototype, receipt.inputs().keySet(), level)) return Outcome.REJECTED;
             var seeds = phase.protectedSeeds();
             for (var entry : receipt.inputs().entrySet()) {
                 var free = host.ecoOmni$physicalAmount(entry.getKey())
@@ -240,24 +247,24 @@ public final class EcoCpuDispatch {
     }
 
     /** One-way boundary, also exercised directly against real ECO batches by isolated tests. */
-    Outcome transact(EcoCpuDispatchHost host, EcoCpuDispatchReceipt receipt, EcoCpuDispatchHost.Lease materials,
+    Outcome transact(OmniCpuDispatchHost host, OmniCpuDispatchReceipt receipt, OmniCpuDispatchHost.Lease materials,
             IEnergyService power, Submission submission, Runnable phaseAccepted) {
-        EcoCpuDispatchHost.Accounting accounting = null;
+        OmniCpuDispatchHost.Accounting accounting = null;
         boolean retained = false;
         try {
             journal.arm(receipt);
-            accounting = host.ecoDispatch$stage(receipt);
+            accounting = host.omniDispatch$stage(receipt);
             if (accounting == null) {
                 if (materials != null) materials.refund();
                 journal.complete();
-                host.ecoDispatch$markDirty();
+                host.omniDispatch$markDirty();
                 return Outcome.REJECTED;
             }
-            host.ecoDispatch$markDirty();
+            host.omniDispatch$markDirty();
             boolean accepted = submission.submit(amount -> {
                 try {
                     var result = energy.reserve(power, amount, receipt.crafts());
-                    host.ecoDispatch$markDirty();
+                    host.omniDispatch$markDirty();
                     return result;
                 } catch (RuntimeException failure) {
                     throw new ECOIndeterminateBatchException("CPU energy reservation is uncertain", failure);
@@ -267,7 +274,7 @@ public final class EcoCpuDispatch {
                 accounting.rollback();
                 if (materials != null) materials.refund();
                 journal.complete();
-                host.ecoDispatch$markDirty();
+                host.omniDispatch$markDirty();
                 return Outcome.REJECTED;
             }
             retained = true;
@@ -275,7 +282,7 @@ public final class EcoCpuDispatch {
             phaseAccepted.run();
             accounting.commit();
             journal.complete();
-            host.ecoDispatch$markDirty();
+            host.omniDispatch$markDirty();
             return Outcome.ACCEPTED;
         } catch (RuntimeException | Error failure) {
             if (!journal.pending()) journal.arm(receipt);
@@ -294,11 +301,11 @@ public final class EcoCpuDispatch {
             throw error;
     }
 
-    private void pause(EcoCpuDispatchHost host, EcoCpuDispatchReceipt receipt, Throwable failure) {
+    private void pause(OmniCpuDispatchHost host, OmniCpuDispatchReceipt receipt, Throwable failure) {
         journal.suspend(failure.toString());
-        try { host.ecoDispatch$pause(receipt, failure.toString()); }
+        try { host.omniDispatch$pause(receipt, failure.toString()); }
         finally {
-            host.ecoDispatch$markDirty();
+            host.omniDispatch$markDirty();
             RateLimitedLog.error("Omni ECO dispatch suspended; retained inputs must not be refunded or replayed", failure);
         }
     }

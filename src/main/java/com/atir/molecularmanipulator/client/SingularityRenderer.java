@@ -11,7 +11,7 @@ import com.atir.molecularmanipulator.client.render.SingularityStructureEffects;
 import com.atir.molecularmanipulator.client.render.SingularityEffectState;
 import com.atir.molecularmanipulator.client.render.SingularityStellarCore;
 import com.atir.molecularmanipulator.client.render.SingularityWhiteHoleRenderer;
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import com.atir.molecularmanipulator.world.SingularityMotionWorld;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -33,13 +33,16 @@ public final class SingularityRenderer implements BlockEntityRenderer<Singularit
     public SingularityRenderer(BlockEntityRendererProvider.Context context) {}
     @Override public void render(SingularityBlockEntity machine, float partialTick, PoseStack poses,
                                  MultiBufferSource buffers, int light, int overlay) {
+        int detail = MachineEffectLevels.forMachine(machine);
+        // Recheck at draw time too: an early-prepared snapshot must not bypass a new off override.
+        if (machine.isSingleBlock() || !machine.formed() || detail <= 0 || machine.getLevel() == null) return;
         var snapshot = EarlyFrameGeometry.take(this, machine, partialTick, poses);
         if (snapshot == null) snapshot = capture(machine, partialTick, poses, geometry);
         if (snapshot == null) return;
         var frame = snapshot;
         try (frame) {
             var localPoses = snapshot.poses();
-            // The suspended crystals remain visible even with decorative effects disabled.
+            // Physical moving block meshes are rendered independently by SingularityAssemblyRenderer.
             var crystal = SingularityEffectLayers.crystal(buffers);
             try (var batch = SingularityShaderVertices.batch(crystal)) {
                 if (snapshot.prepared() != null) snapshot.prepared().submit(0, crystal);
@@ -78,9 +81,10 @@ public final class SingularityRenderer implements BlockEntityRenderer<Singularit
     public Snapshot capture(SingularityBlockEntity machine, float partialTick, PoseStack base,
             ParallelEffectGeometry geometry) {
         if (machine.isSingleBlock()) return null;
-        int detail = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        int detail = MachineEffectLevels.forMachine(machine);
         boolean suspended = machine.structureVersion() >= SingularityStructure.VERSION;
-        if (!machine.formed() || detail <= 0 && !suspended || machine.getLevel() == null) return null;
+        // Do not schedule decorative geometry or the scene lens for an off machine.
+        if (!machine.formed() || detail <= 0 || machine.getLevel() == null) return null;
         var center = machine.worldPos(new BlockPos(0, 64, 0)).subtract(machine.getBlockPos());
         double now = machine.getLevel().getGameTime() + (double) partialTick;
         int mode = 0;

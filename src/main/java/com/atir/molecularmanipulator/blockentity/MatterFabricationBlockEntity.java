@@ -69,7 +69,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntity {
+public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntity implements MachineEffectHost {
+    private final MachineEffectSettings machineEffects = new MachineEffectSettings();
+
+    @Override
+    public MachineEffectSettings getMachineEffects() {
+        return machineEffects;
+    }
+
     public static final int INPUT_SLOTS = 4;
     public static final int OUTPUT_SLOTS = 2;
     public static final double IDLE_POWER = 16.0;
@@ -1893,6 +1900,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        machineEffects.save(tag);
         tag.putBoolean(TEAM_BOUND_TAG, teamBindingInitialized);
         if (boundTeam != null) tag.putUUID(TEAM_TAG, boundTeam); else tag.remove(TEAM_TAG);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
@@ -1942,6 +1950,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
+        machineEffects.load(tag);
         boundTeam = tag.hasUUID(TEAM_TAG) ? tag.getUUID(TEAM_TAG) : null;
         teamBindingInitialized = tag.getBoolean(TEAM_BOUND_TAG) || boundTeam != null;
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
@@ -2020,6 +2029,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         data.writeVarInt(Math.max(0, currentProcessingTime));
         data.writeLong(completionTick);
         researchVisualSnapshot().write(data);
+        machineEffects.write(data);
     }
 
     @Override
@@ -2052,6 +2062,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         changed |= clientStructureFormed != nextFormed || clientRunning != nextRunning;
         clientStructureFormed = nextFormed;
         clientRunning = nextRunning;
+        changed |= machineEffects.read(data);
         return changed;
     }
 

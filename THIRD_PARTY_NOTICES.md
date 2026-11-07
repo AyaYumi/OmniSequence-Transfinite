@@ -4,13 +4,17 @@ OmniSequence: Transfinite integrates with the following separately installed
 Minecraft mods. Their binaries and source files are not bundled in the produced
 mod JAR. Adapted artwork is identified below:
 
-- Applied Energistics 2, version 19.2.17 or later.
-- AppliedEnhancements, revised version 1.1.0.
+- Applied Energistics 2, version 19.2.18.
+- AppliedEnhancements, version 1.1.2 or later (compile API 1.1.4).
 - ExtendedAE, version 1.21-2.2.32-neoforge or later.
 - Glodium, version 1.21-2.2-neoforge or later.
 - LowDragLib2, version 2.2.18 or later.
 - Advanced AE, version 1.6.11 or later, when installed.
-- ExtendedAE Plus and JEI, when installed.
+- ExtendedAE Plus and JEI, when installed. Additional provider-selection/upload
+  hooks target ExtendedAE Plus 1.6.4.1 only.
+- Neo ECO AE Extension, version 21.2.10 or later, when installed.
+- Data Energistics, when installed; the depot capacity-simulation fix targets
+  versions 3.3.0 and 3.3.5 only.
 
 The design was informed by GTLCore's Molecular Assembler Matrix implementation.
 No GTLCore source files or assets are included in this project.
@@ -35,3 +39,11 @@ project-authored assets released under the project license, with this exception:
 The GUI uses bundled Inter, Inter Tight, JetBrains Mono, and Source Han Sans SC
 font files. Their SIL Open Font License texts are included in
 `licenses/` and in the mod JAR.
+
+## NeoForged MDK template
+
+The Gradle wrapper, `build.gradle`, `settings.gradle` and `gradle.properties`
+derive from the NeoForged Mod Development Kit (MDK) template.
+Copyright (c) 2023 NeoForged project. These template-derived files are licensed
+under the [MIT License](LICENSE), whose full permission and warranty text is
+bundled alongside this notice.

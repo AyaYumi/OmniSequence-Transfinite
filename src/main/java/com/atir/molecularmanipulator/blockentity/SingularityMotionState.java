@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.blockentity;
 
-import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.entity.SingularityAssemblyEntity;
 import com.atir.molecularmanipulator.registry.SingularityContent;
 import com.atir.molecularmanipulator.world.SingularityMotionWorld;
@@ -42,7 +41,7 @@ public final class SingularityMotionState {
     private void changed() { machine.saveChanges(); machine.markForClientUpdate(); }
     private void fail(String reason) { message = reason; changed(); }
     private boolean allLoaded() {
-        for (var chunk : machine.getChunkLoadingChunks()) if (!machine.getLevel().hasChunk(chunk.x, chunk.z)) return false;
+        for (var chunk : machine.getMotionChunks()) if (!machine.getLevel().hasChunk(chunk.x, chunk.z)) return false;
         return true;
     }
     /** Starts motion as part of the resource-collection device lifecycle. */
@@ -77,7 +76,6 @@ public final class SingularityMotionState {
         }
         if (!migrateFixedJoints()) return;
         if (!hasBodies()) { activate(player); return; }
-        if (!ModConfig.FORCE_LOAD_CHUNKS.get()) { fail("chunks_required"); return; }
         if (!allLoaded()) { fail("unloaded"); return; }
         epoch = now(); mode = RUNNING;
         if (blockedAhead()) { mode = PAUSED; fail("obstacle"); return; }
@@ -85,7 +83,9 @@ public final class SingularityMotionState {
         configureBodies(); changed();
     }
     private void activate(ServerPlayer player) {
-        if (!ModConfig.FORCE_LOAD_CHUNKS.get()) { fail("chunks_required"); return; }
+        // Tickets are optional; the entire swept footprint must already be loaded
+        // before any physical blocks are converted into moving bodies.
+        if (!allLoaded()) { fail("unloaded"); return; }
         if (!machine.formed() || hasPortable()) { fail("incomplete"); return; }
         var level = machine.getLevel(); var parts = movingParts();
         for (int x : new int[]{-50, 50}) for (int z : new int[]{-50, 50}) {
@@ -124,12 +124,12 @@ public final class SingularityMotionState {
         if (!migrateFixedJoints()) return;
         if (!loaded) { epoch = now() - (mode == DOCKING ? restoredDockingElapsed : 0); loaded = true; configureBodies(); }
         if (now() % 20 == 0) configureBodies();
-        String unavailable = !ModConfig.FORCE_LOAD_CHUNKS.get() ? "chunks_required" : !allLoaded() ? "unloaded" : null;
-        if (unavailable != null) {
-            if (mode == RUNNING) { phase = clock(); epoch = now(); mode = PAUSED; message = unavailable; configureBodies(); changed(); }
-            else if (mode == DOCKING) freezeDocking(unavailable);
+        if (!allLoaded()) {
+            if (mode == RUNNING) { phase = clock(); epoch = now(); mode = PAUSED; message = "unloaded"; configureBodies(); changed(); }
+            else if (mode == DOCKING) freezeDocking("unloaded");
             return;
         }
+        // Retain recovery for saves paused by the former force-loading requirement.
         if (mode == PAUSED && (message.equals("unloaded") || message.equals("chunks_required"))) {
             epoch = now(); mode = RUNNING;
             if (blockedAhead()) { mode = PAUSED; message = "obstacle"; } else message = "running";

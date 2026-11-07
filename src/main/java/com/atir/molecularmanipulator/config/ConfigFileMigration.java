@@ -56,12 +56,12 @@ public final class ConfigFileMigration {
         migrateDirectory(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
         removeRetiredClientOptions(FMLPaths.CONFIGDIR.get());
         removeRetiredClientOptions(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
-        categorizeDirectory(FMLPaths.CONFIGDIR.get());
-        categorizeDirectory(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
         removeRetiredServerOptions(FMLPaths.CONFIGDIR.get(), "server/default");
         removeRetiredServerOptions(
                 FMLPaths.GAMEDIR.get().resolve("defaultconfigs"),
                 "server/default");
+        categorizeDirectory(FMLPaths.CONFIGDIR.get());
+        categorizeDirectory(FMLPaths.GAMEDIR.get().resolve("defaultconfigs"));
     }
 
     public static void refreshGlobalConfigSchemas(
@@ -86,9 +86,11 @@ public final class ConfigFileMigration {
 
     private static void refreshDirectory(Path directory,
             ModConfigSpec serverSpec, ModConfigSpec clientSpec) {
-        categorizeDirectory(directory);
+        // Retire both flat and categorized keys before migration/schema checking;
+        // otherwise a known removed feature can reset unrelated supported values.
         removeRetiredServerOptions(directory, "server/default");
         removeRetiredClientOptions(directory);
+        categorizeDirectory(directory);
         ConfigSchemaGuard.regenerateFileIfOutdated(
                 directory.resolve(SERVER_FILE), serverSpec, "server/default");
         ConfigSchemaGuard.regenerateFileIfOutdated(
@@ -114,7 +116,12 @@ public final class ConfigFileMigration {
                         "omni_max_fast_parallel_thread_pool_size", "omni_max_fast_smart_candidate_selection",
                         "omni_max_fast_precompile_enabled", "omni_max_fast_precompile_common_items",
                         "omni_computation.optimizer", "omni_computation.cache",
-                        "omni_computation.execution", "sequence_array.matter_rewrite",
+                        "omni_computation.execution",
+                        // Removed in 2.0.9. Retire these before the exact-schema guard
+                        // can reset the entire file, including valid collection settings.
+                        "omni_computation.dispatch.omni_profile_exact_returns",
+                        "omni_computation.dispatch.omni_return_profile_sample_interval",
+                        "sequence_array.matter_rewrite",
                         "matter_sequence_capacity", "matter_entropy_capacity",
                         "matter_entropy_cooling_per_second", "matter_speed_cards"),
                 displayName);

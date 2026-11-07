@@ -314,7 +314,7 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
             return normalized.crafts() == multiplier && pattern.equals(registeredPattern(normalized.pattern()));
         }
 
-        /** ECO supplies the full vector; ownership transfers only after durable enqueue succeeds. */
+        /** Accepts the full batch vector; ownership transfers only after durable enqueue succeeds. */
         public boolean commit(Map<AEKey, Long> totalInputs, Map<AEKey, Long> totalOutputs, long crafts) {
             return commit(totalInputs, totalOutputs, crafts,
                     com.atir.molecularmanipulator.crafting.MatterCraftingJobContext.currentJobId());
@@ -345,7 +345,7 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
             } catch (ArithmeticException | IllegalArgumentException error) { return false; }
         }
 
-        /** Trinity/Thunderbolt pass a reusable single-operation template. Never clear that template. */
+        /** Accepts a reusable single-operation template. Never clear that template. */
         public boolean commitPrototype(KeyCounter[] prototype, long crafts) {
             try {
                 var actual = batchInputs(prototype);

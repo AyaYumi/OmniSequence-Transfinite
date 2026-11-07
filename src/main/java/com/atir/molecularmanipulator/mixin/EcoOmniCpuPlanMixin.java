@@ -75,7 +75,7 @@ public abstract class EcoOmniCpuPlanMixin implements EcoOmniPlanCpu, EcoOmniPlan
         return molecularmanipulator$ecoPrepared != null || molecularmanipulator$ecoExecution != null
                 || molecularmanipulator$ecoRestoring || molecularmanipulator$ecoFailedSnapshot != null;
     }
-    @Override public BigInteger ecoDispatch$reservedInput(AEKey key) {
+    @Override public BigInteger omniDispatch$reservedInput(AEKey key) {
         return molecularmanipulator$ecoExecution == null ? BigInteger.ZERO
                 : molecularmanipulator$ecoExecution.reservedInputAmount(key);
     }

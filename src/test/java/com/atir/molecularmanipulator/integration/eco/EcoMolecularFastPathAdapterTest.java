@@ -22,6 +22,7 @@ import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOFastPathKey;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOFastPathStacks;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
@@ -69,6 +70,58 @@ class EcoMolecularFastPathAdapterTest {
         } finally {
             ECOExecutionOptimizationRegistry.unregister(registration);
         }
+    }
+
+    @Test
+    void singleCraftAndTerminalUseKeepTheLeaseWithoutAnAggregateContext() throws Exception {
+        for (boolean terminal : new boolean[]{false, true}) {
+            var reusable = terminal ? tool(5, 5, UUID.randomUUID()) : AEItemKey.of(Items.STICK);
+            var pattern = new EcoMolecularTestPattern(reusable,
+                    key -> terminal ? worn(key, 6) : key);
+            var context = context(pattern);
+            var model = model(pattern);
+            var stock = inventory(reusable, 1, 1);
+            var contract = calculator(pattern, model).prepareBatch(stock, 100);
+            assertNotNull(contract);
+            assertEquals(1, contract.craftCount());
+            var batch = new ECOFastPathDispatchProvider.Batch(1, contract.inputs(),
+                    List.of(new GenericStack(OUTPUT, 1)), contract.remainders());
+            var provider = new Provider();
+            provider.single = true;
+            var energy = new Energy();
+            assertTrue(ECOBatchExecutor.executePrepared(stock, batch.inputTotal(), Map.of(), energy,
+                    () -> EcoMolecularFastPathAdapter.dispatch(provider, context, model, batch, 100)));
+            assertEquals(1, provider.pushes);
+            assertEquals(1, provider.planCount);
+            assertTrue(stock.list.isEmpty());
+            assertTrue(energy.committed);
+            assertFalse(energy.refunded);
+            assertEquals(terminal ? 0 : 1, counter(batch.remainingTotal()).get(reusable));
+            assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
+            assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
+        }
+    }
+
+    @Test
+    void singleCraftRejectionRestoresEveryInputAndEnergyReservation() throws Exception {
+        var catalyst = AEItemKey.of(Items.STICK);
+        var pattern = new EcoMolecularTestPattern(catalyst, key -> key);
+        var context = context(pattern);
+        var model = model(pattern);
+        var batch = batch(context, model, 1);
+        var stock = inventory(catalyst, 1, 1);
+        var provider = new Provider();
+        provider.single = true;
+        provider.reject = true;
+        var energy = new Energy();
+        assertFalse(ECOBatchExecutor.executePrepared(stock, batch.inputTotal(), Map.of(), energy,
+                () -> EcoMolecularFastPathAdapter.dispatch(provider, context, model, batch, 100)));
+        assertEquals(1, stock.list.get(catalyst));
+        assertEquals(1, stock.list.get(MATERIAL));
+        assertTrue(energy.refunded);
+        assertFalse(energy.committed);
+        assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
+        assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
     }
 
     @Test
@@ -169,7 +222,7 @@ class EcoMolecularFastPathAdapterTest {
             var delivery = model.delivery(context, batch);
             assertNotNull(delivery, "requested=" + requested);
             assertTrue(delivery.plan().matchesProvidedInputs(delivery.inputs()));
-            assertTrue(EcoMolecularRemainderContext.matches(counter(contract.remainders()),
+            assertTrue(MolecularRemainderContext.matches(counter(contract.remainders()),
                     delivery.plan().expectedRemainders(contract.craftCount())));
             assertEquals(0, counter(contract.inputs()).get(foreign));
             assertTrue(ECOBatchExecutor.executePrepared(stock, contract.inputs(), Map.of(), new Energy(),
@@ -196,7 +249,7 @@ class EcoMolecularFastPathAdapterTest {
         assertTrue(rejectedEnergy.refunded);
         assertFalse(rejectedEnergy.committed);
         assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
-        assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+        assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
 
         provider.reject = false;
         var acceptedEnergy = new Energy();
@@ -249,7 +302,7 @@ class EcoMolecularFastPathAdapterTest {
         assertTrue(inventory.list.isEmpty());
         assertTrue(energy.committed);
         assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
-        assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+        assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
     }
 
     @Test
@@ -350,6 +403,7 @@ class EcoMolecularFastPathAdapterTest {
     private static final class Provider implements ICraftingProvider, MolecularBatchCraftingProvider {
         boolean reject;
         boolean fail;
+        boolean single;
         int pushes;
         int flushes;
         long planCount;
@@ -366,12 +420,17 @@ class EcoMolecularFastPathAdapterTest {
             pushes++;
             lastInputs = inputs;
             var context = MolecularBatchDispatchContext.current(pattern, inputs);
-            assertNotNull(context);
-            assertNotNull(context.reusablePlan());
-            assertTrue(context.reusablePlan().matchesProvidedInputs(inputs));
-            assertNotNull(EcoMolecularRemainderContext.expected(pattern, inputs));
-            jobId = context.craftingId();
-            planCount = context.craftCount();
+            if (single) {
+                assertNull(context, "One craft must retain ordinary molecular recipe validation");
+                planCount = 1;
+            } else {
+                assertNotNull(context);
+                assertNotNull(context.reusablePlan());
+                assertTrue(context.reusablePlan().matchesProvidedInputs(inputs));
+                jobId = context.craftingId();
+                planCount = context.craftCount();
+            }
+            assertNotNull(MolecularRemainderContext.expected(pattern, inputs));
             if (reject) return false;
             for (var holder : inputs) holder.clear();
             if (fail) throw new IllegalStateException("after acquiring ownership");

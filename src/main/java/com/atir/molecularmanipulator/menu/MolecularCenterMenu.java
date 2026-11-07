@@ -15,10 +15,12 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterLogic;
+import com.atir.molecularmanipulator.blockentity.MolecularCenterPatternMigration;
+import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
+import net.minecraft.network.chat.Component;
 import com.atir.molecularmanipulator.network.PatternSearchIndexBuilder;
 import com.atir.molecularmanipulator.network.PatternSearchIndexChunk;
 import com.atir.molecularmanipulator.network.PatternSearchIndexReceiver;
-import com.atir.molecularmanipulator.integration.extendedaeplus.MatrixUploadCoreIntegration;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -46,6 +48,8 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
     private static final String ACTION_TOGGLE_AUTO_CRAFT = "toggle_auto_craft";
     private static final String ACTION_SET_AUTO_CRAFT_RESERVE = "set_auto_craft_reserve";
     private static final String ACTION_SET_AUTO_CRAFT_OUTPUT_LIMIT = "set_auto_craft_output_limit";
+    private static final String ACTION_SET_PATTERN_UPLOAD = "set_pattern_upload";
+    private static final String ACTION_MIGRATE_PATTERNS = "migrate_patterns";
     public static final int PATTERN_X = 17;
     public static final int PATTERN_Y = 52;
     public static final int PLAYER_X = 17;
@@ -53,8 +57,6 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
     public static final int PLAYER_HOTBAR_Y = 246;
     public static final int QUANTUM_SLOT_X = 252;
     public static final int QUANTUM_SLOT_Y = 210;
-    public static final int MATRIX_UPLOAD_CORE_SLOT_X = 358;
-    public static final int MATRIX_UPLOAD_CORE_SLOT_Y = 210;
     public static final int AUTO_CRAFT_PATTERN_X = 233;
     public static final int AUTO_CRAFT_PATTERN_Y = 50;
     public static final SlotSemantic AUTO_CRAFT_PATTERN_SEMANTIC = SlotSemantics.register(
@@ -150,12 +152,15 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
     public long pendingOutputAmount;
     @GuiSync(87)
     public boolean pipelineBlocked;
+    @GuiSync(88)
+    public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
+    @GuiSync(89)
+    public boolean automaticPatternUpload;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
     private final List<Slot> patternSlots;
     private final AppEngSlot quantumSlot;
-    private final AppEngSlot matrixUploadCoreSlot;
     private final List<AppEngSlot> autoCraftPatternSlots;
     private long patternSearchIndexGeneration;
     private int countedPatternRevision = -1;
@@ -167,8 +172,6 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
         this.center = (MolecularCenterBlockEntity) host.getBlockEntity();
         createPlayerSlots(playerInventory);
         this.quantumSlot = addQuantumSlot();
-        this.matrixUploadCoreSlot = MatrixUploadCoreIntegration.isLoaded()
-                ? addMatrixUploadCoreSlot() : null;
         this.autoCraftPatternSlots = addAutoCraftPatternSlots();
         this.pageInventory = isClientSide()
                 ? PagedInventory.clientView()
@@ -197,6 +200,12 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
                 this::setAutoCraftReserve);
         registerClientAction(ACTION_SET_AUTO_CRAFT_OUTPUT_LIMIT, AutoCraftValueRequest.class,
                 this::setAutoCraftOutputLimit);
+        registerClientAction(ACTION_SET_PATTERN_UPLOAD, Boolean.class, this::setPatternUpload);
+        registerClientAction(ACTION_MIGRATE_PATTERNS, this::migratePatterns);
+        registerClientAction(MachineEffectMenuAccess.ACTION, Integer.class,
+                value -> MachineEffectMenuAccess.apply(this, center, value));
+        dynamicEffectOverride = center.getMachineEffects().getOverride();
+        automaticPatternUpload = center.isAutomaticPatternUploadEnabled();
         applyPage(0);
     }
 
@@ -223,19 +232,6 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
         addSlot(slot, SlotSemantics.CONFIG);
         slot.x = QUANTUM_SLOT_X;
         slot.y = QUANTUM_SLOT_Y;
-        return slot;
-    }
-
-    private AppEngSlot addMatrixUploadCoreSlot() {
-        var slot = new AppEngSlot(center.getMatrixUploadCoreInventory(), 0) {
-            @Override
-            public boolean mayPlace(ItemStack stack) {
-                return MatrixUploadCoreIntegration.isUploadCore(stack) && super.mayPlace(stack);
-            }
-        };
-        addSlot(slot, SlotSemantics.CONFIG);
-        slot.x = MATRIX_UPLOAD_CORE_SLOT_X;
-        slot.y = MATRIX_UPLOAD_CORE_SLOT_Y;
         return slot;
     }
 
@@ -275,10 +271,6 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
 
     public AppEngSlot getQuantumSlot() {
         return quantumSlot;
-    }
-
-    public AppEngSlot getMatrixUploadCoreSlot() {
-        return matrixUploadCoreSlot;
     }
 
 
@@ -410,6 +402,60 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
 
     public void requestResetVisualColors() {
         if (isClientSide()) sendClientAction(ACTION_RESET_VISUAL_COLORS);
+    }
+
+    public void requestDynamicEffectLevel(int value) {
+        if (isClientSide() && MachineEffectSettings.isValidOverride(value)) {
+            sendClientAction(MachineEffectMenuAccess.ACTION, value);
+        }
+    }
+
+    public void requestSetPatternUpload(boolean enabled) {
+        if (isClientSide()) sendClientAction(ACTION_SET_PATTERN_UPLOAD, enabled);
+    }
+
+    public void requestMigratePatterns() {
+        if (isClientSide()) sendClientAction(ACTION_MIGRATE_PATTERNS);
+    }
+
+    private boolean canManagePatterns() {
+        var player = getPlayer();
+        var level = center.getLevel();
+        var pos = center.getBlockPos();
+        if (!isServerSide() || player.containerMenu != this || !isValidMenu()
+                || player.isSpectator() || !player.mayBuild() || level == null || player.level() != level
+                || center.isRemoved() || !level.hasChunkAt(pos) || level.getBlockEntity(pos) != center
+                || !level.mayInteract(player, pos)) return false;
+        if (getLocator() instanceof com.atir.molecularmanipulator.terminal.BuildingTerminalLocator terminal) {
+            if (!terminal.target().dimension().equals(level.dimension()) || !terminal.target().pos().equals(pos)
+                    || !terminal.isValid(player)) return false;
+        } else if (player.distanceToSqr(pos.getCenter()) > 64) return false;
+        // Validate AE2's menu only after the loaded-block/terminal identity guards.
+        return stillValid(player);
+    }
+
+    private void setPatternUpload(Boolean enabled) {
+        if (enabled == null || !canManagePatterns()) return;
+        center.setAutomaticPatternUploadEnabled(enabled);
+        automaticPatternUpload = center.isAutomaticPatternUploadEnabled();
+        broadcastChanges();
+    }
+
+    private void migratePatterns() {
+        if (!canManagePatterns() || !(getPlayer() instanceof ServerPlayer player)) return;
+        if (!center.canAcceptExternalPatternUpload()) {
+            player.sendSystemMessage(Component.translatable("message.molecularmanipulator.pattern_migration.unavailable"));
+            return;
+        }
+        var result = MolecularCenterPatternMigration.migrate(center, player);
+        player.sendSystemMessage(Component.translatable("message.molecularmanipulator.pattern_migration.result",
+                result.moved(), result.fromProviders(), result.fromStorageCells()));
+        if (result.destinationFull()) player.sendSystemMessage(Component.translatable(
+                "message.molecularmanipulator.pattern_migration.full"));
+        if (result.interrupted()) player.sendSystemMessage(Component.translatable(
+                "message.molecularmanipulator.pattern_migration.interrupted"));
+        broadcastChanges();
+        sendAllDataToRemote();
     }
 
 
@@ -742,6 +788,8 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
     @Override
     public void broadcastChanges() {
         if (isServerSide()) {
+            dynamicEffectOverride = center.getMachineEffects().getOverride();
+            automaticPatternUpload = center.isAutomaticPatternUploadEnabled();
             formed = center.isFormed();
             buildProgress = center.getBuildProgress();
             buildTotal = center.getBuildTotal();

@@ -289,7 +289,7 @@ var verifyAppliedEnhancementsApi = tasks.register('verifyAppliedEnhancementsApi'
         new java.util.zip.ZipFile(jarFile).withCloseable { archive ->
             if (archive.getEntry('com/appliedenhancements/api/AelisBatchExecutionContext.class') == null
                     || archive.getEntry('com/appliedenhancements/api/AelisExactCraftingPlanApi.class') == null) {
-                throw new GradleException('The AppliedEnhancements JAR lacks the required 1.1.0 transaction/exact-plan API. See libs/README.md')
+                throw new GradleException('The AppliedEnhancements JAR lacks the required transaction/exact-plan API. See libs/README.md')
             }
         }
     }

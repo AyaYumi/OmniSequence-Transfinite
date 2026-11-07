@@ -8,6 +8,7 @@ import cn.dancingsnow.neoecoae.compat.ae2.AE2PatternIntrospection;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOCraftingFastPathCache;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,7 +68,7 @@ public final class EcoMolecularFastPathAdapter {
 
     static boolean dispatch(ICraftingProvider provider, ECOBatchDispatchContext context,
             EcoMolecularBatchModel model, ECOFastPathDispatchProvider.Batch batch, long capacity) {
-        if (batch == null || batch.craftCount() < 2 || batch.craftCount() > capacity
+        if (batch == null || batch.craftCount() < 1 || batch.craftCount() > capacity
                 || batch.craftCount() > MolecularBatchCraftingProvider.getBatchLimit(
                         provider, context.pattern())
                 || !batch.exactInputTotal().isEmpty()
@@ -97,17 +98,20 @@ public final class EcoMolecularFastPathAdapter {
             Math.addExact(expectedOutputs.get(stack.what()), amount);
             expectedOutputs.add(stack.what(), amount);
         }
-        if (!EcoMolecularRemainderContext.matches(expectedInputs,
+        if (!MolecularRemainderContext.matches(expectedInputs,
                     EcoMolecularBatchModel.counter(batch.inputTotal()))
-                || !EcoMolecularRemainderContext.matches(expectedOutputs,
+                || !MolecularRemainderContext.matches(expectedOutputs,
                     EcoMolecularBatchModel.counter(batch.outputTotal()))
-                || !EcoMolecularRemainderContext.matches(expectedRemainders,
+                || !MolecularRemainderContext.matches(expectedRemainders,
                     EcoMolecularBatchModel.counter(batch.remainingTotal()))) {
             return false;
         }
-        try (var molecular = MolecularBatchDispatchContext.open(context.craftingJobId(),
-                context.pattern(), inputs, context.inputCounters(), count, plan);
-                var remainders = EcoMolecularRemainderContext.open(context.pattern(),
+        // A verified aggregate preparation can be stock-bounded to one craft,
+        // including a tool's final use. Keep its ECO lease and ordinary recipe
+        // validation, without opening a context reserved for aggregate delivery.
+        try (var molecular = count > 1 ? MolecularBatchDispatchContext.open(context.craftingJobId(),
+                context.pattern(), inputs, context.inputCounters(), count, plan) : null;
+                var remainders = MolecularRemainderContext.open(context.pattern(),
                         inputs, expectedRemainders)) {
             try {
                 // ECO already holds the entire material lease here. The

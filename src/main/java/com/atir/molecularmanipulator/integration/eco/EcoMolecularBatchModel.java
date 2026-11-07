@@ -9,6 +9,7 @@ import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECODurabilityBatchModel;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOReusableStateModel;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.DamageGroup;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputMode;
@@ -255,7 +256,7 @@ final class EcoMolecularBatchModel implements ECOReusableStateModel {
         // Persisted reusable jobs currently represent tools/catalysts and
         // consumed ingredients. They do not represent independent byproducts.
         if (reusable && linearRemainder
-                || !EcoMolecularRemainderContext.matches(expectedRemainders,
+                || !MolecularRemainderContext.matches(expectedRemainders,
                         actualRemainders)) {
             return null;
         }

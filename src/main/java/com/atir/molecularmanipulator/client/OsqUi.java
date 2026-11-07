@@ -300,22 +300,30 @@ final class OsqUi {
             lastKey = key;
             return lastVisual = visual;
         }
-        @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
-            if (label != null) setMessage(label.get());
-            boolean small=getWidth()<=22;
-            String kind = box.sprite != null && box.sprite.contains("edge_key") ? "edge_key"
+        private String kind() {
+            return box.sprite != null && box.sprite.contains("edge_key") ? "edge_key"
                     : box.sprite != null && box.sprite.contains("tab_") ? "tab"
-                    : box.sprite != null && box.sprite.contains("row_") ? "row" : small ? "key13" : "button";
+                    : box.sprite != null && box.sprite.contains("row_") ? "row" : getWidth()<=22 ? "key13" : "button";
+        }
+        private String status() {
             // Resolve the live status every draw; only its resource decisions are cached.
             String status=!active ? "disabled" : state != null ? state.get()
                     : box.sprite != null && box.sprite.endsWith("button_danger") ? "danger" : "normal";
-            if (active && "normal".equals(status) && isHoveredOrFocused()) status="hover";
+            return active && "normal".equals(status) && isHoveredOrFocused() ? "hover" : status;
+        }
+        @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
+            String kind=kind(), status=status();
             float center=controlCenter(kind,status,getHeight(),Set.of("prev","next").contains(box.id == null ? "" : box.id));
-            long generation = OsqFonts.resourceGeneration();
-            var visual = visual(kind, status, generation);
+            var visual = visual(kind, status, OsqFonts.resourceGeneration());
             background.sprite=visual.sprite; background.x=getX(); background.y=getY();
             background.w=getWidth(); background.h=getHeight(); background.pad=visual.pad;
             OsqLayout.drawSprite(g,background,0,0);
+            renderContents(g,kind,status,center,visual);
+        }
+        /** Keep live content/typography separate from the GPU-backed frame. */
+        private void renderContents(GuiGraphics g, String kind, String status, float center, ButtonVisual visual) {
+            if (label != null) setMessage(label.get());
+            long generation=OsqFonts.resourceGeneration();
             if (itemIcon != null) {
                 int color = isHoveredOrFocused() || "active".equals(status) ? palette.acc : palette.ink4;
                 g.renderOutline(getX(),getY(),getWidth(),getHeight(),color);

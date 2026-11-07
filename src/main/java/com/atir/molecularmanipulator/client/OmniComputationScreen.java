@@ -22,8 +22,11 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
     @Override protected void init() {
         legacyLayout=menu.legacyStructure;
         ui=new OsqUi(legacyLayout ? "omni_core_legacy" : "omni_core");
-        imageWidth=ui.layout.width; imageHeight=ui.layout.height;
+        imageWidth=ui.layout.width; imageHeight=ui.layout.height+24;
         super.init(); ui.inventory(menu); ui.slots(menu.getSlots(SlotSemantics.MACHINE_INPUT),"qes");
+        // Preserve both authored layouts; fit the extra control below them rather than over their headings.
+        addScreenWidget(new MachineEffectButton(leftPos + imageWidth - 128, topPos + ui.layout.height + 3, 120,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         addScreenWidget(ui.button("projection",leftPos,topPos,
                 () -> tr("projection"), () -> { confirmation.cancel(); OmniComputationGhostPreview.toggle(menu.getCore()); }));
         addScreenWidget(ui.button("refresh",leftPos,topPos,() -> tr("refresh"),menu::requestRefresh));

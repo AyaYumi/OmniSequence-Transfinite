@@ -1,5 +1,7 @@
 package com.atir.molecularmanipulator.client.render;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.google.gson.JsonParser;
 import java.nio.charset.StandardCharsets;
 import org.joml.Matrix4f;
@@ -7,35 +9,42 @@ import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class SingularityLensProjectionTest {
     @Test
     void projectsTheWorldCenterWithTheRenderedCameraProjection() {
         var pose = new Matrix4f().translation(4, 12.5F, -3);
         var view = new Matrix4f().rotationY(.4F).translate(-2, -1, 6);
         var walkBob = new Matrix4f().translation(.08F, -.12F, 0).rotateZ(.03F).rotateX(.04F);
-        var renderedProjection = new Matrix4f().perspective((float) Math.toRadians(70), 16F / 9F, .05F, 512F)
-                .mul(walkBob);
+        var renderedProjection = perspective(70).mul(walkBob);
 
         Vector3f center = SingularityLensProjection.centerInViewSpace(pose, 12.5F, view);
         var expectedCenter = view.transformPosition(pose.transformPosition(0, 12.5F, 0, new Vector3f()), new Vector3f());
         var clipCenter = renderedProjection.transform(new Vector4f(center, 1));
         var restoredCenter = SingularityLensProjection.inverseProjection(renderedProjection).transform(clipCenter);
 
-        assertEquals(expectedCenter.x, center.x, 1.0E-6F);
-        assertEquals(expectedCenter.y, center.y, 1.0E-6F);
-        assertEquals(expectedCenter.z, center.z, 1.0E-6F);
-        assertEquals(center.x, restoredCenter.x / restoredCenter.w, 1.0E-5F);
-        assertEquals(center.y, restoredCenter.y / restoredCenter.w, 1.0E-5F);
-        assertEquals(center.z, restoredCenter.z / restoredCenter.w, 1.0E-5F);
+        assertVectorEquals(expectedCenter, center, 1.0E-6F);
+        assertVectorEquals(center, new Vector3f(restoredCenter.x, restoredCenter.y, restoredCenter.z).div(restoredCenter.w), 1.0E-5F);
     }
 
     @Test
     void unmodifiedPerspectiveKeepsTheRayOriginAtZero() {
-        var projection = perspective(70);
-        var inverse = SingularityLensProjection.inverseProjection(projection);
-        assertVectorEquals(new Vector3f(), SingularityLensProjection.rayOriginInViewSpace(inverse), 1.0E-6F);
+        var inverse = SingularityLensProjection.inverseProjection(perspective(70));
+        assertVectorEquals(new Vector3f(), SingularityLensProjection.viewOrigin(inverse), 1.0E-6F);
+    }
+
+    @Test
+    void recoversTranslatedEyeAcrossWalkingPhasesFovsAndAspectRatiosWithoutMutatingTheInverse() {
+        for (float fov : new float[] {40, 70, 110}) for (float aspect : new float[] {1, 16F / 9F, 3400F / 1440F}) {
+            for (int phase = 0; phase < 32; phase++) {
+                var bob = walkBob(phase * (float) Math.PI / 16);
+                var inverse = SingularityLensProjection.inverseProjection(perspective(fov, aspect).mul(bob));
+                var savedInverse = new Matrix4f(inverse);
+                var origin = SingularityLensProjection.viewOrigin(inverse);
+                var expected = new Matrix4f(bob).invert().transformPosition(new Vector3f());
+                assertVectorEquals(expected, origin, 1.0E-6F);
+                assertEquals(savedInverse, inverse, "Origin lookup must not mutate the shared inverse matrix");
+            }
+        }
     }
 
     @Test
@@ -49,15 +58,13 @@ class SingularityLensProjectionTest {
                         .rotateZ(.03F * (float) Math.sin(phase)).rotateX(.04F * (float) Math.cos(phase));
                 var projection = perspective(fov).mul(bob);
                 var inverse = SingularityLensProjection.inverseProjection(projection);
-                var origin = SingularityLensProjection.rayOriginInViewSpace(inverse);
+                var origin = SingularityLensProjection.viewOrigin(inverse);
                 var expectedOrigin = new Matrix4f(bob).invert().transformPosition(new Vector3f());
                 assertVectorEquals(expectedOrigin, origin, 1.0E-6F);
 
                 for (var center : centers) {
                     var screen = project(projection, center);
                     var expectedRay = new Vector3f(center).sub(origin).normalize();
-                    // All points on a pixel's ray must give the same direction, even
-                    // close to the near plane where the old zero-origin ray went astray.
                     for (float depth : new float[] {.1F, .5F, .95F}) {
                         var ray = unproject(inverse, screen.x, screen.y, depth).sub(origin).normalize();
                         assertVectorEquals(expectedRay, ray, 2.0E-6F);
@@ -69,11 +76,35 @@ class SingularityLensProjectionTest {
     }
 
     @Test
+    void everyProjectedCoreUsesTheSameRayRegardlessOfUnprojectionDepth() {
+        for (int phase = 0; phase < 32; phase++) {
+            var projection = perspective(70, 3400F / 1440F).mul(walkBob(phase * (float) Math.PI / 16));
+            var inverse = SingularityLensProjection.inverseProjection(projection);
+            var origin = SingularityLensProjection.viewOrigin(inverse);
+            for (var center : new Vector3f[] {new Vector3f(0, 0, -24), new Vector3f(3, 4, -32), new Vector3f(1, -.5F, -6)}) {
+                var screen = project(projection, center);
+                var toCenter = new Vector3f(center).sub(origin);
+                for (float depth : new float[] {.1F, .5F, .9F}) {
+                    var point = unproject(inverse, screen.x, screen.y, depth);
+                    var ray = new Vector3f(point).sub(origin).normalize();
+                    assertTrue(ray.dot(toCenter) > 0);
+                    assertEquals(0, new Vector3f(toCenter).cross(ray).length(), 1.0E-3F,
+                            "A projected world center must remain on its lens ray at every walking phase");
+                    if (phase == 0 && center.x == 0 && depth == .5F) {
+                        float oldMiss = new Vector3f(center).cross(new Vector3f(point).normalize()).length();
+                        assertTrue(oldMiss > 12.5F, "The old zero-origin ray misses even the Hub's entire influence volume");
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     void sceneDepthAndSphereIntersectionsUseTheSameTranslatedEye() {
         var bob = new Matrix4f().translation(.08F, -.12F, .02F).rotateZ(.03F).rotateX(.04F);
         var projection = perspective(70).mul(bob);
         var inverse = SingularityLensProjection.inverseProjection(projection);
-        var origin = SingularityLensProjection.rayOriginInViewSpace(inverse);
+        var origin = SingularityLensProjection.viewOrigin(inverse);
         var ray = new Vector3f(.2F, .1F, -1).normalize();
         for (float radius : new float[] {.3F, 3.8F}) {
             var relativeCenter = new Vector3f(ray).mul(radius * 3);
@@ -92,26 +123,55 @@ class SingularityLensProjectionTest {
     }
 
     @Test
+    void reconstructedForegroundAndBackgroundDepthStayOnOppositeSidesOfTheHorizon() {
+        for (int phase = 0; phase < 16; phase++) {
+            var projection = perspective(70).mul(walkBob(phase * (float) Math.PI / 8));
+            var inverse = SingularityLensProjection.inverseProjection(projection);
+            var origin = SingularityLensProjection.viewOrigin(inverse);
+            var center = new Vector3f(0, 0, -24);
+            var ray = new Vector3f(center).sub(origin).normalize();
+            float coreNear = center.distance(origin) - 3.8F;
+            for (float distance : new float[] {coreNear - .1F, coreNear + .1F, 40}) {
+                var screen = project(projection, new Vector3f(ray).mul(distance).add(origin));
+                float sceneDistance = unproject(inverse, screen.x, screen.y, screen.z).distance(origin);
+                // Perspective depth is float-quantized; allow one centimeter at forty blocks.
+                assertEquals(distance, sceneDistance, .01F);
+                assertEquals(distance < coreNear, sceneDistance < coreNear);
+            }
+        }
+    }
+
+    @Test
+    void disabledBobbingAndPureHurtRotationRetainTheZeroEye() {
+        for (var transform : new Matrix4f[] {new Matrix4f(), new Matrix4f().rotateY(.3F).rotateZ(.2F).rotateY(-.3F)}) {
+            var projection = new Matrix4f().translation(.1F, -.05F, 0).scale(1.4F, 1.4F, 1)
+                    .mul(perspective(70)).mul(transform);
+            var origin = SingularityLensProjection.viewOrigin(SingularityLensProjection.inverseProjection(projection));
+            assertEquals(0, origin.length(), 1.0E-6F);
+        }
+    }
+
+    @Test
     void bothLensShadersUseTheUploadedOriginForRaysCentersAndSceneDepth() throws Exception {
         for (String name : new String[] {"singularity_lens", "cosmic_lens"}) {
             var json = JsonParser.parseString(resource(name + ".json")).getAsJsonObject();
             var origin = json.getAsJsonArray("uniforms").asList().stream()
                     .map(element -> element.getAsJsonObject())
-                    .filter(uniform -> uniform.get("name").getAsString().equals("RayOrigin"))
+                    .filter(uniform -> uniform.get("name").getAsString().equals("ViewOrigin"))
                     .findFirst().orElseThrow();
             assertEquals("float", origin.get("type").getAsString());
             assertEquals(3, origin.get("count").getAsInt());
             assertEquals(3, origin.getAsJsonArray("values").size());
             origin.getAsJsonArray("values").forEach(value -> assertEquals(0, value.getAsFloat()));
             var fragment = resource(name + ".fsh").replaceAll("\\s+", "");
-            assertTrue(fragment.contains("uniformvec3RayOrigin;"), name);
-            assertTrue(fragment.contains("normalize(viewPoint(uv,0.5)-RayOrigin)"), name);
-            assertTrue(fragment.contains("relativeCenter=CoreCenter-RayOrigin;"), name);
+            assertTrue(fragment.contains("uniformvec3ViewOrigin;"), name);
+            assertTrue(fragment.contains("normalize(viewPoint(uv,0.5)-ViewOrigin)"), name);
+            assertTrue(fragment.contains("relativeCenter=CoreCenter-ViewOrigin;"), name);
             assertTrue(fragment.contains("dot(ray,relativeCenter)"), name);
             assertTrue(fragment.contains("dot(relativeCenter,relativeCenter)"), name);
-            assertTrue(fragment.contains("length(viewPoint(uv,depth)-RayOrigin)"), name);
-            // The screen-space refraction center still uses the original view-space point.
+            assertTrue(fragment.contains("length(viewPoint(uv,depth)-ViewOrigin)"), name);
             assertTrue(fragment.contains("LensProjection*vec4(CoreCenter,1.0)"), name);
+            assertFalse(fragment.contains("RayOrigin"), "Renderer, fragment and JSON must agree on one uniform name");
         }
     }
 
@@ -165,10 +225,8 @@ class SingularityLensProjectionTest {
     void enteringAFieldKeepsFullScreenCoverageAndFieldsBeforeTheNearPlaneRemainVisible() {
         var projection = perspective(70);
         var full = new SingularityLensProjection.ScreenBounds(0, 0, 1920, 1080);
-        assertEquals(full, SingularityLensProjection.screenBounds(new Vector3f(), 13.4F,
-                projection, 1920, 1080));
-        assertEquals(full, SingularityLensProjection.screenBounds(new Vector3f(0, 0, -.5F), 1,
-                projection, 1920, 1080));
+        assertEquals(full, SingularityLensProjection.screenBounds(new Vector3f(), 13.4F, projection, 1920, 1080));
+        assertEquals(full, SingularityLensProjection.screenBounds(new Vector3f(0, 0, -.5F), 1, projection, 1920, 1080));
         assertFalse(SingularityLensProjection.screenBounds(new Vector3f(0, 0, -.02F), .001F,
                 projection, 1920, 1080).isEmpty());
     }
@@ -189,8 +247,17 @@ class SingularityLensProjectionTest {
         assertTrue(empty.expand(padding, width, height).isEmpty());
     }
 
-    private static Matrix4f perspective(float fov) {
-        return new Matrix4f().perspective((float) Math.toRadians(fov), 16F / 9F, .05F, 512F);
+    private static Matrix4f perspective(float fov) { return perspective(fov, 16F / 9F); }
+
+    private static Matrix4f perspective(float fov, float aspect) {
+        return new Matrix4f().perspective((float) Math.toRadians(fov), aspect, .05F, 512F);
+    }
+
+    private static Matrix4f walkBob(float phase) {
+        float bob = .1F;
+        return new Matrix4f().translation((float) Math.sin(phase) * bob * .5F, -(float) Math.abs(Math.cos(phase)) * bob, 0)
+                .rotateZ((float) Math.toRadians(Math.sin(phase) * bob * 3))
+                .rotateX((float) Math.toRadians(Math.abs(Math.cos(phase - .2F) * bob) * 5));
     }
 
     private static Vector3f project(Matrix4f projection, Vector3f point) {
@@ -210,8 +277,7 @@ class SingularityLensProjectionTest {
     }
 
     private String resource(String file) throws Exception {
-        try (var stream = getClass().getResourceAsStream(
-                "/assets/molecularmanipulator/shaders/core/" + file)) {
+        try (var stream = getClass().getResourceAsStream("/assets/molecularmanipulator/shaders/core/" + file)) {
             assertNotNull(stream);
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }

@@ -11,7 +11,7 @@ import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
 import com.atir.molecularmanipulator.client.render.ParallelEffectGeometry;
 import com.atir.molecularmanipulator.client.render.MatterRasterEffects;
 import com.atir.molecularmanipulator.client.render.MatterStellarEffects;
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -67,7 +67,7 @@ public final class MatterFabricationRenderer
     @Override
     public Snapshot capture(MatterFabricationBlockEntity machine, float partialTick,
             PoseStack base, ParallelEffectGeometry geometry) {
-        int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        int effectLevel = MachineEffectLevels.forMachine(machine);
         if (effectLevel <= 0 || machine.getLevel() == null
                 || !machine.isClientStructureFormed()) {
             return null;

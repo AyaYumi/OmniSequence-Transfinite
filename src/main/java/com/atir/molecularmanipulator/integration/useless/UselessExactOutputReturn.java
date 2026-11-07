@@ -78,21 +78,6 @@ public final class UselessExactOutputReturn {
         catch (ReflectiveOperationException failure) { return false; }
     }
 
-
-    /**
-     * UselessMod's normal hard chunk guard is sized for segmented AE output.
-     * A verified direct CPU route does not leave those chunks in the network;
-     * keep the guard, but scale it to one direct window plus one in-flight window.
-     */
-    public static long directChunkBudget(Object manager, long original) {
-        if (original <= 0L || !ModConfig.OMNI_DIRECT_NATIVE_OUTPUT_RETURN.get()) {
-            return original;
-        }
-        return original;
-    }
-
-
-
     /** Invoked only by Omni's post-accounting registry, never a cancellation/force flush. */
     public static void flushAfterAccounting(Object provider) {
         Object manager = managerOf(provider);

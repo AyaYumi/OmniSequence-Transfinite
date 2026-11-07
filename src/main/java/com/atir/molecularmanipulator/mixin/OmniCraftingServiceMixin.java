@@ -19,7 +19,7 @@ import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchRunner;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
@@ -56,8 +56,8 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
             ICraftingRequester requester, ICraftingCPU target, boolean prioritizePower, IActionSource source,
             Operation<ICraftingSubmitResult> original) {
         if (!plan.simulation() && target instanceof CraftingCPUCluster selected
-                && selected.craftingLogic instanceof EcoCpuDispatchRunner runner
-                && runner.ecoDispatch$isExactPlan(plan)) {
+                && selected.craftingLogic instanceof OmniCpuDispatchRunner runner
+                && runner.omniDispatch$isExactPlan(plan)) {
             var owner = OmniComputationCoreBlockEntity.ownerOf(selected);
             if (owner != null && owner.isStructureFormed() && selected.getGrid() == grid) {
                 var bridge = (OmniCraftingServiceBridge) this;

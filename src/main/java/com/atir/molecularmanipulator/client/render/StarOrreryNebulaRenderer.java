@@ -92,7 +92,7 @@ public final class StarOrreryNebulaRenderer {
             RenderSystem.disableCull();
             // One inverse projection/eye for every machine and both stages in this frame.
             var inverse = SingularityLensProjection.inverseProjection(event.getProjectionMatrix());
-            var eye = SingularityLensProjection.rayOriginInViewSpace(inverse);
+            var eye = SingularityLensProjection.viewOrigin(inverse);
             PENDING.sort(Comparator.comparingDouble(Volume::distanceSqr).reversed());
             for (var volume : PENDING) {
                 var clipFromLocal = new Matrix4f(event.getProjectionMatrix())

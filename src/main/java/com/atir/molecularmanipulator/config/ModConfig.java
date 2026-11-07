@@ -40,10 +40,10 @@ public final class ModConfig {
                 "构序阵列控制器、结构施工与耗电设置。")
                 .translation("molecularmanipulator.configuration.sequence_array")
                 .push("sequence_array");
-        PATTERN_PAGES = server.comment("Number of pattern pages for Molecular Centers.", "构序阵列的样板页数；每页 36 槽，成型后由 14 颗量子水晶分摊存储。")
+        PATTERN_PAGES = server.comment("Pattern pages per Sequence Array, with 36 slots per page.", "构序阵列的样板页数，每页 36 槽。")
                 .translation("molecularmanipulator.configuration.pattern_pages")
                 .defineInRange("pattern_pages", 200, 1, 300);
-        BUILD_BLOCKS_PER_TICK = server.comment("Maximum Sequence Array structure blocks placed or removed per tick.", "构序阵列每 tick 最多搭建或拆卸的结构方块数；其他建筑使用各自施工预算。")
+        BUILD_BLOCKS_PER_TICK = server.comment("Maximum Sequence Array structure blocks placed or removed per tick.", "构序阵列每 tick 最多安放或拆卸的结构方块数。")
                 .translation("molecularmanipulator.configuration.build_blocks_per_tick")
                 .defineInRange("build_blocks_per_tick", 32, 1, 256);
         IDLE_POWER = server.comment("Molecular Center idle power usage in AE/t.", "构序阵列控制器维持 ME 联网时的基础待机耗电（AE/t）。")
@@ -55,13 +55,13 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.singularity_hub")
                 .push("singularity_hub");
         server.comment(
-                "Tags whose item members are produced by the Singularity resource collector. Prefix entries with # or omit it.",
-                "视界奇点天枢资源采集使用的物品标签；可带 # 前缀，也可省略。多个标签会合并并去重。")
+                "Collection item tags, item-ID blacklist, per-item output and collection interval.",
+                "采集物品标签、物品 ID 黑名单、单类产量和采集间隔。")
                 .translation("molecularmanipulator.configuration.singularity_collection")
                 .push("singularity_collection");
         SINGULARITY_COLLECTION_ITEM_TAGS = server.comment(
-                "Whitelist item tags for simultaneous resource production. Any item tag is supported; entries may include #. Tags are merged and deduplicated before the item blacklist.",
-                "资源采集物品标签白名单，支持任意物品标签；可带 # 前缀。多个标签合并去重后排除物品黑名单。")
+                "Select resources by item tag, with or without #. Tags are merged and deduplicated before the item blacklist is applied. An empty list stops collection.",
+                "按物品标签设置采集范围。可带或不带 #；多个标签合并去重，再排除物品黑名单。留空 [] 停止采集。")
                 .translation("molecularmanipulator.configuration.singularity_collection_item_tags")
                 .defineListAllowEmpty("item_tags",
                         List.of("#c:raw_ores", "#c:raw_materials", "#minecraft:raw_ores", "#minecraft:logs", "#c:logs"),
@@ -74,13 +74,13 @@ public final class ModConfig {
                 .defineListAllowEmpty("item_blacklist", List.<String>of(), () -> "minecraft:raw_iron",
                         ModConfig::isValidItemIdEntry);
         SINGULARITY_COLLECTION_BATCH_SIZE = server.comment(
-                "Items produced for each eligible resource per collection cycle. Does not control sample copying. Default: 1000.",
-                "每次采集周期内，每种符合条件的资源产出数量；不控制样品复制。默认：1000。")
+                "Output per resource each collection cycle. Default: 1000.",
+                "每次采集时，每种资源的产出数量。默认：1000。")
                 .translation("molecularmanipulator.configuration.singularity_collection_batch_size")
                 .defineInRange("batch_size", 1000, 1, 1_000_000);
         SINGULARITY_COLLECTION_INTERVAL_TICKS = server.comment(
-                "Ticks between resource collection cycles. Changing the interval starts a fresh cycle. Does not control sample copying. Default: 20.",
-                "资源采集周期之间的 tick 数；修改间隔后重新计时，不控制样品复制。默认：20。")
+                "Ticks between resource collection cycles. Changing this starts a fresh cycle. Default: 20.",
+                "两次资源采集之间的 tick 数，修改后重新计时。默认：20。")
                 .translation("molecularmanipulator.configuration.singularity_collection_interval_ticks")
                 .defineInRange("interval_ticks", 20, 1, 1200);
         server.pop();
@@ -90,8 +90,8 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.singularity_duplication")
                 .push("singularity_duplication");
         SINGULARITY_DUPLICATION_ENERGY_PRIORITY = server.comment(
-                "Energy sources attempted in order. FE scans adjacent energy capabilities; AE uses the connected ME grid.",
-                "能源优先级，按顺序尝试。FE 会扫描相邻能源能力，AE 使用已连接 ME 网络的能源。")
+                "Use energy sources in list order. fe comes from adjacent blocks; ae comes from the connected ME network.",
+                "按列表顺序使用能源。fe 来自相邻方块，ae 来自已连接的 ME 网络。")
                 .translation("molecularmanipulator.configuration.singularity_duplication_energy_priority")
                 .defineList("energy_priority", List.of("fe", "ae"), () -> "fe", ModConfig::isValidEnergyPriority);
         SINGULARITY_DUPLICATION_FE_PER_UNIT = server.comment(
@@ -105,8 +105,8 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.singularity_duplication_ae_per_unit")
                 .defineInRange("ae_per_unit", 256, 1, Integer.MAX_VALUE);
         SINGULARITY_DUPLICATION_MATTER_PER_BLACK_HOLE = server.comment(
-                "Millibuckets produced per black hole per production cycle when energy and ME fluid storage are available. No sample is required.",
-                "能源和 ME 流体空间充足时，每个黑洞每次生产的奇点序质流体数量（mB），不需要复制样品。")
+                "Sequence Matter generated per miniature black hole per cycle, in mB.",
+                "每个微型黑洞每次的奇点序质产量（mB）。")
                 .translation("molecularmanipulator.configuration.singularity_duplication_matter_per_black_hole")
                 .defineInRange("matter_per_black_hole", 20, 1, 1000000);
         SINGULARITY_DUPLICATION_INTERVAL_TICKS = server.comment(
@@ -120,35 +120,35 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.multiblocks")
                 .push("multiblocks");
         FORCE_LOAD_CHUNKS = server.comment(
-                "Keep chunks occupied by the Sequence Array, Omni-Computation Core, Matter Fabrication Well, and Singularity Creation Nexus loaded while formed or being built. Required for Singularity physical motion.",
-                "成型或施工期间是否保持构序阵列、万物演算核心、物质构筑井和视界奇点天枢占用的区块加载；天枢运动需要开启。白洞区块始终强制加载，不受此选项影响。")
+                "Keep multiblock chunks loaded while formed or under construction. When disabled, keep the machine and its motion area loaded yourself. Miniature white holes always keep their chunks loaded.",
+                "多方块成型或施工时保持所占区块加载。关闭后需自行加载机器及运动范围所在区块。微型白洞始终保持加载。")
                 .translation("molecularmanipulator.configuration.force_load_chunks")
                 .define("force_load_chunks", true);
         server.pop();
-        server.comment("Omni-Computation Core machine dispatch settings.",
-                "万物演算核心的机器派发设置。规划器及 AE2 通用增强由 AppliedEnhancements 配置控制。")
+        server.comment("Omni-Computation Core crafting dispatch and output-return settings.",
+                "万物演算核心的合成派发与产物回收设置。")
                 .translation("molecularmanipulator.configuration.omni_computation")
                 .push("omni_computation");
         server.comment(
-                "Crafting-provider batch dispatch and main-thread work budgets.",
-                "合成供应器批量派发与主线程工作预算。")
+                "Crafting dispatch budgets, batch transfers and output-return settings.",
+                "合成派发预算、批量推送和产物回收设置。")
                 .translation("molecularmanipulator.configuration.dispatch")
                 .push("dispatch");
         OMNI_BATCH_DISPATCH_ENABLED = server.comment(
-                "Enable multi-craft material extraction and dispatch for explicitly compatible crafting providers.",
-                "允许兼容合成供应器一次抽取并派发多份配方材料；关闭后使用普通单份派发。")
+                "Allow batch transfers of crafting materials. When disabled, transfer one craft at a time.",
+                "允许批量推送合成材料。关闭后每次只推送一份。")
                 .translation("molecularmanipulator.configuration.omni_batch_dispatch_enabled")
                 .define("omni_batch_dispatch_enabled", true);
         OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK = server.comment(
-                "Hard safety ceiling for complete one-recipe provider calls shared by one Omni-Computation Core per tick. The adaptive time budget normally stops dispatch much earlier.",
-                "单个万物演算核心每 tick 完整单份配方派发调用的硬上限；通常先由自适应时间预算限制。")
+                "Maximum single-craft dispatch calls per Omni-Computation Core per tick.",
+                "每个万物演算核心每 tick 的单份配方推送次数上限。")
                 .translation("molecularmanipulator.configuration.omni_compat_dispatch_max_calls_per_tick")
                 .defineInRange(
                         "omni_compat_dispatch_max_calls_per_tick",
                         Integer.MAX_VALUE, 256, Integer.MAX_VALUE);
         OMNI_COMPAT_DISPATCH_MAX_TIME_US = server.comment(
-                "Maximum server-wide main-thread time in microseconds used by compatibility one-recipe dispatch each tick. All active Omni cores share one deadline, which shrinks automatically as average server MSPT approaches 45.",
-                "所有活跃万物演算核心共享的每 tick 兼容派发时间预算（微秒）；平均 MSPT 接近 45 时自动收缩。")
+                "Maximum single-craft dispatch time per tick in microseconds, shared by all active Omni-Computation Cores. The budget shrinks as average server MSPT approaches 45.",
+                "所有活跃万物演算核心共享的每 tick 单份配方派发时间预算（微秒）；平均 MSPT 接近 45 时自动收缩。")
                 .translation("molecularmanipulator.configuration.omni_compat_dispatch_max_time_us")
                 .defineInRange(
                         "omni_compat_dispatch_max_time_us",
@@ -159,13 +159,13 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.omni_dispatch_max_work_units")
                 .defineInRange("omni_dispatch_max_work_units", 2_147_483_647L, 64L, Long.MAX_VALUE);
         OMNI_COALESCE_RETURN_NOTIFICATIONS = server.comment(
-                "Notify each changed AE key once after an exact output insertion has settled all its ledgers.",
-                "精确产物回收并结清账本后，每种发生变化的 AE 资源类型只发送一次通知。")
+                "Combine output-return notifications for each resource to reduce repeated updates.",
+                "合并同种资源的产物回收通知，减少重复更新。")
                 .translation("molecularmanipulator.configuration.omni_coalesce_return_notifications")
                 .define("omni_coalesce_return_notifications", true);
         OMNI_DIRECT_NATIVE_OUTPUT_RETURN = server.comment(
-                "Directly transfer native UselessMod intermediate output balances to their live bound CPU on the same grid. Unsupported queues use normal return.",
-                "将 UselessMod 原生中间产物余额直接返回同一网络实时绑定的 CPU；不支持的队列仍使用普通回收。")
+                "Return UselessMod intermediate outputs directly to their bound CPU on the same network.",
+                "将 UselessMod 中间产物直接返回同一网络中绑定的 CPU。")
                 .translation("molecularmanipulator.configuration.omni_direct_native_output_return")
                 .define("omni_direct_native_output_return", true);
         server.pop();
@@ -173,8 +173,8 @@ public final class ModConfig {
         server.comment("Transfinite Compute Nexus power settings.", "超限算枢耗电设置。")
                 .translation("molecularmanipulator.configuration.transfinite_compute_nexus")
                 .push("transfinite_compute_nexus");
-        NEXUS_IDLE_POWER = server.comment("Idle power usage in AE/t. Requires a powered ME network and one channel.",
-                "待机耗电（AE/t），需要已供电的 ME 网络和一个频道。")
+        NEXUS_IDLE_POWER = server.comment("Base idle power for the Transfinite Compute Nexus in AE/t.",
+                "超限算枢的基础待机耗电（AE/t）。")
                 .translation("molecularmanipulator.configuration.nexus_idle_power")
                 .defineInRange("idle_power", 16_384, 1, Integer.MAX_VALUE);
         server.pop();
@@ -187,8 +187,8 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.visual")
                 .push("visual");
         DYNAMIC_EFFECT_LEVEL = client.comment(
-                "Dynamic multiblock effects: 0=off, 1=reduced, 2=full astral rings and quantum gate.",
-                "多方块客户端特效：0 关闭，1 精简，2 完整；影响构序阵列、万物演算核心、物质构筑井与视界奇点天枢的视觉效果。")
+                "Multiblock effects: 0=off, 1=reduced, 2=full.",
+                "多方块特效等级：0 关闭，1 精简，2 完整。")
                 .translation("molecularmanipulator.configuration.dynamic_effect_level")
                 .defineInRange("dynamic_effect_level", 2, 0, 2);
         client.pop();

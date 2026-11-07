@@ -73,12 +73,31 @@ class RateLimitedLogTest {
             if (instruction instanceof MethodInsnNode call) {
                 limitedWarning |= call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
                         && call.name.equals("warn");
-                pausesCpu |= call.name.equals("ecoDispatch$pause");
+                pausesCpu |= call.name.equals("omniDispatch$pause");
             }
         }
         assertTrue(constantTemplate);
         assertTrue(limitedWarning);
         assertTrue(pausesCpu, "Logging cleanup must retain uncertain-ownership suspension");
+    }
+
+    @Test
+    void diagnosticsKeepTheWarningAndErrorOnlyApiWithoutLegacyDebugCalls() throws Exception {
+        assertFalse(java.util.Arrays.stream(RateLimitedLog.class.getDeclaredMethods())
+                .anyMatch(method -> method.getName().equals("debug")), "Do not restore the retired debug API");
+        var type = new ClassNode();
+        try (var input = getClass().getResourceAsStream(
+                "/com/atir/molecularmanipulator/blockentity/MolecularAutoCrafter.class")) {
+            assertNotNull(input);
+            new ClassReader(input).accept(type, 0);
+        }
+        for (var method : type.methods) for (var instruction : method.instructions) {
+            if (instruction instanceof MethodInsnNode call) {
+                assertFalse(call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
+                                && call.name.equals("debug"),
+                        "Delete legacy debug call sites instead of restoring a debug logger");
+            }
+        }
     }
 
     @Test

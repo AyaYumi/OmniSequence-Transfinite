@@ -67,7 +67,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
-        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost {
+        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost, MachineEffectHost {
     public static final int PATTERNS_PER_PAGE = 36;
     public static final int MAX_PATTERN_PAGES = 300;
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
@@ -108,6 +108,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "molecular_center_legacy_structure_update_dismissed";
     private static final String MATRIX_UPLOAD_CORE_TAG = "matrix_upload_core_inventory";
+    private static final String AUTOMATIC_PATTERN_UPLOAD_TAG = "automatic_pattern_upload";
     private static final String QUANTUM_INVENTORY_TAG = "molecular_center_quantum_inventory";
     private static final String FIELD_COLOR_TAG = "visual_field_color";
     private static final String CORE_COLOR_TAG = "visual_core_color";
@@ -127,7 +128,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
-    private final AppEngInternalInventory matrixUploadCoreInventory = new AppEngInternalInventory(this, 1);
+    private final MachineEffectSettings machineEffects = new MachineEffectSettings();
+    // Undecodable legacy items (e.g. EAEP temporarily absent) must survive saves and recovery drops.
+    private Tag retiredUploadCoreData;
+    private boolean automaticPatternUpload;
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final Object2LongOpenHashMap<AEKey> pendingPrimaryOutputs = new Object2LongOpenHashMap<>();
@@ -194,7 +198,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public MolecularCenterBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MOLECULAR_CENTER_CONTROLLER_BE.get(), pos, state);
         quantumInventory.setMaxStackSize(0, 1);
-        matrixUploadCoreInventory.setMaxStackSize(0, 1);
         getMainNode()
                 .setFlags(GridFlags.REQUIRE_CHANNEL)
                 .setIdlePowerUsage(ModConfig.IDLE_POWER.get());
@@ -223,7 +226,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     boolean canAccessExternalPatterns() {
         return level != null && !level.isClientSide() && !isRemoved() && patternStorageReady
                 && !restoringPatternInventory && !building && !dismantling && !structureUpdating
-                && (!patternsInCrystals || usesPatternShards());
+                && (!patternsInCrystals || usesPatternShards())
+                && !com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this);
     }
 
     boolean canMutateExternalPatterns() {
@@ -268,17 +272,34 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return quantumInventory;
     }
 
-    public AppEngInternalInventory getMatrixUploadCoreInventory() {
-        return matrixUploadCoreInventory;
+    @Override
+    public MachineEffectSettings getMachineEffects() {
+        return machineEffects;
     }
 
-    public boolean hasMatrixUploadCore() {
-        return com.atir.molecularmanipulator.integration.extendedaeplus.MatrixUploadCoreIntegration
-                .isUploadCore(matrixUploadCoreInventory.getStackInSlot(0));
+    public boolean isAutomaticPatternUploadEnabled() {
+        return automaticPatternUpload;
     }
 
-    public boolean canAcceptMatrixUpload() {
+    public void setAutomaticPatternUploadEnabled(boolean enabled) {
+        if (automaticPatternUpload != enabled) {
+            automaticPatternUpload = enabled;
+            saveChanges();
+        }
+    }
+
+    public boolean canAcceptExternalPatternUpload() {
         return isOperational() && canMutateExternalPatterns();
+    }
+
+    /** Automated encoders use the same live decode/ownership validation as the external pattern port. */
+    public boolean canAcceptExternalPatternUpload(ItemStack pattern) {
+        if (!canAcceptExternalPatternUpload()) return false;
+        try {
+            return isSupportedExternalPattern(pattern);
+        } catch (RuntimeException invalidPattern) {
+            return false;
+        }
     }
 
 
@@ -351,7 +372,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || !pendingByproducts.isEmpty()
                 || !reusableBatchRefunds.isEmpty()
                 || RetainedBlockContents.hasPatternContents(this)
-                || !quantumInventory.isEmpty() || !matrixUploadCoreInventory.isEmpty()
+                || !quantumInventory.isEmpty()
+                || retiredUploadCoreData != null
                 || !autoCrafter.getPatternInventory().isEmpty();
     }
 
@@ -370,7 +392,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         patternStorageReady = false;
         super.clearContent();
         quantumInventory.clear();
-        matrixUploadCoreInventory.clear();
+        retiredUploadCoreData = null;
         pendingPrimaryOutputs.clear();
         pendingByproducts.clear();
         reusableBatchRefunds.clear();
@@ -446,7 +468,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
         autoCrafter.save(tag, registries);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
-        matrixUploadCoreInventory.writeToNBT(tag, MATRIX_UPLOAD_CORE_TAG, registries);
+        if (retiredUploadCoreData != null) tag.put(MATRIX_UPLOAD_CORE_TAG, retiredUploadCoreData.copy());
+        else tag.remove(MATRIX_UPLOAD_CORE_TAG);
+        tag.putBoolean(AUTOMATIC_PATTERN_UPLOAD_TAG, automaticPatternUpload);
+        machineEffects.save(tag);
         writeVisualColors(tag);
     }
 
@@ -455,6 +480,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         patternStorageReady = false;
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag, registries);
+        getLogic().invalidateUploadIndex();
         formed = tag.getBoolean("molecular_center_formed");
         patternsInCrystals = tag.getBoolean(PATTERNS_IN_CRYSTALS_TAG)
                 || formed && !tag.contains(MolecularCenterPatternShards.PATTERNS_TAG, Tag.TAG_LIST)
@@ -549,7 +575,14 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
-        matrixUploadCoreInventory.readFromNBT(tag, MATRIX_UPLOAD_CORE_TAG, registries);
+        // The functional slot is retired, but its real item belongs to the player. Known
+        // items return via the durable output escrow; missing-mod/corrupt data stays raw.
+        var legacyCoreData = tag.get(MATRIX_UPLOAD_CORE_TAG);
+        retiredUploadCoreData = migrateRetiredUploadCore(legacyCoreData, registries, pendingPrimaryOutputs);
+        automaticPatternUpload = tag.contains(AUTOMATIC_PATTERN_UPLOAD_TAG)
+                ? tag.getBoolean(AUTOMATIC_PATTERN_UPLOAD_TAG)
+                : legacyCoreData instanceof ListTag cores && !cores.isEmpty();
+        machineEffects.load(tag);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         RetiredMatterRewriteContents.migrate(tag, registries, quantumInventory, pendingPrimaryOutputs);
         fieldColor = readColor(tag, FIELD_COLOR_TAG, DEFAULT_FIELD_COLOR);
@@ -558,6 +591,31 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         secondaryRingColor = readColor(tag, SECONDARY_RING_COLOR_TAG, DEFAULT_SECONDARY_RING_COLOR);
         latticeColor = readColor(tag, LATTICE_COLOR_TAG, DEFAULT_LATTICE_COLOR);
         autoCrafter.load(tag, registries);
+    }
+
+    /** Return only unclaimed legacy entries, without mutating the caller's saved payload. */
+    static Tag migrateRetiredUploadCore(Tag saved, HolderLookup.Provider registries,
+            Object2LongOpenHashMap<AEKey> outputs) {
+        if (saved == null) return null;
+        if (!(saved instanceof ListTag cores)) return saved.copy();
+        var retained = new ListTag();
+        for (var entry : cores) {
+            boolean migrated = false;
+            if (entry instanceof CompoundTag item && item.getInt("Slot") == 0) {
+                try {
+                    var stack = ItemStack.parseOptional(registries, item);
+                    var key = AEItemKey.of(stack);
+                    if (key != null) {
+                        outputs.put(key, Math.addExact(outputs.getLong(key), stack.getCount()));
+                        migrated = true;
+                    }
+                } catch (RuntimeException invalidOrOverflowingItem) {
+                    // A missing item registration, invalid component or full escrow is not item deletion.
+                }
+            }
+            if (!migrated) retained.add(entry.copy());
+        }
+        return retained.isEmpty() ? null : retained;
     }
 
     private void writeVisualColors(CompoundTag tag) {
@@ -597,6 +655,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         data.writeInt(latticeColor);
         data.writeEnum(structureLayout);
         data.writeEnum(controllerAnchor);
+        machineEffects.write(data);
     }
 
     @Override
@@ -623,6 +682,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         latticeColor = newLatticeColor;
         structureLayout = newLayout;
         controllerAnchor = newControllerAnchor;
+        changed |= machineEffects.read(data);
         return changed;
     }
 
@@ -1873,6 +1933,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         restoringPatternInventory = true;
         try {
             MolecularCenterPatternShards.applyList(inventory, merged, level.registryAccess());
+            getLogic().invalidateUploadIndex();
             writePatternShards(MolecularCenterPatternShards.split(merged), false);
             patternsInCrystals = true;
             patternStorageReady = true;

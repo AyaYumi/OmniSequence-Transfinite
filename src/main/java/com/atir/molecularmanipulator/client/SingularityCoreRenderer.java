@@ -4,7 +4,8 @@ import com.atir.molecularmanipulator.blockentity.SingularityCoreBlockEntity;
 import com.atir.molecularmanipulator.client.render.SingularityEffectLayers;
 import com.atir.molecularmanipulator.client.render.SingularityShaderVertices;
 import com.atir.molecularmanipulator.client.render.SingularityCoreEffects;
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
+import com.atir.molecularmanipulator.blockentity.SingularityStructure;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -18,8 +19,9 @@ public final class SingularityCoreRenderer implements BlockEntityRenderer<Singul
     @Override
     public void render(SingularityCoreBlockEntity core, float partialTick, PoseStack poses,
             MultiBufferSource buffers, int packedLight, int packedOverlay) {
-        int detail = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
-        if (detail <= 0 || core.getLevel() == null) return;
+        if (core.getLevel() == null) return;
+        int detail = MachineEffectLevels.forSingularityPart(core.getLevel(), core.getBlockPos(), SingularityStructure.Type.CORE);
+        if (detail <= 0) return;
         double distance = Vec3.atCenterOf(core.getBlockPos()).distanceToSqr(
                 Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
         if (distance > 48 * 48) return;

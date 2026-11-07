@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.network.PatternSearchIndexPayload;
+import com.atir.molecularmanipulator.network.SingularityCollectionPayload;
 import com.atir.molecularmanipulator.network.MatterFabricationUploadPayload;
 import com.atir.molecularmanipulator.network.WarpScreenPayload;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -35,6 +36,7 @@ public final class MolecularManipulator {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(PatternSearchIndexPayload::register);
+        modEventBus.addListener(SingularityCollectionPayload::register);
         modEventBus.addListener(MatterFabricationUploadPayload::register);
         modEventBus.addListener(WarpScreenPayload::register);
         modEventBus.addListener(com.atir.molecularmanipulator.network.LanternPayloads::register);

@@ -6,6 +6,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ICraftingInventory;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Set;
@@ -13,7 +14,7 @@ import java.util.function.Supplier;
 import net.minecraft.world.level.Level;
 
 /** Optional CPU hooks. Deliberately contains no ECO types, including in method descriptors. */
-public interface EcoOmniPlanCpuAccess extends EcoCpuDispatchHost {
+public interface EcoOmniPlanCpuAccess extends OmniCpuDispatchHost {
     OmniExactCraftingState ecoOmni$exactState();
     void ecoOmni$installExactState(OmniExactCraftingState state);
     Map<IPatternDetails, Object> ecoOmni$tasks();

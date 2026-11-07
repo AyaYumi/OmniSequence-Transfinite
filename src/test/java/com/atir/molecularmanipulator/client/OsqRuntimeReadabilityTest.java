@@ -2,8 +2,10 @@ package com.atir.molecularmanipulator.client;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.client.gui.theme.OsqFonts;
 import com.atir.molecularmanipulator.client.gui.theme.OsqLayout;
+import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.StarComputationEngineMenu;
 import com.atir.molecularmanipulator.starcomputation.StarComputationRecipeCatalog;
 import com.google.gson.JsonParser;
@@ -19,6 +21,7 @@ import java.util.Optional;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.StringSplitter;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.font.providers.TrueTypeGlyphProviderDefinition;
 import net.minecraft.client.resources.language.ClientLanguage;
 import net.minecraft.locale.Language;
@@ -39,26 +42,90 @@ import org.junit.jupiter.api.Test;
 class OsqRuntimeReadabilityTest {
     private static final Path ASSETS=Path.of("src/main/resources/assets/molecularmanipulator");
 
-    @Test void quantumFrequencyUploadAndLiveStatusHaveSeparateRowsInEveryCenterPage() throws Exception {
-        for(boolean dark:new boolean[]{false,true})try(var context=new Context(dark,"zh_cn")){
+    @Test void quantumFrequencyMigrationUploadAndLiveStatusHaveSeparateRowsInEveryCenterPage() throws Exception {
+        for(boolean dark:new boolean[]{false,true})for(String language:List.of("zh_cn","en_us"))try(var context=new Context(dark,language)){
             for(String name:List.of("seq_center_overview","seq_center_autocraft","seq_center_colors")){
-                var ui=new OsqUi(name);
-                ui.number(65.39f,179.5f,()->"FFFFFFFFFFFFFFFF");
-                ui.text("gui.molecularmanipulator.quantum_state.connected",()->Component.translatable(
-                        "gui.molecularmanipulator.quantum_state.connected_build_only"));
-                var g=new InkRecorder(context);
-                ui.foreground(g,context.font);
-                var title=g.containing("缠绕态量子链路");
-                var status=g.containing("施工链路稳定");
-                var caption=g.containing("量子频率");
-                var frequency=g.containing("FFFFFFFFFFFFFFFF");
-                assertTrue(title.bottom+3<=status.top, name);
-                assertTrue(status.bottom+3<=caption.top, name);
-                assertTrue(caption.right+5<=frequency.left,name+" frequency uses live sixteen-digit width");
-                var core=ui.layout.find("core");var upload=g.containing("上传核心");
-                assertTrue(upload.right+3<=core.x,name+" upload caption must not enter its item slot");
-                assertEquals(core.y+core.h/2,upload.center(),.8);
-                for(var ink:List.of(title,status,caption,frequency,upload))assertTrue(ink.scale>=.999f);
+                var center=center(context,name);var ui=center.ui;var menu=center.menu;
+                assertNull(ui.layout.find("core"),name+" has no retired functional or ghost slot");
+                assertNull(ui.layout.findText("gui.molecularmanipulator.quantum_upload_core"));
+                assertNull(ui.layout.findText("gui.molecularmanipulator.quantum_upload_core_hint"));
+                menu.quantumFrequency=-1L;
+                for(var linkState:MolecularCenterBlockEntity.QuantumLinkState.values())
+                for(boolean automatic:new boolean[]{false,true})for(String state:List.of("normal","hover","disabled")){
+                    menu.quantumLinkState=linkState;
+                    menu.automaticPatternUpload=automatic;menu.operational=!state.equals("disabled");
+                    invoke(center.screen,"refreshPatternTransferControls");
+                    for(var button:center.buttons)ResponsiveScreenTestFixture.set(button,"isHovered",state.equals("hover"));
+                    var g=new InkRecorder(context);center.screen.drawFG(g,0,0,-1,-1);
+                    for(var button:center.buttons)renderButtonContents(button,g);
+                    String sample=(dark?"dark":"light")+" "+language+" "+name+" "+linkState+" auto="+automatic+" "+state;
+                    var title=g.exact(Component.translatable("gui.molecularmanipulator.quantum_title").getString());
+                    var status=g.exact(Component.translatable("gui.molecularmanipulator.quantum_state."
+                            +linkState.name().toLowerCase(java.util.Locale.ROOT)).getString());
+                    var caption=g.exact(Component.translatable("gui.molecularmanipulator.fab.s025").getString());
+                    var frequency=g.exact("FFFFFFFFFFFFFFFF");
+                    String requirements=Component.translatable("gui.molecularmanipulator.overview_quantum_requirements",512).getString();
+                    var upkeep=g.exact(requirements);
+                    assertEquals(requirements,upkeep.text,sample);
+                    assertTrue(title.bottom+3<=status.top,sample);
+                    assertTrue(status.bottom+3<=caption.top,sample);
+                    assertTrue(caption.right+5<=frequency.left,sample+" frequency uses live sixteen-digit width");
+                    assertTrue(frequency.bottom+3<=upkeep.top,sample+" "+frequency+" / "+upkeep);
+                    for(var ink:List.of(title,status,caption,frequency,upkeep))assertEquals(1,ink.scale,.001f,sample);
+                    for(int index=0;index<2;index++){
+                        var button=center.buttons.get(index);
+                        var box=ui.layout.findControl(index==0?"pattern_upload":"migrate_patterns");
+                        String key=index==0?"gui.molecularmanipulator.pattern_upload."+(automatic?"on":"off")
+                                :"gui.molecularmanipulator.pattern_migration.button";
+                        String message=Component.translatable(key).getString();var ink=g.exact(message);
+                        assertEquals(message,ink.text,sample);assertEquals(1,ink.scale,.001f,sample);
+                        assertEquals(1,g.ink.stream().filter(i->i.text.equals(message)).count(),sample+" replaces the static label exactly once");
+                        String faceState=!button.active?"disabled":index==0&&automatic?"active":state.equals("hover")?"hover":"normal";
+                        assertEquals(box.y+OsqUi.controlCenter("button",faceState,box.h,false),ink.center(),.8f,sample);
+                        assertTrue(ink.left>=box.x+6.5f&&ink.right<=box.x+box.w-6.5f,sample+" "+ink);
+                        assertTrue(upkeep.bottom+3<=box.y,sample+" "+upkeep+" / control y="+box.y);
+                        assertTrue(center.screen.screenContent.owns(button),"New controls use the screen's responsive input/render transform");
+                        assertNotNull(button.getTooltip(),"The real upload/migration explanations remain available");
+                        var panel=ui.layout.find("quantum");
+                        assertTrue(box.x>=panel.x&&box.x+box.w<=panel.x+panel.w&&box.y+box.h<=panel.y+panel.h,sample);
+                        for(var slot:ui.layout.draw)if("slot".equals(slot.kind))
+                            assertFalse(box.x<slot.x+slot.w&&box.x+box.w>slot.x&&box.y<slot.y+slot.h&&box.y+box.h>slot.y,
+                                    sample+" control cannot cover native slot "+slot.id);
+                    }
+                    for(int a=0;a<g.ink.size();a++)for(int b=a+1;b<g.ink.size();b++)
+                        assertFalse(g.ink.get(a).overlaps(g.ink.get(b)),sample+" "+g.ink.get(a)+" / "+g.ink.get(b));
+                    if(language.equals("en_us"))for(var ink:g.ink)assertFalse(ink.text.endsWith("…"),sample+" "+ink);
+                }
+            }
+        }
+    }
+
+    @Test void centerTransferControlsFollowServerReadinessAndStayReachableInSmallViewports() throws Exception {
+        for(boolean dark:new boolean[]{false,true})try(var context=new Context(dark,"en_us")){
+            for(String name:List.of("seq_center_overview","seq_center_autocraft","seq_center_colors")){
+                var center=center(context,name);var menu=center.menu;
+                menu.quantumLinkState=MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
+                for(boolean online:new boolean[]{false,true})for(boolean building:new boolean[]{false,true})for(boolean dismantling:new boolean[]{false,true}){
+                    menu.operational=online;menu.building=building;menu.dismantling=dismantling;
+                    invoke(center.screen,"refreshPatternTransferControls");
+                    assertEquals(online&&!building&&!dismantling,center.buttons.get(1).active,name);
+                    assertTrue(center.buttons.getFirst().active,"Upload preference is configurable even before the array is online");
+                    for(var button:center.buttons)assertTrue(button.visible,name+" keeps both entrances on every page");
+                }
+                menu.operational=true;menu.building=false;menu.dismantling=false;
+                invoke(center.screen,"refreshPatternTransferControls");
+                for(int[] viewport:new int[][]{{320,240},{567,240}}){
+                    center.screen.width=viewport[0];center.screen.height=viewport[1];
+                    var bounds=center.screen.responsiveBounds();
+                    assertTrue(bounds.getX()>=3&&bounds.getY()>=3);
+                    assertTrue(bounds.getX()+bounds.getWidth()<=viewport[0]-3);
+                    assertTrue(bounds.getY()+bounds.getHeight()<=viewport[1]-3);
+                    for(var button:center.buttons){
+                        int x=center.screen.responsiveScreenX(button.getX()+button.getWidth()/2);
+                        int y=center.screen.responsiveScreenY(button.getY()+button.getHeight()/2);
+                        assertTrue(button.isMouseOver(center.screen.logicalMouseX(x),center.screen.logicalMouseY(y)),name);
+                    }
+                }
             }
         }
     }
@@ -574,6 +641,47 @@ class OsqRuntimeReadabilityTest {
         }
     }
 
+    private record Center(MolecularCenterScreen screen,MolecularCenterMenu menu,OsqUi ui,List<Button> buttons) {}
+
+    /** Run the same common-row binding and control registration called by the production screen's init. */
+    private static Center center(Context context,String name) throws Exception {
+        var screen=ResponsiveScreenTestFixture.allocate(MolecularCenterScreen.class);
+        var menu=ResponsiveScreenTestFixture.allocate(MolecularCenterMenu.class);var ui=new OsqUi(name);
+        for(String field:List.of("children","renderables","narratables","screenWidgets"))
+            ResponsiveScreenTestFixture.set(screen,field,new ArrayList<>());
+        ResponsiveScreenTestFixture.set(screen,"screenContent",new ResponsiveScreenWidgets());
+        ResponsiveScreenTestFixture.set(screen,"ui",ui);ResponsiveScreenTestFixture.set(screen,"menu",menu);
+        ResponsiveScreenTestFixture.set(screen,"font",context.font);
+        ResponsiveScreenTestFixture.set(screen,"imageWidth",ui.layout.width);ResponsiveScreenTestFixture.set(screen,"imageHeight",ui.layout.height);
+        ResponsiveScreenTestFixture.set(screen,"detailTab",name.endsWith("autocraft")?MolecularCenterScreen.TAB_AUTO_CRAFT
+                :name.endsWith("colors")?MolecularCenterScreen.TAB_COLORS:MolecularCenterScreen.TAB_OVERVIEW);
+        menu.quantumLinkState=MolecularCenterBlockEntity.QuantumLinkState.EMPTY;menu.autoCraftSelectedSlot=-1;
+        ui.visible=e->!"tip".equals(e.kind)&&!"pop".equals(e.kind)&&ui.layout.layerOf(e)==null;
+        var controls=ui.layout.draw.stream().filter(e->("ctl".equals(e.kind)||"edge".equals(e.kind))
+                &&!"pattern_upload".equals(e.id)&&!"migrate_patterns".equals(e.id)).toList();
+        ui.hide(e->controls.stream().anyMatch(control->ui.layout.owns(control,e)));
+        invoke(screen,"bindQuantumLink");invoke(screen,"initPatternTransferControls");
+        var buttons=screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
+        assertEquals(2,buttons.size(),"Production registers exactly the two live pattern-transfer controls");
+        return new Center(screen,menu,ui,buttons);
+    }
+
+    /** Execute production SkinButton state, resource and content code, omitting only its OpenGL frame. */
+    private static void renderButtonContents(Button button,InkRecorder g) throws Exception {
+        var type=button.getClass();var kindMethod=type.getDeclaredMethod("kind");var stateMethod=type.getDeclaredMethod("status");
+        kindMethod.setAccessible(true);stateMethod.setAccessible(true);
+        String kind=(String)kindMethod.invoke(button),state=(String)stateMethod.invoke(button);
+        var visualMethod=type.getDeclaredMethod("visual",String.class,String.class,long.class);visualMethod.setAccessible(true);
+        var visual=visualMethod.invoke(button,kind,state,OsqFonts.resourceGeneration());
+        var content=type.getDeclaredMethod("renderContents",net.minecraft.client.gui.GuiGraphics.class,
+                String.class,String.class,float.class,visual.getClass());content.setAccessible(true);
+        content.invoke(button,g,kind,state,OsqUi.controlCenter(kind,state,button.getHeight(),false),visual);
+    }
+
+    private static void invoke(Object target,String method) throws Exception {
+        var m=target.getClass().getDeclaredMethod(method);m.setAccessible(true);m.invoke(target);
+    }
+
     private static final class HandheldProbe extends StarChartClient.PanelScreen {
         private HandheldProbe(){super(Component.empty(),"star_chart_calibrator",true);}
         void add(PointerProbe input){addRenderableWidget(input);}
@@ -626,6 +734,7 @@ class OsqRuntimeReadabilityTest {
             }
             return (int)Math.ceil(cursor);
         }
+        Ink exact(String text){return ink.stream().filter(i->i.text.equals(text)).findFirst().orElseThrow(()->new AssertionError("Missing exact "+text+" in "+ink));}
         Ink containing(String text){return ink.stream().filter(i->i.text.contains(text)).findFirst().orElseThrow(()->new AssertionError("Missing "+text+" in "+ink));}
     }
 

@@ -1,8 +1,8 @@
 # Matter Fabrication Well: Recipes and Research API
 
 Available since OmniSequence: Transfinite **2.0.0**; current for **2.1.0**.
-Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.17+**, and the
-required prerequisite Applied Enhancements **1.1.0+** (paired release **1.1.2**). The Mod ID stays
+Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.18**, and the
+required prerequisite Applied Enhancements **1.1.2+** (compile API **1.1.4**). The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
@@ -302,6 +302,14 @@ recipes and generated bridge defaults use 400 base ticks (20 seconds); explicit
 custom `processing_time` values are preserved. Research's own `duration` is
 independent of production speed and this default.
 
+A recipe with no research owner and `requires_research: false` remains usable
+without research, but inherits the completed parallel limit of the tier-1
+foundation research, `molecularmanipulator:research/ae_foundation`. Before that
+progress (or if that definition is absent), its parallel limit stays `1`.
+Explicitly owned recipes use only their own research parallel limits. Production
+speed still comes from the grid's Star Computation Engine in either case; this
+fallback does not unlock research-gated recipes.
+
 ---
 
 ## 4. Well recipe: `molecularmanipulator:matter_fabrication`
@@ -420,10 +428,15 @@ are checked when admitting/starting work. Missing catalysts prevent execution.
 JEI encoding uses the server's recipe definition and selected matching item
 alternatives. It combines every consumed item, fluid and generic AE input, and
 every output including byproducts. Catalysts are omitted from the encoded inputs.
-Upload requires an active encoding terminal, a blank pattern and an available
-assembly belonging to the player's team. The server validates the current recipe,
-selected inputs and target; client quantities cannot redefine a recipe. Upload
-helpers/payloads are internal and are not public Java API.
+Upload requires an active encoding terminal, one extractable blank pattern and
+an available assembly in a loaded, formed well belonging to the player's team.
+The blank comes from the terminal first, then its connected ME network if the
+local slot is empty; one network blank is sufficient. Assembly names are display
+labels, not destination identity. Additional ExtendedAE Plus automatic-provider
+selection/upload hooks target 1.6.4.1 only and recognize renamed assemblies by
+machine type and team. The server validates the current recipe, selected inputs
+and target; client quantities cannot redefine a recipe. Upload helpers/payloads
+are internal and are not public Java API.
 
 ## 5. Materials, admission and persistence
 
@@ -709,7 +722,7 @@ API; the separate batch API stays at v1.
 | `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; ordinary manual tasks using `setPaused(..., false)` re-check the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
 | `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
 | `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
-| `productionProfile` | `(parallel, ticks)`: highest parallel limit among completed owner branches (or `1`); ticks come from the current recipe base duration and `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)`, independently of research depth. |
+| `productionProfile` | `(parallel, ticks)`: highest parallel limit among completed owner branches; unowned, ungated recipes inherit completed `ae_foundation` parallelism, otherwise `1`. Ticks come from the current recipe base duration and `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)`, independently of research depth. |
 | `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
 | `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
 

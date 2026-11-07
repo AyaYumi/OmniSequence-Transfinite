@@ -2,8 +2,8 @@
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.1.0 on Minecraft 1.21.1 / Java 21, with AE2 19.2.17+
-and Applied Enhancements 1.1.0+ (paired release 1.1.2). The runtime ABI remains **1**.
+Current for OmniSequence 2.1.0 on Minecraft 1.21.1 / Java 21, with AE2 19.2.18
+and AppliedEnhancements 1.1.2+ (compile API 1.1.4). The runtime ABI remains **1**.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -17,6 +17,24 @@ This SPI is for AE2 machines that store encoded patterns and act as
 one craft at a time. Implement this SPI only when the machine wants an
 Omni-Computation Core or Transfinite Compute Nexus to allocate several complete crafts and deliver them as
 one atomic transaction.
+
+Ordinary providers also receive adaptive dispatch through their existing
+`pushPattern` contract, including multi-input recipes and custom implementations.
+The first ordinary call contains one original task. Further complete calls grow
+in same-tick rounds of 1, 2, 4, ... until the provider becomes busy or rejects a
+call. Omni retains the successful calls per tick and, after 20 ticks, probes that
+baseline plus 1, 2, 4, ... again. Native doubled tasks retain their identity and
+counts. This requires no additional provider interface; the atomic SPI below
+remains available for providers that can accept one counted transaction.
+
+A single remaining craft uses the original one-craft path rather than waiting for
+another batch. Reusable-tool handling in built-in machines retains returned tools
+and deterministic durability changes for subsequent crafts, without duplicating
+the tool or charging it as a fresh consumable each time. Cycle execution shares
+its seed inventory and yields when the current phase cannot dispatch, allowing
+other runnable work to proceed. These execution paths remain subject to current
+CPU storage/parallel limits, materials, power and provider backpressure; they do
+not grant unlimited CPU capacity.
 
 Advanced AE quantum CPUs also use this provider contract through the optional
 integration. The single-block nexus adds no new provider ABI or resource format.
@@ -131,7 +149,8 @@ whole range or reject atomically at commit time.
 
 API v1 deliberately batches only purely consumable inputs. Recipes with
 returned containers, reusable tools, or durability transitions keep the safe
-one-craft path unless an existing internal Omni machine handles them.
+one-craft path unless an existing internal Omni machine handles them. Such internal
+handling does not extend the public v1 ownership contract.
 
 The public input records carry `AEKey`, including registered addon types; each
 provider decides which types it can actually process. `amount` uses that key's
@@ -144,8 +163,9 @@ The built-in Matter Fabrication Pattern Assembly implements this contract using
 its own persistent input/output buffers and supports all registered AEKey inputs
 declared by a well recipe. Research permission is checked before admission and
 before queued work starts. Production limits and bonuses are evaluated when work
-starts; started work retains its processing snapshot across reloads. Queued work
-retains material ownership and recipe IDs while using current definitions. Its
+starts. Started work retains material, output and power snapshots across reloads;
+duration follows current engine benefits with proportional progress rescaling.
+Queued work retains material ownership and recipe IDs while using current definitions. Its
 UI buffer size is not an unconditional batch limit. See the [well API](matter-research-api.md)
 for `ae_inputs`, output isolation and the remaining same-output overlap limitations.
 
@@ -256,7 +276,8 @@ provider delivery; call `accepted()` at durable ownership transfer. Closing a
 rejected dispatch restores cycle accounting, while the CPU refunds still-owned
 physical inputs. A null inventory declines this attempt; `maximumCrafts()` is a
 phase bound and does not promise materials or queue capacity. The shared context
-is available in AES 1.1.0+ and must not be reacquired after the first extraction.
+is available in the supported AppliedEnhancements 1.1.2+ runtime and must not be
+reacquired after the first extraction.
 
 Retain every expected output, including item/fluid byproducts. Unsupported
 optimization or an unreadable external batch wrapper must preserve the complete
@@ -264,12 +285,12 @@ original task ledger and permit ordinary planning/dispatch. It must not turn a
 secondary output into a planning exception or truncate work to a long preview.
 Providers still enforce actual material ownership and capacity.
 
-For new integrations using AES 1.1.1, query
-`AelisSmartDoublingApi.isExternallyManaged(pattern)` before adding a local scale.
-Preserve native enabled patterns, existing external wrappers, provider splits
-and the original-pattern remainder. An installed addon alone does not enable
-this bypass. The query describes external management, not ownership or exact
-execution support; load 1.1.1-only types only with that runtime present.
+Query `AelisSmartDoublingApi.isExternallyManaged(pattern)` before adding a local
+scale. Preserve native enabled patterns, existing external wrappers, provider
+splits and the original-pattern remainder. An installed addon alone does not
+enable this bypass. The query describes external management, not ownership or
+exact execution support; keep AppliedEnhancements references in the appropriate
+integration class.
 
 ## Exact-count capabilities
 

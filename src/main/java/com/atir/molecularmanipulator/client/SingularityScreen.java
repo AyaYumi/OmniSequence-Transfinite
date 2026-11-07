@@ -10,23 +10,19 @@ import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public final class SingularityScreen extends ResponsiveContainerScreen<SingularityMenu> {
     private Button build, preview, refresh, dismantle, cancel, overview, collectionTab, duplicationTab, embed, collectionToggle;
+    private MachineEffectButton effects;
     private boolean collectionPage, duplicationPage;
     private long armedAt;
     private int collectionScroll;
-    private String collectionSource;
-    private List<ItemStack> cachedCollectionResources = List.of();
     private OsqUi ui;
 
     public SingularityScreen(SingularityMenu menu, Inventory inventory, Component title, ScreenStyle style) {
@@ -122,6 +118,9 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
             var dot=ui.layout.find("network_dot");
             ui.sprite(dot.x,dot.y,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         }
+        // The OSQ overview has a free action row above the player inventory.
+        effects = addScreenWidget(new MachineEffectButton(leftPos + 173, topPos + 190, 160,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         updateWidgets();
     }
 
@@ -148,6 +147,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         menu.setQuantumSlotActive(!secondaryPage && !menu.getMachine().isSingleBlock());
         if(ui.layout.find("qes")==null)for(var slot:menu.getSlots(SingularityMenu.QUANTUM_INPUT)){slot.x=-1000;slot.y=-1000;}
         build.visible = !secondaryPage;
+        effects.visible = !secondaryPage && !menu.getMachine().isSingleBlock();
         preview.visible = refresh.visible = !secondaryPage;
         build.setMessage(tr(operationActive ? menu.paused ? "resume" : "pause" : "build"));
         build.active = !secondaryPage && !menu.embedRequested
@@ -217,21 +217,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     }
 
     private List<ItemStack> collectionResources() {
-        String source = menu.collectionItems;
-        if (source.equals(collectionSource)) return cachedCollectionResources;
-        List<ItemStack> result = new ArrayList<>();
-        for (String raw : source.split(",")) {
-            if (raw.isBlank()) continue;
-            ResourceLocation id = ResourceLocation.tryParse(raw.trim());
-            if (id == null) continue;
-            var item = BuiltInRegistries.ITEM.get(id);
-            ItemStack stack = new ItemStack(item);
-            if (!stack.isEmpty()) result.add(stack);
-        }
-        // Only item identities are cached. Hover names still resolve in the active language at draw time.
-        cachedCollectionResources = List.copyOf(result);
-        collectionSource = source;
-        return cachedCollectionResources;
+        // Menu-owned snapshots reuse both the list and stacks; hover names still resolve at draw time.
+        return menu.collectionResources();
     }
 
     @Override

@@ -7,10 +7,10 @@ package com.atir.molecularmanipulator.client.gui.theme;
  * · accB 主色按钮底 · disT 禁用文字 · dis 禁用底。
  */
 public enum OsqPalette {
-    SEQ("seq", false, 0xFFF6F0F1, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFF6F0F1, 0xFF1E1519, 0xFF1E1519, 0xFF54444B, 0xFF957F88, 0xFFC5B6BC, 0xFFC5B6BC, 0xFFEEE3E6, 0xFFC8436F, 0xFFC8436F, 0xFFFBE9EF, 0xFFAE8A4E, 0xFFF6EEDF, 0xFFDE5427, 0xFF2F9E6E, 0xFFBDAFB5, 0xFFC8436F, 0xFF1E1519, 0xFFFFFFFF, 0xFFE9E8E4),
-    OMNI("omni", false, 0xFFF3F2EF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFF3F2EF, 0xFF17161C, 0xFF17161C, 0xFF4A4855, 0xFF8C8A96, 0xFFB9B7C0, 0xFFB9B7C0, 0xFFE6E4DF, 0xFF5B3FD9, 0xFF5B3FD9, 0xFFECE8FB, 0xFFA9843E, 0xFFF5EEDD, 0xFFDE5427, 0xFF2F9E6E, 0xFFB4B2BE, 0xFF5B3FD9, 0xFF17161C, 0xFFFFFFFF, 0xFFE9E8E4),
-    SING("sing", false, 0xFFEEF2F6, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFEEF2F6, 0xFF121A26, 0xFF121A26, 0xFF435063, 0xFF8592A3, 0xFFB7C1CD, 0xFFB7C1CD, 0xFFE0E6ED, 0xFF2F64C4, 0xFF2F64C4, 0xFFE6EEFA, 0xFFA8863F, 0xFFF4EEDD, 0xFFDE5427, 0xFF2F9E6E, 0xFFAFB8C6, 0xFF2F64C4, 0xFF121A26, 0xFFFFFFFF, 0xFFE9E8E4),
-    FAB("fab", false, 0xFFF5F2EA, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFF5F2EA, 0xFF1D1910, 0xFF1D1910, 0xFF4E4634, 0xFF8F8570, 0xFFC3BAA6, 0xFFC3BAA6, 0xFFE9E3D5, 0xFFA47A1E, 0xFFA47A1E, 0xFFF6EED9, 0xFF7C5E17, 0xFFF2E9D3, 0xFFDE5427, 0xFF2F9E6E, 0xFFB9B19F, 0xFFA47A1E, 0xFF1D1910, 0xFFFFFFFF, 0xFFE9E8E4),
+    SEQ("seq", false),
+    OMNI("omni", false),
+    SING("sing", false),
+    FAB("fab", false),
     SEQ_DARK("seq", true, 0xFF1B1518, 0xFF251E22, 0xFF31282D, 0xFF141013, 0xFF3D2632, 0xFFF4EAEE, 0xFFD3C2C9, 0xFFA8939C, 0xFF6F5F66, 0xFF8D7A82, 0xFF382E33, 0xFFE57DA0, 0xFFB83D66, 0xFF3A2430, 0xFFDCC08A, 0xFF352C20, 0xFFF08257, 0xFF5CC996, 0xFF43393E, 0xFFA8355E, 0xFFF1E4E9, 0xFF1B1518, 0xFF211A1E),
     OMNI_DARK("omni", true, 0xFF14121C, 0xFF1E1B29, 0xFF2A2638, 0xFF0F0D16, 0xFF2B2350, 0xFFEEEBF7, 0xFFC7C2DA, 0xFF9C97B4, 0xFF615C78, 0xFF7F7A98, 0xFF2E2A3D, 0xFFA795FF, 0xFF6A52E6, 0xFF2A2448, 0xFFD6B677, 0xFF2F2A1F, 0xFFF08257, 0xFF5CC996, 0xFF3A3550, 0xFF5236CF, 0xFFECE9F7, 0xFF14121C, 0xFF1C1926),
     SING_DARK("sing", true, 0xFF12161D, 0xFF1A2029, 0xFF252D39, 0xFF0D1117, 0xFF1D2D45, 0xFFE9EFF6, 0xFFC2CDDA, 0xFF95A3B4, 0xFF5B6778, 0xFF7D8999, 0xFF2A3340, 0xFF9FC6F2, 0xFF3367C2, 0xFF1E2D42, 0xFFDABB72, 0xFF2E2919, 0xFFF08257, 0xFF5CC996, 0xFF333E4F, 0xFF2F5DB5, 0xFFE6EEF7, 0xFF12161D, 0xFF171C24),
@@ -19,6 +19,14 @@ public enum OsqPalette {
     public final String id;
     public final boolean dark;
     public final int paper, card, raise, sunk, feat, ink, ink2, ink3, ink4, disT, hair, acc, accB, accT, gold, goldT, warn, ok, slot, blk, inv, invT, dis;
+
+    /** The approved light glass uses one gray-purple palette across families. */
+    OsqPalette(String id, boolean dark) {
+        this(id, dark, 0xFFCBCCD4, 0xFFCBCCD4, 0xFF9A9FB4, 0xFFB3B7C7, 0xFF4D4D67,
+                0xFF2E2C40, 0xFF4D4D67, 0xFF5D637D, 0xFF9A9FB4, 0xFF413F54, 0xFF9A9FB4,
+                0xFF7CA0D2, 0xFF696D88, 0xFFE0E5F2, 0xFFB9A478, 0xFFDFD8C8,
+                0xFFCE654F, 0xFF65AD91, 0xFFADB0C4, 0xFF4D4D67, 0xFFF2F2F2, 0xFFF2F2F2, 0xFF878FA5);
+    }
 
     OsqPalette(String id, boolean dark, int paper, int card, int raise, int sunk, int feat, int ink, int ink2, int ink3, int ink4, int disT, int hair, int acc, int accB, int accT, int gold, int goldT, int warn, int ok, int slot, int blk, int inv, int invT, int dis) {
         this.id = id; this.dark = dark;
@@ -58,9 +66,10 @@ public enum OsqPalette {
         for (OsqPalette p : values()) if (p.id.equals(family) && p.dark == dark) return p;
         throw new IllegalArgumentException(family);
     }
-    /** Inverted buttons reverse with the theme; accent buttons keep white labels. */
+    /** Light AE2 controls use pale labels, blue hover text and dark disabled text. */
     public int controlText(String kind, String status, boolean enabled) {
-        if (!enabled) return disT;
+        if (!enabled || status.equals("disabled")) return disT;
+        if (!dark) return status.equals("hover") ? 0xFF517497 : 0xFFF2F2F2;
         if (status.equals("danger") || (kind.equals("tab") || kind.equals("row")) && status.equals("active")) return invT;
         return status.equals("active") || status.equals("confirm") ? 0xFFFFFFFF : ink;
     }

@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.client;
 import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.client.gui.theme.OsqFonts;
 import com.atir.molecularmanipulator.client.gui.theme.OsqLayout;
+import com.atir.molecularmanipulator.client.gui.theme.OsqPalette;
 import com.atir.molecularmanipulator.client.gui.theme.OsqScrollList;
 import com.atir.molecularmanipulator.menu.BuildingTerminalMenu;
 import com.atir.molecularmanipulator.menu.BuildingTerminalMenu.Entry;
@@ -30,10 +31,10 @@ import org.lwjgl.glfw.GLFW;
 public final class BuildingTerminalScreen extends ResponsiveContainerScreen<BuildingTerminalMenu> {
     private static final String KEY = "gui.molecularmanipulator.building_terminal.";
     private static final int VISIBLE_ROWS = 5;
-    private static final int ROW_HEIGHT = 39;
+    private static final int ROW_HEIGHT = 49;
     private static final int LIST_HEIGHT = VISIBLE_ROWS * ROW_HEIGHT;
-    private static final ResourceLocation ROW_FONT = OsqFonts.id("osq_entropy_700_6_6");
-    private static final ResourceLocation DETAIL_FONT = OsqFonts.id("osq_entropy_600_5_4");
+    private static final ResourceLocation ROW_FONT = OsqFonts.id("osq_entropy_700_7_5");
+    private static final ResourceLocation DETAIL_FONT = OsqFonts.id("osq_entropy_600_7_5");
     private final List<RowView> rows = new ArrayList<>();
     private final Button[] openButtons = new Button[VISIBLE_ROWS];
     private final Button[] removeButtons = new Button[VISIBLE_ROWS];
@@ -58,8 +59,9 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
             final int row = i;
             var box = ui.layout.findControl("row." + i);
             openButtons[i] = addScreenWidget(new RowButton(box, () -> openRow(row)));
-            removeButtons[i] = addScreenWidget(new DirectoryButton("remove." + i, tr("action.remove"),
-                    () -> removeRow(row)));
+            removeButtons[i] = addScreenWidget(ui.button("remove." + i, leftPos, topPos,
+                    () -> tr("action.remove"), () -> removeRow(row)));
+            ui.state(removeButtons[i], () -> "danger");
         }
         scrollbar = addScreenWidget(new DirectoryScrollbar(ui.layout.findControl("scrollbar")));
         // Resizing/reopening creates new widgets, even if synchronized data is unchanged.
@@ -98,7 +100,9 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if (ui != null && scrollY != 0 && x >= 8 && x < 268 && y >= 34 && y < 256) {
+        var panel = ui == null ? null : ui.layout.find("panel.3");
+        if (panel != null && scrollY != 0 && x >= panel.x && x < panel.x + panel.w
+                && y >= panel.y && y < panel.y + panel.h) {
             setScroll(OsqScrollList.scroll(scroll, scrollY, rows.size(), LIST_HEIGHT, ROW_HEIGHT));
             return true;
         }
@@ -156,10 +160,13 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
         for (int i = 0; i < visibleRowCount(); i++) {
             var box = ui.layout.find("card." + i);
             boolean hovered = openButtons[i].isHoveredOrFocused();
-            fill(g, box.x, box.y, box.w, box.h, color(hovered ? "soft" : "card"));
-            if (hovered) g.renderOutline(Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h), color("accent"));
-            else fill(g, box.x + 8, box.y + box.h - 1, box.w - 16, 1, color("hair"));
-            fill(g, box.x + 8, box.y + 9, 18, 18, color("soft"));
+            OsqLayout.drawSprite(g, box, 0, 0);
+            if (hovered) {
+                fill(g, box.x + 1, box.y + 1, box.w - 2, box.h - 2,
+                        OsqPalette.withAlpha(color("accent"), .12f));
+                g.renderOutline(Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h), color("accent"));
+            }
+            ui.slotBackground(g, box.x + 8, box.y + 13);
         }
         fill(g, 285, 98, 98, 2, color("feature_track"));
         fill(g, 285, 98, 98f * rows.size() / BuildingTerminal.MAX_BINDINGS, 2, color("level"));
@@ -172,22 +179,22 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
         // Item rendering changes GUI depth/buffer state. Finish every icon before drawing any labels.
         drawIcons(g);
         g.flush();
-        text(g, tr("title"), 12, 23, 146, "osq_entropy_900_13", 13, "ink", "left");
-        small(g, tr("subtitle"), 162, 21, 154, "muted", "left");
+        text(g, tr("title"), 12, 19, 304, "osq_entropy_900_13", 13, "ink", "left");
+        small(g, tr("subtitle"), 12, 30, 304, "muted", "left");
         centered(g, tr("directory"), 333, 16.5f, 52, "accent");
         label(g, tr("list"), 17, 47, 110, "ink");
         small(g, tr("action.open_hint"), 155, 47, 104, "muted", "right");
         if (rows.isEmpty()) drawEmpty(g); else drawRows(g);
         drawSummary(g);
         drawHelp(g);
-        centered(g, tr("scroll_hint"), 17, 278, 190, "ink2");
-        centered(g, tr("remove_note"), 222, 278, 161, "muted");
+        centered(g, tr("scroll_hint"), 17, 334, 190, "ink2");
+        centered(g, tr("remove_note"), 222, 334, 161, "muted");
     }
 
     private void drawIcons(GuiGraphics g) {
         if (rows.isEmpty()) {
             g.pose().pushPose();
-            g.pose().translate(122, 90, 0);
+            g.pose().translate(122, 111, 0);
             g.pose().scale(2, 2, 1);
             g.renderItem(terminalIcon, 0, 0);
             g.pose().popPose();
@@ -196,7 +203,7 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
         for (int i = 0; i < visibleRowCount(); i++) {
             var row = rows.get(firstRow() + i);
             var box = ui.layout.find("card." + i);
-            if (!row.icon().isEmpty()) g.renderItem(row.icon(), Math.round(box.x) + 9, Math.round(box.y) + 10);
+            if (!row.icon().isEmpty()) g.renderItem(row.icon(), Math.round(box.x) + 9, Math.round(box.y) + 14);
         }
     }
 
@@ -206,18 +213,17 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
             var box = ui.layout.find("card." + i);
             int x = Math.round(box.x), y = Math.round(box.y);
             if (row.icon().isEmpty()) {
-                small(g, Component.literal("?"), x + 9, y + 22, 16, "muted", "center");
+                centered(g, Component.literal("?"), x + 9, y + 22, 16, "muted");
             }
-            text(g, ellipsize(row.name(), ROW_FONT, 132), x + 32, y + 13, 132,
-                    "osq_entropy_700_6_6", 6.6f, "ink2", "left");
-            small(g, ellipsize(row.detail(), DETAIL_FONT, 160), x + 32, y + 27, 160, "muted", "left");
+            centered(g, ellipsize(row.name(), ROW_FONT, 132), x + 32, y + 10, 132, "ink2", "left", "osq_entropy_700_7_5");
+            centered(g, ellipsize(row.detail(), DETAIL_FONT, 150), x + 32, y + 33, 150, "muted", "left", "osq_entropy_600_7_5");
             String tint = statusColor(row.entry().status());
             var status = statusLabel(row.entry().status());
             float statusWidth = Math.min(48, OsqFonts.widthF(font, status.getString(), DETAIL_FONT));
             float statusX = x + 226 - statusWidth;
             // Keep the indicator four pixels from the label, not in a separate fixed column.
-            fill(g, statusX - 6, y + 8, 2, 2, color(tint));
-            small(g, status, statusX, y + 12, statusWidth, tint, "left");
+            fill(g, statusX - 6, y + 9, 2, 2, color(tint));
+            centered(g, status, statusX, y + 10, statusWidth, tint, "left", "osq_entropy_600_7_5");
         }
     }
 
@@ -235,18 +241,24 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
     private void drawHelp(GuiGraphics g) {
         label(g, tr("help.title"), 285, 141, 98, "ink");
         label(g, tr("help.bind"), 285, 160, 98, "accent");
-        small(g, tr("help.bind_click"), 285, 173, 98, "ink2", "left");
-        small(g, tr("help.bind_item"), 285, 183, 98, "muted", "left");
-        label(g, tr("help.access"), 285, 205, 98, "accent");
-        small(g, tr("help.dimension"), 285, 218, 98, "ink2", "left");
-        small(g, tr("help.chunk"), 285, 228, 98, "ink2", "left");
-        small(g, tr("help.no_force_load"), 285, 246, 98, "muted", "left");
+        float y=helpBody(g,tr("help.bind_click"),173);
+        y=helpBody(g,tr("help.bind_item"),y);
+        label(g,tr("help.access"),285,y+5,98,"accent");
+        y=helpBody(g,tr("help.dimension"),y+18);
+        y=helpBody(g,tr("help.chunk"),y);
+        helpBody(g,tr("help.no_force_load"),y);
+    }
+
+    private float helpBody(GuiGraphics g,Component value,float baseline){
+        var lines=OsqFonts.wrap(font,value.getString(),DETAIL_FONT,98);
+        for(var line:lines){small(g,Component.literal(line),285,baseline,98,"ink2","left");baseline+=11;}
+        return baseline+3;
     }
 
     private void drawEmpty(GuiGraphics g) {
-        text(g, tr("empty.title"), 25, 145, 226, "osq_entropy_700_9", 9, "ink2", "center");
-        wrapped(g, tr("empty.hint.bind"), 35, 166, 206);
-        wrapped(g, tr("empty.hint.open"), 35, 195, 206);
+        text(g, tr("empty.title"), 25, 166, 226, "osq_entropy_700_9", 9, "ink2", "center");
+        wrapped(g, tr("empty.hint.bind"), 35, 187, 206);
+        wrapped(g, tr("empty.hint.open"), 35, 220, 206);
     }
 
     private int color(String name) { return OsqLayout.argb(ui.layout.find("color." + name).color); }
@@ -268,11 +280,11 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
     }
 
     private void small(GuiGraphics g, Component value, float x, float y, float width, String tint, String alignment) {
-        text(g, value, x, y, width, "osq_entropy_600_5_4", 5.4f, tint, alignment);
+        text(g, value, x, y, width, "osq_entropy_600_7_5", 7.5f, tint, alignment);
     }
 
     private void label(GuiGraphics g, Component value, float x, float y, float width, String tint) {
-        text(g, value, x, y, width, "osq_entropy_700_6_6", 6.6f, tint, "left");
+        text(g, value, x, y, width, "osq_entropy_700_7_5", 7.5f, tint, "left");
     }
 
     private void text(GuiGraphics g, Component value, float x, float baseline, float width,
@@ -286,11 +298,16 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
     }
 
     private void centered(GuiGraphics g, Component value, float x, float centerY, float width, String tint) {
+        centered(g,value,x,centerY,width,tint,"center","osq_entropy_600_7_5");
+    }
+
+    private void centered(GuiGraphics g, Component value, float x, float centerY, float width,
+            String tint, String alignment, String face) {
         var entry = new OsqLayout.Entry();
-        entry.x = x; entry.centerY = centerY; entry.w = width; entry.size = 6;
-        entry.fontId = "molecularmanipulator:osq_entropy_600_6";
+        entry.x = x; entry.centerY = centerY; entry.w = width; entry.size = 7.5f;
+        entry.fontId = "molecularmanipulator:"+face;
         entry.color = ui.layout.find("color." + tint).color;
-        entry.alignment = "center";
+        entry.alignment = alignment;
         ui.layout.renderSingleLine(g, font, entry, value, 0, 0);
     }
 
@@ -335,23 +352,6 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
                     Component.empty(), button -> action.run(), DEFAULT_NARRATION);
         }
         @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) { }
-    }
-
-    private final class DirectoryButton extends Button {
-        DirectoryButton(String id, Component label, Runnable action) {
-            this(ui.layout.findControl(id), label, action);
-        }
-        private DirectoryButton(OsqLayout.Entry box, Component label, Runnable action) {
-            super(leftPos + Math.round(box.x), topPos + Math.round(box.y), Math.round(box.w), Math.round(box.h),
-                    label, button -> action.run(), DEFAULT_NARRATION);
-        }
-        @Override protected void renderWidget(GuiGraphics g, int mx, int my, float pt) {
-            boolean hovered = isHoveredOrFocused();
-            fill(g, getX(), getY(), getWidth(), getHeight(), color(hovered ? "soft" : "card"));
-            if (hovered) g.renderOutline(getX(), getY(), getWidth(), getHeight(), color("error"));
-            centered(g, getMessage(), getX() + 2, getY() + getHeight() / 2f, getWidth() - 4,
-                    hovered ? "error" : "ink2");
-        }
     }
 
     /** Uses native focus/capture; the screen forwards container drags in logical GUI coordinates. */

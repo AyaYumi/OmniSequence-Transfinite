@@ -52,12 +52,11 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         int tabIndex = 0;
         overview = null;
         if (!compact) {
-            var t=tabs.get(tabIndex++);overview=addScreenWidget(ui.tab(t.x,t.y,t.w,t.h,leftPos,topPos,()->tr("overview"),bOverview()));
-            ui.state(overview,()->!collectionPage&&!duplicationPage?"active":"normal");
+            var t=tabs.get(tabIndex++);overview=addScreenWidget(ui.tab(t.id,leftPos,topPos,()->tr("overview"),
+                    ()->!collectionPage&&!duplicationPage,bOverview()));
         }
-        var t=tabs.get(tabIndex++);collectionTab=addScreenWidget(ui.tab(t.x,t.y,t.w,t.h,leftPos,topPos,()->tr("collection"),this::showCollection));
-        t=tabs.get(tabIndex);duplicationTab=addScreenWidget(ui.tab(t.x,t.y,t.w,t.h,leftPos,topPos,()->tr("duplication"),this::showDuplication));
-        ui.state(collectionTab,()->collectionPage?"active":"normal");ui.state(duplicationTab,()->duplicationPage?"active":"normal");
+        var t=tabs.get(tabIndex++);collectionTab=addScreenWidget(ui.tab(t.id,leftPos,topPos,()->tr("collection"),()->collectionPage,this::showCollection));
+        t=tabs.get(tabIndex);duplicationTab=addScreenWidget(ui.tab(t.id,leftPos,topPos,()->tr("duplication"),()->duplicationPage,this::showDuplication));
         boolean secondary=collectionPage||duplicationPage;
         build=addScreenWidget(!secondary&&!menu.getMachine().isSingleBlock()?ui.button("build",leftPos,topPos,null,()->menu.request(menu.operation != SingularityBlockEntity.Operation.IDLE ? "pause" : "build"))
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("build"),()->menu.request("build")));
@@ -69,8 +68,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
                 long now=Util.getMillis();if(armedAt!=0&&now-armedAt<250)return;menu.request("dismantle");armedAt=armedAt!=0&&now-armedAt<=3000?0:now;})
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("dismantle"),()->{}));
         ui.state(dismantle,()->armedAt==0?"danger":"confirm");
-        cancel=addScreenWidget(ui.rect(173,142,68,17,leftPos,topPos,()->tr("cancel"),()->menu.request("cancel")));
-        embed=addScreenWidget(ui.rect(246,142,87,17,leftPos,topPos,null,()->menu.request(menu.structureVersion==SingularityStructure.EMBEDDED_VERSION?"upgrade":"embed")));
+        cancel=addScreenWidget(ui.rect(173,120,68,17,leftPos,topPos,()->tr("cancel"),()->menu.request("cancel")));
+        embed=addScreenWidget(ui.rect(246,120,87,17,leftPos,topPos,null,()->menu.request(menu.structureVersion==SingularityStructure.EMBEDDED_VERSION?"upgrade":"embed")));
         collectionToggle=addScreenWidget(collectionPage?ui.button("collection",leftPos,topPos,null,()->menu.request("collection"))
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("collection_start"),()->menu.request("collection")));
         if(collectionPage){
@@ -80,8 +79,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
             for(var e:ui.layout.draw)if("text".equals(e.type)&&e.baseline>=120&&e.baseline<209)ui.at(e.x,e.baseline,Component::empty);
             ui.number(55.34f,102,()->collectionResources().size());ui.number(108.94f,102,()->menu.collectionBatchSize);
             ui.number(88.42f,64,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
-            ui.width(114.97f,64,167);ui.width(17,64,48);
-            ui.sprite(114.5f,47,()->ui.sprite("dot_"+(menu.collectionActive?"ok":"mute")));
+            ui.width(114.97f,64,317);ui.width(17,64,125);
+            ui.sprite(114.59f,45,()->ui.sprite("dot_"+(menu.collectionActive?"ok":"mute")));
             ui.at(17,102,()->tr("collection_resources",collectionResources().size(),menu.collectionBatchSize,menu.collectionIntervalTicks));
             ui.width(17,102,225);
             ui.number(55.34f,102,()->"");ui.number(108.94f,102,()->"");ui.at(64.5f,102,Component::empty);ui.at(125.8f,102,Component::empty);
@@ -92,23 +91,25 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         ui.text("gui.molecularmanipulator.singularity.collection_running",()->tr(menu.collectionStarting?"collection_starting_status":menu.collectionActive?"collection_running":"collection_stopped"));
         ui.text("gui.molecularmanipulator.singularity.collection_network",()->tr("collection_network",tr(menu.networkOnline?"online":"offline")));
         ui.text("gui.molecularmanipulator.sing.s001",()->OsqUi.tr("gui.molecularmanipulator.quantum_state."+quantumStateKey()));
-        ui.number(222.02f,197.5f,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
-        ui.width(252.72f,195.8f,80);
-        ui.width(16.5f,246,48);ui.width(67.02f,246,80);
-        ui.sprite(243.7f,45,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
-        ui.sprite(173,60,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
-        ui.progress(17,252,()->menu.correct/(double)Math.max(1,SingularityStructure.parts(menu.structureVersion).size()));
-        ui.number(16.5f,246,()->menu.correct);ui.number(35.09f,246,()->"");ui.number(67.02f,246,()->"/ "+SingularityStructure.parts(menu.structureVersion).size());ui.number(79.59f,246,()->"");
-        ui.number(172.5f,134,()->menu.missing);ui.number(225.5f,134,()->menu.conflicts);ui.number(278.5f,134,()->menu.unloaded);
-        ui.width(172.5f,134,42);ui.width(225.5f,134,42);ui.width(278.5f,134,48);
+        ui.number(66.02f,187.5f,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.width(96.72f,185.8f,132);
+        ui.width(24.5f,120,48);ui.width(75.02f,120,70);
+        ui.sprite(243.7f,52,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
+        ui.sprite(173,67,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
+        ui.progress(25,126,()->menu.correct/(double)Math.max(1,SingularityStructure.parts(menu.structureVersion).size()));
+        ui.number(24.5f,120,()->menu.correct);ui.number(43.09f,120,()->"");ui.number(75.02f,120,()->"/ "+SingularityStructure.parts(menu.structureVersion).size());ui.number(87.59f,120,()->"");
+        ui.number(172.5f,166.5f,()->menu.missing);ui.number(225.5f,166.5f,()->menu.conflicts);ui.number(278.5f,166.5f,()->menu.unloaded);
+        ui.width(172.5f,166.5f,42);ui.width(225.5f,166.5f,42);ui.width(278.5f,166.5f,48);
         ui.color("gui.molecularmanipulator.singularity.network_online",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
         ui.color("gui.molecularmanipulator.sing.s001",()->quantumConnected()?ui.palette.ok:ui.palette.ink3);
-        ui.number(16,203,()->menu.blackHoleCount);ui.number(30.19f,203,()->"/ 64");ui.number(185.5f,181,()->OsqUi.compact(menu.duplicationMatterPerCycle));ui.number(199.36f,194,()->menu.duplicationIntervalTicks);
+        ui.number(16,203,()->menu.blackHoleCount);ui.number(30.19f,203,()->"/ 64");ui.at(172.5f,181,()->tr("matter_per_cycle",OsqUi.compact(menu.duplicationMatterPerCycle)));ui.number(186.36f,194,()->menu.duplicationIntervalTicks);
+        ui.at(199.53f,181,Component::empty);
+        ui.width(17,242,60);ui.width(86,242,63);ui.width(17,272,60);ui.width(86,272,63);
         ui.number(17,242,()->formatEnergy(menu.duplicationFePerCycle));ui.number(86,242,()->formatEnergy(menu.lastDuplicationFeConsumed));
         ui.number(17,272,()->formatEnergy(menu.duplicationAePerCycle));ui.number(86,272,()->formatEnergy(menu.lastDuplicationAeConsumed));
         ui.text("gui.molecularmanipulator.singularity.duplication_energy",()->tr("duplication_energy",menu.duplicationEnergyPriority));
         ui.text("gui.molecularmanipulator.singularity.duplication_cost",()->tr("duplication_cost",SingularityDuplicationProcessor.MATTER_PER_ITEM));
-        ui.sprite(17,59,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
+        ui.sprite(17,57,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         ui.color("gui.molecularmanipulator.singularity.collection_network",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
         ui.text("gui.molecularmanipulator.sing.s017",()->tr("duplication_black_hole_count",menu.blackHoleCount));
         ui.color("gui.molecularmanipulator.sing.s017",()->menu.blackHoleCount>0?ui.palette.ok:ui.palette.ink3);
@@ -196,7 +197,9 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     public void drawFG(GuiGraphics g, int ox, int oy, int mx, int my) {
         if(ui==null)return;ui.foreground(g,font);
         if(collectionPage){var resources=collectionResources();for(int i=0;i<12;i++){int index=collectionScroll*12+i;if(index>=resources.size())break;
-            int x=17+i%3*108,y=111+i/3*23;var item=resources.get(index);g.renderItem(item,x+1,y+1);ui.smallText(g,item.getHoverName(),x+23,y+12,76);}}
+            var slot=ui.layout.find("res"+(i%3)+(i/3));
+            int x=Math.round(slot.x),y=Math.round(slot.y);var item=resources.get(index);
+            g.renderItem(item,x+1,y+1);ui.centeredText(g,item.getHoverName(),x+23,y+9,76,ui.palette.ink);}}
 
     }
 
@@ -234,7 +237,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         double x=logicalMouseX(mouseX)-leftPos,y=logicalMouseY(mouseY)-topPos;
-        if(collectionPage&&x>=8&&x<342&&y>=110&&y<207&&scrollY!=0){collectionScroll=Math.clamp(collectionScroll+(scrollY<0?1:-1),0,Math.max(0,(collectionResources().size()-1)/12));return true;}
+        if(collectionPage&&x>=8&&x<342&&y>=132&&y<229&&scrollY!=0){collectionScroll=Math.clamp(collectionScroll+(scrollY<0?1:-1),0,Math.max(0,(collectionResources().size()-1)/12));return true;}
         return super.mouseScrolled(mouseX,mouseY,scrollX,scrollY);
     }
 

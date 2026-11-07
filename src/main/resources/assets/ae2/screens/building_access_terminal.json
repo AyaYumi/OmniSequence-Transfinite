@@ -3,7 +3,7 @@
   "includes": ["common/common.json"],
   "generatedBackground": {
     "width": 400,
-    "height": 300
+    "height": 356
   },
   "slots": {},
   "text": {}

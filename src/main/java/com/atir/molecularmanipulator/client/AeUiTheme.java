@@ -4,8 +4,6 @@ import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.style.Blitter;
 import appeng.client.gui.widgets.AE2Button;
 import appeng.client.gui.widgets.AETextField;
-import com.lowdragmc.lowdraglib2.gui.texture.VanillaSpriteTexture;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -68,21 +66,6 @@ public final class AeUiTheme {
             field.setTooltip(Tooltip.create(tooltip));
         }
         return field;
-    }
-
-    static void styleLdButton(com.lowdragmc.lowdraglib2.gui.ui.elements.Button button) {
-        button.buttonStyle(style -> style
-                .baseTexture(VanillaSpriteTexture.of("ae2:button"))
-                .hoverTexture(VanillaSpriteTexture.of("ae2:button_highlighted"))
-                .pressedTexture(VanillaSpriteTexture.of("ae2:button_highlighted")));
-        button.textStyle(style -> style.textColor(0xFFF2F2F2).textShadow(false));
-        button.addEventListener(UIEvents.MOUSE_ENTER, event -> {
-            if (button.isActive()) {
-                button.textStyle(style -> style.textColor(ACCENT));
-            }
-        });
-        button.addEventListener(UIEvents.MOUSE_LEAVE, event ->
-                button.textStyle(style -> style.textColor(button.isActive() ? HIGHLIGHT : PRIMARY_TEXT)));
     }
 
     public static void panel(GuiGraphics graphics, int left, int top, int right, int bottom) {

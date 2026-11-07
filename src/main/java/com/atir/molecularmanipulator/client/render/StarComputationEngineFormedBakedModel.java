@@ -171,7 +171,9 @@ public final class StarComputationEngineFormedBakedModel implements IDynamicBake
     @Override
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side,
             RandomSource random, ModelData data, @Nullable RenderType renderType) {
-        if (state != null && StarComputationEngineCoreBlock.isArmillary(state)) return List.of();
+        // This is the orrery's real 3x3x3 central body, not a standalone legacy engine.
+        if (state != null && (!StarComputationEngineCoreBlock.isStarOrrery(state)
+                || !state.getValue(StarComputationEngineCoreBlock.FORMED))) return List.of();
         if (side != null || renderType != null && renderType != RenderType.CUTOUT) return List.of();
         var visual = data.get(StarComputationEngineModelData.PROPERTY);
         if (visual == null) visual = StarComputationEngineModelData.NONE;

@@ -1,5 +1,0 @@
-newmtl fil
-map_Kd molecularmanipulator:block/entropy_armillary/quantum/filigree
-
-newmtl metal
-map_Kd molecularmanipulator:block/entropy_armillary/quantum/metal

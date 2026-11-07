@@ -2,7 +2,10 @@ package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.StackWithBounds;
+import appeng.client.gui.Icon;
+import appeng.client.gui.widgets.TabButton;
 import appeng.menu.AEBaseMenu;
+import com.atir.molecularmanipulator.menu.BuildingMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
@@ -25,11 +28,12 @@ import java.util.function.BooleanSupplier;
 public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         extends RestorableContainerScreen<T> {
     private static final int SCREEN_MARGIN = 4;
+    private static final int TERMINAL_BUTTON_SPACE = 24;
     private boolean renderingScaledContent;
     private boolean dispatchingLogicalInput;
     private int rawMouseX;
     private int rawMouseY;
-    private net.minecraft.client.gui.components.Button terminalButton;
+    private TabButton terminalButton;
 
     protected ResponsiveContainerScreen(T menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -44,20 +48,26 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
     @Override
     protected void init() {
         super.init();
+        addTerminalButton();
+    }
+
+    private void addTerminalButton() {
         terminalButton = null;
-        if (menu instanceof com.atir.molecularmanipulator.menu.BuildingMenu building) {
-            // Screen-space navigation, outside the controller panel and independent of its fitted scale.
-            terminalButton = addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
+        if (menu instanceof BuildingMenu building) {
+            // Native AE navigation, docked to the panel's upper-left edge without covering its title.
+            terminalButton = new TabButton(Icon.BACK,
                     Component.translatable("gui.molecularmanipulator.building_terminal.return"),
-                    button -> building.requestTerminal()).bounds(6, 6, 90, 20).build());
+                    button -> building.requestTerminal());
+            terminalButton.setPosition(leftPos - TERMINAL_BUTTON_SPACE, topPos);
             terminalButton.visible = building.terminalAccess;
+            addScreenWidget(terminalButton);
         }
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         restoreScreenWidgets();
-        if (terminalButton != null && menu instanceof com.atir.molecularmanipulator.menu.BuildingMenu building) {
+        if (terminalButton != null && menu instanceof BuildingMenu building) {
             terminalButton.visible = building.terminalAccess;
         }
         rawMouseX = mouseX;
@@ -249,6 +259,10 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
     @Override
     public List<Rect2i> getExclusionZones() {
         var areas = super.getExclusionZones();
+        if (terminalButton != null && terminalButton.visible) {
+            areas.add(new Rect2i(terminalButton.getX(), terminalButton.getY(),
+                    terminalButton.getWidth(), terminalButton.getHeight()));
+        }
         return renderingScaledContent || responsiveScale() >= 1.0F
                 ? areas : areas.stream().map(this::responsiveArea).toList();
     }
@@ -286,7 +300,9 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
     private float responsiveScale() {
         float availableWidth = Math.max(1, width - SCREEN_MARGIN * 2);
         float availableHeight = Math.max(1, height - SCREEN_MARGIN * 2);
-        return Math.min(1.0F, Math.min(availableWidth / imageWidth, availableHeight / imageHeight));
+        // Keep the panel centered while fitting its attached return button inside the viewport.
+        int sideSpace = terminalButton != null && terminalButton.visible ? TERMINAL_BUTTON_SPACE : 0;
+        return Math.min(1.0F, Math.min(availableWidth / (imageWidth + sideSpace * 2), availableHeight / imageHeight));
     }
 
     private float visualLeft(float scale) {

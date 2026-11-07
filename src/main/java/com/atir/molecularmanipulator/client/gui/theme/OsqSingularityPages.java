@@ -11,7 +11,7 @@ public final class OsqSingularityPages {
         var overview = layout.findText(PREFIX + "overview");
         if (overview == null || tabs.size() != 3)
             throw new IllegalStateException("Expected three source singularity tabs: " + layout.screen);
-        var overviewTab = tabs.stream().filter(e -> overview.x >= e.x && overview.x < e.x + e.w)
+        var overviewTab = tabs.stream().filter(e -> layout.owns(e, overview))
                 .findFirst().orElseThrow();
         float left = tabs.getFirst().x;
         float right = tabs.getLast().x + tabs.getLast().w;
@@ -22,10 +22,12 @@ public final class OsqSingularityPages {
             var tab = remaining.get(i);
             tab.x = left + i * width;
             tab.w = width;
+            if (tab.tabSingleSurface != null) tab.tabSurface = tab.tabSingleSurface;
             var label = layout.findText(PREFIX + (i == 0 ? "collection" : "duplication"));
             label.x = tab.x + 5;
+            label.drawX = label.x;
             label.w = tab.w - 10;
-            label.centerY = tab.y + tab.h / 2;
+            label.centerY = tab.y + OsqTabs.textCenter(tab.h);
             label.alignment = "center";
         }
     }

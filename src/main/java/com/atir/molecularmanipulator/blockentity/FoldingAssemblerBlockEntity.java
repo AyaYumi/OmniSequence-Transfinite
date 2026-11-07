@@ -31,7 +31,7 @@ public final class FoldingAssemblerBlockEntity extends AENetworkedBlockEntity im
     @Override public List<IPatternDetails> getAvailablePatterns() {
         if (patterns == null) {
             var result = new ArrayList<IPatternDetails>();
-            for (var type : BuildingType.values()) {
+            for (var type : BuildingType.orderable()) {
                 var inputs = type.materials().entrySet().stream().map(entry -> new GenericStack(entry.getKey(), entry.getValue())).toList();
                 var output = new GenericStack(AEItemKey.of(BuildingPackage.fresh(type)), 1);
                 var encoded = PatternDetailsHelper.encodeProcessingPattern(inputs, List.of(output));

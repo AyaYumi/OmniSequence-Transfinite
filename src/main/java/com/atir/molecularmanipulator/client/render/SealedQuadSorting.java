@@ -24,24 +24,40 @@ public final class SealedQuadSorting {
 
     /** Match MeshData's diagonal midpoint, including its float arithmetic (not a four-corner average). */
     static MeshData.SortState capture(ByteBuffer vertices, MeshData.DrawState draw) {
-        if (draw.mode() != VertexFormat.Mode.QUADS || !GpuEffectSorting.owns(draw))
+        return capture(vertices, draw, quadCount(vertices, draw), null);
+    }
+
+    private static int quadCount(ByteBuffer vertices, MeshData.DrawState draw) {
+        if (!GpuEffectSorting.owns(draw))
             throw new IllegalArgumentException("Expected the owned compact quad format");
-        int stride = draw.format().getVertexSize();
-        if (draw.vertexCount() < 0 || (long) draw.vertexCount() * stride > vertices.remaining())
+        if (draw.vertexCount() < 0 || (long) draw.vertexCount() * draw.format().getVertexSize() > vertices.remaining())
             throw new IllegalArgumentException("Incomplete compact vertex buffer");
-        int quads = draw.vertexCount() / 4;
+        return draw.vertexCount() / 4;
+    }
+
+    /** A non-null positions array belongs only to the budgeted worker, never to the public SortState. */
+    private static MeshData.SortState capture(ByteBuffer vertices, MeshData.DrawState draw, int quads, float[] positions) {
+        int stride = draw.format().getVertexSize();
         var centroids = new Vector3f[quads];
         long start = MemoryUtil.memAddress(vertices);
         for (int quad = 0; quad < quads; quad++) {
             long first = start + (long) quad * stride * 4;
             long opposite = first + stride * 2L;
-            centroids[quad] = new Vector3f(
-                    (MemoryUtil.memGetFloat(first) + MemoryUtil.memGetFloat(opposite)) / 2F,
-                    (MemoryUtil.memGetFloat(first + 4) + MemoryUtil.memGetFloat(opposite + 4)) / 2F,
-                    (MemoryUtil.memGetFloat(first + 8) + MemoryUtil.memGetFloat(opposite + 8)) / 2F);
+            float x = (MemoryUtil.memGetFloat(first) + MemoryUtil.memGetFloat(opposite)) / 2F;
+            float y = (MemoryUtil.memGetFloat(first + 4) + MemoryUtil.memGetFloat(opposite + 4)) / 2F;
+            float z = (MemoryUtil.memGetFloat(first + 8) + MemoryUtil.memGetFloat(opposite + 8)) / 2F;
+            centroids[quad] = new Vector3f(x, y, z);
+            if (positions != null) {
+                positions[quad * 3] = x;
+                positions[quad * 3 + 1] = y;
+                positions[quad * 3 + 2] = z;
+            }
         }
         return new MeshData.SortState(centroids, draw.indexType());
     }
+
+    /** A rejected enqueue still returns the captured state, so synchronous fallback need not recapture. */
+    record Captured(MeshData.SortState state, Job job) {}
 
     /** Same sorting call and index pattern as SortState, without MutableLong/IntConsumer per-index dispatch. */
     static ByteBufferBuilder.Result sortNow(MeshData.SortState state, ByteBufferBuilder destination, VertexSorting sorting) {
@@ -82,7 +98,11 @@ public final class SealedQuadSorting {
 
     /** Conservative charge includes both centroid representations, sorting scratch and native indices. */
     static long reservationBytes(MeshData.SortState state) {
-        return 4096L + state.centroids().length * (96L + 6L * state.indexType().bytes);
+        return reservationBytes(state.centroids().length, state.indexType());
+    }
+
+    static long reservationBytes(int quads, VertexFormat.IndexType type) {
+        return 4096L + quads * (96L + 6L * type.bytes);
     }
 
     private record Snapshot(float[] positions, VertexFormat.IndexType type, VertexSorting sorting) {
@@ -180,11 +200,32 @@ public final class SealedQuadSorting {
             this.maxBytes = maxBytes;
         }
 
+        /** Check budget before allocating; finish capture on the caller thread before scheduling or publication. */
+        synchronized Captured tryCapture(ByteBuffer vertices, MeshData.DrawState draw, VertexSorting sorting) {
+            int quads = quadCount(vertices, draw);
+            long bytes = reservationBytes(quads, draw.indexType());
+            if (!hasCapacity(bytes)) return null;
+            // Keep the monitor through capture and enqueue: neither another capture nor shutdown
+            // can take this budget. Failed allocations/capture leave no registered reservation.
+            var positions = new float[Math.multiplyExact(quads, 3)];
+            var state = capture(vertices, draw, quads, positions);
+            return new Captured(state, submit(new Snapshot(positions, draw.indexType(), sorting), bytes));
+        }
+
+        /** Compatibility entry point for already captured states; the mesh seal uses tryCapture instead. */
         synchronized Job trySubmit(MeshData.SortState state, VertexSorting sorting) {
             long bytes = reservationBytes(state);
-            if (closed || active.size() >= maxJobs || bytes > maxBytes - reservedBytes) return null;
+            if (!hasCapacity(bytes)) return null;
             // Copy before publishing the SortState or scheduling. The executor cannot observe live caller memory.
-            var snapshot = Snapshot.copy(state, sorting);
+            return submit(Snapshot.copy(state, sorting), bytes);
+        }
+
+        private boolean hasCapacity(long bytes) {
+            return !closed && active.size() < maxJobs && bytes <= maxBytes - reservedBytes;
+        }
+
+        /** Called only under the pool monitor, with an entirely private snapshot. */
+        private Job submit(Snapshot snapshot, long bytes) {
             var job = new Job(this, bytes);
             active.add(job);
             reservedBytes += bytes;

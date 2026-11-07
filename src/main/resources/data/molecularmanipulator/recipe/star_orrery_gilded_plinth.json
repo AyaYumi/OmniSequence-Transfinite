@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "GGG",
+    "ASA",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "A": {
+      "item": "molecularmanipulator:star_marrow_alloy_ingot"
+    },
+    "S": {
+      "item": "minecraft:glowstone_dust"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:star_orrery_gilded_plinth",
+    "count": 32
+  }
+}

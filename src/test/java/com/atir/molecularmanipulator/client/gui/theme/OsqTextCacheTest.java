@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.client.gui.theme;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.atir.molecularmanipulator.client.UiRenderRecorder;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.client.StringSplitter;
@@ -35,15 +34,16 @@ class OsqTextCacheTest {
         assertEquals(width * 2, OsqFonts.widthF(second, "A中文😀", FACE));
     }
 
-    @Test void cachedWrappingKeepsOriginalWordAndCodepointBreaksForEveryWidth() throws Exception {
+    @Test void cachedWrappingPreservesTextCodepointsAndTrimsWrapWhitespaceForEveryWidth() throws Exception {
         Class.forName(UiRenderRecorder.class.getName());
         var calls = new AtomicInteger();
         var font = font(calls, 3.25F);
         for (String text : List.of("这是中文换行😀测试", "some long words 12345 here", "混合 words 😀 tail", "")) {
             for (float width : new float[]{0, 3, 7.25F, 20, 52}) {
-                var expected = reference(font, text, width);
                 var first = OsqFonts.wrap(font, text, FACE, width);
-                assertEquals(expected, first);
+                assertEquals(text.replaceAll("\\s+", ""), String.join("",first).replaceAll("\\s+", ""));
+                assertTrue(first.stream().noneMatch(line -> line.endsWith(" ")));
+                assertTrue(first.stream().noneMatch(line -> !line.isEmpty() && Character.isLowSurrogate(line.charAt(0))));
                 int measured = calls.get();
                 assertSame(first, OsqFonts.wrap(font, text, FACE, width));
                 assertEquals(measured, calls.get());
@@ -77,24 +77,14 @@ class OsqTextCacheTest {
         };
     }
 
-    private static List<String> reference(Font font, String text, float maxWidth) {
-        List<String> out = new ArrayList<>();
-        StringBuilder line = new StringBuilder();
-        for (int i = 0; i < text.length();) {
-            int cp = text.codePointAt(i); i += Character.charCount(cp);
-            String next = line.toString() + new String(Character.toChars(cp));
-            float width = font.getSplitter().stringWidth(OsqFonts.styled(Component.literal(next), FACE));
-            if (line.length() > 0 && width > maxWidth) {
-                int sp = line.lastIndexOf(" ");
-                boolean latin = cp < 0x2E80 && cp != ' ';
-                if (latin && sp > 0 && sp > line.length() - 24) {
-                    out.add(line.substring(0, sp)); line = new StringBuilder(line.substring(sp + 1));
-                } else { out.add(line.toString()); line = new StringBuilder(); }
-                if (cp == ' ') continue;
-            }
-            line.appendCodePoint(cp);
-        }
-        if (line.length() > 0) out.add(line.toString());
-        return out;
+    @Test void wrappingPreservesWholeIntegersWordsAndClosingPunctuation() {
+        assertEquals(List.of("前缀", "9223372036854775807", "尾"),
+                OsqFonts.wrapText("前缀 9223372036854775807 尾",19,String::length));
+        var words=OsqFonts.wrapText("材料 Adapter 12,345 次。",8,String::length);
+        assertTrue(words.contains("Adapter"));assertTrue(words.stream().anyMatch(line->line.contains("12,345")));
+        var chinese=OsqFonts.wrapText("你好，世界。",2,String::length);
+        assertTrue(chinese.stream().noneMatch(line->"，。".contains(line.substring(0,1))));
+        assertEquals("你好，世界。",String.join("",chinese));
+        assertEquals(List.of("one","two"),OsqFonts.wrapText("one\ntwo",20,String::length));
     }
 }

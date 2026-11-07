@@ -20,25 +20,25 @@ import org.jetbrains.annotations.Nullable;
 
 public final class StarComputationEngineCoreBlock extends Block implements EntityBlock {
     public static final BooleanProperty FORMED = BooleanProperty.create("formed");
-    /** Opt-in preview of the nine-ring armillary; legacy cores keep their old meaning. */
-    public static final BooleanProperty ARMILLARY = BooleanProperty.create("armillary");
+    /** Retained for saved-state compatibility; false cores migrate on the next server refresh. */
+    public static final BooleanProperty STAR_ORRERY = BooleanProperty.create("star_orrery");
 
     public StarComputationEngineCoreBlock(Properties properties) {
         super(properties);
         registerDefaultState(defaultBlockState()
                 .setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH)
                 .setValue(FORMED, false)
-                .setValue(ARMILLARY, false));
+                .setValue(STAR_ORRERY, true));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         super.createBlockStateDefinition(builder);
-        builder.add(HorizontalDirectionalBlock.FACING, FORMED, ARMILLARY);
+        builder.add(HorizontalDirectionalBlock.FACING, FORMED, STAR_ORRERY);
     }
 
-    public static boolean isArmillary(BlockState state) {
-        return state.hasProperty(ARMILLARY) && state.getValue(ARMILLARY);
+    public static boolean isStarOrrery(BlockState state) {
+        return state.hasProperty(STAR_ORRERY) && state.getValue(STAR_ORRERY);
     }
 
     @Override

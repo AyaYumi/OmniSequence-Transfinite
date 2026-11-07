@@ -15,7 +15,7 @@ class OsqLayoutResourcesTest {
     private static JsonObject json(Path path) throws IOException {
         return JsonParser.parseString(Files.readString(path)).getAsJsonObject();
     }
-    @Test void bothThemesContainTheSameTwentyTwoLayoutsAndStableSpriteIds() throws Exception {
+    @Test void bothThemesContainTheSameTwentyFiveLayoutsAndStableSpriteIds() throws Exception {
         int count=0;
         try(var paths=Files.list(LIGHT.resolve("osq_light/layout"))) {
             for(var lightPath:paths.filter(p->p.toString().endsWith(".json")).toList()) {
@@ -36,7 +36,7 @@ class OsqLayoutResourcesTest {
                 }
             }
         }
-        assertEquals(22,count);
+        assertEquals(25,count);
     }
     @Test void allLayoutTranslationsAndFontsResolve() throws Exception {
         var zh=json(LIGHT.resolve("lang/zh_cn.json"));var en=json(LIGHT.resolve("lang/en_us.json"));
@@ -71,7 +71,8 @@ class OsqLayoutResourcesTest {
     @Test void darkPackActuallyOverridesWindowPadding() throws Exception {
         var light=json(LIGHT.resolve("osq_light/layout/omni_core.json")).getAsJsonArray("draw").get(0).getAsJsonObject();
         var dark=json(DARK.resolve("osq_light/layout/omni_core.json")).getAsJsonArray("draw").get(0).getAsJsonObject();
-        assertEquals(1,light.getAsJsonArray("pad").get(3).getAsInt());
+        assertEquals(0,light.getAsJsonArray("pad").get(3).getAsInt());
+        assertTrue(light.get("sprite").getAsString().contains("/glass/"));
         assertEquals(12,dark.getAsJsonArray("pad").get(3).getAsInt());
     }
 

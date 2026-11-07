@@ -1,7 +1,7 @@
 package com.atir.molecularmanipulator.world;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
-import com.atir.molecularmanipulator.blockentity.EntropyArmillaryOwnership;
+import com.atir.molecularmanipulator.blockentity.StarOrreryOwnership;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
@@ -119,7 +119,7 @@ public final class MultiblockChunkLoading {
         // NeoForge saves and restores the tickets. Only drop the in-memory index.
         if (event.getLevel() instanceof ServerLevel level) {
             ACTIVE.remove(level);
-            EntropyArmillaryOwnership.clear(level);
+            StarOrreryOwnership.clear(level);
         }
     }
 
@@ -132,8 +132,8 @@ public final class MultiblockChunkLoading {
                     || machine instanceof com.atir.molecularmanipulator.blockentity.SingularityBlockEntity
                     || machine instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity;
             if (machine instanceof StarComputationEngineCoreBlockEntity core) {
-                // Legacy cores never force-load chunks; only the explicit armillary opt-in does.
-                valid = core.isArmillary();
+                // Legacy cores never force-load chunks; only the explicit star_orrery opt-in does.
+                valid = core.isStarOrrery();
             }
             if (!valid) {
                 helper.removeAllTickets(entry.getKey());

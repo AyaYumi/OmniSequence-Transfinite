@@ -25,9 +25,9 @@ class StarComputationRecipesTest {
             "star_computation_engine_casing", "minecraft:crafting_shaped",
             "star_computation_observation_port", "minecraft:crafting_shaped",
             "star_computation_engine_core", "minecraft:crafting_shaped",
-            "base_entropy_anchor", "minecraft:crafting_shaped",
-            "quantum_entropy_anchor", MOD + "matter_fabrication",
-            "terminal_entropy_anchor", MOD + "matter_fabrication");
+            "reference_star_position_anchor", "minecraft:crafting_shaped",
+            "quantum_star_position_anchor", MOD + "matter_fabrication",
+            "terminal_star_position_anchor", MOD + "matter_fabrication");
     private static final Set<String> RESERVED = Set.of(
             MOD + "flawless_star_marrow_parent_rock",
             MOD + "creative_star_signal_disk", MOD + "compact_singularity_hub",
@@ -71,7 +71,7 @@ class StarComputationRecipesTest {
     @Test
     void allWorkbenchRecipesUseValidThreeByThreePatterns() throws IOException {
         var quantities = Map.of("star_computation_engine_casing", 4, "star_computation_observation_port", 4,
-                "star_computation_engine_core", 1, "base_entropy_anchor", 9);
+                "star_computation_engine_core", 1, "reference_star_position_anchor", 9);
         for (var entry : quantities.entrySet()) {
             var recipe = recipe(entry.getKey());
             assertEquals("minecraft:crafting_shaped", recipe.get("type").getAsString());
@@ -104,7 +104,7 @@ class StarComputationRecipesTest {
                 MOD + "star_marrow_alloy_ingot", 4,
                 MOD + "star_computation_engine_casing", 2,
                 MOD + "star_marrow_crystal", 2,
-                MOD + "star_chart_processor", 1), inputs(recipe("base_entropy_anchor")));
+                MOD + "star_chart_processor", 1), inputs(recipe("reference_star_position_anchor")));
     }
 
     @Test
@@ -134,7 +134,7 @@ class StarComputationRecipesTest {
     @Test
     void convertedRecipesNoLongerHaveNativeFabricationFieldsOrFoundationLocks() throws IOException {
         var unlocks = recipe("research/ae_foundation").getAsJsonArray("unlocks");
-        for (var id : Set.of("star_marrow_alloy_ingot", "star_computation_engine_core", "base_entropy_anchor")) {
+        for (var id : Set.of("star_marrow_alloy_ingot", "star_computation_engine_core", "reference_star_position_anchor")) {
             var recipe = recipe(id);
             for (var field : Set.of("requires_research", "processing_time", "ae_per_tick", "results")) {
                 assertFalse(recipe.has(field), id + " retains an obsolete fabrication field: " + field);
@@ -172,7 +172,7 @@ class StarComputationRecipesTest {
     void anchorsAreCraftedAndUpgradedInCompleteNineBlockCrossSections() throws IOException {
         String previous = null;
         int energy = 0;
-        for (var tier : new String[] {"base_entropy_anchor", "quantum_entropy_anchor", "terminal_entropy_anchor"}) {
+        for (var tier : new String[] {"reference_star_position_anchor", "quantum_star_position_anchor", "terminal_star_position_anchor"}) {
             var recipe = recipe(tier);
             assertEquals(9, outputCount(recipe));
             if (previous == null) {

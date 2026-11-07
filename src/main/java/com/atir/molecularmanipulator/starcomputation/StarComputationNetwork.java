@@ -20,7 +20,7 @@ public final class StarComputationNetwork {
     }
 
     private static int compare(StarComputationEngineCoreBlockEntity a, StarComputationEngineCoreBlockEntity b) {
-        // getBenefits is the runtime-validated level (armillary rings must be
+        // getBenefits is the runtime-validated level (star_orrery rings must be
         // verified now, never inferred from a stale raw entropy value).
         int level = Integer.compare(a.getBenefits().level(), b.getBenefits().level());
         if (level != 0) return level;

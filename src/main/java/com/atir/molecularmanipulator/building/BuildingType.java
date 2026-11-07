@@ -4,6 +4,9 @@ import appeng.api.stacks.AEItemKey;
 import com.atir.molecularmanipulator.block.StarComputationEngineCoreBlock;
 import com.atir.molecularmanipulator.blockentity.*;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryFoundation;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryCoreStructure;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryLayout;
 import java.util.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -15,13 +18,22 @@ import net.minecraft.world.level.block.state.BlockState;
 /** Stable package identities. All geometry comes from the same blueprints as manual construction. */
 public enum BuildingType {
     FABRICATION_WELL("fabrication_well"), SEQUENCE_ARRAY("sequence_array"),
-    OMNI_COMPUTATION("omni_computation"), STAR_COMPUTATION_ENGINE("star_computation_engine");
+    OMNI_COMPUTATION("omni_computation"), EVENT_HORIZON_SINGULARITY("event_horizon_singularity"),
+    // Retain the generic archive identity for existing machines, not as an orderable 3x3x3 template.
+    STAR_COMPUTATION_ENGINE("star_computation_engine"),
+    STAR_ORRERY_L1("star_orrery_l1", 1), STAR_ORRERY_L2("star_orrery_l2", 2), STAR_ORRERY_L3("star_orrery_l3", 3);
 
     public static final int TEMPLATE_VERSION = 1;
+    private static final List<BuildingType> ORDERABLE = Arrays.stream(values()).filter(type -> type != STAR_COMPUTATION_ENGINE).toList();
     public final String id;
+    private final int orreryLevel;
     private List<BuildingArchiveStore.Entry> template;
-    BuildingType(String id) { this.id = id; }
+    BuildingType(String id) { this(id, 0); }
+    BuildingType(String id, int orreryLevel) { this.id = id; this.orreryLevel = orreryLevel; }
     public String translationKey() { return "building.molecularmanipulator." + id; }
+    public static List<BuildingType> orderable() { return ORDERABLE; }
+    public int orreryLevel() { return orreryLevel; }
+    public boolean isStarOrrery() { return this == STAR_COMPUTATION_ENGINE || orreryLevel > 0; }
     public static BuildingType byId(String id) {
         return Arrays.stream(values()).filter(type -> type.id.equals(id)).findFirst().orElseThrow(
                 () -> new IllegalArgumentException("Unknown folded building: " + id));
@@ -56,13 +68,38 @@ public enum BuildingType {
                             OmniComputationStructure.block(part.type()).defaultBlockState());
                 }
             }
-            case STAR_COMPUTATION_ENGINE -> {
-                for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
-                    var block = x == 0 && y == 0 && z == 0 ? ModContent.STAR_COMPUTATION_ENGINE_CORE.get()
-                            : y == 0 && Math.abs(x) + Math.abs(z) == 1 ? ModContent.STAR_COMPUTATION_OBSERVATION_PORT.get()
-                            : ModContent.STAR_COMPUTATION_ENGINE_CASING.get();
-                    put(result, new BlockPos(x, y, z), block.defaultBlockState());
+            case EVENT_HORIZON_SINGULARITY -> {
+                for (var part : SingularityStructure.parts()) {
+                    var offset = SingularityStructure.worldPos(BlockPos.ZERO, Direction.NORTH, part);
+                    // Keep authored pillar axes, spire directions, slab halves and other placement properties.
+                    result.put(offset, new BuildingArchiveStore.Entry(offset, SingularityStructure.state(part, Direction.NORTH), null));
                 }
+                for (var local : SingularityStructure.requiredAir())
+                    put(result, SingularityStructure.worldPos(BlockPos.ZERO, Direction.NORTH, local), Blocks.AIR.defaultBlockState());
+            }
+            case STAR_COMPUTATION_ENGINE -> throw new IllegalStateException("The retired engine package has no construction template; use a star orrery L1-L3 package");
+            case STAR_ORRERY_L1, STAR_ORRERY_L2, STAR_ORRERY_L3 -> {
+                for (var member : StarOrreryCoreStructure.members()) {
+                    var block = member.material() == StarOrreryCoreStructure.Material.CASING
+                            ? ModContent.STAR_COMPUTATION_ENGINE_CASING.get() : ModContent.STAR_COMPUTATION_OBSERVATION_PORT.get();
+                    put(result, member.offset(), block.defaultBlockState());
+                }
+                for (var member : StarOrreryFoundation.members()) {
+                    var block = member.material() == StarOrreryFoundation.Material.PLINTH
+                            ? ModContent.STAR_ORRERY_ENGRAVED_PLINTH.get() : ModContent.STAR_ORRERY_GILDED_PLINTH.get();
+                    put(result, member.offset(), block.defaultBlockState());
+                }
+                for (int ring = 0; ring < orreryLevel; ring++) {
+                    var anchor = switch (StarOrreryLayout.tierOf(ring)) {
+                        case 0 -> ModContent.REFERENCE_STAR_POSITION_ANCHOR.get();
+                        case 1 -> ModContent.QUANTUM_STAR_POSITION_ANCHOR.get();
+                        default -> ModContent.TERMINAL_STAR_POSITION_ANCHOR.get();
+                    };
+                    for (int slot = 0; slot < StarOrreryLayout.slotCount(ring); slot++)
+                        put(result, StarOrreryLayout.offset(Direction.NORTH, ring, slot), anchor.defaultBlockState());
+                }
+                put(result, BlockPos.ZERO, ModContent.STAR_COMPUTATION_ENGINE_CORE.get().defaultBlockState()
+                        .setValue(StarComputationEngineCoreBlock.STAR_ORRERY, true));
             }
         }
         template = result.values().stream().sorted(Comparator

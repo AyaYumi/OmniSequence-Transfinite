@@ -35,14 +35,14 @@ class OsqRequestedUiTest {
             var l=layout(root,"sing_duplication");var hint=l.findText("gui.molecularmanipulator.sing.s017");
             var rate=l.find("rate");var hole=l.find("hole");
             assertEquals(hole.y,rate.y);assertEquals(hole.h,rate.h);
-            assertFalse(hint.wrap);assertEquals(8,hint.size);assertTrue(hint.w>=108);
+            assertFalse(hint.wrap);assertEquals(8,hint.size);assertTrue(hint.w>=74);
             var interval=l.findText("gui.molecularmanipulator.sing.s016");
             assertEquals(interval.centerY,hint.centerY);
-            assertTrue(hint.x>=rate.x);assertTrue(hint.x+hint.w<=rate.x+rate.w);
+            assertTrue(hint.drawX>=rate.x);assertTrue(hint.drawX+hint.w<=rate.x+rate.w);
             assertTrue(hint.centerY+hint.size/2<rate.y+rate.h);
             for(var entry:l.draw)if("text".equals(entry.type)&&entry.baseline==194) {
                 assertEquals(interval.centerY,entry.centerY);
-                if(entry!=hint)assertTrue(entry.x+entry.w<hint.x);
+                if(entry!=hint)assertTrue(entry.drawX+entry.w<hint.drawX);
             }
             var inventory=l.find("inv");var energy=l.find("energy");
             assertEquals(energy.y,inventory.y);assertEquals(rate.y+rate.h+6,inventory.y);
@@ -87,7 +87,7 @@ class OsqRequestedUiTest {
     @Test void assemblyNameFieldMatchesSaveButtonAndMetadataIsCentered() throws Exception {
         for(String root:ROOTS)for(String page:new String[]{"fab_assembly_patterns","fab_assembly_input","fab_assembly_catalyst"}) {
             var l=layout(root,page);var field=l.findControl("name");var save=l.findControl("save");
-            assertEquals(save.y,field.y);assertEquals(save.h,field.h);assertEquals(17,field.h);
+            assertEquals(save.y,field.y);assertEquals(save.h,field.h);assertEquals(22,field.h);
             if(page.endsWith("patterns")) {
                 var capacity=l.find("assembly_capacity");var queue=l.find("assembly_queue");
                 assertEquals("center",capacity.alignment);assertEquals("center",queue.alignment);
@@ -107,7 +107,7 @@ class OsqRequestedUiTest {
         for(String root:ROOTS) {
             var l=layout(root,"fab_overview");
             var label=l.findText("gui.molecularmanipulator.fab.s027");
-            var icon=l.draw.stream().filter(e->e.sprite!=null&&e.sprite.contains("/icons/net_")&&e.y>220)
+            var icon=l.draw.stream().filter(e->e.sprite!=null&&e.sprite.contains("/icons/net_")&&e.y>160)
                     .findFirst().orElseThrow();
             assertEquals(icon.y+icon.h/2,label.centerY);
         }
@@ -117,7 +117,8 @@ class OsqRequestedUiTest {
             var l=layout(root,"seq_center_overview");
             var first=l.findText("gui.molecularmanipulator.spawn_protection");
             var second=l.findText("gui.molecularmanipulator.spawn_protection_area");
-            assertEquals(268.8f,first.centerY);assertEquals(first.centerY,second.centerY);
+            assertEquals(249f,first.centerY);assertEquals(262f,second.centerY);
+            assertTrue(second.centerY-first.centerY>=first.size);
             var a=layout(root,"seq_center_autocraft");
             var heading=a.findText("gui.molecularmanipulator.seq.s008");
             var icon=a.draw.stream().filter(e->e.sprite!=null&&e.sprite.contains("/shield_")).findFirst().orElseThrow();

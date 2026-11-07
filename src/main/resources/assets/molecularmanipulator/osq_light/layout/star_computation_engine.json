@@ -1,132 +1,2473 @@
 {
-  "screen": "star_computation_engine",
-  "machine": "star_computation_engine",
-  "family": "sing",
-  "size": [400, 300],
-  "left_room": 0,
-  "units": "GUI px; dynamic OSQ cards, text, controls and hologram are drawn by StarComputationEngineScreen",
-  "draw": [
-    { "type": "fill", "id": "window", "k": "window", "rect": [0, 0, 400, 300], "pad": [1, 1, 1, 1], "color": "#FFEFEBE0" },
-    { "type": "fill", "rect": [8, 33, 190, 169], "color": "#1A3A2E10" },
-    { "type": "fill", "rect": [8, 32, 190, 168], "color": "#FFFAF8F1" },
-    { "type": "fill", "rect": [8, 207, 190, 89], "color": "#1A3A2E10" },
-    { "type": "fill", "rect": [8, 206, 190, 88], "color": "#FFFAF8F1" },
-    { "type": "control", "id": "overview", "k": "ctl", "rect": [317, 9, 29, 15] },
-    { "type": "control", "id": "recipes", "k": "ctl", "rect": [346, 9, 46, 15] },
-    { "type": "control", "id": "overclock", "k": "ctl", "rect": [204, 253, 188, 20] },
-    { "type": "control", "id": "unlock", "k": "ctl", "rect": [204, 253, 188, 20] },
-    { "type": "control", "id": "refresh", "k": "ctl", "rect": [204, 277, 92, 17] },
-    { "type": "control", "id": "prerequisites", "k": "ctl", "rect": [204, 277, 92, 17] },
-    { "type": "control", "id": "guide", "k": "ctl", "rect": [300, 277, 92, 17] },
-    { "type": "control", "id": "node.0", "k": "ctl", "rect": [17, 99, 46, 29] },
-    { "type": "control", "id": "node.1", "k": "ctl", "rect": [78, 64, 47, 29] },
-    { "type": "control", "id": "node.2", "k": "ctl", "rect": [141, 64, 48, 29] },
-    { "type": "control", "id": "node.3", "k": "ctl", "rect": [78, 130, 47, 29] },
-    { "type": "control", "id": "node.4", "k": "ctl", "rect": [141, 130, 48, 29] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [22, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [40, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [58, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [76, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [94, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [112, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [130, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [148, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [166, 212, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [22, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [40, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [58, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [76, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [94, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [112, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [130, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [148, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [166, 230, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [22, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [40, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [58, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [76, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [94, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [112, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [130, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [148, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [166, 248, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [22, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [40, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [58, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [76, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [94, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [112, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [130, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [148, 270, 18, 18] },
-    { "type": "control", "id": "inv", "k": "slot", "rect": [166, 270, 18, 18] },
-    { "type": "fill", "external": true, "id": "color.paper", "rect": [0, 0, 0, 0], "color": "#FFEFEBE0" },
-    { "type": "fill", "external": true, "id": "color.card", "rect": [0, 0, 0, 0], "color": "#FFFAF8F1" },
-    { "type": "fill", "external": true, "id": "color.ink", "rect": [0, 0, 0, 0], "color": "#FF0E3A30" },
-    { "type": "fill", "external": true, "id": "color.ink2", "rect": [0, 0, 0, 0], "color": "#FF1F5446" },
-    { "type": "fill", "external": true, "id": "color.muted", "rect": [0, 0, 0, 0], "color": "#FF4A665E" },
-    { "type": "fill", "external": true, "id": "color.hair", "rect": [0, 0, 0, 0], "color": "#FFCFE0DA" },
-    { "type": "fill", "external": true, "id": "color.accent", "rect": [0, 0, 0, 0], "color": "#FF137560" },
-    { "type": "fill", "external": true, "id": "color.accent_fill", "rect": [0, 0, 0, 0], "color": "#FF137560" },
-    { "type": "fill", "external": true, "id": "color.soft", "rect": [0, 0, 0, 0], "color": "#FFDFF0EA" },
-    { "type": "fill", "external": true, "id": "color.feature", "rect": [0, 0, 0, 0], "color": "#FF0F3D33" },
-    { "type": "fill", "external": true, "id": "color.feature_ink", "rect": [0, 0, 0, 0], "color": "#FFF0F8F5" },
-    { "type": "fill", "external": true, "id": "color.feature_muted", "rect": [0, 0, 0, 0], "color": "#FFA8D2C6" },
-    { "type": "fill", "external": true, "id": "color.feature_track", "rect": [0, 0, 0, 0], "color": "#FF2A5F52" },
-    { "type": "fill", "external": true, "id": "color.level", "rect": [0, 0, 0, 0], "color": "#FF18876D" },
-    { "type": "fill", "external": true, "id": "color.slot", "rect": [0, 0, 0, 0], "color": "#FFDCD5C3" },
-    { "type": "fill", "external": true, "id": "color.holo_line", "rect": [0, 0, 0, 0], "color": "#FF18876D" },
-    { "type": "fill", "external": true, "id": "color.holo_grid", "rect": [0, 0, 0, 0], "color": "#4418876D" },
-    { "type": "fill", "external": true, "id": "color.shadow", "rect": [0, 0, 0, 0], "color": "#1A3A2E10" },
-    { "type": "fill", "external": true, "id": "color.inverse", "rect": [0, 0, 0, 0], "color": "#FFFAF8F1" },
-    { "type": "fill", "external": true, "id": "color.inverse_tab", "rect": [0, 0, 0, 0], "color": "#FFFAF8F1" },
-    { "type": "fill", "external": true, "id": "color.disabled", "rect": [0, 0, 0, 0], "color": "#FFE6E0D1" },
-    { "type": "fill", "external": true, "id": "color.warning", "rect": [0, 0, 0, 0], "color": "#FF94501A" },
-    { "type": "fill", "external": true, "id": "color.ring_full", "rect": [0, 0, 0, 0], "color": "#FF18876D" },
-    { "type": "fill", "external": true, "id": "color.ring_locked", "rect": [0, 0, 0, 0], "color": "#FFDDD5C0" },
-    { "type": "fill", "external": true, "id": "color.accent.bronze", "rect": [0, 0, 0, 0], "color": "#FF137560" },
-    { "type": "fill", "external": true, "id": "color.accent_fill.bronze", "rect": [0, 0, 0, 0], "color": "#FF137560" },
-    { "type": "fill", "external": true, "id": "color.feature.bronze", "rect": [0, 0, 0, 0], "color": "#FF0F3D33" },
-    { "type": "fill", "external": true, "id": "color.feature_ink.bronze", "rect": [0, 0, 0, 0], "color": "#FFF0F8F5" },
-    { "type": "fill", "external": true, "id": "color.feature_muted.bronze", "rect": [0, 0, 0, 0], "color": "#FFA8D2C6" },
-    { "type": "fill", "external": true, "id": "color.feature_track.bronze", "rect": [0, 0, 0, 0], "color": "#FF2A5F52" },
-    { "type": "fill", "external": true, "id": "color.hair.bronze", "rect": [0, 0, 0, 0], "color": "#FFCFE0DA" },
-    { "type": "fill", "external": true, "id": "color.holo_grid.bronze", "rect": [0, 0, 0, 0], "color": "#4418876D" },
-    { "type": "fill", "external": true, "id": "color.holo_line.bronze", "rect": [0, 0, 0, 0], "color": "#FF18876D" },
-    { "type": "fill", "external": true, "id": "color.ink.bronze", "rect": [0, 0, 0, 0], "color": "#FF0E3A30" },
-    { "type": "fill", "external": true, "id": "color.ink2.bronze", "rect": [0, 0, 0, 0], "color": "#FF1F5446" },
-    { "type": "fill", "external": true, "id": "color.level.bronze", "rect": [0, 0, 0, 0], "color": "#FF18876D" },
-    { "type": "fill", "external": true, "id": "color.muted.bronze", "rect": [0, 0, 0, 0], "color": "#FF4A665E" },
-    { "type": "fill", "external": true, "id": "color.ring_full.bronze", "rect": [0, 0, 0, 0], "color": "#FF18876D" },
-    { "type": "fill", "external": true, "id": "color.soft.bronze", "rect": [0, 0, 0, 0], "color": "#FFDFF0EA" },
-    { "type": "fill", "external": true, "id": "color.accent.violet", "rect": [0, 0, 0, 0], "color": "#FF5646B0" },
-    { "type": "fill", "external": true, "id": "color.accent_fill.violet", "rect": [0, 0, 0, 0], "color": "#FF5646B0" },
-    { "type": "fill", "external": true, "id": "color.feature.violet", "rect": [0, 0, 0, 0], "color": "#FF2A2468" },
-    { "type": "fill", "external": true, "id": "color.feature_ink.violet", "rect": [0, 0, 0, 0], "color": "#FFF0EEF8" },
-    { "type": "fill", "external": true, "id": "color.feature_muted.violet", "rect": [0, 0, 0, 0], "color": "#FFBDBAD8" },
-    { "type": "fill", "external": true, "id": "color.feature_track.violet", "rect": [0, 0, 0, 0], "color": "#FF473F8C" },
-    { "type": "fill", "external": true, "id": "color.hair.violet", "rect": [0, 0, 0, 0], "color": "#FFDCDBE6" },
-    { "type": "fill", "external": true, "id": "color.holo_grid.violet", "rect": [0, 0, 0, 0], "color": "#448E95B4" },
-    { "type": "fill", "external": true, "id": "color.holo_line.violet", "rect": [0, 0, 0, 0], "color": "#FF8E95B4" },
-    { "type": "fill", "external": true, "id": "color.ink.violet", "rect": [0, 0, 0, 0], "color": "#FF29206B" },
-    { "type": "fill", "external": true, "id": "color.ink2.violet", "rect": [0, 0, 0, 0], "color": "#FF453C8C" },
-    { "type": "fill", "external": true, "id": "color.level.violet", "rect": [0, 0, 0, 0], "color": "#FFC6CCE0" },
-    { "type": "fill", "external": true, "id": "color.muted.violet", "rect": [0, 0, 0, 0], "color": "#FF5C5888" },
-    { "type": "fill", "external": true, "id": "color.ring_full.violet", "rect": [0, 0, 0, 0], "color": "#FF8E95B4" },
-    { "type": "fill", "external": true, "id": "color.soft.violet", "rect": [0, 0, 0, 0], "color": "#FFE9E6F4" },
-    { "type": "fill", "external": true, "id": "color.accent.gold", "rect": [0, 0, 0, 0], "color": "#FF79590C" },
-    { "type": "fill", "external": true, "id": "color.accent_fill.gold", "rect": [0, 0, 0, 0], "color": "#FF79590C" },
-    { "type": "fill", "external": true, "id": "color.feature.gold", "rect": [0, 0, 0, 0], "color": "#FF483A0E" },
-    { "type": "fill", "external": true, "id": "color.feature_ink.gold", "rect": [0, 0, 0, 0], "color": "#FFFAF1DA" },
-    { "type": "fill", "external": true, "id": "color.feature_muted.gold", "rect": [0, 0, 0, 0], "color": "#FFDCC98F" },
-    { "type": "fill", "external": true, "id": "color.feature_track.gold", "rect": [0, 0, 0, 0], "color": "#FF6E5A1C" },
-    { "type": "fill", "external": true, "id": "color.hair.gold", "rect": [0, 0, 0, 0], "color": "#FFE8DDB8" },
-    { "type": "fill", "external": true, "id": "color.holo_grid.gold", "rect": [0, 0, 0, 0], "color": "#44B8902A" },
-    { "type": "fill", "external": true, "id": "color.holo_line.gold", "rect": [0, 0, 0, 0], "color": "#FFB8902A" },
-    { "type": "fill", "external": true, "id": "color.ink.gold", "rect": [0, 0, 0, 0], "color": "#FF4A3606" },
-    { "type": "fill", "external": true, "id": "color.ink2.gold", "rect": [0, 0, 0, 0], "color": "#FF654C10" },
-    { "type": "fill", "external": true, "id": "color.level.gold", "rect": [0, 0, 0, 0], "color": "#FFEBC65A" },
-    { "type": "fill", "external": true, "id": "color.muted.gold", "rect": [0, 0, 0, 0], "color": "#FF6B5C30" },
-    { "type": "fill", "external": true, "id": "color.ring_full.gold", "rect": [0, 0, 0, 0], "color": "#FFB8902A" },
-    { "type": "fill", "external": true, "id": "color.soft.gold", "rect": [0, 0, 0, 0], "color": "#FFF5ECCB" }
-  ]
+ "screen": "star_computation_engine",
+ "machine": "star_computation_engine",
+ "family": "sing",
+ "size": [
+  400,
+  344
+ ],
+ "left_room": 0,
+ "units": "GUI px; refined surfaces with live StarComputationEngineScreen data and controls",
+ "draw": [
+  {
+   "z": 0,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_window_0",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    -1,
+    -1,
+    402,
+    346
+   ],
+   "k": "window",
+   "id": "window"
+  },
+  {
+   "z": 1,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_armillary_1",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    8,
+    32,
+    190,
+    210
+   ],
+   "k": "card",
+   "id": "armillary"
+  },
+  {
+   "z": 2,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_inv_2",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    8,
+    248,
+    190,
+    88
+   ],
+   "k": "card",
+   "id": "inv"
+  },
+  {
+   "z": 3,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_ov_benefit_3",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    204,
+    120,
+    188,
+    122
+   ],
+   "k": "card",
+   "id": "ov_benefit"
+  },
+  {
+   "z": 4,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_rc_node_4",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    204,
+    32,
+    188,
+    112
+   ],
+   "k": "card",
+   "id": "rc_node"
+  },
+  {
+   "z": 5,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_rc_cont_5",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    204,
+    150,
+    188,
+    65
+   ],
+   "k": "card",
+   "id": "rc_cont"
+  },
+  {
+   "z": 6,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_net_6",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    204,
+    248,
+    188,
+    30
+   ],
+   "k": "card",
+   "id": "net"
+  },
+  {
+   "z": 7,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_ov_feature_7",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    199,
+    29,
+    198,
+    92
+   ],
+   "k": "card",
+   "id": "ov_feature"
+  },
+  {
+   "z": 8,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 9,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 10,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 11,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 12,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 13,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 14,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 15,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 16,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166,
+    254,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 17,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 18,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 19,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 20,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 21,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 22,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 23,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 24,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 25,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166,
+    272,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 26,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 27,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 28,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 29,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 30,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 31,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 32,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 33,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 34,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166,
+    290,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 35,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 36,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 37,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 38,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 39,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 40,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 41,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 42,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 43,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166,
+    312,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "type": "control",
+   "id": "overview",
+   "k": "ctl",
+   "rect": [
+    290,
+    10,
+    45,
+    22
+   ],
+   "z": 44,
+   "tab_panel": "ov_feature",
+   "tab_surface": {
+    "type": "sprite",
+    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_overview",
+    "rect": [
+     201,
+     7,
+     194,
+     110
+    ],
+    "pad": [
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "tab_text_color": "#FFF2F2F2"
+  },
+  {
+   "type": "control",
+   "id": "recipes",
+   "k": "ctl",
+   "rect": [
+    339,
+    10,
+    53,
+    22
+   ],
+   "z": 45,
+   "tab_panel": "rc_node",
+   "tab_surface": {
+    "type": "sprite",
+    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_recipes",
+    "rect": [
+     201,
+     7,
+     194,
+     140
+    ],
+    "pad": [
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "type": "control",
+   "id": "overclock",
+   "k": "ctl",
+   "rect": [
+    204,
+    284,
+    188,
+    22
+   ],
+   "z": 46
+  },
+  {
+   "type": "control",
+   "id": "unlock",
+   "k": "ctl",
+   "rect": [
+    204,
+    284,
+    188,
+    22
+   ],
+   "z": 47
+  },
+  {
+   "type": "control",
+   "id": "refresh",
+   "k": "ctl",
+   "rect": [
+    204,
+    312,
+    92,
+    22
+   ],
+   "z": 48
+  },
+  {
+   "type": "control",
+   "id": "prerequisites",
+   "k": "ctl",
+   "rect": [
+    204,
+    312,
+    92,
+    22
+   ],
+   "z": 49
+  },
+  {
+   "type": "control",
+   "id": "guide",
+   "k": "ctl",
+   "rect": [
+    300,
+    312,
+    92,
+    22
+   ],
+   "z": 50
+  },
+  {
+   "type": "control",
+   "id": "node.0",
+   "k": "ctl",
+   "rect": [
+    17,
+    99,
+    46,
+    29
+   ],
+   "z": 51
+  },
+  {
+   "type": "control",
+   "id": "node.1",
+   "k": "ctl",
+   "rect": [
+    78,
+    64,
+    47,
+    29
+   ],
+   "z": 52
+  },
+  {
+   "type": "control",
+   "id": "node.2",
+   "k": "ctl",
+   "rect": [
+    141,
+    64,
+    48,
+    29
+   ],
+   "z": 53
+  },
+  {
+   "type": "control",
+   "id": "node.3",
+   "k": "ctl",
+   "rect": [
+    78,
+    130,
+    47,
+    29
+   ],
+   "z": 54
+  },
+  {
+   "type": "control",
+   "id": "node.4",
+   "k": "ctl",
+   "rect": [
+    141,
+    130,
+    48,
+    29
+   ],
+   "z": 55
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    22,
+    254,
+    18,
+    18
+   ],
+   "z": 56
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    40,
+    254,
+    18,
+    18
+   ],
+   "z": 57
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    58,
+    254,
+    18,
+    18
+   ],
+   "z": 58
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    76,
+    254,
+    18,
+    18
+   ],
+   "z": 59
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    94,
+    254,
+    18,
+    18
+   ],
+   "z": 60
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    112,
+    254,
+    18,
+    18
+   ],
+   "z": 61
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    130,
+    254,
+    18,
+    18
+   ],
+   "z": 62
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    148,
+    254,
+    18,
+    18
+   ],
+   "z": 63
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    166,
+    254,
+    18,
+    18
+   ],
+   "z": 64
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    22,
+    272,
+    18,
+    18
+   ],
+   "z": 65
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    40,
+    272,
+    18,
+    18
+   ],
+   "z": 66
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    58,
+    272,
+    18,
+    18
+   ],
+   "z": 67
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    76,
+    272,
+    18,
+    18
+   ],
+   "z": 68
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    94,
+    272,
+    18,
+    18
+   ],
+   "z": 69
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    112,
+    272,
+    18,
+    18
+   ],
+   "z": 70
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    130,
+    272,
+    18,
+    18
+   ],
+   "z": 71
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    148,
+    272,
+    18,
+    18
+   ],
+   "z": 72
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    166,
+    272,
+    18,
+    18
+   ],
+   "z": 73
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    22,
+    290,
+    18,
+    18
+   ],
+   "z": 74
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    40,
+    290,
+    18,
+    18
+   ],
+   "z": 75
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    58,
+    290,
+    18,
+    18
+   ],
+   "z": 76
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    76,
+    290,
+    18,
+    18
+   ],
+   "z": 77
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    94,
+    290,
+    18,
+    18
+   ],
+   "z": 78
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    112,
+    290,
+    18,
+    18
+   ],
+   "z": 79
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    130,
+    290,
+    18,
+    18
+   ],
+   "z": 80
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    148,
+    290,
+    18,
+    18
+   ],
+   "z": 81
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    166,
+    290,
+    18,
+    18
+   ],
+   "z": 82
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    22,
+    312,
+    18,
+    18
+   ],
+   "z": 83
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    40,
+    312,
+    18,
+    18
+   ],
+   "z": 84
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    58,
+    312,
+    18,
+    18
+   ],
+   "z": 85
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    76,
+    312,
+    18,
+    18
+   ],
+   "z": 86
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    94,
+    312,
+    18,
+    18
+   ],
+   "z": 87
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    112,
+    312,
+    18,
+    18
+   ],
+   "z": 88
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    130,
+    312,
+    18,
+    18
+   ],
+   "z": 89
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    148,
+    312,
+    18,
+    18
+   ],
+   "z": 90
+  },
+  {
+   "type": "control",
+   "id": "inv",
+   "k": "slot",
+   "rect": [
+    166,
+    312,
+    18,
+    18
+   ],
+   "z": 91
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.paper",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCBCCD4",
+   "z": 92
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.card",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCBCCD4",
+   "z": 93
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2E2C40",
+   "z": 94
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink2",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67",
+   "z": 95
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF5D637D",
+   "z": 96
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.hair",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9A9FB4",
+   "z": 97
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2",
+   "z": 98
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent_fill",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF696D88",
+   "z": 99
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.soft",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8",
+   "z": 100
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67",
+   "z": 101
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF2F2F2",
+   "z": 102
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8",
+   "z": 103
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_track",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF696D88",
+   "z": 104
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.level",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2",
+   "z": 105
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.slot",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFADB0C4",
+   "z": 106
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_line",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2",
+   "z": 107
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_grid",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#447CA0D2",
+   "z": 108
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.shadow",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#00000000",
+   "z": 109
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.inverse",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF2F2F2",
+   "z": 110
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.inverse_tab",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF2F2F2",
+   "z": 111
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.disabled",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFADB0C4",
+   "z": 112
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.warning",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCE654F",
+   "z": 113
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ring_full",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2",
+   "z": 114
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ring_locked",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9A9FB4",
+   "z": 115
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF137560",
+   "z": 116
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent_fill.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF137560",
+   "z": 117
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF0F3D33",
+   "z": 118
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_ink.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF0F8F5",
+   "z": 119
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_muted.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFA8D2C6",
+   "z": 120
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_track.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2A5F52",
+   "z": 121
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.hair.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9A9FB4",
+   "z": 122
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_grid.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#4418876D",
+   "z": 123
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_line.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF18876D",
+   "z": 124
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2E2C40",
+   "z": 125
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink2.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67",
+   "z": 126
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.level.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF18876D",
+   "z": 127
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.muted.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF666B87",
+   "z": 128
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ring_full.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF18876D",
+   "z": 129
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.soft.bronze",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8",
+   "z": 130
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF5646B0",
+   "z": 131
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent_fill.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF5646B0",
+   "z": 132
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2A2468",
+   "z": 133
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_ink.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF0EEF8",
+   "z": 134
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_muted.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFBDBAD8",
+   "z": 135
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_track.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF473F8C",
+   "z": 136
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.hair.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9A9FB4",
+   "z": 137
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_grid.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#448E95B4",
+   "z": 138
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_line.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF8E95B4",
+   "z": 139
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2E2C40",
+   "z": 140
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink2.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67",
+   "z": 141
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.level.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFC6CCE0",
+   "z": 142
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.muted.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF666B87",
+   "z": 143
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ring_full.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF8E95B4",
+   "z": 144
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.soft.violet",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8",
+   "z": 145
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF79590C",
+   "z": 146
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent_fill.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF79590C",
+   "z": 147
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF483A0E",
+   "z": 148
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_ink.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFFAF1DA",
+   "z": 149
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_muted.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFDCC98F",
+   "z": 150
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_track.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF6E5A1C",
+   "z": 151
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.hair.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9A9FB4",
+   "z": 152
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_grid.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#44B8902A",
+   "z": 153
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.holo_line.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8902A",
+   "z": 154
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2E2C40",
+   "z": 155
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink2.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67",
+   "z": 156
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.level.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFEBC65A",
+   "z": 157
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.muted.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF666B87",
+   "z": 158
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ring_full.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8902A",
+   "z": 159
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.soft.gold",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8",
+   "z": 160
+  }
+ ],
+ "boxes": [
+  {
+   "k": "card",
+   "id": "armillary",
+   "r": {
+    "x": 8,
+    "y": 32,
+    "w": 190,
+    "h": 168
+   }
+  },
+  {
+   "k": "card",
+   "id": "inv",
+   "r": {
+    "x": 8,
+    "y": 206,
+    "w": 190,
+    "h": 88
+   }
+  },
+  {
+   "k": "card",
+   "id": "ov_benefit",
+   "r": {
+    "x": 204,
+    "y": 120,
+    "w": 188,
+    "h": 95
+   }
+  },
+  {
+   "k": "card",
+   "id": "rc_node",
+   "r": {
+    "x": 204,
+    "y": 32,
+    "w": 188,
+    "h": 112
+   }
+  },
+  {
+   "k": "card",
+   "id": "rc_cont",
+   "r": {
+    "x": 204,
+    "y": 150,
+    "w": 188,
+    "h": 65
+   }
+  },
+  {
+   "k": "card",
+   "id": "net",
+   "r": {
+    "x": 204,
+    "y": 221,
+    "w": 188,
+    "h": 25
+   }
+  },
+  {
+   "k": "card",
+   "id": "ov_feature",
+   "r": {
+    "x": 204,
+    "y": 32,
+    "w": 188,
+    "h": 82
+   }
+  }
+ ]
 }

@@ -108,7 +108,7 @@ public final class BuildingTerminal {
         if (!level.hasChunkAt(clicked)) return null;
         var machine = level.getBlockEntity(clicked);
         if (machine != null && menuType(machine) != null) return machine;
-        // The engine core is inside its shell; its existing formed parts are legitimate binding points too.
+        // Verified orrery anchors are legitimate controller binding points too.
         return StarComputationEngineCoreBlockEntity.findCore(level, clicked);
     }
 

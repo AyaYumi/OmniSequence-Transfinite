@@ -14,7 +14,7 @@ import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Resource regressions for the baked 3x3x3 engine model; no client or renderer is needed. */
+/** Compatibility resource regressions for the retired baked engine assets; no client is needed. */
 class StarComputationEngineAssetsTest {
     private static final Path ASSETS = Path.of("src/main/resources/assets/molecularmanipulator");
     private static final Path TAGS = Path.of("src/main/resources/data/minecraft/tags/block");
@@ -92,7 +92,18 @@ class StarComputationEngineAssetsTest {
     }
 
     @Test
-    void formedCoreInheritsTheWholeShellAndFiveUnculledFullbrightFaces() throws IOException {
+    void wholeCentralBodyRendersForFormedOrreriesButNotUnmigratedStandaloneCores() throws IOException {
+        var source = Files.readString(Path.of("src/main/java/com/atir/molecularmanipulator/client/render/StarComputationEngineFormedBakedModel.java"));
+        var getQuads = source.substring(source.indexOf("public List<BakedQuad> getQuads("), source.indexOf("@Override public boolean useAmbientOcclusion()"));
+        assertFalse(getQuads.contains("if (state != null) return List.of();"), "A valid orrery must display its central 3x3x3 body");
+        assertTrue(getQuads.contains("!StarComputationEngineCoreBlock.isStarOrrery(state)"));
+        assertTrue(getQuads.contains("!state.getValue(StarComputationEngineCoreBlock.FORMED)"));
+        assertTrue(getQuads.indexOf("if (state != null &&") < getQuads.indexOf("data.get("));
+        assertTrue(getQuads.contains("return quads[visual.tier()][visual.connections()];"));
+    }
+
+    @Test
+    void compatibleFormedAssetRetainsTheWholeShellAndFiveUnculledFullbrightFaces() throws IOException {
         var core = json(asset(CORE_FORMED, "models", ".json"));
         assertEquals(CORE_FORMED + "_base", core.get("parent").getAsString());
         assertFalse(core.has("elements"), "the core must inherit the complete base geometry");

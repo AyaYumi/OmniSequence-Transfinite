@@ -14,11 +14,12 @@ public final class PreparedColorVertices implements VertexConsumer, AutoCloseabl
     private final Vector3f transformed = new Vector3f();
     private ByteBuffer storage;
     private int count, stride = COLOR_STRIDE, nextStride = COLOR_STRIDE;
-    private long materials;
+    private long materials, nextMaterials;
 
     public VertexConsumer begin() {
         count = 0;
         stride = nextStride;
+        materials = nextMaterials;
         return this;
     }
 
@@ -58,10 +59,7 @@ public final class PreparedColorVertices implements VertexConsumer, AutoCloseabl
         if ((count & 3) != 0) throw new IllegalStateException("Incomplete prepared color quad");
         if (target instanceof SingularityShaderVertices adapter) {
             boolean submitted = adapter.submitColor(MemoryUtil.memAddress(storage), count, stride, materials);
-            // Capture the actual material on the render thread. The following worker frame may
-            // prepack it, but replay verifies the current target before taking the direct path.
-            nextStride = adapter.preparedColorStride();
-            materials = adapter.preparedColorMaterials();
+            captureTarget(adapter);
             if (submitted) return;
         } else nextStride = COLOR_STRIDE;
         var writer = SodiumVertexBatch.of(target);
@@ -78,10 +76,18 @@ public final class PreparedColorVertices implements VertexConsumer, AutoCloseabl
         }
     }
 
+    /** Render-thread observation only; begin() on the next worker uses this verified target hint. */
+    void captureTarget(VertexConsumer target) {
+        if (target instanceof SingularityShaderVertices adapter) {
+            nextStride = adapter.preparedColorStride();
+            nextMaterials = adapter.preparedColorMaterials();
+        } else nextStride = COLOR_STRIDE;
+    }
+
     public int count() { return count; }
     @Override public void close() {
         if (storage != null) MemoryUtil.memFree(storage);
-        storage = null; count = 0; stride = nextStride = COLOR_STRIDE; materials = 0;
+        storage = null; count = 0; stride = nextStride = COLOR_STRIDE; materials = nextMaterials = 0;
     }
     @Override public VertexConsumer setUv(float u, float v) { return this; }
     @Override public VertexConsumer setUv1(int u, int v) { return this; }

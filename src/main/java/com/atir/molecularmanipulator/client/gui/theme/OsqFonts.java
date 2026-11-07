@@ -190,30 +190,51 @@ public final class OsqFonts {
         return width;
     }
 
-    /** 按 maxWidth 逐字折行（中文没有空格，原版 splitLines 只在空格处断，会把“旧版”单独留一行）；遇到空格优先在空格处断。 */
+    /** Preserve whole integers/English words; CJK can break between characters. */
     public static java.util.List<String> wrap(Font font, String text, ResourceLocation fontId, float maxWidth) {
         metricContext(font);
         var key = new WrapKey(fontId, text, Float.floatToIntBits(maxWidth));
         var cached = WRAPS.get(key);
         if (cached != null) return cached;
-        java.util.List<String> out = new java.util.ArrayList<>();
-        StringBuilder line = new StringBuilder();
-        for (int i = 0; i < text.length(); ) {
-            int cp = text.codePointAt(i); i += Character.charCount(cp);
-            String next = line.toString() + new String(Character.toChars(cp));
-            if (line.length() > 0 && widthF(font, next, fontId) > maxWidth) {
-                int sp = line.lastIndexOf(" ");
-                boolean latin = cp < 0x2E80 && cp != ' ';
-                if (latin && sp > 0 && sp > line.length() - 24) {   // 不拆开英文单词 / 数字
-                    out.add(line.substring(0, sp)); line = new StringBuilder(line.substring(sp + 1));
-                } else { out.add(line.toString()); line = new StringBuilder(); }
-                if (cp == ' ') continue;
-            }
-            line.appendCodePoint(cp);
-        }
-        if (line.length() > 0) out.add(line.toString());
-        var result = java.util.List.copyOf(out);
+        var result = wrapText(text, maxWidth, value -> widthF(font, value, fontId));
         WRAPS.put(key, result);
         return result;
+    }
+
+    private static final java.util.regex.Pattern TOKENS = java.util.regex.Pattern.compile(
+            "[A-Za-z0-9]+(?:[.,:/+_-][A-Za-z0-9]+)*|[^\\S\\n]+|\\n|.", java.util.regex.Pattern.UNICODE_CHARACTER_CLASS);
+    private static final String CLOSING = "，。；：、！？）】》」』,.!?;:%";
+
+    static java.util.List<String> wrapText(String text, float maxWidth, java.util.function.ToDoubleFunction<String> measure) {
+        var tokens = new java.util.ArrayList<String>();
+        var matcher = TOKENS.matcher(text);
+        while (matcher.find()) {
+            String token = matcher.group();
+            int last = tokens.size() - 1;
+            if (CLOSING.contains(token) && last >= 0 && !tokens.get(last).isBlank())
+                tokens.set(last, tokens.get(last) + token);
+            else tokens.add(token);
+        }
+        var out = new java.util.ArrayList<String>();
+        var line = new StringBuilder();
+        for (String token : tokens) {
+            if (token.equals("\n")) { out.add(line.toString().stripTrailing()); line.setLength(0); continue; }
+            if (!line.isEmpty() && measure.applyAsDouble(line + token) > maxWidth) {
+                out.add(line.toString().stripTrailing()); line.setLength(0);
+            }
+            if (line.isEmpty() && token.isBlank()) continue;
+            if (measure.applyAsDouble(token) > maxWidth) {
+                for (int i = 0; i < token.length();) {
+                    int cp = token.codePointAt(i); i += Character.charCount(cp);
+                    String character = new String(Character.toChars(cp));
+                    if (!line.isEmpty() && measure.applyAsDouble(line + character) > maxWidth && !CLOSING.contains(character)) {
+                        out.add(line.toString()); line.setLength(0);
+                    }
+                    line.append(character);
+                }
+            } else line.append(token);
+        }
+        if (!line.isEmpty()) out.add(line.toString().stripTrailing());
+        return java.util.List.copyOf(out);
     }
 }

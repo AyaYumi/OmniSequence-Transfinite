@@ -24,13 +24,15 @@ Research unlocks fabrication recipes and later machines. Progress belongs to the
 
 | Research | Prerequisite | First completion unlocks | Default power |
 | --- | --- | --- | --- |
-| Tier 1: AE materials | None | AE processing, Pattern Assembly and later research materials | 256 AE/t |
+| Tier 1: AE materials | None | AE processing, Pattern Assembly, Molecular Auto Crafter and later research materials | 256 AE/t |
+| Special: Exotic Matter Studies | Tier 1 once | [Gravity Crystals and Ghost Matter](nomai_materials.md) | 256 AE/t |
 | Tier 2: Sequence Array | Tier 1 once | Sequence Array, Rewrite Array and Matrix Rewrite Core | 512 AE/t |
 | Tier 2: Omni Computation | Tier 1 once | Omni Computation Core, Compute Nexus and their parts | 1024 AE/t |
 | Tier 3: Event Horizon | Both tier 2 branches once | Miniature Black Hole, White Hole, Supernova and hub parts | 2048 AE/t |
-| Special: Exotic Matter Studies | Tier 1 once | [Gravity Crystals and Ghost Matter](nomai_materials.md) | 256 AE/t |
 
-Each default research round takes **30 seconds**. Both tier 2 branches can progress together; maximum depth is not needed for tier 3. Exotic Matter Studies is optional, has only one round and does not require tier 3.
+Each default research round takes **30 seconds**. Both tier 2 branches can progress together; maximum depth is not needed for tier 3. Exotic Matter Studies appears immediately after tier 1 and remains an optional, stage-zero, single-round research that does not require tier 3.
+
+The [Molecular Auto Crafter](molecular_auto_crafter.md) belongs to tier 1 rather than the Sequence Array branch. Later tier-1 completions raise parallelism for its Fabrication Well recipe. Crafting it still requires an active [Star Computation Engine](star_computation_engine.md) on the well's ME network with the permanent **Star Computation Foundation** node unlocked. Existing wells keep their research completion counts; other branches, prerequisites and addon research are unchanged.
 
 ## Starting research
 

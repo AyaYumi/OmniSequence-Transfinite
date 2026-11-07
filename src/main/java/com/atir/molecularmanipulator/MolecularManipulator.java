@@ -56,7 +56,7 @@ public final class MolecularManipulator {
                 (level, pos, state, blockEntity, side) ->
                         com.atir.molecularmanipulator.starcomputation.StarComputationInteraction.gridHost(level, pos),
                 ModContent.STAR_COMPUTATION_ENGINE_CASING.get(), ModContent.STAR_COMPUTATION_OBSERVATION_PORT.get(),
-                ModContent.BASE_ENTROPY_ANCHOR.get(), ModContent.QUANTUM_ENTROPY_ANCHOR.get(), ModContent.TERMINAL_ENTROPY_ANCHOR.get());
+                ModContent.REFERENCE_STAR_POSITION_ANCHOR.get(), ModContent.QUANTUM_STAR_POSITION_ANCHOR.get(), ModContent.TERMINAL_STAR_POSITION_ANCHOR.get());
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,

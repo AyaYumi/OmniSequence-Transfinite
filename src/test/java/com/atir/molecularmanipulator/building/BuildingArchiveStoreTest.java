@@ -110,11 +110,146 @@ class BuildingArchiveStoreTest {
         assertThrows(java.io.IOException.class, () -> store.readEntry(id, 0, REGISTRIES));
         Files.write(chunk, encoded); assertEquals(data, store.readEntry(id, 0, REGISTRIES).data());
     }
+    @Test void streamingCapturePublishesNoUsableArchiveUntilEveryPartIsDurable() throws Exception {
+        var store = new BuildingArchiveStore(root); var id = UUID.randomUUID();
+        var calls = new ArrayList<Integer>();
+        assertThrows(java.io.IOException.class, () -> store.writeSnapshot(id, 3, index -> {
+            calls.add(index);
+            if (index == 2) throw new java.io.IOException("Injected native component serialization failure");
+            var data = new CompoundTag(); data.putInt("part", index);
+            return new BuildingArchiveStore.Entry(new BlockPos(index, 0, 0), Blocks.STONE.defaultBlockState(), data);
+        }, REGISTRIES));
+        assertEquals(List.of(0, 1, 2), calls, "Capture must request each native part exactly once and in order");
+        assertFalse(store.exists(id));
+        assertTrue(store.listArchives().isEmpty(), "Partial data is not a committed migration journal");
+        assertThrows(java.io.IOException.class, () -> store.readIndex(id));
+    }
+
+    @Test void failedJournalCommitDoesNotAdvanceLiveOrDurableState() throws Exception {
+        var store = new BuildingArchiveStore(root);
+        for (var transition : List.of(List.of("SEALING", "SEALED"), List.of("DEPLOYING", "DEPLOYED"),
+                List.of("DEPLOYING", "ROLLING_BACK"), List.of("ROLLING_BACK", "SEALED"), List.of("ROLLING_BACK", "CANCELLED"))) {
+            var id = UUID.randomUUID(); var live = new CompoundTag();
+            live.putString("state", transition.getFirst()); live.putInt("cursor", 17);
+            store.writeManifest(id, live);
+            assertFalse(live.contains("archive_format"), "Persisting must not modify the caller's live journal");
+            var blockedWrite = root.resolve(id.toString()).resolve("manifest.nbt.writing");
+            Files.createDirectory(blockedWrite);
+            assertThrows(java.io.IOException.class, () -> store.updateManifest(id, live, next -> {
+                next.putString("state", transition.getLast()); next.putInt("cursor", 200);
+            }));
+            assertEquals(transition.getFirst(), live.getString("state"));
+            assertEquals(17, live.getInt("cursor"));
+            assertEquals(transition.getFirst(), store.readManifest(id).getString("state"));
+            Files.delete(blockedWrite);
+            var committed = store.updateManifest(id, live, next -> next.putString("state", transition.getLast()));
+            assertEquals(transition.getFirst(), live.getString("state"));
+            assertEquals(transition.getLast(), committed.getString("state"));
+            assertEquals(transition.getLast(), store.readManifest(id).getString("state"));
+        }
+    }
+
+    @Test void deployedOrReservedArchiveCannotAuthorizeAnotherBuilding() throws Exception {
+        var manifest = new CompoundTag();
+        manifest.putString("type", BuildingType.SEQUENCE_ARRAY.id);
+        manifest.putInt("template", BuildingType.TEMPLATE_VERSION);
+        for (String state : List.of("SEALING", "DEPLOYING", "DEPLOYED", "ROLLING_BACK", "CANCELLED", "")) {
+            manifest.putString("state", state);
+            assertThrows(java.io.IOException.class, () -> BuildingTransfer.requireSealed(manifest, BuildingType.SEQUENCE_ARRAY));
+        }
+        manifest.putString("state", "SEALED");
+        assertDoesNotThrow(() -> BuildingTransfer.requireSealed(manifest, BuildingType.SEQUENCE_ARRAY));
+        assertThrows(java.io.IOException.class, () -> BuildingTransfer.requireSealed(manifest, BuildingType.FABRICATION_WELL));
+        manifest.putInt("template", BuildingType.TEMPLATE_VERSION + 1);
+        assertThrows(java.io.IOException.class, () -> BuildingTransfer.requireSealed(manifest, BuildingType.SEQUENCE_ARRAY));
+    }
+
+    @Test void freshOwnershipCoversAePartsWithoutRewritingForeignComponentData() {
+        var catalystData = new CompoundTag(); catalystData.putString("owner", "foreign-mod-owner");
+        var manifest = new CompoundTag(); manifest.putInt("ae_owner", 71);
+        manifest.putString("type", BuildingType.FABRICATION_WELL.id);
+        manifest.putUUID("placement_team", UUID.randomUUID()); manifest.putUUID("owner", UUID.randomUUID());
+        for (String blockEntity : List.of("molecularmanipulator:matter_fabrication_controller",
+                "molecularmanipulator:matter_fabrication_pattern_assembly",
+                "molecularmanipulator:matter_fabrication_port",
+                "molecularmanipulator:omni_computation_core")) {
+            var data = new CompoundTag(); data.putString("id", blockEntity);
+            data.put("components", catalystData.copy());
+            var owned = BuildingTransfer.freshOwnership(data, manifest, false);
+            assertEquals(71, owned.getCompound("proxy").getInt("p"), blockEntity);
+            assertEquals(catalystData, owned.getCompound("components"));
+            assertFalse(data.contains("proxy"), "Template data must stay reusable by a different player");
+        }
+        var well = BuildingTransfer.freshOwnership(new CompoundTag(), manifest, true);
+        assertTrue(well.getBoolean("fabrication_team_bound"));
+        assertEquals(manifest.getUUID("placement_team"), well.getUUID("fabrication_bound_team"));
+        for (var type : List.of(BuildingType.STAR_COMPUTATION_ENGINE, BuildingType.STAR_ORRERY_L1,
+                BuildingType.STAR_ORRERY_L2, BuildingType.STAR_ORRERY_L3)) {
+            manifest.putString("type", type.id);
+            var team = manifest.getUUID("placement_team");
+            var engine = BuildingTransfer.freshOwnership(new CompoundTag(), manifest, true);
+            assertEquals(team, engine.getUUID("entropy_team"), type.id);
+            manifest.remove("placement_team");
+            assertEquals(manifest.getUUID("owner"), BuildingTransfer.freshOwnership(new CompoundTag(), manifest, true).getUUID("entropy_team"), type.id);
+            manifest.putUUID("placement_team", team);
+        }
+    }
+
+    @Test void nativeAeItemsCatalystsFluidComponentsAndLongAmountsRoundTrip() throws Exception {
+        try { appeng.api.stacks.AEKeyTypesInternal.getRegistry(); }
+        catch (IllegalStateException uninitialized) {
+            var types = new net.minecraft.core.MappedRegistry<appeng.api.stacks.AEKeyType>(
+                    appeng.api.stacks.AEKeyType.REGISTRY_KEY, com.mojang.serialization.Lifecycle.stable(), false);
+            appeng.api.stacks.AEKeyTypesInternal.setRegistry(types);
+            appeng.api.stacks.AEKeyTypesInternal.register(appeng.api.stacks.AEKeyType.items());
+            appeng.api.stacks.AEKeyTypesInternal.register(appeng.api.stacks.AEKeyType.fluids());
+            types.freeze();
+        }
+        // Standalone JUnit does not register AE2's missing-content sentinel. The real native
+        // GenericStack/item/fluid codecs still encode and decode every resource below.
+        var sentinel = appeng.core.definitions.ItemDefinition.class.getDeclaredField("item");
+        sentinel.setAccessible(true);
+        var marker = appeng.core.definitions.AEItems.MISSING_CONTENT;
+        var previousMarker = sentinel.get(marker);
+        sentinel.set(marker, net.neoforged.neoforge.registries.DeferredItem.createItem(
+                net.minecraft.resources.ResourceLocation.withDefaultNamespace("barrier")));
+        try {
+            var catalyst = new ItemStack(Items.DIAMOND_PICKAXE);
+            catalyst.set(DataComponents.DAMAGE, 117);
+            var components = new CompoundTag(); components.putUUID("foreign_owner", UUID.randomUUID());
+            components.putString("recipe_state", "native-component-payload");
+            catalyst.set(DataComponents.CUSTOM_DATA, CustomData.of(components));
+            var fluid = new net.neoforged.neoforge.fluids.FluidStack(net.minecraft.world.level.material.Fluids.WATER, 1000);
+            fluid.set(DataComponents.CUSTOM_DATA, CustomData.of(components));
+            var resources = List.of(
+                    new appeng.api.stacks.GenericStack(appeng.api.stacks.AEItemKey.of(catalyst), 1),
+                    new appeng.api.stacks.GenericStack(appeng.api.stacks.AEItemKey.of(Items.PAPER), 8_000_000_000L),
+                    new appeng.api.stacks.GenericStack(appeng.api.stacks.AEFluidKey.of(fluid), 9_000_000_000L));
+            var nativeResources = new ListTag();
+            resources.forEach(stack -> nativeResources.add(appeng.api.stacks.GenericStack.writeTag(REGISTRIES, stack)));
+            var data = new CompoundTag(); data.put("native_ae_inventory", nativeResources);
+            data.put("native_catalyst", catalyst.save(REGISTRIES));
+            var store = new BuildingArchiveStore(root); var id = UUID.randomUUID();
+            store.writeSnapshot(id, List.of(new BuildingArchiveStore.Entry(BlockPos.ZERO, Blocks.CHEST.defaultBlockState(), data)), REGISTRIES);
+            var restored = store.readEntry(id, 0, REGISTRIES).data();
+            assertEquals(data, restored);
+            var restoredStacks = restored.getList("native_ae_inventory", 10);
+            for (int i = 0; i < resources.size(); i++)
+                assertEquals(resources.get(i), appeng.api.stacks.GenericStack.readTag(REGISTRIES, restoredStacks.getCompound(i)));
+            assertTrue(ItemStack.isSameItemSameComponents(catalyst, ItemStack.parse(REGISTRIES, restored.getCompound("native_catalyst")).orElseThrow()));
+        } finally {
+            sentinel.set(marker, previousMarker);
+        }
+    }
+
     @Test void relocateOnlyChangesInfrastructureAndRotatesPortMasksWithoutTouchingForeignComponents() {
         var data = new CompoundTag(); data.putInt("x", 1); data.putInt("y", 2); data.putInt("z", 3);
         data.putLong("fabrication_controller", BlockPos.ZERO.asLong());
         data.putLong("molecular_center_controller_pos", BlockPos.ZERO.asLong());
-        var proxy = new CompoundTag(); proxy.putInt("p", 123); proxy.putLong("g", 42); data.put("proxy", proxy);
+        var proxy = new CompoundTag(); proxy.putInt("p", 123); proxy.putLong("g", 42);
+        proxy.putDouble("e", 512.5); proxy.putString("cm", "INFINITE");
+        var service = new CompoundTag(); service.putString("native_service_setting", "preserve-me");
+        proxy.put("service_extension", service); data.put("proxy", proxy);
         var foreign = new CompoundTag(); foreign.putLong("fabrication_controller", 999); foreign.putString("custom_name", "foreign item");
         data.put("components", foreign);
         data.putInt("port_output_sides", 1 << Direction.NORTH.ordinal() | 1 << Direction.UP.ordinal());
@@ -123,6 +258,9 @@ class BuildingArchiveStoreTest {
         assertEquals(position.getX(), rotated.getInt("x")); assertEquals(controller.asLong(), rotated.getLong("fabrication_controller"));
         assertEquals(foreign, rotated.getCompound("components"));
         assertEquals(123, rotated.getCompound("proxy").getInt("p")); assertFalse(rotated.getCompound("proxy").contains("g"));
+        assertEquals(512.5, rotated.getCompound("proxy").getDouble("e"));
+        assertEquals("INFINITE", rotated.getCompound("proxy").getString("cm"));
+        assertEquals(service, rotated.getCompound("proxy").getCompound("service_extension"));
         assertEquals(1 << Direction.EAST.ordinal() | 1 << Direction.UP.ordinal(), rotated.getInt("port_output_sides"));
         assertEquals(1, data.getInt("x")); assertEquals(42, data.getCompound("proxy").getLong("g"));
     }

@@ -50,27 +50,26 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
                 ?tr("calculating",menu.activeMaterialCalculations):tr("calculation_idle"));
         ui.text("gui.molecularmanipulator.omni.calculation_stats",()->tr("calculation_stats",menu.completedMaterialCalculations,menu.lastMaterialCalculationMillis));
         ui.text("gui.molecularmanipulator.quantum_state.connected",()->OsqUi.tr("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
-        ui.number(252.39f,238.5f,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.number(302.39f,238.5f,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
         ui.at(253,96,()->capacity(menu.storageBytes, true));
         ui.at(314,96,()->capacity(menu.cpuParallel, false));
         ui.width(253,96,56);
         ui.width(314,96,56);
         ui.number(252,147,()->menu.activeJobs);ui.number(314,147,()->menu.cpuLanes);
         ui.number(17,57,()->legacyLayout?"31×31×39 · 1.3.9":"65×35×65 · "+menu.missingParts);
-        ui.number(16.5f,187,()->menu.correctParts);
-        if(legacyLayout){ui.number(24.63f,187,()->"/ "+menu.totalParts);ui.number(34.64f,187,()->"");
-            ui.layout.draw.stream().filter(e->"text".equals(e.type)&&Math.abs(e.x-24.63f)<.8f&&Math.abs(e.baseline-187)<.8f)
-                    .findFirst().ifPresent(e->{e.x=76;e.w=54;});}
-        else {ui.number(28.48f,187,()->"");ui.number(60.05f,187,()->"/ "+menu.totalParts);ui.number(70.06f,187,()->"");}
-        ui.number(177.53f,185.5f,()->"-");
-        ui.width(16.5f,187,legacyLayout?56:41);
-        ui.width(60.05f,187,30);
-        ui.width(233,224.89f,135);
+        ui.number(16.5f,97,()->menu.correctParts);
+        if(legacyLayout){ui.number(24.63f,97,()->"/ "+menu.totalParts);ui.number(34.64f,97,()->"");
+            ui.layout.draw.stream().filter(e->"text".equals(e.type)&&Math.abs(e.x-24.63f)<.8f&&Math.abs(e.baseline-97)<.8f)
+                    .findFirst().ifPresent(e->{e.x=76;e.drawX=76f;e.w=54;});}
+        else {ui.number(28.48f,97,()->"");ui.number(60.05f,97,()->"/ "+menu.totalParts);ui.number(70.06f,97,()->"");}
+        ui.number(177.53f,95.5f,()->"-");
+        ui.width(16.5f,97,legacyLayout?56:41);
+        ui.width(60.05f,97,30);
+        ui.width(283,224.89f,85);
         ui.sprite(17,43,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
         ui.sprite(296.83f,56,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
-        ui.sprite(226,222.89f,()->ui.sprite("dot_"+(menu.quantumFrequency==0?"mute":"ok")));
+        ui.sprite(276,222.89f,()->ui.sprite("dot_"+(menu.quantumFrequency==0?"mute":"ok")));
         ui.color("gui.molecularmanipulator.quantum_state.connected",()->menu.quantumFrequency==0?ui.palette.ink3:ui.palette.ok);
-        if(legacyLayout)ui.number(230,221,()->"");
         refresh();
     }
     static Component capacity(long value, boolean storage) {

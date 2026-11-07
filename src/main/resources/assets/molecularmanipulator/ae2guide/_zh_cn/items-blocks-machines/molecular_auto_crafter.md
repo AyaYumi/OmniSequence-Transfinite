@@ -51,4 +51,6 @@ item_ids:
 
 ## 配方
 
+构筑井加工配方需要完成一次[一阶：AE 材料构筑](matter_fabrication_research.md)，不再由构序阵列研究解锁。后续基础研究提升该构筑井配方的并行；加工时，构筑井所在 ME 网络仍需有效[星算引擎](star_computation_engine.md)提供已解锁的团队永久节点**星算基础**。旧构筑井的研究完成次数保留不变。
+
 <RecipeFor id="molecularmanipulator:molecular_auto_crafter" fallbackText="当前整合包未提供可用配方，请查看 JEI 和研究条件。" />

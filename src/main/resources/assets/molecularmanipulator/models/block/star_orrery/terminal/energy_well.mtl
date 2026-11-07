@@ -1,0 +1,5 @@
+newmtl metal
+map_Kd molecularmanipulator:block/star_orrery/terminal/metal
+
+newmtl wellglow
+map_Kd molecularmanipulator:block/star_orrery/terminal/wellglow

@@ -470,16 +470,25 @@ helpers/payloads are internal and are not public Java API.
 
 | Research ID (prefix `molecularmanipulator:research/`) | Time per round | Research power | First-completion unlocks |
 | --- | --- | --- | --- |
-| `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, pattern assembly |
+| `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, Pattern Assembly and Molecular Auto Crafter |
+| `nomai_materials` | 600 ticks / 30 s | 256 AE/t | Ghost Matter and Gravity Crystal; one round, stage `0`, `sort_order: 5`, requires one `ae_foundation` completion |
 | `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
 | `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
 | `event_horizon` | 600 ticks / 30 s | 2048 AE/t | Miniature Black Hole, Miniature White Hole and all 13 Singularity Hub structural blocks |
-| `nomai_materials` | 600 ticks / 30 s | 256 AE/t | Ghost Matter and Gravity Crystal; one round, stage `0`, `sort_order: 35`, requires one `ae_foundation` completion |
 | `machine/<machine_key>` | 600 ticks / 30 s | 512 AE/t | Recipes imported from that addon machine (when the mod and machine are present) |
 
 The 30 seconds applies to the first unlock and to every later deep-research round
 of the built-in researches. Custom `duration` values stay free in ticks and still
 default to 1200; a started round keeps the duration snapshot from its start.
+
+The Molecular Auto Crafter (`molecular_auto_crafter`) belongs to tier-one
+`ae_foundation`, rather than `sequence_array`; later foundation completions raise
+parallelism for its Fabrication Well recipe. Crafting it still requires an active
+Star Computation Engine on the well's ME network with the permanent `foundation`
+node unlocked. `nomai_materials` appears immediately after the foundation branch
+and remains an optional stage-zero, single-round research. Existing wells keep
+their research completion counts. Other branches, prerequisites and addon research
+are unchanged.
 
 Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts use 100× ordinary ingredient quantities, retaining outputs and power; built-in fabrication base durations are uniformly 400 ticks. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
 

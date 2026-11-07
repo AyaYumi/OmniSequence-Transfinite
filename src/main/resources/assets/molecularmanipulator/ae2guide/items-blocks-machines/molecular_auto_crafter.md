@@ -51,4 +51,6 @@ The [Sequence Array](sequence_array_controller.md) provides the same nine-positi
 
 ## Recipes
 
+The Fabrication Well recipe requires one completion of [Tier 1: AE materials](matter_fabrication_research.md), rather than the Sequence Array research. Later completions of that foundation branch raise parallelism for this well recipe. The well's ME network must still have an active [Star Computation Engine](star_computation_engine.md) with the permanent **Star Computation Foundation** node unlocked. Existing wells keep their research completion counts.
+
 <RecipeFor id="molecularmanipulator:molecular_auto_crafter" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />

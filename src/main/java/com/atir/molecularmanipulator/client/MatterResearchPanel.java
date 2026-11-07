@@ -36,11 +36,11 @@ import org.joml.Vector3f;
 /** Independently scrolling research navigation and material/unlock/order details. */
 final class MatterResearchPanel {
     private static final int ROWS = 5;
-    private static final int PROJECT_TOP = 50, PROJECT_BOTTOM = 145, PROJECT_ROW_HEIGHT = 19;
-    private static final int SCROLL_TOP = 157;
-    private static final int SCROLL_BOTTOM = 219;
+    private static final int PROJECT_TOP = 54, PROJECT_BOTTOM = 179, PROJECT_ROW_HEIGHT = 25;
+    private static final int SCROLL_TOP = 172;
+    private static final int SCROLL_BOTTOM = 248;
     private static final int SCROLL_HEIGHT = SCROLL_BOTTOM - SCROLL_TOP;
-    private static final int ROW_HEIGHT = 20;
+    private static final int ROW_HEIGHT = 24;
     private final MatterFabricationMenu menu;
     private final OsqUi ui;
     private final Font font;
@@ -79,6 +79,7 @@ final class MatterResearchPanel {
 
     MatterResearchPanel(MatterFabricationMenu menu, Font font, int left, int top, Consumer<Button> add) {
         this.menu=menu;this.font=font;ui=new OsqUi("fab_research");
+        ui.tabSelection("tab1",()->true);
         for(var e:ui.layout.draw)if(e.x>=204&&(("text".equals(e.type)&&e.baseline>=140&&e.baseline<219)
                 ||(!"text".equals(e.type)&&e.y>=140&&e.y<219)))materialLayer.add(e);
         var detail=com.atir.molecularmanipulator.client.gui.theme.OsqLayout.forTheme("fab_research_detail",false);
@@ -87,25 +88,22 @@ final class MatterResearchPanel {
         ui.visible=e->!(showOrderDetails?materialLayer:detailLayer).contains(e);
         // The overview screen owns these live tabs. Neither research layer may repaint them.
         ui.hide(e -> e.sprite != null && e.sprite.contains("/tab_")
-                || "text".equals(e.type) && e.x >= 339 && e.baseline < 25
-                || e.x>=204 && e.y>=SCROLL_TOP-1 && e.y<SCROLL_BOTTOM
+                || e.ownerId != null && e.ownerId.startsWith("tab")
+                || e.x>=204 && e.y>=156 && e.y<220
                         && !"text".equals(e.type) && !"card".equals(e.kind));
         for(int i=0;i<ROWS;i++){final int row=i;
             var button=ui.button("proj"+i,left,top,null,()->{int position=firstProject()+row;if(position<definitions.size()){selected=definitions.get(position).id();scroll=0;update(true);}});
             rows.add(button);add.accept(button);
             ui.state(button,()->firstProject()+row<definitions.size()&&definitions.get(firstProject()+row).id().equals(selected)?"active":"normal");
         }
-        // Leave space at the right of each row for the navigation scrollbar.
-        for (var row : rows) row.setWidth(row.getWidth()-6);
         action=ui.button("pause",left,top,null,()->{if(selected!=null)menu.toggleResearch(selected.toString());});
         order=ui.button("order",left,top,null,()->{if(selected!=null){if(preparations.has(selected.toString()))menu.stopResearchPreparation(selected.toString());else menu.requestResearchOrder(selected.toString(),Screen.hasShiftDown());showOrderDetails=false;showUnlocks=false;scroll=0;update(visible);}});
         orderDetails=ui.button("detail",left,top,null,()->{showOrderDetails=!showOrderDetails;showUnlocks=false;scroll=0;update(visible);});
         bookmark=ui.button("jei",left,top,()->Component.literal("?"),this::bookmarkSelected);
-        unlocks=ui.rect(315,142,69,13,left,top,()->showUnlocks?text("show_materials")
+        unlocks=ui.button("unlocks",left,top,()->showUnlocks?text("show_materials")
                 :Component.translatable("gui.molecularmanipulator.research.show_unlocks",unlockEntries.size()),
                 ()->{showUnlocks=!showUnlocks;showOrderDetails=false;scroll=0;update(visible);});
         ui.state(unlocks,()->showUnlocks?"active":"normal");
-        ui.centerLabel(unlocks);
         unlocks.setTooltip(Tooltip.create(text("unlock_on_completion")));
         add.accept(unlocks);add.accept(action);add.accept(order);add.accept(bookmark);add.accept(orderDetails);
         stop=ui.button("stop",left,top,()->text("stop_current"),()->{if(selected!=null)menu.stopResearchPreparation(selected.toString());});
@@ -115,6 +113,9 @@ final class MatterResearchPanel {
         ui.text("gui.molecularmanipulator.fab.s050",()->selected()==null?text("empty"):Component.translatable(selected().value().title()));
         ui.number(42.36f,191,()->"");ui.number(106.81f,191,()->"");ui.at(47.23f,191,Component::empty);
         ui.text("gui.molecularmanipulator.research.order_state.submitted",()->orderState(orders.status()));
+        ui.color("gui.molecularmanipulator.research.order_state.submitted",()->ui.palette.ink);
+        ui.at(17,191,()->Component.translatable("gui.molecularmanipulator.research.order_summary",orders.queued(),orders.active()));
+        ui.width(17,191,173);
         ui.number(212.5f,76,()->selected()==null?0:count(selected()));
         ui.number(223.47f,76,()->selected()==null?"":"/ "+selected().value().depths().size());
         ui.number(299.5f,76,()->selected()==null?0:Math.round(100*progressRatio()));
@@ -122,14 +123,13 @@ final class MatterResearchPanel {
         ui.number(222,124,()->selected()==null?"":progressTicks()/20+" / "+selected().value().duration()/20+" s");
         ui.number(265.11f,124,()->selected()==null?"":DisplayNumbers.compact(selected().value().aePerTick())+" AE/t");
         ui.text("gui.molecularmanipulator.research.materials",()->showUnlocks?text("unlocks"):text("materials"));
-        ui.width(213,151,98);
+        ui.width(213,151,90);
         // Keep the missing-count sentence intact instead of binding its sample digits separately.
         ui.hide(e -> detailLayer.contains(e) && "text".equals(e.type) && e.baseline==151);
         for(int i=0;i<9;i++){final int index=i;ui.sprite(213+i*19,84,()->"molecularmanipulator:osq_light/fab/depth_seg_"
                 +(selected()!=null&&index<count(selected())?"on":selected()!=null&&index==count(selected())&&task(selected())!=null?"cur":"off"));}
         ui.width(213,110.5f,80);ui.width(300,110.5f,84);ui.width(265.11f,124,90);
-        ui.sprite(17,171.75f,()->ui.sprite("dot_"+(orders.active()>0?"ok":orders.status().equals("idle")?"mute":"warn")));
-        ui.at(24,173.75f,Component::empty);ui.at(17,191,Component::empty);
+        ui.sprite(17,212,()->ui.sprite("dot_"+(orders.active()>0?"ok":orders.status().equals("idle")?"mute":"warn")));
         ui.state(orderDetails,()->showOrderDetails?"active":"normal");
         ui.visible=e->!(showOrderDetails?materialLayer:detailLayer).contains(e);
         // The unlock switch replaces its example heading/count in both detail modes.
@@ -230,8 +230,6 @@ final class MatterResearchPanel {
     void drawForeground(GuiGraphics graphics) {
         if(!visible)return;quantityTooltips.clear();ui.foreground(graphics,font);
         drawProjectScrollbar(graphics);
-        ui.centeredText(graphics,orderState(orders.status()),24,173.75f,110,ui.palette.ink);
-        ui.smallText(graphics,Component.translatable("gui.molecularmanipulator.research.order_summary",orders.queued(),orders.active()),17,191,173);
         var holder=selected();if(holder==null)return;
         if(showOrderDetails){drawOrderDetails(graphics);return;}
         if(showUnlocks){drawUnlocks(graphics);return;}
@@ -247,19 +245,19 @@ final class MatterResearchPanel {
         contentRows=costs.size();scroll=OsqScrollList.clamp(scroll,contentRows,SCROLL_HEIGHT,ROW_HEIGHT);
         beginList(graphics);
         try{for(int i=(int)scroll/ROW_HEIGHT;i<Math.min(costs.size(),(int)scroll/ROW_HEIGHT+OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT));i++){
-            var cost=costs.get(i);int y=158+i*ROW_HEIGHT-(int)scroll;var items=cost.ingredient().getItems();if(items.length==0)continue;
-            var stack=items[0];ui.slotBackground(graphics,212,y);graphics.renderItem(stack,213,y+1);ui.smallText(graphics,stack.getHoverName(),235,y+8,143);
+            var cost=costs.get(i);int y=173+i*ROW_HEIGHT-(int)scroll;var items=cost.ingredient().getItems();if(items.length==0)continue;
+            var stack=items[0];ui.slotBackground(graphics,212,y);graphics.renderItem(stack,213,y+1);ui.centeredText(graphics,stack.getHoverName(),235,y+9,143,ui.palette.ink);
             long paid=task!=null&&task.has("paid")&&i<task.getAsJsonArray("paid").size()?task.getAsJsonArray("paid").get(i).getAsLong():0;
             String availableField=batch&&live.has("batch_available")?"batch_available":"available";
             long available=liveForSelected()&&live.has(availableField)&&i<live.getAsJsonArray(availableField).size()?live.getAsJsonArray(availableField).get(i).getAsLong():0;
             long covered=Math.min(cost.count(),Math.max(0,available));
             covered+=Math.min(cost.count()-covered,Math.max(0,paid));
-            ui.smallText(graphics,Component.literal(DisplayNumbers.compact(covered)+" / "+DisplayNumbers.compact(cost.count())),235,y+17,143);
+            ui.centeredText(graphics,Component.literal(DisplayNumbers.compact(covered)+" / "+DisplayNumbers.compact(cost.count())),235,y+21,143,ui.palette.ink);
             quantityTooltips.add(new QuantityTooltip(212,y,166,ROW_HEIGHT,List.of(stack.getHoverName(),quantity("required",cost.count()),quantity("available",available))));
         }}finally{endList(graphics);}
         drawScrollbar(graphics);
         if(costs.isEmpty())ui.centeredText(graphics,text(costOverflow?"cost_overflow":count>=max?"max_hint":"no_materials"),
-                213,187,170,costOverflow?ui.palette.warn:ui.palette.ink3);
+                213,210,170,costOverflow?ui.palette.warn:ui.palette.ink3);
     }
 
     private void drawOrderDetails(GuiGraphics graphics) {
@@ -279,7 +277,7 @@ final class MatterResearchPanel {
             drawOrderRow(graphics,stack,amount,i-first,row.missing());
         }}finally{endList(graphics);}
         drawScrollbar(graphics);
-        if(orders.entries().isEmpty())ui.centeredText(graphics,text("order_empty"),213,187,170,ui.palette.ink3);
+        if(orders.entries().isEmpty())ui.centeredText(graphics,text("order_empty"),213,210,170,ui.palette.ink3);
     }
 
     private void drawUnlocks(GuiGraphics graphics) {
@@ -289,18 +287,18 @@ final class MatterResearchPanel {
         beginList(graphics);
         try {
             for(int i=first;i<Math.min(contentRows,first+OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT));i++) {
-                var entry=unlockEntries.get(i);int y=158+(i-first)*ROW_HEIGHT;
+                var entry=unlockEntries.get(i);int y=173+(i-first)*ROW_HEIGHT;
                 if(!entry.outputs().isEmpty()) {
                     ui.slotBackground(graphics,212,y);
                     appeng.api.client.AEKeyRendering.drawInGui(Minecraft.getInstance(),graphics,213,y+1,entry.outputs().getFirst().what());
                 }
-                ui.smallText(graphics,entry.title(),235,y+8,143);
-                ui.smallText(graphics,entry.summary(),235,y+17,143);
+                ui.centeredText(graphics,entry.title(),235,y+9,143,ui.palette.ink);
+                ui.centeredText(graphics,entry.summary(),235,y+21,143,ui.palette.ink);
                 quantityTooltips.add(new QuantityTooltip(212,y,166,ROW_HEIGHT,entry.tooltip()));
             }
         } finally {endList(graphics);}
         drawScrollbar(graphics);
-        if(unlockEntries.isEmpty())ui.centeredText(graphics,text("no_unlocks"),213,187,170,ui.palette.ink3);
+        if(unlockEntries.isEmpty())ui.centeredText(graphics,text("no_unlocks"),213,210,170,ui.palette.ink3);
     }
 
     private int firstProject() {return projectScroll/PROJECT_ROW_HEIGHT;}
@@ -316,11 +314,11 @@ final class MatterResearchPanel {
     }
 
     private void drawOrderRow(GuiGraphics graphics, GenericStack stack, Component amount, int visibleRow, boolean missing) {
-        int x=missing?221:213,y=158+visibleRow*ROW_HEIGHT;
+        int x=missing?221:213,y=173+visibleRow*ROW_HEIGHT;
         ui.slotBackground(graphics,x-1,y);
         appeng.api.client.AEKeyRendering.drawInGui(Minecraft.getInstance(),graphics,x,y+1,stack.what());
-        ui.smallText(graphics,stack.what().getDisplayName(),x+22,y+8,378-x-22);
-        ui.smallText(graphics,amount,x+22,y+17,378-x-22);
+        ui.centeredText(graphics,stack.what().getDisplayName(),x+22,y+9,378-x-22,ui.palette.ink);
+        ui.centeredText(graphics,amount,x+22,y+21,378-x-22,ui.palette.ink);
         quantityTooltips.add(new QuantityTooltip(x-1,y,379-x,ROW_HEIGHT,
                 List.of(stack.what().getDisplayName(),quantity(missing?"remaining":"required",stack.amount()),amount)));
     }
@@ -347,7 +345,7 @@ final class MatterResearchPanel {
 
     boolean scroll(double x, double y, double amount) {
         if (!visible || amount==0) return false;
-        if(x>=8&&x<198&&y>=32&&y<146) {
+        if(x>=8&&x<198&&y>=32&&y<182) {
             projectScroll=OsqScrollList.scroll(projectScroll,amount,definitions.size(),PROJECT_BOTTOM-PROJECT_TOP,PROJECT_ROW_HEIGHT);
             update(visible);return true;
         }

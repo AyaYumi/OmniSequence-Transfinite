@@ -29,6 +29,9 @@ public final class OsqSprites {
 
     /** 外扩留白 [左, 上, 右, 下]（GUI px）；path = 精灵路径，如 "osq_dark/sing/card" */
     public static int[] pad(String path) {
+        String name = path.substring(path.lastIndexOf('/') + 1);
+        if (name.startsWith("button_") || name.startsWith("tab_") || name.startsWith("row_")
+                || name.startsWith("key13_") || name.startsWith("edge_key") || name.startsWith("field_")) return new int[4];
         return switch (path) {
             case "osq_dark/fab/window", "osq_dark/omni/window", "osq_dark/seq/window", "osq_dark/sing/window" -> new int[]{0, 0, 3, 12};
             case "osq_light/fab/slot_selected", "osq_light/fab/window", "osq_light/omni/slot_selected", "osq_light/omni/window", "osq_light/seq/slot_selected", "osq_light/seq/window", "osq_light/sing/slot_selected", "osq_light/sing/window", "osq_dark/fab/slot_selected", "osq_dark/omni/slot_selected", "osq_dark/seq/slot_selected", "osq_dark/sing/slot_selected" -> new int[]{1, 1, 1, 1};

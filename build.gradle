@@ -62,6 +62,14 @@ base {
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Real-server transfer regressions stay outside the published mod JAR.
+sourceSets {
+    gameTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
 neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version
@@ -95,6 +103,8 @@ neoForge {
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
             type = "gameTestServer"
+            sourceSet = sourceSets.gameTest
+            gameDirectory = layout.buildDirectory.dir('gametest').get().asFile
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
@@ -119,6 +129,7 @@ neoForge {
         // multi mod projects should define one per mod
         "${mod_id}" {
             sourceSet(sourceSets.main)
+            sourceSet(sourceSets.gameTest)
         }
     }
 }
@@ -160,6 +171,9 @@ dependencies {
     def nativePlatform = nativeOs.contains('win') ? 'windows' : nativeOs.contains('mac') ? 'macos' : 'linux'
     def nativeSuffix = nativeArch in ['aarch64', 'arm64'] ? '-arm64' : nativeArch in ['x86', 'i386'] ? '-x86' : ''
     testRuntimeOnly "org.lwjgl:lwjgl:3.3.3:natives-${nativePlatform}${nativeSuffix}"
+    // Opt-in rendering regressions use a hidden context, never a Minecraft game window.
+    testRuntimeOnly "org.lwjgl:lwjgl-glfw:3.3.3:natives-${nativePlatform}${nativeSuffix}"
+    testRuntimeOnly "org.lwjgl:lwjgl-opengl:3.3.3:natives-${nativePlatform}${nativeSuffix}"
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -250,8 +264,9 @@ tasks.named('compileTestJava', JavaCompile).configure {
 
 tasks.named('test', Test).configure {
     useJUnitPlatform()
-    // Structure regression tests load Minecraft coordinate types without launching the game.
-    classpath += sourceSets.main.compileClasspath
+    systemProperty 'starOrrery.gpuTests', providers.gradleProperty('starOrreryGpuTests').orElse('false').get()
+    // Structure tests need compile-only contracts; shader tests also need Minecraft's real GLSL resources.
+    classpath += sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

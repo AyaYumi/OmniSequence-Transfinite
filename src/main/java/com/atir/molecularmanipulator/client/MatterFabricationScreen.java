@@ -49,31 +49,30 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         dismantleButton=addScreenWidget(ui.button("dismantle",leftPos,topPos,()->Component.translatable(dismantleArmedAt>0
                 ?"gui.molecularmanipulator.fabrication.dismantle_confirm":"gui.molecularmanipulator.fabrication.dismantle"),this::handleDismantleClick));
         ui.state(dismantleButton,()->dismantleArmedAt>0?"confirm":"danger");
-        statusTab=addScreenWidget(ui.tab(339.75f,9,26.38f,15,leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fab.s014"),()->setResearchPage(false)));
-        researchTab=addScreenWidget(ui.tab(365.63f,9,26.38f,15,leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.research.research_tab"),()->setResearchPage(true)));
-        ui.state(statusTab,()->researchPage?"normal":"active");ui.state(researchTab,()->researchPage?"active":"normal");
+        statusTab=addScreenWidget(ui.tab("tab0",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fab.s014"),()->!researchPage,()->setResearchPage(false)));
+        researchTab=addScreenWidget(ui.tab("tab1",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.research.research_tab"),()->researchPage,()->setResearchPage(true)));
         researchPanel=new MatterResearchPanel(menu,font,leftPos,topPos,button->addScreenWidget(button));researchPanel.restoreSelection(selection);
         ui.text("gui.molecularmanipulator.fabrication.state.running",this::stateLabel);
         ui.text("gui.molecularmanipulator.singularity.network_online",()->Component.translatable("gui.molecularmanipulator.fabrication."+(menu.networkOnline?"online":"offline")));
         ui.number(327.36f,63,()->DisplayNumbers.compact(menu.aePerTick));
         ui.number(213,86,()->menu.correctParts+" / "+menu.totalParts);ui.text("gui.molecularmanipulator.fab.s021",this::operationLabel);
         ui.number(334,86,()->"-");
-        ui.number(16.5f,188,()->menu.correctParts);ui.number(29.03f,188,()->"");ui.number(59.23f,188,()->"/ "+menu.totalParts);ui.number(69.34f,188,()->"");
+        ui.number(16.5f,116,()->menu.correctParts);ui.number(29.03f,116,()->"");ui.number(59.23f,116,()->"/ "+menu.totalParts);ui.number(69.34f,116,()->"");
         ui.number(212.5f,129,()->menu.progress);ui.number(233.95f,129,()->"/ "+Math.max(0,menu.processingTime)+" t");
         ui.number(367.59f,126,()->Math.round(100*processRatio())+"%");
-        ui.number(262.02f,188,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.number(66.02f,168,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
         ui.text("gui.molecularmanipulator.fab.s026",()->Component.translatable("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
-        ui.number(217.36f,244,()->"512");
-        ui.width(16.5f,188,40);ui.width(59.23f,188,65);
+        ui.number(226.36f,188,()->"512");
+        ui.width(16.5f,116,40);ui.width(59.23f,116,65);
         ui.width(212.5f,129,20);ui.width(233.95f,129,78);
         ui.width(276,87,55);ui.width(327.36f,63,25);
         ui.color("gui.molecularmanipulator.fab.s026",()->menu.quantumFrequency==0?ui.palette.ink3:
                 menu.quantumLinkState==QuantumLinkState.CONNECTED||menu.quantumLinkState==QuantumLinkState.CONNECTED_BUILD_ONLY?ui.palette.ok:ui.palette.warn);
         ui.sprite(285.63f,44,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
-        ui.sprite(213,59,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
-        ui.progress(17,194,()->menu.correctParts/(double)Math.max(1,menu.totalParts));
-        ui.progress(213,137,this::processRatio);
-        ui.at(229.27f,244,()->Component.literal("AE/t · 1 频道 · 仅抽取搭建材料"));
+        ui.sprite(213,61,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
+        ui.progress(17,122,()->menu.correctParts/(double)Math.max(1,menu.totalParts));
+        ui.progress(213,151,this::processRatio);
+        ui.at(238.27f,188,()->Component.translatable("gui.molecularmanipulator.fabrication.link_details"));
         setResearchPage(researchPage);
     }
 
@@ -105,12 +104,12 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         super.render(graphics, mouseX, mouseY, partialTick);
         double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
         List<Component> tooltip = researchPage ? researchPanel.tooltipAt(x, y)
-                : x >= 235 && x < 384 && y >= 178 && y < 194
+                : x >= 39 && x < 190 && y >= 196 && y < 209
                         ? List.of(Component.translatable("gui.molecularmanipulator.fab.s025").append(": ")
                                 .append(menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT)))
-                : x >= 213 && x < 384 && y >= 198 && y < 220
+                : x >= 17 && x < 190 && y >= 220 && y < 238
                         ? List.of(Component.translatable("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)))
-                : x >= 20 && x < 152 && y >= 90 && y < 102
+                : x >= 213 && x < 384 && y >= 55 && y < 71
                         ? List.of(Component.translatable("gui.molecularmanipulator.fabrication.power", DisplayNumbers.exact(menu.aePerTick)))
                         : List.of();
         if (!tooltip.isEmpty()) graphics.renderComponentTooltip(font, tooltip, mouseX, mouseY);

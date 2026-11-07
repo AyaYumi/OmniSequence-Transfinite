@@ -43,6 +43,12 @@ The Event Horizon Singularity Hub collects resources continuously and duplicates
 
 Base Stairs and Slabs are crafted at a crafting table: six Base Casings in the stair shape yield four stairs; three casings in a row yield six slabs.
 
+### Complete building package
+
+Connect a **Spatial Folding Assembler** to ME to order an **Event Horizon Singularity Hub package**. Each order consumes one controller and every standard construction block in the current suspended design; creative inventory offers the same package. The hub's JEI structure page lists the full materials and package output, with rotation, panning, zoom and layer controls.
+
+Use the **Star Chart Calibrator** to select the site, package and facing, then confirm to unfold and form the structure automatically. Allow a **97×97 footprint and 129 blocks of height**, with **controller Y = base Y + 65**. Clear obstructions from the 566 required empty light-well cells too. During unfinished construction, choose **Interrupt and reclaim building** in the calibrator panel; once cleanup finishes, the original package can unfold again. See [Folded Buildings and Relocation](folded_buildings.md).
+
 ## Controller interface
 
 | Page | Function |

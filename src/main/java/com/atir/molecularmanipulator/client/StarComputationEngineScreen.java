@@ -6,7 +6,7 @@ import appeng.api.stacks.GenericStack;
 import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.client.gui.theme.OsqFonts;
 import com.atir.molecularmanipulator.client.gui.theme.OsqLayout;
-import com.atir.molecularmanipulator.starcomputation.EntropyArmillaryLayout;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryLayout;
 import com.atir.molecularmanipulator.starcomputation.StarComputationRecipeCatalog.Entry;
 import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import com.atir.molecularmanipulator.menu.StarComputationEngineMenu;
@@ -30,7 +30,8 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     private static final String PREFIX = "gui.molecularmanipulator.star_computation.";
     private static final NumberFormat INTEGER = NumberFormat.getIntegerInstance(Locale.ROOT);
     private static final int RECIPE_X = 213, RECIPE_Y = 170, RECIPE_STEP = 21, RECIPE_COLUMNS = 8;
-    private static final ResourceLocation CONTENTS_FONT = OsqFonts.id("osq_entropy_600_5_4");
+    private static final int BENEFIT_TOP = 138, BENEFIT_PITCH = 22;
+    private static final ResourceLocation CONTENTS_FONT = OsqFonts.id("osq_entropy_600_7_5");
     private OsqUi ui;
     private boolean recipesPage;
     private int selectedNode;
@@ -49,14 +50,16 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     @Override
     protected void init() {
         ui = new OsqUi("star_computation_engine");
+        ui.visible = entry -> entry.id == null || !entry.id.startsWith(recipesPage ? "ov_" : "rc_");
+        ui.hide(entry -> "ctl".equals(entry.kind) || "edge".equals(entry.kind));
         imageWidth = ui.layout.width;
         imageHeight = ui.layout.height;
         super.init();
         ui.inventory(menu);
         seenVersion = menu.resultVersion;
         nodeButtons.clear();
-        addScreenWidget(new EngineButton("overview", () -> tr("overview"), () -> setPage(false)));
-        addScreenWidget(new EngineButton("recipes", () -> tr("recipes"), () -> setPage(true)));
+        addScreenWidget(ui.tab("overview",leftPos,topPos,()->tr("overview"),()->!recipesPage,()->setPage(false)));
+        addScreenWidget(ui.tab("recipes",leftPos,topPos,()->tr("recipes"),()->recipesPage,()->setPage(true)));
         overclock = addScreenWidget(new EngineButton("overclock", this::overclockLabel,
                 () -> request(menu::requestToggleOverclock)));
         overclock.setTooltip(Tooltip.create(tr("overclock_help")));
@@ -87,9 +90,12 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     private RecipeNode selected() { return StarComputationEngineMenu.NODES.get(selectedNode); }
     private static Component tr(String key, Object... args) { return Component.translatable(PREFIX + key, args); }
     private static Component nodeName(RecipeNode node) { return Component.translatable(node.translationKey()); }
+    private static Component nodeLabel(RecipeNode node) {
+        return tr("node_short." + node.translationKey().substring(node.translationKey().lastIndexOf('.') + 1));
+    }
     private static String number(long value) { return INTEGER.format(value); }
     private static final String[] TIERS = {"bronze", "violet", "gold"};
-    private static final String[] ANCHOR_TIERS = {"base", "quantum", "terminal"};
+    private static final String[] ANCHOR_TIERS = {"reference", "quantum", "terminal"};
 
     /** L0-L3 bronze, L4-L6 violet, L7-L9 gold; read every frame from the synchronized level. */
     private String tier() { return TIERS[menu.benefitLevel <= 3 ? 0 : menu.benefitLevel <= 6 ? 1 : 2]; }
@@ -106,18 +112,18 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         };
     }
 
-    /** Real armillaries use verified rings; ordinary engines use the supplied entropy-level diagram. */
+    /** Real star orreries use verified rings; ordinary engines use the supplied entropy-level diagram. */
     private int litRings() {
-        return Math.clamp(menu.armillary ? menu.litRings : menu.benefitLevel, 0, EntropyArmillaryLayout.RINGS);
+        return Math.clamp(menu.starOrrery ? menu.litRings : menu.benefitLevel, 0, StarOrreryLayout.RINGS);
     }
 
     /** The reference skin's partial ring is entropy progress, not an invented physical anchor count. */
     private int currentRingFill() {
         int level = litRings();
-        if (menu.armillary || level >= EntropyArmillaryLayout.RINGS) return 0;
+        if (menu.starOrrery || level >= StarOrreryLayout.RINGS) return 0;
         long from = menu.levelThreshold(level), to = menu.levelThreshold(level + 1);
         long done = Math.clamp(menu.effectiveEntropy - from, 0, to - from);
-        return (int) (done * EntropyArmillaryLayout.slotCount(level) / Math.max(1, to - from));
+        return (int) (done * StarOrreryLayout.slotCount(level) / Math.max(1, to - from));
     }
 
     private boolean waiting() { return pendingVersion >= 0; }
@@ -201,36 +207,20 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         g.pose().pushPose();
         g.pose().translate(x, y, 0);
         if (recipesPage) {
-            card(g, 204, 32, 188, 112, "card");
-            card(g, 204, 150, 188, 65, "card");
-            fill(g, 8, 181, 190, 19, color("soft"));
+            fill(g, 8, 212, 190, 30, color("soft"));
             treeConnections(g);
         } else {
-            card(g, 204, 32, 188, 82, "feature");
-            card(g, 204, 120, 188, 95, "card");
-            fill(g, 8, 159, 79, 41, color("accent_fill"));
+            fill(g, 8, 197, 79, 45, color("ink2"));
+            fill(g, 8, 241, 79, 1, color("hair"));
             drawRings(g);
             drawLevel(g);
             drawBenefitIcons(g);
         }
-        card(g, 204, 221, 188, 26, "card");
-        for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++) slot(g, 22 + col * 18, 212 + row * 18);
-        for (int col = 0; col < 9; col++) slot(g, 22 + col * 18, 270);
         g.pose().popPose();
-    }
-
-    private void slot(GuiGraphics g, int x, int y) {
-        fill(g, x, y, 18, 18, color("slot"));
-        g.renderOutline(x, y, 18, 18, color("hair"));
     }
 
     private static void fill(GuiGraphics g, int x, int y, int w, int h, int color) {
         g.fill(x, y, x + w, y + h, color);
-    }
-
-    private void card(GuiGraphics g, int x, int y, int w, int h, String face) {
-        fill(g, x, y + 1, w, h + 1, color("shadow"));
-        fill(g, x, y, w, h, color(face));
     }
 
     @Override
@@ -238,47 +228,51 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         if (ui == null) return;
         ui.foreground(g, font);
         text(g, Component.translatable("block.molecularmanipulator.star_computation_engine_core"),
-                12, 23, 112, "osq_nsc_900_13", 13, "ink", "left");
-        small(g, tr("subtitle"), 127, 21, 110, "muted");
+                12, 23, 165, "osq_nsc_900_13", 13, "ink", "left");
         small(g, tr(!menu.formed ? "incomplete" : !menu.networkOnline ? "offline"
-                : menu.overclocked ? "overclock_running" : "stable"), 251, 18, 61, "accent");
+                : menu.overclocked ? "overclock_running" : "stable"), 185, 18, 86, "accent");
         if (recipesPage) drawRecipes(g); else drawOverview(g);
         boolean feedback = waiting() || Util.getMillis() < resultUntil && menu.actionResult != ActionResult.NONE;
         if (!feedback) {
-            small(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 213, 232, 82,
-                    menu.networkOnline ? "ink2" : "muted");
-            if (!recipesPage) small(g, tr("consumption", number(menu.infoConsumption)), 299, 232, 84, "muted", "right");
+            centeredText(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 213, 258, 82,
+                    "osq_nsc_600_7_5", 7.5f, menu.networkOnline ? "ink2" : "muted", "left");
+            if (!recipesPage) centeredText(g, tr("consumption", number(menu.infoConsumption)), 299, 258, 84,
+                    "osq_nsc_600_7_5", 7.5f, "muted", "right");
         }
-        small(g, tr("balance", number(menu.infoBalance)), 213, 242, 170, "ink2");
-        if (waiting()) small(g, tr("waiting"), 213, 232, 170, "muted");
+        centeredText(g, tr("balance", number(menu.infoBalance)), 213, 271, 170,
+                "osq_nsc_600_7_5", 7.5f, "ink2", "left");
+        if (waiting()) centeredText(g, tr("waiting"), 213, 258, 170,
+                "osq_nsc_600_7_5", 7.5f, "muted", "left");
         else if (feedback) {
             Component result = tr("result." + menu.actionResult.name().toLowerCase(Locale.ROOT));
             if (menu.resultNode >= 0 && menu.resultNode < StarComputationEngineMenu.NODES.size()) {
-                result = tr("node_result", nodeName(StarComputationEngineMenu.NODES.get(menu.resultNode)), result);
+                result = tr("node_result", nodeLabel(StarComputationEngineMenu.NODES.get(menu.resultNode)), result);
             }
             boolean success = switch (menu.actionResult) {
                 case UNLOCKED, ALREADY_UNLOCKED, OVERCLOCK_ENABLED, OVERCLOCK_DISABLED, STRUCTURE_REFRESHED -> true;
                 default -> false;
             };
-            small(g, result, 213, 232, 170, success ? "accent" : "warning");
+            centeredText(g, result, 213, 258, 170, "osq_nsc_600_7_5", 7.5f,
+                    success ? "accent" : "warning", "left");
         }
     }
 
     private void drawOverview(GuiGraphics g) {
-        label(g, tr("armillary"), 17, 45, 110, "ink2");
+        label(g, tr("star_orrery"), 17, 45, 110, "ink2");
         small(g, menu.formed ? tr("tier." + tier()) : tr("incomplete"),
                 140, 45, 54, menu.formed ? "accent" : "warning", "right");
-        small(g, tr("armillary_hint", litRings(), number(menu.anchorCount)), 17, 56, 172, "muted");
+        small(g, tr("star_orrery_hint", litRings(), number(menu.anchorCount)), 17, 56, 172, "muted");
         drawRingList(g);
-        small(g, tr("effective_anchors"), 17, 170, 63, "inverse");
-        text(g, Component.literal(number(menu.anchorCount)), 15, 192, 49,
+        centeredText(g, tr("effective_anchors"), 17, 208, 63, "osq_nsc_600_7_5", 7.5f, "inverse", "left");
+        centeredText(g, Component.literal(number(menu.anchorCount)), 15, 227, 49,
                 "osq_intertight_700_26", 26, "inverse", "left");
-        small(g, tr("blocks"), 65, 190, 15, "inverse");
-        int[] anchors = {menu.anchorsBase, menu.anchorsQuantum, menu.anchorsTerminal};
+        centeredText(g, tr("blocks"), 68, 227, 15, "osq_nsc_600_7_5", 7.5f, "inverse", "left");
+        int[] anchors = {menu.anchorsReference, menu.anchorsQuantum, menu.anchorsTerminal};
         for (int t = 0; t < 3; t++) {
-            small(g, tr("anchor_" + ANCHOR_TIERS[t]), 96, 172 + t * 10, 40, "ink2");
-            text(g, Component.literal(number(anchors[t])), 136, 172 + t * 10, 55,
-                    "osq_intertight_700_9", 7, "accent", "right");
+            centeredText(g, tr("anchor_" + ANCHOR_TIERS[t]), 96, 208 + t * 12, 40,
+                    "osq_nsc_600_7_5", 7.5f, "ink2", "left");
+            centeredText(g, Component.literal(number(anchors[t])), 140, 208 + t * 12, 51,
+                    "osq_intertight_700_9", 9, "accent", "right");
         }
 
         var benefit = menu.benefits();
@@ -298,25 +292,26 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         small(g, tr(benefit.infinite() ? "infinite_overclock" : benefit.overclocked() ? "overclock_double" : "base_benefits"),
                 318, 132, 65, "accent", "right");
         var base = new StarComputationBenefits(benefit.level(), false);
-        benefitRow(g, 137, "assembler_parallel", amount(benefit.assemblerParallel()),
+        benefitRow(g, 0, "assembler_parallel", amount(benefit.assemblerParallel()),
                 tr("assembler_detail", tr(benefit.virtualCpu() ? "virtual_parallel" : "physical_parallel"),
                         OsqUi.compact(base.assemblerParallel())));
-        benefitRow(g, 155, "cpu_parallel", amount(benefit.cpuParallel()),
+        benefitRow(g, 1, "cpu_parallel", amount(benefit.cpuParallel()),
                 tr("cpu_detail", tr(benefit.virtualCpu() ? "virtual_parallel" : "physical_parallel"),
                         OsqUi.compact(base.cpuParallel())));
-        benefitRow(g, 173, "cpu_storage", storage(benefit.storageBytes()), tr("storage_detail", storage(base.storageBytes())));
-        benefitRow(g, 191, "fabrication_speed", benefit.infinite() ? tr("one_tick")
+        benefitRow(g, 2, "cpu_storage", storage(benefit.storageBytes()), tr("storage_detail", storage(base.storageBytes())));
+        benefitRow(g, 3, "fabrication_speed", benefit.infinite() ? tr("one_tick")
                 : Component.literal("×" + benefit.speedMultiplier()), tr("duration_detail", processingTime(benefit)));
-        small(g, tr("research_parallel_only"), 232, 212, 151, "muted");
+        centeredText(g, tr("research_parallel_only"), 232, 234, 151,
+                "osq_nsc_600_7_5", 7.5f, "muted", "left");
     }
 
     /** Same nine-row skin for both engine types, without inferring physical ring progress. */
     private void drawRingList(GuiGraphics g) {
         int lit = litRings();
-        for (int ring = 0; ring < EntropyArmillaryLayout.RINGS; ring++) {
-            int y = 66 + (EntropyArmillaryLayout.RINGS - 1 - ring) * 11;
-            int slots = EntropyArmillaryLayout.slotCount(ring);
-            boolean full = ring < lit, current = !menu.armillary && ring == lit;
+        for (int ring = 0; ring < StarOrreryLayout.RINGS; ring++) {
+            int y = 70 + (StarOrreryLayout.RINGS - 1 - ring) * 12;
+            int slots = StarOrreryLayout.slotCount(ring);
+            boolean full = ring < lit, current = !menu.starOrrery && ring == lit;
             small(g, tr("ring", ring + 1), 132, y, 22, full || current ? "ink2" : "muted");
             small(g, full ? Component.literal(slots + "/" + slots)
                     : current ? Component.literal(currentRingFill() + "/" + slots) : tr("ring_locked"),
@@ -324,10 +319,11 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         }
     }
 
-    private void benefitRow(GuiGraphics g, int y, String title, Component value, Component detail) {
-        small(g, tr(title), 232, y + 7, 77, "ink2");
-        text(g, value, 310, y + 9, 73, "osq_intertight_700_9", 9, "accent", "right");
-        text(g, detail, 232, y + 15, 151, "osq_nsc_500_5", 5, "muted", "left");
+    private void benefitRow(GuiGraphics g, int row, String title, Component value, Component detail) {
+        float center = BENEFIT_TOP + row * BENEFIT_PITCH + 6.5f;
+        centeredText(g, tr(title), 232, center, 77, "osq_nsc_600_7_5", 7.5f, "ink2", "left");
+        centeredText(g, value, 313, center, 70, "osq_intertight_700_9", 9, "accent", "right");
+        centeredText(g, detail, 232, center + 11.5f, 151, "osq_nsc_500_7_5", 7.5f, "muted", "left");
     }
 
     private static Component amount(long value) {
@@ -371,9 +367,9 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         small(g, tr("unlocked"), 17, 174, 47, "accent");
         small(g, tr("available"), 75, 174, 47, "accent");
         small(g, tr("locked"), 135, 174, 54, "muted");
-        small(g, tr("entropy_total", number(menu.effectiveEntropy)), 17, 193, 102, "accent");
+        small(g, tr("entropy_total", number(menu.effectiveEntropy)), 17, 227, 102, "accent");
         small(g, tr("unlock_count", Integer.bitCount(menu.unlockMask & StarComputationEngineMenu.ALL_UNLOCKS),
-                StarComputationEngineMenu.NODES.size()), 119, 193, 70, "ink2", "right");
+                StarComputationEngineMenu.NODES.size()), 119, 227, 70, "ink2", "right");
         var node = selected();
         text(g, nodeName(node), 213, 48, 119, "osq_nsc_700_9", 9, "ink", "left");
         small(g, nodeState(node), 333, 46, 50, node.unlocked(menu.unlockMask) || menu.canUnlock(node) ? "accent" : "muted", "right");
@@ -414,7 +410,7 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         var names = Component.empty();
         for (var parent : StarComputationEngineMenu.NODES) if ((node.prerequisiteMask() & (1 << parent.index())) != 0) {
             if (!names.getString().isEmpty()) names.append(" · ");
-            names.append(nodeName(parent));
+            names.append(nodeLabel(parent));
         }
         return node.prerequisiteMask() == 0 ? tr("no_prerequisites") : tr(node.prerequisitesMet(menu.unlockMask)
                 ? "prerequisites_done" : "prerequisites_needed", names);
@@ -525,23 +521,30 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
 
     private void drawBenefitIcons(GuiGraphics g) {
         for (int row = 0; row < BENEFIT_ICONS.length; row++) {
-            int y = 138 + row * 18, main = color("accent"), detail = color("holo_line");
+            int y = BENEFIT_TOP + row * BENEFIT_PITCH, main = color("accent"), detail = color("holo_line");
             fill(g, 213, y, 13, 13, color("soft"));
             String[] icon = BENEFIT_ICONS[row];
+            int left=9, top=9, right=0, bottom=0;
+            for(int iy=0;iy<icon.length;iy++)for(int ix=0;ix<icon[iy].length();ix++)if(icon[iy].charAt(ix)!='.'){
+                left=Math.min(left,ix);top=Math.min(top,iy);right=Math.max(right,ix+1);bottom=Math.max(bottom,iy+1);
+            }
+            g.pose().pushPose();
+            g.pose().translate(219.5f-(left+right)/2f,y+6.5f-(top+bottom)/2f,0);
             for (int dy = 0; dy < icon.length; dy++) {
                 for (int dx = 0; dx < icon[dy].length(); dx++) {
                     char c = icon[dy].charAt(dx);
-                    if (c != '.') fill(g, 215 + dx, y + 2 + dy, 1, 1, c == '#' ? main : detail);
+                    if (c != '.') fill(g, dx, dy, 1, 1, c == '#' ? main : detail);
                 }
             }
+            g.pose().popPose();
         }
     }
 
     /** Supplied nine-ring artwork: completed rings, a pale current track, then locked dots. */
     private void drawRings(GuiGraphics g) {
         int lit = litRings();
-        for (int ring = 0; ring < EntropyArmillaryLayout.RINGS; ring++) {
-            int radius = 10 + 5 * ring, slots = EntropyArmillaryLayout.slotCount(ring);
+        for (int ring = 0; ring < StarOrreryLayout.RINGS; ring++) {
+            int radius = 10 + 5 * ring, slots = StarOrreryLayout.slotCount(ring);
             int steps = (int) (2 * Math.PI * radius);
             if (ring < lit) {
                 for (int step = 0; step < steps; step++) ringDot(g, step, steps, radius, color("ring_full"));
@@ -574,13 +577,13 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     }
 
     private void label(GuiGraphics g, Component value, float x, float baseline, float width, String tint) {
-        text(g, value, x, baseline, width, "osq_nsc_700_6_6", 6.6f, tint, "left");
+        text(g, value, x, baseline, width, "osq_nsc_700_7_5", 7.5f, tint, "left");
     }
     private void small(GuiGraphics g, Component value, float x, float baseline, float width, String tint) {
         small(g, value, x, baseline, width, tint, "left");
     }
     private void small(GuiGraphics g, Component value, float x, float baseline, float width, String tint, String align) {
-        text(g, value, x, baseline, width, "osq_nsc_600_5_4", 5.4f, tint, align);
+        text(g, value, x, baseline, width, "osq_nsc_600_7_5", 7.5f, tint, align);
     }
     private void text(GuiGraphics g, Component value, float x, float baseline, float width,
             String face, float size, String tint, String align) {
@@ -593,9 +596,19 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         ui.layout.renderSingleLine(g, font, entry, value, 0, 0);
     }
 
+    private void centeredText(GuiGraphics g, Component value, float x, float centerY, float width,
+            String face, float size, String tint, String align) {
+        var entry = new OsqLayout.Entry();
+        entry.x=x;entry.centerY=centerY;entry.w=width;entry.size=size;
+        entry.fontId="molecularmanipulator:"+face.replace("osq_nsc_","osq_entropy_");
+        entry.color=String.format(Locale.ROOT,"#%08X",color(tint));entry.alignment=align;
+        ui.layout.renderSingleLine(g,font,entry,value,0,0);
+    }
+
     private final class EngineButton extends Button {
         private final String id;
         private final Supplier<Component> label;
+        private final OsqLayout.Entry background = new OsqLayout.Entry();
         EngineButton(String id, Supplier<Component> label, Runnable action) {
             this(id, ui.layout.findControl(id), label, action);
         }
@@ -608,41 +621,48 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         @Override
         protected void renderWidget(GuiGraphics g, int mx, int my, float partialTick) {
             setMessage(label.get());
-            boolean tab = id.equals("overview") || id.equals("recipes");
-            boolean selectedTab = tab && (id.equals("recipes") == recipesPage);
             boolean node = id.startsWith("node.");
-            boolean primary = id.equals("unlock") || id.equals("overclock");
             boolean checked = node && Integer.parseInt(id.substring(5)) == selectedNode;
-            String face = !active ? "disabled" : selectedTab ? "ink" : primary ? "accent_fill"
-                    : checked || isHoveredOrFocused() ? "soft" : "card";
+            String status = !active ? "disabled" : isHoveredOrFocused() ? "hover" : "normal";
             if (node) {
                 var recipe = StarComputationEngineMenu.NODES.get(Integer.parseInt(id.substring(5)));
-                face = recipe.unlocked(menu.unlockMask) || menu.canUnlock(recipe) ? "soft" : "paper";
+                String face = recipe.unlocked(menu.unlockMask) || menu.canUnlock(recipe) ? "soft" : "paper";
+                fill(g, getX(), getY(), getWidth(), getHeight(), color(face));
+                g.renderOutline(getX(), getY(), getWidth(), getHeight(), color(checked ? "ink" : "hair"));
+            } else {
+                background.sprite = ui.sprite("button_" + status);
+                background.x = getX(); background.y = getY(); background.w = getWidth(); background.h = getHeight();
+                OsqLayout.drawSprite(g, background, 0, 0);
             }
-            fill(g, getX(), getY(), getWidth(), getHeight(), color(face));
-            if (node || isHoveredOrFocused()) g.renderOutline(getX(), getY(), getWidth(), getHeight(),
-                    color(checked || isHoveredOrFocused() ? "accent" : "hair"));
             if (checked) g.renderOutline(getX() + 1, getY() + 1, getWidth() - 2, getHeight() - 2, color("accent"));
             g.pose().pushPose();
             g.pose().translate(getX(), getY(), 0);
             if (node) {
                 var recipe = StarComputationEngineMenu.NODES.get(Integer.parseInt(id.substring(5)));
-                small(g, getMessage(), 4, 10, getWidth() - (recipe.unlocked(menu.unlockMask) ? 16 : 8), "ink2");
-                text(g, tr("node_threshold", number(menu.nodeThreshold(recipe))), 4, 23, getWidth() - 8,
-                        "osq_nsc_500_5", 5, recipe.unlocked(menu.unlockMask) || menu.canUnlock(recipe) ? "accent" : "muted", "left");
-                if (recipe.unlocked(menu.unlockMask)) small(g, Component.literal("✓"), getWidth() - 9, 10, 6, "accent");
+                small(g, nodeLabel(recipe), 4, 10,
+                        getWidth() - (recipe.unlocked(menu.unlockMask) && !ui.layout.english ? 16 : 8), "ink2");
+                // The node tooltip gives the unit and exact threshold; the compact row contains the value in full.
+                text(g, Component.literal(OsqUi.compact(menu.nodeThreshold(recipe))), 4, 23, getWidth() - 8,
+                        "osq_nsc_500_7_5", 7.5f, recipe.unlocked(menu.unlockMask) || menu.canUnlock(recipe) ? "accent" : "muted", "left");
+                if (recipe.unlocked(menu.unlockMask)) small(g, Component.literal("✓"), getWidth() - 9,
+                        ui.layout.english ? 23 : 10, 6, "accent");
             } else {
                 var entry = new OsqLayout.Entry();
                 entry.x = 4; entry.w = getWidth() - (id.equals("overclock") ? 34 : 8);
-                entry.centerY = getHeight() / 2f; entry.size = 6;
-                entry.fontId = "molecularmanipulator:osq_entropy_600_6";
+                entry.centerY = OsqUi.controlCenter("button", status, getHeight(), false); entry.size = 7.5f;
+                entry.fontId = "molecularmanipulator:osq_entropy_600_7_5";
+                if(id.equals("overclock")){
+                    entry.w=Math.min(getWidth()-41,OsqFonts.widthF(font,getMessage().getString(),OsqFonts.id(entry.fontId)));
+                    entry.x=(getWidth()-entry.w-25)/2;
+                }
                 entry.alignment = "center";
-                entry.color = String.format(Locale.ROOT, "#%08X", color(!active ? "muted"
-                        : selectedTab ? "inverse_tab" : primary ? "inverse" : "ink2"));
+                entry.color = String.format(Locale.ROOT, "#%08X", ui.palette.controlText("button", status, active));
                 ui.layout.renderSingleLine(g, font, entry, getMessage(), 0, 0);
                 if (id.equals("overclock")) {
-                    fill(g, getWidth() - 25, 5, 17, 9, color(menu.overclocked ? "level" : "hair"));
-                    fill(g, getWidth() - (menu.overclocked ? 14 : 23), 6, 6, 7, color("card"));
+                    int toggleY = Math.round(entry.centerY - 4.5f);
+                    int toggleX = Math.round(entry.x+entry.w+8);
+                    fill(g, toggleX, toggleY, 17, 9, color(menu.overclocked ? "level" : "hair"));
+                    fill(g, toggleX+(menu.overclocked?11:2), toggleY + 1, 6, 7, color("card"));
                 }
             }
             g.pose().popPose();

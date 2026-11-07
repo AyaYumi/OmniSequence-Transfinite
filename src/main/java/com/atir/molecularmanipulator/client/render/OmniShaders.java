@@ -19,9 +19,10 @@ public final class OmniShaders {
     private static volatile ShaderInstance singularityLens;
     private static volatile ShaderInstance cosmicLens;
     private static volatile ShaderInstance ghostExposure;
-    private static volatile ShaderInstance armillaryNebula;
-    private static volatile ShaderInstance armillaryWellInk;
-    private static volatile ShaderInstance armillaryColor;
+    private static volatile ShaderInstance starOrreryNebula;
+    private static volatile ShaderInstance starOrreryNebulaComposite;
+    private static volatile ShaderInstance starOrreryWellInk;
+    private static volatile ShaderInstance starOrreryColor;
     private static volatile ShaderInstance lanternSimulation;
 
     private OmniShaders() {
@@ -50,14 +51,17 @@ public final class OmniShaders {
                         MolecularManipulator.id("ghost_exposure"), DefaultVertexFormat.POSITION),
                 shader -> ghostExposure = shader);
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
-                        MolecularManipulator.id("armillary_nebula"), DefaultVertexFormat.POSITION),
-                shader -> armillaryNebula = shader);
+                        MolecularManipulator.id("star_orrery_nebula"), DefaultVertexFormat.POSITION),
+                shader -> starOrreryNebula = shader);
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
-                        MolecularManipulator.id("armillary_well_ink"), DefaultVertexFormat.POSITION_TEX_COLOR),
-                shader -> armillaryWellInk = shader);
+                        MolecularManipulator.id("star_orrery_nebula_composite"), DefaultVertexFormat.POSITION),
+                shader -> starOrreryNebulaComposite = shader);
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
-                        MolecularManipulator.id("armillary_color"), DefaultVertexFormat.POSITION_COLOR),
-                shader -> armillaryColor = shader);
+                        MolecularManipulator.id("star_orrery_well_ink"), DefaultVertexFormat.POSITION_TEX_COLOR),
+                shader -> starOrreryWellInk = shader);
+        event.registerShader(new ShaderInstance(event.getResourceProvider(),
+                        MolecularManipulator.id("star_orrery_color"), DefaultVertexFormat.POSITION_COLOR),
+                shader -> starOrreryColor = shader);
         event.registerShader(new ShaderInstance(event.getResourceProvider(),
                         MolecularManipulator.id("lantern_simulation"), DefaultVertexFormat.POSITION),
                 shader -> {
@@ -85,8 +89,9 @@ public final class OmniShaders {
 
     public static ShaderInstance cosmicLens() { return cosmicLens; }
     public static ShaderInstance ghostExposure() { return ghostExposure; }
-    public static ShaderInstance armillaryNebula() { return armillaryNebula; }
-    public static ShaderInstance armillaryWellInk() { return armillaryWellInk; }
-    public static ShaderInstance armillaryColor() { return armillaryColor; }
+    public static ShaderInstance starOrreryNebula() { return starOrreryNebula; }
+    public static ShaderInstance starOrreryNebulaComposite() { return starOrreryNebulaComposite; }
+    public static ShaderInstance starOrreryWellInk() { return starOrreryWellInk; }
+    public static ShaderInstance starOrreryColor() { return starOrreryColor; }
     public static ShaderInstance lanternSimulation() { return lanternSimulation; }
 }

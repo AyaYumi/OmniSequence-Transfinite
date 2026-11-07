@@ -80,6 +80,8 @@ class BuildingTerminalAssetsTest {
         assertTrue(screen.contains("ui.layout.renderSingleLine"));
         assertTrue(screen.contains("BuildingTerminal.MAX_BINDINGS"));
         assertTrue(screen.contains("entry.status() == Status.READY"), "Summary uses synchronized directory status");
+        assertTrue(screen.contains("ui.button(\"remove.\" + i"), "Removal shares the real machine button skin");
+        assertFalse(screen.contains("class DirectoryButton"));
         assertFalse(screen.contains("drawString"), "Do not fall back to unrelated vanilla text styling");
         assertFalse(Pattern.compile("0x[0-9A-Fa-f]{6,8}").matcher(screen).find(), "Skin colors belong to its resource layout");
         var fonts = Pattern.compile("\"(osq_[a-z0-9_]+)\"").matcher(screen);
@@ -107,23 +109,23 @@ class BuildingTerminalAssetsTest {
         assertTrue(source.contains("float statusWidth = Math.min(48, OsqFonts.widthF(font, status.getString(), DETAIL_FONT))"),
                 "Use the rendered font metrics, with the same width cap as the status label");
         assertTrue(source.contains("float statusX = x + 226 - statusWidth"), "Keep each status group right-aligned");
-        assertTrue(source.contains("fill(g, statusX - 6, y + 8, 2, 2, color(tint))"),
+        assertTrue(source.contains("fill(g, statusX - 6, y + 9, 2, 2, color(tint))"),
                 "The two-pixel indicator must end four pixels before the label");
-        assertTrue(source.contains("small(g, status, statusX, y + 12, statusWidth, tint, \"left\")"));
+        assertTrue(source.contains("centered(g, status, statusX, y + 10, statusWidth, tint, \"left\""));
         assertFalse(source.contains("fill(g, x + 172, y + 8"), "Do not restore the detached indicator column");
     }
 
     @Test
     void fiveRowOpenAndRemoveTargetsAreSeparateAndFitTheResponsivePanel() throws Exception {
         var layout = JsonParser.parseString(Files.readString(ASSETS.resolve("osq_light/layout/building_access_terminal.json"))).getAsJsonObject();
-        assertEquals("[400,300]", layout.getAsJsonArray("size").toString());
+        assertEquals("[400,356]", layout.getAsJsonArray("size").toString());
         var rects = new HashMap<String, int[]>();
         for (var element : layout.getAsJsonArray("draw")) {
             var entry = element.getAsJsonObject();
             if (!entry.has("k") || !"ctl".equals(entry.get("k").getAsString())) continue;
             int[] rect = entry.getAsJsonArray("rect").asList().stream().mapToInt(value -> value.getAsInt()).toArray();
             assertTrue(rect[0] >= 0 && rect[1] >= 0 && rect[2] > 0 && rect[3] > 0);
-            assertTrue(rect[0] + rect[2] <= 400 && rect[1] + rect[3] <= 300);
+            assertTrue(rect[0] + rect[2] <= 400 && rect[1] + rect[3] <= 356);
             assertNull(rects.put(entry.get("id").getAsString(), rect));
         }
         assertEquals(11, rects.size(), "Five open buttons, five remove buttons and a scrollbar");
@@ -134,6 +136,9 @@ class BuildingTerminalAssetsTest {
         for (int i = 0; i < 5; i++) {
             int[] open = rects.get("row." + i), remove = rects.get("remove." + i);
             assertNotNull(open); assertNotNull(remove);
+            assertEquals(47, open[3]);
+            assertEquals(22, remove[3], "Use the same comfortable native buttons as the machines");
+            assertTrue(remove[2] >= 40, "Both Remove and 移除 need their full labels");
             assertTrue(open[0] + open[2] <= remove[0], "Opening must not intercept removing row " + i);
             assertTrue(remove[1] >= open[1] && remove[1] + remove[3] <= open[1] + open[3]);
             assertTrue(remove[0] + remove[2] < scrollbar[0], "Scrollbar must not overlap a row action");
@@ -179,7 +184,7 @@ class BuildingTerminalAssetsTest {
     void guidesAndScreenStyleMatchTheNewItemAndDirectorySize() throws Exception {
         var style = JsonParser.parseString(Files.readString(RESOURCES.resolve("assets/ae2/screens/building_access_terminal.json"))).getAsJsonObject();
         assertEquals(400, style.getAsJsonObject("generatedBackground").get("width").getAsInt());
-        assertEquals(300, style.getAsJsonObject("generatedBackground").get("height").getAsInt());
+        assertEquals(356, style.getAsJsonObject("generatedBackground").get("height").getAsInt());
         assertTrue(style.getAsJsonObject("slots").isEmpty());
         for (String prefix : List.of("", "_zh_cn/")) {
             String guide = Files.readString(ASSETS.resolve("ae2guide/" + prefix + "items-blocks-machines/building_access_terminal.md"));

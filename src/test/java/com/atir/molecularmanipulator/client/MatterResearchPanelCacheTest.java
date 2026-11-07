@@ -149,7 +149,7 @@ class MatterResearchPanelCacheTest {
         assertEquals(first, decodedOrders(panel));
     }
 
-    @Test void detailClipKeepsItsOriginalScreenSpaceBoundsAndFlushesOnBothSides() throws Exception {
+    @Test void tallerDetailClipUsesScreenSpaceBoundsAndFlushesOnBothSides() throws Exception {
         var panel = panel();
         var graphics = new UiRenderRecorder();
         graphics.pose().translate(12.5F, 14.25F, 0);
@@ -160,9 +160,9 @@ class MatterResearchPanelCacheTest {
         assertEquals(1, graphics.clipDepth);
         var clip = graphics.scissors.getFirst();
         assertEquals(170, clip.getX());
-        assertEquals(132, clip.getY());
+        assertEquals(143, clip.getY());
         assertEquals(127, clip.getWidth());
-        assertEquals(47, clip.getHeight());
+        assertEquals(58, clip.getHeight());
         invoke(panel, "endList", net.minecraft.client.gui.GuiGraphics.class, graphics);
         assertEquals(2, graphics.flushes);
         assertEquals(0, graphics.clipDepth);

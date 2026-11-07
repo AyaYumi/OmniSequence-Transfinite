@@ -5,7 +5,7 @@ import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
-import com.atir.molecularmanipulator.starcomputation.EntropyArmillaryLayout;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryLayout;
 import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import com.atir.molecularmanipulator.starcomputation.StarComputationRecipeCatalog;
 import com.atir.molecularmanipulator.starcomputation.StarComputationRecipes;
@@ -62,9 +62,9 @@ public final class StarComputationEngineMenu extends BuildingMenu {
     @GuiSync(12) public int resultVersion;
     @GuiSync(13) public boolean canConfigure;
     @GuiSync(14) public StarComputationRecipeCatalog catalog = StarComputationRecipeCatalog.EMPTY;
-    @GuiSync(15) public boolean armillary;
+    @GuiSync(15) public boolean starOrrery;
     @GuiSync(16) public int litRings;
-    @GuiSync(17) public int anchorsBase;
+    @GuiSync(17) public int anchorsReference;
     @GuiSync(18) public int anchorsQuantum;
     @GuiSync(19) public int anchorsTerminal;
 
@@ -95,12 +95,12 @@ public final class StarComputationEngineMenu extends BuildingMenu {
     }
 
     public int levelThreshold(int level) {
-        return armillary ? EntropyArmillaryLayout.threshold(level) : StarComputationBenefits.threshold(level);
+        return starOrrery ? StarOrreryLayout.threshold(level) : StarComputationBenefits.threshold(level);
     }
 
     public long nodeThreshold(RecipeNode node) {
-        if (!armillary) return node.entropy();
-        return EntropyArmillaryLayout.threshold(switch (node.index()) {
+        if (!starOrrery) return node.entropy();
+        return StarOrreryLayout.threshold(switch (node.index()) {
             case 0 -> 1;
             case 1 -> 3;
             case 2 -> 6;
@@ -202,12 +202,12 @@ public final class StarComputationEngineMenu extends BuildingMenu {
     public void broadcastChanges() {
         if (isServerSide()) {
             formed = core.isFormed();
-            armillary = core.isArmillary();
+            starOrrery = core.isStarOrrery();
             litRings = core.getLitRings();
             networkOnline = core.getMainNode().isActive();
             effectiveEntropy = core.getEffectiveEntropy();
             anchorCount = core.getAnchorCount();
-            anchorsBase = core.getAnchorCount(0);
+            anchorsReference = core.getAnchorCount(0);
             anchorsQuantum = core.getAnchorCount(1);
             anchorsTerminal = core.getAnchorCount(2);
             var benefits = core.getBenefits();

@@ -25,11 +25,11 @@ public final class StarComputationRecipes {
                     "molecular_center_glass", "molecular_center_stabilizer"),
             // Base anchors cap at 900. The quantum anchor must unlock before requiring quantum entropy.
             node(1, "material", 900, 2048, 1,
-                    "quantum_entropy_anchor", "molecular_manipulator", "molecular_center_core",
+                    "quantum_star_position_anchor", "molecular_manipulator", "molecular_center_core",
                     "molecular_center_controller", "assembler_matrix_molecular_core"),
             // Quantum anchors cap at 9000. Terminal anchors must be available at that threshold.
             node(2, "quantum", 9000, 8192, 1 << 1,
-                    "terminal_entropy_anchor", "omni_computation_controller", "omni_computation_casing",
+                    "terminal_star_position_anchor", "omni_computation_controller", "omni_computation_casing",
                     "omni_computation_glass", "computation_crystal_pylon", "computation_data_entangler",
                     "computation_energy_stabilizer", "computation_output_node"),
             node(3, "terminal", 18000, 16384, 1,

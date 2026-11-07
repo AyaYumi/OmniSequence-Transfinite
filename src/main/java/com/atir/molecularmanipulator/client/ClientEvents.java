@@ -5,7 +5,7 @@ import appeng.api.client.AEKeyRendering;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.ae2.StarSignalKeyType;
-import com.atir.molecularmanipulator.client.render.EntropyArmillaryRenderer;
+import com.atir.molecularmanipulator.client.render.StarOrreryRenderer;
 import com.atir.molecularmanipulator.client.render.StarComputationEngineFormedGeometry;
 import com.atir.molecularmanipulator.client.render.NexusFormedGeometry;
 import com.atir.molecularmanipulator.client.render.AutoCrafterGlowGeometry;
@@ -107,17 +107,17 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerAdditionalModels(ModelEvent.RegisterAdditional event) {
-        for (String form : EntropyArmillaryRenderer.FORMS) {
-            for (String part : EntropyArmillaryRenderer.PARTS) event.register(EntropyArmillaryRenderer.model(form, part));
+        for (String form : StarOrreryRenderer.FORMS) {
+            for (String part : StarOrreryRenderer.PARTS) event.register(StarOrreryRenderer.model(form, part));
             for (int ring = 1; ring <= 9; ring++) {
-                event.register(EntropyArmillaryRenderer.model(form, "ring_" + ring));
+                event.register(StarOrreryRenderer.model(form, "ring_" + ring));
             }
         }
     }
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerBlockEntityRenderer(ModContent.STAR_COMPUTATION_ENGINE_CORE_BE.get(), EntropyArmillaryRenderer::new);
+        event.registerBlockEntityRenderer(ModContent.STAR_COMPUTATION_ENGINE_CORE_BE.get(), StarOrreryRenderer::new);
         event.registerBlockEntityRenderer(com.atir.molecularmanipulator.registry.WarpContent.WARP_PAD_BE.get(),
                 com.atir.molecularmanipulator.client.render.EndWarpPadRenderer::new);
         event.registerBlockEntityRenderer(ModContent.GHOST_MATTER_BE.get(), GhostMatterRenderer::new);
@@ -146,11 +146,12 @@ public final class ClientEvents {
             com.atir.molecularmanipulator.client.render.EarlyFrameGeometry.clear();
             com.atir.molecularmanipulator.client.render.ParallelEffectGeometry.clear();
             com.atir.molecularmanipulator.client.render.GpuEffectLayers.clear();
-            EntropyArmillaryRenderer.clear();
-            com.atir.molecularmanipulator.client.render.EntropyArmillaryNebulaRenderer.release();
+            StarOrreryRenderer.clear();
+            com.atir.molecularmanipulator.client.render.StarOrreryNebulaRenderer.release();
             MolecularCenterGhostPreview.onResourceReload();
             OmniComputationGhostPreview.onResourceReload();
             MatterFabricationGhostPreview.onResourceReload();
+            StarChartClient.onResourceReload();
             SingularityGhostPreview.onResourceReload();
             SingularityAssemblyRenderer.clear();
             SingularityWhiteHoleRenderer.release();

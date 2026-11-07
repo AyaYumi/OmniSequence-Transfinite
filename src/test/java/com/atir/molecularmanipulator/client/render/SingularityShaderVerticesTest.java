@@ -114,14 +114,14 @@ class SingularityShaderVerticesTest {
             for (boolean glow : new boolean[] {false, true}) {
                 var poses = new PoseStack();
                 var expected = new RecordingColorConsumer();
-                EntropyArmillaryCoreEffects.renderRain(poses, expected, 9, quality, distance, 3.5F, glow);
-                EntropyArmillaryCoreEffects.renderBuildingRain(poses, expected, 9, quality, distance, 3.5F, 4F, glow);
+                StarOrreryCoreEffects.renderRain(poses, expected, 9, quality, distance, 3.5F, glow);
+                StarOrreryCoreEffects.renderBuildingRain(poses, expected, 9, quality, distance, 3.5F, 4F, glow);
 
                 var actual = new RecordingColorConsumer();
                 var attributes = new EntityRecorder(actual);
                 var out = new SingularityShaderVertices(attributes);
-                EntropyArmillaryCoreEffects.renderRain(poses, out, 9, quality, distance, 3.5F, glow);
-                EntropyArmillaryCoreEffects.renderBuildingRain(poses, out, 9, quality, distance, 3.5F, 4F, glow);
+                StarOrreryCoreEffects.renderRain(poses, out, 9, quality, distance, 3.5F, glow);
+                StarOrreryCoreEffects.renderBuildingRain(poses, out, 9, quality, distance, 3.5F, 4F, glow);
 
                 assertEquals(0, attributes.attributes);
                 assertFalse(actual.vertices().isEmpty());

@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.client;
 
-import appeng.api.client.AEKeyRendering;
+import appeng.api.stacks.AEFluidKey;
 import appeng.menu.SlotSemantics;
 import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
@@ -33,14 +33,13 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
         ui.text("gui.molecularmanipulator.fabrication.port.network_online",()->text(menu.networkOnline?"network_online":"network_offline"));
         if(menu.getPort().getPortType().isInput()) {
             ui.hide(e->e.x<0&&e.y>=56&&e.y<78);
-            refund=addScreenWidget(fluid?ui.rect(96,101,80,17,leftPos,topPos,()->text("return_ae"),menu::returnInputs)
+            refund=addScreenWidget(fluid?ui.button("auto",leftPos,topPos,()->text("return_ae"),menu::returnInputs)
                     :ui.button("return",leftPos,topPos,()->text("return_ae"),menu::returnInputs));
-            ui.outline(refund);
             refund.setTooltip(Tooltip.create(text("return_ae")));
         }else{
             auto=addScreenWidget(fluid?ui.button("auto",leftPos,topPos,()->text(menu.autoOutput?"auto_on":"auto_off"),menu::toggleAutoOutput)
                     :ui.button("return",leftPos,topPos,()->text(menu.autoOutput?"auto_on":"auto_off"),menu::toggleAutoOutput));
-            ui.outline(auto);
+            ui.state(auto,()->menu.autoOutput?"active":"normal");
             var direction=addScreenWidget(ui.button("tool1",leftPos,topPos,()->text("directions"),this::toggleDirections));
             direction.setTooltip(Tooltip.create(OsqUi.tr("gui.molecularmanipulator.auto_craft_output_directions_hint")));
             ui.state(direction,()->directionsOpen?"active":"normal");
@@ -67,7 +66,8 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
         ui.number(fluid?96:92,69,()->menu.occupied);
         ui.number(fluid?106.52f:102.77f,69,()->fluid?"/ 4":"/ 16");
         ui.number(142,66,()->OsqUi.compact(menu.totalAmount));
-        ui.number(96,89,()->String.format(Locale.ROOT,"%,d",MatterFabricationPortBlockEntity.FLUID_CAPACITY));
+        ui.number(96,89,()->String.format(Locale.ROOT,"%,d mB",MatterFabricationPortBlockEntity.FLUID_CAPACITY));
+        ui.hide(e->"text".equals(e.type)&&"mB".equals(e.text));
         ui.omit("gui.molecularmanipulator.fab.s031");
         refresh();
     }
@@ -94,8 +94,17 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
         if(directionsOpen)return;
         if(menu.getPort().getPortType().isFluid())for(int i=0;i<4;i++){
             int x=tankX(i),y=tankY(i);var stack=menu.getTankStack(i);
-            if(stack!=null)AEKeyRendering.drawInGui(minecraft,g,x+9,y+4,stack.what());
-            ui.smallText(g,Component.literal(stack==null?"0":OsqUi.compact(stack.amount())),x+3,y+29,28);
+            var fluid=stack!=null&&stack.what() instanceof AEFluidKey key?key:null;
+            long amount=stack==null?0:stack.amount();
+            OsqFluidGauge.draw(g,fluid,amount,MatterFabricationPortBlockEntity.FLUID_CAPACITY,x,y,34,34,ui.palette);
+            if(amount>0){
+                var readout=Component.literal(OsqFluidGauge.readout(amount));
+                boolean overFluid=fluid!=null&&OsqFluidGauge.fillHeight(amount,MatterFabricationPortBlockEntity.FLUID_CAPACITY,30)>20;
+                // Text only: a small glyph shadow, never a rectangle over the tank.
+                if(overFluid)ui.centeredText(g,readout,x+4.5f,y+8.5f,26,ui.palette.dark?ui.palette.paper:ui.palette.ink);
+                int color=overFluid?(ui.palette.dark?ui.palette.ink:ui.palette.invT):ui.palette.ink;
+                ui.centeredText(g,readout,x+4,y+8,26,color);
+            }else ui.centeredText(g,Component.literal("0"),x+3,y+17,28,ui.palette.ink3);
         }
     }
     @Override public boolean mouseClicked(double x,double y,int button){
@@ -107,7 +116,7 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
     @Override public void render(GuiGraphics g,int mx,int my,float pt){super.render(g,mx,my,pt);
         if(directionsOpen||!menu.getPort().getPortType().isFluid())return;int i=tankAt(logicalMouseX(mx)-leftPos,logicalMouseY(my)-topPos);if(i<0)return;
         var s=menu.getTankStack(i);g.renderComponentTooltip(font,List.of(s==null?text("empty_tank"):s.what().getDisplayName(),
-                Component.literal((s==null?0:s.amount())+" / "+MatterFabricationPortBlockEntity.FLUID_CAPACITY+" mB"),text("fluid_click")),mx,my);
+                Component.literal(DisplayNumbers.exact(s==null?0:s.amount())+" / "+DisplayNumbers.exact(MatterFabricationPortBlockEntity.FLUID_CAPACITY)+" mB"),text("fluid_click")),mx,my);
     }
     private static int tankX(int i){return 14+i%2*38;} private static int tankY(int i){return 46+i/2*38;}
     private static int tankAt(double x,double y){for(int i=0;i<4;i++)if(x>=tankX(i)&&x<tankX(i)+34&&y>=tankY(i)&&y<tankY(i)+34)return i;return -1;}

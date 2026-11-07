@@ -1,6 +1,12 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/cube",
   "textures": {
-    "all": "molecularmanipulator:block/folding_assembler"
+    "particle": "molecularmanipulator:block/folding_assembler_side",
+    "north": "molecularmanipulator:block/folding_assembler",
+    "south": "molecularmanipulator:block/folding_assembler_side",
+    "east":  "molecularmanipulator:block/folding_assembler_side",
+    "west":  "molecularmanipulator:block/folding_assembler_side",
+    "up":    "molecularmanipulator:block/folding_assembler_top",
+    "down":  "molecularmanipulator:block/folding_assembler_bottom"
   }
 }

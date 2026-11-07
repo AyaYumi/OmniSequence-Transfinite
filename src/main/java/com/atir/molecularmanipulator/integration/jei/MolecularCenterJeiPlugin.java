@@ -4,6 +4,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
+import com.atir.molecularmanipulator.registry.BuildingContent;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.registry.ModFluids;
 import mezz.jei.api.neoforge.NeoForgeTypes;
@@ -17,6 +18,7 @@ import mezz.jei.api.registration.IAdvancedRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.registration.ISubtypeRegistration;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.runtime.IJeiRuntime;
 import com.atir.molecularmanipulator.client.MatterFabricationPatternAssemblyScreen;
@@ -40,6 +42,12 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
     }
 
     @Override
+    public void registerItemSubtypes(ISubtypeRegistration registration) {
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModContent.FOLDED_BUILDING_PACKAGE.get(),
+                FoldedBuildingPackageSubtypeInterpreter.INSTANCE);
+    }
+
+    @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
         registration.addRecipeCategories(new TwinSingularityObservationRingJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
@@ -51,6 +59,8 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
         registration.addRecipeCategories(new MatterFabricationJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MatterFabricationStructureJeiCategory(
+                registration.getJeiHelpers().getGuiHelper()));
+        registration.addRecipeCategories(new StarOrreryStructureJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
         if (AdvancedAEIntegration.isLoaded()) {
             registration.addRecipeCategories(new OmniComputationJeiCategory(
@@ -65,9 +75,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
         registration.addRecipes(LanternSimulationJeiCategory.TYPE, List.of(LanternSimulationJeiCategory.recipe()));
         registration.addIngredientInfo(new FluidStack(ModFluids.SEQUENCE_MATTER.get(), 1000),
                 NeoForgeTypes.FLUID_STACK, Component.translatable("guide.molecularmanipulator.sequence_matter.jei"));
-        registration.addRecipes(SingularityStructureJeiCategory.TYPE, List.of(new SingularityStructureJeiRecipe(
-                com.atir.molecularmanipulator.blockentity.SingularityStructure.materials(),
-                new ItemStack(com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER.get()))));
+        registration.addRecipes(SingularityStructureJeiCategory.TYPE, List.of(SingularityStructureJeiRecipe.recipe()));
         registration.addRecipes(MolecularCenterJeiCategory.TYPE, List.of(new MolecularCenterJeiRecipe(
                 createStructureMaterials(), new ItemStack(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get()))));
         var level = net.minecraft.client.Minecraft.getInstance().level;
@@ -80,6 +88,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                 List.of(new MatterFabricationStructureJeiRecipe(
                         createMatterFabricationStructureMaterials(),
                         new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()))));
+        registration.addRecipes(StarOrreryStructureJeiCategory.TYPE, StarOrreryStructureJeiRecipe.recipes());
         if (AdvancedAEIntegration.isLoaded()) {
             registration.addRecipes(OmniComputationJeiCategory.TYPE, List.of(new OmniComputationJeiRecipe(
                     createOmniStructureMaterials(),
@@ -105,6 +114,10 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                 new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()),
                 MatterFabricationJeiCategory.TYPE,
                 MatterFabricationStructureJeiCategory.TYPE);
+        registration.addRecipeCatalyst(new ItemStack(ModContent.STAR_COMPUTATION_ENGINE_CORE_ITEM.get()),
+                StarOrreryStructureJeiCategory.TYPE);
+        registration.addRecipeCatalyst(new ItemStack(BuildingContent.ASSEMBLER_ITEM.get()),
+                StarOrreryStructureJeiCategory.TYPE, SingularityStructureJeiCategory.TYPE);
     }
 
     @Override

@@ -11,7 +11,7 @@ import net.minecraft.util.FormattedCharSequence;
 import org.joml.Matrix4f;
 
 /** Executes real widget code without a Minecraft client, window or OpenGL context. */
-public final class UiRenderRecorder extends GuiGraphics {
+public class UiRenderRecorder extends GuiGraphics {
     static {
         // JUnit has no mod-discovery phase; vanilla bootstrap still asks NeoForge for feature flags.
         if (net.neoforged.fml.loading.LoadingModList.get() == null) {

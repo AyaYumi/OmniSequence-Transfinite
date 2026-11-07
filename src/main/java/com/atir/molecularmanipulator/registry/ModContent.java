@@ -4,7 +4,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.ae2.StarSignalKeyType;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
-import com.atir.molecularmanipulator.block.EntropyAnchorBlock;
+import com.atir.molecularmanipulator.block.StarPositionAnchorBlock;
 import com.atir.molecularmanipulator.block.StarMarrowParentRockBlock;
 import com.atir.molecularmanipulator.block.StarComputationEngineCasingBlock;
 import com.atir.molecularmanipulator.block.StarComputationEngineCoreBlock;
@@ -238,18 +238,18 @@ public final class ModContent {
     public static final DeferredItem<BlockItem> STAR_COMPUTATION_ENGINE_CASING_ITEM = registerBlockItem(
             "star_computation_engine_casing", STAR_COMPUTATION_ENGINE_CASING);
     /** Real foundation blocks retain collision and drops beneath the formed pedestal model. */
-    public static final DeferredBlock<com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock> ENTROPY_ARMILLARY_PLINTH = BLOCKS.register(
-            "entropy_armillary_plinth", () -> new com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock(
+    public static final DeferredBlock<com.atir.molecularmanipulator.block.StarOrreryFoundationBlock> STAR_ORRERY_ENGRAVED_PLINTH = BLOCKS.register(
+            "star_orrery_engraved_plinth", () -> new com.atir.molecularmanipulator.block.StarOrreryFoundationBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()));
-    public static final DeferredItem<BlockItem> ENTROPY_ARMILLARY_PLINTH_ITEM = registerBlockItem(
-            "entropy_armillary_plinth", ENTROPY_ARMILLARY_PLINTH);
-    public static final DeferredBlock<com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock> ENTROPY_ARMILLARY_TRIM = BLOCKS.register(
-            "entropy_armillary_trim", () -> new com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock(
+    public static final DeferredItem<BlockItem> STAR_ORRERY_ENGRAVED_PLINTH_ITEM = registerBlockItem(
+            "star_orrery_engraved_plinth", STAR_ORRERY_ENGRAVED_PLINTH);
+    public static final DeferredBlock<com.atir.molecularmanipulator.block.StarOrreryFoundationBlock> STAR_ORRERY_GILDED_PLINTH = BLOCKS.register(
+            "star_orrery_gilded_plinth", () -> new com.atir.molecularmanipulator.block.StarOrreryFoundationBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops().lightLevel(state -> 5)));
-    public static final DeferredItem<BlockItem> ENTROPY_ARMILLARY_TRIM_ITEM = registerBlockItem(
-            "entropy_armillary_trim", ENTROPY_ARMILLARY_TRIM);
+    public static final DeferredItem<BlockItem> STAR_ORRERY_GILDED_PLINTH_ITEM = registerBlockItem(
+            "star_orrery_gilded_plinth", STAR_ORRERY_GILDED_PLINTH);
     public static final DeferredBlock<StarComputationObservationPortBlock> STAR_COMPUTATION_OBSERVATION_PORT =
             BLOCKS.register("star_computation_observation_port", () -> new StarComputationObservationPortBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
@@ -258,27 +258,27 @@ public final class ModContent {
                             .lightLevel(state -> state.getValue(StarComputationObservationPortBlock.FORMED) ? 13 : 8)));
     public static final DeferredItem<BlockItem> STAR_COMPUTATION_OBSERVATION_PORT_ITEM = registerBlockItem(
             "star_computation_observation_port", STAR_COMPUTATION_OBSERVATION_PORT);
-    public static final DeferredBlock<EntropyAnchorBlock> BASE_ENTROPY_ANCHOR =
-            BLOCKS.register("base_entropy_anchor", () -> new EntropyAnchorBlock(
+    public static final DeferredBlock<StarPositionAnchorBlock> REFERENCE_STAR_POSITION_ANCHOR =
+            BLOCKS.register("reference_star_position_anchor", () -> new StarPositionAnchorBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
                             .lightLevel(state -> 7)));
-    public static final DeferredItem<BlockItem> BASE_ENTROPY_ANCHOR_ITEM = registerBlockItem(
-            "base_entropy_anchor", BASE_ENTROPY_ANCHOR);
-    public static final DeferredBlock<EntropyAnchorBlock> QUANTUM_ENTROPY_ANCHOR =
-            BLOCKS.register("quantum_entropy_anchor", () -> new EntropyAnchorBlock(
+    public static final DeferredItem<BlockItem> REFERENCE_STAR_POSITION_ANCHOR_ITEM = registerBlockItem(
+            "reference_star_position_anchor", REFERENCE_STAR_POSITION_ANCHOR);
+    public static final DeferredBlock<StarPositionAnchorBlock> QUANTUM_STAR_POSITION_ANCHOR =
+            BLOCKS.register("quantum_star_position_anchor", () -> new StarPositionAnchorBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(9.0F, 1500.0F).requiresCorrectToolForDrops()
                             .lightLevel(state -> 11)));
-    public static final DeferredItem<BlockItem> QUANTUM_ENTROPY_ANCHOR_ITEM = registerBlockItem(
-            "quantum_entropy_anchor", QUANTUM_ENTROPY_ANCHOR);
-    public static final DeferredBlock<EntropyAnchorBlock> TERMINAL_ENTROPY_ANCHOR =
-            BLOCKS.register("terminal_entropy_anchor", () -> new EntropyAnchorBlock(
+    public static final DeferredItem<BlockItem> QUANTUM_STAR_POSITION_ANCHOR_ITEM = registerBlockItem(
+            "quantum_star_position_anchor", QUANTUM_STAR_POSITION_ANCHOR);
+    public static final DeferredBlock<StarPositionAnchorBlock> TERMINAL_STAR_POSITION_ANCHOR =
+            BLOCKS.register("terminal_star_position_anchor", () -> new StarPositionAnchorBlock(
                     net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
                             .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
                             .lightLevel(state -> 15)));
-    public static final DeferredItem<BlockItem> TERMINAL_ENTROPY_ANCHOR_ITEM = registerBlockItem(
-            "terminal_entropy_anchor", TERMINAL_ENTROPY_ANCHOR);
+    public static final DeferredItem<BlockItem> TERMINAL_STAR_POSITION_ANCHOR_ITEM = registerBlockItem(
+            "terminal_star_position_anchor", TERMINAL_STAR_POSITION_ANCHOR);
     public static final DeferredItem<Item> STAR_MARROW_ALLOY_INGOT = ITEMS.register(
             "star_marrow_alloy_ingot", () -> new Item(new Item.Properties()));
     public static final DeferredItem<Item> STAR_MARROW_CRYSTAL = ITEMS.register(
@@ -535,7 +535,7 @@ public final class ModContent {
                         output.accept(FOLDED_BUILDING_PACKAGE.get());
                         output.accept(BuildingContent.CALIBRATOR.get());
                         output.accept(BuildingContent.ASSEMBLER_ITEM.get());
-                        for (var building : com.atir.molecularmanipulator.building.BuildingType.values())
+                        for (var building : com.atir.molecularmanipulator.building.BuildingType.orderable())
                             output.accept(com.atir.molecularmanipulator.building.BuildingPackage.fresh(building));
                         output.accept(MOLECULAR_MANIPULATOR_ITEM.get());
                         output.accept(ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get());
@@ -559,12 +559,12 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
                         output.accept(STAR_COMPUTATION_ENGINE_CORE_ITEM.get());
                         output.accept(STAR_COMPUTATION_ENGINE_CASING_ITEM.get());
-                        output.accept(ENTROPY_ARMILLARY_PLINTH_ITEM.get());
-                        output.accept(ENTROPY_ARMILLARY_TRIM_ITEM.get());
+                        output.accept(STAR_ORRERY_ENGRAVED_PLINTH_ITEM.get());
+                        output.accept(STAR_ORRERY_GILDED_PLINTH_ITEM.get());
                         output.accept(STAR_COMPUTATION_OBSERVATION_PORT_ITEM.get());
-                        output.accept(BASE_ENTROPY_ANCHOR_ITEM.get());
-                        output.accept(QUANTUM_ENTROPY_ANCHOR_ITEM.get());
-                        output.accept(TERMINAL_ENTROPY_ANCHOR_ITEM.get());
+                        output.accept(REFERENCE_STAR_POSITION_ANCHOR_ITEM.get());
+                        output.accept(QUANTUM_STAR_POSITION_ANCHOR_ITEM.get());
+                        output.accept(TERMINAL_STAR_POSITION_ANCHOR_ITEM.get());
                         output.accept(STAR_MARROW_ALLOY_INGOT.get());
                         output.accept(STAR_MARROW_CRYSTAL.get());
                         output.accept(STAR_MARROW_CRYSTAL_DUST.get());

@@ -2,6 +2,9 @@ package com.atir.molecularmanipulator.client;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import appeng.client.gui.Icon;
+import appeng.client.gui.widgets.TabButton;
+import com.atir.molecularmanipulator.menu.BuildingMenu;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
@@ -49,6 +52,57 @@ class ResponsiveContainerScreenTest {
                 }
             }
         }
+    }
+
+    @Test
+    void terminalReturnUsesTheNativeAeButtonAtThePanelsUpperLeftAndFitsWithItsScale() throws Exception {
+        for (int[] view : new int[][] {{320, 240, 430, 286}, {320, 240, 400, 120},
+                {567, 240, 430, 286}, {854, 480, 176, 278}}) {
+            var screen = ResponsiveScreenTestFixture.create(view[0], view[1], view[2], view[3]);
+            var localBounds = screen.responsiveBounds();
+            var menu = ResponsiveScreenTestFixture.allocate(TerminalMenuProbe.class);
+            menu.terminalAccess = true;
+            ResponsiveScreenTestFixture.set(screen, "menu", menu);
+            var addButton = ResponsiveContainerScreen.class.getDeclaredMethod("addTerminalButton");
+            addButton.setAccessible(true);
+            addButton.invoke(screen);
+            assertEquals(1, screen.children().size());
+            var button = assertInstanceOf(TabButton.class, screen.children().getFirst());
+            assertEquals(TabButton.Style.BOX, button.getStyle());
+            var icon = TabButton.class.getDeclaredField("icon"); icon.setAccessible(true);
+            assertSame(Icon.BACK, icon.get(button));
+            assertEquals(screen.getGuiLeft() - 24, button.getX());
+            assertEquals(screen.getGuiTop(), button.getY());
+            assertEquals(22, button.getWidth()); assertEquals(22, button.getHeight());
+            assertTrue(button.visible);
+            assertTrue(screen.screenContent.owns(button), "Return navigation must scale and restore with the panel");
+            var bounds = screen.responsiveBounds();
+            var area = screen.responsiveArea(button.getTooltipArea());
+            assertTrue(area.getX() >= 4 && area.getY() >= 4, "The attached button must not be clipped");
+            assertTrue(area.getX() + area.getWidth() <= bounds.getX(), "Do not cover the machine title");
+            assertEquals(bounds.getY(), area.getY());
+            assertEquals(List.of(rect(area)), screen.getExclusionZones().stream().map(ResponsiveContainerScreenTest::rect).toList(),
+                    "Recipe viewers must avoid the attached button");
+            int x = area.getX() + area.getWidth() / 2, y = area.getY() + area.getHeight() / 2;
+            assertTrue(button.isMouseOver(screen.logicalMouseX(x), screen.logicalMouseY(y)));
+            button.onPress(); assertEquals(1, menu.returns);
+            button.visible = false;
+            assertTrue(screen.getExclusionZones().isEmpty());
+            assertEquals(rect(localBounds), rect(screen.responsiveBounds()), "Local access keeps the existing fitted geometry");
+        }
+    }
+
+    @Test
+    void localBuildingAccessDoesNotExposeTerminalNavigationOrReserveExtraSpace() throws Exception {
+        var screen = ResponsiveScreenTestFixture.create(320, 240, 400, 120);
+        var before = screen.responsiveBounds();
+        var menu = ResponsiveScreenTestFixture.allocate(TerminalMenuProbe.class);
+        ResponsiveScreenTestFixture.set(screen, "menu", menu);
+        var addButton = ResponsiveContainerScreen.class.getDeclaredMethod("addTerminalButton");
+        addButton.setAccessible(true); addButton.invoke(screen);
+        var button = assertInstanceOf(TabButton.class, screen.children().getFirst());
+        assertFalse(button.visible); assertFalse(button.isMouseOver(button.getX() + 5, button.getY() + 5));
+        assertEquals(rect(before), rect(screen.responsiveBounds())); assertTrue(screen.getExclusionZones().isEmpty());
     }
 
     @Test
@@ -157,6 +211,16 @@ class ResponsiveContainerScreenTest {
         assertTrue(visualArea.getWidth() < 18);
         ResponsiveScreenTestFixture.set(screen, "renderingScaledContent", true);
         assertSame(logicalArea, screen.getExclusionZones().get(0));
+    }
+
+    private static List<Integer> rect(net.minecraft.client.renderer.Rect2i bounds) {
+        return List.of(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+    }
+
+    private static final class TerminalMenuProbe extends BuildingMenu {
+        int returns;
+        private TerminalMenuProbe() { super(null, 0, null, null); }
+        @Override public void requestTerminal() { returns++; }
     }
 
     private static final class ProbeControl implements GuiEventListener, Renderable, NarratableEntry {

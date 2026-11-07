@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class StarComputationEnginePanelPatternAssetsTest {
     private static final Path BLOCK = Path.of("src/main/resources/assets/molecularmanipulator/textures/block");
     private static final Path CORE = BLOCK.resolve("star_computation_engine/controller_formed");
-    private static final Path ANCHORS = BLOCK.resolve("entropy_anchor");
+    private static final Path ANCHORS = BLOCK.resolve("star_position_anchor");
     private static final Path MODEL = Path.of(
             "src/main/resources/assets/molecularmanipulator/models/block/star_computation_engine_core/core_formed.json");
     private static final String TEXTURE_ID_PREFIX =
@@ -55,7 +55,7 @@ class StarComputationEnginePanelPatternAssetsTest {
     void everyVariantKeepsTheCentralBoardAndTheFourBaseUvFacesWithTransparentGutters() throws IOException {
         for (var tier : TIERS) {
             var palette = palette(tier);
-            var canonical = read(canonicalAtlas(tier, false));
+            var canonical = read(baseAtlas(tier, 0));
             for (int mask = 0; mask < 16; mask++) {
                 var atlas = read(baseAtlas(tier, mask));
                 String context = tier + " mask=" + mask;
@@ -154,15 +154,16 @@ class StarComputationEnginePanelPatternAssetsTest {
     }
 
     @Test
-    void canonicalAtlasesAreTheMaskZeroVariantsWithMatchingNinetySixFrameTiming() throws IOException {
+    void modelUsesConnectedBaseAtlasesAndCanonicalLightsKeepMaskZeroTiming() throws IOException {
+        var textures = json(MODEL).getAsJsonObject("textures");
         for (var tier : TIERS) {
-            for (boolean light : new boolean[] {false, true}) {
-                var canonical = canonicalAtlas(tier, light);
-                var maskZero = light ? lightAtlas(tier, 0) : baseAtlas(tier, 0);
-                assertArrayEquals(pixels(read(maskZero)), pixels(read(canonical)),
-                        tier + " canonical light=" + light);
-                if (light) assertTiming(canonical);
+            for (int mask = 0; mask < 16; mask++) {
+                assertEquals(TEXTURE_ID_PREFIX + tier + "_connected_" + mask,
+                        textures.get("base_" + tier + "_connected_" + mask).getAsString());
             }
+            var canonical = canonicalLightAtlas(tier);
+            assertArrayEquals(pixels(read(lightAtlas(tier, 0))), pixels(read(canonical)), tier);
+            assertTiming(canonical);
         }
     }
 
@@ -235,7 +236,7 @@ class StarComputationEnginePanelPatternAssetsTest {
     }
 
     private static Palette palette(String tier) throws IOException {
-        var band = read(ANCHORS.resolve(tier).resolve("band_west_r0c2.png"));
+        var band = read(ANCHORS.resolve(tier.equals("base") ? "reference" : tier).resolve("band_west_r0c2.png"));
         assertEquals(16, band.getWidth(), tier + " anchor band width");
         assertEquals(16, band.getHeight(), tier + " anchor band height");
         int outer = band.getRGB(0, 0);
@@ -260,8 +261,8 @@ class StarComputationEnginePanelPatternAssetsTest {
         return CORE.resolve("controller_formed_" + tier + "_connected_" + mask + "_light.png");
     }
 
-    private static Path canonicalAtlas(String tier, boolean light) {
-        return CORE.resolve("controller_formed_" + tier + (light ? "_light" : "") + ".png");
+    private static Path canonicalLightAtlas(String tier) {
+        return CORE.resolve("controller_formed_" + tier + "_light.png");
     }
 
     private static BufferedImage read(Path path) throws IOException {

@@ -1,0 +1,580 @@
+{
+ "screen": "star_chart_details",
+ "machine": "star_chart_details",
+ "family": "sing",
+ "size": [
+  400,
+  384
+ ],
+ "left_room": 0,
+ "units": "GUI px; shared OSQ machine skin and live handheld controls",
+ "draw": [
+  {
+   "type": "sprite",
+   "id": "window",
+   "k": "window",
+   "rect": [
+    0,
+    0,
+    400,
+    384
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/glass/star_chart_details_window",
+   "slicing": "fixed"
+  },
+  {
+   "type": "sprite",
+   "id": "summary",
+   "k": "card",
+   "rect": [
+    8,
+    36,
+    384,
+    36
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/glass/star_chart_details_summary",
+   "slicing": "fixed"
+  },
+  {
+   "type": "sprite",
+   "id": "contents",
+   "k": "card",
+   "rect": [
+    8,
+    78,
+    384,
+    266
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/glass/star_chart_details_contents",
+   "slicing": "fixed"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 12,
+   "baseline": 23,
+   "width": 376,
+   "size": 13,
+   "font_id": "molecularmanipulator:osq_entropy_900_13",
+   "color": "#FFE9EFF6",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.details"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 18,
+   "baseline": 51,
+   "width": 364,
+   "size": 7.5,
+   "font_id": "molecularmanipulator:osq_entropy_600_7_5",
+   "color": "#FFC2CDDA",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.archive_summary",
+   "id": "archive.summary",
+   "lang_args": [
+    "0",
+    "0.00"
+   ]
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 18,
+   "baseline": 93,
+   "width": 270,
+   "size": 7.5,
+   "font_id": "molecularmanipulator:osq_entropy_700_7_5",
+   "color": "#FFC2CDDA",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.details_hint",
+   "center_y": 90
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 300,
+   "baseline": 93,
+   "width": 78,
+   "size": 7.5,
+   "font_id": "molecularmanipulator:osq_entropy_600_7_5",
+   "color": "#FF95A3B4",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "right",
+   "lang": "star_chart.molecularmanipulator.data_size",
+   "center_y": 90
+  },
+  {
+   "type": "control",
+   "id": "row.0",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    100,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.1",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    122,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.2",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    144,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.3",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    166,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.4",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    188,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.5",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    210,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.6",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    232,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.7",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    254,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.8",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    276,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.9",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    298,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "control",
+   "id": "row.10",
+   "k": "card",
+   "external": true,
+   "rect": [
+    14,
+    320,
+    372,
+    21
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "prev",
+   "k": "ctl",
+   "rect": [
+    12,
+    352,
+    26,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/key13_normal"
+  },
+  {
+   "type": "text",
+   "text": "←",
+   "x": 16,
+   "baseline": 363.0,
+   "width": 18,
+   "size": 7.5,
+   "font_id": "molecularmanipulator:osq_entropy_600_7_5",
+   "color": "#FFC2CDDA",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 363.0,
+   "owner": "prev"
+  },
+  {
+   "type": "sprite",
+   "id": "next",
+   "k": "ctl",
+   "rect": [
+    42,
+    352,
+    26,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/key13_normal"
+  },
+  {
+   "type": "text",
+   "text": "→",
+   "x": 46,
+   "baseline": 363.0,
+   "width": 18,
+   "size": 7.5,
+   "font_id": "molecularmanipulator:osq_entropy_600_7_5",
+   "color": "#FFC2CDDA",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 363.0,
+   "owner": "next"
+  },
+  {
+   "type": "text",
+   "text": "1 / 1",
+   "x": 90,
+   "baseline": 366,
+   "width": 174,
+   "size": 7.5,
+   "font_id": "molecularmanipulator:osq_entropy_600_7_5",
+   "color": "#FFC2CDDA",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "center",
+   "id": "page",
+   "center_y": 363
+  },
+  {
+   "type": "sprite",
+   "id": "back",
+   "k": "ctl",
+   "rect": [
+    280,
+    352,
+    108,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 284,
+   "baseline": 363.0,
+   "width": 100,
+   "size": 7.5,
+   "font_id": "molecularmanipulator:osq_entropy_600_7_5",
+   "color": "#FFC2CDDA",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "lang": "star_chart.molecularmanipulator.back",
+   "center_y": 363.0,
+   "owner": "back"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.paper",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF12161D"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.card",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF1A2029"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFE9EFF6"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink2",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFC2CDDA"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF95A3B4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.hair",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2A3340"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9FC6F2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.soft",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF252D39"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF1D2D45"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFE9EFF6"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFC2CDDA"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_track",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF333E4F"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.level",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9FC6F2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.disabled",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF171C24"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.warning",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFDABB72"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.error",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF08257"
+  }
+ ]
+}

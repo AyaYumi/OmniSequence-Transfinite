@@ -17,7 +17,13 @@ public final class SingularityShaderVertices implements VertexConsumer {
 
     private final VertexConsumer target;
     private final PreparedEffectVertices prepared;
-    private final SodiumVertexBatch.Writer batch;
+    /** Native upload boundary; layout capture and all target writes remain on the render thread. */
+    @FunctionalInterface
+    interface NativeBatch {
+        void push(MemoryStack stack, long address, int vertices);
+    }
+
+    private final NativeBatch batch;
     private final SingularityVertexLayout layout;
     private final long entityIds;
     private final boolean recalculateNormals;
@@ -49,7 +55,7 @@ public final class SingularityShaderVertices implements VertexConsumer {
         prepared = null;
         var writer = nativeBatch ? SodiumVertexBatch.of(target) : null;
         layout = writer == null ? null : SingularityVertexLayout.of(writer.format());
-        batch = layout == null ? null : writer;
+        batch = layout == null ? null : writer::push;
         entityIds = compact ? materials : layout == null ? 0 : layout.entityIds();
         recalculateNormals = layout != null && layout.recalculateNormals();
     }
@@ -65,15 +71,27 @@ public final class SingularityShaderVertices implements VertexConsumer {
         recalculateNormals = state.recalculateNormals();
     }
 
-    boolean usesNativeBatch() { return layout != null; }
+    /** Captured native sink, also usable without a live GL context or an Iris builder. */
+    SingularityShaderVertices(SingularityVertexLayout.State state, NativeBatch batch) {
+        target = null;
+        prepared = null;
+        layout = state.layout();
+        entityIds = state.entityIds();
+        recalculateNormals = state.recalculateNormals();
+        compact = layout.uv < 0;
+        this.batch = java.util.Objects.requireNonNull(batch);
+    }
 
-    int preparedColorStride() { return compact && batch != null ? layout.stride : 16; }
+    boolean usesNativeBatch() { return layout != null; }
+    boolean acceptsPreparedColor() { return batch != null && layout.uv < 0; }
+
+    int preparedColorStride() { return acceptsPreparedColor() ? layout.stride : 16; }
     long preparedColorMaterials() { return entityIds; }
 
     boolean submitColor(long address, int vertices) { return submitColor(address, vertices, 16, 0); }
 
     boolean submitColor(long address, int vertices, int sourceStride, long sourceMaterials) {
-        if (batch == null || layout.uv >= 0) return false;
+        if (!acceptsPreparedColor()) return false;
         if (count != 0) throw new IllegalStateException("Prepared vertices cannot interrupt a partial quad");
         if (pending != null) pending.flush();
         try (var stack = MemoryStack.stackPush()) {
@@ -99,7 +117,14 @@ public final class SingularityShaderVertices implements VertexConsumer {
     }
 
     boolean submitPrepared(SingularityVertexLayout source, long ids, boolean normals, long address, int vertices) {
-        if (batch == null || layout != source || entityIds != ids || recalculateNormals != normals) return false;
+        if (batch == null) return false;
+        if (layout != source || entityIds != ids || recalculateNormals != normals) {
+            // Cold start and target changes may leave full CPU attributes for a compact GPU
+            // consumer. All supported source formats share this XYZ/color prefix. Batch-pack
+            // once, using the CURRENT target material, instead of replaying/completing quads.
+            return source.position == 0 && source.color == 12
+                    && submitColor(address, vertices, source.stride, ids);
+        }
         if (count != 0) throw new IllegalStateException("Prepared vertices cannot interrupt a partial quad");
         if (pending != null) pending.flush();
         try (var stack = MemoryStack.stackPush()) { batch.push(stack, address, vertices); }

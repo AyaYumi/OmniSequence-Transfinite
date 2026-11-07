@@ -71,7 +71,7 @@ class StarComputationRecipeGatesTest {
 
     @Test
     void bootstrapAndThirdPartyRecipesRemainOutsideTheEngineTree() {
-        for (var path : List.of("base_entropy_anchor", "star_computation_engine_core", "star_computation_engine_casing",
+        for (var path : List.of("reference_star_position_anchor", "star_computation_engine_core", "star_computation_engine_casing",
                 "star_computation_observation_port", "star_marrow_crystal_dust", "star_marrow_alloy_ingot",
                 "star_chart_circuit_board", "star_chart_processor", "star_marrow_seed",
                 "star_signal_storage_cell", "creative_star_signal_disk", "matter_fabrication_controller",
@@ -88,8 +88,8 @@ class StarComputationRecipeGatesTest {
 
     @Test
     void anchorsAndAdvancedOwnMachinesHaveRealRecipeRequirements() {
-        assertEquals(1 << 1, StarComputationRecipes.requiredMask(id("quantum_entropy_anchor")));
-        assertEquals(1 << 2, StarComputationRecipes.requiredMask(id("terminal_entropy_anchor")));
+        assertEquals(1 << 1, StarComputationRecipes.requiredMask(id("quantum_star_position_anchor")));
+        assertEquals(1 << 2, StarComputationRecipes.requiredMask(id("terminal_star_position_anchor")));
         assertEquals(1 << 1, StarComputationRecipes.requiredMask(id("molecular_center_core")));
         assertEquals(1 << 1, StarComputationRecipes.requiredMask(id("assembler_matrix_molecular_core")));
         assertEquals(1 << 2, StarComputationRecipes.requiredMask(id("omni_computation_controller")));
@@ -149,8 +149,8 @@ class StarComputationRecipeGatesTest {
     }
 
     private static long maximumReachableEntropy(int mask) {
-        if (StarComputationRecipes.isUnlocked(id("terminal_entropy_anchor"), mask)) return StarComputationBenefits.entropy(0, 0, 90);
-        if (StarComputationRecipes.isUnlocked(id("quantum_entropy_anchor"), mask)) return StarComputationBenefits.entropy(0, 90, 0);
+        if (StarComputationRecipes.isUnlocked(id("terminal_star_position_anchor"), mask)) return StarComputationBenefits.entropy(0, 0, 90);
+        if (StarComputationRecipes.isUnlocked(id("quantum_star_position_anchor"), mask)) return StarComputationBenefits.entropy(0, 90, 0);
         return StarComputationBenefits.entropy(90, 0, 0);
     }
 

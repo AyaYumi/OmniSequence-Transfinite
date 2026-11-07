@@ -1,0 +1,5 @@
+newmtl beam_flat
+map_Kd molecularmanipulator:block/star_orrery/reference/beam_flat
+
+newmtl metal
+map_Kd molecularmanipulator:block/star_orrery/reference/metal

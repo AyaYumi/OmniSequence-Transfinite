@@ -1222,6 +1222,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return dismantling;
     }
 
+    public boolean isStructureUpdating() { return structureUpdating; }
+
     public boolean hasLegacyStructure() {
         return structureUpdating
                 || formed && structureLayout != MolecularCenterStructure.StructureLayout.CURRENT;
@@ -1408,52 +1410,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         saveChanges();
     }
 
+    /** New recovery requests seal the controller and actual members together, including the crystal library. */
     public void startDismantle(ServerPlayer player) {
-        if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
-            return;
-        }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        var detected = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
-        var source = structureUpdating ? structureUpdateSourceLayout
-                : detected.isFormed() ? detected : lastKnownStructureLayout;
-        if (!source.isFormed()) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.dismantle_layout_unknown"), false);
-            return;
-        }
-        var plan = MolecularCenterStructure.createDismantlePlan(level, worldPosition, facing, source, structureUpdating);
-        if (plan == null) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.build_area_unavailable"), false);
-            return;
-        }
-        if (detected.isFormed()) {
-            structureLayout = detected;
-            lastKnownStructureLayout = detected;
-        }
-        dismantleLayout = source;
-        dismantleIncludesUpgrade = structureUpdating;
-        dismantlePlan = plan;
-        dismantling = !plan.isComplete();
-        building = false;
-        repairOnlyBuild = false;
-        structureUpdating = false;
-        structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
-        buildQueueInitialized = false;
-        buildWorkParts = List.of();
-        formed = false;
-        discardPatternMirror();
-        level.setBlock(worldPosition, getBlockState().setValue(
-                net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
-        onGridConnectableSidesChanged();
-        syncShellConnections(false);
-        updateQuantumLink();
-        workCursor = plan.completed();
-        workTotal = plan.total();
-        workConflicts = 0;
-        workOwner = player.getUUID();
-        getLogic().updatePatterns();
-        saveChanges();
+        com.atir.molecularmanipulator.building.BuildingTransfer.seal(player, this);
     }
 
     private void deactivateStructureForWork() {

@@ -21,7 +21,7 @@ One handheld directory for this mod's real building control panels. Each termina
 
 The directory uses the same paper cards and teal styling as the machine panels. Five complete building records are visible on the left. Scroll one row at a time with the mouse wheel or drag the scrollbar to move through the list. Binding totals, ready/unavailable counts and usage tips appear on the right. Long names or locations are abbreviated; hover a building for its full details. The removal button is separate from the opening area.
 
-Supported: Molecular Sequence Rewrite Array, Sequence Array, Sequence Auto Crafter, Matter Fabricator and its four material service ports and pattern assembly port, Star Computation Engine / nine-ring armillary, Omni Computation Core, and both multiblock and compact Event Horizon Singularity Hub variants. Decoration, structural members without their own panel, and the Transfinite Compute Nexus are not separate directory targets.
+Supported: Molecular Sequence Rewrite Array, Sequence Array, Sequence Auto Crafter, Matter Fabricator and its four material service ports and pattern assembly port, Star Computation Engine / nine-ring star orrery, Omni Computation Core, and both multiblock and compact Event Horizon Singularity Hub variants. Decoration, structural members without their own panel, and the Transfinite Compute Nexus are not separate directory targets.
 
 ## Access requirements
 

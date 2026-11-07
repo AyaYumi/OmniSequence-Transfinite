@@ -1,7 +1,6 @@
 package com.atir.molecularmanipulator.item;
 
 import com.atir.molecularmanipulator.building.BuildingTransfer;
-import com.atir.molecularmanipulator.building.BuildingType;
 import com.atir.molecularmanipulator.network.BuildingPayloads;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.*;
@@ -30,9 +29,7 @@ public final class StarChartCalibratorItem extends Item {
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
     }
     private static void open(ServerPlayer player, BlockPos base, BlockPos target) {
-        var entity = player.level().getBlockEntity(target);
-        if (entity == null) entity = com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity.findCore(player.level(), target);
-        boolean seal = player.isShiftKeyDown() && BuildingType.forController(entity) != null;
-        PacketDistributor.sendToPlayer(player, new BuildingPayloads.Open(base, seal ? entity.getBlockPos() : target, seal));
+        // An existing client session reopens its pinned location; only Cancel point releases that selection.
+        PacketDistributor.sendToPlayer(player, new BuildingPayloads.Open(base, target, false));
     }
 }

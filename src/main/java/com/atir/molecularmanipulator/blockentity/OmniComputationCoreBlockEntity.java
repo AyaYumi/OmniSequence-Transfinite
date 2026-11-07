@@ -1255,6 +1255,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return dismantling;
     }
 
+    public boolean isStructureUpdating() { return rebuildingLegacyStructure; }
+
     public int getDismantlableBlocks() {
         return dismantlableBlocks;
     }
@@ -1463,51 +1465,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 "message.molecularmanipulator.legacy_structure_retained"), false);
     }
 
+    /** Keep new recovery on the archive path; legacy dismantle plans remain readable for existing saves. */
     public void startDismantle(ServerPlayer player) {
-        if (singleBlock) return;
-        if (level == null || level.isClientSide() || building || dismantling || !player.mayBuild()) {
-            return;
-        }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (dismantlePlan == null || dismantlePlan.isComplete()) {
-            refreshStructureNow();
-            if (knownLayout == OmniComputationStructure.StructureLayout.INCOMPLETE) {
-                player.displayClientMessage(Component.translatable(
-                        "message.molecularmanipulator.dismantle_layout_unknown"), false);
-                return;
-            }
-            if (!OmniComputationStructure.areRequiredChunksLoaded(level, worldPosition, facing, knownLayout)) {
-                player.displayClientMessage(Component.translatable(
-                        "message.molecularmanipulator.omni.chunks_unloaded"), false);
-                return;
-            }
-            dismantlePlan = DismantlePlan.create(OmniComputationStructure.dismantleEntries(
-                    level, worldPosition, facing, knownLayout));
-        }
-        if (!dismantlePlan.remainingChunksLoaded(level)) {
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.omni.chunks_unloaded"), false);
-            return;
-        }
-        if (dismantlePlan.isComplete()) {
-            dismantlePlan = null;
-            knownLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
-            dismantlableBlocks = 0;
-            setChanged();
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.omni.nothing_to_dismantle"), false);
-            return;
-        }
-        buildQueue = List.of();
-        buildCursor = dismantlePlan.completed();
-        buildTotal = dismantlePlan.total();
-        buildOwner = player.getUUID();
-        dismantling = true;
-        dismantleBlockedNotified = false;
-        structureFormed = false;
-        updateSubType(true);
-        updateQuantumLink();
-        setChanged();
+        if (!singleBlock) com.atir.molecularmanipulator.building.BuildingTransfer.seal(player, this);
     }
 
     private void processBuild() {

@@ -23,19 +23,26 @@ public final class FoldedBuildingPackageItem extends Item {
     @Override public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         var tag = BuildingPackage.data(stack);
         tooltip.add(Component.translatable("tooltip.molecularmanipulator.folded_package.calibrate").withStyle(ChatFormatting.GRAY));
+        if (BuildingPackage.type(stack) == com.atir.molecularmanipulator.building.BuildingType.STAR_COMPUTATION_ENGINE
+                && BuildingPackage.archive(stack) == null)
+            tooltip.add(Component.translatable("tooltip.molecularmanipulator.folded_package.retired_engine").withStyle(ChatFormatting.GOLD));
         if (BuildingPackage.archive(stack) != null) {
             tooltip.add(Component.translatable("tooltip.molecularmanipulator.folded_package.sealed", tag.getInt("blocks")).withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.translatable("tooltip.molecularmanipulator.folded_package.world_archive").withStyle(ChatFormatting.GRAY));
         }
-        if (BuildingPackage.reservation(stack) != null)
+        if (BuildingPackage.reservation(stack) != null) {
             tooltip.add(Component.translatable("tooltip.molecularmanipulator.folded_package.deploying").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.molecularmanipulator.folded_package.cancel").withStyle(ChatFormatting.GRAY));
+        }
     }
     @Override public void inventoryTick(ItemStack stack, Level level, net.minecraft.world.entity.Entity holder, int slot, boolean selected) {
         if (holder instanceof net.minecraft.server.level.ServerPlayer player && level.getGameTime() % 100 == 0)
             BuildingTransfer.settleReservation(player, stack);
     }
     @Override public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        if (!level.isClientSide()) BuildingTransfer.explainPackage(player, player.getItemInHand(hand));
+        if (player instanceof net.minecraft.server.level.ServerPlayer server) {
+            BuildingTransfer.explainPackage(server, player.getItemInHand(hand));
+        }
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
     }
 }

@@ -8,10 +8,12 @@ import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocators;
+import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.client.render.StarComputationEngineModelData;
-import com.atir.molecularmanipulator.starcomputation.EntropyArmillaryLayout;
-import com.atir.molecularmanipulator.starcomputation.EntropyArmillaryFoundation;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryLayout;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryFoundation;
+import com.atir.molecularmanipulator.starcomputation.StarOrreryCoreStructure;
 import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.starcomputation.StarComputationRecipes;
@@ -26,7 +28,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
-import com.atir.molecularmanipulator.block.EntropyAnchorBlock;
+import com.atir.molecularmanipulator.block.StarPositionAnchorBlock;
 import com.atir.molecularmanipulator.block.StarComputationEngineCasingBlock;
 import com.atir.molecularmanipulator.block.StarComputationEngineCoreBlock;
 import com.atir.molecularmanipulator.block.StarComputationObservationPortBlock;
@@ -35,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -46,18 +49,20 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Server-side 3x3x3 structure owner for the Star Computation Engine.
- *
- * <p>The formed flag switches the core to its oversized baked model and hides
- * the 26 shell members beneath it. Removing any part restores the loose models.</p>
- */
+/** Server-side owner of the central 3x3x3 body, physical foundation and nine anchor rings. */
+@EventBusSubscriber(modid = MolecularManipulator.MOD_ID)
 public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlockEntity {
     private static final int CHECK_INTERVAL = 10;
-    private static final int ARMILLARY_LAYOUT_VERSION = 2;
-    private static final int[] ARMILLARY_NODE_LEVELS = {1, 3, 6, 7, 9};
+    private static final int STAR_ORRERY_LAYOUT_VERSION = 2;
+    private static final int[] STAR_ORRERY_NODE_LEVELS = {1, 3, 6, 7, 9};
+    /** Deferred chunk-local repair also covers orphaned shells whose controller no longer exists. */
+    private static final Map<ServerLevel, Set<ChunkPos>> LEGACY_VISUAL_CHUNKS = new WeakHashMap<>();
 
     private boolean formed;
     private boolean needsStateSync = true;
@@ -67,12 +72,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     private long pendingInformationRefund;
     private UUID boundTeam;
     private int legacyUnlockMask;
-    private final Map<Direction, long[]> anchorCounts = new java.util.EnumMap<>(Direction.class);
-    private record AnchorMember(Direction facing, int index, boolean armillary, int slot) {
-        private AnchorMember(Direction facing, int index) {
-            this(facing, index, false, -1);
-        }
-    }
+    private record AnchorMember(Direction facing, int index, int slot) {}
 
     private final Map<BlockPos, AnchorMember> managedAnchors = new HashMap<>();
     /** Server-validated visual snapshot sent through AE2's normal BE update stream. */
@@ -82,10 +82,12 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     private int litRings;
     /** Saved rings that still need runtime revalidation after a reload. */
     private int pendingLitRings;
-    private boolean armillaryValidated = true;
-    @Nullable private EntropyArmillaryFoundation.Scan foundationScan;
+    private boolean starOrreryValidated = true;
+    @Nullable private StarOrreryFoundation.Scan foundationScan;
+    @Nullable private StarOrreryCoreStructure.Scan coreScan;
+    private boolean structureValidated;
     private boolean foundationRecovery;
-    private boolean foundationVisualsDirty;
+    private boolean structureVisualsDirty;
     private int syncedLitRings;
     /** Runtime-only visual load: idle, selected online engine, or paid overclock. */
     private int visualActivity;
@@ -111,15 +113,15 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
 
     @Nullable public UUID getBoundTeam() { return boundTeam; }
 
-    public boolean isArmillary() {
+    public boolean isStarOrrery() {
         var state = getBlockState();
-        return state.hasProperty(StarComputationEngineCoreBlock.ARMILLARY)
-                && state.getValue(StarComputationEngineCoreBlock.ARMILLARY);
+        return state.hasProperty(StarComputationEngineCoreBlock.STAR_ORRERY)
+                && state.getValue(StarComputationEngineCoreBlock.STAR_ORRERY);
     }
 
     public int getLitRings() {
-        return isArmillary() && isFormed() && armillaryValidated
-                ? Math.clamp(litRings, 0, EntropyArmillaryRings.RINGS) : 0;
+        return isStarOrrery() && isFormed() && starOrreryValidated
+                ? Math.clamp(litRings, 0, StarOrreryRings.RINGS) : 0;
     }
 
     public int getVisualTier() {
@@ -130,130 +132,88 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         return getLitRings() > 0 ? visualActivity : 0;
     }
 
-    /**
-     * Research budget for a node. Legacy nodes are untouched; the opt-in armillary
-     * reuses the shared ring thresholds (L1/L3/L6/L7/L9).
-     */
+    /** Research budgets use the shared ring thresholds (L1/L3/L6/L7/L9). */
     public int getResearchEntropyThreshold(int node) {
-        if (node < 0 || node >= StarComputationRecipes.NODES.size()) {
-            return 0;
-        }
-        if (isArmillary()) {
-            return EntropyArmillaryLayout.threshold(ARMILLARY_NODE_LEVELS[node]);
-        }
-        return (int) Math.min(Integer.MAX_VALUE, StarComputationRecipes.NODES.get(node).entropy());
+        return node < 0 || node >= StarComputationRecipes.NODES.size()
+                ? 0 : StarOrreryLayout.threshold(STAR_ORRERY_NODE_LEVELS[node]);
     }
 
     public long getEffectiveEntropy() {
-        if (isArmillary()) {
-            // Pending reload restoration is not a benefit until this server has
-            // verified the rings again; the fixed layout defines the entropy.
-            if (!isFormed() || !armillaryValidated) {
-                return 0L;
-            }
-            return EntropyArmillaryLayout.entropyForRings(Math.clamp(litRings, 0, EntropyArmillaryRings.RINGS));
-        }
-        long[] counts = countAnchors();
-        return isFormed() ? StarComputationBenefits.entropy(counts[0], counts[1], counts[2]) : 0;
+        // Saved or unloaded rings are never benefits before runtime validation.
+        return StarOrreryLayout.entropyForRings(getLitRings());
     }
 
     public int getAnchorCount() {
-        if (isArmillary()) {
-            if (!isFormed() || !armillaryValidated) {
-                return 0;
-            }
-            int total = 0;
-            for (int ring = 0; ring < Math.clamp(litRings, 0, EntropyArmillaryRings.RINGS); ring++) {
-                total += EntropyArmillaryRings.slotCount(ring);
-            }
-            return total;
+        int total = 0;
+        for (int ring = 0; ring < getLitRings(); ring++) {
+            total += StarOrreryRings.slotCount(ring);
         }
-        long[] counts = countAnchors();
-        return isFormed() ? (int) Math.min(Integer.MAX_VALUE, counts[0] + counts[1] + counts[2]) : 0;
+        return total;
     }
 
     /** Formed anchor count of one tier: 0 = base, 1 = quantum, 2 = terminal. */
     public int getAnchorCount(int tier) {
-        if (tier < 0 || tier > 2) return 0;
-        if (isArmillary()) {
-            // Saved or unloaded rings are not anchors until this server has verified them again.
-            if (!isFormed() || !armillaryValidated) return 0;
-            return armillaryTierCount(litRings, tier);
-        }
-        return isFormed() ? (int) Math.min(Integer.MAX_VALUE, countAnchors()[tier]) : 0;
+        return starOrreryTierCount(getLitRings(), tier);
     }
 
     /** Slots of one ring tier inside the verified outer prefix; never derived from a level. */
-    static int armillaryTierCount(int litRings, int tier) {
+    static int starOrreryTierCount(int litRings, int tier) {
         if (tier < 0 || tier > 2) return 0;
         int total = 0;
-        for (int ring = 0; ring < Math.clamp(litRings, 0, EntropyArmillaryRings.RINGS); ring++) {
-            if (EntropyArmillaryLayout.tierOf(ring) == tier) {
-                total += EntropyArmillaryLayout.slotCount(ring);
+        for (int ring = 0; ring < Math.clamp(litRings, 0, StarOrreryRings.RINGS); ring++) {
+            if (StarOrreryLayout.tierOf(ring) == tier) {
+                total += StarOrreryLayout.slotCount(ring);
             }
         }
-        return total;
-    }
-
-    private long[] countAnchors() {
-        long[] total = new long[3];
-        anchorCounts.values().forEach(count -> { for (int i = 0; i < 3; i++) total[i] += count[i]; });
         return total;
     }
 
     public StarComputationBenefits getBenefits() {
-        if (isArmillary()) {
-            int level = isFormed() && armillaryValidated
-                    ? Math.clamp(litRings, 0, EntropyArmillaryRings.RINGS) : 0;
-            return new StarComputationBenefits(level, overclocked);
-        }
-        return new StarComputationBenefits(StarComputationBenefits.levelFor(getEffectiveEntropy()), overclocked);
+        return new StarComputationBenefits(getLitRings(), overclocked);
     }
 
-    /** Bounded footprint of the core and the actual slots of the verified rings. */
+    /** Bounded footprint of the foundation, core, verified/recovering rings and next candidate ring. */
     public Set<ChunkPos> getChunkLoadingChunks() {
-        if (!isArmillary() || !isFormed() && !foundationRecovery) {
+        if (!isStarOrrery() || !isFormed() && !foundationRecovery) {
             return Set.of();
         }
-        int rings = Math.min(EntropyArmillaryRings.RINGS, 1 + Math.max(litRings, pendingLitRings));
+        int rings = Math.min(StarOrreryRings.RINGS, 1 + Math.max(litRings, pendingLitRings));
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        return EntropyArmillaryRings.chunksFor(worldPosition, facing, rings);
+        return StarOrreryRings.chunksFor(worldPosition, facing, rings);
     }
 
-    public boolean isArmillaryMember(BlockPos pos) {
+    public boolean isStarOrreryMember(BlockPos pos) {
         return managedAnchors.containsKey(pos);
     }
 
     /** True when this controller currently considers the whole ring part of its footprint. */
-    public boolean mayOwnArmillarySlot(int ring, int slot) {
-        if (!isArmillary()) {
+    public boolean mayOwnStarOrrerySlot(int ring, int slot) {
+        if (!isStarOrrery()) {
             return false;
         }
-        int rings = Math.max(Math.clamp(litRings, 0, EntropyArmillaryRings.RINGS),
-                Math.clamp(pendingLitRings, 0, EntropyArmillaryRings.RINGS));
-        return ring >= 0 && ring < rings && slot >= 0 && slot < EntropyArmillaryRings.slotCount(ring);
+        int rings = Math.max(Math.clamp(litRings, 0, StarOrreryRings.RINGS),
+                Math.clamp(pendingLitRings, 0, StarOrreryRings.RINGS));
+        return ring >= 0 && ring < rings && slot >= 0 && slot < StarOrreryRings.slotCount(ring);
     }
 
-    /** Physical engine members, including installed anchor assemblies and the armillary foundation. */
+    /** Physical central body, foundation and owned rings; retired columns are never folded. */
     public Set<BlockPos> foldingMembers() {
         var members = new java.util.LinkedHashSet<BlockPos>();
         if (level == null) return Set.of();
         for (var pos : managedAnchors.keySet())
-            if (level.getBlockState(pos).getBlock() instanceof EntropyAnchorBlock) members.add(pos);
+            if (level.hasChunkAt(pos) && level.getBlockState(pos).getBlock() instanceof StarPositionAnchorBlock) members.add(pos);
         members.add(worldPosition);
-        if (!isArmillary()) {
-            for (var pos : BlockPos.betweenClosed(worldPosition.offset(-1, -1, -1), worldPosition.offset(1, 1, 1))) {
-                var state = level.getBlockState(pos);
-                if (state.is(ModContent.STAR_COMPUTATION_ENGINE_CASING.get()) || state.is(ModContent.STAR_COMPUTATION_OBSERVATION_PORT.get()))
-                    members.add(pos.immutable());
+        if (isStarOrrery()) {
+            for (var member : StarOrreryCoreStructure.members()) {
+                var pos = worldPosition.offset(member.offset());
+                if (level.hasChunkAt(pos) && level.getBlockState(pos).is(coreBlock(member.material()))) members.add(pos);
             }
-        } else {
             var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-            for (var member : EntropyArmillaryFoundation.members()) {
-                var pos = EntropyArmillaryFoundation.position(worldPosition, facing, member);
-                var expected = member.material() == EntropyArmillaryFoundation.Material.PLINTH
-                        ? ModContent.ENTROPY_ARMILLARY_PLINTH.get() : ModContent.ENTROPY_ARMILLARY_TRIM.get();
-                if (level.getBlockState(pos).is(expected)) members.add(pos);
+            for (var member : StarOrreryFoundation.members()) {
+                var pos = StarOrreryFoundation.position(worldPosition, facing, member);
+                var expected = member.material() == StarOrreryFoundation.Material.PLINTH
+                        ? ModContent.STAR_ORRERY_ENGRAVED_PLINTH.get() : ModContent.STAR_ORRERY_GILDED_PLINTH.get();
+                if (level.hasChunkAt(pos) && level.getBlockState(pos).is(expected)) members.add(pos);
             }
         }
         return Set.copyOf(members);
@@ -354,12 +314,11 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         if (player.level() != level || isRemoved()) return false;
         if (player.distanceToSqr(worldPosition.getCenter()) <= 64
                 || com.atir.molecularmanipulator.terminal.BuildingTerminal.canAccess(player, this)) return true;
-        // Attached anchors may be arbitrarily long: use the actual valid member, never an enlarged radius.
+        // Distant access is through a real ring member, never a nearby retired column.
         var pos = player.blockPosition();
         for (var member : managedAnchors.keySet()) {
             if (member.distSqr(pos) <= 64 && level.hasChunkAt(member)
-                    && level.getBlockState(member).getBlock() instanceof EntropyAnchorBlock
-                    && level.getBlockState(member).getValue(EntropyAnchorBlock.FORMED)) return true;
+                    && ownsStarOrreryMember(member, level.getBlockState(member))) return true;
         }
         return false;
     }
@@ -374,75 +333,87 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     public void refreshStructureNow() { refreshStructure(); }
 
     /** Transient diagnostics; never treated as saved formation or research credit. */
-    @Nullable public EntropyArmillaryFoundation.Scan getFoundationScan() { return foundationScan; }
+    @Nullable public StarOrreryFoundation.Scan getFoundationScan() { return foundationScan; }
+    @Nullable public StarOrreryCoreStructure.Scan getCoreScan() { return coreScan; }
+
+    private static Block coreBlock(StarOrreryCoreStructure.Material material) {
+        return material == StarOrreryCoreStructure.Material.CASING
+                ? ModContent.STAR_COMPUTATION_ENGINE_CASING.get() : ModContent.STAR_COMPUTATION_OBSERVATION_PORT.get();
+    }
 
     @Nullable
     public static StarComputationEngineCoreBlockEntity findCore(Level level, BlockPos part) {
         if (!level.hasChunkAt(part)) return null;
         var state = level.getBlockState(part);
-        if (state.getBlock() instanceof EntropyAnchorBlock && state.getValue(EntropyAnchorBlock.FORMED)) {
-            if (state.getValue(EntropyAnchorBlock.ARMILLARY)) {
-                return findArmillaryCore(level, part, state);
-            }
-            var facing = state.getValue(HorizontalDirectionalBlock.FACING);
-            var center = StarComputationAnchorStructure.centerOf(part, facing, state.getValue(EntropyAnchorBlock.ANCHOR_POS));
-            var inward = facing.getOpposite();
-            while (level.hasChunkAt(center) && level.isInWorldBounds(center)) {
-                var next = level.getBlockState(center);
-                if (!(next.getBlock() instanceof EntropyAnchorBlock)) {
-                    var candidate = center.relative(inward);
-                    return level.hasChunkAt(candidate) && level.getBlockEntity(candidate) instanceof StarComputationEngineCoreBlockEntity core
-                            && core.isFormed() && core.managedAnchors.containsKey(part) ? core : null;
-                }
-                if (!next.getValue(EntropyAnchorBlock.FORMED) || next.getValue(HorizontalDirectionalBlock.FACING) != facing) return null;
-                center = center.relative(inward);
+        if (state.getBlock() instanceof StarComputationEngineCoreBlock) {
+            return level.getBlockEntity(part) instanceof StarComputationEngineCoreBlockEntity core
+                    && core.isFormed() ? core : null;
+        }
+        if ((state.getBlock() instanceof StarComputationEngineCasingBlock
+                || state.getBlock() instanceof StarComputationObservationPortBlock)
+                && state.getValue(StarComputationEngineCoreBlock.FORMED)) {
+            for (var member : StarOrreryCoreStructure.members()) {
+                if (!state.is(coreBlock(member.material()))) continue;
+                var corePos = part.subtract(member.offset());
+                if (level.hasChunkAt(corePos)
+                        && level.getBlockEntity(corePos) instanceof StarComputationEngineCoreBlockEntity core
+                        && core.isFormed()) return core;
             }
             return null;
         }
-        for (var candidate : BlockPos.betweenClosed(part.offset(-1, -1, -1), part.offset(1, 1, 1))) {
-            if (level.hasChunkAt(candidate) && level.getBlockEntity(candidate) instanceof StarComputationEngineCoreBlockEntity core
-                    && core.isFormed()) return core;
-        }
-        return null;
+        return state.getBlock() instanceof StarPositionAnchorBlock
+                && state.getValue(StarPositionAnchorBlock.FORMED)
+                && state.getValue(StarPositionAnchorBlock.STAR_ORRERY)
+                ? findStarOrreryCore(level, part, state) : null;
     }
 
     /**
-     * Armillary lookup first trusts the per-level ownership map, then verifies
+     * StarOrrery lookup first trusts the per-level ownership map, then verifies
      * candidate slots without loading any chunk. Facing and ring alone are never
      * enough to claim another engine's member.
      */
     @Nullable
-    private static StarComputationEngineCoreBlockEntity findArmillaryCore(Level level, BlockPos part, BlockState state) {
+    private static StarComputationEngineCoreBlockEntity findStarOrreryCore(Level level, BlockPos part, BlockState state) {
         var facing = state.getValue(HorizontalDirectionalBlock.FACING);
-        int ring = state.getValue(EntropyAnchorBlock.ANCHOR_POS);
+        int ring = state.getValue(StarPositionAnchorBlock.ANCHOR_POS);
         if (level instanceof ServerLevel server) {
-            var owner = EntropyArmillaryOwnership.owner(server, part);
-            if (owner != null && server.hasChunkAt(owner)
-                    && server.getBlockEntity(owner) instanceof StarComputationEngineCoreBlockEntity core
-                    && core.isFormed() && core.isArmillary() && core.isArmillaryMember(part)) {
-                return core;
+            var owner = StarOrreryOwnership.owner(server, part);
+            if (owner != null) {
+                return server.hasChunkAt(owner)
+                        && server.getBlockEntity(owner) instanceof StarComputationEngineCoreBlockEntity core
+                        && core.ownsStarOrreryMember(part, state) ? core : null;
             }
         }
-        for (int slot = 0; slot < EntropyArmillaryRings.slotCount(ring); slot++) {
-            var corePos = part.subtract(EntropyArmillaryLayout.offset(facing, ring, slot));
+        for (int slot = 0; slot < StarOrreryRings.slotCount(ring); slot++) {
+            var corePos = part.subtract(StarOrreryLayout.offset(facing, ring, slot));
             if (!level.hasChunkAt(corePos)) continue;
             if (level.getBlockEntity(corePos) instanceof StarComputationEngineCoreBlockEntity core
-                    && core.isFormed() && core.isArmillary()
+                    && core.isFormed() && core.isStarOrrery()
                     && core.getBlockState().getValue(HorizontalDirectionalBlock.FACING) == facing
-                    && (core.isArmillaryMember(part) || core.mayOwnArmillarySlot(ring, slot))) {
+                    && state.is(starOrreryAnchorFor(ring))
+                    && (core.ownsStarOrreryMember(part, state)
+                            || level.isClientSide() && core.mayOwnStarOrrerySlot(ring, slot))) {
                 return core;
             }
         }
         return null;
     }
 
-    /**
-     * @return whether the blockstate currently shows a formed engine. Reads the
-     *         blockstate rather than the saved flag so callers always see the
-     *         same state as the shell models.
-     */
+    private boolean ownsStarOrreryMember(BlockPos part, BlockState state) {
+        var member = managedAnchors.get(part);
+        return member != null && isFormed()
+                && state.getBlock() instanceof StarPositionAnchorBlock
+                && state.getValue(StarPositionAnchorBlock.FORMED) && StarPositionAnchorBlock.isStarOrrery(state)
+                && getBlockState().getValue(HorizontalDirectionalBlock.FACING) == member.facing()
+                && StarOrreryRings.slot(getBlockPos(), member.facing(), member.index(), member.slot()).equals(part)
+                && starOrreryProbe(state, starOrreryAnchorFor(member.index()), member.facing(), member.index(), false)
+                        == StarOrreryRings.Probe.MATCH;
+    }
+
+    /** Saved legacy formed flags cannot grant capabilities, research access or overclock before migration. */
     public boolean isFormed() {
-        return getBlockState().getValue(StarComputationEngineCoreBlock.FORMED);
+        return isStarOrrery() && getBlockState().getValue(StarComputationEngineCoreBlock.FORMED)
+                && (level != null && level.isClientSide || structureValidated);
     }
 
     public void serverTick() {
@@ -452,11 +423,10 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
             overclocked = false;
             saveChanges();
         }
-        if (++tickCounter < CHECK_INTERVAL) {
-            return;
+        if (++tickCounter >= CHECK_INTERVAL || !isStarOrrery()) {
+            tickCounter = 0;
+            refreshStructure();
         }
-        tickCounter = 0;
-        refreshStructure();
     }
 
     @Override
@@ -473,164 +443,89 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     }
 
     private void refreshStructure() {
-        var level = getLevel();
-        if (level == null || level.isClientSide) {
-            return;
-        }
+        if (!(getLevel() instanceof ServerLevel level)) return;
 
-        // Opt-out must restore loaded base meshes even if the legacy shell
-        // cannot currently be scanned across an unloaded chunk boundary.
-        if (!isArmillary() && level instanceof ServerLevel server) {
-            EntropyArmillaryFoundationVisuals.setHidden(server, getBlockPos(), false);
-        }
-        // Preserve the legacy contract. Armillary mode must still find known
-        // shell/base holes when another shell chunk is unavailable.
-        if (!isArmillary() && !level.hasChunksAt(getBlockPos().offset(-1, -1, -1), getBlockPos().offset(1, 1, 1))) {
-            if (level instanceof ServerLevel server) MultiblockChunkLoading.maintain(this);
-            return;
-        }
-
-        boolean shellUnloaded = false;
-        boolean complete = true;
-        for (int dx = -1; dx <= 1 && complete; dx++) {
-            for (int dy = -1; dy <= 1 && complete; dy++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    if (dx == 0 && dy == 0 && dz == 0) {
-                        continue;
-                    }
-                    var shellPos = getBlockPos().offset(dx, dy, dz);
-                    if (!level.hasChunkAt(shellPos)) {
-                        shellUnloaded = true;
-                        continue;
-                    }
-                    var state = level.getBlockState(shellPos);
-                    boolean sideWindow = dy == 0 && Math.abs(dx) + Math.abs(dz) == 1;
-                    boolean valid = sideWindow
-                            ? state.is(ModContent.STAR_COMPUTATION_OBSERVATION_PORT.get())
-                            : state.is(ModContent.STAR_COMPUTATION_ENGINE_CASING.get());
-                    if (!valid) {
-                        complete = false;
-                        break;
-                    }
-                }
-            }
-        }
-
-        foundationVisualsDirty = false;
-        if (isArmillary() && complete) {
-            var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-            foundationScan = EntropyArmillaryFoundation.scan(getBlockPos(), facing, (pos, material) -> {
-                if (!level.hasChunkAt(pos)) return EntropyArmillaryFoundation.Probe.UNLOADED;
-                var expected = material == EntropyArmillaryFoundation.Material.PLINTH
-                        ? ModContent.ENTROPY_ARMILLARY_PLINTH.get() : ModContent.ENTROPY_ARMILLARY_TRIM.get();
-                var state = level.getBlockState(pos);
-                if (!state.is(expected)) return EntropyArmillaryFoundation.Probe.OTHER;
-                if (!state.getValue(com.atir.molecularmanipulator.block.EntropyArmillaryFoundationBlock.FORMED)) {
-                    foundationVisualsDirty = true;
-                }
-                return EntropyArmillaryFoundation.Probe.MATCH;
-            });
-            if (!foundationScan.resolved() || foundationScan.complete() && shellUnloaded) {
-                // Unknown is not air. Keep the recovery footprint and shell state,
-                // but never grant ring benefits before the physical base is verified.
-                if (litRings > 0 || armillaryValidated) setChanged();
-                foundationRecovery = true;
-                pendingLitRings = Math.max(pendingLitRings, litRings);
-                litRings = 0;
-                armillaryValidated = false;
-                syncVisualState();
-                if (level instanceof ServerLevel server) MultiblockChunkLoading.maintain(this);
-                return;
-            }
-            complete = foundationScan.complete();
-        } else {
-            foundationScan = null;
-        }
-
-        foundationRecovery = false;
-        boolean changed = complete != formed;
-        if (changed || needsStateSync || isFormed() != complete || complete && foundationVisualsDirty) {
-            // A missing known block can unform loaded members now. Reconcile
-            // the remaining shell states once unavailable chunks return.
-            needsStateSync = shellUnloaded;
-            formed = complete;
-            updateAllBlockStates();
-            if (changed) {
-                setChanged();
-            }
-        }
-        // Columns can be extended or broken without changing the 3x3x3 shell.
-        refreshAnchors(level);
-        if (level instanceof ServerLevel server) MultiblockChunkLoading.maintain(this);
-    }
-
-    private void refreshAnchors(Level level) {
-        if (!formed) {
-            anchorCounts.clear();
-            resetManagedAnchors(level);
-            if (level instanceof ServerLevel server) {
-                EntropyArmillaryOwnership.release(server, getBlockPos());
-            }
+        var state = getBlockState();
+        var migrated = migrateCoreState(state);
+        if (migrated != state) {
+            // No blockstate writes during chunk loading. Retain the AE node,
+            // research, refund debt and team; discard all legacy formation credit.
+            formed = false;
             litRings = 0;
             pendingLitRings = 0;
-            armillaryValidated = true;
+            starOrreryValidated = false;
+            structureValidated = false;
+            overclocked = false;
+            needsStateSync = true;
+            resetManagedAnchors(level);
+            StarOrreryOwnership.release(level, getBlockPos());
+            StarOrreryFoundationVisuals.setHidden(level, getBlockPos(), false);
+            level.setBlock(getBlockPos(), migrated, StarPositionAnchorBlock.VISUAL_UPDATE_FLAGS);
+            updateNetworkNeighbors(level, getBlockPos());
+            saveChanges();
+        }
+        structureVisualsDirty = false;
+        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
+        coreScan = StarOrreryCoreStructure.scan(getBlockPos(), (pos, material) -> {
+            if (!level.hasChunkAt(pos)) return StarOrreryCoreStructure.Probe.UNLOADED;
+            var member = level.getBlockState(pos);
+            if (!member.is(coreBlock(material))) return StarOrreryCoreStructure.Probe.OTHER;
+            if (!member.getValue(StarComputationEngineCoreBlock.FORMED)
+                    || !member.getValue(StarComputationEngineCasingBlock.INVISIBLE)) structureVisualsDirty = true;
+            return StarOrreryCoreStructure.Probe.MATCH;
+        });
+        foundationScan = StarOrreryFoundation.scan(getBlockPos(), facing, (pos, material) -> {
+            if (!level.hasChunkAt(pos)) return StarOrreryFoundation.Probe.UNLOADED;
+            var expected = material == StarOrreryFoundation.Material.PLINTH
+                    ? ModContent.STAR_ORRERY_ENGRAVED_PLINTH.get() : ModContent.STAR_ORRERY_GILDED_PLINTH.get();
+            var foundation = level.getBlockState(pos);
+            if (!foundation.is(expected)) return StarOrreryFoundation.Probe.OTHER;
+            if (!foundation.getValue(com.atir.molecularmanipulator.block.StarOrreryFoundationBlock.FORMED)) {
+                structureVisualsDirty = true;
+            }
+            return StarOrreryFoundation.Probe.MATCH;
+        });
+        boolean knownMissing = coreScan.resolved() && !coreScan.complete()
+                || foundationScan.resolved() && !foundationScan.complete();
+        if (!knownMissing && (!coreScan.resolved() || !foundationScan.resolved())) {
+            // Unknown is not air. Retain recovery tickets and visuals, but never
+            // expose membership or benefits before both body and base are verified.
+            structureValidated = false;
+            if (litRings > 0 || starOrreryValidated) setChanged();
+            foundationRecovery = true;
+            pendingLitRings = Math.max(pendingLitRings, litRings);
+            litRings = 0;
+            starOrreryValidated = false;
+            syncVisualState();
+            MultiblockChunkLoading.maintain(this);
+            return;
+        }
+
+        boolean complete = coreScan.complete() && foundationScan.complete();
+        structureValidated = complete;
+        foundationRecovery = false;
+        boolean changed = complete != formed;
+        if (changed || needsStateSync || isFormed() != complete || complete && structureVisualsDirty) {
+            needsStateSync = false;
+            formed = complete;
+            updateAllBlockStates();
+            if (changed) setChanged();
+        }
+        refreshAnchors(level);
+        MultiblockChunkLoading.maintain(this);
+    }
+
+    private void refreshAnchors(ServerLevel level) {
+        if (!formed) {
+            resetManagedAnchors(level);
+            StarOrreryOwnership.release(level, getBlockPos());
+            litRings = 0;
+            pendingLitRings = 0;
+            starOrreryValidated = true;
             syncVisualState();
             return;
         }
-        if (isArmillary()) {
-            if (level instanceof ServerLevel server) {
-                refreshArmillaryAnchors(server);
-            }
-            return;
-        }
-        // Leaving the opt-in mode hides only armillary members. Legacy columns
-        // (including the four old directions) keep their exact old behaviour.
-        if (level instanceof ServerLevel server) {
-            resetArmillaryManaged(server);
-        }
-        litRings = 0;
-        pendingLitRings = 0;
-        armillaryValidated = true;
-        refreshLegacyAnchors(level);
-    }
-
-    private void refreshLegacyAnchors(Level level) {
-        for (var facing : Direction.Plane.HORIZONTAL) {
-            var column = StarComputationAnchorStructure.scan(getBlockPos(), facing,
-                    (pos, index) -> anchorProbe(EntropyAnchorBlock.loadedState(level, pos), facing, index));
-            if (!column.resolved()) {
-                // Do not invent a new end cap or dissolve a column at an unloaded boundary.
-                continue;
-            }
-            var desired = new HashSet<BlockPos>();
-            long[] counts = new long[3];
-            for (int layer = 0; layer < column.layers(); layer++) {
-                for (int index = 0; index < StarComputationAnchorStructure.PARTS_PER_LAYER; index++) {
-                    var pos = StarComputationAnchorStructure.position(getBlockPos(), facing, layer, index);
-                    var state = level.getBlockState(pos);
-                    counts[state.is(ModContent.TERMINAL_ENTROPY_ANCHOR.get()) ? 2
-                            : state.is(ModContent.QUANTUM_ENTROPY_ANCHOR.get()) ? 1 : 0]++;
-                    var updated = EntropyAnchorBlock.formedState(state, facing, index, layer == column.layers() - 1);
-                    if (updated != state) {
-                        level.setBlock(pos, updated, EntropyAnchorBlock.VISUAL_UPDATE_FLAGS);
-                    }
-                    EntropyAnchorBlock.scheduleIntegrityCheck(level, pos, updated);
-                    desired.add(pos);
-                    managedAnchors.put(pos, new AnchorMember(facing, index));
-                    if (updated != state) updateNetworkNeighbors(level, pos);
-                }
-            }
-            anchorCounts.put(facing, counts);
-            var previous = managedAnchors.entrySet().iterator();
-            while (previous.hasNext()) {
-                var entry = previous.next();
-                if (entry.getValue().facing() == facing && !desired.contains(entry.getKey())
-                        && resetAnchor(level, entry.getKey(), entry.getValue())) {
-                    previous.remove();
-                }
-            }
-        }
-        syncVisualState();
+        refreshStarOrreryAnchors(level);
     }
 
     /**
@@ -638,25 +533,17 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
      * ever formed; an unresolved tail is dropped to the last actually verified
      * ring once the controller has validated at least once since loading.
      */
-    private void refreshArmillaryAnchors(ServerLevel level) {
-        // A same-block /setblock mode switch must not retain a legacy column's
-        // ownership. Keep unloaded members for their scheduled local repair.
-        var oldMembers = managedAnchors.entrySet().iterator();
-        while (oldMembers.hasNext()) {
-            var entry = oldMembers.next();
-            if (!entry.getValue().armillary() && resetAnchor(level, entry.getKey(), entry.getValue())) oldMembers.remove();
-        }
-        anchorCounts.clear();
+    private void refreshStarOrreryAnchors(ServerLevel level) {
         var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var corePos = getBlockPos();
-        var scan = EntropyArmillaryRings.scan(corePos, facing, (pos, ring) -> {
-            var owner = EntropyArmillaryOwnership.owner(level, pos);
+        var scan = StarOrreryRings.scan(corePos, facing, (pos, ring) -> {
+            var owner = StarOrreryOwnership.owner(level, pos);
             boolean ownedByOther = owner != null && !owner.equals(corePos) && level.hasChunkAt(owner);
-            return armillaryProbe(EntropyAnchorBlock.loadedState(level, pos), armillaryAnchorFor(ring),
+            return starOrreryProbe(StarPositionAnchorBlock.loadedState(level, pos), starOrreryAnchorFor(ring),
                     facing, ring, ownedByOther);
         });
-        int pending = Math.clamp(pendingLitRings, 0, EntropyArmillaryRings.RINGS);
-        if (!armillaryValidated && pending > 0 && !scan.resolved() && scan.lit() < pending) {
+        int pending = Math.clamp(pendingLitRings, 0, StarOrreryRings.RINGS);
+        if (!starOrreryValidated && pending > 0 && !scan.resolved() && scan.lit() < pending) {
             // A saved build is still restoring its tickets/chunks. Keep the saved
             // footprint, but do not grant any unverified benefit or dissolve it.
             litRings = 0;
@@ -667,9 +554,9 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         int lit = scan.lit();
         claimRings:
         for (int ring = 0; ring < lit; ring++) {
-            for (int slot = 0; slot < EntropyArmillaryRings.slotCount(ring); slot++) {
-                if (!EntropyArmillaryOwnership.claim(level, corePos,
-                        EntropyArmillaryRings.slot(corePos, facing, ring, slot))) {
+            for (int slot = 0; slot < StarOrreryRings.slotCount(ring); slot++) {
+                if (!StarOrreryOwnership.claim(level, corePos,
+                        StarOrreryRings.slot(corePos, facing, ring, slot))) {
                     lit = ring;
                     break claimRings;
                 }
@@ -679,98 +566,89 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         var desired = new HashSet<BlockPos>();
         for (int ring = 0; ring < lit; ring++) {
             boolean end = ring == lit - 1;
-            for (int slot = 0; slot < EntropyArmillaryRings.slotCount(ring); slot++) {
-                var pos = EntropyArmillaryRings.slot(corePos, facing, ring, slot);
+            for (int slot = 0; slot < StarOrreryRings.slotCount(ring); slot++) {
+                var pos = StarOrreryRings.slot(corePos, facing, ring, slot);
                 var state = level.getBlockState(pos);
-                var updated = EntropyAnchorBlock.armillaryState(state, facing, ring, end);
+                var updated = StarPositionAnchorBlock.starOrreryState(state, facing, ring, end);
+                var member = new AnchorMember(facing, ring, slot);
+                var previousMember = managedAnchors.put(pos, member);
                 if (updated != state) {
-                    level.setBlock(pos, updated, EntropyAnchorBlock.VISUAL_UPDATE_FLAGS);
-                    updateNetworkNeighbors(level, pos);
+                    level.setBlock(pos, updated, StarPositionAnchorBlock.VISUAL_UPDATE_FLAGS);
                 }
-                EntropyAnchorBlock.scheduleIntegrityCheck(level, pos, updated);
+                // Publish verified membership before notifying cables. Reloaded
+                // formed states also need a notification once ownership is rebuilt.
+                if (updated != state || !member.equals(previousMember)) updateNetworkNeighbors(level, pos);
+                StarPositionAnchorBlock.scheduleIntegrityCheck(level, pos, updated);
                 desired.add(pos);
-                managedAnchors.put(pos, new AnchorMember(facing, ring, true, slot));
             }
         }
 
         var previous = managedAnchors.entrySet().iterator();
         while (previous.hasNext()) {
             var entry = previous.next();
-            if (entry.getValue().armillary() && !desired.contains(entry.getKey())
-                    && releaseManagedArmillary(level, entry.getKey(), entry.getValue())) {
+            if (!desired.contains(entry.getKey())
+                    && releaseManagedStarOrrery(level, entry.getKey(), entry.getValue())) {
                 previous.remove();
             }
         }
-        EntropyArmillaryOwnership.retain(level, corePos, desired);
-        if (litRings != lit || pendingLitRings != 0 || !armillaryValidated) setChanged();
+        StarOrreryOwnership.retain(level, corePos, desired);
+        if (litRings != lit || pendingLitRings != 0 || !starOrreryValidated) setChanged();
         litRings = lit;
         pendingLitRings = 0;
-        armillaryValidated = true;
+        starOrreryValidated = true;
         syncVisualState();
     }
 
     /** Expected anchor tier for a ring, independent of the block's tier display. */
-    static EntropyArmillaryRings.Probe armillaryProbe(@Nullable BlockState state, Block expected,
+    static StarOrreryRings.Probe starOrreryProbe(@Nullable BlockState state, Block expected,
             Direction facing, int ring, boolean ownedByOther) {
         if (state == null) {
-            return EntropyArmillaryRings.Probe.UNLOADED;
+            return StarOrreryRings.Probe.UNLOADED;
         }
         if (!state.is(expected)) {
-            return EntropyArmillaryRings.Probe.OTHER;
+            return StarOrreryRings.Probe.OTHER;
         }
-        if (state.getValue(EntropyAnchorBlock.FORMED)) {
-            if (!state.getValue(EntropyAnchorBlock.ARMILLARY)
+        if (state.getValue(StarPositionAnchorBlock.FORMED)) {
+            if (!state.getValue(StarPositionAnchorBlock.STAR_ORRERY)
                     || state.getValue(HorizontalDirectionalBlock.FACING) != facing
-                    || state.getValue(EntropyAnchorBlock.ANCHOR_POS) != ring
+                    || state.getValue(StarPositionAnchorBlock.ANCHOR_POS) != ring
                     || ownedByOther) {
-                return EntropyArmillaryRings.Probe.OTHER;
+                return StarOrreryRings.Probe.OTHER;
             }
         } else if (ownedByOther) {
-            return EntropyArmillaryRings.Probe.OTHER;
+            return StarOrreryRings.Probe.OTHER;
         }
-        return EntropyArmillaryRings.Probe.MATCH;
+        return StarOrreryRings.Probe.MATCH;
     }
 
-    private static Block armillaryAnchorFor(int ring) {
-        return switch (EntropyArmillaryRings.tierOf(ring)) {
-            case 0 -> ModContent.BASE_ENTROPY_ANCHOR.get();
-            case 1 -> ModContent.QUANTUM_ENTROPY_ANCHOR.get();
-            default -> ModContent.TERMINAL_ENTROPY_ANCHOR.get();
+    private static Block starOrreryAnchorFor(int ring) {
+        return switch (StarOrreryRings.tierOf(ring)) {
+            case 0 -> ModContent.REFERENCE_STAR_POSITION_ANCHOR.get();
+            case 1 -> ModContent.QUANTUM_STAR_POSITION_ANCHOR.get();
+            default -> ModContent.TERMINAL_STAR_POSITION_ANCHOR.get();
         };
     }
 
-    private void resetArmillaryManaged(ServerLevel level) {
-        var previous = managedAnchors.entrySet().iterator();
-        while (previous.hasNext()) {
-            var entry = previous.next();
-            if (entry.getValue().armillary()
-                    && releaseManagedArmillary(level, entry.getKey(), entry.getValue())) {
-                previous.remove();
-            }
-        }
-        EntropyArmillaryOwnership.release(level, getBlockPos());
-    }
-
     /**
-     * Releases one armillary slot. When its chunk is unloaded the membership is
+     * Releases one star_orrery slot. When its chunk is unloaded the membership is
      * still dropped (unverified state is not kept), and the anchor's own local
      * integrity check will unform the stale block when that chunk returns.
      */
-    private boolean releaseManagedArmillary(ServerLevel level, BlockPos pos, AnchorMember member) {
-        var owner = EntropyArmillaryOwnership.owner(level, pos);
+    private boolean releaseManagedStarOrrery(ServerLevel level, BlockPos pos, AnchorMember member) {
+        var owner = StarOrreryOwnership.owner(level, pos);
         if (owner != null && !owner.equals(getBlockPos())) {
             return true;
         }
-        var state = EntropyAnchorBlock.loadedState(level, pos);
-        if (state != null && state.getBlock() instanceof EntropyAnchorBlock
-                && state.getValue(EntropyAnchorBlock.FORMED)
-                && state.getValue(EntropyAnchorBlock.ARMILLARY)
+        var state = StarPositionAnchorBlock.loadedState(level, pos);
+        if (state != null && state.getBlock() instanceof StarPositionAnchorBlock
+                && state.getValue(StarPositionAnchorBlock.FORMED)
+                && state.getValue(StarPositionAnchorBlock.STAR_ORRERY)
                 && state.getValue(HorizontalDirectionalBlock.FACING) == member.facing()
-                && state.getValue(EntropyAnchorBlock.ANCHOR_POS) == member.index()) {
-            level.setBlock(pos, EntropyAnchorBlock.unformedState(state), EntropyAnchorBlock.VISUAL_UPDATE_FLAGS);
+                && state.getValue(StarPositionAnchorBlock.ANCHOR_POS) == member.index()) {
+            level.setBlock(pos, StarPositionAnchorBlock.unformedState(state), StarPositionAnchorBlock.VISUAL_UPDATE_FLAGS);
             updateNetworkNeighbors(level, pos);
         }
-        EntropyArmillaryOwnership.releaseIfOwner(level, pos, getBlockPos());
+        StarOrreryOwnership.releaseIfOwner(level, pos, getBlockPos());
         return true;
     }
 
@@ -778,23 +656,9 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         int nextTier = 0;
         int nextConnections = 0;
         int nextLit = 0;
-        if (formed) {
-            if (isArmillary()) {
-                if (armillaryValidated) {
-                    nextLit = Math.clamp(litRings, 0, EntropyArmillaryRings.RINGS);
-                    nextTier = nextLit == 0 ? 0 : EntropyArmillaryRings.tierOf(nextLit - 1) + 1;
-                }
-            } else {
-                for (var entry : anchorCounts.entrySet()) {
-                    var counts = entry.getValue();
-                    if (counts[0] > 0) nextTier = Math.max(nextTier, 1);
-                    if (counts[1] > 0) nextTier = Math.max(nextTier, 2);
-                    if (counts[2] > 0) nextTier = Math.max(nextTier, 3);
-                    if (counts[0] + counts[1] + counts[2] > 0) {
-                        nextConnections |= connectionBit(entry.getKey());
-                    }
-                }
-            }
+        if (isFormed() && starOrreryValidated) {
+            nextLit = Math.clamp(litRings, 0, StarOrreryRings.RINGS);
+            nextTier = nextLit == 0 ? 0 : StarOrreryRings.tierOf(nextLit - 1) + 1;
         }
         int nextActivity = 0;
         if (nextLit > 0 && getMainNode().isActive()
@@ -811,75 +675,16 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         }
     }
 
-    private static int connectionBit(Direction direction) {
-        return switch (direction) {
-            case NORTH -> 1;
-            case EAST -> 2;
-            case SOUTH -> 4;
-            case WEST -> 8;
-            default -> 0;
-        };
-    }
-
-    static StarComputationAnchorStructure.Probe anchorProbe(@Nullable BlockState state, Direction facing, int index) {
-        if (state == null) {
-            return StarComputationAnchorStructure.Probe.UNLOADED;
-        }
-        if (state.getBlock() instanceof EntropyAnchorBlock
-                && !state.getValue(EntropyAnchorBlock.ARMILLARY)
-                && (!state.getValue(EntropyAnchorBlock.FORMED)
-                        || state.getValue(HorizontalDirectionalBlock.FACING) == facing
-                                && state.getValue(EntropyAnchorBlock.ANCHOR_POS) == index)) {
-            return StarComputationAnchorStructure.Probe.ANCHOR;
-        }
-        // Facing plus the local 3x3 position identifies the column's center line.
-        // Do not steal a column with another direction OR another cross-section center.
-        return StarComputationAnchorStructure.Probe.OTHER;
-    }
-
     private void resetManagedAnchors(Level level) {
+        if (!(level instanceof ServerLevel server)) return;
         var previous = managedAnchors.entrySet().iterator();
         while (previous.hasNext()) {
             var entry = previous.next();
-            if (entry.getValue().armillary() && level instanceof ServerLevel server) {
-                if (releaseManagedArmillary(server, entry.getKey(), entry.getValue())) {
-                    previous.remove();
-                }
-            } else if (resetAnchor(level, entry.getKey(), entry.getValue())) {
-                previous.remove();
-            }
+            if (releaseManagedStarOrrery(server, entry.getKey(), entry.getValue())) previous.remove();
         }
     }
 
-    private static boolean resetAnchor(Level level, BlockPos pos, AnchorMember member) {
-        var state = EntropyAnchorBlock.loadedState(level, pos);
-        if (state == null) {
-            return false;
-        }
-        if (member.armillary()) {
-            if (state.getBlock() instanceof EntropyAnchorBlock
-                    && state.getValue(EntropyAnchorBlock.FORMED)
-                    && state.getValue(EntropyAnchorBlock.ARMILLARY)
-                    && state.getValue(HorizontalDirectionalBlock.FACING) == member.facing()
-                    && state.getValue(EntropyAnchorBlock.ANCHOR_POS) == member.index()) {
-                level.setBlock(pos, EntropyAnchorBlock.unformedState(state), EntropyAnchorBlock.VISUAL_UPDATE_FLAGS);
-                updateNetworkNeighbors(level, pos);
-            }
-            return true;
-        }
-        if (state.getBlock() instanceof EntropyAnchorBlock
-                && state.getValue(EntropyAnchorBlock.FORMED)
-                && !state.getValue(EntropyAnchorBlock.ARMILLARY)
-                && state.getValue(HorizontalDirectionalBlock.FACING) == member.facing()
-                && state.getValue(EntropyAnchorBlock.ANCHOR_POS) == member.index()) {
-            level.setBlock(pos, EntropyAnchorBlock.unformedState(state), EntropyAnchorBlock.VISUAL_UPDATE_FLAGS);
-        }
-        return true;
-    }
-
-    /**
-     * Updates FORMED on the shell and the physical foundation's visual-only state.
-     */
+    /** The core's whole-body model replaces only the verified central members' meshes. */
     private void updateAllBlockStates() {
         var level = getLevel();
         if (level == null) {
@@ -887,25 +692,20 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         }
 
         if (level instanceof ServerLevel server) {
-            EntropyArmillaryFoundationVisuals.setHidden(server, getBlockPos(), isArmillary() && formed);
+            StarOrreryFoundationVisuals.setHidden(server, getBlockPos(), isStarOrrery() && formed);
         }
         applyFormed(level, getBlockPos(), formed);
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    if (dx == 0 && dy == 0 && dz == 0) {
-                        continue;
-                    }
-                    applyFormed(level, getBlockPos().offset(dx, dy, dz), formed);
-                }
+        for (var member : StarOrreryCoreStructure.members()) {
+            var pos = getBlockPos().offset(member.offset());
+            if (!level.hasChunkAt(pos)) continue;
+            var block = level.getBlockState(pos).getBlock();
+            if (block instanceof StarComputationEngineCasingBlock || block instanceof StarComputationObservationPortBlock) {
+                applyFormed(level, pos, formed);
             }
         }
     }
 
-    /**
-     * Drops the shell back to its unformed look when the core disappears, so no
-     * shell block keeps a stale FORMED state after the engine is taken apart.
-     */
+    /** Restores loaded visual members without removing or refunding any player blocks. */
     public static void resetShell(Level level, BlockPos corePos) {
         if (level == null || level.isClientSide) {
             return;
@@ -914,18 +714,72 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
             core.resetManagedAnchors(level);
         }
         if (level instanceof ServerLevel server) {
-            EntropyArmillaryOwnership.release(server, corePos);
-            EntropyArmillaryFoundationVisuals.setHidden(server, corePos, false);
+            StarOrreryOwnership.release(server, corePos);
+            StarOrreryFoundationVisuals.setHidden(server, corePos, false);
         }
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    if (dx == 0 && dy == 0 && dz == 0) {
-                        continue;
-                    }
-                    var pos = corePos.offset(dx, dy, dz);
-                    if (level.hasChunkAt(pos)) {
-                        applyFormed(level, pos, false);
+        restoreLegacyShell(level, corePos);
+    }
+
+    /** Used when the owning core is removed; no materials are deleted or refunded. */
+    private static void restoreLegacyShell(Level level, BlockPos corePos) {
+        for (var pos : BlockPos.betweenClosed(corePos.offset(-1, -1, -1), corePos.offset(1, 1, 1))) {
+            if (level.hasChunkAt(pos)) restoreLegacyMember(level, pos);
+        }
+    }
+
+    /** Saved shell flags are repaired only after a potential owner's state is known. */
+    private static boolean deferShellRepair(Level level, BlockPos pos, BlockState state) {
+        if (!(state.getBlock() instanceof StarComputationEngineCasingBlock
+                || state.getBlock() instanceof StarComputationObservationPortBlock)) return false;
+        for (var member : StarOrreryCoreStructure.members()) {
+            if (!state.is(coreBlock(member.material()))) continue;
+            var candidate = pos.subtract(member.offset());
+            if (!level.hasChunkAt(candidate)) return true;
+            if (level.getBlockEntity(candidate) instanceof StarComputationEngineCoreBlockEntity core
+                    && (core.isFormed() || core.needsStateSync || core.foundationRecovery)) return true;
+        }
+        return false;
+    }
+
+    private static void restoreLegacyMember(Level level, BlockPos pos) {
+        var restored = restoredLegacyState(level.getBlockState(pos));
+        if (restored != null) {
+            level.setBlock(pos, restored, StarPositionAnchorBlock.VISUAL_UPDATE_FLAGS);
+            updateNetworkNeighbors(level, pos);
+        }
+    }
+
+    @SubscribeEvent
+    public static void legacyChunkLoaded(ChunkEvent.Load event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        // Chunk promotion can run before block entities are installed. Do not
+        // rewrite any states until the level's safe post-tick phase.
+        synchronized (LEGACY_VISUAL_CHUNKS) {
+            LEGACY_VISUAL_CHUNKS.computeIfAbsent(level, ignored -> new HashSet<>()).add(event.getChunk().getPos());
+        }
+    }
+
+    @SubscribeEvent
+    public static void restoreLegacyChunks(LevelTickEvent.Post event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
+        Set<ChunkPos> chunks;
+        synchronized (LEGACY_VISUAL_CHUNKS) {
+            chunks = LEGACY_VISUAL_CHUNKS.remove(level);
+        }
+        if (chunks == null) return;
+        for (var chunkPos : chunks) {
+            var chunk = level.getChunkSource().getChunkNow(chunkPos.x, chunkPos.z);
+            if (chunk == null) continue;
+            var sections = chunk.getSections();
+            for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+                var section = sections[sectionIndex];
+                if (!section.maybeHas(state -> restoredLegacyState(state) != null)) continue;
+                int baseY = level.getSectionYFromSectionIndex(sectionIndex) << 4;
+                for (int x = 0; x < 16; x++) for (int y = 0; y < 16; y++) for (int z = 0; z < 16; z++) {
+                    var state = section.getBlockState(x, y, z);
+                    if (restoredLegacyState(state) != null) {
+                        var pos = chunkPos.getBlockAt(x, baseY + y, z);
+                        if (!deferShellRepair(level, pos, state)) restoreLegacyMember(level, pos);
                     }
                 }
             }
@@ -936,10 +790,9 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         if (!level.hasChunkAt(pos)) return;
         var state = level.getBlockState(pos);
         BlockState updated = withFormed(state, formed);
-        if (updated != null) {
-            level.setBlock(pos, updated, EntropyAnchorBlock.VISUAL_UPDATE_FLAGS);
-            updateNetworkNeighbors(level, pos);
-        }
+        if (updated != null) level.setBlock(pos, updated, StarPositionAnchorBlock.VISUAL_UPDATE_FLAGS);
+        // Also reconnect cached capabilities after reload when saved visual flags already match.
+        updateNetworkNeighbors(level, pos);
     }
 
     private static void updateNetworkNeighbors(Level level, BlockPos pos) {
@@ -948,7 +801,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
             var adjacent = pos.relative(direction);
             if (!level.hasChunkAt(adjacent)) continue;
             var block = level.getBlockState(adjacent).getBlock();
-            if (!(block instanceof EntropyAnchorBlock || block instanceof StarComputationEngineCasingBlock
+            if (!(block instanceof StarPositionAnchorBlock || block instanceof StarComputationEngineCasingBlock
                     || block instanceof StarComputationObservationPortBlock || block instanceof StarComputationEngineCoreBlock)) {
                 level.neighborChanged(adjacent, level.getBlockState(pos).getBlock(), pos);
             }
@@ -962,13 +815,28 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
                 || state.getBlock() instanceof StarComputationObservationPortBlock)) {
             return null;
         }
-        // All engine parts share the same named FORMED property. Do not return
-        // early when only INVISIBLE is stale (e.g. a pre-migration saved state).
-        BlockState updated = state.setValue(StarComputationEngineCoreBlock.FORMED, formed);
-        if (updated.hasProperty(StarComputationEngineCasingBlock.INVISIBLE)) {
-            updated = updated.setValue(StarComputationEngineCasingBlock.INVISIBLE, formed);
-        }
+        boolean core = state.getBlock() instanceof StarComputationEngineCoreBlock;
+        BlockState updated = state.setValue(StarComputationEngineCoreBlock.FORMED,
+                formed && (!core || StarComputationEngineCoreBlock.isStarOrrery(state)));
+        if (!core) updated = updated.setValue(StarComputationEngineCasingBlock.INVISIBLE, formed);
         return updated == state ? null : updated;
+    }
+
+    static BlockState migrateCoreState(BlockState state) {
+        return StarComputationEngineCoreBlock.isStarOrrery(state) ? state
+                : state.setValue(StarComputationEngineCoreBlock.STAR_ORRERY, true)
+                        .setValue(StarComputationEngineCoreBlock.FORMED, false);
+    }
+
+    @Nullable
+    static BlockState restoredLegacyState(BlockState state) {
+        if (state.getBlock() instanceof StarPositionAnchorBlock
+                && state.getValue(StarPositionAnchorBlock.FORMED)
+                && !StarPositionAnchorBlock.isStarOrrery(state)) {
+            return StarPositionAnchorBlock.unformedState(state);
+        }
+        return state.getBlock() instanceof StarComputationEngineCasingBlock
+                || state.getBlock() instanceof StarComputationObservationPortBlock ? withFormed(state, false) : null;
     }
 
     @Override
@@ -980,9 +848,9 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         tag.putLong("entropy_refund", pendingInformationRefund);
         tag.putInt("entropy_visual_tier", visualTier);
         tag.putInt("entropy_visual_connections", visualConnections);
-        tag.putInt("entropy_armillary_lit_rings", litRings);
-        tag.putInt("entropy_armillary_pending_rings", pendingLitRings);
-        tag.putInt("entropy_armillary_layout_version", ARMILLARY_LAYOUT_VERSION);
+        tag.putInt("star_orrery_lit_rings", litRings);
+        tag.putInt("star_orrery_pending_rings", pendingLitRings);
+        tag.putInt("star_orrery_layout_version", STAR_ORRERY_LAYOUT_VERSION);
         if (boundTeam != null) tag.putUUID("entropy_team", boundTeam);
     }
 
@@ -1000,7 +868,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         boolean changed = super.readFromStream(data);
         int nextTier = Math.clamp(data.readUnsignedByte(), 0, 3);
         int nextConnections = data.readUnsignedByte() & 0xF;
-        int nextLit = Math.clamp(data.readUnsignedByte(), 0, EntropyArmillaryRings.RINGS);
+        int nextLit = Math.clamp(data.readUnsignedByte(), 0, StarOrreryRings.RINGS);
         int nextActivity = Math.clamp(data.readUnsignedByte(), 0, 2);
         changed |= visualTier != nextTier || visualConnections != nextConnections
                 || litRings != nextLit || visualActivity != nextActivity;
@@ -1009,7 +877,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         litRings = nextLit;
         syncedLitRings = nextLit;
         visualActivity = nextActivity;
-        armillaryValidated = true;
+        starOrreryValidated = true;
         return changed;
     }
 
@@ -1020,26 +888,24 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         overclocked = tag.getBoolean("entropy_overclocked");
         legacyUnlockMask = tag.getInt("entropy_unlocks") & StarComputationRecipes.ALL_UNLOCKS;
         pendingInformationRefund = Math.max(0, tag.getLong("entropy_refund"));
-        visualTier = Math.clamp(tag.getInt("entropy_visual_tier"), 0, 3);
-        visualConnections = tag.getInt("entropy_visual_connections") & 0xF;
-        boolean currentLayout = tag.getInt("entropy_armillary_layout_version") == ARMILLARY_LAYOUT_VERSION;
+        visualTier = 0;
+        visualConnections = 0;
+        boolean currentLayout = tag.getInt("star_orrery_layout_version") == STAR_ORRERY_LAYOUT_VERSION;
         int savedLit = currentLayout
-                ? Math.clamp(tag.getInt("entropy_armillary_lit_rings"), 0, EntropyArmillaryRings.RINGS) : 0;
+                ? Math.clamp(tag.getInt("star_orrery_lit_rings"), 0, StarOrreryRings.RINGS) : 0;
         int savedPending = currentLayout
-                ? Math.clamp(tag.getInt("entropy_armillary_pending_rings"), 0, EntropyArmillaryRings.RINGS) : 0;
+                ? Math.clamp(tag.getInt("star_orrery_pending_rings"), 0, StarOrreryRings.RINGS) : 0;
         // Saved rings are only a ticket-recovery hint. They never become a
         // benefit until this server has scanned them again.
         litRings = 0;
         pendingLitRings = Math.max(savedLit, savedPending);
-        armillaryValidated = !isArmillary();
+        starOrreryValidated = false;
         foundationScan = null;
+        coreScan = null;
+        structureValidated = false;
         foundationRecovery = false;
         syncedLitRings = 0;
         visualActivity = 0;
-        if (isArmillary() && (!currentLayout || pendingLitRings > 0)) {
-            visualTier = 0;
-            visualConnections = 0;
-        }
         boundTeam = tag.hasUUID("entropy_team") ? tag.getUUID("entropy_team") : null;
     }
 }

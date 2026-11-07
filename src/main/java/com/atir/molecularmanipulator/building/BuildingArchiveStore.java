@@ -34,8 +34,13 @@ public final class BuildingArchiveStore {
             }).filter(Objects::nonNull).filter(this::exists).toList();
         }
     }
+    @FunctionalInterface public interface EntryReader { Entry read(int index) throws IOException; }
     /** Write immutable contents before publishing the manifest that authorizes source removal. */
     public void writeSnapshot(UUID id, List<Entry> entries, HolderLookup.Provider registries) throws IOException {
+        writeSnapshot(id, entries.size(), entries::get, registries);
+    }
+    /** Capture one native component at a time instead of retaining every inventory's NBT in memory. */
+    public void writeSnapshot(UUID id, int size, EntryReader entries, HolderLookup.Provider registries) throws IOException {
         var directory = directory(id);
         Files.createDirectories(directory);
         if (Files.exists(directory.resolve("index.nbt"))) throw new IOException("Snapshot already exists: " + id);
@@ -43,8 +48,8 @@ public final class BuildingArchiveStore {
         index.putInt("format", FORMAT);
         var list = new ListTag();
         long total = 0;
-        for (int i = 0; i < entries.size(); i++) {
-            var entry = entries.get(i);
+        for (int i = 0; i < size; i++) {
+            var entry = entries.read(i);
             var descriptor = new CompoundTag();
             descriptor.putLong("offset", entry.offset().asLong());
             descriptor.put("state", NbtUtils.writeBlockState(entry.state()));
@@ -81,7 +86,9 @@ public final class BuildingArchiveStore {
         return List.copyOf(entries);
     }
     public Entry readEntry(UUID id, int index, HolderLookup.Provider registries) throws IOException {
-        return readEntry(id, index, readIndex(id).getList("entries", Tag.TAG_COMPOUND).getCompound(index), registries);
+        var entries = readIndex(id).getList("entries", Tag.TAG_COMPOUND);
+        if (index < 0 || index >= entries.size()) throw new IndexOutOfBoundsException(index);
+        return readEntry(id, index, entries.getCompound(index), registries);
     }
     public Entry readEntry(UUID id, int index, CompoundTag descriptor, HolderLookup.Provider registries) throws IOException {
         CompoundTag data = null;
@@ -120,8 +127,16 @@ public final class BuildingArchiveStore {
         return manifest;
     }
     public void writeManifest(UUID id, CompoundTag manifest) throws IOException {
-        manifest.putInt("archive_format", FORMAT);
-        atomicNbt(directory(id).resolve("manifest.nbt"), manifest);
+        var saved = manifest.copy();
+        saved.putInt("archive_format", FORMAT);
+        atomicNbt(directory(id).resolve("manifest.nbt"), saved);
+    }
+    /** Publish to disk before advancing the live journal. A failed write leaves the old state replayable. */
+    public CompoundTag updateManifest(UUID id, CompoundTag current, java.util.function.Consumer<CompoundTag> update) throws IOException {
+        var next = current.copy();
+        update.accept(next);
+        writeManifest(id, next);
+        return next;
     }
     public static CompoundTag localNbt(Path path) throws IOException { return NbtIo.readCompressed(path, NbtAccounter.unlimitedHeap()); }
     private static void atomicNbt(Path target, CompoundTag tag) throws IOException {
@@ -131,7 +146,7 @@ public final class BuildingArchiveStore {
         force(temporary);
         replace(temporary, target);
     }
-    private static void force(Path path) throws IOException {
+    static void force(Path path) throws IOException {
         try (var channel = FileChannel.open(path, StandardOpenOption.WRITE)) { channel.force(true); }
     }
     private static void replace(Path temporary, Path target) throws IOException {

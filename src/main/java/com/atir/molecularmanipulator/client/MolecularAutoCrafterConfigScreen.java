@@ -82,10 +82,11 @@ public final class MolecularAutoCrafterConfigScreen extends ResponsiveContainerS
     }
     @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui!=null)ui.background(g,font,x,y);}
     @Override public void drawFG(GuiGraphics g,int ox,int oy,int mx,int my){if(ui==null)return;ui.foreground(g,font);var d=details();if(d==null)return;
-        AEStackIcon.draw(g,d.getPrimaryOutput(),17,39);ui.smallText(g,d.getPrimaryOutput().what().getDisplayName(),39,45,112);
-        ui.smallText(g,tr("state."+menu.state.name().toLowerCase(Locale.ROOT)),46,54,106);
+        AEStackIcon.draw(g,d.getPrimaryOutput(),17,39);ui.centeredText(g,d.getPrimaryOutput().what().getDisplayName(),39,47,112,ui.palette.ink);
+        ui.centeredText(g,tr("state."+menu.state.name().toLowerCase(Locale.ROOT)),46,61,106,ui.palette.ink);
         for(int i=page*PAGE_SIZE;i<Math.min(count(),(page+1)*PAGE_SIZE);i++){if(i>=d.getInputs().length)break;var options=d.getInputs()[i].getPossibleInputs();if(options.length==0)continue;
-            GenericStack s=options[0];int y=125+(i%PAGE_SIZE)*18;AEStackIcon.draw(g,s,17,y);ui.smallText(g,s.what().getDisplayName(),39,y+10,112);}
+            GenericStack s=options[0];var row=ui.layout.findControl("rsv"+(i%PAGE_SIZE));
+            AEStackIcon.draw(g,s,17,Math.round(row.y)+1);ui.centeredText(g,s.what().getDisplayName(),39,row.y+row.h/2,112,ui.palette.ink);}
     }
     private static Component tr(String key){return OsqUi.tr("gui.molecularmanipulator.auto_craft_"+key);}
 }

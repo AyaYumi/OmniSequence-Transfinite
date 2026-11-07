@@ -1,8 +1,0 @@
-{
-  "parent": "minecraft:block/cube_bottom_top",
-  "textures": {
-    "top": "molecularmanipulator:block/entropy_armillary/foundation/plinth_top",
-    "bottom": "molecularmanipulator:block/entropy_armillary/foundation/bottom",
-    "side": "molecularmanipulator:block/entropy_armillary/foundation/plinth_side"
-  }
-}

@@ -918,27 +918,9 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         return true;
     }
 
+    /** New recovery requests use the same archive transaction as the calibrator. Old saved dismantles still resume below. */
     public void startDismantle(ServerPlayer player) {
-        if (level == null || level.isClientSide() || building || dismantling
-                || updatingStructure || !player.mayBuild()) {
-            return;
-        }
-        Direction facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        dismantlePlan = captureActualDismantlePlan(facing);
-        if (dismantlePlan == null || dismantlePlan.isComplete()) {
-            player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
-                    "message.molecularmanipulator.fabrication.nothing_to_dismantle"), false);
-            return;
-        }
-        dismantling = true;
-        building = false;
-        buildCursor = 0;
-        buildOwner = player.getUUID();
-        structureFormed = false;
-        resetProgress();
-        updateOptionalLinks();
-        setState(ProcessingState.DISMANTLING);
-        saveChanges();
+        com.atir.molecularmanipulator.building.BuildingTransfer.seal(player, this);
     }
 
     private void processDismantle() {

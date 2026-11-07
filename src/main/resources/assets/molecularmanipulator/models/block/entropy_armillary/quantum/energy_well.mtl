@@ -1,5 +1,0 @@
-newmtl metal
-map_Kd molecularmanipulator:block/entropy_armillary/quantum/metal
-
-newmtl wellglow
-map_Kd molecularmanipulator:block/entropy_armillary/quantum/wellglow

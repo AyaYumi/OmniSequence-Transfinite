@@ -18,6 +18,9 @@ import java.util.Random;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,7 +46,7 @@ class SealedQuadSortingTest {
     }
 
     @Test void diagonalSnapshotMatchesRealMeshDataIncludingFloatEdgesAndDoesNotTouchMaterials() {
-        try (var source = mesh(8, 7); var sorted = new ByteBufferBuilder(128)) {
+        try (var source = mesh(8, 7); var sorted = new ByteBufferBuilder(128); var pool = pool(1, 8, 64L << 20)) {
             long start = MemoryUtil.memAddress(source.mesh.vertexBuffer());
             float[] values = {0F, -0F, Float.MAX_VALUE, -Float.MAX_VALUE,
                     Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NaN, Float.MIN_VALUE};
@@ -63,17 +66,35 @@ class SealedQuadSortingTest {
             assertCentroids(expected, actual);
             assertArrayEquals(before, bytes(source.mesh.vertexBuffer()), "Colors and per-vertex materials are untouched");
             assertSame(source.mesh.drawState().indexType(), actual.indexType());
+            var captured = pool.tryCapture(source.mesh.vertexBuffer(), source.mesh.drawState(), VertexSorting.DISTANCE_TO_ORIGIN);
+            assertNotNull(captured);
+            assertCentroids(expected, captured.state());
+            try (var job = captured.job()) {
+                assertNotNull(job);
+                assertArrayEquals(bytes(source.mesh.indexBuffer()), bytes(job.result()));
+            }
+            assertArrayEquals(before, bytes(source.mesh.vertexBuffer()));
         }
     }
 
     @Test void captureRejectsAnIncompleteOrForeignBufferBeforeReadingNativeMemory() {
-        try (var storage = new ByteBufferBuilder(96)) {
+        try (var storage = new ByteBufferBuilder(96); var pool = pool(1, 8, 64L << 20)) {
             storage.reserve(95);
             try (var result = storage.build()) {
                 assertThrows(IllegalArgumentException.class, () -> SealedQuadSorting.capture(result.byteBuffer(),
                         draw(COMPACT, 4, VertexFormat.Mode.QUADS, VertexFormat.IndexType.SHORT)));
                 assertThrows(IllegalArgumentException.class, () -> SealedQuadSorting.capture(result.byteBuffer(),
                         draw(DefaultVertexFormat.POSITION_COLOR, 4, VertexFormat.Mode.QUADS, VertexFormat.IndexType.SHORT)));
+                for (var invalid : List.of(
+                        draw(COMPACT, 4, VertexFormat.Mode.QUADS, VertexFormat.IndexType.SHORT),
+                        draw(COMPACT, -4, VertexFormat.Mode.QUADS, VertexFormat.IndexType.SHORT),
+                        draw(COMPACT, 1, VertexFormat.Mode.TRIANGLES, VertexFormat.IndexType.SHORT),
+                        draw(DefaultVertexFormat.POSITION_COLOR, 4, VertexFormat.Mode.QUADS, VertexFormat.IndexType.SHORT))) {
+                    assertThrows(IllegalArgumentException.class,
+                            () -> pool.tryCapture(result.byteBuffer(), invalid, VertexSorting.DISTANCE_TO_ORIGIN));
+                    assertEquals(0, pool.activeJobs());
+                    assertEquals(0, pool.reservedBytes());
+                }
             }
         }
     }
@@ -129,6 +150,69 @@ class SealedQuadSortingTest {
         }
     }
 
+    @Test void budgetedCaptureMatchesSortStateAcrossFloatKeysSortersAndBothIndexWidths() {
+        var sorters = List.of(VertexSorting.DISTANCE_TO_ORIGIN, VertexSorting.ORTHOGRAPHIC_Z,
+                VertexSorting.byDistance(13.25F, -27F, 91.5F),
+                VertexSorting.byDistance(value -> value.x * 2F - value.y + value.z));
+        try (var pool = pool(2, 8, 64L << 20)) {
+            for (int count : new int[]{0, 1, 79, 80, 81, 1024, 16383, 16384, 16385})
+                for (var type : VertexFormat.IndexType.values()) {
+                    var expected = centroids(count, type, 41);
+                    try (var source = mesh(Math.max(1, count), 41)) {
+                        long start = MemoryUtil.memAddress(source.mesh.vertexBuffer());
+                        for (int quad = 0; quad < count; quad++) for (int corner = 0; corner <= 2; corner += 2) {
+                            long pointer = start + quad * 96L + corner * 24L;
+                            var value = expected.centroids()[quad];
+                            MemoryUtil.memPutFloat(pointer, value.x);
+                            MemoryUtil.memPutFloat(pointer + 4, value.y);
+                            MemoryUtil.memPutFloat(pointer + 8, value.z);
+                        }
+                        var draw = draw(COMPACT, count * 4, VertexFormat.Mode.QUADS, type);
+                        byte[] before = bytes(source.mesh.vertexBuffer());
+                        for (var sorter : sorters) {
+                            var captured = pool.tryCapture(source.mesh.vertexBuffer(), draw, sorter);
+                            assertNotNull(captured);
+                            assertCentroids(expected, captured.state());
+                            try (var job = captured.job()) {
+                                assertNotNull(job);
+                                assertArrayEquals(reference(expected, sorter), bytes(job.result()), count + " / " + type);
+                            }
+                        }
+                        assertArrayEquals(before, bytes(source.mesh.vertexBuffer()));
+                    }
+                }
+            assertEquals(0, pool.activeJobs());
+            assertEquals(0, pool.reservedBytes());
+        }
+    }
+
+    @Test void smallAndUnknownSortersUseTheCallerStateAndBuilder() {
+        for (int count : new int[]{1, 1023}) {
+            try (var source = mesh(count, 41); var shared = new GuardedBuilder();
+                 var sorting = new GpuEffectSorting.MeshState(null)) {
+                var state = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, VertexSorting.ORTHOGRAPHIC_Z);
+                assertTrue(shared.calls > 0, "Tiny domains must not prepare an async job");
+                assertSame(sorting.currentResult(), sorting.result());
+                assertArrayEquals(reference(state, VertexSorting.ORTHOGRAPHIC_Z), bytes(sorting.result()));
+            }
+        }
+        var caller = Thread.currentThread();
+        var seen = new AtomicReference<Vector3f[]>();
+        VertexSorting unknown = values -> {
+            assertSame(caller, Thread.currentThread());
+            assertTrue(seen.compareAndSet(null, values), "Call the original sorter exactly once");
+            values[0].set(100000F, -100000F, 100000F);
+            return VertexSorting.DISTANCE_TO_ORIGIN.sort(values);
+        };
+        try (var source = mesh(1024, 41); var shared = new GuardedBuilder();
+             var sorting = new GpuEffectSorting.MeshState(null)) {
+            var state = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, unknown);
+            assertSame(state.centroids(), seen.get(), "Synchronous callbacks see the real public, mutable SortState");
+            assertTrue(shared.calls > 0);
+            assertArrayEquals(reference(state, VertexSorting.DISTANCE_TO_ORIGIN), bytes(sorting.result()));
+        }
+    }
+
     @Test void onlyAuditedSortingObjectsCanRunAsync() {
         assertTrue(GpuEffectSorting.asyncSafe(VertexSorting.DISTANCE_TO_ORIGIN));
         assertTrue(GpuEffectSorting.asyncSafe(VertexSorting.ORTHOGRAPHIC_Z));
@@ -147,7 +231,7 @@ class SealedQuadSortingTest {
         };
         try (var pool = pool(1, 8, 64L << 20); var caller = Executors.newSingleThreadExecutor()) {
             try (var source = mesh(257, 13); var shared = new GuardedBuilder();
-                 var sorting = new GpuEffectSorting.MeshState(null, pool::trySubmit)) {
+                 var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool)) {
                 byte[] originalVertices = bytes(source.mesh.vertexBuffer());
                 var expectedState = SealedQuadSorting.capture(source.mesh.vertexBuffer(), source.mesh.drawState());
                 byte[] expected = reference(expectedState, VertexSorting.DISTANCE_TO_ORIGIN);
@@ -177,12 +261,169 @@ class SealedQuadSortingTest {
         }
     }
 
+    @Test void queuedCaptureIsIsolatedBeforeWorkerExecutionAndAfterVertexStorageIsFreed() throws Exception {
+        var gate = new Gate();
+        var workers = Executors.newSingleThreadExecutor();
+        var seen = new AtomicReference<Vector3f[]>();
+        var caller = Thread.currentThread();
+        workers.execute(gate::block);
+        try (var pool = new SealedQuadSorting.Pool(workers, 8, 64L << 20); var source = mesh(1024, 13);
+             var shared = new GuardedBuilder(); var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool)) {
+            try {
+                assertTrue(gate.started.await(5, TimeUnit.SECONDS));
+                var expectedState = SealedQuadSorting.capture(source.mesh.vertexBuffer(), source.mesh.drawState());
+                byte[] expected = reference(expectedState, VertexSorting.DISTANCE_TO_ORIGIN);
+                VertexSorting captured = values -> {
+                    assertNotSame(caller, Thread.currentThread());
+                    seen.set(values);
+                    assertCentroids(expectedState, new MeshData.SortState(values, expectedState.indexType()));
+                    return VertexSorting.DISTANCE_TO_ORIGIN.sort(values);
+                };
+                var returned = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, captured);
+                var originalVectors = returned.centroids().clone();
+                assertNull(seen.get(), "Task must still be queued while the caller mutates the compatibility state");
+                assertNull(sorting.currentResult());
+                returned.centroids()[0].set(999999F, -999999F, 12345F);
+                Arrays.fill(returned.centroids(), null);
+                source.close();
+                shared.close();
+                gate.release.countDown();
+                assertArrayEquals(expected, bytes(sorting.result()));
+                assertNotSame(returned.centroids(), seen.get());
+                for (int index = 0; index < originalVectors.length; index++) {
+                    assertNotSame(originalVectors[index], seen.get()[index]);
+                    assertNull(returned.centroids()[index]);
+                }
+                assertEquals(0, shared.calls);
+            } finally { gate.release.countDown(); }
+        }
+    }
+
+    @Test void alreadyCapturedCompatibilityApiStillCopiesBeforeWorkerExecution() throws Exception {
+        var gate = new Gate();
+        var workers = Executors.newSingleThreadExecutor();
+        workers.execute(gate::block);
+        try (var pool = new SealedQuadSorting.Pool(workers, 8, 64L << 20)) {
+            var state = centroids(1024, VertexFormat.IndexType.INT, 41);
+            byte[] expected = reference(state, VertexSorting.DISTANCE_TO_ORIGIN);
+            var job = pool.trySubmit(state, VertexSorting.DISTANCE_TO_ORIGIN);
+            try {
+                assertNotNull(job);
+                assertTrue(gate.started.await(5, TimeUnit.SECONDS));
+                state.centroids()[0].set(999999F, -999999F, 12345F);
+                Arrays.fill(state.centroids(), null);
+                gate.release.countDown();
+                assertArrayEquals(expected, bytes(job.result()));
+            } finally {
+                gate.release.countDown();
+                if (job != null) job.close();
+            }
+            assertEquals(0, pool.activeJobs());
+            assertEquals(0, pool.reservedBytes());
+        }
+    }
+
+    @Test void capturedJobsKeepTheExactBudgetUntilReleaseAndFullPoolsFallBackSynchronously() {
+        try (var source = mesh(1024, 61)) {
+            for (var type : VertexFormat.IndexType.values()) {
+                var draw = draw(COMPACT, 4096, VertexFormat.Mode.QUADS, type);
+                long charge = 4096L + 1024L * (96L + 6L * type.bytes);
+                assertEquals(charge, SealedQuadSorting.reservationBytes(1024, type));
+                try (var tooSmall = pool(1, 8, charge - 1)) {
+                    assertNull(tooSmall.tryCapture(source.mesh.vertexBuffer(), draw, VertexSorting.DISTANCE_TO_ORIGIN));
+                    assertEquals(0, tooSmall.activeJobs());
+                    assertEquals(0, tooSmall.reservedBytes());
+                }
+                // Independently exhaust domain count, then byte capacity, with a completed but undrawn job.
+                for (int maxJobs : new int[]{1, 8}) {
+                    try (var pool = pool(1, maxJobs, maxJobs == 1 ? charge * 2 : charge);
+                         var shared = new GuardedBuilder();
+                         var sorting = new GpuEffectSorting.MeshState(null, (ignored, sorter) -> pool)) {
+                        var captured = pool.tryCapture(source.mesh.vertexBuffer(), draw, VertexSorting.DISTANCE_TO_ORIGIN);
+                        assertNotNull(captured);
+                        assertEquals(charge, SealedQuadSorting.reservationBytes(captured.state()));
+                        try (var job = captured.job()) {
+                            assertNotNull(job);
+                            job.result();
+                            assertEquals(1, pool.activeJobs());
+                            assertEquals(charge, pool.reservedBytes());
+                            assertNull(pool.tryCapture(source.mesh.vertexBuffer(), draw, VertexSorting.ORTHOGRAPHIC_Z));
+                            var state = sorting.sort(source.mesh.vertexBuffer(), draw, shared, VertexSorting.ORTHOGRAPHIC_Z);
+                            var synchronous = sorting.result();
+                            assertTrue(shared.calls > 0);
+                            assertSame(sorting.currentResult(), synchronous);
+                            assertArrayEquals(reference(state, VertexSorting.ORTHOGRAPHIC_Z), bytes(synchronous));
+                            job.close();
+                            assertEquals(0, pool.reservedBytes());
+                            int calls = shared.calls;
+                            state = sorting.sort(source.mesh.vertexBuffer(), draw, shared, VertexSorting.DISTANCE_TO_ORIGIN);
+                            assertNull(sorting.currentResult());
+                            assertEquals(calls, shared.calls);
+                            assertThrows(IllegalStateException.class, synchronous::byteBuffer);
+                            pool.close();
+                            assertEquals(1, pool.activeJobs());
+                            assertEquals(charge, pool.reservedBytes());
+                            assertArrayEquals(reference(state, VertexSorting.DISTANCE_TO_ORIGIN), bytes(sorting.result()));
+                            assertNull(pool.tryCapture(source.mesh.vertexBuffer(), draw, VertexSorting.ORTHOGRAPHIC_Z));
+                            sorting.close();
+                            assertEquals(0, pool.activeJobs());
+                            assertEquals(0, pool.reservedBytes());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test void refusedEnqueuesReuseTheCapturedStateWithoutRescanningVerticesAndReleaseTheirBudget() {
+        for (var failure : List.of(new RejectedExecutionException("Rejected"), new SecurityException("Denied"))) {
+            try (var source = mesh(1024, 31)) {
+                var expected = SealedQuadSorting.capture(source.mesh.vertexBuffer(), source.mesh.drawState());
+                var workers = failingExecutor(failure, () -> {
+                    var vertices = source.mesh.vertexBuffer();
+                    MemoryUtil.memSet(MemoryUtil.memAddress(vertices), 0, vertices.remaining());
+                });
+                try (var pool = new SealedQuadSorting.Pool(workers, 8, 64L << 20); var shared = new GuardedBuilder();
+                     var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool)) {
+                    var state = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, VertexSorting.ORTHOGRAPHIC_Z);
+                    assertCentroids(expected, state);
+                    assertTrue(shared.calls > 0);
+                    assertSame(sorting.currentResult(), sorting.result());
+                    assertArrayEquals(reference(expected, VertexSorting.ORTHOGRAPHIC_Z), bytes(sorting.result()));
+                    assertEquals(0, pool.activeJobs());
+                    assertEquals(0, pool.reservedBytes());
+                }
+            }
+        }
+    }
+
+    @Test void unexpectedEnqueueFailuresReleaseTheirBudgetAndPreservePreviousIndices() {
+        for (var failure : List.of(new IllegalStateException("Executor failed"), new AssertionError("Executor error"))) {
+            var workers = failingExecutor(failure, () -> {});
+            try (var pool = new SealedQuadSorting.Pool(workers, 8, 64L << 20); var source = mesh(1024, 31);
+                 var original = new ByteBufferBuilder(64); var shared = new GuardedBuilder()) {
+                var state = SealedQuadSorting.capture(source.mesh.vertexBuffer(), source.mesh.drawState());
+                var previous = SealedQuadSorting.sortNow(state, original, VertexSorting.ORTHOGRAPHIC_Z);
+                try (var sorting = new GpuEffectSorting.MeshState(previous, (draw, sorter) -> pool)) {
+                    assertSame(failure, assertThrows(failure.getClass(), () -> sorting.sort(source.mesh.vertexBuffer(),
+                            source.mesh.drawState(), shared, VertexSorting.DISTANCE_TO_ORIGIN)));
+                    assertSame(previous, sorting.result());
+                    assertArrayEquals(reference(state, VertexSorting.ORTHOGRAPHIC_Z), bytes(previous));
+                    assertEquals(0, shared.calls);
+                    assertEquals(0, pool.activeJobs());
+                    assertEquals(0, pool.reservedBytes());
+                }
+                assertThrows(IllegalStateException.class, previous::byteBuffer);
+            }
+        }
+    }
+
     @Test void originallySeparateDomainsMayCompleteInAnyOrderWithoutMergingOrReorderingTheirIndices() throws Exception {
         var gate = new Gate();
         VertexSorting slow = values -> { gate.block(); return VertexSorting.ORTHOGRAPHIC_Z.sort(values); };
         try (var pool = pool(2, 8, 64L << 20); var first = mesh(129, 61); var second = mesh(81, 29);
-             var unused = new GuardedBuilder(); var a = new GpuEffectSorting.MeshState(null, pool::trySubmit);
-             var b = new GpuEffectSorting.MeshState(null, pool::trySubmit)) {
+             var unused = new GuardedBuilder(); var a = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool);
+             var b = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool)) {
             var aState = a.sort(first.mesh.vertexBuffer(), first.mesh.drawState(), unused, slow);
             try {
                 assertTrue(gate.started.await(5, TimeUnit.SECONDS));
@@ -228,7 +469,7 @@ class SealedQuadSortingTest {
         workers.shutdown();
         try (var pool = new SealedQuadSorting.Pool(workers, 8, 64L << 20);
              var source = mesh(17, 31); var shared = new GuardedBuilder();
-             var sorting = new GpuEffectSorting.MeshState(null, pool::trySubmit)) {
+             var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool)) {
             var state = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, VertexSorting.ORTHOGRAPHIC_Z);
             assertTrue(shared.calls > 0);
             assertSame(sorting.currentResult(), sorting.result());
@@ -240,8 +481,8 @@ class SealedQuadSortingTest {
 
     @Test void replacingASortDrainsAndReleasesThePreviousJobAndKeepsTheNewTypeAndBytes() {
         try (var pool = pool(2, 8, 64L << 20); var source = mesh(128, 97); var shared = new GuardedBuilder();
-             var sorting = new GpuEffectSorting.MeshState(null, (state, sorter) ->
-                     GpuEffectSorting.asyncSafe(sorter) ? pool.trySubmit(state, sorter) : null)) {
+             var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) ->
+                     GpuEffectSorting.asyncSafe(sorter) ? pool : null)) {
             var first = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, VertexSorting.ORTHOGRAPHIC_Z);
             var oldResult = sorting.result();
             assertArrayEquals(reference(first, VertexSorting.ORTHOGRAPHIC_Z), bytes(oldResult));
@@ -259,8 +500,8 @@ class SealedQuadSortingTest {
 
     @Test void failingSynchronousReplacementLeavesThePreviousIndicesAlive() {
         try (var pool = pool(1, 8, 64L << 20); var source = mesh(31, 87); var shared = new GuardedBuilder();
-             var sorting = new GpuEffectSorting.MeshState(null, (state, sorter) ->
-                     GpuEffectSorting.asyncSafe(sorter) ? pool.trySubmit(state, sorter) : null)) {
+             var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) ->
+                     GpuEffectSorting.asyncSafe(sorter) ? pool : null)) {
             var first = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, VertexSorting.ORTHOGRAPHIC_Z);
             var previous = sorting.result();
             var failure = new IllegalArgumentException("Sort failed");
@@ -274,10 +515,10 @@ class SealedQuadSortingTest {
 
     @Test void closeWaitsForEveryWriterEvenAfterAnotherTaskFailedAndNeverCancelsQueuedWork() throws Exception {
         var gate = new Gate();
-        var finished = new CountDownLatch(1);
+        var finished = new CountDownLatch(2);
         var expectedFailure = new IllegalArgumentException("Failed worker");
         var state = centroids(128, VertexFormat.IndexType.INT, 17);
-        try (var pool = pool(2, 8, 64L << 20); var caller = Executors.newSingleThreadExecutor()) {
+        try (var pool = pool(1, 8, 64L << 20); var caller = Executors.newSingleThreadExecutor(); var source = mesh(1024, 17)) {
             var failed = pool.trySubmit(state, ignored -> { throw expectedFailure; });
             var blocked = pool.trySubmit(state, values -> {
                 gate.block();
@@ -287,18 +528,25 @@ class SealedQuadSortingTest {
             assertNotNull(blocked);
             try {
                 assertTrue(gate.started.await(5, TimeUnit.SECONDS));
+                var queued = pool.tryCapture(source.mesh.vertexBuffer(), source.mesh.drawState(), values -> {
+                    try { return VertexSorting.ORTHOGRAPHIC_Z.sort(values); }
+                    finally { finished.countDown(); }
+                });
+                assertNotNull(queued);
                 assertSame(expectedFailure, assertThrows(CompletionException.class, failed::result).getCause());
                 var closing = caller.submit(pool::close);
                 assertThrows(TimeoutException.class, () -> closing.get(50, TimeUnit.MILLISECONDS));
-                assertEquals(1, finished.getCount());
+                assertEquals(2, finished.getCount());
                 gate.release.countDown();
                 closing.get(5, TimeUnit.SECONDS);
                 assertEquals(0, finished.getCount());
-                assertEquals(2, pool.activeJobs());
+                assertEquals(3, pool.activeJobs());
                 assertNotNull(blocked.result());
+                assertArrayEquals(reference(queued.state(), VertexSorting.ORTHOGRAPHIC_Z), bytes(queued.job().result()));
                 assertNull(pool.trySubmit(state, VertexSorting.DISTANCE_TO_ORIGIN));
                 failed.close();
                 blocked.close();
+                queued.job().close();
                 assertEquals(0, pool.activeJobs());
                 assertEquals(0, pool.reservedBytes());
             } finally { gate.release.countDown(); }
@@ -307,7 +555,7 @@ class SealedQuadSortingTest {
 
     @Test void poolShutdownPreservesUndrawnMeshIndicesUntilTheirOwnerCloses() {
         try (var pool = pool(1, 8, 64L << 20); var source = mesh(17, 67); var shared = new GuardedBuilder();
-             var sorting = new GpuEffectSorting.MeshState(null, pool::trySubmit)) {
+             var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool)) {
             sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, VertexSorting.DISTANCE_TO_ORIGIN);
             var result = sorting.result();
             pool.close();
@@ -327,7 +575,7 @@ class SealedQuadSortingTest {
 
     @Test void failedAsyncResultIsReportedAndDisposalStillFreesTheReservation() {
         try (var pool = pool(1, 8, 64L << 20); var source = mesh(17, 71); var shared = new GuardedBuilder();
-             var sorting = new GpuEffectSorting.MeshState(null, pool::trySubmit)) {
+             var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) -> pool)) {
             sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, ignored -> { throw new IllegalStateException("Failed"); });
             assertInstanceOf(IllegalStateException.class, assertThrows(CompletionException.class, sorting::result).getCause());
             sorting.close();
@@ -352,6 +600,18 @@ class SealedQuadSortingTest {
                             assertNotNull(job);
                             assertArrayEquals(reference(state, sorter), bytes(job.result()), count + " / " + type + " / " + sorter);
                         }
+                        try (var source = mesh(Math.max(1, count), 73)) {
+                            var draw = draw(COMPACT, count * 4, VertexFormat.Mode.QUADS, type);
+                            var expected = SealedQuadSorting.capture(source.mesh.vertexBuffer(), draw);
+                            var captured = pool.tryCapture(source.mesh.vertexBuffer(), draw, sorter);
+                            assertNotNull(captured);
+                            assertCentroids(expected, captured.state());
+                            try (var job = captured.job()) {
+                                assertNotNull(job);
+                                assertArrayEquals(reference(expected, sorter), bytes(job.result()),
+                                        "Single-pass capture: " + count + " / " + type + " / " + sorter);
+                            }
+                        }
                     }
             }
         }
@@ -368,8 +628,8 @@ class SealedQuadSortingTest {
         assertEquals(Vector3f.class, fallback.getClass().getDeclaredField("scratch").getType());
         assertFalse(GpuEffectSorting.asyncSafe(fallback));
         try (var pool = pool(1, 8, 64L << 20); var source = mesh(81, 73); var shared = new GuardedBuilder();
-             var sorting = new GpuEffectSorting.MeshState(null, (state, sorter) ->
-                     GpuEffectSorting.asyncSafe(sorter) ? pool.trySubmit(state, sorter) : null)) {
+             var sorting = new GpuEffectSorting.MeshState(null, (draw, sorter) ->
+                     GpuEffectSorting.asyncSafe(sorter) ? pool : null)) {
             var state = sorting.sort(source.mesh.vertexBuffer(), source.mesh.drawState(), shared, fallback);
             assertArrayEquals(reference(state, fallback), bytes(sorting.result()));
             assertEquals(0, pool.activeJobs());
@@ -402,6 +662,16 @@ class SealedQuadSortingTest {
             assumeTrue(false, "Add the existing Sodium runtime JAR to testRuntimeOnly for the optional real-Sodium suite");
             throw absent;
         }
+    }
+
+    private static ThreadPoolExecutor failingExecutor(Throwable failure, Runnable beforeFailure) {
+        return new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>()) {
+            @Override public void execute(Runnable task) {
+                beforeFailure.run();
+                if (failure instanceof RuntimeException error) throw error;
+                throw (Error) failure;
+            }
+        };
     }
 
     private static SealedQuadSorting.Pool pool(int threads, int maxJobs, long maxBytes) {

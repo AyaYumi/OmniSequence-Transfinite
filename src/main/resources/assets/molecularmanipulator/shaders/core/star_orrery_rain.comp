@@ -1,0 +1,138 @@
+#version 430 core
+
+// A complete command uses one workgroup. Stable column prefixes preserve every original quad's order.
+layout(local_size_x = 128) in;
+struct Column {
+    dvec2 origin;
+    dvec2 tangent;
+    dvec2 limits; // top, bottom
+    uvec4 identity; // building, column, sequence, RGB
+};
+layout(std430, binding = 0) readonly buffer Columns { Column columns[]; };
+layout(std430, binding = 1) writeonly buffer ColorVertices { uint words[]; };
+layout(std430, binding = 2) writeonly buffer IndirectCommands { uint commands[]; };
+layout(std430, binding = 3) readonly buffer GlyphStrokes { dvec4 strokes[]; };
+uniform mat4 Pose;
+uniform uint ColumnCount;
+uniform float FlowTime;
+uniform bool Detailed;
+uniform bool Glow;
+uniform uvec2 Material;
+shared uint counts[128];
+shared uint offsets[128];
+// 12 core columns + 9 * 4 belt columns + 3 * 8 pedestal columns; at most 12 rows.
+// 18,304 bytes total shared storage, below the GL 4.3 minimum of 32 KiB.
+// Cache only within this command/pass: depth and glow use different alpha and stroke templates.
+const uint MAX_COLUMNS = 72u;
+const uint MAX_ROWS = 12u;
+shared double cachedY[MAX_COLUMNS * MAX_ROWS];
+shared uint cachedStart[MAX_COLUMNS * MAX_ROWS];
+shared uint cachedRuns[MAX_COLUMNS * MAX_ROWS];
+shared uint cachedColor[MAX_COLUMNS * MAX_ROWS];
+
+uint templateStart(Column column, uint glyph) {
+    uint mode = column.identity.x * 2u + (Glow ? 1u : 0u);
+    return (mode * 20u + glyph) * 11u;
+}
+uint rowCount(Column column) {
+    return Glow ? 1u : column.identity.x == 0u ? (Detailed ? 12u : 7u) : (Detailed ? 6u : 3u);
+}
+
+// Double precision and precise intermediates match Java's order at glyph and alpha boundaries.
+void sampleRow(Column column, uint row, out double y, out uint alpha, out uint glyph, out uint rgb) {
+    precise double top = column.limits.x, bottom = column.limits.y;
+    precise double span = top - bottom;
+    precise double phase;
+    if (column.identity.x == 0u) {
+        precise double travel = double(FlowTime) * (span / 16.0lf);
+        travel = travel + double(column.identity.y) * 5.713lf;
+        travel = travel - double(row) * .94lf;
+        phase = travel / span;
+        precise double fallen = (phase - floor(phase)) * span;
+        y = top - fallen;
+        rgb = row == 0u ? 0xDBF6FFu : column.identity.w;
+    } else {
+        phase = double(FlowTime) / 12.0lf;
+        phase = phase + double(column.identity.z) * .1618lf;
+        precise double head = top - (phase - floor(phase)) * span;
+        y = head - double(row) * .82lf;
+        rgb = column.identity.w;
+        if (y <= bottom + .12lf || y >= top) { alpha = 0u; glyph = 0u; return; }
+    }
+    precise double edge = min(1.0lf, min(top - y, y - bottom) / 1.2lf);
+    uint level = column.identity.x == 0u ? (Glow ? 32u : 240u - row * 12u) : (Glow ? 20u : 196u - row * 17u);
+    precise double opacity = double(level) * max(0.0lf, edge);
+    alpha = uint(opacity);
+    int tick = int(floor(double(FlowTime) * 2.0lf));
+    int key = column.identity.x == 0u ? int(column.identity.y * 7u + row * 11u)
+            : int(column.identity.z * 11u + column.identity.y * 7u + row * 13u);
+    glyph = uint(((key + tick) % 20 + 20) % 20);
+}
+
+void vertex(uint index, dvec3 local, uint color) {
+    vec3 p = vec3(local);
+    precise vec3 world = Pose[0].xyz * p.x + Pose[1].xyz * p.y + Pose[2].xyz * p.z + Pose[3].xyz;
+    uint first = index * 6u;
+    words[first] = floatBitsToUint(world.x);
+    words[first + 1u] = floatBitsToUint(world.y);
+    words[first + 2u] = floatBitsToUint(world.z);
+    words[first + 3u] = color;
+    words[first + 4u] = Material.x;
+    words[first + 5u] = Material.y;
+}
+void emitStroke(Column column, double y, dvec4 stroke, uint first, uint color) {
+    precise double ax = column.origin.x + column.tangent.x * stroke.x;
+    precise double az = column.origin.y + column.tangent.y * stroke.x;
+    precise double bx = column.origin.x + column.tangent.x * stroke.y;
+    precise double bz = column.origin.y + column.tangent.y * stroke.y;
+    precise double upper = y + stroke.z;
+    precise double lower = upper + stroke.w;
+    vertex(first, dvec3(ax, upper, az), color);
+    vertex(first + 1u, dvec3(bx, upper, bz), color);
+    vertex(first + 2u, dvec3(bx, lower, bz), color);
+    vertex(first + 3u, dvec3(ax, lower, az), color);
+}
+void main() {
+    uint lane = gl_LocalInvocationID.x, count = 0u, rows = 0u;
+    Column column;
+    if (lane < ColumnCount) {
+        column = columns[lane];
+        rows = rowCount(column);
+        for (uint row = 0u; row < rows; ++row) {
+            double y; uint alpha, glyph, rgb;
+            sampleRow(column, row, y, alpha, glyph, rgb);
+            uint slot = lane * MAX_ROWS + row;
+            cachedRuns[slot] = 0u;
+            if (alpha == 0u) continue;
+            uint start = templateStart(column, glyph), runs = uint(strokes[start].x);
+            cachedY[slot] = y;
+            cachedStart[slot] = start;
+            cachedRuns[slot] = runs;
+            cachedColor[slot] = (alpha << 24u) | ((rgb & 255u) << 16u) | (rgb & 0xff00u) | ((rgb >> 16u) & 255u);
+            count += runs;
+        }
+    }
+    counts[lane] = count;
+    barrier();
+    if (lane == 0u) {
+        uint total = 0u;
+        for (uint column = 0u; column < ColumnCount; ++column) {
+            offsets[column] = total;
+            total += counts[column];
+        }
+        commands[0] = total * 6u; // DrawElementsIndirectCommand
+        commands[1] = 1u; commands[2] = 0u; commands[3] = 0u; commands[4] = 0u;
+        commands[5] = (total + 63u) / 64u; // DispatchIndirectCommand for the original attribute encoder
+        commands[6] = 1u; commands[7] = 1u;
+    }
+    barrier();
+    if (lane >= ColumnCount) return;
+    uint quad = offsets[lane];
+    for (uint row = 0u; row < rows; ++row) {
+        uint slot = lane * MAX_ROWS + row, runs = cachedRuns[slot];
+        if (runs == 0u) continue;
+        double y = cachedY[slot];
+        uint start = cachedStart[slot], color = cachedColor[slot];
+        for (uint run = 0u; run < runs; ++run) emitStroke(column, y, strokes[start + 1u + run], quad++ * 4u, color);
+    }
+}

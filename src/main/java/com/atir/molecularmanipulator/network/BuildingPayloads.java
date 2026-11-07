@@ -22,6 +22,9 @@ public final class BuildingPayloads {
     private static Consumer<Open> openHandler = payload -> {};
     private static Consumer<Preview> previewHandler = payload -> {};
     private static Consumer<Details> detailsHandler = payload -> {};
+    private static Consumer<Deployment> deploymentHandler = payload -> {};
+    private static Consumer<DeploymentCancelled> cancellationHandler = payload -> {};
+    private static Consumer<TransferStatus> transferHandler = payload -> {};
     private BuildingPayloads() {}
     public record Open(BlockPos base, BlockPos target, boolean seal) implements CustomPacketPayload {
         public static final Type<Open> TYPE = new Type<>(MolecularManipulator.id("star_chart_open"));
@@ -38,20 +41,59 @@ public final class BuildingPayloads {
         }, buf -> new Action(buf.readUUID(), buf.readUnsignedByte(), buf.readVarInt(), buf.readBlockPos(), buf.readEnum(Direction.class), buf.readBlockPos()));
         @Override public Type<Action> type() { return TYPE; }
     }
+    public record Deployment(UUID request, boolean accepted) implements CustomPacketPayload {
+        public static final Type<Deployment> TYPE = new Type<>(MolecularManipulator.id("star_chart_deployment"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, Deployment> CODEC = StreamCodec.of((buf, data) -> {
+            buf.writeUUID(data.request); buf.writeBoolean(data.accepted);
+        }, buf -> new Deployment(buf.readUUID(), buf.readBoolean()));
+        @Override public Type<Deployment> type() { return TYPE; }
+    }
+    public record DeploymentCancelled(net.minecraft.resources.ResourceLocation dimension, BlockPos controller) implements CustomPacketPayload {
+        public static final Type<DeploymentCancelled> TYPE = new Type<>(MolecularManipulator.id("star_chart_cancelled"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, DeploymentCancelled> CODEC = StreamCodec.of((buf, data) -> {
+            buf.writeResourceLocation(data.dimension); buf.writeBlockPos(data.controller);
+        }, buf -> new DeploymentCancelled(buf.readResourceLocation(), buf.readBlockPos()));
+        @Override public Type<DeploymentCancelled> type() { return TYPE; }
+    }
+    public record TransferControl(UUID request, UUID operation, int slot, BlockPos target, boolean interrupt) implements CustomPacketPayload {
+        public static final Type<TransferControl> TYPE = new Type<>(MolecularManipulator.id("star_chart_transfer_control"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, TransferControl> CODEC = StreamCodec.of((buf, data) -> {
+            buf.writeUUID(data.request); buf.writeBoolean(data.operation != null); if (data.operation != null) buf.writeUUID(data.operation);
+            buf.writeVarInt(data.slot); buf.writeBlockPos(data.target); buf.writeBoolean(data.interrupt);
+        }, buf -> new TransferControl(buf.readUUID(), buf.readBoolean() ? buf.readUUID() : null, buf.readVarInt(), buf.readBlockPos(), buf.readBoolean()));
+        @Override public Type<TransferControl> type() { return TYPE; }
+    }
+    public record TransferStatus(UUID request, UUID operation, String state) implements CustomPacketPayload {
+        public static final Type<TransferStatus> TYPE = new Type<>(MolecularManipulator.id("star_chart_transfer_status"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, TransferStatus> CODEC = StreamCodec.of((buf, data) -> {
+            buf.writeUUID(data.request); buf.writeBoolean(data.operation != null); if (data.operation != null) buf.writeUUID(data.operation); buf.writeUtf(data.state, 32);
+        }, buf -> new TransferStatus(buf.readUUID(), buf.readBoolean() ? buf.readUUID() : null, buf.readUtf(32)));
+        @Override public Type<TransferStatus> type() { return TYPE; }
+    }
     public record Placement(BlockPos position, int state, boolean conflict) {}
-    public record Preview(UUID request, int page, int totalPages, int conflicts, List<Placement> placements, String error) implements CustomPacketPayload {
+    public record Preview(UUID request, int page, int totalPages, int conflicts, List<Placement> placements, String error,
+            Component summary, Component detail) implements CustomPacketPayload {
+        public Preview(UUID request, int page, int totalPages, int conflicts, List<Placement> placements, String error) {
+            this(request, page, totalPages, conflicts, placements, error, Component.empty(), Component.empty());
+        }
         public static final Type<Preview> TYPE = new Type<>(MolecularManipulator.id("star_chart_preview"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Preview> CODEC = StreamCodec.of((buf, data) -> {
             buf.writeUUID(data.request); buf.writeVarInt(data.page); buf.writeVarInt(data.totalPages); buf.writeVarInt(data.conflicts);
-            buf.writeUtf(data.error, 512); buf.writeVarInt(data.placements.size());
+            buf.writeUtf(data.error, 512);
+            net.minecraft.network.chat.ComponentSerialization.STREAM_CODEC.encode(buf, data.summary);
+            net.minecraft.network.chat.ComponentSerialization.STREAM_CODEC.encode(buf, data.detail);
+            buf.writeVarInt(data.placements.size());
             for (var entry : data.placements) { buf.writeBlockPos(entry.position); buf.writeVarInt(entry.state); buf.writeBoolean(entry.conflict); }
         }, buf -> {
             var request = buf.readUUID(); int page = buf.readVarInt(), total = buf.readVarInt(), conflicts = buf.readVarInt();
-            var error = buf.readUtf(512); int size = buf.readVarInt();
+            var error = buf.readUtf(512);
+            var summary = net.minecraft.network.chat.ComponentSerialization.STREAM_CODEC.decode(buf);
+            var detail = net.minecraft.network.chat.ComponentSerialization.STREAM_CODEC.decode(buf);
+            int size = buf.readVarInt();
             if (size < 0 || size > 256) throw new IllegalArgumentException("Invalid survey page size");
             var entries = new ArrayList<Placement>(size);
             for (int i = 0; i < size; i++) entries.add(new Placement(buf.readBlockPos(), buf.readVarInt(), buf.readBoolean()));
-            return new Preview(request, page, total, conflicts, entries, error);
+            return new Preview(request, page, total, conflicts, entries, error, summary, detail);
         });
         @Override public Type<Preview> type() { return TYPE; }
     }
@@ -79,14 +121,21 @@ public final class BuildingPayloads {
         });
         @Override public Type<Details> type() { return TYPE; }
     }
-    public static void handlers(Consumer<Open> open, Consumer<Preview> preview, Consumer<Details> details) {
-        openHandler = open; previewHandler = preview; detailsHandler = details;
+    public static void handlers(Consumer<Open> open, Consumer<Preview> preview, Consumer<Details> details,
+            Consumer<Deployment> deployment, Consumer<DeploymentCancelled> cancellation, Consumer<TransferStatus> transfer) {
+        openHandler = open; previewHandler = preview; detailsHandler = details; deploymentHandler = deployment; cancellationHandler = cancellation; transferHandler = transfer;
     }
     public static void register(RegisterPayloadHandlersEvent event) {
-        var registrar = event.registrar("1");
+        var registrar = event.registrar("3");
         registrar.playToClient(Open.TYPE, Open.CODEC, (payload, context) -> context.enqueueWork(() -> openHandler.accept(payload)));
         registrar.playToClient(Preview.TYPE, Preview.CODEC, (payload, context) -> context.enqueueWork(() -> previewHandler.accept(payload)));
         registrar.playToClient(Details.TYPE, Details.CODEC, (payload, context) -> context.enqueueWork(() -> detailsHandler.accept(payload)));
+        registrar.playToClient(Deployment.TYPE, Deployment.CODEC, (payload, context) -> context.enqueueWork(() -> deploymentHandler.accept(payload)));
+        registrar.playToClient(DeploymentCancelled.TYPE, DeploymentCancelled.CODEC, (payload, context) -> context.enqueueWork(() -> cancellationHandler.accept(payload)));
+        registrar.playToClient(TransferStatus.TYPE, TransferStatus.CODEC, (payload, context) -> context.enqueueWork(() -> transferHandler.accept(payload)));
+        registrar.playToServer(TransferControl.TYPE, TransferControl.CODEC, (payload, context) -> context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) transferControl(player, payload);
+        }));
         registrar.playToServer(DetailsQuery.TYPE, DetailsQuery.CODEC, (payload, context) -> context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player) || !player.isHolding(BuildingContent.CALIBRATOR.get())
                     || payload.slot < 0 || payload.slot >= player.getInventory().items.size()) return;
@@ -110,22 +159,49 @@ public final class BuildingPayloads {
             if (context.player() instanceof ServerPlayer player) action(player, payload);
         }));
     }
+    public static void transferControl(ServerPlayer player, TransferControl control) {
+        try {
+            // Held items can change while a panel is open. Always acknowledge an owned status query,
+            // but only a held calibrator and a build-capable player may authorize a withdrawal.
+            var state = BuildingTransfer.transferState(player, control.operation, control.slot, control.target);
+            if (control.interrupt && state.id() != null) {
+                if (!player.isHolding(BuildingContent.CALIBRATOR.get()))
+                    player.displayClientMessage(Component.translatable("star_chart.molecularmanipulator.hold_calibrator"), false);
+                else if (player.mayBuild() && !player.isSpectator()) BuildingTransfer.cancelDeployment(player, state.id());
+                state = BuildingTransfer.transferState(player, state.id(), control.slot, control.target);
+            }
+            PacketDistributor.sendToPlayer(player, new TransferStatus(control.request, state.id(), state.state()));
+        } catch (java.io.IOException error) {
+            PacketDistributor.sendToPlayer(player, new TransferStatus(control.request, control.operation, "UNAVAILABLE"));
+        }
+    }
     private static void action(ServerPlayer player, Action action) {
         if (!player.isHolding(BuildingContent.CALIBRATOR.get()) || !player.mayBuild() || player.isSpectator()
-                || action.facing.getAxis().isVertical() || action.base.distSqr(player.blockPosition()) > 256D * 256D) return;
+                || action.facing.getAxis().isVertical() || action.base.distSqr(player.blockPosition()) > 256D * 256D) {
+            if (action.action == DEPLOY) PacketDistributor.sendToPlayer(player, new Deployment(action.request, false));
+            return;
+        }
         if (action.action == SEAL) {
             if (action.target.distSqr(player.blockPosition()) > 64 || !player.level().mayInteract(player, action.target)) return;
             var controller = player.level().getBlockEntity(action.target);
             if (controller != null) BuildingTransfer.seal(player, controller);
             return;
         }
-        if (action.slot < 0 || action.slot >= player.getInventory().items.size()) return;
-        if (action.action == DEPLOY) { BuildingTransfer.deploy(player, action.slot, action.base, action.facing); return; }
+        if (action.slot < 0 || action.slot >= player.getInventory().items.size()) {
+            if (action.action == DEPLOY) PacketDistributor.sendToPlayer(player, new Deployment(action.request, false));
+            return;
+        }
+        if (action.action == DEPLOY) {
+            PacketDistributor.sendToPlayer(player, new Deployment(action.request,
+                    BuildingTransfer.deploy(player, action.slot, action.base, action.facing)));
+            return;
+        }
         if (action.action != PREVIEW) return;
         try {
             var stack = player.getInventory().getItem(action.slot); var layout = BuildingTransfer.layout(player, stack);
             var controller = BuildingTransfer.controllerAtBase(layout, action.base); var rotation = BuildingType.rotation(action.facing);
-            var conflicts = new HashSet<>(BuildingTransfer.conflicts(player, layout, controller, action.facing));
+            var site = BuildingTransfer.survey(player, layout, controller, action.facing);
+            var conflicts = new HashSet<>(site.conflicts());
             int pages = Math.ceilDiv(layout.size(), 256);
             for (int page = 0; page < pages; page++) {
                 var placements = new ArrayList<Placement>();
@@ -133,7 +209,7 @@ public final class BuildingPayloads {
                     var entry = layout.get(i); var pos = controller.offset(entry.offset().rotate(rotation));
                     placements.add(new Placement(pos, Block.getId(BuildingType.rotateState(entry.state(), rotation)), conflicts.contains(pos)));
                 }
-                PacketDistributor.sendToPlayer(player, new Preview(action.request, page, pages, conflicts.size(), placements, ""));
+                PacketDistributor.sendToPlayer(player, new Preview(action.request, page, pages, conflicts.size(), placements, "", site.summary(), site.detail()));
             }
         } catch (Exception error) {
             PacketDistributor.sendToPlayer(player, new Preview(action.request, 0, 1, 1, List.of(),

@@ -1,5 +1,0 @@
-newmtl beam_flat
-map_Kd molecularmanipulator:block/entropy_armillary/terminal/beam_flat
-
-newmtl metal
-map_Kd molecularmanipulator:block/entropy_armillary/terminal/metal

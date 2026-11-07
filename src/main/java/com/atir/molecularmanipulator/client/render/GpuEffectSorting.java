@@ -37,8 +37,8 @@ public final class GpuEffectSorting {
                 && sorting.getClass().isSynthetic() && sorting.getClass().getNestHost() == VertexSorting.class;
     }
 
-    private static SealedQuadSorting.Job schedule(MeshData.SortState state, VertexSorting sorting) {
-        if (!RenderSystem.isOnRenderThread() || state.centroids().length < MIN_ASYNC_QUADS || !asyncSafe(sorting)
+    private static SealedQuadSorting.Pool selectPool(MeshData.DrawState draw, VertexSorting sorting) {
+        if (draw.vertexCount() / 4 < MIN_ASYNC_QUADS || !asyncSafe(sorting) || !RenderSystem.isOnRenderThread()
                 || Runtime.getRuntime().availableProcessors() < 2) return null;
         if (pool != null && pool.isClosed() && pool.activeJobs() != 0) return null;
         if (pool == null || pool.isClosed()) {
@@ -51,7 +51,7 @@ public final class GpuEffectSorting {
                     });
             pool = new SealedQuadSorting.Pool(workers, MAX_DOMAINS, MAX_BYTES);
         }
-        return pool.trySubmit(state, sorting);
+        return pool;
     }
 
     /** Render-thread resource reload/logout boundary. Drains abandoned as well as drawable domains. */
@@ -67,24 +67,26 @@ public final class GpuEffectSorting {
      * replace/read/close lifecycle is also exercised by native-buffer tests without a game launch.
      */
     public static final class MeshState implements AutoCloseable {
-        private final BiFunction<MeshData.SortState, VertexSorting, SealedQuadSorting.Job> scheduler;
+        private final BiFunction<MeshData.DrawState, VertexSorting, SealedQuadSorting.Pool> poolSelector;
         private SealedQuadSorting.Job pending;
         private ByteBufferBuilder.Result indices;
         private boolean closed;
 
-        public MeshState(ByteBufferBuilder.Result indices) { this(indices, GpuEffectSorting::schedule); }
+        public MeshState(ByteBufferBuilder.Result indices) { this(indices, GpuEffectSorting::selectPool); }
 
         MeshState(ByteBufferBuilder.Result indices,
-                BiFunction<MeshData.SortState, VertexSorting, SealedQuadSorting.Job> scheduler) {
+                BiFunction<MeshData.DrawState, VertexSorting, SealedQuadSorting.Pool> poolSelector) {
             this.indices = indices;
-            this.scheduler = scheduler;
+            this.poolSelector = poolSelector;
         }
 
         public MeshData.SortState sort(ByteBuffer vertices, MeshData.DrawState draw,
                 ByteBufferBuilder destination, VertexSorting sorting) {
             checkOpen();
-            var state = SealedQuadSorting.capture(vertices, draw);
-            var next = scheduler.apply(state, sorting);
+            var selected = poolSelector.apply(draw, sorting);
+            var captured = selected == null ? null : selected.tryCapture(vertices, draw, sorting);
+            var state = captured == null ? SealedQuadSorting.capture(vertices, draw) : captured.state();
+            var next = captured == null ? null : captured.job();
             // Unknown sorters, tiny domains and a full pool use the same sorting object on the
             // caller thread. The destination is NEVER passed to a task.
             var result = next == null ? SealedQuadSorting.sortNow(state, destination, sorting) : null;

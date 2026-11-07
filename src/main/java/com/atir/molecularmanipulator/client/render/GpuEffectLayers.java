@@ -28,7 +28,7 @@ public final class GpuEffectLayers {
     private GpuEffectLayers() {}
 
     static VertexConsumer consumer(MultiBufferSource buffers, RenderType base) {
-        var iris = ArmillaryGpuModels.IRIS;
+        var iris = StarOrreryGpuModels.IRIS;
         if (unavailable || iris == null
                 || !GL.getCapabilities().OpenGL43 || !iris.supports(buffers)) return null;
         var state = SingularityVertexLayout.captureLevel();
@@ -65,7 +65,7 @@ public final class GpuEffectLayers {
                     VertexFormat.Mode.QUADS, base.bufferSize(), base.affectsCrumbling(), base.sortOnUpload(),
                     base::setupRenderState, base::clearRenderState);
             this.layout = layout;
-            ArmillaryGpuModels.IRIS.copyTransparency(base, this);
+            StarOrreryGpuModels.IRIS.copyTransparency(base, this);
         }
 
         private void allocate(int vertices) {
@@ -120,7 +120,7 @@ public final class GpuEffectLayers {
         }
 
         @Override public void draw(MeshData mesh) {
-            boolean merged = ArmillaryGpuModels.IRIS.merged();
+            boolean merged = StarOrreryGpuModels.IRIS.merged();
             try (mesh) {
                 if (!merged) setupRenderState();
                 try {

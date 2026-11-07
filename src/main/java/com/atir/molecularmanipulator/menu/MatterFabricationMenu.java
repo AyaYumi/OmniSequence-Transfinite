@@ -6,6 +6,7 @@ import appeng.menu.slot.RestrictedInputSlot;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
@@ -74,6 +75,8 @@ public final class MatterFabricationMenu extends AEBaseMenu {
             MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
     @GuiSync(28)
     public MatterResearchMenuState researchState = new MatterResearchMenuState("{\"completed\":[],\"tasks\":{}}");
+    @GuiSync(29)
+    public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
 
     private long lastResearchSync = Long.MIN_VALUE;
     private ResourceLocation selectedResearch;
@@ -115,6 +118,9 @@ public final class MatterFabricationMenu extends AEBaseMenu {
         registerClientAction(ACTION_RESEARCH_STOP,String.class,this::stopResearchPreparation);
         registerClientAction(ACTION_RESEARCH_PAGE, Boolean.class, this::showResearchPage);
         registerClientAction(ACTION_RESEARCH_SELECT, String.class, this::selectResearch);
+        registerClientAction(MachineEffectMenuAccess.ACTION, Integer.class,
+                value -> MachineEffectMenuAccess.apply(this, machine, value));
+        dynamicEffectOverride = machine.getMachineEffects().getOverride();
     }
 
     public MatterFabricationBlockEntity getMachine() {
@@ -173,6 +179,12 @@ public final class MatterFabricationMenu extends AEBaseMenu {
     public void requestResearchOrder(String id) {requestResearchOrder(id,false);}
     public void requestResearchOrder(String id,boolean toMaximum) {
         if(isClientSide())sendClientAction(toMaximum?ACTION_RESEARCH_ORDER_MAX:ACTION_RESEARCH_ORDER,id);
+    }
+
+    public void requestDynamicEffectLevel(int value) {
+        if (isClientSide() && MachineEffectSettings.isValidOverride(value)) {
+            sendClientAction(MachineEffectMenuAccess.ACTION, value);
+        }
     }
 
     public void requestRefresh() {
@@ -245,6 +257,7 @@ public final class MatterFabricationMenu extends AEBaseMenu {
             updatingStructure = machine.isUpdatingStructure();
             quantumFrequency = machine.getQuantumFrequency();
             quantumLinkState = machine.getQuantumLinkState();
+            dynamicEffectOverride = machine.getMachineEffects().getOverride();
             long now = machine.getLevel().getGameTime();
             if (lastResearchSync == Long.MIN_VALUE || now - lastResearchSync >= 5) {
                 syncResearch();

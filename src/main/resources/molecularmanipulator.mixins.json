@@ -64,7 +64,11 @@
     "PatternProviderLogicMixin",
     "TileAssemblerMatrixPatternMixin",
     "UselessExactOutputReturnMixin",
-    "ExtendedAEPlusPatternUploadMixin"
+    "ExtendedAEPlusPatternUploadMixin",
+    "SequenceArrayPatternUploadMixin",
+    "MolecularCenterInventoryNotificationsMixin",
+    "ExtendedAEPlusFabricationProviderCacheMixin",
+    "ExtendedAEPlusFabricationProviderUploadMixin"
   ],
   "client": [
     "GhostMatterGameRendererMixin",

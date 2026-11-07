@@ -4,7 +4,7 @@ import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -33,7 +33,7 @@ public final class MolecularCenterRenderer implements BlockEntityRenderer<Molecu
     @Override
     public void render(MolecularCenterBlockEntity center, float partialTick, PoseStack poseStack,
             MultiBufferSource buffers, int packedLight, int packedOverlay) {
-        int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        int effectLevel = MachineEffectLevels.forMachine(center);
         if (effectLevel <= 0 || center.getLevel() == null
                 || !center.getBlockState().getValue(BlockStateProperties.POWERED)) {
             return;

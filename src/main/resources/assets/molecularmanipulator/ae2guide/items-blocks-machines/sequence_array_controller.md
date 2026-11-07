@@ -38,7 +38,7 @@ Complete **Tier 2: Sequence Array** in the well to fabricate its parts. The stru
 
 The default inventory has **200 pages of 36 slots**, totaling 7200 patterns. Server configuration allows up to 300 pages. The formed structure's **14 quantum crystals** hold its patterns, which can be managed through a Pattern Access Terminal.
 
-Storage Buses access only the main pattern inventory. Autocrafting, quantum and upload-core slots have separate uses.
+Storage Buses access only the main pattern inventory. Autocrafting and quantum slots have separate uses.
 
 External pattern editing pauses during construction, dismantling and quantum crystal recovery. Finish these operations before rearranging patterns.
 
@@ -50,7 +50,11 @@ External pattern editing pauses during construction, dismantling and quantum cry
 | Auto Crafting | Restock using product targets and ingredient reserves |
 | Colors | Set the building's colors |
 
-Autocrafting supports nine independent patterns. See [Molecular Auto Crafter](molecular_auto_crafter.md) for settings. When ExtendedAE Plus is installed, its upload core uses a dedicated slot.
+Autocrafting supports nine independent patterns. See [Molecular Auto Crafter](molecular_auto_crafter.md) for settings.
+
+Enable **Auto Upload** to collect newly encoded crafting, stonecutting and smithing patterns from terminals on the same network. Duplicate recipes return a blank pattern. Use **Migrate Patterns** to move existing patterns into the array; remaining patterns stay at their source when the library is full.
+
+The old upload-core slot has been removed. Any saved core is returned through the controller's output buffer.
 
 ## Quantum connection and recovery
 

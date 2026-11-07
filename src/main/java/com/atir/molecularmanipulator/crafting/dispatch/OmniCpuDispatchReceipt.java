@@ -1,4 +1,4 @@
-package com.atir.molecularmanipulator.integration.eco;
+package com.atir.molecularmanipulator.crafting.dispatch;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEKey;
@@ -8,11 +8,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Immutable ownership intent, shared with the CPU accounting hooks without linking ECO. */
-public record EcoCpuDispatchReceipt(UUID jobId, IPatternDetails pattern, BigInteger crafts,
+/** Immutable ownership intent shared with the integration-independent CPU accounting hooks. */
+public record OmniCpuDispatchReceipt(UUID jobId, IPatternDetails pattern, BigInteger crafts,
         Map<AEKey, BigInteger> inputs, Map<AEKey, BigInteger> outputs,
         Map<AEKey, BigInteger> remainders, boolean exact) {
-    public EcoCpuDispatchReceipt {
+    public OmniCpuDispatchReceipt {
         Objects.requireNonNull(jobId);
         Objects.requireNonNull(pattern);
         if (crafts == null || crafts.signum() <= 0) throw new IllegalArgumentException("Invalid craft count");

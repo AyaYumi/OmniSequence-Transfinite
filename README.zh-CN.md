@@ -8,7 +8,7 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.12，源码分支 `1.21.1-neoforge-legacy` |
+| 本模组 | 2.0.13，源码分支 `1.21.1-neoforge-legacy` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 或更高 |
 | AppliedEnhancements | 1.1.2 或更高，客户端和服务端都需要 |
@@ -47,6 +47,8 @@
 | 引力水晶 | 沿墙面与天花板行走，或搭建推离升降通道 |
 | 幽灵物质 | 可用水抑制的危险物质，也是引力水晶的保留催化剂 |
 
+构序阵列的「一键迁移样板」将同网络公开样板槽和在线存储盘中的合成、切石、锻造样板移入主样板库。迁移仅在点击时执行，保留物品全部组件，满库时剩余样板留在来源。
+
 ## 研究、采集与复制
 
 普通研究默认各有九轮。首次完成解锁配方，后续提高所属构筑井配方的并行与速度。普通下单准备下一轮材料，Shift 下单准备所有剩余轮次，并在一次研究后到达满阶。备料期间可取消；下单研究正式开始后不能停止或暂停。
@@ -69,6 +71,6 @@
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.12.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.13.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 使用 [MIT 许可证](LICENSE)。

@@ -6,7 +6,7 @@ import appeng.core.definitions.AEItems;
 import appeng.helpers.IPatternTerminalMenuHost;
 import appeng.menu.AEBaseMenu;
 import appeng.menu.me.items.PatternEncodingTermMenu;
-import com.atir.molecularmanipulator.integration.extendedaeplus.MatrixUploadCoreIntegration;
+import com.atir.molecularmanipulator.integration.ae2.SequenceArrayPatternUpload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,8 +34,8 @@ public abstract class ExtendedAEPlusPatternUploadMixin {
 
         var patternInventory = terminalHost.getLogic().getEncodedPatternInv();
         var pattern = patternInventory.getStackInSlot(0);
-        if (MatrixUploadCoreIntegration.containsPatternOnSequenceArray(pattern, grid)) {
-            MatrixUploadCoreIntegration.sendDuplicateMessage(player);
+        if (SequenceArrayPatternUpload.containsPatternOnSequenceArray(pattern, grid)) {
+            SequenceArrayPatternUpload.sendDuplicateMessage(player);
             var blanks = terminalHost.getLogic().getBlankPatternInv()
                     .insertItem(0, AEItems.BLANK_PATTERN.stack(pattern.getCount()), false);
             patternInventory.extractItem(0, pattern.getCount(), false);
@@ -43,7 +43,7 @@ public abstract class ExtendedAEPlusPatternUploadMixin {
             callback.setReturnValue(true);
             return;
         }
-        if (!MatrixUploadCoreIntegration.uploadToSequenceArray(player, pattern, grid)) return;
+        if (!SequenceArrayPatternUpload.uploadToSequenceArray(player, pattern, grid)) return;
 
         // EAEP normally consumes this slot after its own matrix insertion. Keep
         // the same source-slot behavior when the Sequence Array accepts it.
@@ -55,12 +55,12 @@ public abstract class ExtendedAEPlusPatternUploadMixin {
     private static void molecularmanipulator$uploadToSequenceArray(
             ServerPlayer player, ItemStack pattern, IGrid grid,
             CallbackInfoReturnable<Boolean> callback) {
-        if (MatrixUploadCoreIntegration.containsPatternOnSequenceArray(pattern, grid)) {
-            MatrixUploadCoreIntegration.sendDuplicateMessage(player);
+        if (SequenceArrayPatternUpload.containsPatternOnSequenceArray(pattern, grid)) {
+            SequenceArrayPatternUpload.sendDuplicateMessage(player);
             callback.setReturnValue(false);
             return;
         }
-        if (MatrixUploadCoreIntegration.uploadToSequenceArray(player, pattern, grid)) {
+        if (SequenceArrayPatternUpload.uploadToSequenceArray(player, pattern, grid)) {
             callback.setReturnValue(true);
         }
     }

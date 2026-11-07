@@ -17,7 +17,7 @@ import java.util.UUID;
 import static com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-class EcoMolecularBatchOwnershipTest {
+class MolecularReusableBatchOwnershipTest {
     static { EcoMolecularTestPattern.bootstrap(); }
     private static HolderLookup.Provider testRegistries;
     @Test

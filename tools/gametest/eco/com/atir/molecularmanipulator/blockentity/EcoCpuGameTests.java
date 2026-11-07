@@ -56,7 +56,7 @@ import cn.dancingsnow.neoecoae.crafting.planner.trace.ECOPlanTrace;
 import com.atir.molecularmanipulator.crafting.MatterFabricationPatternEncoding;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchAccess;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchHost;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpu;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpuAccess;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanExecution;
@@ -116,7 +116,7 @@ public final class EcoCpuGameTests {
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 260)
     public static void mixedInHostEnablesOnlyOwnedOmniCpu(GameTestHelper helper) {
         powered(helper, 0, f -> {
-            helper.assertTrue(f.host().ecoDispatch$enabled() && ((EcoOmniPlanCpu) f.logic()).ecoOmni$handlesPlans(),
+            helper.assertTrue(f.host().omniDispatch$enabled() && ((EcoOmniPlanCpu) f.logic()).ecoOmni$handlesPlans(),
                     "Actual transformed Omni CPU must enable the complete ECO host and plan attachment");
             var ordinaryPos = f.cpuPos.east(5);
             reset(helper, ordinaryPos, AEBlocks.CRAFTING_STORAGE_1K.block().defaultBlockState());
@@ -125,9 +125,9 @@ public final class EcoCpuGameTests {
                 helper.assertTrue(ordinary.getCluster() != null, "Real AE2 1K CPU must form");
             }).thenExecute(() -> {
                 var ordinary = ((CraftingBlockEntity) helper.getLevel().getBlockEntity(ordinaryPos)).getCluster();
-                helper.assertTrue(ordinary.craftingLogic instanceof EcoCpuDispatchHost,
+                helper.assertTrue(ordinary.craftingLogic instanceof OmniCpuDispatchHost,
                         "Shared host mixin must actually be applied to native AE2 CPU logic");
-                helper.assertTrue(!((EcoCpuDispatchHost) ordinary.craftingLogic).ecoDispatch$enabled(),
+                helper.assertTrue(!((OmniCpuDispatchHost) ordinary.craftingLogic).omniDispatch$enabled(),
                         "Unowned AE2 CPU must retain disabled Omni dispatch host");
                 finish(helper, f, "host_enabled_ownership");
             }).thenSucceed();
@@ -142,7 +142,7 @@ public final class EcoCpuGameTests {
             ECOPlanningResultRegistry.register(plan, result);
             submit(helper, f, plan);
             assertMetadata(helper, f, result.planningId(), BigInteger.valueOf(CRAFTS));
-            helper.assertTrue(!f.host().ecoDispatch$exactOrder(), "Ordinary ECO plan must retain ordinary dispatch mode");
+            helper.assertTrue(!f.host().omniDispatch$exactOrder(), "Ordinary ECO plan must retain ordinary dispatch mode");
             complete(helper, f, "ordinary_prepare_dispatch_outputs");
         });
     }
@@ -154,7 +154,7 @@ public final class EcoCpuGameTests {
             var plan = exactPlan(helper, result);
             submit(helper, f, plan);
             assertMetadata(helper, f, null, BigInteger.valueOf(CRAFTS));
-            helper.assertTrue(f.host().ecoDispatch$exactOrder()
+            helper.assertTrue(f.host().omniDispatch$exactOrder()
                             && execution(f).theoreticalBytes().equals(BigInteger.TEN.pow(30))
                             && execution(f).fuzzyPlanningItemIds().equals(FUZZY),
                     "Exact ECO source must reach actual Omni host with theoretical bytes and fuzzy metadata intact");
@@ -171,7 +171,7 @@ public final class EcoCpuGameTests {
             sequence(helper).thenWaitUntil(() -> assertDispatched(helper, f)).thenExecute(() -> {
                 f.assembly.getCatalystInventory().clear();
                 var before = execution(f).remainingByTask();
-                var id = f.host().ecoDispatch$jobId();
+                var id = f.host().omniDispatch$jobId();
                 var saved = f.core().saveWithFullMetadata(helper.getLevel().registryAccess());
                 var oldCore = f.core();
                 oldCore.onChunkUnloaded();
@@ -194,7 +194,7 @@ public final class EcoCpuGameTests {
                 }).thenWaitUntil(() -> helper.assertTrue(f.assembly.isOperational()
                                 && f.storageNode.getGrid() == f.core().getMainNode().getGrid(),
                         "Restored provider and finite inventory must rejoin the CPU grid")).thenExecute(() -> {
-                    helper.assertTrue(id.equals(f.host().ecoDispatch$jobId())
+                    helper.assertTrue(id.equals(f.host().omniDispatch$jobId())
                                     && execution(f).remainingByTask().equals(before)
                                     && result.planningId().equals(execution(f).planningId())
                                     && f.logic().getWaitingFor(OUTPUT) == PRODUCTS
@@ -218,7 +218,7 @@ public final class EcoCpuGameTests {
             submit(helper, f, plan);
             sequence(helper).thenWaitUntil(() -> assertDispatched(helper, f)).thenExecute(() -> {
                 f.assembly.getCatalystInventory().clear();
-                var id = f.host().ecoDispatch$jobId();
+                var id = f.host().omniDispatch$jobId();
                 f.logic().cancel();
                 var saved = new CompoundTag();
                 f.buffer().save(saved, helper.getLevel().registryAccess());
@@ -320,8 +320,8 @@ public final class EcoCpuGameTests {
                         "CraftingService admission must retain original ECO phase metadata");
                 sequence(helper).thenWaitUntil(() -> helper.assertTrue(f.logic().getWaitingFor(OUTPUT) == PRODUCTS,
                         "First phase must really dispatch")).thenExecute(() -> {
-                    helper.assertTrue(f.host().ecoDispatch$remaining(f.pattern).signum() == 0
-                                    && f.host().ecoDispatch$remaining(second).equals(BigInteger.valueOf(CRAFTS))
+                    helper.assertTrue(f.host().omniDispatch$remaining(f.pattern).signum() == 0
+                                    && f.host().omniDispatch$remaining(second).equals(BigInteger.valueOf(CRAFTS))
                                     && f.logic().getWaitingFor(finalKey) == 0 && f.stock.amount(OUTPUT) == 0,
                             "Second phase must not advance from projected intermediate products");
                 }).thenWaitUntil(() -> helper.assertTrue(f.logic().getWaitingFor(finalKey) == CRAFTS,
@@ -398,8 +398,8 @@ public final class EcoCpuGameTests {
                         "Original seed and compact repeat-group metadata must reach actual CPU admission");
                 sequence(helper).thenWaitUntil(() -> helper.assertTrue(f.logic().getWaitingFor(OUTPUT) == 3,
                         "First real cycle firing must start using the single physical seed"))
-                        .thenExecute(() -> helper.assertTrue(f.host().ecoDispatch$remaining(first).equals(BigInteger.TWO)
-                                        && f.host().ecoDispatch$remaining(second).equals(BigInteger.valueOf(3)),
+                        .thenExecute(() -> helper.assertTrue(f.host().omniDispatch$remaining(first).equals(BigInteger.TWO)
+                                        && f.host().omniDispatch$remaining(second).equals(BigInteger.valueOf(3)),
                                 "Acceptance must advance only the first ordered task; the cycle return remains pending"))
                         .thenWaitUntil(() -> helper.assertTrue(!f.cpu().isBusy() && f.stock.amount(finalKey) == 3,
                                 "All three actual cycle repetitions must complete"))
@@ -422,7 +422,7 @@ public final class EcoCpuGameTests {
                 helper.assertTrue(f.service() instanceof ECOCraftingOutputRouter,
                         "ECO CraftingService output-router mixin must actually be applied");
                 var router = (ECOCraftingOutputRouter) f.service();
-                var id = f.host().ecoDispatch$jobId();
+                var id = f.host().omniDispatch$jobId();
                 helper.assertTrue(router.neoecoae$insertExactIntoCpuForJob(UUID.randomUUID(), OUTPUT,
                                 BigInteger.valueOf(PRODUCTS), Actionable.MODULATE).signum() == 0
                                 && router.neoecoae$insertExactIntoCpuForJob(id, INPUT,
@@ -501,7 +501,7 @@ public final class EcoCpuGameTests {
                                         || !f.cpu().isBusy() && f.stock.amount(OUTPUT) == 32,
                                 "Actual Omni dispatcher must accept the native batch under its real tick budget");
                         if (f.logic().getWaitingFor(OUTPUT) == 32) {
-                            helper.assertTrue(f.host().ecoDispatch$remaining(f.pattern).signum() == 0
+                            helper.assertTrue(f.host().omniDispatch$remaining(f.pattern).signum() == 0
                                             && execution(f).isComplete()
                                             && machine.getCurrentBatchInputs().stream().filter(s -> s.what().equals(INPUT))
                                                     .mapToLong(GenericStack::amount).sum() == 16
@@ -510,7 +510,6 @@ public final class EcoCpuGameTests {
                                     "Native ECO machine must own accepted materials until physical production");
                         }
                     }).thenWaitUntil(() -> {
-                        outputDiagnostic(f, "native_existing");
                         helper.assertTrue(!f.cpu().isBusy() && f.stock.amount(OUTPUT) == 32,
                             "Native ECO workstation must execute its real batch and route products to the UUID waiting ledger");
                     })
@@ -585,25 +584,17 @@ public final class EcoCpuGameTests {
 
     private static void assertDispatched(GameTestHelper helper, Fixture f) {
         helper.assertTrue(f.logic().getWaitingFor(OUTPUT) == PRODUCTS, "CPU must expose the complete native batch waiting credit");
-        helper.assertTrue(f.host().ecoDispatch$remaining(f.pattern).signum() == 0
+        helper.assertTrue(f.host().omniDispatch$remaining(f.pattern).signum() == 0
                         && execution(f).remainingByTask().values().stream().allMatch(n -> n.signum() == 0)
                         && f.access().ecoOmni$tasks().isEmpty() && ownedInputs(f) == CRAFTS
                         && f.access().ecoOmni$physicalAmount(INPUT).signum() == 0
                         && f.stock.amount(INPUT) == 0 && f.stock.amount(OUTPUT) == 0,
                 "ECO acceptance must advance AE2/exact/phase tasks once, own every real input and await physical production");
-        helper.assertTrue(!((EcoCpuDispatchAccess) f.logic()).ecoDispatch$dispatcher().suspended(),
+        helper.assertTrue(!((EcoCpuDispatchAccess) f.logic()).omniDispatch$dispatcher().suspended(),
                 "Native FastPath CPU transaction must finish with a clean journal");
     }
 
     private static void assertComplete(GameTestHelper helper, Fixture f) {
-        if (helper.getTick() % 100 == 0) {
-            var saved = new CompoundTag();
-            f.logic().writeToNBT(saved, helper.getLevel().registryAccess());
-            System.out.println("ECO_CPU_COMPLETION_DIAG tick=" + helper.getTick() + " pos=" + f.cpuPos
-                    + " busy=" + f.cpu().isBusy() + " stock=" + f.stock.amount(OUTPUT)
-                    + " waiting=" + f.logic().getWaitingFor(OUTPUT) + " ownedInputs=" + ownedInputs(f)
-                    + " outputs=" + f.buffer().contents(true) + " cpu=" + saved);
-        }
         helper.assertTrue(!f.cpu().isBusy() && f.stock.amount(OUTPUT) == PRODUCTS,
                 "Real AE2 CPU must finish only after actual well outputs settle its waiting ledger: busy="
                         + f.cpu().isBusy() + " stock=" + f.stock.amount(OUTPUT) + " waiting=" + f.logic().getWaitingFor(OUTPUT)
@@ -614,10 +605,10 @@ public final class EcoCpuGameTests {
     }
 
     private static void assertMetadata(GameTestHelper helper, Fixture f, UUID planningId, BigInteger remaining) {
-        helper.assertTrue(f.host().ecoDispatch$enabled() && f.access().ecoOmni$managed()
+        helper.assertTrue(f.host().omniDispatch$enabled() && f.access().ecoOmni$managed()
                         && f.access().ecoOmni$exactState() != null && execution(f) != null
                         && execution(f).remainingByPattern().get(f.pattern).equals(remaining)
-                        && f.host().ecoDispatch$remaining(f.pattern).equals(remaining),
+                        && f.host().omniDispatch$remaining(f.pattern).equals(remaining),
                 "Submitting original ECO plan through CraftingService must attach actual exact task and ECO execution state");
         if (planningId != null) helper.assertTrue(planningId.equals(execution(f).planningId()),
                 "Original ECO planning UUID must survive admission without plan rewriting");
@@ -750,7 +741,7 @@ public final class EcoCpuGameTests {
             return core().allCpus().stream().filter(CraftingCPUCluster::isBusy).findFirst().orElse(core().getCluster());
         }
         CraftingCpuLogic logic() { return cpu().craftingLogic; }
-        EcoCpuDispatchHost host() { return (EcoCpuDispatchHost) logic(); }
+        OmniCpuDispatchHost host() { return (OmniCpuDispatchHost) logic(); }
         EcoOmniPlanCpuAccess access() { return (EcoOmniPlanCpuAccess) logic(); }
         MatterPatternBuffer buffer() { return assembly.getBuffer(); }
         CraftingService service() { return (CraftingService) core().getMainNode().getGrid().getCraftingService(); }
@@ -834,14 +825,6 @@ public final class EcoCpuGameTests {
                     f.pattern = publishedPattern(f, OUTPUT, f.pattern.getDefinition());
                     action.accept(f);
                 });
-    }
-
-    static void outputDiagnostic(Fixture f, String name) {
-        if (f.helper.getTick() % 100 != 0) return;
-        var saved = new CompoundTag();
-        f.logic().writeToNBT(saved, f.helper.getLevel().registryAccess());
-        System.out.println("ECO_OUTPUT_DIAG " + name + " tick=" + f.helper.getTick()
-                + " stock=" + f.stock.values + " busy=" + f.cpu().isBusy() + " cpu=" + saved);
     }
 
     static CheckedSequence sequence(GameTestHelper helper) {

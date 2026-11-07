@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.block;
 
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -33,7 +33,7 @@ public final class MolecularCenterCoreBlock extends Block {
 
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
-        int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        int effectLevel = MachineEffectLevels.forMolecularCore(level, pos);
         if (effectLevel <= 0) {
             return;
         }

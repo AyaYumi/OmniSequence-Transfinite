@@ -22,6 +22,7 @@ import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOFastPathKey;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOFastPathStacks;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
@@ -97,7 +98,7 @@ class EcoMolecularFastPathAdapterTest {
             assertFalse(energy.refunded);
             assertEquals(terminal ? 0 : 1, counter(batch.remainingTotal()).get(reusable));
             assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
-            assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+            assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
         }
     }
 
@@ -120,7 +121,7 @@ class EcoMolecularFastPathAdapterTest {
         assertTrue(energy.refunded);
         assertFalse(energy.committed);
         assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
-        assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+        assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
     }
 
     @Test
@@ -221,7 +222,7 @@ class EcoMolecularFastPathAdapterTest {
             var delivery = model.delivery(context, batch);
             assertNotNull(delivery, "requested=" + requested);
             assertTrue(delivery.plan().matchesProvidedInputs(delivery.inputs()));
-            assertTrue(EcoMolecularRemainderContext.matches(counter(contract.remainders()),
+            assertTrue(MolecularRemainderContext.matches(counter(contract.remainders()),
                     delivery.plan().expectedRemainders(contract.craftCount())));
             assertEquals(0, counter(contract.inputs()).get(foreign));
             assertTrue(ECOBatchExecutor.executePrepared(stock, contract.inputs(), Map.of(), new Energy(),
@@ -248,7 +249,7 @@ class EcoMolecularFastPathAdapterTest {
         assertTrue(rejectedEnergy.refunded);
         assertFalse(rejectedEnergy.committed);
         assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
-        assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+        assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
 
         provider.reject = false;
         var acceptedEnergy = new Energy();
@@ -301,7 +302,7 @@ class EcoMolecularFastPathAdapterTest {
         assertTrue(inventory.list.isEmpty());
         assertTrue(energy.committed);
         assertNull(MolecularBatchDispatchContext.current(pattern, provider.lastInputs));
-        assertNull(EcoMolecularRemainderContext.expected(pattern, provider.lastInputs));
+        assertNull(MolecularRemainderContext.expected(pattern, provider.lastInputs));
     }
 
     @Test
@@ -429,7 +430,7 @@ class EcoMolecularFastPathAdapterTest {
                 jobId = context.craftingId();
                 planCount = context.craftCount();
             }
-            assertNotNull(EcoMolecularRemainderContext.expected(pattern, inputs));
+            assertNotNull(MolecularRemainderContext.expected(pattern, inputs));
             if (reject) return false;
             for (var holder : inputs) holder.clear();
             if (fail) throw new IllegalStateException("after acquiring ownership");

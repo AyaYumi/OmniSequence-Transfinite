@@ -59,6 +59,9 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private int dismantleConfirmTicks;
     private int displayedAutoCraftSlot = Integer.MIN_VALUE;
     private MolecularCenterLdUi modularView;
+    private MachineEffectButton effectsButton;
+    private ResponsiveAE2Button patternUploadButton;
+    private ResponsiveAE2Button migratePatternsButton;
 
     public MolecularCenterScreen(MolecularCenterMenu menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -161,6 +164,17 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
             autoCraftToggleButtons.add(toggleButton);
             addScreenWidget(toggleButton);
         }
+        effectsButton = addScreenWidget(new MachineEffectButton(leftPos + 210, topPos + 258, 100,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
+        patternUploadButton = addScreenWidget(new ResponsiveAE2Button(leftPos + 306, topPos + 198, 108, 18,
+                patternUploadLabel(), button -> menu.requestSetPatternUpload(!menu.automaticPatternUpload)));
+        patternUploadButton.setTooltip(Tooltip.create(Component.translatable(
+                "gui.molecularmanipulator.pattern_upload.tooltip")));
+        migratePatternsButton = addScreenWidget(new ResponsiveAE2Button(leftPos + 306, topPos + 219, 108, 18,
+                Component.translatable("gui.molecularmanipulator.pattern_migration.button"),
+                button -> menu.requestMigratePatterns()));
+        migratePatternsButton.setTooltip(Tooltip.create(Component.translatable(
+                "gui.molecularmanipulator.pattern_migration.tooltip")));
         selectTab(detailTab);
         modularView = new MolecularCenterLdUi(this, menu);
         modularView.attach(this);
@@ -259,9 +273,9 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         }
         boolean overviewVisible = detailTab == TAB_OVERVIEW;
         menu.getQuantumSlot().setActive(overviewVisible);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            menu.getMatrixUploadCoreSlot().setActive(overviewVisible);
-        }
+        effectsButton.visible = detailTab == TAB_COLORS;
+        patternUploadButton.visible = overviewVisible;
+        migratePatternsButton.visible = overviewVisible;
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
     }
@@ -283,9 +297,16 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         }
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
+        patternUploadButton.setMessage(patternUploadLabel());
+        migratePatternsButton.active = menu.operational && !menu.building && !menu.dismantling;
         if (modularView != null) {
             modularView.tick();
         }
+    }
+
+    private Component patternUploadLabel() {
+        return Component.translatable(menu.automaticPatternUpload
+                ? "gui.molecularmanipulator.pattern_upload.on" : "gui.molecularmanipulator.pattern_upload.off");
     }
 
     @Override
@@ -407,10 +428,6 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         if (detailTab == TAB_OVERVIEW) {
             drawSlotFrame(graphics, MolecularCenterMenu.QUANTUM_SLOT_X, MolecularCenterMenu.QUANTUM_SLOT_Y,
                     0xFF55799E);
-            if (menu.getMatrixUploadCoreSlot() != null) {
-                drawSlotFrame(graphics, MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X,
-                        MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_Y, 0xFF8B70C4);
-            }
             graphics.fill(x + 207, y + 148, x + 418, y + 149, AeUiTheme.SHADOW);
         }
     }
@@ -527,29 +544,13 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         drawCenteredFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.quantum_singularity"),
                 MolecularCenterMenu.QUANTUM_SLOT_X + 8, 198, 90, AeUiTheme.PRIMARY_TEXT);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            drawCenteredFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.quantum_upload_core"),
-                    MolecularCenterMenu.MATRIX_UPLOAD_CORE_SLOT_X + 8, 198, 84, AeUiTheme.ACCENT);
-        }
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.overview_quantum_requirements",
                         formatAmount((long) MolecularCenterBlockEntity.QUANTUM_LINK_POWER)),
-                DETAIL_CONTENT_LEFT, 230, width, AeUiTheme.MUTED_TEXT);
-        if (menu.getMatrixUploadCoreSlot() != null) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.quantum_upload_core_hint"),
-                    DETAIL_CONTENT_LEFT, 245, width, AeUiTheme.MUTED_TEXT);
-        }
+                DETAIL_CONTENT_LEFT, 242, width, AeUiTheme.MUTED_TEXT);
         drawFittedString(graphics,
                 Component.translatable("gui.molecularmanipulator.spawn_protection"),
-                DETAIL_CONTENT_LEFT, menu.getMatrixUploadCoreSlot() == null ? 245 : 260,
-                width, AeUiTheme.SUCCESS);
-        if (menu.getMatrixUploadCoreSlot() == null && !menu.legacyStructure) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
-                    DETAIL_CONTENT_LEFT, 260, width, AeUiTheme.MUTED_TEXT);
-        }
+                DETAIL_CONTENT_LEFT, 260, width, AeUiTheme.SUCCESS);
     }
 
     private void drawOverviewRow(GuiGraphics graphics, String key, Component value, int y, int valueColor) {

@@ -8,7 +8,7 @@ import com.atir.molecularmanipulator.client.render.SingularityStructureEffects;
 import com.atir.molecularmanipulator.client.render.SingularityEffectState;
 import com.atir.molecularmanipulator.client.render.SingularityStellarCore;
 import com.atir.molecularmanipulator.client.render.SingularityWhiteHoleRenderer;
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import com.atir.molecularmanipulator.world.SingularityMotionWorld;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -24,9 +24,10 @@ public final class SingularityRenderer implements BlockEntityRenderer<Singularit
     @Override public void render(SingularityBlockEntity machine, float partialTick, PoseStack poses,
                                  MultiBufferSource buffers, int light, int overlay) {
         if (machine.isSingleBlock()) return;
-        int detail = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        int detail = MachineEffectLevels.forMachine(machine);
         boolean suspended = machine.structureVersion() >= SingularityStructure.VERSION;
-        if (!machine.formed() || detail <= 0 && !suspended || machine.getLevel() == null) return;
+        // All decorative passes, including the scene lens, obey 0=off. Physical bodies are separate.
+        if (!machine.formed() || detail <= 0 || machine.getLevel() == null) return;
         var center = machine.worldPos(new BlockPos(0, 64, 0)).subtract(machine.getBlockPos());
         double now = machine.getLevel().getGameTime() + (double) partialTick;
         int mode = 0;
@@ -44,7 +45,7 @@ public final class SingularityRenderer implements BlockEntityRenderer<Singularit
         poses.pushPose(); poses.translate(center.getX() + .5, center.getY() + .5, center.getZ() + .5);
         poses.mulPose(Axis.YP.rotationDegrees((float) -SingularityMotionGeometry.facingAngle(machine.facing())));
         var frame = effects.computeIfAbsent(machine, ignored -> new SingularityEffectState()).sample(now, mode, age);
-        // The suspended crystals are part of the design silhouette, even with decorative effects disabled.
+        // Physical moving block meshes are rendered independently by SingularityAssemblyRenderer.
         SingularityStructureEffects.renderCrystal(poses, SingularityEffectLayers.crystal(buffers), frame, detailed, motion, suspended);
         if (suspended) {
             SingularityStellarCore.renderStar(poses, SingularityEffectLayers.star(buffers), frame, detailed);

@@ -16,6 +16,7 @@ import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
 import com.atir.molecularmanipulator.mixin.EcoOmniPlanRuntimeInvoker;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -175,7 +176,7 @@ public final class EcoOmniPlanExecution {
         var exactInputs = BigInteger.ZERO;
         for (var task : plan.tasks()) {
             var count = remaining.getOrDefault(task.id(), BigInteger.ZERO);
-            exactInputs = exactInputs.add(EcoCpuDispatchLedger.reservedInput(bindings.get(task.id()), count, key));
+            exactInputs = exactInputs.add(OmniCpuDispatchLedger.reservedInput(bindings.get(task.id()), count, key));
         }
         // Keep startup stock in addition to exact demand even when ECO's long sum saturates.
         var startup = BigInteger.valueOf(access.ecoOmni$protectedSeed(null).getOrDefault(key, 0L));

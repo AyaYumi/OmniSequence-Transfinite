@@ -6,6 +6,7 @@ import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.RestrictedInputSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import net.minecraft.server.level.ServerPlayer;
@@ -64,6 +65,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
     public boolean legacyStructureUpdateDismissed;
     @GuiSync(20)
     public int dismantlableBlocks;
+    @GuiSync(21)
+    public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
 
     private final OmniComputationCoreBlockEntity core;
 
@@ -82,10 +85,20 @@ public final class OmniComputationMenu extends AEBaseMenu {
         registerClientAction(ACTION_REFRESH, this::refresh);
         registerClientAction(ACTION_UPDATE_STRUCTURE, this::updateStructure);
         registerClientAction(ACTION_KEEP_LEGACY_STRUCTURE, this::keepLegacyStructure);
+        registerClientAction(MachineEffectMenuAccess.ACTION, Integer.class, value -> {
+            if (!core.isSingleBlock()) MachineEffectMenuAccess.apply(this, core, value);
+        });
+        dynamicEffectOverride = core.getMachineEffects().getOverride();
     }
 
     public OmniComputationCoreBlockEntity getCore() {
         return core;
+    }
+
+    public void requestDynamicEffectLevel(int value) {
+        if (isClientSide() && MachineEffectSettings.isValidOverride(value)) {
+            sendClientAction(MachineEffectMenuAccess.ACTION, value);
+        }
     }
 
     public void requestBuild() {
@@ -172,6 +185,7 @@ public final class OmniComputationMenu extends AEBaseMenu {
             legacyStructure = core.hasLegacyStructure();
             legacyStructureUpdateDismissed = core.isLegacyStructureUpdateDismissed();
             dismantlableBlocks = core.getDismantlableBlocks();
+            dynamicEffectOverride = core.getMachineEffects().getOverride();
         }
         super.broadcastChanges();
     }

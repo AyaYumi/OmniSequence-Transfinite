@@ -112,12 +112,14 @@ public final class CosmicSingularityPostRenderer {
     private static void draw(Hole hole, Matrix4f view, Matrix4f projection) {
         var shader = OmniShaders.cosmicLens();
         var center = SingularityLensProjection.centerInViewSpace(hole.pose, 0, view);
+        var inverseProjection = SingularityLensProjection.inverseProjection(projection);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
         shader.safeGetUniform("SceneSize").set((float) scene.width, (float) scene.height);
         shader.safeGetUniform("CoreCenter").set(center);
+        shader.safeGetUniform("ViewOrigin").set(SingularityLensProjection.viewOrigin(inverseProjection));
         shader.safeGetUniform("LensProjection").set(projection);
-        shader.safeGetUniform("InverseProjection").set(SingularityLensProjection.inverseProjection(projection));
+        shader.safeGetUniform("InverseProjection").set(inverseProjection);
         shader.safeGetUniform("LensTime").set(hole.time);
         shader.safeGetUniform("CoreRadius").set(0.30F);
         shader.safeGetUniform("FieldRadius").set(1.25F);

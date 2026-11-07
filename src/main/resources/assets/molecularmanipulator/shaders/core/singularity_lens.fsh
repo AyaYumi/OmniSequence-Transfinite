@@ -5,6 +5,7 @@ uniform mat4 LensProjection;
 uniform mat4 InverseProjection;
 uniform vec2 SceneSize;
 uniform vec3 CoreCenter;
+uniform vec3 ViewOrigin;
 uniform float CoreRadius;
 uniform float FieldRadius;
 uniform float LensTime;
@@ -16,7 +17,7 @@ vec3 viewPoint(vec2 uv, float depth) {
 }
 float sceneDistance(vec2 uv) {
     float depth = texture(SceneDepth, uv).r;
-    return depth >= 0.999999 ? 1e6 : length(viewPoint(uv, depth));
+    return depth >= 0.999999 ? 1e6 : length(viewPoint(uv, depth) - ViewOrigin);
 }
 bool backgroundFootprint(vec2 uv, float minimumDistance) {
     // Linear color filtering touches four texels. Reject the whole footprint if one is
@@ -29,13 +30,15 @@ bool backgroundFootprint(vec2 uv, float minimumDistance) {
 }
 void main() {
     vec2 uv = gl_FragCoord.xy / SceneSize;
-    vec3 ray = normalize(viewPoint(uv, 0.5));
-    if (dot(CoreCenter, CoreCenter) < CoreRadius * CoreRadius) {
+    vec3 ray = normalize(viewPoint(uv, 0.5) - ViewOrigin);
+    vec3 relativeCenter = CoreCenter - ViewOrigin;
+    float centerDistance2 = dot(relativeCenter, relativeCenter);
+    if (centerDistance2 < CoreRadius * CoreRadius) {
         fragColor = vec4(1.0);
         return;
     }
-    float along = dot(ray, CoreCenter);
-    float impact2 = max(0.0, dot(CoreCenter, CoreCenter) - along * along);
+    float along = dot(ray, relativeCenter);
+    float impact2 = max(0.0, centerDistance2 - along * along);
     if (along <= 0.0 || impact2 >= FieldRadius * FieldRadius) discard;
     float impact = sqrt(impact2);
     float fieldNear = max(0.0, along - sqrt(FieldRadius * FieldRadius - impact2));

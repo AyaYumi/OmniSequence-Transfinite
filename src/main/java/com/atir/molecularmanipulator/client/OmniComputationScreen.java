@@ -22,6 +22,8 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
             modularView.close();
         }
         super.init();
+        addScreenWidget(new MachineEffectButton(leftPos + 220, topPos + 5, 100,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         modularView = new OmniComputationLdUi(menu);
         modularView.attach(this);
         addResponsiveModularWidget(modularView.widget());

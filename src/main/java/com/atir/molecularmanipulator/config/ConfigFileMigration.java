@@ -133,7 +133,12 @@ public final class ConfigFileMigration {
                 java.util.List.of(RETIRED_UNSCALED_DISPATCH_LIMIT,
                         RETIRED_BATCH_SUBSTITUTION_OPTION, "ae2_crafting",
                         "omni_computation.optimizer", "omni_computation.cache",
-                        "omni_computation.execution", "sequence_array.matter_rewrite",
+                        "omni_computation.execution",
+                        // Removed in 2.0.9. Retire these before the exact-schema guard
+                        // can reset the entire file, including valid collection settings.
+                        "omni_computation.dispatch.omni_profile_exact_returns",
+                        "omni_computation.dispatch.omni_return_profile_sample_interval",
+                        "sequence_array.matter_rewrite",
                         "matter_sequence_capacity", "matter_entropy_capacity",
                         "matter_entropy_cooling_per_second", "matter_speed_cards"),
                 displayName);

@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.12, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
+Current source: 2.0.13, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 
@@ -47,7 +47,7 @@ or another chunk loader.
 If any required chunk is unavailable, motion cannot start or dock, and active
 motion pauses/freezes until the required chunks are loaded again. These checks
 do not synchronously load unavailable chunks. Obstacle and permission checks
-and material-conservation guarantees remain unchanged.
+still apply.
 
 Miniature White Holes remain an exception: they keep their own chunks loaded
 regardless of this setting.
@@ -60,6 +60,36 @@ regardless of this setting.
 
 Texture-atlas item/fluid animations remain active independently of large-world
 effect detail. Reduce this option when world effects cost too much render time.
+View bobbing can stay enabled.
+
+Each Array, Computation Nexus, Fabrication Well and Singularity Hub controller
+screen has an **Effects** button: 0 off, 1 reduced, 2 full. The Array button
+is on its colors tab. An explicit choice is saved on that individual controller
+and synchronized to every viewer; it does not change production or other machines.
+Machines without an explicit choice inherit each client's `visual.dynamic_effect_level`.
+Shift-click or Shift-Enter/Space restores that inheritance.
+
+## Pattern upload and migration
+
+- A Fabrication Well recipe upload consumes one blank pattern from the encoding
+  terminal, or from its connected ME network when the local slot is empty. One
+  network blank is sufficient. Destination identity uses the loaded, formed well
+  and team, never its assembly's custom display name. ExtendedAE Plus 1.6.4.1's
+  automatic provider selection also recognizes renamed assemblies by machine type.
+- The Array overview has **Auto upload** and **Migrate patterns** buttons. Successful
+  terminal encoding on the same network uploads crafting, stonecutting and smithing patterns to an
+  enabled, operational Array. Processing patterns stay in the terminal. A full or
+  unavailable Array leaves the encoded item there; duplicates return a blank.
+- New Arrays default to auto upload off. A still-decodable core in an old removed
+  slot enables auto upload and is returned through the existing ME output buffer;
+  it is not discarded. An explicitly saved button setting takes precedence.
+- Migration is one click, not continuous collection. It uses shared AE2 interfaces:
+  `PatternContainer` for public physical pattern slots, and `IChestOrDrive` /
+  `StorageCell` for mounted disks. Private slots, read-only recipe rows,
+  storage-bus proxies and processing patterns stay untouched. No pattern is
+  re-encoded; duplicate physical items and all components are preserved. Full-library
+  leftovers remain at the source. The button reports moved counts and partial completion.
+  Large migrations run synchronously as part of that click.
 
 ## Resource production example
 
@@ -106,7 +136,10 @@ Old ore/log tag lists merge into `item_tags` without injecting new defaults into
 an existing custom/empty list. Existing `item_tags` wins. Older collection and
 duplication groups move from `sequence_array` to `singularity_hub`; chunk-loading
 moves to `multiblocks`. Retired Matter Rewrite/entropy/Shift-tooltip options are
-removed. Valid values survive schema repair; backup files are created before changes.
+removed. The obsolete profiling options `omni_profile_exact_returns` and
+`omni_return_profile_sample_interval` are removed before schema validation.
+Backup files are created before changes. Already-reset values must be restored
+from a backup or configured again; migration cannot recover discarded values.
 
 Recurring runtime and load warnings share a global one-minute window,
 independent of controller count. Startup migration messages describe actual
@@ -115,18 +148,35 @@ changes; routine successful crafting does not produce trace logs.
 ## 中文
 
 配置文件属于正在使用的实例目录。修改已有节，保存并重启；不要重复添加同名节。
+升级时会在配置校验前清理废弃的性能分析选项，修改前会创建备份。
+若此前已经被重置，需要从备份恢复或重新设置；迁移不会自动找回已丢弃的值。
 上表列出当前全部有效参数。采集白名单统一为物品标签，先合并去重，再按完整物品
 ID 黑名单排除。空白名单不生产，多个命中标签不会让一个物品重复生产。
 
 `multiblocks.force_load_chunks` 只控制本模组为已登记多方块占地区块持有的加载票据，
 不决定天枢是否允许运动。设为 `false` 后，只要整个运动范围所需区块都已加载，
 奇点天枢仍可启动、运行和停靠；所需区块不可用时，禁止启动或停靠，并暂停／冻结
-进行中的运动，等待区块重新加载，不会同步加载缺失区块。障碍、权限检查与材料
-守恒保证保持不变。微型白洞仍为例外，不论该选项为何值都会保持其所在区块加载。
+进行中的运动，等待区块重新加载，不会同步加载缺失区块。障碍与权限检查仍然适用。
+微型白洞仍为例外，不论该选项为何值都会保持其所在区块加载。
 
 FE 来自控制器相邻六面的能源能力；AE 来自连接的 ME 电网。序质产量与黑洞数量
 和每黑洞产量相乘，每 mB 的 FE/AE 费用独立配置。无限磁盘解决存储容量，仍需要
 实际供能。复制一件物品固定消耗 1,000 mB（1 B），样品保留。
+
+各多方块控制器界面提供独立「特效」按钮，三档与配置一致：0 关闭、1 精简、2 完整；
+构序矩阵按钮位于颜色页。独立档位保存在该控制器并同步给所有观看者，不影响产量。
+未设置的机器沿用各客户端全局配置；Shift+点击或 Shift+Enter／空格恢复沿用。
+
+构筑井上传可消耗终端或相连 ME 网络中的一张空白样板；识别不依赖总成名称。
+EAEP 1.6.4.1 自动选择供应器时也按构筑井类型和队伍识别，支持重命名总成。
+矩阵总览提供「自动上传」开关和「一键迁移样板」。上传在编码时触发；迁移仅在点击时
+执行，通过 `PatternContainer` 和 `IChestOrDrive`／`StorageCell` 公共接口发现来源，
+将合成、切石、锻造实体样板移入主样板库。私有槽、只读配方行、存储总线代理及处理
+样板保持原处；重复实体和全部组件原样保留。
+矩阵未就绪或满库时不丢弃来源物品。旧槽核心进入原有输出缓存退回网络，并保留原先
+开启行为；新矩阵默认关闭，玩家已保存的开关值优先。
+
+大型迁移在点击后同步执行，不是持续运行的后台任务。
 
 旧分组和标签自动迁移，已设置的新值包括空列表优先保留。已删除的构序重写相关
 选项不会重新生成。重复运行故障保留首次警告或错误，并按固定模板全局限流；

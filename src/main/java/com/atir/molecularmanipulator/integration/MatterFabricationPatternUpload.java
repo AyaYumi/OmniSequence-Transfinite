@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.integration;
 
 import appeng.api.ids.AEComponents;
 import appeng.api.inventories.InternalInventory;
+import appeng.api.networking.security.IActionSource;
 import appeng.core.definitions.AEItems;
 import appeng.helpers.IPatternTerminalMenuHost;
 import appeng.menu.AEBaseMenu;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.WeakHashMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -59,10 +61,7 @@ public final class MatterFabricationPatternUpload {
         }
         var team = FtbTeamOwnership.forPlayer(player);
         var destinations = LOADED.getOrDefault(player.server, Set.of()).stream()
-                .filter(assembly -> !assembly.isRemoved() && assembly.getLevel() instanceof ServerLevel level
-                        && level.getServer() == player.server && level.hasChunkAt(assembly.getBlockPos()))
-                .filter(assembly -> assembly.getController() != null && team != null
-                        && team.equals(assembly.getController().getBoundTeam()))
+                .filter(assembly -> isDestination(assembly, player.server, team))
                 .sorted(Comparator.<MatterFabricationPatternAssemblyBlockEntity>comparingInt(
                                 assembly -> assembly.getLevel() == player.level() ? 0 : 1)
                         .thenComparingDouble(assembly -> assembly.getBlockPos().distToCenterSqr(player.position()))
@@ -80,8 +79,10 @@ public final class MatterFabricationPatternUpload {
             }
         }
         var host = (IPatternTerminalMenuHost) menu.getTarget();
-        var blanks = host.getLogic().getBlankPatternInv();
-        if (blankSlot(blanks) < 0) {
+        var blanks = new MatterFabricationUploadTransfer(host.getLogic().getBlankPatternInv(),
+                host.getInventory(), menu.getActionSource(), AEItems.BLANK_PATTERN.asItem(),
+                stack -> player.getInventory().placeItemBackInInventory(stack, false));
+        if (!blanks.hasBlank()) {
             message(player, "no_blank");
             return;
         }
@@ -89,13 +90,19 @@ public final class MatterFabricationPatternUpload {
             var inventory = assembly.getLogic().getPatternInv();
             for (int slot = 0; slot < inventory.size(); slot++) {
                 if (!inventory.getStackInSlot(slot).isEmpty() || !inventory.insertItem(slot, pattern.copy(), true).isEmpty()) continue;
-                if (!insertConsumingBlank(blanks, inventory, slot, pattern)) {
+                boolean inserted;
+                try {
+                    inserted = blanks.insert(inventory, slot, pattern);
+                } finally {
+                    // A rejected insertion can return a network blank to the terminal slot.
+                    host.getLogic().saveChanges();
+                    menu.broadcastChanges();
+                }
+                if (!inserted) {
                     message(player, "failed");
                     return;
                 }
                 assembly.saveChanges();
-                host.getLogic().saveChanges();
-                menu.broadcastChanges();
                 var pos = assembly.getBlockPos();
                 message(player, "success", assembly.getDisplayName(),
                         assembly.getLevel().dimension().location().toString(), pos.getX(), pos.getY(), pos.getZ());
@@ -105,30 +112,20 @@ public final class MatterFabricationPatternUpload {
         message(player, "full");
     }
 
-    /** Both inventories belong to this server tick; failures restore the unchanged blank stack. */
-    public static boolean insertConsumingBlank(InternalInventory blanks, InternalInventory destination, int slot, ItemStack pattern) {
-        int sourceSlot = blankSlot(blanks);
-        if (sourceSlot < 0 || pattern.isEmpty() || pattern.getCount() != 1 || slot < 0 || slot >= destination.size()
-                || !destination.getStackInSlot(slot).isEmpty()
-                || !destination.insertItem(slot, pattern.copy(), true).isEmpty()) return false;
-        var original = blanks.getStackInSlot(sourceSlot).copy();
-        var consumed = blanks.extractItem(sourceSlot, 1, false);
-        if (consumed.isEmpty() || !consumed.is(AEItems.BLANK_PATTERN.asItem())) {
-            blanks.setItemDirect(sourceSlot, original);
-            return false;
-        }
-        if (!destination.insertItem(slot, pattern.copy(), false).isEmpty()) {
-            blanks.setItemDirect(sourceSlot, original);
-            return false;
-        }
-        return true;
+    /** Upload identity never depends on a custom name or a pattern terminal's display group. */
+    private static boolean isDestination(MatterFabricationPatternAssemblyBlockEntity assembly,
+            MinecraftServer server, UUID team) {
+        if (assembly.isRemoved() || !(assembly.getLevel() instanceof ServerLevel level)
+                || level.getServer() != server || !level.hasChunkAt(assembly.getBlockPos()) || team == null) return false;
+        var controller = assembly.getController();
+        return controller != null && team.equals(controller.getBoundTeam());
     }
 
-    private static int blankSlot(InternalInventory inventory) {
-        for (int slot = 0; slot < inventory.size(); slot++) {
-            if (!inventory.getStackInSlot(slot).isEmpty() && inventory.getStackInSlot(slot).is(AEItems.BLANK_PATTERN.asItem())) return slot;
-        }
-        return -1;
+    /** Local-only entry point retained for callers that already own a blank inventory. */
+    public static boolean insertConsumingBlank(InternalInventory blanks, InternalInventory destination, int slot, ItemStack pattern) {
+        return new MatterFabricationUploadTransfer(blanks, null, IActionSource.empty(), AEItems.BLANK_PATTERN.asItem(),
+                stack -> { throw new IllegalStateException("Unexpected network blank recovery"); })
+                .insert(destination, slot, pattern);
     }
 
     private static boolean containsPattern(InternalInventory inventory, ItemStack incoming) {

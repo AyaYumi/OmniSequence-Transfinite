@@ -66,6 +66,8 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
                 Component.translatable("gui.molecularmanipulator.research.status_tab"), button -> setResearchPage(false)));
         researchTab = addScreenWidget(AeUiTheme.button(leftPos + 86, topPos + 22, 70, 20,
                 Component.translatable("gui.molecularmanipulator.research.research_tab"), button -> setResearchPage(true)));
+        addScreenWidget(new MachineEffectButton(leftPos + 220, topPos + 22, 100,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         researchPanel = new MatterResearchPanel(menu, font, leftPos, topPos, button -> addScreenWidget(button));
         researchPanel.restoreSelection(selection);
         setResearchPage(researchPage);

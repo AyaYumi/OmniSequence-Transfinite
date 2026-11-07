@@ -73,7 +73,7 @@ class RateLimitedLogTest {
             if (instruction instanceof MethodInsnNode call) {
                 limitedWarning |= call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
                         && call.name.equals("warn");
-                pausesCpu |= call.name.equals("ecoDispatch$pause");
+                pausesCpu |= call.name.equals("omniDispatch$pause");
             }
         }
         assertTrue(constantTemplate);

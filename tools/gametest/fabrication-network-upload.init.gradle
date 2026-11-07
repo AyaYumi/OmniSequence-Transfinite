@@ -1,0 +1,38 @@
+// Real upload regression: terminal blanks=0, ME blanks=1, default/renamed wells. See tools/gametest/README.md#well-network-blanks-and-renamed-targets for runtime options and test counts.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('fabricationNetworkUploadVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/MatterFabricationNetworkUploadGameTests.java'
+            if (project.hasProperty('fabricationEaepJar')) java.include '**/MatterFabricationEaepUploadGameTests.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.include 'data/molecularmanipulator/structure/multiblock_dismantle_empty.nbt',
+                    'data/molecularmanipulator/recipe/verification_upload_network.json'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        dependencies.add(verification.compileOnlyConfigurationName, 'curse.maven:ftb-library-forge-404465:8858846')
+        if (project.hasProperty('fabricationFtbTests')) {
+            repositories.maven { url = 'https://maven.architectury.dev/' }
+            dependencies.add('localRuntime', 'curse.maven:ftb-teams-forge-404468:8724782')
+            dependencies.add('localRuntime', 'curse.maven:ftb-library-forge-404465:8858846')
+            dependencies.add('localRuntime', 'dev.architectury:architectury-neoforge:13.0.8')
+        }
+        if (project.hasProperty('fabricationEaepJar')) {
+            def eaep = file(project.property('fabricationEaepJar'))
+            if (!eaep.isFile()) throw new GradleException("Missing optional EAEP 1.6.4.1 JAR: ${eaep}")
+            dependencies.add(verification.compileOnlyConfigurationName, files(eaep))
+            dependencies.add('localRuntime', files(eaep))
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def server = neoForge.runs.getByName('gameTestServer')
+        server.gameDirectory = file(project.findProperty('fabricationNetworkUploadDirectory') ?: 'build/fabrication-network-upload-run')
+        server.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileFabricationNetworkUploadVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

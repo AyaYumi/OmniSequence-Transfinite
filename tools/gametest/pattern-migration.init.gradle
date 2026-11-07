@@ -1,0 +1,61 @@
+// Isolated migration + native encoding-menu entry. See tools/gametest/README.md#array-migration-and-native-upload for options and required markers.
+// ./gradlew -I tools/gametest/pattern-migration.init.gradle runGameTestServer --no-configuration-cache
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def runName = project.findProperty('patternMigrationRunName') ?: 'pattern-migration-gametest-run'
+        def withCluster = project.hasProperty('patternMigrationCluster')
+        def storageJar = project.findProperty('patternMigrationStorageJar')
+        if (withCluster) {
+            project.ext.cpuCompatMods = 'eco'
+            project.ext.cpuCompatRunName = runName
+            apply from: file('tools/gametest/cpu-compat-runtime.gradle')
+        }
+        if (storageJar) {
+            def addon = file(storageJar)
+            if (!addon.isFile()) throw new GradleException('Missing opted-in storage addon JAR: ' + addon)
+            dependencies.add('localRuntime', files(addon))
+        }
+        def verification = sourceSets.create('patternMigrationVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/MolecularCenterPatternMigrationGameTests.java'
+            java.include '**/MolecularCenterNativePatternUploadGameTests.java'
+            if (storageJar) java.include '**/MolecularCenterAddonCellMigrationGameTests.java'
+            if (withCluster) {
+                java.include '**/MolecularCenterClusterMigrationGameTests.java'
+                compileClasspath += configurations.localRuntime
+                compileClasspath += files(zipTree(file("libs/neoecoae-${project.neoeco_version}.jar")).matching {
+                    include 'META-INF/jarjar/Registrate-*.jar'
+                })
+            }
+            resources.srcDir file('tools/gametest/resources')
+            resources.exclude 'data/molecularmanipulator/recipe/verification_ae_inputs.json'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def runDirectory = file("build/${runName}")
+        neoForge.runs.getByName('gameTestServer').gameDirectory = runDirectory
+        neoForge.runs.getByName('gameTestServer').logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compilePatternMigrationVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named('runGameTestServer').configure {
+            doLast {
+                def report = new File(runDirectory, 'logs/latest.log').text
+                def passed = report =~ /All ([1-9][0-9]*) required tests passed/
+                int expected = 15 + (withCluster ? 1 : 0) + (storageJar ? 1 : 0)
+                if (!passed.find() || passed.group(1).toInteger() != expected)
+                    throw new GradleException('Pattern migration required-test count/pass differs from ' + expected)
+                for (def marker : ['PATTERN_MIGRATION_BUTTON_PASS', 'PATTERN_MIGRATION_NETWORK_PASS',
+                        'PATTERN_MIGRATION_HOST_RECOVERY_PASS'] +
+                        (withCluster ? ['PATTERN_MIGRATION_CLUSTER_NETWORK_PASS'] : []) +
+                        (storageJar ? ['PATTERN_MIGRATION_ADDON_CELL_PASS'] : [])) {
+                    if (!report.contains(marker)) throw new GradleException('Missing migration completion marker: ' + marker)
+                }
+            }
+        }
+    }
+}

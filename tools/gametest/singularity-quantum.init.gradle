@@ -1,0 +1,23 @@
+// Focused real-AE2 quantum registration/link regressions in a disposable legacy world.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('singularityQuantumVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/SingularityQuantumLinkGameTests.java'
+            resources.srcDir file('tools/gametest/resources')
+            resources.include 'data/molecularmanipulator/structure/multiblock_dismantle_empty.nbt'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        neoForge.runs.getByName('gameTestServer').gameDirectory = file('build/' +
+                project.providers.gradleProperty('singularityQuantumRunName').getOrElse('singularity-quantum-regression-run'))
+        neoForge.runs.getByName('gameTestServer').logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileSingularityQuantumVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+    }
+}

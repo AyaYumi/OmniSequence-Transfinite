@@ -4,7 +4,9 @@ allprojects {
         if (project != rootProject) return
         def verification = sourceSets.create('compactSingularityVerification') {
             java.srcDir file('tools/gametest/java')
-            java.include '**/CompactSingularityGameTests.java'
+            if (!project.hasProperty('compactSingularityCollectionOnly')) {
+                java.include '**/CompactSingularityGameTests.java'
+            }
             java.include '**/SingularityCollectionGameTests.java'
             resources.srcDir file('tools/gametest/resources')
             compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath

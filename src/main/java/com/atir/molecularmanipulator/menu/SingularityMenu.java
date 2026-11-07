@@ -9,17 +9,23 @@ import appeng.menu.implementations.MenuTypeBuilder;
 import appeng.menu.slot.AppEngSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
 import com.atir.molecularmanipulator.blockentity.SingularityBlockEntity;
 import com.atir.molecularmanipulator.blockentity.SingularityStructure;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
+import com.atir.molecularmanipulator.network.SingularityCollectionPayload;
+import com.atir.molecularmanipulator.network.SingularityCollectionState;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Item;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public final class SingularityMenu extends AEBaseMenu {
@@ -57,7 +63,6 @@ public final class SingularityMenu extends AEBaseMenu {
             MolecularCenterBlockEntity.QuantumLinkState.EMPTY;
     @GuiSync(31) public boolean collectionActive;
     @GuiSync(32) public boolean collectionStarting;
-    @GuiSync(33) public String collectionItems = "";
     @GuiSync(34) public int collectionBatchSize = 1000;
     @GuiSync(35) public int blackHoleCount;
     @GuiSync(36) public int duplicationSpeedMultiplier;
@@ -70,10 +75,14 @@ public final class SingularityMenu extends AEBaseMenu {
     @GuiSync(43) public long lastDuplicationFeConsumed;
     @GuiSync(44) public double lastDuplicationAeConsumed;
     @GuiSync(45) public int collectionIntervalTicks = 20;
+    @GuiSync(46) public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
     private final AppEngSlot quantumSlot;
     private final AppEngSlot duplicationSampleSlot;
     private final AppEngSlot blackHoleSlot;
     private final SingularityBlockEntity machine;
+    private final SingularityCollectionState collectionState = new SingularityCollectionState();
+    private List<Item> sentCollectionResources;
+    private long collectionGeneration;
     private long dismantleArmedAt = Long.MIN_VALUE;
     private long lastRefresh = Long.MIN_VALUE;
     private SingularityMenu(int id, Inventory inventory, SingularityBlockEntity machine) {
@@ -104,6 +113,10 @@ public final class SingularityMenu extends AEBaseMenu {
         blackHoleSlot.x = BLACK_HOLE_X;
         blackHoleSlot.y = DUPLICATION_Y;
         addSlot(blackHoleSlot, BLACK_HOLE_INPUT);
+        registerClientAction(MachineEffectMenuAccess.ACTION, Integer.class, value -> withPlayer(player -> {
+            if (!machine.isSingleBlock()) MachineEffectMenuAccess.apply(this, machine, value);
+        }));
+        dynamicEffectOverride = machine.getMachineEffects().getOverride();
         registerClientAction("build", () -> withPlayer(machine::startBuild));
         registerClientAction("pause", () -> withPlayer(machine::togglePause));
         registerClientAction("cancel", () -> withPlayer(machine::cancel));
@@ -124,8 +137,29 @@ public final class SingularityMenu extends AEBaseMenu {
     private void withPlayer(java.util.function.Consumer<ServerPlayer> action) {
         if (isServerSide() && getPlayer() instanceof ServerPlayer player && machine.canManage(player)) action.accept(player);
     }
+    public void requestDynamicEffectLevel(int value) {
+        if (isClientSide() && MachineEffectSettings.isValidOverride(value)) {
+            sendClientAction(MachineEffectMenuAccess.ACTION, value);
+        }
+    }
     public void request(String action) { if (isClientSide()) sendClientAction(action); }
     public SingularityBlockEntity getMachine() { return machine; }
+    public List<ItemStack> collectionResources() { return collectionState.resources(); }
+    public boolean acceptCollectionResources(SingularityCollectionPayload payload) {
+        return payload.containerId() == containerId && collectionState.accept(payload);
+    }
+
+    private void syncCollectionResources() {
+        if (!isServerSide() || !isValidMenu() || !(getPlayer() instanceof ServerPlayer player)
+                || player.containerMenu != this) return;
+        var resources = machine.collectionResources();
+        if (resources == sentCollectionResources) return;
+        long generation = ++collectionGeneration;
+        for (var payload : SingularityCollectionPayload.chunks(containerId, generation, resources)) {
+            PacketDistributor.sendToPlayer(player, payload);
+        }
+        sentCollectionResources = resources;
+    }
     public void setQuantumSlotActive(boolean active) {
         // Page visibility belongs to the client; server validation and inventory ownership stay available.
         if (isClientSide()) quantumSlot.setActive(active);
@@ -228,8 +262,9 @@ public final class SingularityMenu extends AEBaseMenu {
             motionMode = machine.motion().mode(); motionMessage = machine.motion().message(); movingBodies = machine.motion().hasBodies();
             quantumFrequency = machine.getQuantumFrequency(); quantumLinkState = machine.getQuantumLinkState();
             collectionActive = machine.collectionActive(); collectionStarting = machine.collectionStarting();
-            collectionItems = machine.collectionItemIds(); collectionBatchSize = machine.collectionBatchSizeForMenu();
+            collectionBatchSize = machine.collectionBatchSizeForMenu();
             collectionIntervalTicks = machine.collectionIntervalTicksForMenu();
+            dynamicEffectOverride = machine.getMachineEffects().getOverride();
             blackHoleCount = machine.blackHoleCount(); duplicationSpeedMultiplier = machine.duplicationSpeedMultiplier();
             duplicationMatterPerSecond = machine.duplicationTargetPerSecond();
             duplicationEnergyPriority = machine.duplicationEnergyPriorityForMenu();
@@ -249,5 +284,6 @@ public final class SingularityMenu extends AEBaseMenu {
             neededMaterial = machine.neededMaterial() == null ? -1 : machine.neededMaterial().ordinal();
         }
         super.broadcastChanges();
+        syncCollectionResources();
     }
 }

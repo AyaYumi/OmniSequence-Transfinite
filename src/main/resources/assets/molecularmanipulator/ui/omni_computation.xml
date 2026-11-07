@@ -32,7 +32,7 @@
     </style>
     <root id="root">
         <label id="title" class="placed ui-label center-label"
-               style="left: 0; top: 9; width: 332; height: 9; text-color: #413F54">
+               style="left: 12; top: 9; width: 200; height: 9; text-color: #413F54">
             <lang key="block.molecularmanipulator.omni_computation_controller"/>
         </label>
 

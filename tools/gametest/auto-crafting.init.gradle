@@ -13,6 +13,7 @@ allprojects {
         def regression = sourceSets.create('autoCraftingRegression') {
             java.srcDir file('tools/gametest/java')
             java.include '**/MolecularAutoCraftGameTests.java'
+            java.include '**/MolecularAutoCrafterRemovalGameTests.java'
             if (dataJar) java.include '**/MolecularDepotCapacityGameTests.java'
             resources.srcDir file('tools/gametest/resources')
             resources.exclude 'data/molecularmanipulator/recipe/verification_ae_inputs.json'

@@ -355,6 +355,78 @@ public final class MolecularAutoCraftGameTests {
                 }).thenSucceed();
     }
 
+    @GameTest(template = "multiblock_dismantle_empty", batch = "auto_crafting_recipe_cache", timeoutTicks = 300)
+    public static void patternDecodesSurviveTicksAndInvalidateOnRecipeReload(GameTestHelper helper) {
+        var machine = single(helper, new BlockPos(10320, 120, 10320));
+        var initial = new java.util.concurrent.atomic.AtomicReference<appeng.api.crafting.IPatternDetails>();
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(machine.isOperational(), "Powered cached crafter"))
+                .thenExecute(() -> {
+                    var crafter = machine.getAutoCrafter();
+                    crafter.getPatternInventory().setItemDirect(0, planks(helper));
+                    initial.set(decoded(crafter, 0));
+                    helper.assertTrue(initial.get() != null, "The real crafting pattern must decode");
+                    for (int query = 0; query < 20; query++) {
+                        helper.assertTrue(decoded(crafter, 0) == initial.get(), "Same-tick queries must reuse the decode");
+                    }
+                }).thenIdle(5).thenExecute(() -> {
+                    var crafter = machine.getAutoCrafter();
+                    helper.assertTrue(decoded(crafter, 0) == initial.get(), "Tick changes must not discard decoded recipes");
+                    crafter.getPatternInventory().setItemDirect(0, ItemStack.EMPTY);
+                    helper.assertTrue(decoded(crafter, 0) == null, "Removed patterns must not reuse a cached decode");
+                    crafter.getPatternInventory().setItemDirect(0, planks(helper));
+                    helper.assertTrue(decoded(crafter, 0) != initial.get(), "Reinserted patterns must decode again");
+
+                    var level = helper.getLevel();
+                    var manager = level.getRecipeManager();
+                    var originalRecipes = java.util.List.copyOf(manager.getRecipes());
+                    var recipeId = ResourceLocation.withDefaultNamespace("oak_planks");
+                    long queryTime = level.getGameTime();
+                    try {
+                        manager.replaceRecipes(originalRecipes.stream().filter(recipe -> !recipe.id().equals(recipeId)).toList());
+                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                                new net.neoforged.neoforge.event.OnDatapackSyncEvent(level.getServer().getPlayerList(), null));
+                        helper.assertTrue(decoded(crafter, 0) == null, "A reload must invalidate a now-missing recipe");
+                        var cache = decodedPatterns(crafter);
+                        var failed = cache.get(0);
+                        helper.assertTrue(failed != null, "Invalid patterns must cache their failed decode");
+                        for (int query = 0; query < 20; query++) {
+                            ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(queryTime + query);
+                            helper.assertTrue(decoded(crafter, 0) == null && cache.get(0) == failed,
+                                    "A missing recipe must not be decoded again on later ticks");
+                        }
+                    } finally {
+                        ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(queryTime);
+                        manager.replaceRecipes(originalRecipes);
+                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
+                                new net.neoforged.neoforge.event.OnDatapackSyncEvent(level.getServer().getPlayerList(), null));
+                    }
+                    helper.assertTrue(decoded(crafter, 0) != null, "A reload must also invalidate cached failures");
+                    crafter.clear();
+                    helper.assertTrue(decodedPatterns(crafter).isEmpty() && decoded(crafter, 0) == null,
+                            "Clearing or loading a controller cannot retain an old decode");
+                }).thenSucceed();
+    }
+
+    private static appeng.api.crafting.IPatternDetails decoded(MolecularAutoCrafter crafter, int slot) {
+        try {
+            var method = MolecularAutoCrafter.class.getDeclaredMethod("decode", int.class);
+            method.setAccessible(true);
+            return (appeng.api.crafting.IPatternDetails) method.invoke(crafter, slot);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static java.util.Map<?, ?> decodedPatterns(MolecularAutoCrafter crafter) {
+        try {
+            var field = MolecularAutoCrafter.class.getDeclaredField("decodedPatterns");
+            field.setAccessible(true);
+            return (java.util.Map<?, ?>) field.get(crafter);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
     private static MolecularAutoCrafterBlockEntity single(GameTestHelper helper, BlockPos pos) {
         var level = helper.getLevel();
         level.setChunkForced(pos.getX() >> 4, pos.getZ() >> 4, true);

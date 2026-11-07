@@ -86,14 +86,14 @@ class EcoOmniParentOrderWiringTest {
         // Initialize the same real Minecraft key codecs used by the state-machine tests.
         Class.forName(EcoOmniParentOrderTest.class.getName());
         var mixin = new EcoOmniParentOrderMixin() {
-            @Override public int ecoDispatch$execute(int maximum, appeng.me.service.CraftingService crafting,
+            @Override public int omniDispatch$execute(int maximum, appeng.me.service.CraftingService crafting,
                     appeng.api.networking.energy.IEnergyService energy, net.minecraft.world.level.Level level) {
                 throw new AssertionError("dispatch is outside the link-guard test");
             }
-            @Override public boolean ecoDispatch$isExactPlan(appeng.api.networking.crafting.ICraftingPlan plan) {
+            @Override public boolean omniDispatch$isExactPlan(appeng.api.networking.crafting.ICraftingPlan plan) {
                 return false;
             }
-            @Override public void ecoDispatch$suspend(String reason) {
+            @Override public void omniDispatch$suspend(String reason) {
                 throw new AssertionError("suspension is outside the link-guard test");
             }
         };

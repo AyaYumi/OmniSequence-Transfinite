@@ -1,0 +1,30 @@
+// Real OpenGL lens shader regressions in an isolated title-screen client; no player saves are opened.
+allprojects {
+    afterEvaluate { project ->
+        if (project != rootProject) return
+        def verification = sourceSets.create('singularityLensVerification') {
+            java.srcDir file('tools/gametest/java')
+            java.include '**/SingularityLensClientChecks.java'
+            compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+            runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
+        }
+        neoForge.mods.getByName(project.mod_id).sourceSet(verification)
+        def client = neoForge.runs.getByName('client')
+        client.gameDirectory = file('build/' + project.providers.gradleProperty('singularityLensRunName')
+                .getOrElse('singularity-lens-client'))
+        client.systemProperty 'omnisequence.lens_client_check', 'true'
+        client.logLevel = org.slf4j.event.Level.INFO
+        tasks.named('compileSingularityLensVerificationJava', JavaCompile) {
+            dependsOn tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(21)
+        }
+        tasks.named('runClient').configure {
+            doLast {
+                def log = new File(client.gameDirectory.get().asFile, 'logs/latest.log')
+                if (!log.isFile() || !log.text.contains('LENS_BOBBING_CLIENT_PASS'))
+                    throw new GradleException('Lens GPU regression failed; require LENS_BOBBING_CLIENT_PASS')
+            }
+        }
+    }
+}

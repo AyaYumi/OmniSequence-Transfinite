@@ -1,0 +1,13 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {"ingredient": {"item": "minecraft:diamond"}, "count": 10000000},
+    {"ingredient": {"item": "minecraft:nether_star"}, "count": 7}
+  ],
+  "results": [
+    {"id": "minecraft:emerald", "count": 3},
+    {"id": "minecraft:iron_ingot", "count": 7}
+  ],
+  "processing_time": 20,
+  "ae_per_tick": 1.0
+}

@@ -6,6 +6,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -115,7 +116,7 @@ public final class EcoMolecularTestPattern implements IMolecularAssemblerSupport
     public AutoCloseable remainderScope(KeyCounter[] inputs, long crafts) {
         var total = new KeyCounter();
         for (var entry : remainders()) total.add(entry.getKey(), Math.multiplyExact(entry.getLongValue(), crafts));
-        return EcoMolecularRemainderContext.open(this, inputs, total);
+        return MolecularRemainderContext.open(this, inputs, total);
     }
 
     public KeyCounter[] first() {

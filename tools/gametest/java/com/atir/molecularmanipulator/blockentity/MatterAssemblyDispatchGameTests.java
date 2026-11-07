@@ -112,10 +112,7 @@ public final class MatterAssemblyDispatchGameTests {
                 cpu.getInventory().insert(diamond, count, Actionable.MODULATE);
                 cpu.getInventory().insert(iron, count, Actionable.MODULATE);
                 var finitePower = new DispatchPower(16);
-                System.out.println("MATTER_QUEUE_BEFORE count=" + count + " diamond=" + cpu.getInventory().list.get(diamond)
-                        + " waiting=" + cpu.getWaitingFor(emerald) + " queue=" + assembly.getBuffer().contents(false));
                 cpu.tickCraftingLogic(finitePower.service, (appeng.me.service.CraftingService) controller.getMainNode().getGrid().getCraftingService());
-                System.out.println("MATTER_QUEUE_AFTER consumed=" + finitePower.consumed + " queue=" + assembly.getBuffer().contents(false));
                 helper.assertTrue(cpu.getInventory().list.isEmpty(),
                         "One real Nexus push must transfer every input: count=" + count + ", diamond=" + cpu.getInventory().list.get(diamond)
                                 + ", iron=" + cpu.getInventory().list.get(iron) + ", waiting=" + cpu.getWaitingFor(emerald));

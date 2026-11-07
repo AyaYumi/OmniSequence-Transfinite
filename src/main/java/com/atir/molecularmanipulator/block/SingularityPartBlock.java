@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.block;
 
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
+import com.atir.molecularmanipulator.blockentity.SingularityStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -47,8 +48,9 @@ public final class SingularityPartBlock extends Block {
 
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
-        int detail = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
-        if (effect != Effect.GATHER || detail <= 0 || random.nextInt(detail > 1 ? 3 : 8) != 0) return;
+        if (effect != Effect.GATHER) return;
+        int detail = MachineEffectLevels.forSingularityPart(level, pos, SingularityStructure.Type.COLLECTION_NODE);
+        if (detail <= 0 || random.nextInt(detail > 1 ? 3 : 8) != 0) return;
         Direction front = state.getValue(HorizontalDirectionalBlock.FACING);
         if (!level.getBlockState(pos.relative(front)).isAir()) return;
         double a = random.nextDouble() * Math.PI * 2;

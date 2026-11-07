@@ -54,10 +54,10 @@ import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
 import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpuAccess;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchHost;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchLedger;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchReceipt;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchRunner;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchReceipt;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider.PushResult;
@@ -97,7 +97,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
 
     @Override public BigInteger omni$occupiedStorageBytes() {
         var amounts = new HashMap<>(aelis$getStoredOutputs());
-        molecularmanipulator$ecoLedger.finalStock().forEach((key, amount) -> amounts.merge(key, amount, BigInteger::add));
+        molecularmanipulator$dispatchLedger.finalStock().forEach((key, amount) -> amounts.merge(key, amount, BigInteger::add));
         var physical = BigInteger.ZERO;
         for (var entry : amounts.entrySet()) {
             physical = physical.add(OmniCpuResources.itemBytes(entry.getValue(), entry.getKey().getAmountPerByte()));
@@ -112,13 +112,13 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         var owner = OmniComputationCoreBlockEntity.ownerOf(cluster);
         if (owner == null) return original.call(grid, plan, source, requester);
         if (job != null) return appeng.crafting.execution.CraftingSubmitResult.CPU_BUSY;
-        boolean continuing = this instanceof EcoCpuDispatchRunner runner && runner.ecoDispatch$continuingJob();
+        boolean continuing = this instanceof OmniCpuDispatchRunner runner && runner.omniDispatch$continuingJob();
         if (!owner.canAcceptNewJob(cluster) && !continuing)
             return appeng.crafting.execution.CraftingSubmitResult.CPU_BUSY;
         final BigInteger required;
         try {
-            var bytes = this instanceof EcoCpuDispatchRunner runner
-                    ? runner.ecoDispatch$storageBytes(plan) : BigInteger.valueOf(plan.bytes());
+            var bytes = this instanceof OmniCpuDispatchRunner runner
+                    ? runner.omniDispatch$storageBytes(plan) : BigInteger.valueOf(plan.bytes());
             var initial = BigInteger.ZERO;
             for (var entry : plan.usedItems()) {
                 initial = initial.add(OmniCpuResources.itemBytes(
@@ -145,7 +145,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         }
     }
 
-    @Unique private final EcoCpuDispatchLedger molecularmanipulator$ecoLedger = new EcoCpuDispatchLedger();
+    @Unique private final OmniCpuDispatchLedger molecularmanipulator$dispatchLedger = new OmniCpuDispatchLedger();
     @Shadow public abstract ListCraftingInventory getInventory();
     @Shadow public abstract appeng.api.networking.crafting.ICraftingLink getLastLink();
     @Shadow public abstract void setJobSuspended(boolean suspended);
@@ -166,9 +166,9 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Unique private IPatternDetails molecularmanipulator$nativePreferredTask;
     @Override public boolean omniNative$virtualCpu() { return molecularmanipulator$virtualDispatch; }
     @Override public void omniNative$prefer(IPatternDetails pattern) { molecularmanipulator$nativePreferredTask = pattern; }
-    @Override public IPatternDetails ecoDispatch$preferredPattern() { return molecularmanipulator$nativePreferredTask; }
+    @Override public IPatternDetails omniDispatch$preferredPattern() { return molecularmanipulator$nativePreferredTask; }
     @Override public UUID omniNative$jobId() {
-        return ecoDispatch$jobId();
+        return omniDispatch$jobId();
     }
     @Override public Map<IPatternDetails, ?> omniNative$tasks() {
         return job == null ? Map.of() : molecularmanipulator$getTasks(job);
@@ -182,7 +182,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         return ((ExactExecutingJobAccessor) job).molecularmanipulator$getWaitingFor();
     }
     @Override public boolean omniNative$stopped() {
-        return ecoDispatch$stopped() || ecoOmni$managed();
+        return omniDispatch$stopped() || ecoOmni$managed();
     }
     @Override public long omniNative$maximumCopies() {
         if (!com.atir.molecularmanipulator.config.ModConfig.OMNI_BATCH_DISPATCH_ENABLED.get()) return 0;
@@ -194,7 +194,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         // Keep catalysts, substitutions, custom callbacks and infinite inputs on
         // their existing guarded path. This bridge handles ordinary processing.
         if (job == null || pattern.getClass() != appeng.crafting.pattern.AEProcessingPattern.class
-                || ecoOmni$managed() || molecularmanipulator$ecoLedger.exactOrder()
+                || ecoOmni$managed() || molecularmanipulator$dispatchLedger.exactOrder()
                 || (molecularmanipulator$exactState != null
                     && !molecularmanipulator$exactState.infiniteKeys().isEmpty())) return 0;
         for (var input : pattern.getInputs()) {
@@ -237,7 +237,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         postChange(key);
     }
     @Override public void omniNative$fail(String reason, Throwable cause) {
-        ecoDispatch$pause(null, reason);
+        omniDispatch$pause(null, reason);
         RateLimitedLog.warn("Native batch ownership/accounting is uncertain; CPU suspended: {}", reason, cause);
     }
     @Override public void omniNative$markDirty() { cluster.markDirty(); }
@@ -271,7 +271,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
 
     @Inject(method = "storeItems", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$exposeExactRefunds(CallbackInfo callback) {
-        if (molecularmanipulator$ecoLedger.paused() || molecularmanipulator$ecoLedger.staging()) {
+        if (molecularmanipulator$dispatchLedger.paused() || molecularmanipulator$dispatchLedger.staging()) {
             callback.cancel();
             return;
         }
@@ -288,7 +288,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Inject(method = "trySubmitJob", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$waitForExactRefunds(IGrid grid, ICraftingPlan plan, IActionSource source,
             ICraftingRequester requester, CallbackInfoReturnable<ICraftingSubmitResult> callback) {
-        if (molecularmanipulator$ecoLedger.paused() || molecularmanipulator$ecoLedger.staging()
+        if (molecularmanipulator$dispatchLedger.paused() || molecularmanipulator$dispatchLedger.staging()
                 || !molecularmanipulator$exactInventory.isEmpty()) callback.setReturnValue(
                 appeng.crafting.execution.CraftingSubmitResult.CPU_BUSY);
     }
@@ -356,7 +356,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         // inside NetworkStorage.insert, so destination delivery must wait for the CPU tick.
         if (mode == Actionable.MODULATE) {
             molecularmanipulator$exactInventory.insertWithoutNotification(getInventory(), key, BigInteger.valueOf(amount));
-            molecularmanipulator$notifyEcoOutput(key);
+            molecularmanipulator$notifyOwnedOutput(key);
         }
         return amount;
     }
@@ -545,8 +545,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             IGrid grid, ICraftingPlan plan, IActionSource source,
             ICraftingRequester requester,
             CallbackInfoReturnable<ICraftingSubmitResult> callback) {
-        if (callback.getReturnValue().successful()) molecularmanipulator$ecoLedger.exactOrder(
-                this instanceof EcoCpuDispatchRunner runner && runner.ecoDispatch$isExactPlan(plan));
+        if (callback.getReturnValue().successful()) molecularmanipulator$dispatchLedger.exactOrder(
+                this instanceof OmniCpuDispatchRunner runner && runner.omniDispatch$isExactPlan(plan));
         if (ecoOmni$managed() || !callback.getReturnValue().successful()
                 || OmniComputationCoreBlockEntity.ownerOf(cluster) == null) {
             return;
@@ -563,7 +563,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             molecularmanipulator$discardProjectedInfiniteInputs(state);
             molecularmanipulator$installExactState(state);
             ((ExactExecutingJobAccessor) job).molecularmanipulator$setRemaining(state.outputProgress().window());
-            molecularmanipulator$ecoLedger.exactOrder(true);
+            molecularmanipulator$dispatchLedger.exactOrder(true);
             cluster.markDirty();
         } catch (RuntimeException | LinkageError exception) {
             var state = molecularmanipulator$exactState;
@@ -586,7 +586,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             CompoundTag data, HolderLookup.Provider registries,
             CallbackInfo callback) {
         data.putString(MOLECULARMANIPULATOR_STORAGE_TAG, molecularmanipulator$allocatedStorage.toString());
-        data.put(EcoCpuDispatchLedger.NBT_KEY, molecularmanipulator$ecoLedger.write(registries));
+        data.put(OmniCpuDispatchLedger.NBT_KEY, molecularmanipulator$dispatchLedger.write(registries));
         data.put(MOLECULARMANIPULATOR_EXACT_INVENTORY_TAG, molecularmanipulator$exactInventory.write(registries));
         if (job != null && molecularmanipulator$exactState != null) {
             data.put(MOLECULARMANIPULATOR_EXACT_STATE_TAG,
@@ -643,7 +643,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             molecularmanipulator$exactState = null;
             if (ecoOmni$managed()) {
                 com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                        "Could not restore ECO Omni exact state; saved job is retained and suspended", exception);
+                        "Could not restore managed CPU exact state; saved job is retained and suspended", exception);
                 return;
             }
             com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
@@ -659,16 +659,16 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             HolderLookup.Provider registries, CallbackInfo callback) {
         // The base loader may cancel an invalid saved job and attempt a refund.
         // Never combine that new physical window with this object's old overflow.
-        molecularmanipulator$ecoLedger.read(data.getCompound(EcoCpuDispatchLedger.NBT_KEY), registries);
-        if (molecularmanipulator$ecoLedger.paused() && this instanceof EcoCpuDispatchRunner runner)
-            runner.ecoDispatch$suspend("Saved ECO CPU accounting requires reconciliation");
+        molecularmanipulator$dispatchLedger.read(data.getCompound(OmniCpuDispatchLedger.NBT_KEY), registries);
+        if (molecularmanipulator$dispatchLedger.paused() && this instanceof OmniCpuDispatchRunner runner)
+            runner.omniDispatch$suspend("Saved CPU dispatch accounting requires reconciliation");
         molecularmanipulator$exactInventory.clear();
     }
 
     @Inject(method = "finishJob", at = @At("HEAD"), cancellable = true)
-    private void molecularmanipulator$holdEcoAccounting(boolean success, CallbackInfo callback) {
-        if (molecularmanipulator$ecoLedger.paused() || molecularmanipulator$ecoLedger.staging()
-                || (success && molecularmanipulator$ecoLedger.hasFinalStock())) {
+    private void molecularmanipulator$holdDispatchAccounting(boolean success, CallbackInfo callback) {
+        if (molecularmanipulator$dispatchLedger.paused() || molecularmanipulator$dispatchLedger.staging()
+                || (success && molecularmanipulator$dispatchLedger.hasFinalStock())) {
             callback.cancel();
             return;
         }
@@ -679,14 +679,14 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             callback.cancel();
             return;
         }
-        if (!success) molecularmanipulator$ecoLedger.refundFinal((key, amount) ->
+        if (!success) molecularmanipulator$dispatchLedger.refundFinal((key, amount) ->
                 molecularmanipulator$exactInventory.insertWithoutNotification(getInventory(), key, amount));
     }
 
     @Inject(method = "finishJob", at = @At("RETURN"))
     private void molecularmanipulator$clearExactCraftingState(
             boolean success, CallbackInfo callback) {
-        molecularmanipulator$ecoLedger.refundFinal((key, amount) ->
+        molecularmanipulator$dispatchLedger.refundFinal((key, amount) ->
                 molecularmanipulator$exactInventory.insertWithoutNotification(getInventory(), key, amount));
         molecularmanipulator$exactState = null;
     }
@@ -695,7 +695,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     private void molecularmanipulator$beginOmniDispatch(IEnergyService energyService,
             CraftingService craftingService, CallbackInfo callback) {
         molecularmanipulator$clearDispatch();
-        if (molecularmanipulator$ecoLedger.paused()) {
+        if (molecularmanipulator$dispatchLedger.paused()) {
             setJobSuspended(true);
             callback.cancel();
             return;
@@ -741,7 +741,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Inject(method = "tickCraftingLogic", at = @At("RETURN"))
     private void molecularmanipulator$endOmniDispatch(IEnergyService energyService,
             CraftingService craftingService, CallbackInfo callback) {
-        molecularmanipulator$flushEcoFinalStock();
+        molecularmanipulator$flushFinalStock();
         var owner = molecularmanipulator$dispatchOwner;
         if (owner != null) {
             owner.recordDispatchWork(cluster, molecularmanipulator$dispatchTick,
@@ -764,7 +764,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             long workBefore = molecularmanipulator$dispatchUsed;
             int crafted = original.call(maxPatterns, craftingService, energyService, level);
             if (crafted != 0 || !molecularmanipulator$retryAdaptiveProviders
-                    || job != attemptedJob || ecoDispatch$stopped()
+                    || job != attemptedJob || omniDispatch$stopped()
                     || molecularmanipulator$dispatchUsed <= workBefore) {
                 return crafted;
             }
@@ -785,7 +785,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         molecularmanipulator$nativeBigIntegerCallback = null;
         molecularmanipulator$dispatchProviders.clear();
         molecularmanipulator$prepareCompatPatternSlices(job, TickHandler.instance().getCurrentTick());
-        if (molecularmanipulator$ecoLedger.paused() || ecoOmni$paused() || (molecularmanipulator$dispatchOwner != null
+        if (molecularmanipulator$dispatchLedger.paused() || ecoOmni$paused() || (molecularmanipulator$dispatchOwner != null
                 && molecularmanipulator$shouldStopDispatch())) {
             callback.setReturnValue(0);
             return;
@@ -793,8 +793,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         molecularmanipulator$craftingService = craftingService;
         molecularmanipulator$energyService = energyService;
         // Enter after shared context initialization; no mixin HEAD ordering is involved.
-        // Native processing providers must get their batch path before ECO's
-        // generic dispatcher can reduce them to repeated single-recipe calls.
+        // Native processing providers must get their batch path before the fallback
+        // dispatcher can reduce them to repeated single-recipe calls.
         if (molecularmanipulator$dispatchOwner != null && this instanceof OmniNativeBatchHost.Runner runner) {
             int consumed = runner.omniNative$run(maxPatterns, craftingService, energyService, level);
             if (consumed >= 0) {
@@ -803,8 +803,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                 return;
             }
         }
-        if (this instanceof EcoCpuDispatchRunner runner) {
-            int consumed = runner.ecoDispatch$execute(maxPatterns, craftingService, energyService, level);
+        if (this instanceof OmniCpuDispatchRunner runner) {
+            int consumed = runner.omniDispatch$execute(maxPatterns, craftingService, energyService, level);
             if (consumed >= 0) {
                 callback.setReturnValue(job == null ? 0 : consumed);
                 molecularmanipulator$endBatchContext(maxPatterns, craftingService, energyService, level, callback);
@@ -843,7 +843,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Inject(method = "cancel", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$recordReusableBatchCancellation(
             CallbackInfo callback) {
-        if (molecularmanipulator$ecoLedger.paused() || molecularmanipulator$ecoLedger.staging()) {
+        if (molecularmanipulator$dispatchLedger.paused() || molecularmanipulator$dispatchLedger.staging()) {
             callback.cancel();
             return;
         }
@@ -1746,8 +1746,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         var state = molecularmanipulator$exactState;
         var currentJob = job;
         if (settled > 0 && mode == Actionable.MODULATE) {
-            molecularmanipulator$ecoLedger.received(what);
-            molecularmanipulator$ecoLedger.refill(waitingFor, state, what);
+            molecularmanipulator$dispatchLedger.received(what);
+            molecularmanipulator$dispatchLedger.refill(waitingFor, state, what);
         }
         if (state != null && currentJob != null && what != null && mode == Actionable.MODULATE && settled > 0) {
             state.recordCompleted(what, settled);
@@ -2556,49 +2556,49 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         molecularmanipulator$dispatchProviders.clear();
     }
 
-    @Override public boolean ecoDispatch$enabled() {
+    @Override public boolean omniDispatch$enabled() {
         return isOmniMaterialAllocator();
     }
-    @Override public UUID ecoDispatch$jobId() {
+    @Override public UUID omniDispatch$jobId() {
         var link = job == null ? null : getLastLink();
         return link == null ? null : link.getCraftingID();
     }
-    @Override public boolean ecoDispatch$virtualCpu() {
+    @Override public boolean omniDispatch$virtualCpu() {
         return molecularmanipulator$virtualDispatch;
     }
-    @Override public boolean ecoDispatch$exactOrder() { return molecularmanipulator$ecoLedger.exactOrder(); }
-    @Override public boolean ecoDispatch$stopped() {
-        return job == null || molecularmanipulator$ecoLedger.paused() || isJobSuspended() || ecoOmni$paused()
+    @Override public boolean omniDispatch$exactOrder() { return molecularmanipulator$dispatchLedger.exactOrder(); }
+    @Override public boolean omniDispatch$stopped() {
+        return job == null || molecularmanipulator$dispatchLedger.paused() || isJobSuspended() || ecoOmni$paused()
                 || molecularmanipulator$dispatchOwner == null || molecularmanipulator$shouldStopDispatch()
                 || molecularmanipulator$isUnscaledQuotaExhausted()
                 || (molecularmanipulator$dispatchUsed > 0 && molecularmanipulator$isRawCompatDeadlineExpired());
     }
-    @Override public ListCraftingInventory ecoDispatch$inventory() {
+    @Override public ListCraftingInventory omniDispatch$inventory() {
         var inventory = getInventory();
-        if (EcoCpuDispatchLedger.refillPhysical(molecularmanipulator$exactInventory, inventory)) cluster.markDirty();
+        if (OmniCpuDispatchLedger.refillPhysical(molecularmanipulator$exactInventory, inventory)) cluster.markDirty();
         return inventory;
     }
-    @Override public ICraftingInventory ecoDispatch$physicalView() {
+    @Override public ICraftingInventory omniDispatch$physicalView() {
         return molecularmanipulator$exactInventory.wrap(getInventory());
     }
-    @Override public BigInteger ecoDispatch$remaining(IPatternDetails pattern) {
+    @Override public BigInteger omniDispatch$remaining(IPatternDetails pattern) {
         if (job == null) return BigInteger.ZERO;
         if (molecularmanipulator$exactState != null) return molecularmanipulator$exactState.remaining(pattern);
         var task = molecularmanipulator$getTasks(job).get(pattern);
         return task == null ? BigInteger.ZERO : BigInteger.valueOf(Math.max(0, molecularmanipulator$getTaskValue(task)));
     }
-    @Override public EcoCpuDispatchHost.Lease ecoDispatch$reserveExact(Map<AEKey, BigInteger> inputs) {
-        if (ecoDispatch$stopped()) return null;
-        return EcoCpuDispatchLedger.reserve(molecularmanipulator$exactInventory, getInventory(), inputs);
+    @Override public OmniCpuDispatchHost.Lease omniDispatch$reserveExact(Map<AEKey, BigInteger> inputs) {
+        if (omniDispatch$stopped()) return null;
+        return OmniCpuDispatchLedger.reserve(molecularmanipulator$exactInventory, getInventory(), inputs);
     }
-    @Override public EcoCpuDispatchHost.Accounting ecoDispatch$stage(EcoCpuDispatchReceipt receipt) {
-        if (receipt == null || !receipt.jobId().equals(ecoDispatch$jobId()) || ecoDispatch$stopped()) return null;
+    @Override public OmniCpuDispatchHost.Accounting omniDispatch$stage(OmniCpuDispatchReceipt receipt) {
+        if (receipt == null || !receipt.jobId().equals(omniDispatch$jobId()) || omniDispatch$stopped()) return null;
         var currentJob = job;
         var state = molecularmanipulator$exactState;
         var tasks = molecularmanipulator$getTasks(currentJob);
         var task = tasks.get(receipt.pattern());
         if (task == null || !molecularmanipulator$reflectionAvailable) return null;
-        var remaining = ecoDispatch$remaining(receipt.pattern());
+        var remaining = omniDispatch$remaining(receipt.pattern());
         if (remaining.compareTo(receipt.crafts()) < 0) return null;
         if (molecularmanipulator$physicalCpu() && !BigInteger.ONE.equals(receipt.crafts())) return null;
         if (!molecularmanipulator$consumeUnscaledDispatchAttempt(receipt.pattern())) return null;
@@ -2607,13 +2607,13 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         if (!molecularmanipulator$setTaskValue(task, original)) return null;
         var next = remaining.subtract(receipt.crafts());
         var waiting = ((ExactExecutingJobAccessor) currentJob).molecularmanipulator$getWaitingFor();
-        return molecularmanipulator$ecoLedger.stage(waiting, state, receipt, () -> {
+        return molecularmanipulator$dispatchLedger.stage(waiting, state, receipt, () -> {
             if (job != currentJob || state != molecularmanipulator$exactState || tasks.get(receipt.pattern()) != task
-                    || !ecoDispatch$remaining(receipt.pattern()).equals(remaining))
-                throw new IllegalStateException("ECO task changed during submission");
+                    || !omniDispatch$remaining(receipt.pattern()).equals(remaining))
+                throw new IllegalStateException("CPU task changed during submission");
             long nextWindow = state == null ? next.longValueExact() : OmniExactCraftingState.window(next);
             if (!molecularmanipulator$setTaskValue(task, nextWindow))
-                throw new IllegalStateException("Cannot commit ECO task progress");
+                throw new IllegalStateException("Cannot commit CPU task progress");
             if (state != null) {
                 state.commit(receipt.pattern(), next);
                 state.recordBatch(receipt.pattern(), receipt.crafts(), receipt.inputs());
@@ -2621,39 +2621,39 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             if (next.signum() == 0) tasks.remove(receipt.pattern());
             // A submission can finish after the deadline. It still consumes its claimed work unit.
             if (!molecularmanipulator$consumeDispatchWork()) molecularmanipulator$dispatchUsed++;
-            for (var key : receipt.waiting().keySet()) molecularmanipulator$notifyEcoOutput(key);
+            for (var key : receipt.waiting().keySet()) molecularmanipulator$notifyOwnedOutput(key);
             cluster.markDirty();
         });
     }
-    @Override public void ecoDispatch$markDirty() { cluster.markDirty(); }
-    @Override public void ecoDispatch$pause(EcoCpuDispatchReceipt receipt, String reason) {
-        molecularmanipulator$ecoLedger.pause(reason);
-        if (this instanceof EcoCpuDispatchRunner runner) runner.ecoDispatch$suspend(reason);
+    @Override public void omniDispatch$markDirty() { cluster.markDirty(); }
+    @Override public void omniDispatch$pause(OmniCpuDispatchReceipt receipt, String reason) {
+        molecularmanipulator$dispatchLedger.pause(reason);
+        if (this instanceof OmniCpuDispatchRunner runner) runner.omniDispatch$suspend(reason);
         molecularmanipulator$dispatchStopped = true;
         setJobSuspended(true);
         cluster.markDirty();
     }
-    @Override public BigInteger ecoDispatch$insertExact(UUID jobId, AEKey key, BigInteger offered, Actionable mode) {
-        if (jobId == null || !jobId.equals(ecoDispatch$jobId()) || key == null || offered == null
-                || offered.signum() <= 0 || mode == null || molecularmanipulator$ecoLedger.paused()
-                || ecoOmni$paused() || isJobSuspended() || !ecoDispatch$enabled() || !cluster.isActive()
+    @Override public BigInteger omniDispatch$insertExact(UUID jobId, AEKey key, BigInteger offered, Actionable mode) {
+        if (jobId == null || !jobId.equals(omniDispatch$jobId()) || key == null || offered == null
+                || offered.signum() <= 0 || mode == null || molecularmanipulator$dispatchLedger.paused()
+                || ecoOmni$paused() || isJobSuspended() || !omniDispatch$enabled() || !cluster.isActive()
                 || cluster.getLevel() == null || cluster.getLevel().getServer() == null
                 || !cluster.getLevel().getServer().isSameThread()) return BigInteger.ZERO;
         var access = (ExactExecutingJobAccessor) job;
         var state = molecularmanipulator$exactState;
         var waiting = access.molecularmanipulator$getWaitingFor();
-        var accepted = molecularmanipulator$ecoLedger.receive(waiting, state,
+        var accepted = molecularmanipulator$dispatchLedger.receive(waiting, state,
                 molecularmanipulator$exactInventory, getInventory(), key, offered, mode);
-        if (mode == Actionable.MODULATE && accepted.signum() > 0) molecularmanipulator$notifyEcoOutput(key);
+        if (mode == Actionable.MODULATE && accepted.signum() > 0) molecularmanipulator$notifyOwnedOutput(key);
         return accepted;
     }
-    @Unique private void molecularmanipulator$notifyEcoOutput(AEKey key) {
+    @Unique private void molecularmanipulator$notifyOwnedOutput(AEKey key) {
         try { postChange(key); cluster.markDirty(); }
         catch (RuntimeException | Error failure) {
-            RateLimitedLog.error("ECO output ownership settled; CPU observer notification failed", failure);
+            RateLimitedLog.error("Owned output settled; CPU observer notification failed", failure);
         }
     }
-    @Unique private long molecularmanipulator$deliverEcoFinal(AEKey key, long amount, Actionable mode) {
+    @Unique private long molecularmanipulator$deliverFinalOutput(AEKey key, long amount, Actionable mode) {
         var link = getLastLink();
         if (job == null || link == null || link.isCanceled()) return 0;
         molecularmanipulator$deliveringFinal = true;
@@ -2668,44 +2668,44 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Unique private BigInteger molecularmanipulator$reservedFinalInput(AEKey key) {
         var pendingInputs = BigInteger.ZERO;
         for (var pattern : molecularmanipulator$getTasks(job).keySet()) {
-            pendingInputs = pendingInputs.add(EcoCpuDispatchLedger.reservedInput(pattern,
-                    ecoDispatch$remaining(pattern), key));
+            pendingInputs = pendingInputs.add(OmniCpuDispatchLedger.reservedInput(pattern,
+                    omniDispatch$remaining(pattern), key));
         }
-        return pendingInputs.max(ecoDispatch$reservedInput(key));
+        return pendingInputs.max(omniDispatch$reservedInput(key));
     }
 
-    @Unique private void molecularmanipulator$flushEcoFinalStock() {
-        if (job == null || !ecoDispatch$enabled() || !cluster.isActive() || molecularmanipulator$ecoLedger.paused()
-                || molecularmanipulator$ecoLedger.staging() || ecoOmni$paused() || isJobSuspended()) return;
+    @Unique private void molecularmanipulator$flushFinalStock() {
+        if (job == null || !omniDispatch$enabled() || !cluster.isActive() || molecularmanipulator$dispatchLedger.paused()
+                || molecularmanipulator$dispatchLedger.staging() || ecoOmni$paused() || isJobSuspended()) return;
         try {
             var current = (ExactExecutingJobAccessor) job;
             var finalKey = current.molecularmanipulator$getFinalOutput().what();
             var exact = molecularmanipulator$exactState;
             var remaining = exact == null || exact.outputProgress() == null
                     ? BigInteger.valueOf(current.molecularmanipulator$getRemaining()) : exact.outputProgress().remaining();
-            var owned = molecularmanipulator$ecoLedger.finalStock().getOrDefault(finalKey, BigInteger.ZERO);
+            var owned = molecularmanipulator$dispatchLedger.finalStock().getOrDefault(finalKey, BigInteger.ZERO);
             var deliverable = molecularmanipulator$exactInventory.amount(getInventory(), finalKey)
                     .subtract(molecularmanipulator$reservedFinalInput(finalKey)).max(BigInteger.ZERO)
                     .min(remaining.subtract(owned).max(BigInteger.ZERO)).min(BigInteger.valueOf(Long.MAX_VALUE));
             if (deliverable.signum() > 0) {
-                var lease = EcoCpuDispatchLedger.reserve(molecularmanipulator$exactInventory, getInventory(),
+                var lease = OmniCpuDispatchLedger.reserve(molecularmanipulator$exactInventory, getInventory(),
                         Map.of(finalKey, deliverable));
                 if (lease == null) throw new IllegalStateException("Final physical stock changed during reservation");
-                molecularmanipulator$ecoLedger.ownFinal(finalKey, deliverable);
+                molecularmanipulator$dispatchLedger.ownFinal(finalKey, deliverable);
                 lease.commit();
                 cluster.markDirty();
             }
-            molecularmanipulator$ecoLedger.flushFinal(this::molecularmanipulator$deliverEcoFinal, (key, amount) -> {
+            molecularmanipulator$dispatchLedger.flushFinal(this::molecularmanipulator$deliverFinalOutput, (key, amount) -> {
                 var access = (ExactExecutingJobAccessor) job;
                 var state = molecularmanipulator$exactState;
                 long next = state == null || state.outputProgress() == null
                         ? Math.max(0, access.molecularmanipulator$getRemaining() - amount)
                         : state.outputProgress().delivered(amount);
                 access.molecularmanipulator$setRemaining(next);
-                molecularmanipulator$notifyEcoOutput(key);
+                molecularmanipulator$notifyOwnedOutput(key);
             }, cluster::markDirty);
             if (((ExactExecutingJobAccessor) job).molecularmanipulator$getRemaining() == 0
-                    && molecularmanipulator$getTasks(job).isEmpty() && !molecularmanipulator$ecoLedger.hasFinalStock()) {
+                    && molecularmanipulator$getTasks(job).isEmpty() && !molecularmanipulator$dispatchLedger.hasFinalStock()) {
                 finishJob(true);
                 if (job == null) cluster.updateOutput(null);
             } else if (job != null) {
@@ -2714,8 +2714,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                         access.molecularmanipulator$getRemaining()));
             }
         } catch (RuntimeException | Error failure) {
-            ecoDispatch$pause(null, "Uncertain final output delivery: " + failure);
-            RateLimitedLog.error("ECO final output delivery suspended; ownership intent retained", failure);
+            omniDispatch$pause(null, "Uncertain final output delivery: " + failure);
+            RateLimitedLog.error("CPU final output delivery suspended; ownership intent retained", failure);
             if (failure instanceof Error error && !(error instanceof LinkageError) && !(error instanceof AssertionError))
                 throw error;
         }
@@ -2743,7 +2743,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     }
     @Override public void ecoOmni$queueEmitted(AEKey key, BigInteger amount) {
         var state = molecularmanipulator$exactState;
-        if (state == null || job == null) throw new IllegalStateException("ECO emitted material has no exact ledger");
+        if (state == null || job == null) throw new IllegalStateException("CPU emitted material has no exact ledger");
         state.queueOutput(key, amount);
         long credit = state.claimOutputWindow(key, getWaitingFor(key));
         if (credit > 0) ((ExactExecutingJobAccessor) job).molecularmanipulator$getWaitingFor()
@@ -2761,7 +2761,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             var key = AEKey.fromTagGeneric(registries, entry);
             long amount = entry.getLong("#");
             if (key == null || amount < 0 || stock.putIfAbsent(key, amount) != null) {
-                throw new IllegalArgumentException("Cannot safely refund undecodable ECO physical inventory");
+                throw new IllegalArgumentException("Cannot safely refund undecodable CPU physical inventory");
             }
         }
         // Validate everything before replacing either physical ledger. The failed decode may have

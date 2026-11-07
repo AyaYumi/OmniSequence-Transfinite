@@ -8,7 +8,7 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.12, branch `1.21.1-neoforge-legacy` |
+| OmniSequence | 2.0.13, branch `1.21.1-neoforge-legacy` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 or later |
 | AppliedEnhancements | 1.1.2 or later, client and server |
@@ -47,6 +47,8 @@ Use the AE2 guide hotkey (default **G**) on an item, JEI entry or associated blo
 | Gravity Crystal | Walk on walls and ceilings or build repulsion lifts |
 | Ghost Matter | Water-suppressed hazard and retained Gravity Crystal catalyst |
 
+The Sequence Array's **Migrate patterns** button moves crafting, stonecutting and smithing patterns from same-network public pattern slots and online storage cells into its library. Migration runs only on click, preserves item components and leaves full-library leftovers at their source.
+
 ## Research, collection and duplication
 
 Ordinary research branches each have nine rounds by default. The first unlocks recipes; later rounds increase parallelism and speed for that branch's fabrication recipes. Normal ordering prepares the next round. Shift ordering prepares every remaining round and reaches maximum depth after one research run. Preparation can be canceled; ordered research cannot stop or pause once running.
@@ -69,6 +71,6 @@ Use Java 21, place `appliedenhancements-1.1.4.jar` in `libs/`, then run:
 ./gradlew build apiJavadoc
 ```
 
-The runtime JAR is `build/libs/omnisequence-transfinite-2.0.12.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.13.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
 
 Licensed under the [MIT License](LICENSE).

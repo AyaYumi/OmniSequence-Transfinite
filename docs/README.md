@@ -1,6 +1,6 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.12**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
+Current source: OmniSequence **2.0.13**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
 Java **21**, AE2 **19.2.17+**, Applied Enhancements **1.1.2+** (compile API **1.1.4**).
 Mod ID: `molecularmanipulator`.
 

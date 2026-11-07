@@ -1,4 +1,4 @@
-package com.atir.molecularmanipulator.integration.eco;
+package com.atir.molecularmanipulator.crafting;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEKey;
@@ -7,17 +7,15 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Exact aggregate remainder contract for one synchronous molecular provider push.
- * This class deliberately has no ECO dependencies: the batcher also loads when
- * ECO is absent. The ordinary AE2 selected-input path remains consumable-only.
  */
-public final class EcoMolecularRemainderContext implements AutoCloseable {
-    private static final ThreadLocal<EcoMolecularRemainderContext> CURRENT = new ThreadLocal<>();
+public final class MolecularRemainderContext implements AutoCloseable {
+    private static final ThreadLocal<MolecularRemainderContext> CURRENT = new ThreadLocal<>();
 
     private final IPatternDetails pattern;
     private final KeyCounter[] inputs;
     private final KeyCounter remainders;
 
-    private EcoMolecularRemainderContext(IPatternDetails pattern, KeyCounter[] inputs,
+    private MolecularRemainderContext(IPatternDetails pattern, KeyCounter[] inputs,
             KeyCounter remainders) {
         this.pattern = pattern;
         this.inputs = inputs;
@@ -25,12 +23,12 @@ public final class EcoMolecularRemainderContext implements AutoCloseable {
         this.remainders.addAll(remainders);
     }
 
-    static EcoMolecularRemainderContext open(IPatternDetails pattern,
+    public static MolecularRemainderContext open(IPatternDetails pattern,
             KeyCounter[] inputs, KeyCounter remainders) {
         if (CURRENT.get() != null) {
-            throw new IllegalStateException("Nested ECO molecular remainder contract");
+            throw new IllegalStateException("Nested molecular remainder contract");
         }
-        var scope = new EcoMolecularRemainderContext(pattern, inputs, remainders);
+        var scope = new MolecularRemainderContext(pattern, inputs, remainders);
         CURRENT.set(scope);
         return scope;
     }

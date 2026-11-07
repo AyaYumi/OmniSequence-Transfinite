@@ -613,8 +613,8 @@ class OsqRuntimeReadabilityTest {
                     assertEquals(1,result.scale,.001f);assertTrue(result.right<=383.5);
                 }
             }
-            for(var action:Map.of("refresh","refresh","prerequisites","view_prerequisites","guide","guide","overclock","overclock_off","unlock","unlocked_permanent").entrySet()){
-                var box=ui.layout.findControl(action.getKey());
+            for(var action:Map.of("refresh","refresh","prerequisites","view_prerequisites","guide","guide","overclock","overclock_off","unlock","unlocked_permanent","reclaim","reclaim","reclaim_confirm","reclaim_confirm").entrySet()){
+                var box=ui.layout.findControl(action.getKey().equals("reclaim_confirm")?"reclaim":action.getKey());
                 var label=Component.translatable("gui.molecularmanipulator.star_computation."+action.getValue());
                 float text=OsqFonts.widthF(context.font,label.getString(),OsqFonts.id("osq_entropy_600_7_5"));
                 assertTrue(text+(action.getKey().equals("overclock")?41:8)<=box.w,action+" "+text);
@@ -639,6 +639,184 @@ class OsqRuntimeReadabilityTest {
                 }
             }}
         }
+    }
+
+    @Test void engineReclaimHasItsOwnReadableActionRowInBothThemesAndLanguages() throws Exception {
+        for(boolean dark:new boolean[]{false,true})for(String language:List.of("zh_cn","en_us"))try(var context=new Context(dark,language)){
+            var engine=engine(context);var screen=engine.screen;var menu=engine.menu;
+            var reclaim=engine.buttons.get("reclaim");assertNotNull(reclaim.getTooltip());
+            menu.formed=false;menu.networkOnline=false;invoke(screen,"updateControls");
+            assertTrue(reclaim.visible&&reclaim.active,"L0/offline diagnostics can still reclaim a damaged machine");
+            menu.formed=true;menu.networkOnline=true;
+            for(int level:new int[]{0,9})for(boolean armed:new boolean[]{false,true})for(String state:List.of("normal","hover","disabled")){
+                menu.benefitLevel=level;menu.effectiveEntropy=menu.levelThreshold(level);
+                menu.reclaimArmed=armed;menu.canConfigure=!state.equals("disabled");
+                invoke(screen,"updateControls");
+                var g=new InkRecorder(context);screen.drawFG(g,0,0,-1,-1);
+                for(var button:engine.buttons.values())if(button.visible){
+                    ResponsiveScreenTestFixture.set(button,"isHovered",state.equals("hover"));
+                    var content=button.getClass().getDeclaredMethod("renderContents",net.minecraft.client.gui.GuiGraphics.class,String.class);
+                    content.setAccessible(true);content.invoke(button,g,!button.active?"disabled":state);
+                    var ink=g.exact(button.getMessage().getString());
+                    assertEquals(1,ink.scale,.001f,language+" "+ink);
+                    assertTrue(ink.left>=button.getX()+3.5f&&ink.right<=button.getRight()-3.5f,language+" "+ink);
+                    assertTrue(screen.screenContent.owns(button));
+                }
+                assertTrue(reclaim.visible,"Even L0/offline structures can be archived");
+                assertEquals(menu.canConfigure,reclaim.active);
+                assertEquals(Component.translatable("gui.molecularmanipulator.star_computation."
+                        +(armed?"reclaim_confirm":"reclaim")).getString(),reclaim.getMessage().getString());
+                for(int a=0;a<g.ink.size();a++)for(int b=a+1;b<g.ink.size();b++)
+                    assertFalse(g.ink.get(a).overlaps(g.ink.get(b)),language+" "+g.ink.get(a)+" / "+g.ink.get(b));
+                for(var ink:g.ink)assertFalse(ink.text.endsWith("…"),language+" "+ink);
+                var visible=engine.buttons.values().stream().filter(b->b.visible).toList();
+                for(int a=0;a<visible.size();a++){
+                    var button=visible.get(a);
+                    for(int b=a+1;b<visible.size();b++)assertFalse(overlaps(button,visible.get(b)),"Live controls never share a hitbox");
+                    for(var slot:engine.ui.layout.draw)if("slot".equals(slot.kind))
+                        assertFalse(button.getX()<slot.x+slot.w&&button.getRight()>slot.x
+                                &&button.getY()<slot.y+slot.h&&button.getBottom()>slot.y,"Control cannot cover native inventory");
+                }
+            }
+            menu.canConfigure=true;invoke(screen,"updateControls");
+            for(int[] viewport:new int[][]{{320,240},{567,240}}){
+                screen.width=viewport[0];screen.height=viewport[1];var bounds=screen.responsiveBounds();
+                assertTrue(bounds.getX()>=3&&bounds.getY()>=3);
+                assertTrue(bounds.getX()+bounds.getWidth()<=viewport[0]-3&&bounds.getY()+bounds.getHeight()<=viewport[1]-3);
+                int x=screen.responsiveScreenX(reclaim.getX()+reclaim.getWidth()/2);
+                int y=screen.responsiveScreenY(reclaim.getY()+reclaim.getHeight()/2);
+                assertTrue(reclaim.isMouseOver(screen.logicalMouseX(x),screen.logicalMouseY(y)));
+            }
+        }
+    }
+
+    @Test void engineReclaimWaitsForTheServerAndResearchKeepsItsExistingControls() throws Exception {
+        try(var context=new Context(false,"en_us")){
+            var engine=engine(context);var menu=engine.menu;var screen=engine.screen;var reclaim=engine.buttons.get("reclaim");
+            // The headless transport is server-side/no-op. Execute the real registered screen callback.
+            reclaim.onPress();assertEquals(0,field(screen,"pendingVersion"));
+            assertFalse(menu.reclaimArmed,"The client cannot arm itself or invent a successful package");
+            assertFalse(reclaim.active);assertFalse(engine.buttons.get("refresh").active);
+            reclaim.onPress();assertEquals(0,field(screen,"pendingVersion"));
+            menu.reclaimArmed=true;menu.resultVersion++;screen.containerTick();
+            assertTrue(reclaim.active);assertEquals(-1,field(screen,"pendingVersion"));
+            var content=reclaim.getClass().getDeclaredMethod("renderContents",net.minecraft.client.gui.GuiGraphics.class,String.class);
+            content.setAccessible(true);content.invoke(reclaim,new InkRecorder(context),"normal");
+            assertEquals(Component.translatable("gui.molecularmanipulator.star_computation.reclaim_confirm").getString(),reclaim.getMessage().getString());
+            reclaim.onPress();assertEquals(1,field(screen,"pendingVersion"));
+            menu.reclaimArmed=false;menu.resultVersion++;screen.containerTick();
+            menu.canConfigure=false;invoke(screen,"updateControls");assertFalse(reclaim.active);
+            ResponsiveScreenTestFixture.set(screen,"recipesPage",true);invoke(screen,"updateControls");
+            assertFalse(reclaim.visible);assertFalse(engine.buttons.get("refresh").visible);assertFalse(engine.buttons.get("overclock").visible);
+            assertTrue(engine.buttons.get("unlock").visible);assertTrue(engine.buttons.get("prerequisites").visible);
+            assertTrue(engine.buttons.get("guide").visible);
+            for(int i=0;i<5;i++)assertTrue(engine.buttons.get("node."+i).visible);
+        }
+    }
+
+    @Test void singularityPendingReclaimKeepsCancelReachableAndDisablesCompetingActionsWithoutACompactReclaim() throws Exception {
+        Class.forName(UiRenderRecorder.class.getName());
+        var holder=net.neoforged.neoforge.registries.DeferredHolder.class.getDeclaredField("holder");holder.setAccessible(true);
+        var compact=com.atir.molecularmanipulator.registry.SingularityContent.COMPACT;var previous=holder.get(compact);
+        // isSingleBlock only compares block identity; reuse a registered block after bootstrap freezes the registry.
+        var compactBlock=net.minecraft.world.level.block.Blocks.GOLD_BLOCK;
+        holder.set(compact,net.minecraft.core.Holder.direct(compactBlock));
+        try{
+            for(boolean dark:new boolean[]{false,true})try(var context=new Context(dark,"en_us")){
+                for(boolean single:new boolean[]{false,true})for(String page:List.of("sing_overview","sing_collection","sing_duplication")){
+                    var screen=ResponsiveScreenTestFixture.allocate(SingularityScreen.class);
+                    var menu=ResponsiveScreenTestFixture.allocate(com.atir.molecularmanipulator.menu.SingularityMenu.class);
+                    var machine=ResponsiveScreenTestFixture.allocate(com.atir.molecularmanipulator.blockentity.SingularityBlockEntity.class);
+                    ResponsiveScreenTestFixture.set(machine,"blockState",single?compactBlock.defaultBlockState():net.minecraft.world.level.block.Blocks.STONE.defaultBlockState());
+                    ResponsiveScreenTestFixture.set(menu,"machine",machine);serverTransport(menu);
+                    ResponsiveScreenTestFixture.set(menu,"slotsBySemantic",com.google.common.collect.ArrayListMultimap.create());
+                    var ui=new OsqUi(page);screenState(screen,menu,ui,context.font);
+                    var controls=ui.layout.draw.stream().filter(e->"ctl".equals(e.kind)).toList();
+                    ui.hide(e->controls.stream().anyMatch(control->ui.layout.owns(control,e)));
+                    boolean collection=page.endsWith("collection"),duplication=page.endsWith("duplication");
+                    ResponsiveScreenTestFixture.set(screen,"collectionPage",collection);ResponsiveScreenTestFixture.set(screen,"duplicationPage",duplication);
+                    for(String name:List.of("build","preview","refresh","embed","overview","collectionTab","duplicationTab","collectionToggle"))
+                        ResponsiveScreenTestFixture.set(screen,name,Button.builder(Component.empty(),b->{}).bounds(0,0,40,22).build());
+                    ResponsiveScreenTestFixture.set(screen,"effects",ResponsiveScreenTestFixture.allocate(MachineEffectButton.class));
+                    var init=SingularityScreen.class.getDeclaredMethod("initReclaimControls",boolean.class);init.setAccessible(true);init.invoke(screen,collection||duplication);
+                    menu.operation=com.atir.molecularmanipulator.blockentity.SingularityBlockEntity.Operation.IDLE;
+                    menu.formed=true;menu.networkOnline=true;menu.correct=2;
+                    menu.structureVersion=com.atir.molecularmanipulator.blockentity.SingularityStructure.LEGACY_VERSION;
+                    var cancel=(Button)field(screen,"cancel");var reclaim=(Button)field(screen,"dismantle");
+                    assertNotNull(reclaim.getTooltip());
+                    if(!single&&!collection&&!duplication){
+                        invoke(screen,"updateWidgets");reclaim.onPress();var armed=field(screen,"armedAt");
+                        assertNotEquals(0L,armed);reclaim.onPress();assertEquals(armed,field(screen,"armedAt"));
+                        ResponsiveScreenTestFixture.set(screen,"armedAt",net.minecraft.Util.getMillis()-300);
+                        reclaim.onPress();assertEquals(0L,field(screen,"armedAt"));
+                    }
+                    for(boolean pending:new boolean[]{false,true})for(int motionMode:new int[]{0,3}){
+                        menu.packageReclaimRequested=pending;menu.motionMode=motionMode;
+                        ResponsiveScreenTestFixture.set(screen,"armedAt",net.minecraft.Util.getMillis());invoke(screen,"updateWidgets");
+                        assertEquals(!single&&pending,cancel.visible,page+" cancel must be available while docking");
+                        assertEquals(!single&&pending,cancel.active&&cancel.visible);
+                        if(!single&&!collection&&!duplication)
+                            assertEquals(!pending,reclaim.active,page+" docking mode "+motionMode+" can be adopted until reclaim is pending");
+                        if(pending){
+                            assertEquals(0L,field(screen,"armedAt"));
+                            for(String name:List.of("build","preview","refresh","dismantle","embed","collectionToggle","effects"))
+                                assertFalse(((Button)field(screen,name)).active,page+" "+name);
+                        }
+                        if(single)assertFalse(reclaim.visible,"Compact production machines are not multiblock archives");
+                        if(cancel.visible){
+                            assertTrue(screen.screenContent.owns(cancel));
+                            assertTrue(cancel.getX()>=0&&cancel.getY()>=0&&cancel.getRight()<=ui.layout.width&&cancel.getBottom()<=ui.layout.height);
+                            for(var slot:ui.layout.draw)if("slot".equals(slot.kind))assertFalse(cancel.getX()<slot.x+slot.w&&cancel.getRight()>slot.x
+                                    &&cancel.getY()<slot.y+slot.h&&cancel.getBottom()>slot.y,page+" cancel cannot cover "+slot.id);
+                            var body=new InkRecorder(context);ui.foreground(body,context.font);
+                            for(var ink:body.ink)assertFalse(cancel.getX()<ink.right&&cancel.getRight()>ink.left
+                                    &&cancel.getY()<ink.bottom&&cancel.getBottom()>ink.top,page+" cancel cannot cover "+ink);
+                            if(collection)assertFalse(((Button)field(screen,"collectionToggle")).visible,"Cancel replaces the idle collection row");
+                        }
+                    }
+                }
+            }
+        }finally{holder.set(compact,previous);}
+    }
+
+    private record Engine(StarComputationEngineScreen screen,StarComputationEngineMenu menu,OsqUi ui,Map<String,Button> buttons) {}
+
+    private static Engine engine(Context context) throws Exception {
+        var screen=ResponsiveScreenTestFixture.allocate(StarComputationEngineScreen.class);
+        var menu=ResponsiveScreenTestFixture.allocate(StarComputationEngineMenu.class);var ui=new OsqUi("star_computation_engine");
+        screenState(screen,menu,ui,context.font);serverTransport(menu);
+        ResponsiveScreenTestFixture.set(screen,"nodeButtons",new ArrayList<>());ResponsiveScreenTestFixture.set(screen,"pendingVersion",-1);
+        ui.visible=e->e.id==null||!e.id.startsWith("rc_");ui.hide(e->"ctl".equals(e.kind)||"edge".equals(e.kind));
+        menu.canConfigure=true;menu.formed=true;menu.networkOnline=true;
+        menu.actionResult=StarComputationEngineMenu.ActionResult.NONE;menu.catalog=StarComputationRecipeCatalog.EMPTY;
+        invoke(screen,"initControls");invoke(screen,"updateControls");var buttons=new HashMap<String,Button>();
+        for(var child:screen.children())if(child instanceof Button button)buttons.put((String)field(button,"id"),button);
+        assertEquals(11,buttons.size());return new Engine(screen,menu,ui,buttons);
+    }
+
+    private static void screenState(ResponsiveContainerScreen<?> screen,Object menu,OsqUi ui,Font font) throws Exception {
+        for(String name:List.of("children","renderables","narratables","screenWidgets"))ResponsiveScreenTestFixture.set(screen,name,new ArrayList<>());
+        ResponsiveScreenTestFixture.set(screen,"screenContent",new ResponsiveScreenWidgets());
+        ResponsiveScreenTestFixture.set(screen,"widgets",new appeng.client.gui.WidgetContainer(new appeng.client.gui.style.ScreenStyle()));
+        ResponsiveScreenTestFixture.set(screen,"menu",menu);ResponsiveScreenTestFixture.set(screen,"ui",ui);ResponsiveScreenTestFixture.set(screen,"font",font);
+        ResponsiveScreenTestFixture.set(screen,"imageWidth",ui.layout.width);ResponsiveScreenTestFixture.set(screen,"imageHeight",ui.layout.height);
+    }
+
+    private static void serverTransport(Object menu) throws Exception {
+        var player=ResponsiveScreenTestFixture.allocate(net.minecraft.server.level.ServerPlayer.class);
+        ResponsiveScreenTestFixture.set(player,"level",ResponsiveScreenTestFixture.allocate(net.minecraft.server.level.ServerLevel.class));
+        ResponsiveScreenTestFixture.set(menu,"playerInventory",new net.minecraft.world.entity.player.Inventory(player));
+    }
+
+    private static Object field(Object target,String name) throws Exception {
+        for(Class<?> type=target.getClass();type!=null;type=type.getSuperclass())try{
+            var field=type.getDeclaredField(name);field.setAccessible(true);return field.get(target);
+        }catch(NoSuchFieldException ignored){}
+        throw new NoSuchFieldException(name);
+    }
+
+    private static boolean overlaps(Button a,Button b) {
+        return a.getX()<b.getRight()&&a.getRight()>b.getX()&&a.getY()<b.getBottom()&&a.getBottom()>b.getY();
     }
 
     private record Center(MolecularCenterScreen screen,MolecularCenterMenu menu,OsqUi ui,List<Button> buttons) {}

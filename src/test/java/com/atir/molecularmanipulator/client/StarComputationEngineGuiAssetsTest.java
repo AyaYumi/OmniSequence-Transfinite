@@ -27,7 +27,8 @@ class StarComputationEngineGuiAssetsTest {
             assertTrue(used.add(id), "No GuiSync collision at "+id);
             ids.put(matcher.group(2),id);
         }
-        assertEquals(20, used.size());
+        assertEquals(21, used.size());
+        assertEquals(20, ids.get("reclaimArmed"));
         assertEquals(15, ids.get("starOrrery")); assertEquals(16, ids.get("litRings"));
         assertEquals(17, ids.get("anchorsReference")); assertEquals(18, ids.get("anchorsQuantum"));
         assertEquals(19, ids.get("anchorsTerminal"));
@@ -46,6 +47,16 @@ class StarComputationEngineGuiAssetsTest {
         assertTrue(core.contains("isStarOrrery() && isFormed() && starOrreryValidated"),
                 "Counts must use only runtime-verified rings of a formed orrery");
         assertFalse(counts.contains("getBenefits()"));
+    }
+
+    @Test
+    void singularityPendingReclaimHasItsOwnSynchronizedServerField() throws Exception {
+        String menu = Files.readString(JAVA.resolve("menu/SingularityMenu.java"));
+        var matcher = Pattern.compile("@GuiSync\\((\\d+)\\)").matcher(menu);
+        var used = new HashSet<Integer>();
+        while (matcher.find()) assertTrue(used.add(Integer.parseInt(matcher.group(1))), "Unique singularity sync field");
+        assertTrue(menu.contains("@GuiSync(47) public boolean packageReclaimRequested"));
+        assertTrue(menu.contains("packageReclaimRequested = machine.packageReclaimRequested()"));
     }
 
     @Test
@@ -128,9 +139,18 @@ class StarComputationEngineGuiAssetsTest {
             } else if (entry.get("type").getAsString().equals("control")) controls.put(id,entry);
         }
         assertEquals("[400,344]", layout.getAsJsonArray("size").toString());
-        assertEquals("[204,284,188,22]", controls.get("overclock").get("rect").toString());
+        assertEquals("[252,284,140,22]", controls.get("overclock").get("rect").toString());
+        assertEquals("[204,284,44,22]", controls.get("refresh").get("rect").toString());
+        assertEquals("[204,312,92,22]", controls.get("reclaim").get("rect").toString());
         assertEquals("[204,284,188,22]", controls.get("unlock").get("rect").toString());
         assertEquals("[300,312,92,22]", controls.get("guide").get("rect").toString());
+        var dark = JsonParser.parseString(Files.readString(Path.of(
+                "resourcepacks/OmniSequence Dark/assets/molecularmanipulator/osq_light/layout/star_computation_engine.json"))).getAsJsonObject();
+        for (var element : dark.getAsJsonArray("draw")) {
+            var entry = element.getAsJsonObject();
+            if (entry.has("id") && List.of("overclock", "refresh", "reclaim", "unlock", "guide").contains(entry.get("id").getAsString()))
+                assertEquals(controls.get(entry.get("id").getAsString()).get("rect"), entry.get("rect"), "Theme control geometry stays identical");
+        }
         assertEquals("#FFCBCCD4", colours.get("paper"));
         assertEquals("#FF18876D", colours.get("ring_full.bronze"));
         assertEquals("#FF8E95B4", colours.get("ring_full.violet"));
@@ -146,7 +166,8 @@ class StarComputationEngineGuiAssetsTest {
         for (String language : List.of("en_us", "zh_cn")) {
             var lang = JsonParser.parseString(Files.readString(ASSETS.resolve("lang/"+language+".json"))).getAsJsonObject();
             for (String key : List.of("star_orrery", "star_orrery_hint", "star_orrery_rings", "ring", "ring_locked",
-                    "anchor_reference", "anchor_quantum", "anchor_terminal", "tier.bronze", "tier.violet", "tier.gold")) {
+                    "anchor_reference", "anchor_quantum", "anchor_terminal", "tier.bronze", "tier.violet", "tier.gold",
+                    "reclaim", "reclaim_confirm", "reclaim_help")) {
                 assertTrue(lang.has("gui.molecularmanipulator.star_computation."+key),language+" "+key);
             }
         }

@@ -5,6 +5,7 @@ import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
+import com.atir.molecularmanipulator.building.BuildingTransfer;
 import com.atir.molecularmanipulator.starcomputation.StarOrreryLayout;
 import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import com.atir.molecularmanipulator.starcomputation.StarComputationRecipeCatalog;
@@ -21,6 +22,7 @@ public final class StarComputationEngineMenu extends BuildingMenu {
     private static final String ACTION_OVERCLOCK = "entropy_overclock";
     private static final String ACTION_REFRESH = "entropy_refresh";
     private static final String ACTION_UNLOCK = "entropy_unlock";
+    private static final String ACTION_RECLAIM = "entropy_reclaim";
     public static final int DEFAULT_PROCESSING_TICKS = 20 * 20;
 
     public static final MenuType<StarComputationEngineMenu> TYPE = MenuTypeBuilder
@@ -67,7 +69,9 @@ public final class StarComputationEngineMenu extends BuildingMenu {
     @GuiSync(17) public int anchorsReference;
     @GuiSync(18) public int anchorsQuantum;
     @GuiSync(19) public int anchorsTerminal;
+    @GuiSync(20) public boolean reclaimArmed;
 
+    private long reclaimArmedAt = Long.MIN_VALUE;
     private final StarComputationRecipeCatalog.ServerCache recipeCatalog = new StarComputationRecipeCatalog.ServerCache();
     private final StarComputationEngineCoreBlockEntity core;
 
@@ -88,6 +92,7 @@ public final class StarComputationEngineMenu extends BuildingMenu {
         registerClientAction(ACTION_OVERCLOCK, this::toggleOverclock);
         registerClientAction(ACTION_REFRESH, this::refreshStructure);
         registerClientAction(ACTION_UNLOCK, Integer.class, this::unlockRecipe);
+        registerClientAction(ACTION_RECLAIM, this::reclaimPackage);
     }
 
     public StarComputationBenefits benefits() {
@@ -133,6 +138,10 @@ public final class StarComputationEngineMenu extends BuildingMenu {
         if (isClientSide() && index >= 0 && index < NODES.size()) sendClientAction(ACTION_UNLOCK, index);
     }
 
+    public void requestReclaim() {
+        if (isClientSide()) sendClientAction(ACTION_RECLAIM);
+    }
+
     @Override
     public boolean stillValid(net.minecraft.world.entity.player.Player player) {
         // Formation gates opening and productive actions, not an already-open diagnostic view.
@@ -142,10 +151,37 @@ public final class StarComputationEngineMenu extends BuildingMenu {
 
     private boolean permitted() {
         return isServerSide() && getPlayer() instanceof ServerPlayer player && player.containerMenu == this
-                && player.mayBuild() && !player.isSpectator() && !core.isRemoved()
-                && player.level() == core.getLevel() && stillValid(player)
+                && isValidMenu() && player.mayBuild() && !player.isSpectator() && !core.isRemoved()
+                && player.level() == core.getLevel() && core.getLevel() != null
+                && core.getLevel().hasChunkAt(core.getBlockPos())
+                && core.getLevel().getBlockEntity(core.getBlockPos()) == core && stillValid(player)
                 && core.canInteract(player)
                 && player.level().mayInteract(player, core.getBlockPos());
+    }
+
+    private void reclaimPackage() {
+        if (!isServerSide()) return;
+        if (!permitted()) {
+            reclaimArmedAt = Long.MIN_VALUE;
+            finish(ActionResult.NOT_PERMITTED, -1);
+            return;
+        }
+        long now = core.getLevel().getGameTime();
+        if (reclaimArmedAt == Long.MIN_VALUE || now < reclaimArmedAt || now - reclaimArmedAt > 60) {
+            reclaimArmedAt = now;
+            finish(ActionResult.NONE, -1);
+            return;
+        }
+        // Two distinct server requests, at least five ticks apart, within three seconds.
+        if (now - reclaimArmedAt < 5) {
+            finish(ActionResult.NONE, -1);
+            return;
+        }
+        reclaimArmedAt = Long.MIN_VALUE;
+        reclaimArmed = false;
+        // seal refreshes the runtime level and owns the exact package, native contents and menu close.
+        if (BuildingTransfer.seal((ServerPlayer) getPlayer(), core)) return;
+        finish(ActionResult.REJECTED, -1);
     }
 
     private void toggleOverclock() {
@@ -218,6 +254,9 @@ public final class StarComputationEngineMenu extends BuildingMenu {
             overclocked = core.isOverclocked();
             unlockMask = core.getUnlockMask() & ALL_UNLOCKS;
             canConfigure = permitted();
+            if (!canConfigure || reclaimArmedAt != Long.MIN_VALUE
+                    && core.getLevel().getGameTime() - reclaimArmedAt > 60) reclaimArmedAt = Long.MIN_VALUE;
+            reclaimArmed = reclaimArmedAt != Long.MIN_VALUE;
             var level = getPlayer().level();
             catalog = recipeCatalog.get(level.getRecipeManager(), level.registryAccess(), level.getGameTime());
         }

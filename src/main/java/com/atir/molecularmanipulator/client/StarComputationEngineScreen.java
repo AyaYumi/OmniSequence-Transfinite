@@ -35,7 +35,7 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     private OsqUi ui;
     private boolean recipesPage;
     private int selectedNode;
-    private Button overclock, unlock, refresh, prerequisites;
+    private Button overclock, unlock, refresh, prerequisites, reclaim;
     private final List<Button> nodeButtons = new ArrayList<>();
     private int pendingVersion = -1;
     private int seenVersion;
@@ -60,6 +60,11 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         nodeButtons.clear();
         addScreenWidget(ui.tab("overview",leftPos,topPos,()->tr("overview"),()->!recipesPage,()->setPage(false)));
         addScreenWidget(ui.tab("recipes",leftPos,topPos,()->tr("recipes"),()->recipesPage,()->setPage(true)));
+        initControls();
+        updateControls();
+    }
+
+    private void initControls() {
         overclock = addScreenWidget(new EngineButton("overclock", this::overclockLabel,
                 () -> request(menu::requestToggleOverclock)));
         overclock.setTooltip(Tooltip.create(tr("overclock_help")));
@@ -67,6 +72,9 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
                 () -> request(() -> menu.requestUnlock(selectedNode))));
         refresh = addScreenWidget(new EngineButton("refresh", () -> tr("refresh"),
                 () -> request(menu::requestRefresh)));
+        reclaim = addScreenWidget(new EngineButton("reclaim", this::reclaimLabel,
+                () -> request(menu::requestReclaim)));
+        reclaim.setTooltip(Tooltip.create(tr("reclaim_help")));
         prerequisites = addScreenWidget(new EngineButton("prerequisites", () -> tr("view_prerequisites"),
                 this::selectPrerequisite));
         addScreenWidget(new EngineButton("guide", () -> tr("guide"), () -> OsqGuide.open("star_computation_engine")));
@@ -79,7 +87,6 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
                     number(node.informationCost()))));
             nodeButtons.add(addScreenWidget(button));
         }
-        updateControls();
     }
 
     private void setPage(boolean recipes) {
@@ -141,6 +148,8 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         overclock.active = !waiting() && menu.canToggleOverclock();
         refresh.visible = !recipesPage;
         refresh.active = !waiting() && menu.canConfigure;
+        reclaim.visible = !recipesPage;
+        reclaim.active = !waiting() && menu.canConfigure;
         unlock.visible = recipesPage;
         unlock.active = !waiting() && menu.canUnlock(selected());
         prerequisites.visible = recipesPage;
@@ -181,6 +190,11 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     private Component overclockLabel() {
         if (waiting()) return tr("waiting");
         return tr(menu.overclocked ? "overclock_on" : "overclock_off");
+    }
+
+    private Component reclaimLabel() {
+        if (waiting()) return tr("waiting");
+        return tr(menu.reclaimArmed ? "reclaim_confirm" : "reclaim");
     }
 
     private Component unlockLabel() {
@@ -282,7 +296,7 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         text(g, Component.literal("L" + benefit.level()), 353, 62, 30,
                 "osq_intertight_700_16", 16, "inverse", "center");
         small(g, tr(benefit.level() == 9 ? "maximum_level" : "current_level", benefit.level()),
-                213, 82, 167, "feature_muted");
+                213, 83, 167, "feature_muted");
         int next = Math.min(9, benefit.level() + 1);
         small(g, tr(benefit.level() == 9 ? "maximum_level" : "next_level", next), 213, 103, 73, "feature_muted");
         small(g, Component.literal(number(menu.effectiveEntropy) + " / " + number(menu.levelThreshold(next))),
@@ -620,7 +634,6 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         }
         @Override
         protected void renderWidget(GuiGraphics g, int mx, int my, float partialTick) {
-            setMessage(label.get());
             boolean node = id.startsWith("node.");
             boolean checked = node && Integer.parseInt(id.substring(5)) == selectedNode;
             String status = !active ? "disabled" : isHoveredOrFocused() ? "hover" : "normal";
@@ -635,6 +648,11 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
                 OsqLayout.drawSprite(g, background, 0, 0);
             }
             if (checked) g.renderOutline(getX() + 1, getY() + 1, getWidth() - 2, getHeight() - 2, color("accent"));
+            renderContents(g, status);
+        }
+        private void renderContents(GuiGraphics g, String status) {
+            setMessage(label.get());
+            boolean node = id.startsWith("node.");
             g.pose().pushPose();
             g.pose().translate(getX(), getY(), 0);
             if (node) {

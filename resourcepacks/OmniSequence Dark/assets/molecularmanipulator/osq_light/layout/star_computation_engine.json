@@ -951,9 +951,9 @@
    "id": "overclock",
    "k": "ctl",
    "rect": [
-    204,
+    252,
     284,
-    188,
+    140,
     22
    ],
    "z": 46
@@ -973,6 +973,18 @@
   {
    "type": "control",
    "id": "refresh",
+   "k": "ctl",
+   "rect": [
+    204,
+    284,
+    44,
+    22
+   ],
+   "z": 48
+  },
+  {
+   "type": "control",
+   "id": "reclaim",
    "k": "ctl",
    "rect": [
     204,

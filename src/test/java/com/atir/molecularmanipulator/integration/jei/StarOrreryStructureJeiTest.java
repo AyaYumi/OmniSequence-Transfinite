@@ -166,6 +166,8 @@ class StarOrreryStructureJeiTest {
         assertEquals(List.of(1, 2, 3), recipes.stream().map(recipe -> recipe.type().orreryLevel()).toList());
         assertThrows(IllegalArgumentException.class, () -> new StarOrreryStructureJeiRecipe(BuildingType.FABRICATION_WELL));
         assertThrows(IllegalArgumentException.class, () -> new StarOrreryStructureJeiRecipe(BuildingType.STAR_COMPUTATION_ENGINE));
+        for (int level : new int[]{0, 4, 5, 6, 7, 8, 9})
+            assertThrows(IllegalArgumentException.class, () -> new StarOrreryStructureJeiRecipe(BuildingType.starOrrery(level)));
         for (var recipe : recipes) {
             var output = recipe.output();
             assertTrue(output.is(ModContent.FOLDED_BUILDING_PACKAGE.get()));

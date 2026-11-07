@@ -79,9 +79,7 @@ Old cores switch to the orrery rules during a server-side structure refresh. The
 
 Existing casing and observation ports remain **required central structure parts** as well as ingredients in their original recipes. When verified as members of a formed orrery's central assembly, they provide menu and ME access to its actual core. Loose parts do not connect to ME or proxy a menu. Updating does not automatically delete player blocks; unwanted legacy blocks still have collision and must be cleared by hand.
 
-Already sealed machine archives restore their original contents without rewriting them, supplying missing parts, refunding materials or exchanging them for a larger level package for free. A restored old cube must still meet both the complete central 3×3×3 and real foundation requirements; add missing blocks by hand. Old unsealed small-template packages can no longer deploy as new buildings and are not exchanged for the more expensive L1/L2/L3 packages for free.
-
-`star_orrery_l0` through `star_orrery_l9` are development structure templates, not the survival package acquisition flow. **Template replay is for disposable test worlds only**: block and air writes can overwrite existing buildings. Never replay a template over a built area in your main save.
+Existing generic orrery archives restore their original contents without supplying missing parts, refunding materials or upgrading the structure. Reclaiming a restored machine creates a new package for its actual physical grade at that time. A restored old cube must still meet both the complete central 3×3×3 and real foundation requirements; add missing blocks by hand. Old unsealed small-template packages can no longer deploy as new buildings and are not exchanged for the more expensive L1/L2/L3 packages for free.
 
 ## ME connection and interface
 
@@ -89,14 +87,18 @@ Connect a real ME cable to the **core, a valid central casing or observation por
 
 Right-click the **formed core, a valid central casing or observation port, or a valid ring anchor** to open that same core's live interface. It has exactly **two tabs**:
 
-- **Overview**: structure and ME status, effective computing power and level, valid counts for all three anchor tiers, four benefit icons, and the network's information balance and actual bit/t consumption. Use the overclock switch or **Recheck structure** here. It shows the real lit-ring count and nine-ring slot list; L9 has **96 Reference / 168 Quantum / 240 Terminal** anchors.
+- **Overview**: structure and ME status, effective computing power and level, valid counts for all three anchor tiers, four benefit icons, and the network's information balance and actual bit/t consumption. Use the overclock switch, **Recheck** or **Reclaim package** here. It shows the real lit-ring count and nine-ring slot list; L9 has **96 Reference / 168 Quantum / 240 Terminal** anchors.
 - **Recipe Tree**: select a node to see its computing power threshold, prerequisites, one-time information cost and actual recipe outputs. Hover the output icons or contents summary for details, then pay to unlock. Selection alone does not purchase anything; payment and the result are confirmed by the server.
 
 Overview and Recipe Tree colors follow the server-synchronized level live: **L0–L3 teal, L4–L6 blue-violet, L7–L9 gold**, without reopening the screen. The core and Building Access Terminal share the **Nine-Ring Star Orrery diagram, ring list and three anchor-tier counts**. They show the server-verified contiguous lit-ring count, with unfinished rings locked. There is no separate anchor tab or structure-projection button; use JEI's structure preview before building and the Star Chart Calibrator when deploying a package.
 
 Only the **best formed, powered, channel-active engine on the same ME network** supplies production benefits: higher level wins; at the same level an overclocked engine wins. Multiple engines do **not** add their computing power, parallelism, storage or speed together; joining or stacking structures grants no extra benefits. The displayed values describe the opened engine; a weaker engine does not add another bonus. Formation or an open screen alone does not mean the benefits are active.
 
-Whole-machine sealing includes **all 27 central blocks: the actual core, 22 casing and 4 observation ports**. Opening the interface through a valid central part still addresses that same core; sealing does not leave these parts behind. See [Folded Buildings and Relocation](folded_buildings.md).
+To relocate the machine, first finish or cancel external ME CPU jobs on its network and let outputs and refunds settle. Click **Reclaim package** in Overview, then click again **5–60 ticks later** (normally 0.25–3 seconds) to confirm. A confirmation after 60 ticks starts a new confirmation window.
+
+At sealing, the server rechecks the physical structure and labels the archive **Star Orrery L0–L9** by the number of consecutive complete rings starting at ring 1. The original ordered package level, information balance and overclocking do not set the grade. If a ring breaks after the first click, the final check uses the remaining complete inner rings.
+
+The archive preserves native contents, the central parts and foundation blocks actually present, and ring anchors belonging to this machine. A complete central body has **27 blocks (core, 22 casing and 4 observation ports)** and a complete foundation has **928 blocks**. Opening the interface through a valid central part still reclaims that same core and its structure. **L0 and L4–L9 packages come only from whole-machine reclaim**; L1/L2/L3 remain the orderable orrery packages in ME, JEI and creative inventory. Use the Star Chart Calibrator to redeploy within the same world. See [Folded Buildings and Relocation](folded_buildings.md).
 
 ## Star Position Anchors
 

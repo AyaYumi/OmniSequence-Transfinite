@@ -53,7 +53,7 @@ Use the **Star Chart Calibrator** to select the site, package and facing, then c
 
 | Page | Function |
 | --- | --- |
-| Overview | Operating status; projection, construction and dismantling |
+| Overview | Operating status; projection, construction and whole-machine reclaim |
 | [Resource Collection](singularity_resource_collection.md) | Resource list; start and stop collection |
 | [Matter Duplication](singularity_matter_duplication.md) | Sample and miniature black-hole slots; matter stock and energy use |
 
@@ -67,9 +67,15 @@ Overview's quantum slot accepts only a **Quantum Entangled Singularity**. Put it
 
 After reloading, let the loaded endpoints complete normal AE2 initialization to reconnect. A destroyed, unloaded or retuned remote ring is no longer mistaken for a live endpoint because of a stale frequency entry. A genuinely occupied pair still rejects the link.
 
-## Dismantling and relocation
+## Reclaiming and relocation
 
-Stop collection and wait for docking before selecting **Dismantle**. The controller stays in place. Materials return to ME before your inventory, pausing if there is no room.
+1. Stop resource collection and finish any construction or structure upgrade in progress. Finish or cancel external ME CPU jobs on the hub's network and let materials, outputs and refunds settle.
+2. Use the existing **reclaim action in Overview**: click once, then again **5–60 ticks later** (normally 0.25–3 seconds). This seals the controller and the whole machine as **one archived building package**.
+3. Use the Star Chart Calibrator to survey and deploy it elsewhere in the same world. Deployment leaves collection, motion and reclaim stopped; start collection manually when ready.
+
+If moving parts remain, sealing waits for safe docking. Keep the motion area loaded and clear. The pending request survives reloads and the requester's time offline, and can continue when the requester returns and conditions permit. **Cancel** prevents the eventual archive while docking continues safely.
+
+The archive preserves the controller, its saved blueprint version, legacy collection nodes and required empty light-well cells (566 in the current suspended design). It retains native inventories, the Quantum Entangled Singularity and its frequency, sample, miniature black holes, duplication progress, pending outputs, fluids and refunds, buffered energy, effect settings, portable materials and recovery contents. Restoring keeps that structure version. **The compact single-block hub does not use this multiblock reclaim action.**
 
 Normal controller removal retains the quantum slot, sample, miniature black holes and pending recovery contents. Continuous production needs loaded chunks; the server's multiblock chunk-loading setting can keep the structure's required chunks loaded.
 

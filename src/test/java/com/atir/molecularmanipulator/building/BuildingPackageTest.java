@@ -90,6 +90,22 @@ class BuildingPackageTest {
         }
     }
 
+    @Test void eachActualOrreryGradeHasAStableArchiveIdentityWithoutAddingOrders() {
+        for (int level = 0; level <= 9; level++) {
+            var type = BuildingType.starOrrery(level);
+            assertEquals("star_orrery_l" + level, type.id);
+            assertSame(type, BuildingType.byId(type.id));
+            assertTrue(type.isStarOrrery());
+            assertEquals(level, type.orreryLevel());
+            assertEquals(level >= 1 && level <= 3, BuildingType.orderable().contains(type));
+            var stack = BuildingPackage.sealed(type, UUID.randomUUID(), 955);
+            assertSame(type, BuildingPackage.type(stack));
+            if (level == 0 || level > 3) assertThrows(IllegalStateException.class, type::template);
+        }
+        assertThrows(IllegalArgumentException.class, () -> BuildingType.starOrrery(-1));
+        assertThrows(IllegalArgumentException.class, () -> BuildingType.starOrrery(10));
+    }
+
     @Test void freshTemplatesHaveNoArchiveUntilTheirOwnDeploymentReservation() {
         var stack = BuildingPackage.fresh(BuildingType.FABRICATION_WELL);
         assertNull(BuildingPackage.archive(stack));

@@ -181,6 +181,103 @@ class MachineEffectWiringTest {
         }
     }
 
+    @Test void singularityNewReclaimUsesTheArchiveAndPersistsTheRequesterBeforeDocking() throws IOException {
+        var type = read(ROOT + "blockentity/SingularityBlockEntity");
+        assertCall(method(type, "startDismantle"), type.name, "requestPackageReclaim");
+        var request = method(type, "requestPackageReclaim");
+        var requestCalls = calls(request);
+        assertTrue(index(requestCalls, "canManage") < index(requestCalls, "hasBodies"));
+        assertTrue(index(requestCalls, "hasBodies") < index(requestCalls, "seal"));
+        assertCall(request, ROOT + "building/BuildingTransfer", "seal");
+        assertTrue(calls(method(type, "canManage")).stream().anyMatch(call -> call.name.equals("isSpectator")));
+        var queued = fields(request).stream().filter(field -> field.getOpcode() == Opcodes.PUTFIELD
+                && field.name.equals("packageReclaimRequester")).findFirst().orElseThrow();
+        var dock = requestCalls.get(index(requestCalls, "dock"));
+        assertTrue(request.instructions.indexOf(queued)
+                < request.instructions.indexOf(requestCalls.get(index(requestCalls, "saveChanges"))));
+        assertTrue(index(requestCalls, "saveChanges") < index(requestCalls, "dock"));
+        assertEquals(Opcodes.ICONST_0, dock.getPrevious().getOpcode(), "New docking must not request native reclaim");
+        assertTrue(requestCalls.stream().noneMatch(call -> call.name.equals("beginDismantle")));
+        for (var hook : List.of("requestPackageReclaim", "tickPackageReclaim", "canSealPackage")) {
+            assertTrue(calls(method(type, hook)).stream().noneMatch(call -> List.of(
+                    "flushRecovery", "nextPortableStack", "clearContent").contains(call.name)), hook);
+        }
+    }
+
+    @Test void singularityPendingReclaimPersistsBlocksConflictingWorkAndAllowsNativeBuffers() throws IOException {
+        var type = read(ROOT + "blockentity/SingularityBlockEntity");
+        var tag = type.fields.stream().filter(field -> field.name.equals("PACKAGE_RECLAIM_REQUESTER_TAG"))
+                .findFirst().orElseThrow().value;
+        for (var hook : List.of("saveAdditional", "loadTag")) {
+            assertTrue(java.util.Arrays.stream(method(type, hook).instructions.toArray())
+                    .anyMatch(instruction -> instruction instanceof LdcInsnNode literal && tag.equals(literal.cst)), hook);
+        }
+        assertCall(method(type, "saveAdditional"), "net/minecraft/nbt/CompoundTag", "putUUID");
+        assertCall(method(type, "loadTag"), "net/minecraft/nbt/CompoundTag", "hasUUID");
+        assertCall(method(type, "loadTag"), "net/minecraft/nbt/CompoundTag", "getUUID");
+        assertCall(method(type, "saveAdditional"), ROOT + "blockentity/SingularityDuplicationProcessor", "save");
+        assertCall(method(type, "loadTag"), ROOT + "blockentity/SingularityDuplicationProcessor", "load");
+        for (var hook : List.of("startBuild", "toggleCollection", "requestEmbedding", "requestSuspendedUpgrade")) {
+            assertCall(method(type, hook), type.name, "packageReclaimRequested");
+        }
+        var motion = read(ROOT + "blockentity/SingularityMotionState");
+        for (var hook : List.of("startForCollection", "toggleInternal")) {
+            assertCall(method(motion, hook), type.name, "packageReclaimRequested");
+        }
+        for (var hook : List.of("cancel", "clearContent")) {
+            var clear = fields(method(type, hook)).stream().filter(field -> field.getOpcode() == Opcodes.PUTFIELD
+                    && field.name.equals("packageReclaimRequester")).findFirst().orElseThrow();
+            assertEquals(Opcodes.ACONST_NULL, clear.getPrevious().getOpcode(), hook);
+        }
+        var guard = method(type, "canSealPackage");
+        assertCall(guard, type.name, "isSingleBlock");
+        assertCall(guard, type.name, "packageReclaimRequested");
+        assertCall(guard, motion.name, "hasBodies");
+        for (var field : List.of("operation", "IDLE", "collectionActive", "embedRequested")) {
+            assertTrue(fields(guard).stream().anyMatch(access -> access.name.equals(field)), field);
+        }
+        assertTrue(calls(guard).stream().noneMatch(call -> List.of("hasPortable", "isEmpty", "hasContents").contains(call.name)),
+                "Portable materials, recovery, quantum and duplication contents must not make an idle controller busy");
+    }
+
+    @Test void singularityDeferredReclaimClearsBeforeSnapshotAndKeepsLegacyDismantleExecution() throws IOException {
+        var type = read(ROOT + "blockentity/SingularityBlockEntity");
+        var pending = method(type, "tickPackageReclaim");
+        var pendingCalls = calls(pending);
+        assertTrue(index(pendingCalls, "canManage") < index(pendingCalls, "hasBodies"));
+        assertTrue(index(pendingCalls, "hasBodies") < index(pendingCalls, "seal"));
+        assertTrue(fields(pending).stream().anyMatch(field -> field.name.equals("packageReclaimRequester")));
+        assertFalse(fields(pending).stream().anyMatch(field -> field.name.equals("owner")),
+                "Retry authorization must use the recorded requester, not a later recovery owner");
+        var clear = fields(pending).stream().filter(field -> field.getOpcode() == Opcodes.PUTFIELD
+                && field.name.equals("packageReclaimRequester")).findFirst().orElseThrow();
+        assertEquals(Opcodes.ACONST_NULL, clear.getPrevious().getOpcode());
+        assertTrue(pending.instructions.indexOf(clear)
+                < pending.instructions.indexOf(pendingCalls.get(index(pendingCalls, "saveChanges"))));
+        assertTrue(index(pendingCalls, "saveChanges") < index(pendingCalls, "seal"));
+        assertEquals(1L, fields(pending).stream().filter(field -> field.getOpcode() == Opcodes.PUTFIELD
+                && field.name.equals("packageReclaimRequester")).count(), "A refused seal must not requeue itself");
+        var tick = method(type, "serverTick");
+        assertCall(tick, ROOT + "building/BuildingTransfer", "restoring");
+        var tickCalls = calls(tick);
+        var afterMotion = tickCalls.subList(index(tickCalls, "serverTick") + 1, tickCalls.size());
+        assertTrue(index(afterMotion, "isRemoved") < index(afterMotion, "tickPackageReclaim"));
+        assertTrue(index(afterMotion, "tickPackageReclaim") < index(afterMotion, "tickDuplication"));
+        assertTrue(index(afterMotion, "tickPackageReclaim") < index(afterMotion, "flushRecovery"));
+        assertTrue(index(afterMotion, "tickPackageReclaim") < index(afterMotion, "nextPortableStack"));
+        var following = afterMotion.get(index(afterMotion, "tickPackageReclaim")).getNext();
+        while (following.getOpcode() < 0) following = following.getNext();
+        assertEquals(Opcodes.RETURN, following.getOpcode(), "No controller work may follow a mid-tick seal");
+        assertCall(method(type, "loadTag"), ROOT + "blockentity/DismantlePlan", "load");
+        assertCall(method(type, "saveAdditional"), ROOT + "blockentity/DismantlePlan", "save");
+        assertCall(tick, type.name, "dismantle");
+        assertCall(method(type, "beginDismantle"), ROOT + "blockentity/DismantlePlan", "create");
+        var motion = read(ROOT + "blockentity/SingularityMotionState");
+        assertCall(method(motion, "restore"), type.name, "beginDismantle");
+        assertTrue(fields(method(motion, "load")).stream().anyMatch(field -> field.name.equals("reclaimAfterDock")));
+        assertTrue(fields(method(motion, "save")).stream().anyMatch(field -> field.name.equals("reclaimAfterDock")));
+    }
+
     @Test void omniRetainsStarGradedPhysicalVirtualCpusAndSharedBudgetsWithoutAutomergeDuplicates() throws IOException {
         var type = read(ROOT + "blockentity/OmniComputationCoreBlockEntity");
         var signatures = new java.util.HashSet<String>();
@@ -228,6 +325,12 @@ class MachineEffectWiringTest {
     private static List<MethodInsnNode> calls(MethodNode method) {
         var result = new ArrayList<MethodInsnNode>();
         for (var instruction : method.instructions) if (instruction instanceof MethodInsnNode call) result.add(call);
+        return result;
+    }
+
+    private static List<FieldInsnNode> fields(MethodNode method) {
+        var result = new ArrayList<FieldInsnNode>();
+        for (var instruction : method.instructions) if (instruction instanceof FieldInsnNode field) result.add(field);
         return result;
     }
 

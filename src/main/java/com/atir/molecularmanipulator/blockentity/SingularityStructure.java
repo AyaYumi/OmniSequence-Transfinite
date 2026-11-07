@@ -90,7 +90,7 @@ public final class SingularityStructure {
                 (int) Math.round(Math.cos(angle) * 41) - 3);
     }
     /** Positions occupied by nodes in layouts shipped before the side-lane adjustment. */
-    static List<BlockPos> compatibilityCollectionNodePositions(int version) {
+    public static List<BlockPos> compatibilityCollectionNodePositions(int version) {
         if (version < VERSION) return List.of();
         var positions = new LinkedHashSet<BlockPos>();
         for (int tower = 0; tower < 8; tower++) {

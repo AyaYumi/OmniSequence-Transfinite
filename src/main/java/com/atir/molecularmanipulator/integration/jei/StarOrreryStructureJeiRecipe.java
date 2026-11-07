@@ -10,7 +10,7 @@ import net.minecraft.world.item.ItemStack;
 /** A complete, fresh machine package, not an incremental ring upgrade or an archived machine. */
 public record StarOrreryStructureJeiRecipe(BuildingType type) {
     public StarOrreryStructureJeiRecipe {
-        if (!Objects.requireNonNull(type, "type").isStarOrrery() || type.orreryLevel() < 1) {
+        if (!Objects.requireNonNull(type, "type").isStarOrrery() || !BuildingType.orderable().contains(type)) {
             throw new IllegalArgumentException("A star orrery building type is required");
         }
     }

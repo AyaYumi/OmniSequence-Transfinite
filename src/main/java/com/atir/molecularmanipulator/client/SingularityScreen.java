@@ -60,11 +60,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("preview"),()->{}));
         refresh=addScreenWidget(!secondary&&!menu.getMachine().isSingleBlock()?ui.button("refresh",leftPos,topPos,()->tr("refresh"),()->menu.request("refresh"))
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("refresh"),()->menu.request("refresh")));
-        dismantle=addScreenWidget(!secondary&&!menu.getMachine().isSingleBlock()?ui.button("dismantle",leftPos,topPos,()->tr(armedAt==0?"dismantle":"confirm"),()->{
-                long now=Util.getMillis();if(armedAt!=0&&now-armedAt<250)return;menu.request("dismantle");armedAt=armedAt!=0&&now-armedAt<=3000?0:now;})
-                :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("dismantle"),()->{}));
-        ui.state(dismantle,()->armedAt==0?"danger":"confirm");
-        cancel=addScreenWidget(ui.rect(173,120,68,17,leftPos,topPos,()->tr("cancel"),()->menu.request("cancel")));
+        initReclaimControls(secondary);
         embed=addScreenWidget(ui.rect(246,120,87,17,leftPos,topPos,null,()->menu.request(menu.structureVersion==SingularityStructure.EMBEDDED_VERSION?"upgrade":"embed")));
         collectionToggle=addScreenWidget(collectionPage?ui.button("collection",leftPos,topPos,null,()->menu.request("collection"))
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("collection_start"),()->menu.request("collection")));
@@ -124,6 +120,18 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         updateWidgets();
     }
 
+    private void initReclaimControls(boolean secondary) {
+        dismantle=addScreenWidget(!secondary&&!menu.getMachine().isSingleBlock()?ui.button("dismantle",leftPos,topPos,()->tr(armedAt==0?"dismantle":"confirm"),()->{
+                long now=Util.getMillis();if(armedAt!=0&&now-armedAt<250)return;menu.request("dismantle");armedAt=armedAt!=0&&now-armedAt<=3000?0:now;})
+                :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("dismantle"),()->{}));
+        dismantle.setTooltip(Tooltip.create(tr("dismantle_hint")));
+        ui.state(dismantle,()->armedAt==0?"danger":"confirm");
+        // The collection action row is free while reclaim is pending; never cover its resource slots.
+        cancel=addScreenWidget(collectionPage
+                ?ui.button("collection",leftPos,topPos,()->tr("cancel"),()->menu.request("cancel"))
+                :ui.rect(173,120,68,17,leftPos,topPos,()->tr("cancel"),()->menu.request("cancel")));
+    }
+
     private Runnable bOverview(){return this::showOverview;}
     void testPage(int page){if(page==1)showCollection();else if(page==2)showDuplication();else showOverview();}
     int detailPage(){return duplicationPage?2:collectionPage?1:0;}
@@ -142,6 +150,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
 
     private void updateWidgets() {
         boolean operationActive = menu.operation != SingularityBlockEntity.Operation.IDLE;
+        boolean reclaimPending = menu.packageReclaimRequested;
         boolean secondaryPage = collectionPage || duplicationPage;
         menu.setDuplicationSlotsActive(duplicationPage);
         menu.setQuantumSlotActive(!secondaryPage && !menu.getMachine().isSingleBlock());
@@ -149,33 +158,34 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         build.visible = !secondaryPage;
         effects.visible = !secondaryPage && !menu.getMachine().isSingleBlock();
         preview.visible = refresh.visible = !secondaryPage;
+        preview.active = refresh.active = effects.active = !reclaimPending;
         build.setMessage(tr(operationActive ? menu.paused ? "resume" : "pause" : "build"));
-        build.active = !secondaryPage && !menu.embedRequested
+        build.active = !secondaryPage && !menu.embedRequested && !reclaimPending
                 && (operationActive || !menu.formed && !menu.movingBodies);
 
-        cancel.visible = menu.embedRequested || operationActive;
+        cancel.visible = menu.embedRequested || operationActive || reclaimPending;
         cancel.active = cancel.visible;
         cancel.setMessage(tr("cancel"));
 
         dismantle.visible = !secondaryPage;
-        dismantle.active = !secondaryPage && !menu.embedRequested && !operationActive
-                && !menu.collectionActive && menu.correct > 1 && menu.motionMode != 3;
+        dismantle.active = !secondaryPage && !menu.embedRequested && !operationActive && !reclaimPending
+                && !menu.collectionActive && menu.correct > 1;
         embed.visible = !secondaryPage && menu.structureVersion < SingularityStructure.VERSION;
-        embed.active = menu.formed && !operationActive && !menu.embedRequested && menu.motionMode != 3
+        embed.active = menu.formed && !operationActive && !menu.embedRequested && !reclaimPending && menu.motionMode != 3
                 && !menu.collectionActive;
         String migration = menu.structureVersion == SingularityStructure.EMBEDDED_VERSION ? "upgrade" : "embed";
         embed.setMessage(tr(migration + (menu.embedRequested ? "_waiting" : "")));
         embed.setTooltip(Tooltip.create(tr(migration + "_hint")));
 
-        if (armedAt != 0 && Util.getMillis() - armedAt > 3000) armedAt = 0;
+        if (!dismantle.active || armedAt != 0 && Util.getMillis() - armedAt > 3000) armedAt = 0;
         dismantle.setMessage(tr(armedAt == 0 ? "dismantle" : "confirm"));
         if (overview != null) overview.active = true;
         collectionTab.active = duplicationTab.active = true;
 
-        collectionToggle.visible = collectionPage;
+        collectionToggle.visible = collectionPage && !cancel.visible;
         collectionToggle.setMessage(tr(menu.collectionStarting ? "collection_starting"
                 : menu.collectionActive ? "collection_stop" : "collection_start"));
-        collectionToggle.active = collectionPage && menu.formed && !operationActive && !menu.embedRequested
+        collectionToggle.active = collectionPage && menu.formed && !operationActive && !menu.embedRequested && !reclaimPending
                 && menu.motionMode != 3 && (menu.collectionActive || menu.networkOnline);
         if (menu.getMachine().isSingleBlock()) {
             build.visible = preview.visible = refresh.visible = dismantle.visible = cancel.visible = embed.visible = false;
@@ -204,6 +214,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     }
 
     private Component overviewStatus() {
+        if (menu.packageReclaimRequested) return tr("reclaim_waiting");
         if (!menu.formed) return tr("status.not_formed");
         if (menu.getMachine().isSingleBlock()) {
             if (!menu.networkOnline) return tr("network_offline");

@@ -19,12 +19,17 @@ import net.minecraft.world.level.block.state.BlockState;
 public enum BuildingType {
     FABRICATION_WELL("fabrication_well"), SEQUENCE_ARRAY("sequence_array"),
     OMNI_COMPUTATION("omni_computation"), EVENT_HORIZON_SINGULARITY("event_horizon_singularity"),
-    // Retain the generic archive identity for existing machines, not as an orderable 3x3x3 template.
+    // The generic identity remains readable for historical archives.
     STAR_COMPUTATION_ENGINE("star_computation_engine"),
-    STAR_ORRERY_L1("star_orrery_l1", 1), STAR_ORRERY_L2("star_orrery_l2", 2), STAR_ORRERY_L3("star_orrery_l3", 3);
+    STAR_ORRERY_L0("star_orrery_l0", 0), STAR_ORRERY_L1("star_orrery_l1", 1),
+    STAR_ORRERY_L2("star_orrery_l2", 2), STAR_ORRERY_L3("star_orrery_l3", 3),
+    STAR_ORRERY_L4("star_orrery_l4", 4), STAR_ORRERY_L5("star_orrery_l5", 5),
+    STAR_ORRERY_L6("star_orrery_l6", 6), STAR_ORRERY_L7("star_orrery_l7", 7),
+    STAR_ORRERY_L8("star_orrery_l8", 8), STAR_ORRERY_L9("star_orrery_l9", 9);
 
     public static final int TEMPLATE_VERSION = 1;
-    private static final List<BuildingType> ORDERABLE = Arrays.stream(values()).filter(type -> type != STAR_COMPUTATION_ENGINE).toList();
+    private static final List<BuildingType> ORDERABLE = List.of(FABRICATION_WELL, SEQUENCE_ARRAY,
+            OMNI_COMPUTATION, EVENT_HORIZON_SINGULARITY, STAR_ORRERY_L1, STAR_ORRERY_L2, STAR_ORRERY_L3);
     public final String id;
     private final int orreryLevel;
     private List<BuildingArchiveStore.Entry> template;
@@ -33,7 +38,16 @@ public enum BuildingType {
     public String translationKey() { return "building.molecularmanipulator." + id; }
     public static List<BuildingType> orderable() { return ORDERABLE; }
     public int orreryLevel() { return orreryLevel; }
-    public boolean isStarOrrery() { return this == STAR_COMPUTATION_ENGINE || orreryLevel > 0; }
+    public boolean isStarOrrery() { return this == STAR_COMPUTATION_ENGINE || this == STAR_ORRERY_L0 || orreryLevel > 0; }
+    public static BuildingType starOrrery(int level) {
+        return switch (level) {
+            case 0 -> STAR_ORRERY_L0; case 1 -> STAR_ORRERY_L1; case 2 -> STAR_ORRERY_L2;
+            case 3 -> STAR_ORRERY_L3; case 4 -> STAR_ORRERY_L4; case 5 -> STAR_ORRERY_L5;
+            case 6 -> STAR_ORRERY_L6; case 7 -> STAR_ORRERY_L7; case 8 -> STAR_ORRERY_L8;
+            case 9 -> STAR_ORRERY_L9;
+            default -> throw new IllegalArgumentException("Star orrery level must be L0-L9: " + level);
+        };
+    }
     public static BuildingType byId(String id) {
         return Arrays.stream(values()).filter(type -> type.id.equals(id)).findFirst().orElseThrow(
                 () -> new IllegalArgumentException("Unknown folded building: " + id));
@@ -42,7 +56,9 @@ public enum BuildingType {
         if (entity instanceof MatterFabricationBlockEntity) return FABRICATION_WELL;
         if (entity instanceof MolecularCenterBlockEntity) return SEQUENCE_ARRAY;
         if (entity instanceof OmniComputationCoreBlockEntity core && !core.isSingleBlock()) return OMNI_COMPUTATION;
-        if (entity instanceof StarComputationEngineCoreBlockEntity) return STAR_COMPUTATION_ENGINE;
+        if (entity instanceof SingularityBlockEntity singularity && !singularity.isSingleBlock()) return EVENT_HORIZON_SINGULARITY;
+        if (entity instanceof StarComputationEngineCoreBlockEntity core)
+            return core.isStarOrrery() ? starOrrery(core.getLitRings()) : STAR_COMPUTATION_ENGINE;
         return null;
     }
     public synchronized List<BuildingArchiveStore.Entry> template() {
@@ -77,7 +93,9 @@ public enum BuildingType {
                 for (var local : SingularityStructure.requiredAir())
                     put(result, SingularityStructure.worldPos(BlockPos.ZERO, Direction.NORTH, local), Blocks.AIR.defaultBlockState());
             }
-            case STAR_COMPUTATION_ENGINE -> throw new IllegalStateException("The retired engine package has no construction template; use a star orrery L1-L3 package");
+            case STAR_COMPUTATION_ENGINE, STAR_ORRERY_L0, STAR_ORRERY_L4, STAR_ORRERY_L5,
+                    STAR_ORRERY_L6, STAR_ORRERY_L7, STAR_ORRERY_L8, STAR_ORRERY_L9 ->
+                    throw new IllegalStateException("This building identity requires a sealed archive; order a star orrery L1-L3 package for construction");
             case STAR_ORRERY_L1, STAR_ORRERY_L2, STAR_ORRERY_L3 -> {
                 for (var member : StarOrreryCoreStructure.members()) {
                     var block = member.material() == StarOrreryCoreStructure.Material.CASING

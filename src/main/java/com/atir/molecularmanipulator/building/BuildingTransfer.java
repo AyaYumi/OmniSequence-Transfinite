@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.building;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.me.helpers.IGridConnectedBlockEntity;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.registry.SingularityContent;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.blockentity.*;
 import java.io.IOException;
@@ -201,6 +202,11 @@ public final class BuildingTransfer {
         if (type == null || controller.getLevel() != player.serverLevel() || !player.mayBuild() || player.isSpectator()
                 || controller.isRemoved() || locked(player.level(), controller.getBlockPos())) return false;
         try {
+            if (controller instanceof SingularityBlockEntity singularity) {
+                if (!singularity.canManage(player)) return false;
+                if (singularity.motion().hasBodies()) return singularity.requestPackageReclaim(player);
+                if (!singularity.canSealPackage()) { message(player, "busy"); return false; }
+            }
             if (controller instanceof MatterFabricationBlockEntity well && (well.isBuilding() || well.isDismantling() || well.isUpdatingStructure()
                     || well.getResearchOrders().activeJobs() > 0)) { message(player, "busy"); return false; }
             if (controller instanceof MolecularCenterBlockEntity array && (array.isBuilding() || array.isDismantling() || array.isStructureUpdating())) { message(player, "busy"); return false; }
@@ -214,7 +220,23 @@ public final class BuildingTransfer {
             var candidates = new LinkedHashSet<BlockPos>();
             var air = new LinkedHashSet<BlockPos>();
             if (controller instanceof StarComputationEngineCoreBlockEntity engine) {
-                engine.refreshStructureNow(); candidates.addAll(engine.foldingMembers());
+                if (!engine.canInteract(player)) return false;
+                // Resolve the fixed L0-L9 footprint before classifying; an unloaded ring must not
+                // silently downgrade the package or disappear from the captured membership.
+                for (var chunk : StarOrreryRings.chunksFor(origin, facing, StarOrreryRings.RINGS)) level.getChunk(chunk.x, chunk.z);
+                engine.refreshStructureNow();
+                type = BuildingType.forController(engine);
+                candidates.addAll(engine.foldingMembers());
+            } else if (controller instanceof SingularityBlockEntity singularity) {
+                for (var part : singularity.structureParts()) candidates.add(singularity.worldPos(part));
+                for (var local : SingularityStructure.requiredAir()) {
+                    var pos = singularity.worldPos(local); candidates.add(pos); air.add(pos);
+                }
+                for (var local : SingularityStructure.compatibilityCollectionNodePositions(singularity.structureVersion())) {
+                    var pos = singularity.worldPos(local);
+                    level.getChunkAt(pos);
+                    if (level.getBlockState(pos).is(SingularityContent.COLLECTION_NODE.get())) candidates.add(pos);
+                }
             } else if (controller instanceof MolecularCenterBlockEntity array) {
                 array.refreshStructure();
                 var geometry = array.getConstructionOriginLayout();
@@ -250,8 +272,9 @@ public final class BuildingTransfer {
                 if (air.contains(pos)) { entries.add(new BuildingArchiveStore.Entry(offset, Blocks.AIR.defaultBlockState(), null)); continue; }
                 var state = level.getBlockState(pos);
                 if (state.isAir()) continue;
-                if (!pos.equals(origin) && !isMember(type, offset, state, controller)) continue;
-                entries.add(new BuildingArchiveStore.Entry(offset, BuildingType.rotateState(state, inverse), null));
+                var normalized = BuildingType.rotateState(state, inverse);
+                if (!pos.equals(origin) && !isMember(type, offset, normalized, controller)) continue;
+                entries.add(new BuildingArchiveStore.Entry(offset, normalized, null));
             }
             entries.sort(Comparator.comparingInt((BuildingArchiveStore.Entry entry) -> entry.offset().equals(BlockPos.ZERO) ? 1 : 0)
                     .thenComparingInt(entry -> entry.offset().getY()).thenComparingInt(entry -> entry.offset().getX()).thenComparingInt(entry -> entry.offset().getZ()));
@@ -286,10 +309,14 @@ public final class BuildingTransfer {
             case SEQUENCE_ARRAY -> MolecularCenterStructure.isStructurePart(state);
             case OMNI_COMPUTATION -> OmniComputationStructure.isStructurePart(state);
             case EVENT_HORIZON_SINGULARITY -> {
-                var part = SingularityStructure.partAt(BlockPos.ZERO, Direction.NORTH, offset);
-                yield part != null && SingularityStructure.matches(state, part, Direction.NORTH);
+                var version = ((SingularityBlockEntity) controller).structureVersion();
+                var part = SingularityStructure.partAt(BlockPos.ZERO, Direction.NORTH, offset, version);
+                yield part != null && SingularityStructure.matches(state, part, Direction.NORTH)
+                        || state.is(SingularityContent.COLLECTION_NODE.get())
+                        && SingularityStructure.isCompatibilityCollectionNode(BlockPos.ZERO, Direction.NORTH, offset, version);
             }
-            case STAR_COMPUTATION_ENGINE, STAR_ORRERY_L1, STAR_ORRERY_L2, STAR_ORRERY_L3 -> true;
+            case STAR_COMPUTATION_ENGINE, STAR_ORRERY_L0, STAR_ORRERY_L1, STAR_ORRERY_L2, STAR_ORRERY_L3,
+                    STAR_ORRERY_L4, STAR_ORRERY_L5, STAR_ORRERY_L6, STAR_ORRERY_L7, STAR_ORRERY_L8, STAR_ORRERY_L9 -> true;
         };
     }
     private static void add(MinecraftServer server, UUID id, CompoundTag manifest, List<BuildingArchiveStore.Entry> layout, ListTag descriptors) {

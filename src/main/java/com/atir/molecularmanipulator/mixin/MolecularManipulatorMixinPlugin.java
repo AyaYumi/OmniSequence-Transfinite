@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.mixin;
 
 import net.minecraftforge.fml.loading.FMLLoader;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin {
+    private static final DefaultArtifactVersion ECO_NATIVE_API_VERSION = new DefaultArtifactVersion("20.5.0");
     private static final String ADVANCED_AE_MIXIN = AdvancedAECraftingCpuLogicMixin.class.getName();
     private static final String LABELED_PATTERNS_MIXIN = LabeledPatternCheckProviderMixin.class.getName();
     private static final String JEI_RESPONSIVE_SLOT_MIXIN = JeiResponsiveSlotMixin.class.getName();
@@ -42,14 +44,18 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         if (mixinClassName.endsWith(".MatterCpuJobContextMixin")) {
             if (targetClassName.startsWith("net.pedroksl.advanced_ae."))
                 return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
-            if (targetClassName.startsWith("cn.dancingsnow.neoecoae."))
-                return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
+            if (targetClassName.startsWith("cn.dancingsnow.neoecoae.")) {
+                var eco = loadingModList == null ? null : loadingModList.getModFileById("neoecoae");
+                boolean legacy = targetClassName.equals("cn.dancingsnow.neoecoae.api.me.ECOCraftingCPULogic");
+                return eco != null && eco.getMods().stream().anyMatch(mod -> mod.getModId().equals("neoecoae")
+                        && (mod.getVersion().compareTo(ECO_NATIVE_API_VERSION) < 0) == legacy);
+            }
             return true;
         }
         if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("Eco")) {
             var eco = loadingModList == null ? null : loadingModList.getModFileById("neoecoae");
             return eco != null && eco.getMods().stream().anyMatch(mod -> mod.getModId().equals("neoecoae")
-                    && mod.getVersion().compareTo(new org.apache.maven.artifact.versioning.DefaultArtifactVersion("20.5.0")) >= 0);
+                    && mod.getVersion().compareTo(ECO_NATIVE_API_VERSION) >= 0);
         }
         if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("LightningWireless")) {
             var lightning = loadingModList == null ? null : loadingModList.getModFileById("ae2lt");

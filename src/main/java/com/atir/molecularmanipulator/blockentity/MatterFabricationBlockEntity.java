@@ -62,7 +62,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity {
+public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity implements MachineEffectHost {
+    private final MachineEffectSettings machineEffects = new MachineEffectSettings();
+
+    @Override
+    public MachineEffectSettings getMachineEffects() {
+        return machineEffects;
+    }
+
     public static final int INPUT_SLOTS = 4;
     public static final int OUTPUT_SLOTS = 2;
     public static final double IDLE_POWER = 16.0;
@@ -189,6 +196,8 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         if (teamBindingInitialized || level == null || level.isClientSide()) return;
         var node = getMainNode().getNode();
         var placer = node == null ? null : node.getOwningPlayerProfileId();
+        // Older auto-built wells may only retain the builder, with no AE2 placer or team binding.
+        if (placer == null) placer = buildOwner;
         var team = FtbTeamOwnership.forPlayerId(placer);
         if (team != null) {
             boundTeam = team;
@@ -1936,6 +1945,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     @Override
     public void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
+        machineEffects.save(tag);
         tag.putBoolean(TEAM_BOUND_TAG, teamBindingInitialized);
         if (boundTeam != null) tag.putUUID(TEAM_TAG, boundTeam); else tag.remove(TEAM_TAG);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
@@ -1985,6 +1995,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag);
+        machineEffects.load(tag);
         boundTeam = tag.hasUUID(TEAM_TAG) ? tag.getUUID(TEAM_TAG) : null;
         teamBindingInitialized = tag.getBoolean(TEAM_BOUND_TAG) || boundTeam != null;
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);
@@ -2063,6 +2074,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         data.writeVarInt(Math.max(0, currentProcessingTime));
         data.writeLong(completionTick);
         researchVisualSnapshot().write(data);
+        machineEffects.write(data);
     }
 
     @Override
@@ -2095,6 +2107,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         changed |= clientStructureFormed != nextFormed || clientRunning != nextRunning;
         clientStructureFormed = nextFormed;
         clientRunning = nextRunning;
+        changed |= machineEffects.read(data);
         return changed;
     }
 

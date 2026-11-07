@@ -30,7 +30,7 @@ navigation:
 
 默认每 **20 tick**（正常 TPS 下约 1 秒）生产每种资源 **1000 个**。同一物品即使命中多个标签，也只在列表中出现一次。无需切换采集目标。
 
-页面显示服务器当前的单次产量与采集间隔。点击控制器中的**指南**即可打开本页。
+页面使用服务端实际生效的资源列表、单次产量与采集间隔；连接独立服务器时也不以客户端本地配置决定生产。点击控制器中的**指南**即可打开本页。
 
 ## 资源列表
 
@@ -38,7 +38,7 @@ navigation:
 
 | 设置 | 默认值或示例 |
 | --- | --- |
-| 物品标签 | #c:raw_ores、#c:raw_materials、#minecraft:raw_ores、#minecraft:logs、#c:logs |
+| 物品标签 | #forge:raw_materials、#c:raw_ores、#c:raw_materials、#minecraft:raw_ores、#minecraft:logs、#c:logs |
 | 额外标签示例 | #minecraft:planks，用于生产木板 |
 | 黑名单 | 物品 ID，例如 minecraft:raw_iron |
 | 每种资源每周期产量（`batch_size`） | 1000 |

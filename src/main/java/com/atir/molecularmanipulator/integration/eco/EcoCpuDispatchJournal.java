@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.integration.eco;
 
 import appeng.api.stacks.AEKey;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchReceipt;
 import java.math.BigInteger;
 import java.util.Map;
 import net.minecraft.nbt.CompoundTag;
@@ -8,14 +9,14 @@ import net.minecraft.nbt.ListTag;
 
 /** An interrupted or indeterminate intent is never replayed or converted into refundable CPU stock. */
 public final class EcoCpuDispatchJournal {
-    private EcoCpuDispatchReceipt pending;
+    private OmniCpuDispatchReceipt pending;
     private CompoundTag restored;
     private boolean suspended;
     private String reason = "";
 
     public boolean suspended() { return suspended; }
     public boolean pending() { return pending != null || restored != null; }
-    public void arm(EcoCpuDispatchReceipt receipt) {
+    public void arm(OmniCpuDispatchReceipt receipt) {
         if (suspended || pending()) throw new IllegalStateException("Unsettled ECO dispatch");
         pending = receipt;
     }

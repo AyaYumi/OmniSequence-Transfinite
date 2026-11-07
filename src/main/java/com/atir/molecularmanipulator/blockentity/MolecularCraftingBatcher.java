@@ -6,9 +6,9 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.menu.AutoCraftingMenu;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
-import com.atir.molecularmanipulator.integration.eco.EcoMolecularRemainderContext;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.world.inventory.TransientCraftingContainer;
@@ -102,7 +102,7 @@ final class MolecularCraftingBatcher {
         if (expectedPrimaryPerCraft == null) {
             return false;
         }
-        var expectedRemainders = EcoMolecularRemainderContext.expected(
+        var expectedRemainders = MolecularRemainderContext.expected(
                 patternDetails, inputs);
         var selectedPrimaryOutputs = new Object2LongOpenHashMap<AEKey>();
         var selectedRemainderOutputs = new Object2LongOpenHashMap<AEKey>();
@@ -153,8 +153,8 @@ final class MolecularCraftingBatcher {
                     return failSelectedPreparation();
                 }
                 for (var remainder : pattern.getRemainingItems(craftingInput)) {
-                    // Only an explicit ECO contract may carry linear
-                    // containers. Verify the complete actual remainder total
+                    // Only an explicit aggregate remainder contract may carry
+                    // linear containers. Verify the complete actual remainder total
                     // before any machine acquires ownership.
                     if (!remainder.isEmpty()
                             && (expectedRemainders == null
@@ -184,7 +184,7 @@ final class MolecularCraftingBatcher {
                 || selectedGrid == null
                 || selectedPrimaryOutputs.isEmpty()
                 || expectedRemainders != null
-                        && !EcoMolecularRemainderContext.matches(expectedRemainders,
+                        && !MolecularRemainderContext.matches(expectedRemainders,
                                 selectedRemainderOutputs.object2LongEntrySet())) {
             return failSelectedPreparation();
         }

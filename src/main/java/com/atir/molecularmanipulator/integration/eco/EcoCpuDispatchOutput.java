@@ -4,6 +4,7 @@ import appeng.api.config.Actionable;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.stacks.AEKey;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
 import java.math.BigInteger;
 import java.util.UUID;
 
@@ -15,11 +16,11 @@ public final class EcoCpuDispatchOutput {
         if (jobId == null || key == null || amount == null || amount.signum() <= 0 || mode == null) return null;
         for (var cpu : cpus) {
             if (!(cpu instanceof CraftingCPUCluster cluster)) continue;
-            if (!(cluster.craftingLogic instanceof EcoCpuDispatchHost host) || !host.ecoDispatch$enabled()
-                    || !jobId.equals(host.ecoDispatch$jobId())) continue;
+            if (!(cluster.craftingLogic instanceof OmniCpuDispatchHost host) || !host.omniDispatch$enabled()
+                    || !jobId.equals(host.omniDispatch$jobId())) continue;
             if (cluster.craftingLogic instanceof EcoCpuDispatchAccess access
-                    && !access.ecoDispatch$dispatcher().receivingAllowed()) return BigInteger.ZERO;
-            var inserted = host.ecoDispatch$insertExact(jobId, key, amount, mode);
+                    && !access.omniDispatch$dispatcher().receivingAllowed()) return BigInteger.ZERO;
+            var inserted = host.omniDispatch$insertExact(jobId, key, amount, mode);
             if (inserted == null || inserted.signum() < 0 || inserted.compareTo(amount) > 0)
                 throw new IllegalStateException("Invalid Omni ECO output acceptance");
             return inserted;

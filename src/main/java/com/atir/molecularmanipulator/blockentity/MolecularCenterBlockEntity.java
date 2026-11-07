@@ -68,7 +68,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
-        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost {
+        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost, MachineEffectHost {
     public static final int PATTERNS_PER_PAGE = 36;
     public static final int MAX_PATTERN_PAGES = 300;
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
@@ -109,6 +109,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private static final String LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG =
             "molecular_center_legacy_structure_update_dismissed";
     private static final String MATRIX_UPLOAD_CORE_TAG = "matrix_upload_core_inventory";
+    private static final String AUTOMATIC_PATTERN_UPLOAD_TAG = "automatic_pattern_upload";
     private static final String QUANTUM_INVENTORY_TAG = "molecular_center_quantum_inventory";
     private static final String FIELD_COLOR_TAG = "visual_field_color";
     private static final String CORE_COLOR_TAG = "visual_core_color";
@@ -128,7 +129,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
-    private final AppEngInternalInventory matrixUploadCoreInventory = new AppEngInternalInventory(this, 1);
+    private final MachineEffectSettings machineEffects = new MachineEffectSettings();
+    private boolean automaticPatternUpload;
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final Object2LongOpenHashMap<AEKey> pendingPrimaryOutputs = new Object2LongOpenHashMap<>();
@@ -195,7 +197,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public MolecularCenterBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MOLECULAR_CENTER_CONTROLLER_BE.get(), pos, state);
         quantumInventory.setMaxStackSize(0, 1);
-        matrixUploadCoreInventory.setMaxStackSize(0, 1);
         getMainNode()
                 .setFlags(GridFlags.REQUIRE_CHANNEL)
                 .setIdlePowerUsage(ModConfig.IDLE_POWER.get());
@@ -289,20 +290,27 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return AEItemKey.of(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get());
     }
 
+    @Override
+    public MachineEffectSettings getMachineEffects() {
+        return machineEffects;
+    }
+
     public AppEngInternalInventory getQuantumInventory() {
         return quantumInventory;
     }
 
-    public AppEngInternalInventory getMatrixUploadCoreInventory() {
-        return matrixUploadCoreInventory;
+    public boolean isAutomaticPatternUploadEnabled() {
+        return automaticPatternUpload;
     }
 
-    public boolean hasMatrixUploadCore() {
-        return com.atir.molecularmanipulator.integration.extendedaeplus.MatrixUploadCoreIntegration
-                .isUploadCore(matrixUploadCoreInventory.getStackInSlot(0));
+    public void setAutomaticPatternUploadEnabled(boolean enabled) {
+        if (automaticPatternUpload != enabled) {
+            automaticPatternUpload = enabled;
+            saveChanges();
+        }
     }
 
-    public boolean canAcceptMatrixUpload() {
+    public boolean canAcceptExternalPatternUpload() {
         return isOperational() && canMutateExternalPatterns();
     }
 
@@ -374,7 +382,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 || !pendingByproducts.isEmpty()
                 || !reusableBatchRefunds.isEmpty()
                 || RetainedBlockContents.hasPatternContents(this)
-                || !quantumInventory.isEmpty() || !matrixUploadCoreInventory.isEmpty()
+                || !quantumInventory.isEmpty()
                 || !autoCrafter.getPatternInventory().isEmpty();
     }
 
@@ -393,7 +401,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         patternStorageReady = false;
         super.clearContent();
         quantumInventory.clear();
-        matrixUploadCoreInventory.clear();
         pendingPrimaryOutputs.clear();
         pendingByproducts.clear();
         reusableBatchRefunds.clear();
@@ -458,6 +465,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     private void saveStoredContents(CompoundTag tag) {
+        machineEffects.save(tag);
         writeStacks(tag, AUTO_CRAFT_PRIMARY_ESCROW_TAG, pendingPrimaryOutputs);
         writeStacks(tag, AUTO_CRAFT_REMAINDER_ESCROW_TAG, pendingByproducts);
         writeStacks(tag, REUSABLE_BATCH_REFUNDS_TAG, reusableBatchRefunds);
@@ -469,7 +477,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
         autoCrafter.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
-        matrixUploadCoreInventory.writeToNBT(tag, MATRIX_UPLOAD_CORE_TAG);
+        tag.putBoolean(AUTOMATIC_PATTERN_UPLOAD_TAG, automaticPatternUpload);
         writeVisualColors(tag);
     }
 
@@ -478,6 +486,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         patternStorageReady = false;
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag);
+        getLogic().invalidateUploadIndex();
+        machineEffects.load(tag);
         formed = tag.getBoolean("molecular_center_formed");
         patternsInCrystals = tag.getBoolean(PATTERNS_IN_CRYSTALS_TAG)
                 || formed && !tag.contains(MolecularCenterPatternShards.PATTERNS_TAG, Tag.TAG_LIST)
@@ -572,7 +582,14 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
-        matrixUploadCoreInventory.readFromNBT(tag, MATRIX_UPLOAD_CORE_TAG);
+        // Return the real item from the removed slot through the existing output buffer.
+        var retiredCoreInventory = new AppEngInternalInventory(1);
+        retiredCoreInventory.readFromNBT(tag, MATRIX_UPLOAD_CORE_TAG);
+        var retiredCore = retiredCoreInventory.getStackInSlot(0);
+        automaticPatternUpload = tag.contains(AUTOMATIC_PATTERN_UPLOAD_TAG)
+                ? tag.getBoolean(AUTOMATIC_PATTERN_UPLOAD_TAG) : !retiredCore.isEmpty();
+        var retiredCoreKey = AEItemKey.of(retiredCore);
+        if (retiredCoreKey != null) pendingPrimaryOutputs.addTo(retiredCoreKey, retiredCore.getCount());
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);
         RetiredMatterRewriteContents.migrate(tag, quantumInventory, pendingPrimaryOutputs);
         fieldColor = readColor(tag, FIELD_COLOR_TAG, DEFAULT_FIELD_COLOR);
@@ -620,6 +637,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         data.writeInt(latticeColor);
         data.writeEnum(structureLayout);
         data.writeEnum(controllerAnchor);
+        machineEffects.write(data);
     }
 
     @Override
@@ -646,6 +664,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         latticeColor = newLatticeColor;
         structureLayout = newLayout;
         controllerAnchor = newControllerAnchor;
+        changed |= machineEffects.read(data);
         return changed;
     }
 
@@ -1936,6 +1955,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         restoringPatternInventory = true;
         try {
             MolecularCenterPatternShards.applyList(inventory, merged);
+            getLogic().invalidateUploadIndex();
             writePatternShards(MolecularCenterPatternShards.split(merged), false);
             patternsInCrystals = true;
             patternStorageReady = true;

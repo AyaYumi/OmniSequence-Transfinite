@@ -63,6 +63,8 @@
     "UselessExactOutputReturnMixin",
     "ExtendedAEPlusPatternUploadMixin",
     "ExtendedAEPlusMatrixUploadMixin",
+    "SequenceArrayPatternUploadMixin",
+    "MolecularCenterInventoryNotificationsMixin",
     "ForgeMachineRecipeJsonMixin",
     "KubeJsMachineRecipeJsonMixin",
     "RecipeManagerAccessor",
@@ -71,7 +73,6 @@
   ],
   "client": [
     "GhostMatterGameRendererMixin",
-    "GameRendererCameraBobAccessor",
     "GhostMatterLocalHealthMixin",
     "GravityCameraMixin",
     "GravityGameRendererMixin",

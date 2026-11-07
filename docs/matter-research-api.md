@@ -1,6 +1,6 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.12-forge**.
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.13-forge**.
 Target: Minecraft **1.20.1** / Forge, Java **17**, AE2 **15.4.10**, and the
 required prerequisite Applied Enhancements **1.1.2-forge+** (build API **1.1.4-forge**). The Mod ID stays
 `molecularmanipulator`.
@@ -441,10 +441,15 @@ the catalysts resumes work without charging again or discarding materials.
 JEI encoding uses the server's recipe definition and selected matching item
 alternatives. It combines every consumed item, fluid and generic AE input, and
 every output including byproducts. Catalysts are omitted from the encoded inputs.
-Upload requires an active encoding terminal, a blank pattern and an available
-assembly belonging to the player's team. The server validates the current recipe,
-selected inputs and target; client quantities cannot redefine a recipe. Upload
-helpers/payloads are internal and are not public Java API.
+Upload requires an active encoding terminal and space in a loaded, formed well's
+assembly belonging to the player's team. It consumes one blank pattern from the
+terminal, or from the connected ME network when the local slot is empty; one
+extractable network blank is sufficient. Destination identity uses the well and
+team, not the assembly's display name. Forge ExtendedAE Plus 1.6.2 has no newer
+named-provider API, so its automatic selection of renamed assemblies is not promised.
+The server validates the current recipe, selected inputs and target; client
+quantities cannot redefine a recipe. Failed transfers retain or return the blank.
+Upload helpers/payloads are internal and are not public Java API.
 
 ## 5. Materials, admission and persistence
 
@@ -596,7 +601,7 @@ the recipe ID, so unstarted batches re-check the current recipe, permission and
 profile instead of reusing old figures. Work that can no longer proceed keeps its
 materials inside the assembly and can be returned as pending input.
 
-### 7.1 Known limitations in 2.0.12-forge
+### 7.1 Known limitations in 2.0.13-forge
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.

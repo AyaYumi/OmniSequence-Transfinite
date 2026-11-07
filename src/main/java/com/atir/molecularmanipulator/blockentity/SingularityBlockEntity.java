@@ -9,6 +9,8 @@ import appeng.api.networking.GridHelper;
 import appeng.api.networking.IGridConnection;
 import appeng.api.networking.IGridNode;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.networking.security.IActionHost;
+import appeng.me.cluster.implementations.QuantumCluster;
 import appeng.api.orientation.BlockOrientation;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEFluidKey;
@@ -29,13 +31,11 @@ import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.Quan
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.ChunkPos;
@@ -50,7 +50,9 @@ import net.minecraftforge.event.level.BlockEvent;
 import java.util.*;
 
 /** Construction terminal and tag-driven resource collection controller. */
-public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
+public final class SingularityBlockEntity extends AENetworkInvBlockEntity implements MachineEffectHost {
+    private final MachineEffectSettings machineEffects = new MachineEffectSettings();
+    @Override public MachineEffectSettings getMachineEffects() { return machineEffects; }
     public enum Operation { IDLE, BUILD, DISMANTLE }
     public enum Status { IDLE, STARTING, COLLECTING, BUILDING, DISMANTLING, PAUSED, MATERIAL, CONFLICT, UNLOADED,
         OWNER_OFFLINE, PROTECTED, STORAGE_FULL, OUT_OF_BOUNDS, COMPLETE, VERSION_CHANGED }
@@ -62,6 +64,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     private final AppEngInternalInventory duplicationInventory = new AppEngInternalInventory(this, 2);
     private final SingularityDuplicationProcessor duplication = new SingularityDuplicationProcessor(this::saveChanges);
     private final SingularityMotionState motion = new SingularityMotionState(this);
+    private final SingularityCollectionResources collectionResources = new SingularityCollectionResources();
     private Operation operation = Operation.IDLE;
     private Status status = Status.IDLE;
     private UUID owner;
@@ -201,9 +204,13 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     }
     public QuantumLinkState getQuantumLinkState() { return quantumLinkState; }
     public boolean collectionActive() { return collectionActive; }
-    /** Comma-separated registry ids used by the collection page and client UI. */
+    public List<Item> collectionResources() {
+        return collectionResources.get(level.registryAccess(), ModConfig.SINGULARITY_COLLECTION_ITEM_TAGS.get(),
+                ModConfig.SINGULARITY_COLLECTION_ITEM_BLACKLIST.get());
+    }
+    /** Legacy textual view for callers; menu synchronization uses bounded numeric-id chunks instead. */
     public String collectionItemIds() {
-        return configuredCollectionItems().stream()
+        return collectionResources().stream()
                 .map(BuiltInRegistries.ITEM::getKey)
                 .map(ResourceLocation::toString)
                 .collect(java.util.stream.Collectors.joining(","));
@@ -258,8 +265,8 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
             disconnectQuantumLink(QuantumLinkState.WIRED_CONFLICT);
             return;
         }
-        var positiveEndpoint = Locatables.quantumNetworkBridges().get(serverLevel, frequency);
-        var negativeEndpoint = Locatables.quantumNetworkBridges().get(serverLevel, -frequency);
+        var positiveEndpoint = findQuantumEndpoint(serverLevel, frequency);
+        var negativeEndpoint = findQuantumEndpoint(serverLevel, -frequency);
         if (positiveEndpoint != null && negativeEndpoint != null && positiveEndpoint != negativeEndpoint) {
             disconnectQuantumLink(QuantumLinkState.FREQUENCY_OCCUPIED);
             return;
@@ -293,6 +300,24 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
         } catch (IllegalStateException exception) {
             disconnectQuantumLink(QuantumLinkState.CONNECTION_ERROR);
         }
+    }
+
+    private static IActionHost findQuantumEndpoint(ServerLevel localLevel, long key) {
+        var endpoint = Locatables.quantumNetworkBridges().get(localLevel, key);
+        if (!(endpoint instanceof QuantumCluster cluster)) return endpoint;
+
+        // Bridge registrations can outlive a frequency change. Validate the live endpoint
+        // before treating either sign as occupied; never load a chunk just to check it.
+        var center = cluster.getCenter();
+        if (cluster.isDestroyed() || center == null || center.isRemoved()
+                || !(center.getLevel() instanceof ServerLevel remoteLevel)
+                || remoteLevel.getServer() != localLevel.getServer()
+                || remoteLevel.getServer().getLevel(remoteLevel.dimension()) != remoteLevel
+                || !remoteLevel.hasChunkAt(center.getBlockPos())
+                || remoteLevel.getBlockEntity(center.getBlockPos()) != center
+                || center.getCluster() != cluster) return null;
+        long actualFrequency = center.getQEFrequency();
+        return actualFrequency == key || actualFrequency == -key ? endpoint : null;
     }
 
     private boolean isQuantumConnectionCurrent(IGridNode localNode, IGridNode remoteNode, long frequency) {
@@ -638,7 +663,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
         if (now < nextCollectionTick) return;
         scheduleNextCollection(now);
 
-        var collectionItems = configuredCollectionItems();
+        var collectionItems = collectionResources();
         if (collectionItems.isEmpty()) {
             status = Status.MATERIAL;
             saveChanges();
@@ -687,31 +712,6 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
         }
         status = Status.COLLECTING;
         saveChanges();
-    }
-    private List<Item> configuredCollectionItems() {
-        var items = new LinkedHashSet<Item>();
-        addConfiguredItemTags(ModConfig.SINGULARITY_COLLECTION_ITEM_TAGS.get(), items);
-        var excluded = new HashSet<ResourceLocation>();
-        for (var entry : ModConfig.SINGULARITY_COLLECTION_ITEM_BLACKLIST.get()) {
-            if (entry == null) continue;
-            var id = ResourceLocation.tryParse(entry.trim());
-            if (id != null) excluded.add(id);
-        }
-        // Apply exclusions after all tag unions, before menu display and storage reservation.
-        items.removeIf(item -> excluded.contains(BuiltInRegistries.ITEM.getKey(item)));
-        return List.copyOf(items);
-    }
-    private void addConfiguredItemTags(List<? extends String> configuredTags, Set<Item> result) {
-        for (var configured : configuredTags) {
-            if (configured == null) continue;
-            var text = configured.trim();
-            if (text.startsWith("#")) text = text.substring(1);
-            var id = ResourceLocation.tryParse(text);
-            if (id == null) continue;
-            var tag = TagKey.create(Registries.ITEM, id);
-            level.registryAccess().lookupOrThrow(Registries.ITEM).get(tag)
-                    .ifPresent(holders -> holders.forEach(holder -> result.add(holder.value())));
-        }
     }
     private static int collectionBatchSize() {
         return Math.max(1, ModConfig.SINGULARITY_COLLECTION_BATCH_SIZE.get());
@@ -831,6 +831,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     }
     @Override public void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
+        machineEffects.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
         duplicationInventory.writeToNBT(tag, DUPLICATION_INVENTORY_TAG);
         tag.put("singularityDuplication", duplication.save());
@@ -851,6 +852,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     @Override public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
         super.loadTag(tag);
+        machineEffects.load(tag);
         collectionInterval = 0;
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);
         duplicationInventory.readFromNBT(tag, DUPLICATION_INVENTORY_TAG);
@@ -910,12 +912,14 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity {
     @Override protected void writeToStream(FriendlyByteBuf data) {
         super.writeToStream(data); data.writeBoolean(formed); data.writeVarInt(motion.mask());
         data.writeVarInt(structureVersion); data.writeBoolean(embedRequested);
+        machineEffects.write(data);
     }
     @Override protected boolean readFromStream(FriendlyByteBuf data) {
         boolean changed = super.readFromStream(data); boolean previous = formed; formed = data.readBoolean();
         int previousMask = motion.mask(); motion.setClientMask(data.readVarInt());
         int previousVersion = structureVersion; structureVersion = data.readVarInt();
         boolean previousRequest = embedRequested; embedRequested = data.readBoolean();
+        changed |= machineEffects.read(data);
         return changed || previous != formed || previousMask != motion.mask() || previousVersion != structureVersion || previousRequest != embedRequested;
     }
 

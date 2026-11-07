@@ -16,7 +16,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = {
         "appeng.crafting.execution.CraftingCpuLogic",
         "net.pedroksl.advanced_ae.common.logic.AdvCraftingCPULogic",
-        "cn.dancingsnow.neoecoae.crafting.execution.ECOCraftingCPULogic"
+        "cn.dancingsnow.neoecoae.crafting.execution.ECOCraftingCPULogic",
+        "cn.dancingsnow.neoecoae.api.me.ECOCraftingCPULogic"
 }, priority = 1200, remap = false)
 public abstract class MatterCpuJobContextMixin {
     @WrapMethod(method = "tickCraftingLogic", require = 0)

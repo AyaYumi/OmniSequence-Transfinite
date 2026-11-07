@@ -11,6 +11,7 @@ import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.crafting.PatternUploadIndex;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -29,6 +30,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     private final Set<IPatternDetails> availablePatternSet = new HashSet<>();
     private boolean rebuildScheduled;
     private int patternRevision;
+    private final PatternUploadIndex uploadIndex = new PatternUploadIndex();
 
     MolecularCenterLogic(MolecularCenterBlockEntity machine) {
         super(machine.getMainNode(), machine, MolecularCenterBlockEntity.MAX_PATTERN_SLOTS);
@@ -46,6 +48,18 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
 
     public AppEngInternalInventory getFullPatternInventory() {
         return fullPatternInventory;
+    }
+
+    public boolean containsUploadPattern(ItemStack pattern) {
+        return uploadIndex.contains(fullPatternInventory, ModConfig.activePatternSlots(), pattern);
+    }
+
+    public int firstUploadSlot() {
+        return uploadIndex.firstEmptySlot(fullPatternInventory, ModConfig.activePatternSlots());
+    }
+
+    public void invalidateUploadIndex() {
+        uploadIndex.invalidate();
     }
 
     /**
@@ -134,7 +148,10 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
 
     @Override
     public void onChangeInventory(appeng.api.inventories.InternalInventory inventory, int slot) {
-        if (inventory == fullPatternInventory) machine.onPatternInventoryChanged(slot);
+        if (inventory == fullPatternInventory) {
+            uploadIndex.slotChanged(inventory, slot);
+            machine.onPatternInventoryChanged(slot);
+        }
         patternRevision++;
         saveChanges();
         if (isClientSide() || rebuildScheduled) {

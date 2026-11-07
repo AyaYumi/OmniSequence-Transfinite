@@ -16,6 +16,8 @@ final class MolecularCenterControls {
     private final StructureUpdateConfirmation confirmation = new StructureUpdateConfirmation();
     private final OmniButton preview, build, previous, next, dismantle, reset, update, keep, apply;
     private final OmniButton[] tabs = new OmniButton[3];
+    private final MachineEffectButton effects;
+    private final OmniButton upload, migrate;
 
     MolecularCenterControls(MolecularCenterScreen screen, MolecularCenterMenu menu) {
         this.screen = screen; this.menu = menu;
@@ -43,6 +45,12 @@ final class MolecularCenterControls {
                     (Screen.hasShiftDown()?-1:1)*(Screen.hasControlDown()?1:17))));
         }
         reset=button(286,198,128,18,text("visual_color_reset"),text("visual_color_reset"),menu::requestResetVisualColors);
+        upload=button(306,198,108,18,text("pattern_upload.off"),text("pattern_upload.tooltip"),
+                ()->menu.requestSetPatternUpload(!menu.automaticPatternUpload));
+        migrate=button(306,219,108,18,text("pattern_migration.button"),text("pattern_migration.tooltip"),
+                menu::requestMigratePatterns);
+        effects = screen.addScreenWidget(new MachineEffectButton(screen.getGuiLeft() + 210, screen.getGuiTop() + 258, 100,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         update=button(210,233,100,18,text("structure_update_confirm"),text("structure_update_confirm_tooltip"),()->{
             if(confirmation.click())menu.requestStructureUpdate();
         });
@@ -58,8 +66,15 @@ final class MolecularCenterControls {
         boolean color=tab==MolecularCenterScreen.TAB_COLORS,busy=menu.building||menu.dismantling;
         for(int i=0;i<tabs.length;i++)tabs[i].setSelected(i==tab);
         colors.forEach(button->button.visible=color);reset.visible=color;
+        effects.visible=color;
+        upload.visible=migrate.visible=tab==MolecularCenterScreen.TAB_OVERVIEW;
+        upload.active=!busy;
+        upload.setMessage(text(menu.automaticPatternUpload?"pattern_upload.on":"pattern_upload.off"));
+        migrate.active=menu.operational&&!busy;
         update.visible=menu.legacyStructure&&!auto;
         keep.visible=update.visible&&!menu.legacyStructureUpdateDismissed;
+        update.setY(screen.getGuiTop() + (color ? 233 : 264));
+        keep.setY(update.getY());
         update.active=keep.active=!busy;build.active=!busy;
         previous.active=!screen.patternSearchWaiting()&&menu.getPage()>0;
         next.active=!screen.patternSearchWaiting()&&menu.getPage()+1<menu.getPageCount();

@@ -24,6 +24,10 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
     @Override
     protected void init() {
         super.init();
+        if (!menu.getCore().isSingleBlock()) {
+            addScreenWidget(new MachineEffectButton(leftPos + 220, topPos + 5, 100,
+                    () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
+        }
         updateConfirmation.cancel();
         build = button(14, 234, 73, 18, text("omni.build"), text("omni.build_tooltip"), () -> {
             if (menu.legacyStructure) confirmingLegacyUpdate = true;
@@ -99,7 +103,8 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
     public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
         drawCenteredFittedString(graphics, title.getString().isBlank()
                 ? Component.translatable("block.molecularmanipulator.omni_computation_controller") : title,
-                166, 9, 312, OmniUiTheme.PRIMARY_TEXT);
+                menu.getCore().isSingleBlock() ? 166 : 110, 9,
+                menu.getCore().isSingleBlock() ? 312 : 200, OmniUiTheme.PRIMARY_TEXT);
         centered(graphics, text(menu.formed ? "omni.formed" : "omni.incomplete"), 119,
                 menu.formed ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
         centered(graphics, text("omni.size", menu.legacyStructure ? 31 : OmniComputationStructure.WIDTH,

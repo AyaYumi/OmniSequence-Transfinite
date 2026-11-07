@@ -1,0 +1,86 @@
+// Isolated Forge 47.4.20 / Java 17 GPU regression; opens only the title screen.
+// From this project: gradlew -I src/gameTest/singularity-lens.init.gradle -PgameTestSuite=cpu runClient
+// gameTestSuite is an existing build.gradle suite name, not a new "singularity-lens" suite;
+// this init script replaces its sources and resources after the build creates gameTest.
+// Optional: -PgameTestRunName=forge213-lens-client-r2 (always a dedicated directory under build/).
+allprojects { p ->
+    p.afterEvaluate {
+        if (p != p.rootProject || !p.plugins.hasPlugin('net.minecraftforge.gradle')) return
+        def fixturePath = 'com/atir/molecularmanipulator/client/render/SingularityLensClientChecks'
+        def gameTests = p.sourceSets.getByName('gameTest')
+        gameTests.java.setSrcDirs([p.file('src/gameTest/java')])
+        gameTests.java.setIncludes([fixturePath + '.java'])
+        gameTests.java.setExcludes([])
+        gameTests.resources.setSrcDirs([])
+        // Do not expose classes/resources left by any earlier server or integrated-client suite.
+        def fixtureOutput = p.layout.buildDirectory.dir('singularity-lens-fixture').get().asFile
+        gameTests.java.destinationDirectory.set(new File(fixtureOutput, 'classes'))
+        gameTests.output.classesDirs.setFrom(gameTests.java.classesDirectory)
+        gameTests.output.resourcesDir = new File(fixtureOutput, 'resources')
+        p.tasks.named('processGameTestResources').configure {
+            destinationDir = gameTests.output.resourcesDir
+        }
+        p.tasks.named('compileGameTestJava', JavaCompile).configure {
+            dependsOn p.tasks.named('classes')
+            options.encoding = 'UTF-8'
+            options.release.set(17)
+        }
+
+        def instance = p.layout.buildDirectory.dir(p.providers.gradleProperty('gameTestRunName')
+                .getOrElse('forge213-lens-client-r1')).get().asFile.canonicalFile
+        def buildPath = p.layout.buildDirectory.get().asFile.canonicalFile.toPath()
+        if (instance.toPath() == buildPath || !instance.toPath().startsWith(buildPath)) {
+            throw new GradleException('Lens client gameTestRunName must identify a dedicated directory under build/')
+        }
+        def report = new File(instance, 'singularity-lens-result.json')
+        def log = new File(instance, 'logs/latest.log')
+        def runId = UUID.randomUUID().toString()
+        def passMarker = 'LENS_BOBBING_CLIENT_PASS shaders=2 effects=3 phases=9 ' +
+                "rayOrigin=true depthOcclusion=true berViewRotationOnce=true runId=${runId}"
+        def failMarker = "LENS_BOBBING_CLIENT_FAILED runId=${runId}"
+        def client = p.minecraft.runs.getByName('client')
+        client.workingDirectory(instance)
+        client.property('forge.logging.console.level', 'info')
+        client.property('forge.enableGameTest', 'false')
+        client.property('omnisequence.lens_client_check', 'true')
+        client.property('omnisequence.lens_client_check.run_id', runId)
+        client.mods.getByName(p.property('mod_id').toString()).setSources([p.sourceSets.main, gameTests])
+
+        p.tasks.matching { it.name == 'runClient' }.configureEach {
+            doFirst {
+                if (gameTests.java.files != ([p.file('src/gameTest/java/' + fixturePath + '.java')] as Set)) {
+                    throw new GradleException('Lens client must compile only SingularityLensClientChecks.java')
+                }
+                def leaked = gameTests.output.classesDirs.asFileTree.matching {
+                    include '**/*.class'
+                    exclude fixturePath + '.class', fixturePath + '$*.class'
+                }.files
+                if (!leaked.isEmpty()) throw new GradleException("Other GameTest classes would load in lens client: ${leaked}")
+                if (report.exists() && !report.delete()) throw new GradleException("Cannot remove stale lens report: ${report}")
+            }
+            doLast {
+                if (!report.isFile() || !log.isFile()) {
+                    throw new GradleException("Lens GPU regression produced no report/log; see ${instance}")
+                }
+                def result = new groovy.json.JsonSlurper().parse(report, 'UTF-8')
+                def expectedEffects = ['hub-white', 'cosmic-white', 'cosmic-black'] as Set
+                def rows = result.cases
+                def complete = rows instanceof List && rows.size() == 27 && rows.every { it.passed == true } &&
+                        rows.groupBy { it.effect }.keySet() == expectedEffects &&
+                        rows.groupBy { it.effect }.values().every { group ->
+                            group.size() == 9 && (group.collect { it.phase } as Set) == ((-1..7) as Set)
+                        }
+                def text = log.getText('UTF-8')
+                if (result.passed != true || result.runId != runId || result.suite != 'singularity-lens' ||
+                        result.width != 192 || result.height != 192 || result.shaders != 2 ||
+                        result.effects != 3 || result.phases != 9 || result.titleScreenOnly != true ||
+                        result.coreChecks != 27 || result.depthChecks != 27 || result.originChecks != 27 ||
+                        result.berPoseChecks != 27 || result.rayOrigin != true || result.depthOcclusion != true ||
+                        result.berViewRotationOnce != true || !complete ||
+                        !text.contains(passMarker) || text.contains(failMarker)) {
+                    throw new GradleException("Lens GPU regression failed; require complete JSON and current-run pass marker: ${report}; ${log}")
+                }
+            }
+        }
+    }
+}

@@ -20,13 +20,16 @@ import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.crafting.PatternRecipeReloads;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
+import com.atir.molecularmanipulator.mixin.RecipeManagerAccessor;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
@@ -76,9 +79,10 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private boolean scheduleDirty = true;
     private int scheduleCursor;
     private boolean suppressInventoryEvents;
-    private long decodedTick = Long.MIN_VALUE;
+    private long decodedRecipeGeneration;
     private Level decodedLevel;
-    private java.util.Collection<?> decodedRecipes;
+    private RecipeManager decodedRecipeManager;
+    private java.util.Map<?, ?> decodedRecipes;
     private final java.util.Map<Integer, DecodedPattern> decodedPatterns = new java.util.HashMap<>();
     private record DecodedPattern(AEItemKey definition, IPatternDetails details) {}
 
@@ -657,9 +661,18 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         ItemStack stack = patternInventory.getStackInSlot(slot);
         Level level = host.getLevel();
         if (stack.isEmpty() || level == null || !MolecularCenterLogic.isSupportedPattern(stack)) return null;
-        var recipes = level.getRecipeManager().getRecipes();
-        if (decodedLevel != level || decodedTick != level.getGameTime() || decodedRecipes != recipes) {
-            decodedLevel = level; decodedTick = level.getGameTime(); decodedRecipes = recipes; decodedPatterns.clear();
+        // Decoding already validates the recipe. Keep successes and failures across
+        // ticks, without materializing the entire recipe collection on cache hits.
+        var recipeManager = level.getRecipeManager();
+        var recipes = ((RecipeManagerAccessor) recipeManager).molecularmanipulator$getRecipesByName();
+        long generation = PatternRecipeReloads.generation();
+        if (decodedLevel != level || decodedRecipeManager != recipeManager
+                || decodedRecipes != recipes || decodedRecipeGeneration != generation) {
+            decodedLevel = level;
+            decodedRecipeManager = recipeManager;
+            decodedRecipes = recipes;
+            decodedRecipeGeneration = generation;
+            decodedPatterns.clear();
         }
         var definition = AEItemKey.of(stack);
         var cached = decodedPatterns.get(slot);

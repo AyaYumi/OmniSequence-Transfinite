@@ -32,7 +32,7 @@ import cn.dancingsnow.neoecoae.recipe.IntegratedWorkingStationRecipe;
 import cn.dancingsnow.neoecoae.recipe.LargeIntegratedWorkingStationRecipe;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchLedger;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrderCpu;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -174,7 +174,7 @@ public final class EcoOutputGameTests {
         else { ECOPlanningResultRegistry.register(result.plan(), result); plan = result.plan(); }
         var requester = new Requester(f); requester.allowance = Long.MAX_VALUE;
         submitRequester(helper, f, plan, requester);
-        helper.assertTrue(f.host().ecoDispatch$reservedInput(INPUT).signum() > 0,
+        helper.assertTrue(f.host().omniDispatch$reservedInput(INPUT).signum() > 0,
                 "Actual execution runtime must reserve final-key feedback/startup material before the first firing");
         sequence(helper).thenWaitUntil(() -> {
                     helper.assertTrue(!f.cpu().isBusy() && requester.link.isDone(),
@@ -292,7 +292,7 @@ public final class EcoOutputGameTests {
 
     private static BigInteger retained(Fixture f, AEKey key) {
         var saved = new CompoundTag(); f.logic().writeToNBT(saved);
-        var amounts = saved.getCompound(EcoCpuDispatchLedger.NBT_KEY).getList("finalStock", net.minecraft.nbt.Tag.TAG_COMPOUND);
+        var amounts = saved.getCompound(OmniCpuDispatchLedger.NBT_KEY).getList("finalStock", net.minecraft.nbt.Tag.TAG_COMPOUND);
         var total = f.access().ecoOmni$physicalAmount(key);
         for (var value : amounts) {
             var entry = (CompoundTag) value;

@@ -14,18 +14,16 @@ import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public final class SingularityScreen extends ResponsiveContainerScreen<SingularityMenu> {
     private Button build, preview, refresh, dismantle, cancel, overview, collectionTab, duplicationTab, embed, collectionToggle;
+    private MachineEffectButton effects;
     private boolean collectionPage, duplicationPage;
     private long armedAt;
     private int collectionScroll;
@@ -66,6 +64,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         embed = button(20, 217, 116, "embed", b -> menu.request(menu.structureVersion == SingularityStructure.EMBEDDED_VERSION ? "upgrade" : "embed"));
         embed.setTooltip(Tooltip.create(tr("embed_hint")));
         collectionToggle = button(12, 246, 100, "collection_start", b -> menu.request("collection"));
+        effects = addScreenWidget(new MachineEffectButton(leftPos + 220, topPos + 217, 96,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         updateWidgets();
     }
 
@@ -103,6 +103,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         menu.setDuplicationSlotsActive(duplicationPage);
         menu.setQuantumSlotActive(!secondaryPage);
         build.visible = !secondaryPage;
+        effects.visible = !secondaryPage && !menu.getMachine().isSingleBlock();
         preview.visible = refresh.visible = !secondaryPage;
         build.setMessage(tr(operationActive ? menu.paused ? "resume" : "pause" : "build"));
         build.active = !secondaryPage && !menu.embedRequested
@@ -277,16 +278,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     }
 
     private List<ItemStack> collectionResources() {
-        List<ItemStack> result = new ArrayList<>();
-        for (String raw : menu.collectionItems.split(",")) {
-            if (raw.isBlank()) continue;
-            ResourceLocation id = ResourceLocation.tryParse(raw.trim());
-            if (id == null) continue;
-            var item = BuiltInRegistries.ITEM.get(id);
-            ItemStack stack = new ItemStack(item);
-            if (!stack.isEmpty()) result.add(stack);
-        }
-        return result;
+        return menu.collectionResources();
     }
 
     @Override

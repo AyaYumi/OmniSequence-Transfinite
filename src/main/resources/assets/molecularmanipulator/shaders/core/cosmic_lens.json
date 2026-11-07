@@ -15,6 +15,7 @@
           "values": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
         { "name": "InverseProjection", "type": "matrix4x4", "count": 16,
           "values": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
+        { "name": "ViewOrigin", "type": "float", "count": 3, "values": [0, 0, 0] },
         { "name": "SceneSize", "type": "float", "count": 2, "values": [1, 1] },
         { "name": "CoreCenter", "type": "float", "count": 3, "values": [0, 0, -10] },
         { "name": "CoreRadius", "type": "float", "count": 1, "values": [0.3] },

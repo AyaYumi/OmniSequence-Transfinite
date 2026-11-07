@@ -25,6 +25,7 @@ public final class MolecularManipulator {
         MultiblockChunkLoading.register();
         modEventBus.addListener(this::commonSetup);
         PatternSearchIndexPayload.register();
+        com.atir.molecularmanipulator.network.SingularityCollectionPayload.register();
         com.atir.molecularmanipulator.network.MachineRecipeJsonPayload.register();
         MatterFabricationUploadPayload.register();
     }

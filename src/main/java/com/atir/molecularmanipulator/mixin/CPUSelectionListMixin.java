@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
-/** Keeps unlimited Omni rows and tooltips consistent with AppliedEnhancements' 9.2E label. */
+/** Displays unlimited Omni parallelism consistently in CPU rows and tooltips. */
 @Mixin(value = CPUSelectionList.class, remap = false)
 public abstract class CPUSelectionListMixin {
     @WrapOperation(method = "drawBackgroundLayer", at = @At(value = "INVOKE",

@@ -38,7 +38,7 @@ Complete **Tier 2: Sequence Array** in the well to fabricate its parts. The stru
 
 The default inventory has **200 pages of 36 slots**, totaling 7200 patterns. Server configuration allows up to 300 pages. The formed structure's **14 quantum crystals** hold its patterns, which can be managed through a Pattern Access Terminal.
 
-Storage Buses access only the main pattern inventory. Autocrafting, quantum and upload-core slots have separate uses.
+Storage Buses access only the main pattern inventory. Autocrafting and quantum slots have separate uses.
 
 External pattern editing pauses during construction, dismantling and quantum crystal recovery. Finish these operations before rearranging patterns.
 
@@ -46,11 +46,21 @@ External pattern editing pauses during construction, dismantling and quantum cry
 
 | Page | Use |
 | --- | --- |
-| Assembly Overview | Structure and network status; projection, construction and dismantling |
+| Assembly Overview | Structure and network status; construction, auto upload and one-click pattern migration |
 | Auto Crafting | Restock using product targets and ingredient reserves |
-| Colors | Set the building's colors |
+| Colors | Set building colors and this controller's effect level |
 
-Autocrafting supports nine independent patterns. See [Molecular Auto Crafter](molecular_auto_crafter.md) for settings. When ExtendedAE Plus is installed, its upload core uses a dedicated slot.
+Autocrafting supports nine independent patterns. See [Molecular Auto Crafter](molecular_auto_crafter.md) for settings.
+
+## Native upload and migration
+
+Enable **Auto upload** to receive newly encoded crafting, stonecutting and smithing patterns from terminals on the same network. No ExtendedAE Plus or upload core is required. Duplicate recipes return a blank pattern; processing patterns and uploads without an available destination stay in the terminal.
+
+**Migrate patterns** moves existing supported patterns from same-network public physical pattern slots and online mounted storage cells into the main library. Private slots, read-only recipe rows, storage-bus proxies and processing patterns are excluded. NBT and duplicate physical items are preserved; no blank is spent or pattern re-encoded. Full-library leftovers remain at the source; interrupted runs retain completed transfers. Migration is synchronous on click, not continuous background collection, so large transfers can take server time.
+
+New arrays default to auto upload off. The old upload-core slot is removed; any decodable saved core is returned through the controller's output buffer and preserves the old enabled behavior. An explicitly saved toggle takes priority.
+
+On **Colors**, **Effects** cycles Off / Reduced / Full for this controller and all viewers, without changing production. Shift-click or Shift-Enter/Space restores each client's global setting.
 
 ## Quantum connection and recovery
 

@@ -1,6 +1,6 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.12-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
+Current source: OmniSequence **2.0.13-forge**, Minecraft **1.20.1**, Forge **47.4.20**,
 Java **17**, AE2 **15.4.10**, Applied Enhancements **1.1.2-forge+** (build API **1.1.4-forge**).
 Mod ID: `molecularmanipulator`.
 
@@ -22,6 +22,14 @@ registering a capability. Mutate research on the owning server thread; integrati
 must enforce their own permissions. Live game-state queries also belong on that
 thread unless the caller has obtained an immutable snapshot.
 
+## Pattern management boundaries / 样板管理边界
+
+Array upload, migration and machine-effect helpers are internal controller features,
+not public Java APIs. Usage and transfer limits are in [CONFIGURATION.md](../CONFIGURATION.md).
+
+上传、迁移和特效辅助类属于内部实现；操作与限制见[配置参考](../CONFIGURATION.md)，
+构筑井配方编码规则见[构筑井与研究 API](matter-research-api.zh-CN.md)。
+
 ## 选择接口
 
 - 接收完整批次：使用两阶段批量供应器 SPI，或注册可选适配器。
@@ -35,5 +43,4 @@ thread unless the caller has obtained an immutable snapshot.
 发布 JAR 的 `docs/` 仅包含本索引与 API 文档，配置参考放在 JAR 根目录。
 
 `blockentity`、`mixin` 和渲染内部类不承诺通用二进制兼容。研究权限、长期材料
-所有权和 AELIS 计划是不同契约，不能相互替代。文档采用当前实现，不保留依赖
-个人机器路径的验证过程。
+所有权和 AELIS 计划是不同契约，不能相互替代。

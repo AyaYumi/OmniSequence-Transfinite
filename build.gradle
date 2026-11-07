@@ -157,7 +157,7 @@ dependencies {
     implementation fg.deobf("maven.modrinth:glodium:${glodium_version}")
     // The pinned Forge 1.4.20 release is published on CurseForge, not Modrinth Maven.
     implementation fg.deobf("curse.maven:extendedae-892005:${extendedae_curse_file}")
-    compileOnly fg.deobf("maven.modrinth:neoecoae:${neoeco_version}")
+    compileOnly fg.deobf("maven.modrinth:neoecoae:${neoeco_api_build}")
     implementation fg.deobf("maven.modrinth:guideme:${guideme_version}")
 
     compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge:${jei_version}")
@@ -222,7 +222,7 @@ tasks.named('jar', Jar).configure {
     reproducibleFileOrder = true
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('CONFIGURATION.md') { into 'docs' }
+    from('CONFIGURATION.md')
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
                 'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
@@ -362,7 +362,11 @@ def gameTestSuites = [
         adaptive: ['AdaptiveDispatchGameTests'],
         performance: ['MatterRecipeLookupGameTests', 'MatterAEKeyGameTests', 'MolecularLongBatchGameTests',
                       'TransfiniteComputeNexusGameTests', 'MolecularCenterPatternPortGameTests'],
-        fabrication: ['MolecularAutoCraftGameTests', 'MatterAssemblyDispatchGameTests'],
+        fabrication: ['MolecularAutoCraftGameTests', 'MolecularAutoCrafterRemovalGameTests', 'MatterAssemblyDispatchGameTests'],
+        patterns: ['MolecularCenterPatternMigrationGameTests', 'MolecularCenterNativePatternUploadGameTests'],
+        'singularity-quantum': ['SingularityQuantumLinkGameTests'],
+        'singularity-menu': ['SingularityMenuSyncGameTests'],
+        'fabrication-upload': ['MatterFabricationNetworkUploadGameTests'],
         machines: ['MatterMachineCompatibilityGameTests'],
         research: ['ResearchStockGameTests'],
         singularity: ['SingularityPaletteGameTests', 'SingularityConstructionGameTests', 'SingularityMotionGameTests',
@@ -371,26 +375,66 @@ def gameTestSuites = [
         'singularity-unload': ['SingularityChunkLoadingGameTests'],
         essence: ['MolecularReusableCraftingGameTests'],
         'native-essence': ['MolecularReusableCraftingGameTests'],
-        eco: ['EcoCpuGameTests', 'EcoMatterGameTests', 'EcoOutputGameTests', 'EcoOmniParentOrderGameTests', 'EcoOmniMenuGameTests']
+        eco: ['EcoCpuGameTests', 'EcoMatterGameTests', 'EcoOutputGameTests', 'EcoOmniParentOrderGameTests', 'EcoOmniMenuGameTests'],
+        'eco-legacy': ['MatterCpuBatchGameTests', 'MatterNativeCpuChecks', 'LegacyEcoCpuGameTests']
 ]
 if (!gameTestSuites.containsKey(gameTestSuite)) throw new GradleException("Unknown gameTestSuite: ${gameTestSuite}")
+if (gameTestSuite == 'patterns') {
+    if (project.hasProperty('gameTestPatternCluster'))
+        gameTestSuites.patterns += ['MolecularCenterClusterMigrationGameTests']
+    if (project.hasProperty('gameTestPatternStorageJar'))
+        gameTestSuites.patterns += ['MolecularCenterAddonCellMigrationGameTests']
+}
 def gameTests = sourceSets.create('gameTest') {
     java.setSrcDirs(['src/gameTest/java'])
     java.setIncludes((gameTestSuites[gameTestSuite] + ['VerificationAEKey', 'RegressionConfigFixture'])
             .collect { "**/${it}.java" })
     resources.setSrcDirs(['src/gameTest/resources'])
-    if (!(gameTestSuite in ['cpu', 'performance', 'eco'])) resources.exclude 'data/molecularmanipulator/recipes/**'
-    compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+    if (gameTestSuite == 'fabrication-upload') {
+        resources.exclude 'data/molecularmanipulator/recipes/verification_ae_inputs.json'
+    } else if (!(gameTestSuite in ['cpu', 'performance', 'eco', 'eco-legacy'])) {
+        resources.exclude 'data/molecularmanipulator/recipes/**'
+    }
+    // The old CPU fixture must compile against its real API, not the newer compatibility aliases.
+    compileClasspath += sourceSets.main.compileClasspath.filter {
+        gameTestSuite != 'eco-legacy' || !it.name.startsWith('neoecoae-')
+    } + sourceSets.main.output
     runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
 }
+// Forge scans every class in the mod output, including leftovers from another suite.
+// Keep each optional fixture selection isolated instead of accidentally rerunning stale tests.
+def gameTestVariant = gameTestSuite + (project.hasProperty('gameTestPatternCluster') ? '-cluster' : '') +
+        (project.hasProperty('gameTestPatternStorageJar') ? '-storage' : '')
+gameTests.java.destinationDirectory.set(layout.buildDirectory.dir("classes/java/gameTest-${gameTestVariant}"))
+gameTests.output.classesDirs.setFrom(gameTests.java.classesDirectory)
+gameTests.output.resourcesDir = layout.buildDirectory.dir("resources/gameTest-${gameTestVariant}").get().asFile
+tasks.named('processGameTestResources', ProcessResources).configure {
+    destinationDir = gameTests.output.resourcesDir
+}
+def gameTestDirectory = layout.buildDirectory.dir(providers.gradleProperty('gameTestRunName')
+        .getOrElse("gametest-${gameTestSuite}"))
 minecraft.runs.gameTestServer {
-    workingDirectory project.file("build/gametest-${gameTestSuite}")
+    workingDirectory gameTestDirectory.get().asFile
     mods { "${mod_id}" { source gameTests } }
 }
-if (project.hasProperty('gameTestEco') || gameTestSuite in ['eco', 'essence']) {
-    dependencies.add('localRuntime', fg.deobf("maven.modrinth:neoecoae:${neoeco_version}"))
+if (project.hasProperty('gameTestEco') || gameTestSuite in ['eco', 'eco-legacy', 'essence']
+        || (gameTestSuite == 'patterns' && project.hasProperty('gameTestPatternCluster'))) {
+    def ecoRuntime = providers.gradleProperty('gameTestEcoVersion')
+            .getOrElse(gameTestSuite == 'eco-legacy' ? neoeco_version : neoeco_api_build)
+    // Use NeoECOAE's project ID so ForgeGradle can remap an older runtime alongside the newer API.
+    def ecoRuntimeDependency = "maven.modrinth:udZtKfzP:${ecoRuntime}"
+    dependencies.add('localRuntime', fg.deobf(ecoRuntimeDependency))
+    if (gameTestSuite == 'eco-legacy')
+        dependencies.add('gameTestCompileOnly', fg.deobf(ecoRuntimeDependency))
     dependencies.add('localRuntime', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
     dependencies.add('gameTestCompileOnly', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
+}
+if (gameTestSuite == 'patterns' && project.hasProperty('gameTestPatternStorageJar')) {
+    def storageJar = file(project.property('gameTestPatternStorageJar'))
+    if (!storageJar.isFile() || !storageJar.name.endsWith('.jar'))
+        throw new GradleException('gameTestPatternStorageJar must name a real Forge AE Omni Cells JAR')
+    repositories.flatDir { dirs storageJar.parentFile }
+    dependencies.add('localRuntime', fg.deobf("pack.local:${storageJar.name[0..-5]}:pattern-migration"))
 }
 if (gameTestSuite in ['essence', 'native-essence', 'machines', 'adaptive']) {
     def recipeModsDirectory = providers.gradleProperty('gameTestRecipeModsDir').orNull
@@ -419,7 +463,7 @@ tasks.named('compileGameTestJava', JavaCompile).configure {
 }
 tasks.matching { it.name == 'runGameTestServer' }.configureEach {
     doLast {
-        def log = project.file("build/gametest-${gameTestSuite}/logs/latest.log")
+        def log = gameTestDirectory.get().file('logs/latest.log').asFile
         if (!log.isFile() || !(log.text =~ /All [1-9][0-9]* required tests passed/))
             throw new GradleException("GameTests did not pass: ${gameTestSuite}")
     }

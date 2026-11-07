@@ -1,4 +1,4 @@
-package com.atir.molecularmanipulator.integration.eco;
+package com.atir.molecularmanipulator.crafting.dispatch;
 
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
@@ -9,37 +9,37 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.UUID;
 
-/** Shared CPU boundary: no optional ECO classes occur in descriptors or default method bodies. */
-public interface EcoCpuDispatchHost {
+/** Shared CPU boundary: descriptors and default methods do not depend on optional integrations. */
+public interface OmniCpuDispatchHost {
     /** Enable only after all transaction hooks below are implemented, and only for an owned Omni CPU. */
-    default boolean ecoDispatch$enabled() { return false; }
-    default UUID ecoDispatch$jobId() { return null; }
-    default boolean ecoDispatch$exactOrder() { return false; }
+    default boolean omniDispatch$enabled() { return false; }
+    default UUID omniDispatch$jobId() { return null; }
+    default boolean omniDispatch$exactOrder() { return false; }
     /** Physical CPUs use one real recipe per provider call; virtual CPUs may aggregate. */
-    default boolean ecoDispatch$virtualCpu() { return true; }
-    default boolean ecoDispatch$stopped() { return false; }
-    default boolean ecoDispatch$paused() { return false; }
+    default boolean omniDispatch$virtualCpu() { return true; }
+    default boolean omniDispatch$stopped() { return false; }
+    default boolean omniDispatch$paused() { return false; }
     /** Ordinary task selected by the CPU's shared native/fallback rotation. */
-    default IPatternDetails ecoDispatch$preferredPattern() { return null; }
-    default ListCraftingInventory ecoDispatch$inventory() { throw new UnsupportedOperationException(); }
+    default IPatternDetails omniDispatch$preferredPattern() { return null; }
+    default ListCraftingInventory omniDispatch$inventory() { throw new UnsupportedOperationException(); }
     /** Physical inventory plus Omni overflow; must never include projected/infinite planning stock. */
-    default ICraftingInventory ecoDispatch$physicalView() { return ecoDispatch$inventory(); }
+    default ICraftingInventory omniDispatch$physicalView() { return omniDispatch$inventory(); }
     /** Physical final-key stock needed by unfinished execution, including startup seeds. */
-    default BigInteger ecoDispatch$reservedInput(AEKey key) { return BigInteger.ZERO; }
-    default BigInteger ecoDispatch$remaining(IPatternDetails pattern) { return BigInteger.ZERO; }
+    default BigInteger omniDispatch$reservedInput(AEKey key) { return BigInteger.ZERO; }
+    default BigInteger omniDispatch$remaining(IPatternDetails pattern) { return BigInteger.ZERO; }
 
     /** Reserve ALL exact inputs, including the preview copy, atomically. Null means nothing moved. */
-    default Lease ecoDispatch$reserveExact(Map<AEKey, BigInteger> inputs) { throw new UnsupportedOperationException(); }
+    default Lease omniDispatch$reserveExact(Map<AEKey, BigInteger> inputs) { throw new UnsupportedOperationException(); }
 
     /**
      * Stage waiting outputs/returns before submit. Null means no ledger changed. On commit, advance
      * exact task/UI progress ONCE and remove finished AE rows; do not perform AE's extra decrement.
-     * Do not call ecoOmni$accepted here: the dispatcher owns its independent ECO phase token.
+     * Phase advancement belongs to the dispatcher and must not be repeated by these hooks.
      * retain() seals staging without task advancement, for later manual reconciliation.
      */
-    default Accounting ecoDispatch$stage(EcoCpuDispatchReceipt receipt) { throw new UnsupportedOperationException(); }
-    default void ecoDispatch$markDirty() { throw new UnsupportedOperationException(); }
-    default void ecoDispatch$pause(EcoCpuDispatchReceipt receipt, String reason) { }
+    default Accounting omniDispatch$stage(OmniCpuDispatchReceipt receipt) { throw new UnsupportedOperationException(); }
+    default void omniDispatch$markDirty() { throw new UnsupportedOperationException(); }
+    default void omniDispatch$pause(OmniCpuDispatchReceipt receipt, String reason) { }
 
     /**
      * Job-directed exact reception, including SIMULATE. Return accepted ownership, never an estimate.
@@ -49,7 +49,7 @@ public interface EcoCpuDispatchHost {
      * accepted by the final destination advances the goal. Mismatched/retired jobs accept nothing.
      * This is a separate protocol from nativeBigInteger provider callbacks.
      */
-    default BigInteger ecoDispatch$insertExact(UUID jobId, AEKey key, BigInteger amount, Actionable mode) {
+    default BigInteger omniDispatch$insertExact(UUID jobId, AEKey key, BigInteger amount, Actionable mode) {
         return BigInteger.ZERO;
     }
 

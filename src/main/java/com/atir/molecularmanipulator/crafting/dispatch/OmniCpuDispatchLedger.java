@@ -1,4 +1,4 @@
-package com.atir.molecularmanipulator.integration.eco;
+package com.atir.molecularmanipulator.crafting.dispatch;
 
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
@@ -15,8 +15,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
-/** Shared physical/accounting code: this class and its complete dependency graph do not link ECO. */
-public final class EcoCpuDispatchLedger {
+/** Shared physical/accounting code with no optional-integration dependencies. */
+public final class OmniCpuDispatchLedger {
     public static final String NBT_KEY = "molecularmanipulator:ecoDispatchHost";
     private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
     private final Map<AEKey, BigInteger> ordinaryCredits = new LinkedHashMap<>();
@@ -34,7 +34,7 @@ public final class EcoCpuDispatchLedger {
     public boolean staging() { return active != null; }
     public boolean hasFinalStock() { return !finalStock.isEmpty() || !deliveryIntent.isEmpty(); }
     public Map<AEKey, BigInteger> finalStock() { return Map.copyOf(finalStock); }
-    public void pause(String reason) { paused = reason == null || reason.isEmpty() ? "Uncertain ECO ownership" : reason; }
+    public void pause(String reason) { paused = reason == null || reason.isEmpty() ? "Uncertain CPU output ownership" : reason; }
 
     public BigInteger available(ListCraftingInventory waiting, OmniExactCraftingState state, AEKey key) {
         long exposed = waiting.list.get(key);
@@ -99,8 +99,8 @@ public final class EcoCpuDispatchLedger {
         if (fromWindow > 0) waiting.list.set(key, Math.subtractExact(waiting.list.get(key), fromWindow));
     }
 
-    public EcoCpuDispatchHost.Accounting stage(ListCraftingInventory waiting, OmniExactCraftingState state,
-            EcoCpuDispatchReceipt receipt, Runnable commit) {
+    public OmniCpuDispatchHost.Accounting stage(ListCraftingInventory waiting, OmniExactCraftingState state,
+            OmniCpuDispatchReceipt receipt, Runnable commit) {
         if (paused() || active != null) return null;
         var amounts = receipt.waiting();
         // Validate all keys before exposing any of this batch's waiting.
@@ -114,7 +114,7 @@ public final class EcoCpuDispatchLedger {
         active = stage;
         return stage;
     }
-    private final class Stage implements EcoCpuDispatchHost.Accounting {
+    private final class Stage implements OmniCpuDispatchHost.Accounting {
         final ListCraftingInventory waiting;
         final OmniExactCraftingState state;
         final Map<AEKey, BigInteger> amounts;
@@ -133,10 +133,10 @@ public final class EcoCpuDispatchLedger {
         }
         public void rollback() {
             if (settled) return;
-            if (received) throw new IllegalStateException("Rejected ECO batch already returned owned output");
+            if (received) throw new IllegalStateException("Rejected dispatch batch already returned owned output");
             for (var entry : amounts.entrySet()) {
                 if (available(waiting, state, entry.getKey()).compareTo(entry.getValue()) < 0)
-                    throw new IllegalStateException("Staged ECO waiting disappeared");
+                    throw new IllegalStateException("Staged CPU waiting disappeared");
             }
             for (var entry : amounts.entrySet()) {
                 withdraw(waiting, state, entry.getKey(), entry.getValue());
@@ -146,11 +146,11 @@ public final class EcoCpuDispatchLedger {
         }
         public void retain() {
             settled = true; active = null;
-            pause("Uncertain ECO submission; staged waiting retained");
+            pause("Uncertain dispatch submission; staged waiting retained");
         }
     }
 
-    /** Conservative exact input demand; also protects non-ECO callers of the shared CPU host. */
+    /** Conservative exact input demand for every caller of the shared CPU host. */
     public static BigInteger reservedInput(IPatternDetails pattern, BigInteger crafts, AEKey key) {
         var result = BigInteger.ZERO;
         if (crafts.signum() <= 0) return result;
@@ -167,7 +167,7 @@ public final class EcoCpuDispatchLedger {
     }
 
     /** ALL keys, including the preview copy. No observers run inside the ownership mutation. */
-    public static EcoCpuDispatchHost.Lease reserve(OmniExactInventory stock, ListCraftingInventory window,
+    public static OmniCpuDispatchHost.Lease reserve(OmniExactInventory stock, ListCraftingInventory window,
             Map<AEKey, BigInteger> inputs) {
         if (inputs.isEmpty()) return null;
         var amounts = Map.copyOf(inputs);
@@ -177,7 +177,7 @@ public final class EcoCpuDispatchLedger {
                 return null;
         }
         amounts.forEach((key, amount) -> stock.extract(silent, key, amount, Actionable.MODULATE));
-        return new EcoCpuDispatchHost.Lease() {
+        return new OmniCpuDispatchHost.Lease() {
             boolean settled;
             public void commit() { settled = true; }
             public void refund() {
@@ -247,7 +247,7 @@ public final class EcoCpuDispatchLedger {
         }
     }
     public void refundFinal(java.util.function.BiConsumer<AEKey, BigInteger> store) {
-        if (paused() || staging()) throw new IllegalStateException("Uncertain ECO stock cannot be refunded");
+        if (paused() || staging()) throw new IllegalStateException("Uncertain owned output stock cannot be refunded");
         finalStock.forEach(store);
         finalStock.clear(); ordinaryCredits.clear(); exactOrder = false;
     }
@@ -277,9 +277,9 @@ public final class EcoCpuDispatchLedger {
             readAmounts(tag.getList("finalStock", Tag.TAG_COMPOUND), finalStock);
             readAmounts(tag.getList("deliveryIntent", Tag.TAG_COMPOUND), deliveryIntent);
             paused = tag.getString("paused");
-            if (tag.getBoolean("interruptedStage")) pause("Interrupted ECO staged submission");
+            if (tag.getBoolean("interruptedStage")) pause("Interrupted dispatch staged submission");
         } catch (RuntimeException failure) {
-            failedSnapshot = tag.copy(); pause("Invalid ECO CPU accounting: " + failure);
+            failedSnapshot = tag.copy(); pause("Invalid CPU dispatch accounting: " + failure);
         }
     }
     private static ListTag writeAmounts(Map<AEKey, BigInteger> amounts) {

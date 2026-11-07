@@ -2,7 +2,7 @@ package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.networking.IGrid;
 import appeng.menu.me.items.PatternEncodingTermMenu;
-import com.atir.molecularmanipulator.integration.extendedaeplus.MatrixUploadCoreIntegration;
+import com.atir.molecularmanipulator.integration.ae2.SequenceArrayPatternUpload;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,7 +20,7 @@ public abstract class ExtendedAEPlusMatrixUploadMixin {
             at = @At("HEAD"), cancellable = true)
     private static void molecularmanipulator$uploadEncodedPattern(ServerPlayer player,
             PatternEncodingTermMenu menu, CallbackInfo callback) {
-        if (MatrixUploadCoreIntegration.uploadFromEncodingMenu(player, menu)) callback.cancel();
+        if (SequenceArrayPatternUpload.uploadFromEncodingMenu(player, menu)) callback.cancel();
     }
 
     @Inject(method = "uploadPatternToMatrix(Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/world/item/ItemStack;Lappeng/api/networking/IGrid;)Z",
@@ -39,10 +39,10 @@ public abstract class ExtendedAEPlusMatrixUploadMixin {
 
     private static void molecularmanipulator$upload(ServerPlayer player, ItemStack pattern,
             IGrid grid, boolean silent, CallbackInfoReturnable<Boolean> callback) {
-        if (MatrixUploadCoreIntegration.containsPatternOnSequenceArray(pattern, grid)) {
-            if (!silent) MatrixUploadCoreIntegration.sendDuplicateMessage(player);
+        if (SequenceArrayPatternUpload.containsPatternOnSequenceArray(pattern, grid)) {
+            if (!silent) SequenceArrayPatternUpload.sendDuplicateMessage(player);
             callback.setReturnValue(false);
-        } else if (MatrixUploadCoreIntegration.uploadToSequenceArray(player, pattern, grid)) {
+        } else if (SequenceArrayPatternUpload.uploadToSequenceArray(player, pattern, grid)) {
             callback.setReturnValue(true);
         }
     }

@@ -31,9 +31,9 @@ Manage multiple assemblies through a Pattern Access Terminal. Naming them makes 
 
 ## Uploading from JEI
 
-Open a fabrication recipe in JEI from a **Pattern Encoding Terminal**, then select **Encode and upload to fabrication well**. This uses one blank pattern from the terminal, encodes the recipe quantities and uploads it to a formed well belonging to your team. It prefers the nearest assembly with space in your dimension.
+Open a fabrication recipe in JEI from a **Pattern Encoding Terminal**, then select **Encode and upload to fabrication well**. This uses one blank pattern from the terminal, or from its connected ME network if the local slot is empty, encodes the recipe quantities and uploads it to a formed well belonging to your team. It prefers the nearest assembly with space in your dimension.
 
-The destination chunk must be loaded. Missing assemblies, full inventories, duplicate patterns and missing blanks do not consume a blank pattern.
+The destination chunk must be loaded. Missing assemblies, full inventories, duplicate patterns and missing blanks do not consume a blank pattern. Selection uses the well and team, not an assembly's display name. This native upload does not require EAEP; optional Forge EAEP 1.6.2 lacks the newer named-provider API, so its automatic selection of renamed assemblies is not promised.
 
 Wells bind to the placer's FTB team when placed, or to the individual without FTB Teams. Re-place the controller to change its team binding. If no upload destination is found, check team ownership, formation and chunk loading.
 
@@ -54,7 +54,7 @@ Missing catalysts prevent new work from starting. Accepted work retains material
 | Output cache | Products waiting for ME capacity |
 | Catalysts | Reusable items for recipes in this well |
 
-Neo ECO 20.5.0 can submit batch work to assemblies. Other CPU integrations require a Forge build with a compatible batch provider API. Research, ingredients, power and output capacity determine the actual processing rate.
+Neo ECO 20.4.2 is supported through ordinary dispatch; 20.5.0+ can submit native batch work to assemblies. Other CPU integrations require a Forge build with a compatible batch provider API. Research, ingredients, power and output capacity determine the actual processing rate.
 
 The Transfinite Compute Nexus can deliver a job's complete available material batch at once, up to **9,223,372,036,854,775,807 (9.22E)** per resource. Recipe input/output quantities and existing cache contents limit the accepted craft count. The well consumes processing power as queued work runs; it does not require the entire batch's processing power up front.
 

@@ -5,7 +5,7 @@ import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
 import com.atir.molecularmanipulator.blockentity.OmniCrownGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
-import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import appeng.block.crafting.AbstractCraftingUnitBlock;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -45,7 +45,7 @@ public final class OmniComputationRenderer
     public void render(OmniComputationCoreBlockEntity core, float partialTick,
             PoseStack poseStack, MultiBufferSource buffers, int packedLight, int packedOverlay) {
         if (core.isSingleBlock()) return;
-        int effectLevel = ModConfig.DYNAMIC_EFFECT_LEVEL.get();
+        int effectLevel = MachineEffectLevels.forMachine(core);
         if (effectLevel <= 0 || core.getLevel() == null
                 || !core.getBlockState().getValue(AbstractCraftingUnitBlock.POWERED)) return;
         var layout = core.getVisualLayout();

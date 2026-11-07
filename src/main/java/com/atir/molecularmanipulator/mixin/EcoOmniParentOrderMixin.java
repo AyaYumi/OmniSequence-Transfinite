@@ -22,7 +22,7 @@ import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderProgress;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderRequest;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchRunner;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrder;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrderCpu;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpu;
@@ -41,7 +41,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** Outer lifecycle boundary; loaded by the existing ECO >=20.5.0 optional-mixin gate. */
 @Mixin(value = CraftingCpuLogic.class, priority = 800, remap = false)
-public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, EcoOmniParentOrder.Host, EcoCpuDispatchRunner {
+public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, EcoOmniParentOrder.Host, OmniCpuDispatchRunner {
     @Shadow @Final private CraftingCPUCluster cluster;
     @Shadow private ExecutingCraftingJob job;
     @Shadow private void postChange(AEKey key) { throw new AssertionError(); }
@@ -54,7 +54,7 @@ public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, 
 
     @Unique private CraftingCpuLogic molecularmanipulator$logic() { return (CraftingCpuLogic) (Object) this; }
     @Unique private EcoOmniPlanCpuAccess molecularmanipulator$access() { return (EcoOmniPlanCpuAccess) this; }
-    @Override public boolean ecoDispatch$continuingJob() { return molecularmanipulator$parentChildSubmission; }
+    @Override public boolean omniDispatch$continuingJob() { return molecularmanipulator$parentChildSubmission; }
     @Override public String ecoOmni$parentProblem() { return molecularmanipulator$parentProblem; }
     @Override public ECOBigOrderProgress ecoOmni$parentProgress() {
         return molecularmanipulator$parent == null ? null : molecularmanipulator$parent.progress(job == null ? 0
@@ -107,7 +107,7 @@ public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, 
         if (job == null) { molecularmanipulator$parentProblem = "PARENT_JOB_MISSING"; return; }
         if (molecularmanipulator$parentLink.isCanceled()) { molecularmanipulator$logic().cancel(); return; }
         if (!cluster.isActive() || !((IOmniCraftingCpu) (Object) this).isOmniMaterialAllocator()
-                || molecularmanipulator$access().ecoDispatch$paused() || molecularmanipulator$access().ecoOmni$paused()) return;
+                || molecularmanipulator$access().omniDispatch$paused() || molecularmanipulator$access().ecoOmni$paused()) return;
         if (parent.running()) original.call(energy, crafting);
         else parent.tick(this);
         if (molecularmanipulator$parent != null) cluster.updateOutput(molecularmanipulator$parent.output());
@@ -280,7 +280,7 @@ public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, 
             molecularmanipulator$parentFailedTag = null;
         } catch (RuntimeException | LinkageError failure) {
             molecularmanipulator$parentProblem = failure.toString();
-            molecularmanipulator$access().ecoDispatch$pause(null, "Saved ECO parent requires reconciliation");
+            molecularmanipulator$access().omniDispatch$pause(null, "Saved ECO parent requires reconciliation");
             RateLimitedLog.warn("Suspended saved ECO Omni parent; original parent tag retained", failure);
         }
     }

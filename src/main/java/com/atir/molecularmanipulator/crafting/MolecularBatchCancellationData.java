@@ -32,7 +32,7 @@ public final class MolecularBatchCancellationData extends SavedData {
         }
     }
 
-    /** ECO may explicitly revive a persisted CPU job before its providers load. */
+    /** Explicitly resumes a persisted CPU job before its providers load. */
     public static void resumePersisted(Level level, UUID craftingId) {
         if (level instanceof ServerLevel serverLevel && craftingId != null) {
             var data = get(serverLevel);

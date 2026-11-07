@@ -10,7 +10,7 @@ bundled in the produced mod JAR:
 - Glodium, version 1.20-1.5-forge or later.
 - Advanced AE, Forge version, when installed.
 - ExtendedAE Plus and JEI, when installed.
-- NeoECOAE, Forge 20.5.0 or later, and its LDLib dependency, when installed.
+- NeoECOAE, Forge 20.4.2 or later, and its LDLib dependency, when installed. Native batch/exact integration uses the 20.5.0+ API.
 - Radium, AE2 Lightning Tech and Data Energistics, when installed with supported APIs.
 
 The design was informed by GTLCore's Molecular Assembler Matrix implementation.

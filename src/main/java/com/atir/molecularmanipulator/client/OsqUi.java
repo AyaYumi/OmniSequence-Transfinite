@@ -129,10 +129,13 @@ final class OsqUi {
     }
     Button rect(float x, float y, float w, float h, int left, int top,
             Supplier<Component> label, Runnable action) {
+        return new SkinButton(buttonBox(x,y,w,h), left, top, label, action);
+    }
+    OsqLayout.Entry buttonBox(float x, float y, float w, float h) {
         var e = new OsqLayout.Entry(); e.x=x; e.y=y; e.w=w; e.h=h;
         e.sprite=sprite(w<=22?"key13_normal":"button_normal");
         own(e);
-        return new SkinButton(e, left, top, label, action);
+        return e;
     }
     Button tab(String id, int left, int top, Supplier<Component> label,
             BooleanSupplier selected, Runnable action) {
@@ -184,12 +187,12 @@ final class OsqUi {
     }
     void smallText(GuiGraphics g, Component value, float x, float y, float maxWidth, int color) {
         var e = new OsqLayout.Entry(); e.x=x; e.baseline=y; e.w=maxWidth; e.size=7.5f;
-        e.fontId="molecularmanipulator:osq_nsc_600_7_5"; e.color=String.format("#%08X", color);
+        e.fontId="minecraft:default"; e.color=String.format("#%08X", color);
         layout.renderSingleLine(g, Minecraft.getInstance().font, e, value, 0, 0);
     }
     void centeredText(GuiGraphics g, Component value, float x, float centerY, float maxWidth, int color) {
         var e = new OsqLayout.Entry(); e.x=x; e.centerY=centerY; e.w=maxWidth; e.size=7.5f;
-        e.fontId="molecularmanipulator:osq_nsc_600_7_5"; e.color=String.format("#%08X", color);
+        e.fontId="minecraft:default"; e.color=String.format("#%08X", color);
         layout.renderSingleLine(g, Minecraft.getInstance().font, e, value, 0, 0);
     }
     static String compact(long number) { return DisplayNumbers.compact(number); }
@@ -209,7 +212,7 @@ final class OsqUi {
                     label.get(),button->action.run(),DEFAULT_NARRATION);
             this.box=box;this.label=label;this.selected=selected;
             var template=layout.draw.stream().filter(e->"text".equals(e.type)&&layout.owns(box,e)).findFirst().orElse(null);
-            text.size=7.5f;text.fontId=template==null?"molecularmanipulator:osq_nsc_600_7_5":template.fontId;
+            text.size=7.5f;text.fontId=template==null?"minecraft:default":template.fontId;
             text.alignment="center";
         }
         @Override protected void renderWidget(GuiGraphics graphics,int mx,int my,float pt) {
@@ -243,7 +246,7 @@ final class OsqUi {
             return textColor;
         }
     }
-    private class SkinButton extends Button {
+    class SkinButton extends Button {
         private final OsqLayout.Entry box;
         private final Supplier<Component> label;
         private final OsqLayout.Entry labelTemplate;
@@ -274,7 +277,7 @@ final class OsqUi {
                     && e.sprite.contains("/icons/") && layout.owns(box, e)).toList();
             boolean direction=Arrays.asList(OsqNeighborDirections.IDS).contains(box.id);
             fallbackLabel.size=direction?8:7.5f;
-            fallbackLabel.fontId=direction?"molecularmanipulator:osq_nsc_600_8":"molecularmanipulator:osq_nsc_600_7_5";
+            fallbackLabel.fontId="minecraft:default";
             fallbackLabel.alignment="center";
         }
         private ButtonVisual visual(String kind, String status, long generation) {
@@ -323,6 +326,8 @@ final class OsqUi {
         /** Keep live content/typography separate from the GPU-backed frame. */
         private void renderContents(GuiGraphics g, String kind, String status, float center, ButtonVisual visual) {
             if (label != null) setMessage(label.get());
+            boolean iconOnly=labelTemplate==null&&(nativeIcon!=null||itemIcon!=null||!icons.isEmpty());
+            if(iconOnly)updateAutomaticTooltip(!getMessage().getString().isBlank());
             long generation=OsqFonts.resourceGeneration();
             if (itemIcon != null) {
                 int color = isHoveredOrFocused() || "active".equals(status) ? palette.acc : palette.ink4;
@@ -353,28 +358,24 @@ final class OsqUi {
             for(var icon:icons){
                 String name=iconName==null?null:String.valueOf(iconName.get());
                 String tint=!active?"dis":!palette.dark ? status.equals("hover")?"ink":"white"
-                        :status.equals("active")||status.equals("danger")||status.equals("confirm")?"inv":"ink";
+                        :status.equals("danger")||status.equals("confirm")?"white":status.equals("active")?"inv":"ink";
                 String sprite=iconSprites.resolve(generation,icon.sprite,name,tint,OsqUi::spriteExists);
                 var ink=OsqIconInk.center(sprite);
                 var rendered=new ButtonIcon(icon,sprite,ink,ink.fitWidth(icon.w,icon.h),ink.fitHeight(icon.w,icon.h));
                 renderedIcons.add(rendered);iconSpan+=rendered.visibleWidth();
             }
             iconSpan+=Math.max(0,icons.size()-1)*3;
-            float gap=icons.isEmpty()?0:6;
-            float available=Math.max(1,getWidth()-14-iconSpan-gap);
+            // Compact actions need less chrome, not a smaller or abbreviated label.
+            float inset=labelTemplate==null?3:getWidth()<=64?4:7;
+            float gap=icons.isEmpty()?0:getWidth()<=64?3:6;
+            float available=Math.max(1,getWidth()-2*inset-iconSpan-gap);
             String plain=getMessage().getString();
-            float tracking=labelTemplate==null?0:Math.max(0,plain.codePointCount(0,plain.length())-1)*labelTemplate.letterSpacing;
-            float fullTextWidth=labelTemplate==null?0:Math.max(0,OsqFonts.widthF(Minecraft.getInstance().font,
-                    plain,OsqFonts.id(labelTemplate.fontId))+tracking);
+            var textStyle=labelTemplate==null?fallbackLabel:labelTemplate;
+            float tracking=Math.max(0,plain.codePointCount(0,plain.length())-1)*textStyle.letterSpacing;
+            float fullTextWidth=Math.max(0,OsqFonts.widthF(Minecraft.getInstance().font,
+                    plain,OsqFonts.id(textStyle.fontId),textStyle.size)+tracking);
             float textWidth=Math.min(available,fullTextWidth);
-            if(getTooltip()==null||getTooltip()==overflowTooltip){
-                if(fullTextWidth>available){
-                    if(!getMessage().equals(overflowMessage)){
-                        overflowMessage=getMessage();overflowTooltip=Tooltip.create(overflowMessage);
-                    }
-                    setTooltip(overflowTooltip);
-                }else setTooltip(null);
-            }
+            if(!iconOnly)updateAutomaticTooltip(fullTextWidth>available);
             float contentLeft=getX()+(getWidth()-iconSpan-(labelTemplate==null?0:gap+textWidth))/2f;
             float cursor=contentLeft;
             for (var rendered : renderedIcons) {
@@ -399,8 +400,8 @@ final class OsqUi {
                 String originalAlignment = labelTemplate.alignment;
                 Float originalDrawX = labelTemplate.drawX;
                 labelTemplate.drawX = null;
-                labelTemplate.x = icons.isEmpty()?getX()+7:contentLeft+iconSpan+gap;
-                labelTemplate.w = icons.isEmpty()?getWidth()-14:Math.max(1,textWidth);
+                labelTemplate.x = icons.isEmpty()?getX()+inset:contentLeft+iconSpan+gap;
+                labelTemplate.w = icons.isEmpty()?getWidth()-2*inset:Math.max(1,textWidth);
                 labelTemplate.alignment = "center";
                 String originalColor = labelTemplate.color;
                 Float originalCenter = labelTemplate.centerY;
@@ -419,6 +420,15 @@ final class OsqUi {
             fallbackLabel.x=getX()+3; fallbackLabel.baseline=getY()+center+2;fallbackLabel.centerY=getY()+center;
             fallbackLabel.w=getWidth()-6; fallbackLabel.color=visual.textColor(palette,kind,status,active);
             layout.renderSingleLine(g,Minecraft.getInstance().font,fallbackLabel,getMessage(),0,0);
+        }
+        private void updateAutomaticTooltip(boolean needed) {
+            if(getTooltip()!=null&&getTooltip()!=overflowTooltip)return;
+            if(needed){
+                if(!getMessage().equals(overflowMessage)){
+                    overflowMessage=getMessage();overflowTooltip=Tooltip.create(overflowMessage);
+                }
+                setTooltip(overflowTooltip);
+            }else setTooltip(null);
         }
     }
     private static int fieldScaleKey(Object splitter) {
@@ -443,7 +453,7 @@ final class OsqUi {
         private final OsqLayout.Entry box;
         private final float inset;
         private final List<OsqLayout.Entry> icons;
-        private final ResourceLocation face = ResourceLocation.parse("molecularmanipulator:osq_nsc_600_7_5");
+        private final ResourceLocation face = net.minecraft.network.chat.Style.DEFAULT_FONT;
         private final Component hint;
         private final OsqLayout.Entry background = new OsqLayout.Entry();
         private final OsqFieldMeasurements measurements = new OsqFieldMeasurements();

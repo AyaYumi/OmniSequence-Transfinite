@@ -42,12 +42,301 @@
     "molecularmanipulator:ghost_matter",
     "molecularmanipulator:gravity_crystal"
   ],
+  "required_mods": [],
   "sort_order": 5,
   "stage": 0,
   "depths": [
     {
-      "material_multiplier": "1",
-      "parallel": "1"
+      "material_multiplier": 1,
+      "parallel": 1
+    },
+    {
+      "material_multiplier": 2,
+      "parallel": 256,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 32
+        }
+      ]
+    },
+    {
+      "material_multiplier": 4,
+      "parallel": 65536,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 64
+        }
+      ]
+    },
+    {
+      "material_multiplier": 8,
+      "parallel": 16777216,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 128
+        }
+      ]
+    },
+    {
+      "material_multiplier": 16,
+      "parallel": 4294967296,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 256
+        }
+      ]
+    },
+    {
+      "material_multiplier": 32,
+      "parallel": 1099511627776,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 512
+        }
+      ]
+    },
+    {
+      "material_multiplier": 64,
+      "parallel": 281474976710656,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 1024
+        }
+      ]
+    },
+    {
+      "material_multiplier": 128,
+      "parallel": 72057594037927936,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 2048
+        }
+      ]
+    },
+    {
+      "material_multiplier": 256,
+      "parallel": 9223372036854775807,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:certus_quartz_crystal"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:amethyst_shard"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:copper_ingot"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "minecraft:ender_pearl"
+          },
+          "count": 4096
+        }
+      ]
     }
   ]
 }

@@ -5,7 +5,7 @@
  "title": "样板总成 · 样板",
  "size": [
   190,
-  382
+  342
  ],
  "left_room": 0,
  "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
@@ -26,7 +26,7 @@
     -1,
     -1,
     192,
-    384
+    344
    ],
    "k": "window",
    "id": "window"
@@ -44,7 +44,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_900_13",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.pattern.title",
    "dynamic": false,
    "width_en": 122
@@ -62,7 +62,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_intertight_700_9",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "center_y": 18.5,
    "draw_x": 142,
@@ -81,7 +81,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 0.6,
-   "font_id": "molecularmanipulator:osq_inter_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "draw_x": 172.19,
    "center_y": 18.5
@@ -111,14 +111,14 @@
    "text": "AE 网络已连接",
    "x": 19,
    "baseline": 32,
-   "width": 48.5,
+   "width": 155,
    "font": "NSC",
    "weight": 600,
    "size": 7.5,
    "color": "#FF3E7F37",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.network_online",
    "dynamic": false,
    "center_y": 32.0,
@@ -157,7 +157,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s001",
    "lang_new": true,
@@ -217,7 +217,7 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.pattern.rename",
    "dynamic": false,
    "center_y": 49.5,
@@ -274,7 +274,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.patterns",
    "dynamic": false,
    "center_y": 79,
@@ -332,7 +332,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.input_tab",
    "dynamic": false,
    "center_y": 79,
@@ -390,7 +390,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.auto_craft_output",
    "dynamic": false,
    "center_y": 79,
@@ -448,7 +448,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.catalysts",
    "dynamic": false,
    "center_y": 79,
@@ -1236,7 +1236,7 @@
    ],
    "rect": [
     8,
-    286,
+    246,
     174,
     88
    ],
@@ -1256,7 +1256,7 @@
    ],
    "rect": [
     14,
-    292,
+    252,
     18,
     18
    ],
@@ -1285,7 +1285,7 @@
    ],
    "rect": [
     32,
-    292,
+    252,
     18,
     18
    ],
@@ -1314,7 +1314,7 @@
    ],
    "rect": [
     50,
-    292,
+    252,
     18,
     18
    ],
@@ -1334,7 +1334,7 @@
    ],
    "rect": [
     68,
-    292,
+    252,
     18,
     18
    ],
@@ -1354,7 +1354,7 @@
    ],
    "rect": [
     86,
-    292,
+    252,
     18,
     18
    ],
@@ -1374,7 +1374,7 @@
    ],
    "rect": [
     104,
-    292,
+    252,
     18,
     18
    ],
@@ -1394,7 +1394,7 @@
    ],
    "rect": [
     122,
-    292,
+    252,
     18,
     18
    ],
@@ -1414,7 +1414,7 @@
    ],
    "rect": [
     140,
-    292,
+    252,
     18,
     18
    ],
@@ -1434,7 +1434,7 @@
    ],
    "rect": [
     158,
-    292,
+    252,
     18,
     18
    ],
@@ -1454,7 +1454,7 @@
    ],
    "rect": [
     14,
-    310,
+    270,
     18,
     18
    ],
@@ -1474,7 +1474,7 @@
    ],
    "rect": [
     32,
-    310,
+    270,
     18,
     18
    ],
@@ -1494,7 +1494,7 @@
    ],
    "rect": [
     50,
-    310,
+    270,
     18,
     18
    ],
@@ -1514,7 +1514,7 @@
    ],
    "rect": [
     68,
-    310,
+    270,
     18,
     18
    ],
@@ -1534,7 +1534,7 @@
    ],
    "rect": [
     86,
-    310,
+    270,
     18,
     18
    ],
@@ -1554,7 +1554,7 @@
    ],
    "rect": [
     104,
-    310,
+    270,
     18,
     18
    ],
@@ -1574,7 +1574,7 @@
    ],
    "rect": [
     122,
-    310,
+    270,
     18,
     18
    ],
@@ -1594,7 +1594,7 @@
    ],
    "rect": [
     140,
-    310,
+    270,
     18,
     18
    ],
@@ -1614,7 +1614,7 @@
    ],
    "rect": [
     158,
-    310,
+    270,
     18,
     18
    ],
@@ -1634,7 +1634,7 @@
    ],
    "rect": [
     14,
-    328,
+    288,
     18,
     18
    ],
@@ -1654,7 +1654,7 @@
    ],
    "rect": [
     32,
-    328,
+    288,
     18,
     18
    ],
@@ -1674,7 +1674,7 @@
    ],
    "rect": [
     50,
-    328,
+    288,
     18,
     18
    ],
@@ -1694,7 +1694,7 @@
    ],
    "rect": [
     68,
-    328,
+    288,
     18,
     18
    ],
@@ -1714,7 +1714,7 @@
    ],
    "rect": [
     86,
-    328,
+    288,
     18,
     18
    ],
@@ -1734,7 +1734,7 @@
    ],
    "rect": [
     104,
-    328,
+    288,
     18,
     18
    ],
@@ -1754,7 +1754,7 @@
    ],
    "rect": [
     122,
-    328,
+    288,
     18,
     18
    ],
@@ -1774,7 +1774,7 @@
    ],
    "rect": [
     140,
-    328,
+    288,
     18,
     18
    ],
@@ -1794,7 +1794,7 @@
    ],
    "rect": [
     158,
-    328,
+    288,
     18,
     18
    ],
@@ -1814,7 +1814,7 @@
    ],
    "rect": [
     14,
-    350,
+    310,
     18,
     18
    ],
@@ -1834,7 +1834,7 @@
    ],
    "rect": [
     32,
-    350,
+    310,
     18,
     18
    ],
@@ -1854,7 +1854,7 @@
    ],
    "rect": [
     50,
-    350,
+    310,
     18,
     18
    ],
@@ -1874,7 +1874,7 @@
    ],
    "rect": [
     68,
-    350,
+    310,
     18,
     18
    ],
@@ -1894,7 +1894,7 @@
    ],
    "rect": [
     86,
-    350,
+    310,
     18,
     18
    ],
@@ -1914,7 +1914,7 @@
    ],
    "rect": [
     104,
-    350,
+    310,
     18,
     18
    ],
@@ -1934,7 +1934,7 @@
    ],
    "rect": [
     122,
-    350,
+    310,
     18,
     18
    ],
@@ -1954,7 +1954,7 @@
    ],
    "rect": [
     140,
-    350,
+    310,
     18,
     18
    ],
@@ -1974,7 +1974,7 @@
    ],
    "rect": [
     158,
-    350,
+    310,
     18,
     18
    ],
@@ -2078,7 +2078,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s012",
    "lang_new": true,
@@ -2100,93 +2100,10 @@
     8,
     211,
     174,
-    68
+    28
    ],
    "k": "card",
    "id": "meta"
-  },
-  {
-   "z": 105,
-   "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/icons/tag_mute_6",
-   "slicing": "fixed",
-   "pad": [
-    0,
-    0,
-    0,
-    0
-   ],
-   "rect": [
-    12,
-    219.0,
-    6,
-    6
-   ],
-   "id": "assembly_capacity_icon",
-   "draw_y": 219.5
-  },
-  {
-   "z": 106,
-   "type": "text",
-   "text": "类型不限 · 单种上限 9.22E",
-   "x": 21,
-   "baseline": 188,
-   "width": 158,
-   "font": "NSC",
-   "weight": 500,
-   "size": 7.5,
-   "color": "#FF5D637D",
-   "letter_spacing": 0,
-   "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
-   "lang": "gui.molecularmanipulator.fabrication.buffer.capacity",
-   "dynamic": false,
-   "id": "assembly_capacity",
-   "center_y": 222,
-   "align": "center",
-   "draw_x": 16
-  },
-  {
-   "z": 107,
-   "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/icons/clock_mute_6",
-   "slicing": "fixed",
-   "pad": [
-    0,
-    0,
-    0,
-    0
-   ],
-   "rect": [
-    12,
-    233.0,
-    6,
-    6
-   ],
-   "id": "assembly_queue_icon",
-   "draw_y": 233.5
-  },
-  {
-   "z": 108,
-   "type": "text",
-   "text": "队列：0",
-   "x": 21,
-   "baseline": 198,
-   "width": 158,
-   "font": "NSC",
-   "weight": 500,
-   "size": 7.5,
-   "color": "#FF5D637D",
-   "letter_spacing": 0,
-   "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
-   "dynamic": false,
-   "lang": "gui.molecularmanipulator.fabrication.buffer.queued",
-   "lang_new": true,
-   "id": "assembly_queue",
-   "center_y": 236,
-   "align": "center",
-   "draw_x": 16
   },
   {
    "z": 110,
@@ -2201,7 +2118,7 @@
    ],
    "rect": [
     14,
-    249,
+    214,
     162,
     22
    ],
@@ -2221,7 +2138,7 @@
    ],
    "rect": [
     20,
-    252.875,
+    217.875,
     12,
     12.0
    ],
@@ -2240,11 +2157,11 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s005",
    "lang_new": true,
-   "center_y": 258.5,
+   "center_y": 223.5,
    "owner": "return",
    "draw_x": 32
   }

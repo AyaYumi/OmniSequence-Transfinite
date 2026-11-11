@@ -13,7 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
 /**
- * Draws a seamless, subpixel-scrolling data-flow strip as the AE key icon.
+ * Draws the transparent star-core icon with signal pulses sampled from a 64-frame strip.
  */
 public final class StarSignalRenderer
         implements AEKeyRenderHandler<StarSignalKey> {

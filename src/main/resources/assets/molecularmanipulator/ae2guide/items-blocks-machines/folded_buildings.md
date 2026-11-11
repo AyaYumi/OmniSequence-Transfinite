@@ -12,71 +12,95 @@ item_ids:
 
 # Folded Buildings and Relocation
 
-Order a complete building through ME and unfold it with a reusable Star Chart Calibrator. Seal an installed machine into one package to move its contents, including across dimensions within the same world.
+**A building package turns an entire machine into one portable item.** Order new buildings through ME and unfold them with a Star Chart Calibrator. Reclaim an installed machine through its own panel to move it with its contents, including between **dimensions of the same world save**.
 
-<ItemGrid>
-<ItemIcon id="molecularmanipulator:folding_assembler" />
-<ItemIcon id="molecularmanipulator:folded_building_package" />
-<ItemIcon id="molecularmanipulator:star_chart_calibrator" />
-</ItemGrid>
+<Row>
+<BlockImage id="molecularmanipulator:folding_assembler" scale="4" />
 
-## ME orders
+<ItemImage id="molecularmanipulator:folded_building_package" scale="4" />
 
-1. Craft a **Spatial Folding Assembler** and connect it to a powered ME network with item storage and a crafting CPU.
-2. The network advertises seven complete packages: **Matter Fabrication Well, Sequence Array, Omni Computation Core, Event Horizon Singularity Hub, Star Orrery L1, Star Orrery L2 and Star Orrery L3**.
-3. Order one package. The job consumes the **controller and every standard construction block**, then returns **one complete package** to ME.
+<ItemImage id="molecularmanipulator:star_chart_calibrator" scale="4" />
+</Row>
 
-The assembler uses ordinary AE2 ingredients and is available before the first well. Building ingredients retain their original recipes and research requirements. Packages arrive ready to use.
+Left to right: **the Spatial Folding Assembler takes the order → the package carries the building → the Star Chart Calibrator selects the site and unfolds it**. The calibrator is reusable.
 
-Fresh packages contain the standard structure. Install optional well assemblies and ports as needed; sealing an existing machine includes the parts actually installed.
+## What you need
 
-Star Orrery L1/L2/L3 contain the first 1/2/3 rings, using 24/56/96 **Reference anchors** respectively. Every package also includes the **complete central 3×3×3 assembly (1 core, 22 casing and 4 observation ports)** and the **complete foundation (520 engraved plinths and 408 gilded plinths)**. Total block counts are **979 / 1011 / 1051**: full materials, not incremental upgrade packages.
+- For a new building: an assembler, an ME network with autocrafting, and the building's controller and full materials. The assembler uses ordinary AE2 ingredients and is available before your first well. Building ingredients still follow their own recipes and research requirements.
+- For relocation: the installed machine, a calibrator and a free inventory slot for the reclaimed package.
+- At the destination: enough clear space, build permission and vertical room. One empty block for the controller is not enough.
 
-L0 formation requires both all 27 central blocks and all 928 foundation blocks; any missing central part prevents formation. The core is at the exact center, with an observation port at the center of each horizontal-facing side and casing in the other 22 positions. L1/L2/L3 are not the Reference/Quantum/Terminal tiers; benefits and research still follow the server-verified consecutive rings from ring 1 through L9. The old cube cannot form independently, old four-direction columns are unsupported, and joining or stacking structures grants no extra benefits.
+### New packages and sealed packages
 
-All three packages are also available in creative inventory. JEI's **Star Orrery Structure** category lists all materials and the package output for each recipe, with the same left-drag rotation, right-drag panning, scroll zoom and layer controls as other buildings. See [Star Computation Engine](star_computation_engine.md) for the layout and full material table.
+| Package | What it contains |
+| --- | --- |
+| A new package ordered through ME | A standard building, including its controller and full construction materials. It is neither an empty shell nor free construction. Install optional well ports and Pattern Assemblies separately. |
+| A sealed package reclaimed from a machine | Your installed machine, including its ports, assemblies, inventories, fluids, settings, research and processing progress. |
 
-The Event Horizon Singularity Hub package includes its controller and every construction block in the current suspended design, and is also available in creative inventory. Its JEI structure page shows the full bill and package output, with rotation, panning, zoom and layer controls. The structure is 97×97 blocks across and 129 blocks tall: **controller Y = base Y + 65**. Its 566 required empty light-well cells participate in site checks. After formation, use the hub's interface to manage collection, motion and whole-machine reclaim. See [Event Horizon Singularity Hub](event_horizon_singularity_hub.md).
+**The package is the item you carry; the building archive is the complete machine stored in the world save. Keep both.** Keep the item safe, and back up or transfer the **complete world folder**. Copying only the package item to another save does not move the building.
 
-## Survey and unfold
+## Step 1: order a new building through ME
 
-Keep the package in your inventory and **use the calibrator on the site**. Select a package, adjust X/Y/Z and rotate horizontally. Hold Shift for eight-block adjustments. **Base Y is the lowest physical block's elevation**; building dimensions are fixed. The orrery foundation starts at Y=-37 relative to its core, so for both ordered and reclaimed orreries **core Y = base Y + 37**.
+1. Connect a **Spatial Folding Assembler** to a powered ME network with item storage and a crafting CPU.
+2. Find and order the building package in your ME terminal. You do not need to insert patterns into the assembler.
+3. ME consumes the building's **controller and all standard construction blocks**, then delivers one package. Take it into your inventory.
 
-**Esc closes the panel without releasing the pinned site.** Walk, fly and look around freely; right-click with the calibrator again to reopen the same site, even when aiming elsewhere. Only **Cancel point** releases it for a new location. There is no persistent HUD or return-to-panel hotkey. To withdraw an unfinished deployment, reopen the panel and choose **Interrupt and reclaim building**. Sneak-use no longer directly seals a machine or withdraws construction.
+| Complete packages you can order | Layout and materials |
+| --- | --- |
+| Matter Fabrication Well | [Matter Fabrication Well](matter_fabrication_well.md) |
+| Sequence Array | [Sequence Array](sequence_array_controller.md) |
+| Omni Computation Core | [Omni Computation Core](omni_computation_core.md) |
+| Event Horizon Singularity Hub | [Event Horizon Singularity Hub](event_horizon_singularity_hub.md) |
+| Star Orrery L1, L2 and L3 | [Star Computation Engine](star_computation_engine.md). These include the first 1, 2 or 3 rings and the complete central body and foundation: **not incremental upgrade packages**. |
 
-Pale blue outlines show occupied positions, the gold frame shows the boundary, and red outlines identify conflicts. Required empty spaces also participate in site validation. Clear conflicts before confirming.
+JEI's structure categories show full materials and package outputs, with rotation, panning, zoom and layer controls. Creative inventory also offers these seven new-building packages. Orrery **L0 and L4–L9** packages come from whole-machine reclaim, not ME orders.
 
-Unfolding progresses through **star chart → foundation → rising walls → descending core**. The structure remains paused until all native contents are restored and saved. The package is consumed on successful completion; the calibrator remains reusable. Cancelling the survey keeps the package.
+## Step 2: survey and unfold
 
-Once an orrery forms, its core presents a **single 3×3×3 model** and hides the original meshes of the **26 other central blocks (22 casing and 4 observation ports)**. Their blocks, block entities, collision and drops remain in place; hidden does not mean absent. The existing foundation mesh-hiding and visual effects are unchanged.
+1. **Keep the package in your inventory, hold the calibrator and right-click the site.** Select the package in the panel.
+2. Use X/Y/Z buttons to adjust its position and rotate to change the horizontal facing. Each click moves 1 block; hold Shift to move 8.
+3. Check the height: **base Y is the lowest physical block's elevation**, not the controller height. An orrery's core is at **base Y + 37**. A hub's controller is at **base Y + 65**, within a **97×97×129-block** building.
+4. Inspect the projection: **pale blue marks the building, gold marks its boundary and red marks conflicts**. Clear obstacles, including spaces that must remain empty, such as the light well.
+5. Confirm deployment and wait for the foundation, walls and core to settle into place. The machine pauses while its contents are restored. On completion, the package is consumed and the calibrator remains.
 
-A sealed package's **Archive contents** button opens paged component summaries, relative positions and stored data sizes. Full contents remain in the server's world files.
+**Want to walk around the projection? Press Esc to close the panel.** The site stays selected. Right-click the calibrator again to reopen it, even when aiming elsewhere. Only **Cancel point** releases the site for a new selection; it does not stop construction already underway.
 
-## Seal an installed machine
+During unfolding, the package temporarily stays in its original inventory slot and cannot be moved. To withdraw unfinished construction, reopen the panel and choose **Interrupt and reclaim building**. After cleanup, the original package can unfold again. Do not dismantle the half-built structure yourself.
 
-1. Finish any construction, dismantling or structure upgrade in progress. Finish or cancel external ME CPU jobs on the machine's grid and allow their materials, outputs and refunds to settle. For a Singularity Hub, stop resource collection first.
-2. For a Matter Fabrication Well, Sequence Array, multiblock Omni Computation Core, Event Horizon Singularity Hub or formed Star Orrery, confirm sealing through the **machine interface's reclaim action**, including its controller or core. Single-block computation terminals and compact Singularity Hubs do not use this multiblock action. Right-clicking with the calibrator only opens the survey panel; it does not dismantle a machine.
-3. Collect one package, then survey and unfold it at the destination. If your inventory is full, free a slot and use the calibrator in the air to collect it.
+## Moving an installed machine
 
-Sealing preserves the controller, installed structure parts, ports and assemblies, with native patterns, catalysts, items, fluids, names, settings, research, invested materials, internal progress, pending outputs and refunds. Rotated deployment also rotates port output faces and restores ME connections.
+1. **Settle jobs first.** Finish construction, dismantling or upgrades. Finish or cancel external ME CPU jobs on its network and wait for materials, outputs and refunds to settle. Stop resource collection on a hub too.
+2. Open the machine's own panel, choose **Reclaim package** or its reclaim action and confirm as prompted. For an orrery or hub, click again about **0.25–3 seconds** after the first click.
+3. Collect one sealed package. If your inventory was full, free a slot and use the calibrator in the air to collect it.
+4. Follow Step 2 at the destination in the same save. Reconnect external ME cables and pipes, check contents and settings, then resume work. Port directions rotate with the building.
 
-For an orrery, click **Reclaim package** in Overview, then click again **5–60 ticks later** (normally 0.25–3 seconds). At sealing, the server rechecks the actual consecutive complete rings starting at ring 1 and labels the package **Star Orrery L0–L9** accordingly. The original ordered package level, information balance and overclocking do not set this grade. **L0 and L4–L9 packages come only from whole-machine reclaim**; ME, JEI and creative inventory retain the same seven construction packages.
+Whole-machine reclaim supports the **Matter Fabrication Well, Sequence Array, multiblock Omni Computation Core, Event Horizon Singularity Hub and formed Star Orrery**. The Transfinite Compute Nexus and Compact Singularity Hub do not use it. Right-clicking the calibrator opens surveying; it does not directly dismantle a machine.
 
-The orrery archive preserves native contents, the central parts and foundation blocks actually present, and ring anchors belonging to it. A complete central body has **27 blocks (1 core, 22 casing and 4 observation ports)** and a complete foundation has **928 blocks**. Valid central casing and observation ports route menus and ME connections to that same core and are included when sealing. Loose parts do not connect to ME or proxy menus.
+Sealing retains the machine's items, fluids, patterns, catalysts, invested materials, processing progress, pending products and refunds. **External ME CPU crafting jobs do not travel with the package**, so settle them first.
 
-A hub's reclaim action in Overview seals the **whole machine**, retaining its controller, saved structure version, legacy collection nodes and required empty light-well cells. Remaining moving parts must finish docking before sealing. The pending request survives reloads and the requester's absence; **Cancel** prevents the eventual archive while safe docking continues. Deployment leaves collection, motion and reclaim stopped. See [Event Horizon Singularity Hub](event_horizon_singularity_hub.md) for confirmation and preserved contents.
+An orrery's reclaimed package is graded L0–L9 by its **consecutive complete rings starting at ring 1**, not the grade originally purchased. A hub docks its moving parts before sealing; keep the whole motion area loaded and clear. Its reclaim request survives restarts and can continue when the requester returns. Cancelling reclaim withdraws sealing while safe docking continues. Start hub collection manually after deployment.
 
-## World archives and recovery
+## How to tell it worked
 
-Sealed packages work in ME storage, across restarts and across dimensions of the same world. They carry a small archive reference; complete native data lives under `data/molecularmanipulator/buildings/` in the world folder. **Back up and transfer the complete world folder**.
+- New construction: the ME order delivers a named package. After unfolding, the complete building stands at the site and the package is consumed.
+- Relocation: the old machine has been reclaimed and its panel opens at the new site, with inventories, fluids, patterns and settings retained. A sealed package's **Archive contents** button in the calibrator panel lets you check archived components.
+- Each sealed building can deploy once. Copying the package item does not create a second machine.
 
-During deployment the package remains in its inventory slot as a transfer receipt. Interrupted transfers resume on server restart. A completed archive cannot deploy again. An unavailable archive leaves the package and existing archive data available for recovery.
+## Quick fixes
 
-Old unsealed small engine templates can no longer be ordered or deployed and are not exchanged for larger orrery level packages for free. Existing generic orrery archives restore their original contents without supplying missing parts, refunding materials or upgrading the structure. Reclaiming a restored machine creates a new package for its actual physical grade at that time. A restored old cube cannot form independently: manually complete any missing central 3×3×3 blocks and the real orrery foundation. Existing casing and observation ports remain required central structure parts and retain their original ingredient uses; loose parts do not provide menu or ME access. Old four-direction anchor columns remain unsupported.
+| Problem | What to check |
+| --- | --- |
+| No packages in ME | Check the assembler's powered connection and whether the terminal shows craftable items. |
+| Cannot confirm deployment | Wait for surveying, clear red conflicts and check height, world border and build permission. |
+| Right-click keeps opening the old site | Select Cancel point before choosing a new site. Esc only closes the panel. |
+| Construction continues after Cancel point | Reopen the panel and use Interrupt and reclaim building. |
+| Machine is busy and will not seal | Finish construction or research/calculation jobs and settle external ME CPU jobs. A hub must also stop collection and dock. |
+| Sealed package reports an unavailable archive | Keep the item. Check that you are in the original save and recover the archive from a complete-world backup. |
 
-Copying the item to another save does not transfer its archive. Cross-save export requires a separate export workflow.
+An interrupted relocation continues after the server restarts. To change sites, use the panel's interrupt-and-reclaim action rather than discarding a package still under construction.
 
-## Recipes
+## Tool recipes
 
 <RecipeFor id="molecularmanipulator:folding_assembler" />
+
 <RecipeFor id="molecularmanipulator:star_chart_calibrator" />

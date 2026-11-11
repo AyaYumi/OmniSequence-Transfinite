@@ -10,47 +10,77 @@ item_ids:
 
 # Molecular Auto Crafter
 
-The Molecular Auto Crafter draws ingredients from ME, performs recipes internally and returns products. It keeps frequently used materials stocked. Its nine pattern positions have independent stock targets, ingredient reserves and switches.
+## Purpose: automatically replenish everyday items
+
+Insert a **pattern**—a recipe card made in a Pattern Encoding Terminal—and set how many products to keep. The machine takes ingredients already in ME, performs the recipe and delivers the output. Use it to keep planks, processors and other supplies stocked without placing terminal orders.
 
 <Row>
 <BlockImage id="molecularmanipulator:molecular_auto_crafter" scale="4" />
-
 <ItemImage id="ae2:crafting_pattern" scale="4" />
-
 <ItemImage id="ae2:smithing_table_pattern" scale="4" />
-
 <ItemImage id="ae2:stonecutting_pattern" scale="4" />
 </Row>
 
-## Setting up restocking
+Left: the machine. Right: supported crafting, smithing and stonecutting patterns. Processing patterns for external machines do not belong here.
 
-1. Connect a powered ME network with a channel.
-2. Insert up to **nine** crafting, smithing or stonecutting patterns.
-3. Select the gear above a pattern, or right-click it, to open that position's settings.
-4. Set the **product stock limit** and each **ingredient reserve**. Press Enter or leave the input field to save.
-5. Enable the position to begin automatic restocking.
+Restocking runs inside the machine and **does not need a crafting CPU**, the device that accepts and arranges terminal orders. It does not order missing ingredients either: stock those in ME first. Each of its nine pattern slots has separate settings and a separate switch, while sharing the machine's crafting capacity.
 
-| Setting | Effect |
+## Prepare
+
+- Complete one round of **Tier I: AE Foundation** in the [Fabrication Well](matter_fabrication_research.md), then fabricate the machine. No additional star-research node is required by default.
+- A powered ME network with item storage and **one free channel**. A channel is a network connection allowance for a device.
+- An encoded “oak log → oak planks” crafting pattern, **32 oak logs** and room for products.
+
+<RecipeFor id="molecularmanipulator:molecular_auto_crafter" fallbackText="Check JEI for the Fabrication Well recipe, ingredients and research requirements." />
+
+## Steps: keep 64 planks in the network
+
+1. Place the machine, connect it to the prepared ME network and store the 32 logs in ME. Remove any existing oak planks from ME for this test so you can watch replenishment.
+2. Insert the plank pattern. Click the slot's **gear**, or right-click its pattern, to open settings.
+3. Set the **output limit** to **64** and the log **reserve** to **8**. Only logs above the reserve may be consumed.
+4. For your first setup, keep **ME Output** and choose **ME network stock** as the stock source. Click **Save all**, or submit individual fields with **Set** or Enter. Check that the page no longer says “Unsaved.”
+5. Return to the main screen and **start** that slot. Leave the other slots off for now.
+6. Once ME holds 64 planks, take out 16. Watch the machine replenish them to 64.
+
+**An output limit of 0 means unlimited, not stopped.** Stop a slot with its switch or by removing its pattern. An ingredient reserve of 0 means none of that ingredient is held back.
+
+### Want the products in a nearby chest?
+
+<Row>
+<BlockImage id="molecularmanipulator:molecular_auto_crafter" scale="3" />
+<BlockImage id="minecraft:chest" scale="3" />
+</Row>
+
+Place a chest beside the machine, switch to **Nearby Container Output**, then open **Output Directions** and enable the chest's side. Ingredients still come from ME; products and returned containers go to the selected adjacent containers.
+
+| Stock source | When to use it |
 | --- | --- |
-| Product stock limit | Pause at the target and replenish when stock falls below it |
-| Product limit of zero | Keep crafting until ingredients or other operating conditions prevent it |
-| Ingredient reserve | Leave the specified amount in ME instead of using it for restocking |
-| Per-position switch | Control each pattern separately |
+| Destination stock | Replenish the selected chest to your target. Counts matching products in adjacent containers on enabled sides. |
+| ME network stock | Decide whether to craft based on stock in ME. Even with chest output selected, this option counts ME stock only. |
 
-For example, a plank target of 4096 and log reserve of 256 replenishes planks while leaving logs available to the network.
+Use the ingredient page buttons when a recipe has more entries. Submit reserve changes on those pages too.
 
-## Waiting and stopping
+## What success looks like
 
-Each batch is limited by the space available at the selected output destination. Products and returned containers are delivered immediately; normal production does not accumulate an internal stockpile. A full destination pauses crafting, with retries up to one second apart. Disabling a position or removing its pattern stops new crafts.
+- While enabled, the machine consumes logs and delivers planks to the selected destination.
+- At 64 planks it reports that the limit has been reached and pauses. Removing some starts replenishment again.
+- Restocking does not consume logs below the reserve of 8. If the usable ingredients cannot complete another recipe, the machine waits.
 
-Resources retained from older saves or an interrupted delivery are preserved and returned automatically. New crafting waits until these pending resources have been delivered.
+Each batch needs enough room for products and returned items. A full destination pauses production rather than creating an unlimited internal stockpile. A Star Computation Engine can raise this machine's crafting parallelism; deep research raises the well recipe's parallelism when fabricating the machine itself.
 
-Use the settings page arrows for additional ingredient and output entries. This device runs crafting, smithing and stonecutting recipes. External processing requires Pattern Providers and processing patterns.
+## Troubleshooting
 
-The [Sequence Array](sequence_array_controller.md) provides the same nine-position restocking function on its **Auto Crafting** page.
+| What you see | What to do |
+| --- | --- |
+| Crafting never starts | Check power, channel, pattern and the slot's start switch. Make sure settings were submitted. |
+| It needs ingredients, although ME still has some | Check reserves. Only ingredients above the reserve and sufficient for one complete recipe can be used. Missing intermediate ingredients are not automatically ordered. |
+| It stops at the limit | This is normal. Remove products or increase the limit. |
+| The chest has enough, but crafting continues | Check whether the stock source is “ME network stock.” Choose “Destination stock” to replenish based on the chest's contents. |
+| Output is blocked | For ME Output, check storage capacity. For nearby containers, check the chest, enabled sides and free slots. Returned containers need room too. |
+| A number did not take effect | Click Set or Save all, or press Enter in the field. Moving the pointer away or closing the page does not submit it. |
 
-## Recipes
+## Next steps
 
-The Fabrication Well recipe requires one completion of [Tier 1: AE materials](matter_fabrication_research.md), rather than the Sequence Array research. Later completions of that foundation branch raise parallelism for this well recipe. The well's ME network must still have an active [Star Computation Engine](star_computation_engine.md) with the permanent **Star Computation Foundation** node unlocked. Existing wells keep their research completion counts.
+The [Sequence Array](sequence_array_controller.md)'s **Stocking** page also has nine independent restocking slots, using the same target and reserve meanings and delivering to ME. Its main library serves terminal orders; its restocking slots serve automatic replenishment. Put patterns in the appropriate inventory.
 
-<RecipeFor id="molecularmanipulator:molecular_auto_crafter" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+To request a specific quantity from a terminal instead, use a [Molecular Sequence Rewrite Array](molecular_sequence_rewrite_array.md) and connect a crafting CPU to the network.

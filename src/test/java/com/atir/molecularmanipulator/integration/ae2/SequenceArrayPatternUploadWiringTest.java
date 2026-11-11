@@ -91,9 +91,11 @@ class SequenceArrayPatternUploadWiringTest {
         assertCall(method(renderer, "capture"), ROOT + "blockentity/MachineEffectLevels", "forMachine");
         assertCall(method(renderer, "render"), ROOT + "client/render/EarlyFrameGeometry", "take");
         assertCall(method(renderer, "prepareFeatherPasses"), ROOT + "client/render/ParallelEffectGeometry", "prepare");
-        var init = method(read(ROOT + "client/MolecularCenterScreen"), "init");
+        var screen = read(ROOT + "client/MolecularCenterScreen");
+        var init = method(screen, "init");
         assertCall(init, ROOT + "client/OsqUi", "<init>");
-        assertCall(init, ROOT + "client/MachineEffectButton", "<init>");
+        assertCall(init, screen.name, "initColorControls");
+        assertCall(method(screen, "initColorControls"), ROOT + "client/MachineEffectButton", "<init>");
         assertTrue(calls(init).stream().noneMatch(call -> call.owner.contains("MolecularCenterLdUi")));
     }
 

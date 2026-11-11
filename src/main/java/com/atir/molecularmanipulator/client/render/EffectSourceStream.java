@@ -23,7 +23,8 @@ final class EffectSourceStream implements AutoCloseable {
             if (!slot.ready()) continue;
             slot.ensure(source.remaining());
             MemoryUtil.memCopy(MemoryUtil.memAddress(source), MemoryUtil.memAddress(slot.mapping), source.remaining());
-            GL43.glMemoryBarrier(GL44.GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
+            // ARB_buffer_storage: coherent client writes are visible to subsequent GL commands.
+            // Slot fences still prevent overwriting data that an earlier dispatch is reading.
             current = slot;
             next = (index + 1) % slots.length;
             return slot.buffer;

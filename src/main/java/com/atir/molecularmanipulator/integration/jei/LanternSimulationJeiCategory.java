@@ -1,7 +1,7 @@
 package com.atir.molecularmanipulator.integration.jei;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
-import com.atir.molecularmanipulator.registry.GreenFireLanternContent;
+import com.atir.molecularmanipulator.registry.SimulationLanternContent;
 import com.atir.molecularmanipulator.registry.ModContent;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
@@ -28,7 +28,7 @@ public final class LanternSimulationJeiCategory
     private final IDrawable icon;
 
     public LanternSimulationJeiCategory(IGuiHelper guiHelper) {
-        icon = guiHelper.createDrawableItemStack(GreenFireLanternContent.stack(true));
+        icon = guiHelper.createDrawableItemStack(SimulationLanternContent.stack(true));
     }
 
     public static Acquisition recipe() {
@@ -57,7 +57,7 @@ public final class LanternSimulationJeiCategory
     public void setRecipe(IRecipeLayoutBuilder builder, Acquisition recipe, IFocusGroup focuses) {
         builder.addInputSlot(6, 24).setStandardSlotBackground().addItemStack(recipe.input())
                 .addRichTooltipCallback((slot, tooltip) -> tooltip.add(instructions("limits")));
-        builder.addSlot(RecipeIngredientRole.CATALYST, 56, 24).addItemStack(GreenFireLanternContent.stack(true))
+        builder.addSlot(RecipeIngredientRole.CATALYST, 56, 24).addItemStack(SimulationLanternContent.stack(true))
                 .addRichTooltipCallback((slot, tooltip) -> {
                     tooltip.add(Component.translatable("jei.molecularmanipulator.lantern_simulation.activate",
                             Component.keybind("key.molecularmanipulator.close_eyes")));

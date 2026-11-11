@@ -2,20 +2,19 @@ package com.atir.molecularmanipulator.client.gui.theme;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.atir.molecularmanipulator.client.VanillaFontTestFixture;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import java.awt.Font;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 
 class OsqRefinedLayoutTest {
     private static final String ASSETS = "assets/molecularmanipulator/";
-    private static final List<String> ROOTS = List.of("src/main/resources", "resourcepacks/OmniSequence Dark");
+    private static final List<String> ROOTS = List.of("src/main/resources");
 
     private static OsqLayout layout(String root, String name) throws Exception {
         var constructor = OsqLayout.class.getDeclaredConstructor(JsonObject.class);
@@ -33,6 +32,39 @@ class OsqRefinedLayoutTest {
                 assertSame(popup, layout.layerOf(button));
                 assertTrue(layout.draw.stream().filter(e -> layout.owns(button, e))
                         .noneMatch(e -> "text".equals(e.type)), name + "/" + id);
+            }
+        }
+    }
+
+    @Test void directionButtonsKeepVisiblePaddingInsideTheirPopupWithoutShrinking() throws Exception {
+        for (String root : ROOTS) for (String name : List.of("fab_port_item", "fab_port_fluid", "seq_autocrafter")) {
+            var page = layout(root, name);
+            var popup = page.find("dirs");
+            var image = ImageIO.read(Path.of(root, ASSETS, "textures/gui/sprites/"
+                    + popup.sprite.split(":", 2)[1] + ".png").toFile());
+            assertEquals(Math.round((popup.w + popup.pad[0] + popup.pad[2]) * 4), image.getWidth());
+            assertEquals(Math.round((popup.h + popup.pad[1] + popup.pad[3]) * 4), image.getHeight());
+            int top = -1, bottom = -1;
+            for (int y = 0; y < image.getHeight(); y++) {
+                int pixel = image.getRGB(image.getWidth() / 2, y);
+                if ((pixel >>> 24) >= 230 && (pixel >> 16 & 255) >= 230
+                        && (pixel >> 8 & 255) >= 230 && (pixel & 255) >= 230) {
+                    if (top < 0) top = y;
+                    bottom = y;
+                }
+            }
+            assertTrue(top >= 0 && bottom > top, name + " has a visible inner frame");
+            float visibleTop = popup.y - popup.pad[1] + top / 4f;
+            float visibleBottom = popup.y - popup.pad[1] + bottom / 4f;
+            for (String id : List.of("d北", "d西", "d东", "d南", "d上", "d下")) {
+                var button = page.findControl(id);
+                assertEquals(22, button.w, name + "/" + id);
+                assertEquals(22, button.h, name + "/" + id);
+                assertTrue(button.x >= popup.x + 7 && button.x + button.w <= popup.x + popup.w - 7, name + "/" + id);
+                assertTrue(button.y >= popup.y + 7 && button.y + button.h <= popup.y + popup.h - 7,
+                        name + "/" + id + " must not touch the inner frame");
+                assertTrue(button.y >= visibleTop + 7 && button.y + button.h <= visibleBottom - 7,
+                        name + "/" + id + " needs padding to the actual painted frame, not its shadow");
             }
         }
     }
@@ -81,8 +113,7 @@ class OsqRefinedLayoutTest {
             assertTrue(card.pad[3] > 0);
         }
         for (String name : List.of("button_normal", "button_hover", "tab_active", "row_normal", "key13_disabled", "edge_key", "field_normal"))
-            for (String prefix : List.of("osq_light/fab/", "osq_dark/fab/"))
-                assertArrayEquals(new int[4], OsqSprites.pad(prefix + name));
+            assertArrayEquals(new int[4], OsqSprites.pad("osq_light/fab/" + name));
     }
 
     @Test void iconCenterUsesVisibleAlphaRatherThanTransparentMargins() {
@@ -96,7 +127,7 @@ class OsqRefinedLayoutTest {
         var square = OsqIconInk.measure(new BufferedImage(28, 28, BufferedImage.TYPE_INT_ARGB));
         assertEquals(1, square.aspect());
         assertEquals(7, square.fitWidth(7, 8));
-        assertEquals(7, square.fitHeight(7, 8), "A square dark pause sprite must not become seven by eight");
+        assertEquals(7, square.fitHeight(7, 8), "A square replacement sprite must not become seven by eight");
         var portrait = OsqIconInk.measure(new BufferedImage(7, 8, BufferedImage.TYPE_INT_ARGB));
         assertEquals(7f/8, portrait.aspect());
         assertEquals(7, portrait.fitWidth(8, 8));
@@ -110,26 +141,16 @@ class OsqRefinedLayoutTest {
         assertEquals(133f, OsqLayout.textX(entry, 20));
     }
 
-    @Test void numericAndEngineProviderChainsCoverLiveChineseLabels() throws Exception {
-        var root = Path.of(ROOTS.getFirst(), ASSETS, "font");
-        for (String id : List.of("osq_inter_500_6_5", "osq_intertight_600_6_4", "osq_jetbrainsmono_600_6", "osq_entropy_600_5_4")) {
-            var definition = JsonParser.parseString(Files.readString(root.resolve(id + ".json"))).getAsJsonObject();
-            var faces = new ArrayList<Font>();
-            for (var item : definition.getAsJsonArray("providers")) {
-                var provider = item.getAsJsonObject();
-                if (provider.get("type").getAsString().endsWith("ttf"))
-                    faces.add(Font.createFont(Font.TRUETYPE_FONT,
-                            root.resolve(provider.get("file").getAsString().split(":", 2)[1]).toFile()));
-            }
+    @Test void defaultProviderChainCoversLiveNumbersEngineLabelsAndAllLocalizedChinese() throws Exception {
+        try (var runtime = new VanillaFontTestFixture("zh_cn")) {
+            var face = VanillaFontTestFixture.DEFAULT_FONT;
             for (int codepoint : "第 1/8 页 · 9223372036854775807 格/次 · 有效算力 · 星讯流".codePoints().toArray())
                 if (!Character.isWhitespace(codepoint))
-                    assertTrue(faces.stream().anyMatch(face -> face.canDisplay(codepoint)), id + ": U+" + Integer.toHexString(codepoint));
-        }
-        var locale = JsonParser.parseString(Files.readString(Path.of(ROOTS.getFirst(), ASSETS, "lang/zh_cn.json"))).getAsJsonObject();
-        for (String weight : List.of("medium", "semibold", "bold", "black")) {
-            Font face = Font.createFont(Font.TRUETYPE_FONT, root.resolve("osq_sc_" + weight + ".ttf").toFile());
+                    assertNotNull(runtime.findGlyph(face, codepoint), "minecraft:default: U+" + Integer.toHexString(codepoint));
+            var locale = JsonParser.parseString(Files.readString(Path.of(ROOTS.getFirst(), ASSETS, "lang/zh_cn.json"))).getAsJsonObject();
             for (var value : locale.entrySet()) for (int cp : value.getValue().getAsString().codePoints().toArray())
-                if (cp >= 0x2E80 && cp <= 0x9FFF) assertTrue(face.canDisplay(cp), weight + ": " + value.getKey() + " U+" + Integer.toHexString(cp));
+                if (cp >= 0x2E80 && cp <= 0x9FFF)
+                    assertNotNull(runtime.findGlyph(face, cp), value.getKey() + " U+" + Integer.toHexString(cp));
         }
     }
 
@@ -145,17 +166,14 @@ class OsqRefinedLayoutTest {
         }
     }
 
-    @Test void smallCopyUsesLargerProvidersInBothThemesWithoutChangingBindingAddresses() throws Exception {
+    @Test void smallCopyUsesExplicitReadableSizesAndVanillaDefaultWithoutChangingBindingAddresses() throws Exception {
         for (String root : ROOTS) {
             try (var files = Files.list(Path.of(root, ASSETS, "osq_light/layout"))) {
                 for (var file : files.filter(p -> p.toString().endsWith(".json")).toList()) {
                     var page = layout(root, file.getFileName().toString().replace(".json", ""));
                     for (var entry : page.draw) if ("text".equals(entry.type)) {
                         assertTrue(entry.size >= 7.5f, file + ": " + entry.text);
-                        var provider = JsonParser.parseString(Files.readString(Path.of(ROOTS.getFirst(), ASSETS,
-                                "font/" + entry.fontId.split(":", 2)[1] + ".json"))).getAsJsonObject()
-                                .getAsJsonArray("providers").get(0).getAsJsonObject();
-                        assertEquals(entry.size, provider.get("size").getAsFloat(), .01f, file + ": " + entry.fontId);
+                        assertEquals("minecraft:default", entry.fontId, file + ": " + entry.text);
                     }
                 }
             }
@@ -187,22 +205,37 @@ class OsqRefinedLayoutTest {
     }
 
     @Test void largerResearchCopyUsesFreeSpaceInsteadOfBeingShrunkBackToItsOldSize() throws Exception {
-        Font face = Font.createFont(Font.TRUETYPE_FONT,
-                Path.of(ROOTS.getFirst(), ASSETS, "font/osq_sc_semibold.ttf").toFile()).deriveFont(7.5f);
-        var metrics = new java.awt.font.FontRenderContext(null, true, true);
-        for (String root : ROOTS) {
-            var page = layout(root, "fab_research");
-            for (String key : List.of("gui.molecularmanipulator.fab.s037", "gui.molecularmanipulator.fab.s058",
-                    "gui.molecularmanipulator.fab.s059")) {
-                var text = page.findText(key);
-                assertTrue(face.getStringBounds(text.text, metrics).getWidth() <= text.w + 1, key);
+        try (var runtime = new VanillaFontTestFixture("zh_cn")) {
+            for (String root : ROOTS) {
+                var page = layout(root, "fab_research");
+                for (String key : List.of("gui.molecularmanipulator.fab.s037", "gui.molecularmanipulator.fab.s058",
+                        "gui.molecularmanipulator.fab.s059")) {
+                    var text = page.findText(key);
+                    float width = OsqFonts.widthF(runtime.font, text.staticText().getString(), OsqFonts.id(text.fontId), text.size);
+                    assertTrue(width <= text.w + 1, key + " width=" + width + " available=" + text.w);
+                }
+                var row = page.findControl("proj0");
+                float width = OsqFonts.widthF(runtime.font, "一阶：AE 材料构筑 · 0/9", VanillaFontTestFixture.DEFAULT_FONT, 7.5f);
+                assertTrue(width <= row.w - 12, "proj0 width=" + width + " available=" + (row.w - 12));
             }
-            var row = page.findControl("proj0");
-            assertTrue(face.getStringBounds("一阶：AE 材料构筑 · 0/9", metrics).getWidth() <= row.w - 12);
+        }
+    }
+
+    @Test void centerOverviewKeepsLiveCapacityAndProductionInsteadOfDecorativeComponentCounts() throws Exception {
+        for (String root : ROOTS) {
             var center = layout(root, "seq_center_overview");
-            var total = center.findText("gui.molecularmanipulator.seq.s016");
-            assertTrue(total.w >= 7.5f);
-            assertTrue(OsqLayout.textX(total, total.w) + total.w <= center.width - 8);
+            for (String key : List.of("seq.s013", "seq.s014", "fab.s016", "seq.s015", "seq.s016"))
+                assertNull(center.findText("gui.molecularmanipulator." + key), root + ": " + key);
+            assertTrue(center.draw.stream().noneMatch(e -> e.sprite != null && e.sprite.contains("/legend_")));
+            for (String key : List.of("formed", "overview_patterns", "overview_auto_craft", "overview_pipeline", "overview_pending"))
+                assertNotNull(center.findText("gui.molecularmanipulator." + key), root + ": " + key);
+            for (float[] address : new float[][]{{208.5f, 87}, {217.63f, 87}, {249.58f, 87},
+                    {200.5f, 181}, {211.31f, 181}, {254, 177}, {301.09f, 177}, {352, 177}})
+                assertEquals(1L, center.dynamicTexts().stream()
+                        .filter(e -> e.x == address[0] && e.baseline == address[1]).count(),
+                        root + ": live binding at " + address[0] + ", " + address[1]);
+            assertTrue(center.dynamicTexts().stream().noneMatch(e -> e.baseline == 115.5f || e.baseline == 114.8f),
+                    "Remove legend demo values along with their labels and icons");
         }
     }
 

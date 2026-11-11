@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.client;
 
+import appeng.api.orientation.RelativeSide;
 import appeng.api.stacks.AEFluidKey;
 import appeng.menu.SlotSemantics;
 import appeng.client.gui.style.ScreenStyle;
@@ -8,6 +9,7 @@ import com.atir.molecularmanipulator.blockentity.MatterFabricationPortBlockEntit
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import java.util.*;
@@ -40,14 +42,15 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
             auto=addScreenWidget(fluid?ui.button("auto",leftPos,topPos,()->text(menu.autoOutput?"auto_on":"auto_off"),menu::toggleAutoOutput)
                     :ui.button("return",leftPos,topPos,()->text(menu.autoOutput?"auto_on":"auto_off"),menu::toggleAutoOutput));
             ui.state(auto,()->menu.autoOutput?"active":"normal");
+            auto.setTooltip(Tooltip.create(text("auto_hint")));
             var direction=addScreenWidget(ui.button("tool1",leftPos,topPos,()->text("directions"),this::toggleDirections));
             direction.setTooltip(Tooltip.create(OsqUi.tr("gui.molecularmanipulator.auto_craft_output_directions_hint")));
             ui.state(direction,()->directionsOpen?"active":"normal");
             for(int i=0;i<6;i++){
-                var dir=OsqNeighborDirections.SIDES[i];
-                Button b=ui.button(OsqNeighborDirections.IDS[i],leftPos,topPos,()->text("side."+dir.getName()),()->menu.toggleOutputSide(dir.get3DDataValue()));
-                ui.state(b,()->(menu.outputSides&(1<<dir.get3DDataValue()))!=0?"active":"normal");
-                ui.itemIcon(b,()->OsqNeighborDirections.icon(menu.getPort().getLevel(),menu.getPort().getBlockPos(),dir));
+                var side=OsqNeighborDirections.OUTPUT_SIDES[i];
+                Button b=ui.button(OsqNeighborDirections.IDS[i],leftPos,topPos,()->OsqNeighborDirections.label(side),()->menu.toggleOutputSide(outputSide(side).get3DDataValue()));
+                ui.state(b,()->(menu.outputSides&(1<<outputSide(side).get3DDataValue()))!=0?"active":"normal");
+                ui.itemIcon(b,()->OsqNeighborDirections.icon(menu.getPort().getLevel(),menu.getPort().getBlockPos(),outputSide(side)));
                 sides.add(addScreenWidget(b));
             }
         }
@@ -55,13 +58,11 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
             if("tip".equals(e.kind))return false;
             if(Arrays.asList(OsqNeighborDirections.IDS).contains(e.id))return directionsOpen;
             if("dirs".equals(e.id)
-                    ||"gui.molecularmanipulator.auto_craft_output_directions".equals(e.lang)
-                    ||"gui.molecularmanipulator.seq.s002".equals(e.lang))return directionsOpen;
+                    ||"gui.molecularmanipulator.auto_craft_output_directions".equals(e.lang))return directionsOpen;
             float y="text".equals(e.type)?e.baseline:e.y;
-            return !directionsOpen||y<40||y>=124;
+            return !directionsOpen||y<40||y>=140;
         };
         ui.color("gui.molecularmanipulator.fabrication.port.network_online",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
-        ui.color("gui.molecularmanipulator.seq.s002",()->ui.palette.ink3);
         ui.sprite(12,30,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         ui.number(fluid?96:92,69,()->menu.occupied);
         ui.number(fluid?106.52f:102.77f,69,()->fluid?"/ 4":"/ 16");
@@ -71,6 +72,7 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
         ui.omit("gui.molecularmanipulator.fab.s031");
         refresh();
     }
+    private Direction outputSide(RelativeSide side){return OsqNeighborDirections.worldSide(menu.getPort().getBlockState(),side);}
     private void toggleDirections(){directionsOpen=!directionsOpen;refresh();}
     private void refresh(){
         if(menu.getPort().getPortType().isInput())directionsOpen=false;
@@ -81,7 +83,8 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
         if(directionsOpen)for(var slot:menu.getSlots(SlotSemantics.MACHINE_OUTPUT)){slot.x=-1000;slot.y=-1000;}
         for(int i=0;i<sides.size();i++){
             var b=sides.get(i);b.visible=directionsOpen;if(!directionsOpen)continue;
-            var hint=OsqNeighborDirections.tooltip(menu.getPort().getLevel(),menu.getPort().getBlockPos(),OsqNeighborDirections.SIDES[i],menu.outputSides);
+            var side=OsqNeighborDirections.OUTPUT_SIDES[i];
+            var hint=OsqNeighborDirections.tooltip(menu.getPort().getLevel(),menu.getPort().getBlockPos(),side,outputSide(side),menu.outputSides);
             if(!hint.equals(sideTooltips[i])){b.setTooltip(Tooltip.create(hint));sideTooltips[i]=hint;}
         }
     }

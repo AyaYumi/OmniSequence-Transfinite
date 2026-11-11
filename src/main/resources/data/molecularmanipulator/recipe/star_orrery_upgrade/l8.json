@@ -1,0 +1,25 @@
+{
+  "type": "molecularmanipulator:star_orrery_upgrade",
+  "level": 8,
+  "energy": 0,
+  "ae_per_tick": 1,
+  "auto_build": true,
+  "conditions": {
+    "type": "anchors",
+    "match": "all",
+    "targets": [
+      {
+        "id": "reference",
+        "count": 96
+      },
+      {
+        "id": "quantum",
+        "count": 168
+      },
+      {
+        "id": "terminal",
+        "count": 152
+      }
+    ]
+  }
+}

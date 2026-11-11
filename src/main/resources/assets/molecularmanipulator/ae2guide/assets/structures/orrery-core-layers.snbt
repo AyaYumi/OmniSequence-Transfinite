@@ -1,0 +1,232 @@
+{
+  "DataVersion": 3955,
+  "size": [
+    11,
+    1,
+    3
+  ],
+  "data": [
+    {
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        0,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        0,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        1,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        1,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        1,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        2,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        2,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        2,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        4,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        4,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_observation_port"
+    },
+    {
+      "pos": [
+        4,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        5,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_observation_port"
+    },
+    {
+      "pos": [
+        5,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_engine_core"
+    },
+    {
+      "pos": [
+        5,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_observation_port"
+    },
+    {
+      "pos": [
+        6,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        6,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_observation_port"
+    },
+    {
+      "pos": [
+        6,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        8,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        8,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        8,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        9,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        9,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        9,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        10,
+        0,
+        0
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        10,
+        0,
+        1
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    },
+    {
+      "pos": [
+        10,
+        0,
+        2
+      ],
+      "state": "molecularmanipulator:star_computation_engine_casing"
+    }
+  ],
+  "entities": [],
+  "palette": [
+    "molecularmanipulator:star_computation_engine_casing",
+    "molecularmanipulator:star_computation_engine_core",
+    "molecularmanipulator:star_computation_observation_port"
+  ]
+}

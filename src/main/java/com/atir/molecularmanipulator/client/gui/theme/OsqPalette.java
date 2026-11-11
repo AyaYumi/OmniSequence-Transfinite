@@ -22,10 +22,10 @@ public enum OsqPalette {
 
     /** The approved light glass uses one gray-purple palette across families. */
     OsqPalette(String id, boolean dark) {
-        this(id, dark, 0xFFCBCCD4, 0xFFCBCCD4, 0xFF9A9FB4, 0xFFB3B7C7, 0xFF4D4D67,
+        this(id, dark, 0xFFCBCCD4, 0xFFCBCCD4, 0xFF9A9FB4, 0xFFB3B7C7, 0xFF55536C,
                 0xFF2E2C40, 0xFF4D4D67, 0xFF5D637D, 0xFF9A9FB4, 0xFF413F54, 0xFF9A9FB4,
                 0xFF7CA0D2, 0xFF696D88, 0xFFE0E5F2, 0xFFB9A478, 0xFFDFD8C8,
-                0xFFCE654F, 0xFF65AD91, 0xFFADB0C4, 0xFF4D4D67, 0xFFF2F2F2, 0xFFF2F2F2, 0xFF878FA5);
+                0xFFCE654F, 0xFF65AD91, 0xFFADB0C4, 0xFF55536C, 0xFFF2F2F2, 0xFFF2F2F2, 0xFF878FA5);
     }
 
     OsqPalette(String id, boolean dark, int paper, int card, int raise, int sunk, int feat, int ink, int ink2, int ink3, int ink4, int disT, int hair, int acc, int accB, int accT, int gold, int goldT, int warn, int ok, int slot, int blk, int inv, int invT, int dis) {
@@ -70,8 +70,9 @@ public enum OsqPalette {
     public int controlText(String kind, String status, boolean enabled) {
         if (!enabled || status.equals("disabled")) return disT;
         if (!dark) return status.equals("hover") ? 0xFF517497 : 0xFFF2F2F2;
-        if (status.equals("danger") || (kind.equals("tab") || kind.equals("row")) && status.equals("active")) return invT;
-        return status.equals("active") || status.equals("confirm") ? 0xFFFFFFFF : ink;
+        if (status.equals("danger") || status.equals("confirm")) return 0xFFF2F2F2;
+        if ((kind.equals("tab") || kind.equals("row")) && status.equals("active")) return invT;
+        return status.equals("active") ? 0xFFFFFFFF : ink;
     }
 
     public static int withAlpha(int argb, float alpha) {

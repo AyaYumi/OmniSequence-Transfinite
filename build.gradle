@@ -27,13 +27,6 @@ sourceSets.main.resources {
     exclude("assets/examplemod/**") // stale MDK example resources
 }
 
-// NeoForge discovers this optional pack inside the mod JAR; no user-side ZIP is required.
-tasks.named('processResources', ProcessResources).configure {
-    from('resourcepacks/OmniSequence Dark') {
-        into 'resourcepacks/osq_dark'
-    }
-}
-
 repositories {
     maven {
         name = 'CurseMaven'
@@ -238,24 +231,15 @@ tasks.named('jar', Jar).configure {
     from('THIRD_PARTY_NOTICES.md')
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
-                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
+                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md',
+                'recipe-permissions.zh-CN.md', 'star-research-nodes.zh-CN.md',
+                'star-orrery-upgrades.md', 'star-orrery-upgrades.zh-CN.md'
         into 'docs'
     }
     from('licenses') {
         into 'licenses'
     }
 }
-
-var packageOsqDarkResourcePack = tasks.register('packageOsqDarkResourcePack', Zip) {
-    group = 'distribution'
-    description = 'Package the optional OmniSequence dark GUI resource pack.'
-    from('resourcepacks/OmniSequence Dark')
-    archiveFileName = 'OmniSequence-Dark-GUI.zip'
-    destinationDirectory = layout.buildDirectory.dir('distributions')
-    preserveFileTimestamps = false
-    reproducibleFileOrder = true
-}
-tasks.named('assemble').configure { dependsOn packageOsqDarkResourcePack }
 
 tasks.named('compileTestJava', JavaCompile).configure {
     // Geometry tests use the same Minecraft/JOML vertex API as the main renderer.

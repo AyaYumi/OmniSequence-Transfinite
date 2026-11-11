@@ -87,7 +87,7 @@ public final class MatterRecipeBridge {
 
     record Input(Ingredient ingredient, int count) {}
     record LightningRequirement(String tier, long amount) {}
-    private record Branch(Output output,
+    private record Branch(RecipeHolder<?> source, Output output,
             List<MatterFabricationRecipe.CountedIngredient> ingredients,
             List<MatterFabricationRecipe.CountedIngredient> catalysts,
             FluidStack fluid, List<appeng.api.stacks.GenericStack> aeInputs, String signature) {}
@@ -143,12 +143,14 @@ public final class MatterRecipeBridge {
                 recordFailure(failures, machine, holder.id());
                 continue;
             }
-            var branch = convert(level, recipe, output, encoded, type, machine);
+            var branch = convert(level, holder, output, encoded, type, machine);
             if (branch == null) {
                 recordFailure(failures, machine, holder.id());
                 continue;
             }
-            var key = machine.key + "|" + outputKey(output) + "|" + branch.signature;
+            // Distinct source IDs must remain distinct permission candidates, even
+            // when their converted materials and outputs happen to be identical.
+            var key = machine.key + "|" + outputKey(output) + "|" + branch.signature + "|" + holder.id();
             grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(branch);
             info.putIfAbsent(key, new GroupInfo(machine, output, branch.signature));
         }
@@ -164,7 +166,9 @@ public final class MatterRecipeBridge {
         var result = new ArrayList<ImportedRecipe>();
         var usedIds = new LinkedHashSet<ResourceLocation>();
         for (var entries : byMachineOutput.values()) {
-            entries.sort(Comparator.comparing(entry -> info.get(entry.getKey()).signature));
+            entries.sort(Comparator.<Map.Entry<String, List<Branch>>, String>comparing(
+                    entry -> info.get(entry.getKey()).signature)
+                    .thenComparing(entry -> entry.getValue().getFirst().source().id().toString()));
             var first = info.get(entries.getFirst().getKey());
             var outputId = !first.output.items().isEmpty()
                     ? BuiltInRegistries.ITEM.getKey(first.output.items().getFirst().getItem())
@@ -196,7 +200,8 @@ public final class MatterRecipeBridge {
                         branch.output().items(), branch.fluid(),
                         outputFluids.isEmpty() ? FluidStack.EMPTY : outputFluids.getFirst(),
                         branch.aeInputs(), aeOutputs, declaration == null ? MatterFabricationRecipe.DEFAULT_PROCESSING_TIME : declaration.processingTime(),
-                        declaration == null ? 256 : declaration.aePerTick(), true);
+                        declaration == null ? 256 : declaration.aePerTick(), true)
+                        .withSourceRecipeId(branch.source().id());
                 result.add(new ImportedRecipe(new RecipeHolder<>(id, fabrication), group.machine.key,
                         group.machine.modId,
                         group.output.items().isEmpty() ? ItemStack.EMPTY : group.output.items().getFirst(),
@@ -573,8 +578,9 @@ public final class MatterRecipeBridge {
         return 1;
     }
 
-    private static Branch convert(Level level, Recipe<?> recipe, Output output, JsonElement encoded, String type,
+    private static Branch convert(Level level, RecipeHolder<?> source, Output output, JsonElement encoded, String type,
             MachineSpec machine) {
+        var recipe = source.value();
         try {
             var parsed = new ArrayList<Input>();
             var catalysts = new ArrayList<MatterFabricationRecipe.CountedIngredient>();
@@ -658,7 +664,7 @@ public final class MatterRecipeBridge {
                     .map(value -> value.what().toString() + "#" + value.amount()).sorted().reduce("", (a,b) -> a + ";" + b);
             if (!catalysts.isEmpty()) signature += "|catalysts=" + catalysts.stream()
                     .map(value -> ingredientKey(value.ingredient()) + "=" + value.count()).sorted().reduce("", (a,b) -> a + ";" + b);
-            return new Branch(output, List.copyOf(ingredients), List.copyOf(catalysts), fluid,
+            return new Branch(source, output, List.copyOf(ingredients), List.copyOf(catalysts), fluid,
                     List.copyOf(aeInputs), signature);
         } catch (RuntimeException ignored) { return null; }
     }

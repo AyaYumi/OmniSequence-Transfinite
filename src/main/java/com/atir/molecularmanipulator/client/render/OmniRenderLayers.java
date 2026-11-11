@@ -46,6 +46,13 @@ public final class OmniRenderLayers extends RenderType {
             createTranslucentEmissiveColor();
     private static final RenderType ADDITIVE_DEPTH_COLOR = createAdditiveDepthColor();
     private static final RenderType ADDITIVE_COLOR = createAdditiveColor();
+    private static final RenderType DETACHED_SIGNAL_STREAMS = RenderType.create(
+            "omni_detached_signal_streams", DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS,
+            4096, false, false, CompositeState.builder()
+                    .setShaderState(POSITION_COLOR_SHADER).setTransparencyState(LIGHTNING_TRANSPARENCY)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                    .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                    .setWriteMaskState(COLOR_WRITE).createCompositeState(false));
     private static final RenderType STAR_ORRERY_CRYSTAL = createStarOrreryColor("omni_star_orrery_crystal", true);
     private static final RenderType STAR_ORRERY_GLOW = createStarOrreryColor("omni_star_orrery_glow", false);
     private static final RenderType STAR_ORRERY_RAIN_DEPTH = createStarOrreryRain("omni_star_orrery_rain_depth", true);
@@ -134,6 +141,13 @@ public final class OmniRenderLayers extends RenderType {
     /** The no-depth-write additive geometry pass. */
     public static RenderType additiveColor() {
         return ADDITIVE_COLOR;
+    }
+
+    /** Two-sided void glyphs: preserve block occlusion and use the orrery's emissive path under Iris. */
+    public static RenderType detachedSignalStreams() {
+        // POSITION_COLOR is not an emissive material in shader packs. The existing
+        // beacon layer keeps every glyph full-bright without adding a depth-writing pass.
+        return SingularityEffectLayers.shadersActive() ? starOrreryRainShader(true) : DETACHED_SIGNAL_STREAMS;
     }
 
     /** Translucent ink diffusion inside the open star_orrery well; no depth writes. */

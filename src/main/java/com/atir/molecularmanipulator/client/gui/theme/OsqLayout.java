@@ -135,7 +135,7 @@ public final class OsqLayout {
         }
     }
 
-    /** Runtime IDs stay stable. The optional dark resource pack overrides osq_light. */
+    /** Stable layout IDs also allow ordinary resource-pack overrides. */
     public static OsqLayout forTheme(String screen, boolean dark) {
         return load(ResourceLocation.fromNamespaceAndPath("molecularmanipulator", "osq_light/layout/" + screen + ".json"));
     }
@@ -259,7 +259,7 @@ public final class OsqLayout {
         ResourceLocation fid = OsqFonts.id(e.fontId);
         int col = OsqPalette.withAlpha(e.color(), e.opacity);
         if (e.wrap && e.w > 0) {
-            var lines = OsqFonts.wrap(font, value.getString(), fid, e.w + 0.5f);
+            var lines = OsqFonts.wrap(font, value.getString(), fid, e.size, e.w + 0.5f);
             var row = new Entry();
             row.x = e.x; row.drawX = e.drawX; row.w = e.w; row.size = e.size; row.alignment = e.alignment;
             for (int i = 0; i < lines.size(); i++) {
@@ -281,7 +281,7 @@ public final class OsqLayout {
     private static void drawFittedText(GuiGraphics g, Font font, Component text, ResourceLocation fontId,
             Entry entry, int left, int top, int color) {
         String plain = text.getString();
-        float width = textWidth(font, plain, fontId, entry.letterSpacing);
+        float width = textWidth(font, plain, fontId, entry.size, entry.letterSpacing);
         float minimumScale = entry.size > 7.5f ? 7.5f / entry.size : 1;
         if (entry.w > 0 && width * minimumScale > entry.w + .5f) {
             // Long live names must not turn the readable body font back into
@@ -292,13 +292,13 @@ public final class OsqLayout {
             while (low < high) {
                 int middle = (low + high + 1) / 2;
                 String candidate = plain.substring(0, plain.offsetByCodePoints(0, middle)) + suffix;
-                if (textWidth(font, candidate, fontId, entry.letterSpacing) <= available) low = middle;
+                if (textWidth(font, candidate, fontId, entry.size, entry.letterSpacing) <= available) low = middle;
                 else high = middle - 1;
             }
-            plain = textWidth(font, suffix, fontId, entry.letterSpacing) > available ? ""
+            plain = textWidth(font, suffix, fontId, entry.size, entry.letterSpacing) > available ? ""
                     : plain.substring(0, plain.offsetByCodePoints(0, low)) + suffix;
             text = Component.literal(plain);
-            width = textWidth(font, plain, fontId, entry.letterSpacing);
+            width = textWidth(font, plain, fontId, entry.size, entry.letterSpacing);
         }
         float scale = entry.w > 0 && width > entry.w + .5f ? Math.max(minimumScale, entry.w / width) : 1.0f;
         float x = textX(entry, width * scale);
@@ -316,8 +316,8 @@ public final class OsqLayout {
         }
     }
 
-    private static float textWidth(Font font, String text, ResourceLocation face, float tracking) {
-        return Math.max(0, OsqFonts.widthF(font, text, face)
+    private static float textWidth(Font font, String text, ResourceLocation face, float size, float tracking) {
+        return Math.max(0, OsqFonts.widthF(font, text, face, size)
                 + Math.max(0, text.codePointCount(0, text.length()) - 1) * tracking);
     }
 

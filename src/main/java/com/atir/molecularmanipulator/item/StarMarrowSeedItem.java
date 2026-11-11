@@ -28,7 +28,7 @@ import java.util.List;
  * One use moves an entroized Fluix parent rock one step toward a star marrow
  * parent rock. Once the source is star marrow, further uses repair it:
  * heavily damaged -> damaged -> flawed. Flawless parent rocks are obtained by capturing
- * a flawed rock during a green-fire lantern simulation, not by using a seed.
+ * a flawed rock during a lantern simulation, not by using a seed.
  */
 public final class StarMarrowSeedItem extends Item {
     private static final ResourceLocation ENTRO_FULLY =

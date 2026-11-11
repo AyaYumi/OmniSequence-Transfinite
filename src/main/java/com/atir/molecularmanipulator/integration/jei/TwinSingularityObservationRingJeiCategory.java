@@ -33,8 +33,7 @@ public final class TwinSingularityObservationRingJeiCategory
     }
 
     public static List<Conversion> recipes() {
-        return List.of(new ItemStack(ModContent.PRIMORDIAL_CRYSTAL_CORE.get()),
-                        new ItemStack(ModContent.STAR_MARROW_CRYSTAL.get()))
+        return List.of(new ItemStack(ModContent.PRIMORDIAL_CRYSTAL_CORE.get()))
                 .stream().map(input -> new Conversion(input, LabCrystallization.resultFor(input))).toList();
     }
 

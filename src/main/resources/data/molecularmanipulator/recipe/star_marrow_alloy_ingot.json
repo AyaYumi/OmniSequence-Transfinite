@@ -1,47 +1,42 @@
 {
-  "neoforge:conditions": [
-    {
-      "type": "neoforge:mod_loaded",
-      "modid": "advanced_ae"
-    }
-  ],
-  "type": "advanced_ae:reaction",
-  "input_energy": 51200,
-  "input_fluid": {
-    "amount": 500,
-    "ingredient": {
-      "fluid": "minecraft:water"
-    }
-  },
-  "input_items": [
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
     {
       "ingredient": {
         "item": "molecularmanipulator:star_marrow_crystal_dust"
       },
-      "amount": 4
+      "count": 32
     },
     {
       "ingredient": {
         "item": "minecraft:iron_ingot"
       },
-      "amount": 4
+      "count": 32
     },
     {
       "ingredient": {
         "item": "ae2:fluix_dust"
       },
-      "amount": 1
+      "count": 8
     },
     {
       "ingredient": {
         "item": "ae2:sky_dust"
       },
-      "amount": 1
+      "count": 8
     }
   ],
-  "output": {
-    "#": 4,
-    "#t": "ae2:i",
-    "id": "molecularmanipulator:star_marrow_alloy_ingot"
+  "results": [
+    {
+      "id": "molecularmanipulator:star_marrow_alloy_ingot",
+      "count": 32
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 1024,
+  "requires_research": true,
+  "fluid_input": {
+    "id": "minecraft:water",
+    "amount": 4000
   }
 }

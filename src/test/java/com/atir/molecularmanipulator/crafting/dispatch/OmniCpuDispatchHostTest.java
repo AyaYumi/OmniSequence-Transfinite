@@ -377,12 +377,7 @@ class OmniCpuDispatchHostTest {
         state.setOutputRemaining(HUGE);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$exactState", state);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizedPhysicalCpu", true);
-        var callbackType = Class.forName(CraftingCpuLogicMixin.class.getName() + "$NativeBigIntegerBatchCallback");
-        var constructor = callbackType.getDeclaredConstructor(CraftingCpuLogicMixin.class,
-                IPatternDetails.class, BigInteger.class, long.class);
-        constructor.setAccessible(true);
-        var callback = (com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks)
-                constructor.newInstance(cpu, pattern, BigInteger.ONE, 1L);
+        var callback = nativeCallback();
         var normalize = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$normalizeExternalScaledTasks",
                 appeng.crafting.execution.ExecutingCraftingJob.class);
         normalize.setAccessible(true);
@@ -394,6 +389,27 @@ class OmniCpuDispatchHostTest {
         callback.onOutputs(java.util.List.of(new com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput(
                 RETURNED, BigInteger.ONE)));
         assertEquals(BigInteger.ONE, state.uncreditedOutput(RETURNED));
+    }
+
+    @Test void nativeBatchCancellationIsTerminalAndDoesNotCreditLateOutputs() throws Exception {
+        var state = OmniExactCraftingState.create(Map.of(pattern, HUGE), Map.of());
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$exactState", state);
+        var callback = nativeCallback();
+        callback.onCancelled(BigInteger.ONE);
+        callback.onCancelled(BigInteger.ONE);
+        callback.onOutputs(java.util.List.of(new com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput(
+                RETURNED, BigInteger.ONE)));
+        assertEquals(HUGE, state.remaining(pattern));
+        assertEquals(BigInteger.ZERO, state.uncreditedOutput(RETURNED));
+        assertTrue(state.completedOutputs().isEmpty());
+    }
+
+    private com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks nativeCallback() throws Exception {
+        var type = Class.forName(CraftingCpuLogicMixin.class.getName() + "$NativeBigIntegerBatchCallback");
+        var constructor = type.getDeclaredConstructor(CraftingCpuLogicMixin.class, IPatternDetails.class, BigInteger.class);
+        constructor.setAccessible(true);
+        return (com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks)
+                constructor.newInstance(cpu, pattern, BigInteger.ONE);
     }
 
     @Test void ordinaryCommitAdvancesExactlyCraftCountAndConsumesSharedWorkBudget() throws Exception {

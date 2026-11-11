@@ -140,6 +140,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private double clientResearchSample;
     private int progress;
     private ResourceLocation activeRecipeId;
+    private boolean manualAdmitted;
     private ResourceLocation patternRecipeId;
     private BlockPos processingAssembly;
     private int nextAssembly;
@@ -149,10 +150,10 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private final List<MatterFabricationPatternAssemblyBlockEntity> serviceAssemblies = new ArrayList<>();
     private com.atir.molecularmanipulator.crafting.MatterRecipeIndex selectionIndex;
     private MatterFabricationPortBlockEntity selectionItems, selectionFluids;
-    private long selectionItemRevision, selectionFluidRevision, selectionResearchRevision;
-    private int selectionEntropyUnlockMask;
+    private long selectionItemRevision, selectionFluidRevision;
     private ResourceLocation selectionPattern;
-    private RecipeSelection cachedSelection;
+    // Structural matches only. Authorization is live and is never a cached result.
+    private List<RecipeSelection> cachedSelections = List.of();
     private boolean selectionCached;
     private long catalystCacheTick = Long.MIN_VALUE;
     private Map<AEItemKey, Long> sharedCatalysts = Map.of();
@@ -1309,6 +1310,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         var recipe = holder.value();
         if (!holder.id().equals(activeRecipeId)) {
             progress = 0;
+            manualAdmitted = false;
             currentProcessingTime = 0;
             activeRecipeId = holder.id();
         }
@@ -1323,7 +1325,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             setState(ProcessingState.WAITING_CATALYST);
             return;
         }
-        if (progress == 0) manualCrafts = manualBatchLimit(recipe, input, profile.parallel());
+        if (!manualAdmitted) manualCrafts = manualBatchLimit(recipe, input, profile.parallel());
         if (manualCrafts <= 0) {
             setState(outputsFit(recipe, 1) ? ProcessingState.WAITING_POWER : ProcessingState.OUTPUT_BLOCKED); return;
         }
@@ -1339,6 +1341,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             return;
         }
 
+        manualAdmitted = true;
         progress++;
         setState(ProcessingState.RUNNING);
         if (progress >= currentProcessingTime) {
@@ -1354,33 +1357,42 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         long itemRevision = items == null ? 0 : items.contentsRevision();
         long fluidRevision = fluids == null ? 0 : fluids.contentsRevision();
         var index = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level);
-        long researchRevision = research.permissionRevision();
-        int entropyUnlockMask = StarComputationNetwork.unlockMask(getMainNode().getGrid());
         if (selectionCached && selectionIndex == index && selectionItems == items && selectionFluids == fluids
                 && selectionItemRevision == itemRevision && selectionFluidRevision == fluidRevision
-                && selectionResearchRevision == researchRevision && selectionEntropyUnlockMask == entropyUnlockMask
                 && java.util.Objects.equals(selectionPattern, patternRecipeId)) {
-            return cachedSelection;
+            return selectPermittedRecipe();
         }
-        cachedSelection = null;
+        var matches = new ArrayList<RecipeSelection>();
         if (inputsAreEmpty()) {
             patternRecipeId = null;
         } else {
-            outer: for (var input : snapshotInputs()) {
+            for (var input : snapshotInputs()) {
                 for (var holder : index.fabrication()) {
                     if ((patternRecipeId == null || holder.id().equals(patternRecipeId))
-                            && holder.value().matches(input, level) && MatterResearchApi.canUseRecipe(this, holder)) {
-                        cachedSelection = new RecipeSelection(input, holder);
-                        break outer;
+                            && holder.value().matches(input, level)) {
+                        matches.add(new RecipeSelection(input, holder));
                     }
                 }
             }
         }
+        cachedSelections = List.copyOf(matches);
         selectionCached = true; selectionIndex = index; selectionItems = items; selectionFluids = fluids;
         selectionItemRevision = itemRevision; selectionFluidRevision = fluidRevision;
-        selectionResearchRevision = researchRevision; selectionPattern = patternRecipeId;
-        selectionEntropyUnlockMask = entropyUnlockMask;
-        return cachedSelection;
+        selectionPattern = patternRecipeId;
+        return selectPermittedRecipe();
+    }
+
+    private RecipeSelection selectPermittedRecipe() {
+        if (manualAdmitted && activeRecipeId != null) {
+            // The first processing tick admitted this exact manual batch. Finish
+            // it after sharing expires, but never use that approval for a new one.
+            return cachedSelections.stream().filter(selection -> selection.holder().id().equals(activeRecipeId))
+                    .findFirst().orElse(null);
+        }
+        for (var selection : cachedSelections) {
+            if (MatterResearchApi.canUseRecipe(this, selection.holder())) return selection;
+        }
+        return null;
     }
 
     private List<MatterFabricationRecipeInput> snapshotInputs() {
@@ -1480,6 +1492,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
             return;
         }
         progress = 0;
+        manualAdmitted = false;
         activeRecipeId = null;
         patternRecipeId = null;
         var inputPort = getPort(MatterFabricationStructure.ITEM_INPUT);
@@ -1522,7 +1535,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private boolean canAdmitBatch() {
         return level != null && !level.isClientSide() && structureFormed && getMainNode().isActive()
                 && !building && !dismantling && !updatingStructure && inputsAreEmpty()
-                && (batch.hasWork() || progress == 0);
+                && (batch.hasWork() || !manualAdmitted && progress == 0);
     }
 
     boolean hasBatchWork() { return batch.hasWork(); }
@@ -1564,7 +1577,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private boolean processPatternBuffers() {
         if (!structureFormed || !getMainNode().isActive()) { processingAssembly = null; return false; }
         // Do not interrupt a manual recipe that is already consuming processing time.
-        if (processingAssembly == null && activeRecipeId != null && progress > 0) return false;
+        if (processingAssembly == null && activeRecipeId != null && manualAdmitted) return false;
         refreshServiceCache();
         var assemblies = serviceAssemblies;
         if (assemblies.isEmpty()) { processingAssembly = null; return false; }
@@ -1764,6 +1777,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
 
     private void resetProgress() {
         progress = 0;
+        manualAdmitted = false;
         activeRecipeId = null;
         currentProcessingTime = 0;
         currentAePerTick = 0.0;
@@ -1910,6 +1924,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         else tag.remove(RESEARCH_ORDERS_TAG);
         if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(registries)); else tag.remove(BATCH_TAG);
         tag.putLong("fabrication_manual_crafts", manualCrafts);
+        tag.putBoolean("fabrication_manual_admitted", manualAdmitted);
         tag.putInt(PROGRESS_TAG, progress);
         tag.putInt("fabrication_processing_duration", currentProcessingTime);
         if (activeRecipeId != null) {
@@ -1961,6 +1976,9 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         progress = Math.max(0, tag.getInt(PROGRESS_TAG));
         currentProcessingTime = Math.max(0, tag.getInt("fabrication_processing_duration"));
         activeRecipeId = ResourceLocation.tryParse(tag.getString(ACTIVE_RECIPE_TAG));
+        // Keep admission independent from rounded/rescaled progress (which may be zero).
+        manualAdmitted = activeRecipeId != null && (tag.contains("fabrication_manual_admitted")
+                ? tag.getBoolean("fabrication_manual_admitted") : progress > 0);
         patternRecipeId = ResourceLocation.tryParse(tag.getString(PATTERN_RECIPE_TAG));
         building = tag.getBoolean(BUILDING_TAG);
         dismantling = tag.getBoolean(DISMANTLING_TAG);

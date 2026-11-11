@@ -3,41 +3,45 @@ package com.atir.molecularmanipulator.client;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.JsonParser;
-import java.awt.Font;
-import java.awt.font.FontRenderContext;
-import java.awt.geom.AffineTransform;
+import com.mojang.blaze3d.font.SheetGlyphInfo;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.List;
+import net.minecraft.client.gui.font.providers.BitmapProvider;
+import net.minecraft.client.gui.font.providers.UnihexProvider;
 import org.junit.jupiter.api.Test;
 
-/** Reads the actual TTF glyphs, not just filenames; no Minecraft client is needed. */
+/** Uses Minecraft's actual bitmap and indexed Unihex data, not bundled outlines or guessed widths. */
 class StarComputationEngineFontTest {
     private static final Path ASSETS = Path.of("src/main/resources/assets/molecularmanipulator");
-    private static final Path FONTS = ASSETS.resolve("font");
-    private static final List<String> FACES = List.of("500_5", "600_5_4", "600_6", "700_6_6", "700_9", "900_13");
 
     @Test
-    void localFallbackPrecedesVanillaAndMatchesEveryUiFaceSizeAndShift() throws Exception {
-        for (var suffix : FACES) {
-            var providers = JsonParser.parseString(Files.readString(FONTS.resolve("osq_entropy_" + suffix + ".json")))
-                    .getAsJsonObject().getAsJsonArray("providers");
-            assertEquals(3, providers.size());
-            var primary = providers.get(0).getAsJsonObject();
-            var fallback = providers.get(1).getAsJsonObject();
-            assertTrue(primary.get("file").getAsString().startsWith("molecularmanipulator:osq_sc_"));
-            assertEquals("molecularmanipulator:osq_entropy_" + suffix.split("_")[0] + ".ttf",
-                    fallback.get("file").getAsString());
-            for (var key : List.of("type", "size", "oversample", "shift", "skip")) {
-                assertEquals(primary.get(key), fallback.get(key), suffix + ": " + key);
+    void defaultProviderChainUsesBitmapLatinUnihexChineseAndNativeSpaces() throws Exception {
+        try (var runtime = new VanillaFontTestFixture("zh_cn")) {
+            var face = VanillaFontTestFixture.DEFAULT_FONT;
+            assertEquals(9, runtime.font.lineHeight);
+            for (int cp : "AE 0123456789".codePoints().filter(cp -> cp != ' ').toArray()) {
+                assertInstanceOf(BitmapProvider.class, runtime.providerFor(face, cp));
+                var sheet = sheet(runtime, cp);
+                assertEquals(8, sheet.getPixelHeight() / sheet.getOversample(), .001f);
+                assertEquals(0, sheet.getTop(), .001f);
             }
-            assertEquals("minecraft:default", providers.get(2).getAsJsonObject().get("id").getAsString());
+            assertInstanceOf(UnihexProvider.class, runtime.providerFor(face, '熵'));
+            var entropy = sheet(runtime, '熵');
+            assertEquals(16, entropy.getPixelHeight());
+            assertEquals(2, entropy.getOversample());
+            assertEquals(8, entropy.getBottom() - entropy.getTop(), .001f);
+            assertEquals(6, runtime.glyph(face, 'A').getAdvance());
+            assertEquals(9, runtime.glyph(face, '熵').getAdvance());
+            var space = runtime.findGlyph(face, ' ');
+            assertNotNull(space);
+            assertEquals(4, space.getAdvance());
+            space.bake(unused -> fail("The native space provider must not draw a glyph cell"));
         }
     }
 
     @Test
-    void realGlyphsCoverAllLocalizedEntropyUiCjkWithoutVanillaFallback() throws Exception {
+    void realVanillaGlyphsCoverAllLocalizedEntropyUiCjk() throws Exception {
         var language = JsonParser.parseString(Files.readString(ASSETS.resolve("lang/zh_cn.json"))).getAsJsonObject();
         var codepoints = new HashSet<Integer>();
         language.entrySet().stream().filter(entry -> entry.getKey().startsWith("gui.molecularmanipulator.star_computation.")
@@ -45,21 +49,24 @@ class StarComputationEngineFontTest {
                 .forEach(entry -> entry.getValue().getAsString().codePoints()
                         .filter(cp -> cp >= 0x3400 && cp <= 0x9fff).forEach(codepoints::add));
         assertTrue(codepoints.contains((int) '熵'));
-        var context = new FontRenderContext(new AffineTransform(), true, true);
-        for (var suffix : FACES) {
-            var providers = JsonParser.parseString(Files.readString(FONTS.resolve("osq_entropy_" + suffix + ".json")))
-                    .getAsJsonObject().getAsJsonArray("providers");
-            var faces = new java.util.ArrayList<Font>();
-            for (int index = 0; index < 2; index++) {
-                var path = FONTS.resolve(providers.get(index).getAsJsonObject().get("file").getAsString().split(":")[1]);
-                try (var stream = Files.newInputStream(path)) { faces.add(Font.createFont(Font.TRUETYPE_FONT, stream)); }
-                if (index == 1) assertTrue(Files.size(path) < 16_384, "Only tiny local subsets are permitted");
+        try (var runtime = new VanillaFontTestFixture("zh_cn")) {
+            for (int cp : codepoints) {
+                String label = "minecraft:default lacks U+" + Integer.toHexString(cp);
+                assertNotNull(runtime.findGlyph(VanillaFontTestFixture.DEFAULT_FONT, cp), label);
+                assertInstanceOf(UnihexProvider.class, runtime.providerFor(VanillaFontTestFixture.DEFAULT_FONT, cp), label);
+                var sheet = sheet(runtime, cp);
+                assertEquals(8, sheet.getRight() - sheet.getLeft(), .001f, label);
+                assertEquals(8, sheet.getBottom() - sheet.getTop(), .001f, label);
             }
-            assertTrue(faces.get(1).canDisplay('熵'), suffix);
-            assertTrue(faces.get(1).deriveFont(13f).createGlyphVector(context, "熵").getVisualBounds().getHeight() > 8,
-                    "The fallback must contain a real full-sized outline, not a blank/notdef glyph");
-            for (int cp : codepoints) assertTrue(faces.stream().anyMatch(face -> face.canDisplay(cp)),
-                    suffix + " lacks U+" + Integer.toHexString(cp));
         }
+    }
+
+    private static SheetGlyphInfo sheet(VanillaFontTestFixture runtime, int codepoint) {
+        var glyph = runtime.findGlyph(VanillaFontTestFixture.DEFAULT_FONT, codepoint);
+        assertNotNull(glyph, "Missing actual U+" + Integer.toHexString(codepoint));
+        var sheet = new SheetGlyphInfo[1];
+        glyph.bake(info -> { sheet[0] = info; return null; });
+        assertNotNull(sheet[0], "U+" + Integer.toHexString(codepoint) + " must have a drawable glyph cell");
+        return sheet[0];
     }
 }

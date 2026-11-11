@@ -174,7 +174,8 @@ public final class StarOrreryCoreEffects {
         }
     }
 
-    private static void glyph(PoseStack.Pose pose, VertexConsumer out, Vec3 origin, Vec3 tangent,
+    /** Shared hard-edged 3x5 code glyphs; callers choose their layout, palette and activity gate. */
+    static void glyph(PoseStack.Pose pose, VertexConsumer out, Vec3 origin, Vec3 tangent,
             int mask, double pixel, int color, int alpha) {
         for (int row = 0; row < 5; row++) {
             int bits = mask >> ((4-row)*3) & 7;

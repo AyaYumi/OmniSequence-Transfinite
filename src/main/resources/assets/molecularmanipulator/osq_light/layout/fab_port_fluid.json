@@ -44,10 +44,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_900_13",
+   "font_id": "minecraft:default",
    "lang": "block.molecularmanipulator.matter_fabrication_fluid_output",
    "dynamic": false,
-   "width_en": 142
+   "width_en": 166
   },
   {
    "z": 2,
@@ -88,26 +88,8 @@
     22
    ],
    "k": "edge",
-   "id": "tool1"
-  },
-  {
-   "z": 5,
-   "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/icons/compass_white_16",
-   "slicing": "fixed",
-   "pad": [
-    0,
-    0,
-    0,
-    0
-   ],
-   "rect": [
-    -23.0,
-    58.5,
-    16,
-    16.0
-   ],
-   "owner": "tool1"
+   "id": "tool1",
+   "ae_icon": "INSCRIBER_SEPARATE_SIDES"
   },
   {
    "z": 6,
@@ -134,14 +116,14 @@
    "text": "控制器 AE 网络已连接",
    "x": 19,
    "baseline": 32,
-   "width": 72.7,
+   "width": 157,
    "font": "NSC",
    "weight": 600,
    "size": 7.5,
    "color": "#FF3E7F37",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.port.network_online",
    "dynamic": false,
    "center_y": 32.0,
@@ -180,7 +162,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s029",
    "lang_new": true,
@@ -199,7 +181,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_intertight_700_15",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "center_y": 64,
    "draw_x": 96
@@ -217,7 +199,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 0.6,
-   "font_id": "molecularmanipulator:osq_inter_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "draw_x": 112,
    "center_y": 64
@@ -235,7 +217,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s030",
    "lang_new": true,
@@ -255,7 +237,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_intertight_700_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "center_y": 90,
    "draw_x": 96
@@ -273,7 +255,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 0.6,
-   "font_id": "molecularmanipulator:osq_inter_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "center_y": 90,
    "draw_x": 96
@@ -369,7 +351,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s031",
    "lang_new": true
@@ -407,7 +389,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s031",
    "lang_new": true
@@ -464,7 +446,7 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s032",
    "lang_new": true,
@@ -504,7 +486,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s033",
    "lang_new": true,
@@ -1386,30 +1368,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_700_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.auto_craft_output_directions",
    "dynamic": false,
    "center_y": 51,
-   "align": "center"
-  },
-  {
-   "z": 75,
-   "type": "text",
-   "text": "可多选 · 世界坐标",
-   "x": 16,
-   "baseline": 65,
-   "width": 158,
-   "font": "NSC",
-   "weight": 500,
-   "size": 7.5,
-   "color": "#FF5D637D",
-   "letter_spacing": 0,
-   "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
-   "dynamic": false,
-   "lang": "gui.molecularmanipulator.seq.s002",
-   "lang_new": true,
-   "center_y": 63,
    "align": "center"
   },
   {
@@ -1424,8 +1386,8 @@
     0
    ],
    "rect": [
-    16,
-    91,
+    84,
+    83,
     22,
     22
    ],
@@ -1444,8 +1406,8 @@
     0
    ],
    "rect": [
-    43,
-    91,
+    62,
+    83,
     22,
     22
    ],
@@ -1464,8 +1426,8 @@
     0
    ],
    "rect": [
-    70,
-    91,
+    106,
+    83,
     22,
     22
    ],
@@ -1484,8 +1446,8 @@
     0
    ],
    "rect": [
-    97,
-    91,
+    106,
+    105,
     22,
     22
    ],
@@ -1504,8 +1466,8 @@
     0
    ],
    "rect": [
-    124,
-    91,
+    84,
+    61,
     22,
     22
    ],
@@ -1524,8 +1486,8 @@
     0
    ],
    "rect": [
-    151,
-    91,
+    84,
+    105,
     22,
     22
    ],
@@ -2175,8 +2137,8 @@
    "k": "ctl",
    "id": "d北",
    "r": {
-    "x": 16,
-    "y": 91,
+    "x": 84,
+    "y": 83,
     "w": 22,
     "h": 22
    },
@@ -2188,8 +2150,8 @@
    "k": "ctl",
    "id": "d西",
    "r": {
-    "x": 43,
-    "y": 91,
+    "x": 62,
+    "y": 83,
     "w": 22,
     "h": 22
    },
@@ -2201,8 +2163,8 @@
    "k": "ctl",
    "id": "d东",
    "r": {
-    "x": 70,
-    "y": 91,
+    "x": 106,
+    "y": 83,
     "w": 22,
     "h": 22
    },
@@ -2214,8 +2176,8 @@
    "k": "ctl",
    "id": "d南",
    "r": {
-    "x": 97,
-    "y": 91,
+    "x": 106,
+    "y": 105,
     "w": 22,
     "h": 22
    },
@@ -2227,8 +2189,8 @@
    "k": "ctl",
    "id": "d上",
    "r": {
-    "x": 124,
-    "y": 91,
+    "x": 84,
+    "y": 61,
     "w": 22,
     "h": 22
    },
@@ -2240,8 +2202,8 @@
    "k": "ctl",
    "id": "d下",
    "r": {
-    "x": 151,
-    "y": 91,
+    "x": 84,
+    "y": 105,
     "w": 22,
     "h": 22
    },

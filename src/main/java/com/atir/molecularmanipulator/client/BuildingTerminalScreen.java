@@ -21,6 +21,7 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
@@ -32,9 +33,10 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
     private static final String KEY = "gui.molecularmanipulator.building_terminal.";
     private static final int VISIBLE_ROWS = 5;
     private static final int ROW_HEIGHT = 49;
+    private static final int ROW_HEADER_CENTER = 13;
     private static final int LIST_HEIGHT = VISIBLE_ROWS * ROW_HEIGHT;
-    private static final ResourceLocation ROW_FONT = OsqFonts.id("osq_entropy_700_7_5");
-    private static final ResourceLocation DETAIL_FONT = OsqFonts.id("osq_entropy_600_7_5");
+    private static final ResourceLocation ROW_FONT = Style.DEFAULT_FONT;
+    private static final ResourceLocation DETAIL_FONT = Style.DEFAULT_FONT;
     private final List<RowView> rows = new ArrayList<>();
     private final Button[] openButtons = new Button[VISIBLE_ROWS];
     private final Button[] removeButtons = new Button[VISIBLE_ROWS];
@@ -166,7 +168,7 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
                         OsqPalette.withAlpha(color("accent"), .12f));
                 g.renderOutline(Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h), color("accent"));
             }
-            ui.slotBackground(g, box.x + 8, box.y + 13);
+            ui.slotBackground(g, box.x + 8, box.y + ROW_HEADER_CENTER - 9);
         }
         fill(g, 285, 98, 98, 2, color("feature_track"));
         fill(g, 285, 98, 98f * rows.size() / BuildingTerminal.MAX_BINDINGS, 2, color("level"));
@@ -179,16 +181,15 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
         // Item rendering changes GUI depth/buffer state. Finish every icon before drawing any labels.
         drawIcons(g);
         g.flush();
-        text(g, tr("title"), 12, 19, 304, "osq_entropy_900_13", 13, "ink", "left");
+        text(g, tr("title"), 12, 19, 304, 13, "ink", "left");
         small(g, tr("subtitle"), 12, 30, 304, "muted", "left");
-        centered(g, tr("directory"), 333, 16.5f, 52, "accent");
         label(g, tr("list"), 17, 47, 110, "ink");
         small(g, tr("action.open_hint"), 155, 47, 104, "muted", "right");
         if (rows.isEmpty()) drawEmpty(g); else drawRows(g);
         drawSummary(g);
         drawHelp(g);
-        centered(g, tr("scroll_hint"), 17, 334, 190, "ink2");
-        centered(g, tr("remove_note"), 222, 334, 161, "muted");
+        centered(g, tr("scroll_hint"), 17, 329, 366, "ink2");
+        centered(g, tr("remove_note"), 17, 340, 366, "muted");
     }
 
     private void drawIcons(GuiGraphics g) {
@@ -203,7 +204,8 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
         for (int i = 0; i < visibleRowCount(); i++) {
             var row = rows.get(firstRow() + i);
             var box = ui.layout.find("card." + i);
-            if (!row.icon().isEmpty()) g.renderItem(row.icon(), Math.round(box.x) + 9, Math.round(box.y) + 14);
+            if (!row.icon().isEmpty()) g.renderItem(row.icon(), Math.round(box.x) + 9,
+                    Math.round(box.y) + ROW_HEADER_CENTER - 8);
         }
     }
 
@@ -213,17 +215,23 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
             var box = ui.layout.find("card." + i);
             int x = Math.round(box.x), y = Math.round(box.y);
             if (row.icon().isEmpty()) {
-                centered(g, Component.literal("?"), x + 9, y + 22, 16, "muted");
+                centered(g, Component.literal("?"), x + 9, y + ROW_HEADER_CENTER, 16, "muted");
             }
-            centered(g, ellipsize(row.name(), ROW_FONT, 132), x + 32, y + 10, 132, "ink2", "left", "osq_entropy_700_7_5");
-            centered(g, ellipsize(row.detail(), DETAIL_FONT, 150), x + 32, y + 33, 150, "muted", "left", "osq_entropy_600_7_5");
+            var remove = ui.layout.findControl("remove." + i);
             String tint = statusColor(row.entry().status());
             var status = statusLabel(row.entry().status());
-            float statusWidth = Math.min(48, OsqFonts.widthF(font, status.getString(), DETAIL_FONT));
-            float statusX = x + 226 - statusWidth;
-            // Keep the indicator four pixels from the label, not in a separate fixed column.
-            fill(g, statusX - 6, y + 9, 2, 2, color(tint));
-            centered(g, status, statusX, y + 10, statusWidth, tint, "left", "osq_entropy_600_7_5");
+            float statusWidth = OsqFonts.widthF(font, status.getString(), DETAIL_FONT);
+            float statusX = remove.x - 6 - statusWidth;
+            float actionCenter = remove.y + OsqUi.controlCenter("button", "danger", remove.h, false);
+            // The icon and name share the header; position, status and Remove share the lower line.
+            float nameWidth = box.w - 40;
+            float detailWidth = statusX - 12 - (x + 8);
+            centered(g, ellipsize(row.name(), ROW_FONT, nameWidth), x + 32,
+                    y + ROW_HEADER_CENTER, nameWidth, "ink2", "left");
+            centered(g, ellipsize(row.detail(), DETAIL_FONT, detailWidth), x + 8,
+                    actionCenter, detailWidth, "muted", "left");
+            fill(g, statusX - 6, actionCenter - 1.5f, 2, 2, color(tint));
+            centered(g, status, statusX, actionCenter, statusWidth, tint, "left");
         }
     }
 
@@ -231,9 +239,9 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
         long ready = lastEntries.stream().filter(entry -> entry.status() == Status.READY).count();
         label(g, tr("summary"), 285, 48, 98, "feature_muted");
         text(g, Component.literal(Integer.toString(rows.size())), 284, 78, 60,
-                "osq_intertight_700_26", 26, "feature_ink", "left");
+                26, "feature_ink", "left");
         text(g, Component.literal("/ " + BuildingTerminal.MAX_BINDINGS), 345, 76, 38,
-                "osq_intertight_700_9", 9, "feature_muted", "right");
+                9, "feature_muted", "right");
         small(g, tr("list"), 285, 90, 98, "feature_muted", "left");
         small(g, tr("availability", ready, rows.size() - ready), 285, 113, 98, "feature_ink", "left");
     }
@@ -256,7 +264,7 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
     }
 
     private void drawEmpty(GuiGraphics g) {
-        text(g, tr("empty.title"), 25, 166, 226, "osq_entropy_700_9", 9, "ink2", "center");
+        text(g, tr("empty.title"), 25, 166, 226, 9, "ink2", "center");
         wrapped(g, tr("empty.hint.bind"), 35, 187, 206);
         wrapped(g, tr("empty.hint.open"), 35, 220, 206);
     }
@@ -280,32 +288,32 @@ public final class BuildingTerminalScreen extends ResponsiveContainerScreen<Buil
     }
 
     private void small(GuiGraphics g, Component value, float x, float y, float width, String tint, String alignment) {
-        text(g, value, x, y, width, "osq_entropy_600_7_5", 7.5f, tint, alignment);
+        text(g, value, x, y, width, 7.5f, tint, alignment);
     }
 
     private void label(GuiGraphics g, Component value, float x, float y, float width, String tint) {
-        text(g, value, x, y, width, "osq_entropy_700_7_5", 7.5f, tint, "left");
+        text(g, value, x, y, width, 7.5f, tint, "left");
     }
 
     private void text(GuiGraphics g, Component value, float x, float baseline, float width,
-            String face, float size, String tint, String alignment) {
+            float size, String tint, String alignment) {
         var entry = new OsqLayout.Entry();
         entry.x = x; entry.baseline = baseline; entry.w = width; entry.size = size;
-        entry.fontId = "molecularmanipulator:" + face;
+        entry.fontId = "minecraft:default";
         entry.color = ui.layout.find("color." + tint).color;
         entry.alignment = alignment;
         ui.layout.renderSingleLine(g, font, entry, value, 0, 0);
     }
 
     private void centered(GuiGraphics g, Component value, float x, float centerY, float width, String tint) {
-        centered(g,value,x,centerY,width,tint,"center","osq_entropy_600_7_5");
+        centered(g,value,x,centerY,width,tint,"center");
     }
 
     private void centered(GuiGraphics g, Component value, float x, float centerY, float width,
-            String tint, String alignment, String face) {
+            String tint, String alignment) {
         var entry = new OsqLayout.Entry();
         entry.x = x; entry.centerY = centerY; entry.w = width; entry.size = 7.5f;
-        entry.fontId = "molecularmanipulator:"+face;
+        entry.fontId = "minecraft:default";
         entry.color = ui.layout.find("color." + tint).color;
         entry.alignment = alignment;
         ui.layout.renderSingleLine(g, font, entry, value, 0, 0);

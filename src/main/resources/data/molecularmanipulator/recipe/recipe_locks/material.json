@@ -1,0 +1,10 @@
+{
+  "type": "molecularmanipulator:recipe_lock",
+  "requires": ["molecularmanipulator:material"],
+  "match": {
+    "recipe_ids": [
+      "molecularmanipulator:molecular_manipulator",
+      "molecularmanipulator:transfinite_compute_nexus"
+    ]
+  }
+}

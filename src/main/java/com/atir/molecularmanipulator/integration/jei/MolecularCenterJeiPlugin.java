@@ -107,7 +107,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
         registration.addRecipeCatalyst(new ItemStack(
                 com.atir.molecularmanipulator.registry.HighEnergyLabContent.OUTPUT_CRADLE_ITEM.get()),
                 TwinSingularityObservationRingJeiCategory.TYPE);
-        registration.addRecipeCatalyst(com.atir.molecularmanipulator.registry.GreenFireLanternContent.stack(true),
+        registration.addRecipeCatalyst(com.atir.molecularmanipulator.registry.SimulationLanternContent.stack(true),
                 LanternSimulationJeiCategory.TYPE);
         registration.addRecipeCatalyst(new ItemStack(com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER.get()), SingularityStructureJeiCategory.TYPE);
         registration.addRecipeCatalyst(

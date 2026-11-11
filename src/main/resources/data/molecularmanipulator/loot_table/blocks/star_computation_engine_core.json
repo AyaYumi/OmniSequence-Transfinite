@@ -1,1 +1,19 @@
-{"type":"minecraft:block","pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"molecularmanipulator:star_computation_engine_core"}],"conditions":[{"condition":"minecraft:survives_explosion"}]}]}
+{
+  "type": "minecraft:block",
+  "pools": [{
+    "rolls": 1,
+    "entries": [{
+      "type": "minecraft:item",
+      "name": "molecularmanipulator:star_computation_engine_core",
+      "functions": [{
+        "function": "minecraft:copy_custom_data",
+        "source": "block_entity",
+        "ops": [
+          {"source": "star_orrery_upgrade", "target": "star_orrery_upgrade", "op": "replace"},
+          {"source": "entropy_team", "target": "entropy_team", "op": "replace"}
+        ]
+      }]
+    }],
+    "conditions": [{"condition": "minecraft:survives_explosion"}]
+  }]
+}

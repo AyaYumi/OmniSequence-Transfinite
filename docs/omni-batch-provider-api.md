@@ -1,8 +1,14 @@
 # Omni Batch Provider API v1
 
+**For mod developers:** use this interface when an AE2 pattern provider can accept
+several complete crafts at once instead of receiving them one by one. It lets
+Omni allocate the materials and hand the whole batch to your machine safely.
+Ordinary AE2 providers need no new interface to keep working. Players looking for
+machine setup should use the [player guide](../README.md) or the in-game **G** guide.
+
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.1.0 on Minecraft 1.21.1 / Java 21, with AE2 19.2.18
+Current for OmniSequence 21.3.0.0 on Minecraft 1.21.1 / Java 21, with AE2 19.2.18
 and AppliedEnhancements 1.1.2+ (compile API 1.1.4). The runtime ABI remains **1**.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
@@ -62,7 +68,9 @@ runtime negotiation because Java may inline it.
 ## Provider integration
 
 The provider continues to advertise patterns through AE2 and implements one
-additional interface:
+additional interface. The Java excerpt below uses your machine's own validation,
+capacity and persistent-queue methods; implement those helpers alongside its
+normal `ICraftingProvider` methods before compiling an integration:
 
 ```java
 public final class ExamplePatternMachine

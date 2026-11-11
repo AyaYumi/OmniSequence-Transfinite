@@ -10,7 +10,7 @@ item_ids:
 
 # Fabrication Pattern Assembly
 
-The Pattern Assembly adds ME autocrafting to the [Fabrication Well](matter_fabrication_well.md). Each assembly holds **36 patterns** and uses its well's research unlocks and parallelism, with production speed supplied by the [Star Computation Engine](star_computation_engine.md) on the controller's ME network.
+A Pattern Assembly lets you request Fabrication Well products from an ME terminal instead of loading ingredients into ports yourself.
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
@@ -20,48 +20,78 @@ The Pattern Assembly adds ME autocrafting to the [Fabrication Well](matter_fabri
 <ItemImage id="ae2:pattern_access_terminal" scale="4" />
 </Row>
 
-## Installation and encoding
+From left to right: the assembly, a terminal for encoding patterns, and a terminal for managing installed patterns.
 
-1. Complete tier 1, fabricate an assembly and install it in a well service position.
-2. Choose an unlocked fabrication recipe in JEI. Encode all consumed ingredients and products, with their quantities, in a **processing pattern**.
-3. Insert the pattern and check that the well is formed and connected to online ME.
-4. Request the product from an ME terminal. The assembly processes delivered ingredients and returns products to ME.
+## Before you start
 
-Manage multiple assemblies through a Pattern Access Terminal. Naming them makes them easier to identify. Assemblies accept items, fluids and other AE resources required by recipes.
+- Complete **Tier I: AE Foundation** in this [well's research page](matter_fabrication_research.md).
+- Use the well's [item ports](matter_fabrication_ports.md) to make your first assembly with the recipe below.
+- Have a powered ME network with storage, a crafting CPU, a Pattern Encoding Terminal and Blank Patterns.
+- Choose a **Fabrication Well recipe** you have unlocked. A processing pattern must describe that recipe's consumed ingredients and products, with the correct quantities.
 
-## Uploading from JEI
+<RecipeFor id="molecularmanipulator:matter_fabrication_pattern_assembly" />
 
-Open a fabrication recipe in JEI from a **Pattern Encoding Terminal**, then select **Encode and upload to fabrication well**. This uses one blank pattern from the terminal, or from its connected ME network when the local slot is empty, encodes the recipe quantities and uploads it to a formed well belonging to your team. A single network blank is enough. It prefers the nearest assembly with space in your dimension.
+## Set up your first order
 
-The destination chunk must be loaded. Missing assemblies, full inventories, duplicate patterns and missing blanks do not consume a blank pattern. Custom assembly names do not affect destination lookup. The additional ExtendedAE Plus automatic-provider selection and upload hooks target **1.6.4.1** only and identify assemblies by machine type and team.
+1. **Install the assembly.** Hold it to highlight valid positions, then replace one of the well's highlighted casing blocks. The well must remain complete and online.
+2. **Encode a processing pattern.** In the Pattern Encoding Terminal, open the desired Fabrication Well recipe in JEI. Select **Encode and upload to fabrication well** to encode it and send it to an assembly.
+3. **Check the Pattern page.** The uploaded pattern should appear there. Each assembly holds **36 patterns**. You can also encode a matching processing pattern manually and insert it yourself.
+4. **Supply reusable tools separately.** If JEI lists a catalyst, put it in the **Catalyst** page as described below. Do not add it to the pattern's consumed inputs.
+5. **Request the product in ME.** The crafting CPU delivers ingredients to the assembly; the well processes them and sends products back to ME.
 
-Wells bind to the placer's FTB team when placed, or to the individual without FTB Teams. Re-place the controller to change its team binding. If no upload destination is found, check team ownership, formation and chunk loading.
+Assemblies support items, fluids and recipe resources such as Star Signal Flow. You do not need input/output ports for an assembly-driven job.
 
-## Catalysts
+### Where does JEI upload send the pattern?
 
-Place required catalysts in an assembly's **Catalysts** page. Each assembly has **36 catalyst slots**. Linked, loaded assemblies in the same well share these items.
+Upload uses **one Blank Pattern**, first from the terminal's local slot, then from connected ME storage. It looks for a loaded assembly in a complete well belonging to your team, preferring the nearest with space in your dimension. Missing destinations, full assemblies and duplicate patterns do not spend a blank.
 
-Catalysts are retained and excluded from processing patterns. For example, encode the water, lightning and other consumed resources for a crystal catalyzing recipe, then store its crystal block in the catalyst page. Ghost Matter used to fabricate Gravity Crystals works the same way. Larger batches do not require more catalysts.
+With FTB Teams, the controller belongs to the team of the player who placed it; without FTB Teams, it belongs to that player. Re-place the controller after changing teams if you need to update this ownership. Assembly names do not affect upload; naming them does help when managing them through a Pattern Access Terminal.
 
-Missing catalysts prevent new work from starting. Accepted work retains materials and progress until the catalyst returns. Re-encode any pattern that lists a catalyst as a consumed ingredient.
+ExtendedAE Plus automatic destination selection is supported for **1.6.4.1**.
 
-## Caches and tasks
+## Reusable catalysts
 
-| Page | Contents |
+A **catalyst** is a tool the recipe needs nearby but does not consume. Each assembly has **36 catalyst slots**, shared with the loaded assemblies in the same complete well.
+
+<Row>
+<ItemImage id="molecularmanipulator:ghost_matter" scale="4" />
+
+<BlockImage id="molecularmanipulator:flawless_star_marrow_parent_rock" scale="4" />
+</Row>
+
+Examples: Ghost Matter enables [Gravity Crystal production](nomai_materials.md); a Flawless Star Marrow Parent Rock enables [Signal-Induced Crystallization](star_marrow_crystals.md).
+
+1. Put the catalyst quantity shown by the recipe into any assembly's **Catalyst** page in this well.
+2. Encode **only consumed materials and products** in the processing pattern.
+3. Leave the catalyst installed. Making a larger batch does not multiply its requirement.
+
+If a catalyst is removed, work waits with its materials and progress until you put it back.
+
+## What success looks like
+
+The product is craftable in ME, the assembly shows **Connected to AE**, and a requested job returns its output to storage.
+
+| Assembly page | What to look for |
 | --- | --- |
-| Patterns | Processing patterns available to ME |
-| Input cache | Accepted materials awaiting processing |
-| Output cache | Products waiting for ME capacity |
-| Catalysts | Reusable items for recipes in this well |
+| Pattern | Installed processing patterns |
+| Input | Ingredients already delivered for work |
+| Output | Products waiting for ME to accept them |
+| Catalyst | Reusable tools shared by this well |
 
-Neo ECO, Data Energistics Trinity and Lightning Tech CPUs can submit batch work to assemblies. Research sets recipe parallelism; the Star Computation Engine sets speed. Ingredients, power and output capacity also determine the actual processing rate.
+**Return inputs** sends back only work that has not started. Active work keeps its materials. Full ME storage leaves products and refunds safely buffered until space is available. Normal assembly removal retains patterns, catalysts, work and stored materials.
 
-The Transfinite Compute Nexus can deliver a job's complete available material batch at once, up to **9,223,372,036,854,775,807 (9.22E)** per resource. Recipe input/output quantities and existing cache contents limit the accepted craft count. The well consumes processing power as queued work runs; it does not require the entire batch's processing power up front.
+## If it does not work
 
-**Return Unstarted Ingredients** refunds only batches that have not started. Active work is retained. If ME storage is full, products wait in the output cache until space is available.
+| Problem | Fix |
+| --- | --- |
+| Upload cannot find an assembly | Check team ownership, building formation, loaded chunks and a free pattern slot. |
+| ME cannot plan the product | Check the pattern, ingredients and crafting CPU. Use a processing pattern for the well, not an ordinary crafting pattern. |
+| Delivered ingredients are waiting | Check this well's research, power and catalysts. Re-encode patterns that incorrectly consume a catalyst. |
+| Job finishes but ME does not receive it | Free ME storage; inspect the assembly's **Output** page. |
+| Production is slow | [Deeper well research](matter_fabrication_research.md) raises the number processed together; a [Star Computation Engine](star_computation_engine.md) on the controller's ME network supplies production speed. |
 
-Normal assembly removal retains patterns, catalysts, tasks and caches. Reinstall it and restore the structure, network and power to continue.
+Compatible Neo ECO, Data Energistics Trinity and Lightning Tech CPUs can submit batch work. The [Transfinite Compute Nexus](transfinite_compute_nexus.md) can deliver a large available ingredient batch at once; processing draws power as it runs, not as a full-batch advance payment.
 
-## Recipes
+## Next steps
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_pattern_assembly" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+Try [Star Marrow material processing](star_marrow_crystals.md) or [Gravity Crystals](nomai_materials.md), then use [deep research](matter_fabrication_research.md) to increase batch sizes.

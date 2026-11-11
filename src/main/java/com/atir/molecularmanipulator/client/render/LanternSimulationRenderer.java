@@ -1,9 +1,9 @@
 package com.atir.molecularmanipulator.client.render;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
-import com.atir.molecularmanipulator.block.GreenFireLanternBlock;
-import com.atir.molecularmanipulator.registry.GreenFireLanternContent;
-import com.atir.molecularmanipulator.world.GreenFireLanternLights;
+import com.atir.molecularmanipulator.block.SimulationLanternBlock;
+import com.atir.molecularmanipulator.registry.SimulationLanternContent;
+import com.atir.molecularmanipulator.world.SimulationLanternLights;
 import com.atir.molecularmanipulator.world.LanternSimulation;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -43,7 +43,7 @@ import org.lwjgl.opengl.GL30;
 @EventBusSubscriber(modid = MolecularManipulator.MOD_ID, value = Dist.CLIENT)
 public final class LanternSimulationRenderer {
     private static final int MAX_LIGHTS = 32;
-    private static final float LIGHT_RADIUS = 10.0F;
+    private static final float LIGHT_RADIUS = SimulationLanternLights.LIGHT_RADIUS;
     private static final float BOUNDARY_WIDTH = 1.0F;
 
     // Subtract the double-precision camera position before converting to floats.
@@ -113,7 +113,7 @@ public final class LanternSimulationRenderer {
         if (simulation) {
             // The common index contains loaded lantern BEs; never scan or load chunks here.
             // Recheck current block state every frame so extinguished sources disappear immediately.
-            for (BlockPos pos : GreenFireLanternLights.positions(level)) {
+            for (BlockPos pos : SimulationLanternLights.positions(level)) {
                 double x = pos.getX() + 0.5D - camera.x;
                 double y = pos.getY() + 0.5D - camera.y;
                 double z = pos.getZ() + 0.5D - camera.z;
@@ -123,9 +123,9 @@ public final class LanternSimulationRenderer {
                     continue;
                 }
                 var state = level.getBlockState(pos);
-                if (state.getBlock() instanceof GreenFireLanternBlock
-                        && state.hasProperty(GreenFireLanternBlock.LIT)
-                        && state.getValue(GreenFireLanternBlock.LIT)) {
+                if (state.getBlock() instanceof SimulationLanternBlock
+                        && state.hasProperty(SimulationLanternBlock.LIT)
+                        && state.getValue(SimulationLanternBlock.LIT)) {
                     addLight(x, y, z, distanceSqr);
                 }
             }
@@ -151,8 +151,8 @@ public final class LanternSimulationRenderer {
     }
 
     private static boolean isLitLantern(ItemStack stack) {
-        return !stack.isEmpty() && GreenFireLanternContent.isLantern(stack)
-                && GreenFireLanternContent.isLit(stack);
+        return !stack.isEmpty() && SimulationLanternContent.isLantern(stack)
+                && SimulationLanternContent.isLit(stack);
     }
 
     private static void addLight(double x, double y, double z, double distanceSqr) {

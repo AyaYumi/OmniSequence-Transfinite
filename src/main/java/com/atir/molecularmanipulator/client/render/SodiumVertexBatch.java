@@ -7,15 +7,29 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.List;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import org.lwjgl.system.MemoryStack;
 
 /** Optional native submission through the original consumer, preserving its render layer. */
 final class SodiumVertexBatch {
     private static final Api API = Api.load();
+    private static final MethodHandle MARK_SPRITE_ACTIVE = spriteActivation();
 
     private SodiumVertexBatch() {}
 
     static boolean available() { return API != null; }
+
+    /** Cached uploads bypass putBulkData's sprite tracking; false keeps the ordinary draw path. */
+    static boolean markSpritesActive(List<TextureAtlasSprite> sprites) {
+        if (MARK_SPRITE_ACTIVE == null) return false;
+        try {
+            for (var sprite : sprites) MARK_SPRITE_ACTIVE.invokeExact(sprite);
+            return true;
+        } catch (Throwable failure) {
+            throw new IllegalStateException("Cannot activate cached model sprites", failure);
+        }
+    }
 
     static Writer of(VertexConsumer target) {
         // A wrapper may change attributes. Only a direct builder also lets us complete
@@ -41,6 +55,19 @@ final class SodiumVertexBatch {
                 // A failed append may already have written vertices; never replay it.
                 throw new IllegalStateException("Cannot append native vertex batch", failure);
             }
+        }
+    }
+
+    private static MethodHandle spriteActivation() {
+        try {
+            var type = Class.forName("net.caffeinemc.mods.sodium.api.texture.SpriteUtil");
+            return MethodHandles.lookup().unreflect(type.getMethod("markSpriteActive", TextureAtlasSprite.class))
+                    .bindTo(type.getField("INSTANCE").get(null));
+        } catch (ClassNotFoundException absent) {
+            return null;
+        } catch (ReflectiveOperationException incompatible) {
+            MolecularManipulator.LOGGER.warn("Sodium sprite activation is unavailable; animated mainframes will use ordinary vertices", incompatible);
+            return null;
         }
     }
 

@@ -169,6 +169,69 @@ class MatterResearchPanelCacheTest {
         assertEquals(before, graphics.pose().last().pose());
     }
 
+    @Test void researchHoverUsesOnlyTheVisibleListAndRejectsStaleRowsAfterNavigation() throws Exception {
+        var panel=hoverPanel();
+        var ingredient=panel.ingredientAt(250,245);
+        assertNotNull(ingredient);
+        assertEquals(AEItemKey.of(Items.DIAMOND),ingredient.stack().what());
+        assertEquals(4096,ingredient.stack().amount());
+        assertEquals(244,ingredient.bounds().getY());
+        assertEquals(4,ingredient.bounds().getHeight(),"Only the visible four pixels of the last row may accept JEI input");
+        assertEquals("Diamond",panel.tooltipAt(250,245).getFirst().getString());
+        for(double[] point:new double[][]{{211,245},{378,245},{250,248},{250,171}}){
+            assertNull(panel.ingredientAt(point[0],point[1]));
+            assertTrue(panel.tooltipAt(point[0],point[1]).isEmpty());
+        }
+        for(String navigation:List.of("scroll","showUnlocks","showOrderDetails","selected")){
+            var current=hoverPanel();
+            ResponsiveScreenTestFixture.set(current,navigation,switch(navigation){
+                case "scroll" -> 24.0;
+                case "selected" -> ResourceLocation.parse("test:other");
+                default -> true;
+            });
+            assertNull(current.ingredientAt(250,245),navigation);
+            assertTrue(current.tooltipAt(250,245).isEmpty(),navigation);
+        }
+        ResponsiveScreenTestFixture.set(panel,"visible",false);
+        assertNull(panel.ingredientAt(250,245));
+    }
+
+    @Test void researchIngredientBoundsFollowTheFittedScreenAndDisappearOnTheOverview() throws Exception {
+        var panel=hoverPanel();
+        var screen=ResponsiveScreenTestFixture.allocate(MatterFabricationScreen.class);
+        ResponsiveScreenTestFixture.set(screen,"researchPanel",panel);
+        ResponsiveScreenTestFixture.set(screen,"researchPage",true);
+        for(int[] viewport:new int[][]{{854,480},{320,240},{567,240}}){
+            int width=viewport[0],height=viewport[1],left=(width-400)/2,top=(height-380)/2;
+            screen.width=width;screen.height=height;
+            ResponsiveScreenTestFixture.set(screen,"imageWidth",400);
+            ResponsiveScreenTestFixture.set(screen,"imageHeight",380);
+            ResponsiveScreenTestFixture.set(screen,"leftPos",left);
+            ResponsiveScreenTestFixture.set(screen,"topPos",top);
+            int x=screen.responsiveScreenX(left+250),y=screen.responsiveScreenY(top+246);
+            var ingredient=screen.researchIngredientAt(x,y);
+            assertNotNull(ingredient);
+            assertTrue(ingredient.bounds().contains(x,y));
+            assertEquals(screen.responsiveScreenY(top+244),ingredient.bounds().getY());
+            assertEquals(screen.responsiveScreenY(top+248)-ingredient.bounds().getY(),ingredient.bounds().getHeight());
+            assertNull(screen.researchIngredientAt(x,screen.responsiveScreenY(top+249)));
+        }
+        ResponsiveScreenTestFixture.set(screen,"researchPage",false);
+        assertNull(screen.researchIngredientAt(250,245));
+    }
+
+    private static MatterResearchPanel hoverPanel() throws Exception {
+        var panel=panel();
+        ResponsiveScreenTestFixture.set(panel,"visible",true);
+        ResponsiveScreenTestFixture.set(panel,"selected",ResourceLocation.parse("test:project"));
+        ResponsiveScreenTestFixture.set(panel,"renderedSelection",panel.selection());
+        var row=Class.forName(MatterResearchPanel.class.getName()+"$QuantityTooltip").getDeclaredConstructors()[0];
+        row.setAccessible(true);
+        ResponsiveScreenTestFixture.set(panel,"quantityTooltips",List.of(row.newInstance(212,244,166,24,
+                new GenericStack(AEItemKey.of(Items.DIAMOND),4096),List.of(net.minecraft.network.chat.Component.literal("Diamond")))));
+        return panel;
+    }
+
     private static MatterResearchPanel panel() throws Exception {
         var panel = ResponsiveScreenTestFixture.allocate(MatterResearchPanel.class);
         ResponsiveScreenTestFixture.set(panel, "definitions", List.of());

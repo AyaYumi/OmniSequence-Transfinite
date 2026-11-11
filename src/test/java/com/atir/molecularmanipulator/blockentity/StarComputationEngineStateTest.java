@@ -117,14 +117,21 @@ class StarComputationEngineStateTest {
     }
 
     @Test
-    void formationHidesTheCentralMembersUnderTheWholeBodyModelWithoutChangingFacing() {
+    void formationHidesAllCentralMeshesForTheOrreryRendererWithoutChangingPhysicalBlocksOrFacing() {
         for (Direction facing : Direction.Plane.HORIZONTAL) {
             var loose = CORE.defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, facing);
             var formed = StarComputationEngineCoreBlockEntity.withFormed(loose, true);
             assertNotNull(formed);
             assertTrue(formed.getValue(StarComputationEngineCoreBlock.FORMED));
             assertEquals(facing, formed.getValue(HorizontalDirectionalBlock.FACING));
-            assertEquals(RenderShape.MODEL, formed.getRenderShape());
+            assertEquals(RenderShape.MODEL, loose.getRenderShape());
+            assertEquals(RenderShape.INVISIBLE, formed.getRenderShape());
+            assertSame(CORE, formed.getBlock());
+            assertTrue(formed.hasBlockEntity());
+            assertEquals(loose.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO),
+                    formed.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
+            assertEquals(loose.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO),
+                    formed.getShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO));
             assertFalse(formed.hasProperty(StarComputationEngineCasingBlock.INVISIBLE));
             assertNull(StarComputationEngineCoreBlockEntity.withFormed(formed, true));
             assertSame(loose, StarComputationEngineCoreBlockEntity.withFormed(formed, false));
@@ -140,6 +147,24 @@ class StarComputationEngineStateTest {
                 assertSame(material, StarComputationEngineCoreBlockEntity.withFormed(hidden, false));
                 assertEquals(RenderShape.MODEL, material.getRenderShape());
             }
+        }
+    }
+
+    @Test
+    void allSavedCoreStatesHideOnlyFormedMeshesAndKeepCollisionSelectionAndBlockEntities() {
+        for (var state : CORE.getStateDefinition().getPossibleStates()) {
+            boolean formed = state.getValue(StarComputationEngineCoreBlock.FORMED);
+            var ordinary = state.setValue(StarComputationEngineCoreBlock.FORMED, false);
+            var level = EmptyBlockGetter.INSTANCE;
+            var pos = BlockPos.ZERO;
+            assertEquals(formed ? RenderShape.INVISIBLE : RenderShape.MODEL, state.getRenderShape());
+            assertEquals(formed, state.getOcclusionShape(level, pos).isEmpty());
+            assertEquals(formed ? 0 : ordinary.getLightBlock(level, pos), state.getLightBlock(level, pos));
+            assertEquals(!formed, state.isSolidRender(level, pos));
+            assertEquals(ordinary.getCollisionShape(level, pos), state.getCollisionShape(level, pos));
+            assertEquals(ordinary.getShape(level, pos), state.getShape(level, pos));
+            assertFalse(state.getShape(level, pos).isEmpty(), "Hidden cores must remain targetable");
+            assertTrue(state.hasBlockEntity(), "Visual replacement cannot remove the real controller");
         }
     }
 
@@ -448,7 +473,9 @@ class StarComputationEngineStateTest {
         assertFalse(engine.contains("StarComputationBenefits.entropy("));
         assertFalse(engine.contains("StarComputationBenefits.levelFor("));
         assertTrue(engine.contains("return isStarOrrery() && getBlockState().getValue(StarComputationEngineCoreBlock.FORMED)"));
-        assertTrue(engine.contains("return new StarComputationBenefits(getLitRings(), overclocked)"));
+        assertTrue(engine.contains("return new StarComputationBenefits(getEffectiveLevel(), overclocked)"));
+        assertTrue(engine.contains("return upgrade.effectiveLevel(getLitRings())"));
+        assertTrue(engine.contains("StarOrreryLayout.entropyForRings(getEffectiveLevel())"));
         var refresh = engine.substring(engine.indexOf("private void refreshStructure()"), engine.indexOf("private void refreshAnchors("));
         assertTrue(refresh.contains("StarOrreryFoundation.scan("));
         assertTrue(refresh.contains("StarOrreryCoreStructure.scan("));

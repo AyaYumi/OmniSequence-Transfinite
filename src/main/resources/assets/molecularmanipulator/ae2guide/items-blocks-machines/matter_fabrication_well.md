@@ -15,7 +15,7 @@ item_ids:
 
 # Matter Fabrication Well
 
-The Matter Fabrication Well is a multiblock machine for material processing and research. Input and output ports handle supplied ingredients, while Pattern Assemblies let it execute ME autocrafting requests.
+The Matter Fabrication Well turns ingredients into advanced materials; its research page unlocks more recipes, and a Pattern Assembly lets your ME network order those products automatically.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:matter_fabrication_controller" />
@@ -26,43 +26,59 @@ The Matter Fabrication Well is a multiblock machine for material processing and 
 <ItemIcon id="molecularmanipulator:matter_fabrication_core" />
 </ItemGrid>
 
-## Structure
+## Before you start
 
-The well occupies **41 × 41 blocks** and is **27 blocks tall**. Its controller, basic structure blocks and ports require no research. JEI's structure page lists all required materials.
+- Reserve **41 × 41 blocks, 27 blocks tall**. This is a building, not just the controller block.
+- Craft the controller below. The controller, basic building parts and input/output ports need no research.
+- Use JEI's **Complete Matter Fabrication Well** page for the full building-material list.
+- Prepare a powered ME network with storage and an available channel for the controller. It uses **16 AE/t** at idle; processing and research need additional power.
 
-1. Place the controller and enable **Projection** to check missing blocks and obstructions.
-2. Gather the listed materials, clear obstructions and select **Build**. Construction uses your inventory before the connected ME storage.
-3. Install the required [ports](matter_fabrication_ports.md) in service positions. Hold a port to see valid positions.
-4. Connect ME and power, then check formation and network status in the controller.
+<RecipeFor id="molecularmanipulator:matter_fabrication_controller" />
 
-There are **44 service positions**: 24 on the front steps and four groups of five around the central platform. [Pattern Assemblies](matter_fabrication_pattern_assembly.md) also use these positions.
+## Build it
 
-## Operation
+1. **Place the controller.** Open it and select **Project** to see the building's position. Remove blocks marked as conflicts before construction.
+2. **Supply building materials.** Keep them in your inventory or in ME storage connected to the controller. Select **Build**; it uses your inventory first, then ME.
+3. **Wait for construction to finish.** Reopen the controller and use **Scan** to check any missing or conflicting blocks.
+4. **Install ports.** Hold an [input or output port](matter_fabrication_ports.md) to highlight valid positions, then replace the highlighted casing blocks. Install the input and output types your first recipe needs.
+5. **Check the network.** The controller must show **Online** before you research or process materials.
 
-| Workflow | How to use it |
+There are **44 places for ports or Pattern Assemblies**: 24 along the front steps and four groups of five around the central platform. These devices replace casing at those positions; placing them beside the building does not connect them.
+
+## Make your first product
+
+1. Follow [Fabrication Research](matter_fabrication_research.md) to complete **Tier I: AE Foundation**. **Research takes materials from ME storage, not your backpack or the input ports.**
+2. For a first processing test, put **4 Pattern Providers, 4 Blank Patterns and 1 Crafting Unit** into an item input port. Leave room in an item output port.
+3. The well automatically processes them into **1 Pattern Assembly**. No separate processing-start button is needed.
+4. Install the assembly to begin [ME autocrafting](matter_fabrication_pattern_assembly.md), or keep using ports for item/fluid recipes.
+
+Research and material processing can run at the same time, provided you can power both.
+
+## What success looks like
+
+The structure count is complete and the network shows **Online**. While processing, the controller reports **Fabricating matter** and its progress advances. The test assembly appears in an item output port; later, assembly-driven jobs return their products to ME.
+
+## If it does not work
+
+| What you see | What to check |
 | --- | --- |
-| Material processing | Supply items and fluids through input ports; collect products from output ports |
-| [Research](matter_fabrication_research.md) | Store research materials in ME, select a branch and start it |
-| ME autocrafting | Complete tier 1, install a Pattern Assembly and insert matching processing patterns |
+| Construction stops | Read the missing-material message, clear projection conflicts and keep the whole building area loaded. |
+| Structure incomplete | Use **Project** and **Scan**; check that ports replaced highlighted casing positions. |
+| AE network offline / insufficient power | Check the controller's cable, channel and ME energy supply. A connected cable alone does not guarantee enough power. |
+| No processing recipe | Check the recipe's research requirement and every ingredient quantity. Research materials belong in ME, processing materials in inputs. |
+| Output blocked | Empty the appropriate item/fluid output ports, or free ME storage for assembly jobs. |
 
-Research and processing can run together. If work cannot start, check the structure, power, research requirements and output capacity.
+## Useful controls
 
-The controller's **Effects** button chooses 0 off, 1 reduced or 2 full for this well and all viewers, without changing production. Shift-click restores each client's global setting.
+- **Remote building materials:** put one Quantum Entangled Singularity in the controller and its partner in a powered AE2 quantum bridge. The link adds **512 AE/t** and needs a channel. Before the well is complete, it can already supply building materials.
+- **Effects:** choose off, reduced or full effects for this well. This does not change production. Shift-click restores each viewer's global setting.
+- **Reclaim Package:** click once, then confirm within three seconds to pack the building and its contents. Finish or cancel external ME crafting jobs first. See [Folded Buildings and Relocation](folded_buildings.md).
 
-## Quantum connection
+Normal removal retains the controller's research and accepted work, ports' contents, and assemblies' patterns and materials. Restore the building, network and power to continue.
 
-Place one **Quantum Entangled Singularity** in the controller's quantum slot and its partner in a powered AE2 quantum bridge to connect remote ME storage. The link requires an additional **512 AE/t and one channel** and can supply construction materials before the well is formed.
+## Next steps
 
-## Dismantling and relocation
-
-**Reclaim Package** seals the controller, installed structure and all internal contents into one lightweight package. Click once, then confirm within three seconds. Research, patterns, catalysts, fluids and settings stay in this world's archive; settle external ME crafting jobs first. See [Folded Buildings and Relocation](folded_buildings.md).
-
-Normal controller removal retains research progress, accepted work and the quantum slot. Ports retain their caches, and assemblies retain patterns and processing materials. Restore the structure, network and power to continue.
-
-When the server enables multiblock chunk loading, required chunks stay loaded during construction and while formed. Occupied chunks prevent natural mob spawning; spawners, breeding and existing creatures are unaffected.
-
-## Recipes
-
-<RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
-
-<SubPages icons={true} />
+- [Fabrication Research](matter_fabrication_research.md) — unlock your first recipes.
+- [Input and Output Ports](matter_fabrication_ports.md) — feed the well and collect products.
+- [Pattern Assembly](matter_fabrication_pattern_assembly.md) — request products from an ME terminal.
+- [Star Marrow Crystals](star_marrow_crystals.md) — start the crystal and star-material supply line.

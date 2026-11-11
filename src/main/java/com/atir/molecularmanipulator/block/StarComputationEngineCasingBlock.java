@@ -16,7 +16,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 /**
  * Shell block of the Star Computation Engine.
  *
- * <p>Formed members are hidden beneath the core's oversized baked model,
+ * <p>Formed members hide their ordinary meshes for the orrery renderer,
  * without changing their collision or selection shape.</p>
  */
 public class StarComputationEngineCasingBlock extends Block {

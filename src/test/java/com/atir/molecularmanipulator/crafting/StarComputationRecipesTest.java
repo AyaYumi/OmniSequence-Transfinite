@@ -19,9 +19,9 @@ class StarComputationRecipesTest {
     private static final String MOD = "molecularmanipulator:";
     private static final Path RECIPES = Path.of("src/main/resources/data/molecularmanipulator/recipe");
     private static final Map<String, String> TYPES = Map.of(
-            "star_marrow_crystal_dust", "ae2:inscriber",
-            "star_chart_processor", "ae2:inscriber",
-            "star_marrow_alloy_ingot", "advanced_ae:reaction",
+            "star_marrow_crystal_dust", MOD + "matter_fabrication",
+            "star_chart_processor", MOD + "matter_fabrication",
+            "star_marrow_alloy_ingot", MOD + "matter_fabrication",
             "star_computation_engine_casing", "minecraft:crafting_shaped",
             "star_computation_observation_port", "minecraft:crafting_shaped",
             "star_computation_engine_core", "minecraft:crafting_shaped",
@@ -42,8 +42,7 @@ class StarComputationRecipesTest {
             assertEquals(MOD + entry.getKey(), result.get("id").getAsString());
             assertTrue(outputCount(recipe) > 0);
             assertFalse(inputs(recipe).isEmpty(), "Recipes must consume materials");
-            assertEquals(entry.getKey().equals("star_marrow_alloy_ingot"), recipe.has("neoforge:conditions"),
-                    "Only the Reaction Chamber recipe depends on AdvancedAE");
+            assertFalse(recipe.has("neoforge:conditions"), "Star Marrow production no longer depends on AdvancedAE");
             for (var input : inputs(recipe).keySet()) {
                 assertTrue(input.startsWith(MOD) || input.startsWith("ae2:") || input.startsWith("minecraft:"), input);
             }
@@ -51,27 +50,23 @@ class StarComputationRecipesTest {
     }
 
     @Test
-    void inscriberGrindsCrystalsAndAssemblesLaboratoryBoards() throws IOException {
-        var dust = recipe("star_marrow_crystal_dust");
-        assertEquals("inscribe", dust.get("mode").getAsString());
-        assertEquals(1, dust.getAsJsonObject("ingredients").size(), "Grinding must not need or consume a press");
-        assertEquals(MOD + "star_marrow_crystal", slot(dust, "middle"));
-
-        assertFalse(Files.exists(RECIPES.resolve("star_chart_circuit_board.json")),
-                "Circuit boards are made in the Twin Singularity Observation Ring");
-
+    void wellGrindsCrystalsAndAssemblesBoardsWithoutSelfCatalysts() throws IOException {
+        assertEquals(Map.of(MOD + "star_marrow_crystal", 64), inputs(recipe("star_marrow_crystal_dust")));
+        var board = recipe("star_chart_circuit_board");
+        assertEquals(MOD + "matter_fabrication", board.get("type").getAsString());
+        assertEquals(Map.of(MOD + "star_marrow_crystal", 16), inputs(board));
+        assertEquals(16, outputCount(board));
+        assertFalse(board.has("catalysts"));
         var processor = recipe("star_chart_processor");
-        assertEquals("press", processor.get("mode").getAsString(), "Assembly consumes the printed components");
-        assertEquals(3, processor.getAsJsonObject("ingredients").size());
-        assertEquals(MOD + "star_chart_circuit_board", slot(processor, "top"));
-        assertEquals("minecraft:redstone", slot(processor, "middle"));
-        assertEquals("ae2:printed_silicon", slot(processor, "bottom"));
+        assertEquals(Map.of(MOD + "star_chart_circuit_board", 16,
+                "minecraft:redstone", 16, "ae2:printed_silicon", 16), inputs(processor));
+        assertEquals(16, outputCount(processor));
     }
 
     @Test
     void allWorkbenchRecipesUseValidThreeByThreePatterns() throws IOException {
         var quantities = Map.of("star_computation_engine_casing", 4, "star_computation_observation_port", 4,
-                "star_computation_engine_core", 1, "reference_star_position_anchor", 9);
+                "star_computation_engine_core", 1, "reference_star_position_anchor", 9, "star_signal_storage_cell", 1);
         for (var entry : quantities.entrySet()) {
             var recipe = recipe(entry.getKey());
             assertEquals("minecraft:crafting_shaped", recipe.get("type").getAsString());
@@ -93,6 +88,35 @@ class StarComputationRecipesTest {
     }
 
     @Test
+    void starSignalStorageCellUsesTheRequestedThreeByThreeAssembly() throws IOException {
+        var cell = recipe("star_signal_storage_cell");
+        assertEquals("minecraft:crafting_shaped", cell.get("type").getAsString());
+        assertEquals("misc", cell.get("category").getAsString());
+        String[][] expected = {
+                {"ae2:quartz_vibrant_glass", MOD + "star_marrow_crystal_dust", "ae2:quartz_vibrant_glass"},
+                {MOD + "star_marrow_crystal_dust", MOD + "star_signal_storage_component", MOD + "star_marrow_crystal_dust"},
+                {MOD + "star_marrow_alloy_ingot", MOD + "star_chart_processor", MOD + "star_marrow_alloy_ingot"}
+        };
+        var pattern = cell.getAsJsonArray("pattern");
+        var keys = cell.getAsJsonObject("key");
+        assertEquals(3, pattern.size());
+        for (int row = 0; row < 3; row++) {
+            var symbols = pattern.get(row).getAsString();
+            assertEquals(3, symbols.length());
+            for (int column = 0; column < 3; column++) {
+                assertEquals(expected[row][column], keys.getAsJsonObject(String.valueOf(symbols.charAt(column)))
+                        .get("item").getAsString(), "Row " + row + ", column " + column);
+            }
+        }
+        assertEquals(Map.of("ae2:quartz_vibrant_glass", 2, MOD + "star_marrow_crystal_dust", 3,
+                MOD + "star_signal_storage_component", 1, MOD + "star_marrow_alloy_ingot", 2,
+                MOD + "star_chart_processor", 1), inputs(cell));
+        assertEquals(MOD + "star_signal_storage_cell", result(cell).get("id").getAsString());
+        assertEquals(1, outputCount(cell));
+        assertFalse(cell.has("ingredients"), "The old housing-plus-component shapeless recipe must be replaced");
+    }
+
+    @Test
     void theCoreAndBaseAnchorFitInNineOrdinaryCraftingSlots() throws IOException {
         assertEquals(Map.of(
                 MOD + "star_computation_engine_casing", 4,
@@ -108,33 +132,23 @@ class StarComputationRecipesTest {
     }
 
     @Test
-    void alloyUsesTheNativeAdvancedAeReactionFormatAndKeepsItsOriginalSolidInputs() throws IOException {
+    void alloyUsesNativeWellFormatAndKeepsOriginalMaterialRatios() throws IOException {
         var alloy = recipe("star_marrow_alloy_ingot");
-        assertEquals("advanced_ae:reaction", alloy.get("type").getAsString());
-        assertEquals(Map.of(MOD + "star_marrow_crystal_dust", 4, "minecraft:iron_ingot", 4,
-                "ae2:fluix_dust", 1, "ae2:sky_dust", 1), inputs(alloy));
-        assertTrue(alloy.getAsJsonArray("input_items").size() <= 9, "Reaction Chamber has nine item input slots");
-        for (var input : alloy.getAsJsonArray("input_items")) {
-            assertTrue(input.getAsJsonObject().get("amount").getAsInt() > 0);
-            assertTrue(input.getAsJsonObject().get("amount").getAsInt() <= 64);
-        }
-        assertEquals("minecraft:water", alloy.getAsJsonObject("input_fluid")
-                .getAsJsonObject("ingredient").get("fluid").getAsString());
-        assertEquals(500, alloy.getAsJsonObject("input_fluid").get("amount").getAsInt());
-        assertEquals(51200, alloy.get("input_energy").getAsInt());
-        assertEquals("ae2:i", result(alloy).get("#t").getAsString(), "AdvancedAE expects an AE item GenericStack");
-        assertEquals(4, outputCount(alloy));
-        assertFalse(result(alloy).has("count"), "GenericStack uses #, not ItemStack's count");
-        var conditions = alloy.getAsJsonArray("neoforge:conditions");
-        assertEquals(1, conditions.size());
-        assertEquals("neoforge:mod_loaded", conditions.get(0).getAsJsonObject().get("type").getAsString());
-        assertEquals("advanced_ae", conditions.get(0).getAsJsonObject().get("modid").getAsString());
+        assertEquals(MOD + "matter_fabrication", alloy.get("type").getAsString());
+        assertEquals(Map.of(MOD + "star_marrow_crystal_dust", 32, "minecraft:iron_ingot", 32,
+                "ae2:fluix_dust", 8, "ae2:sky_dust", 8), inputs(alloy));
+        assertEquals("minecraft:water", alloy.getAsJsonObject("fluid_input").get("id").getAsString());
+        assertEquals(4000, alloy.getAsJsonObject("fluid_input").get("amount").getAsInt());
+        assertEquals(1024, alloy.get("ae_per_tick").getAsInt());
+        assertEquals(400, alloy.get("processing_time").getAsInt());
+        assertEquals(32, outputCount(alloy));
+        assertFalse(alloy.has("neoforge:conditions"));
     }
 
     @Test
     void convertedRecipesNoLongerHaveNativeFabricationFieldsOrFoundationLocks() throws IOException {
         var unlocks = recipe("research/ae_foundation").getAsJsonArray("unlocks");
-        for (var id : Set.of("star_marrow_alloy_ingot", "star_computation_engine_core", "reference_star_position_anchor")) {
+        for (var id : Set.of("star_computation_engine_core", "reference_star_position_anchor")) {
             var recipe = recipe(id);
             for (var field : Set.of("requires_research", "processing_time", "ae_per_tick", "results")) {
                 assertFalse(recipe.has(field), id + " retains an obsolete fabrication field: " + field);
@@ -147,10 +161,12 @@ class StarComputationRecipesTest {
     void fabricationRecipesStayWithinMachineLimitsAndHaveReachableResearchOwners() throws IOException {
         var foundation = recipe("research/ae_foundation");
         assertEquals(0, foundation.getAsJsonArray("prerequisites").size());
+        var material = recipe("research/star_marrow_materials");
         var unlocks = new HashSet<String>();
         for (var entry : foundation.getAsJsonArray("unlocks")) {
             assertTrue(unlocks.add(entry.getAsString()), "Duplicate research unlock");
         }
+        for (var unlock : material.getAsJsonArray("unlocks")) unlocks.add(unlock.getAsString());
         for (var entry : TYPES.entrySet()) {
             if (!entry.getValue().equals(MOD + "matter_fabrication")) continue;
             var recipe = recipe(entry.getKey());
@@ -237,7 +253,7 @@ class StarComputationRecipesTest {
             var recipe = recipe(id);
             assertFalse(recipe.has("ae_inputs"));
             assertFalse(recipe.has("ae_outputs"));
-            assertFalse(recipe.has("fluid_input"));
+            assertEquals(id.equals("star_marrow_alloy_ingot"), recipe.has("fluid_input"));
             assertFalse(recipe.has("catalysts"));
             assertTrue(inputs(recipe).keySet().stream().noneMatch(RESERVED::contains));
         }

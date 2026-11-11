@@ -74,7 +74,7 @@ class BuildingTerminalAssetsTest {
     }
 
     @Test
-    void directoryReusesTheMachineSkinFontsAndResourceDrivenPalette() throws Exception {
+    void directoryReusesTheMachineSkinAndResourceDrivenPalette() throws Exception {
         String screen = Files.readString(JAVA.resolve("client/BuildingTerminalScreen.java"));
         assertTrue(screen.contains("new OsqUi(\"building_access_terminal\")"));
         assertTrue(screen.contains("ui.layout.renderSingleLine"));
@@ -84,8 +84,6 @@ class BuildingTerminalAssetsTest {
         assertFalse(screen.contains("class DirectoryButton"));
         assertFalse(screen.contains("drawString"), "Do not fall back to unrelated vanilla text styling");
         assertFalse(Pattern.compile("0x[0-9A-Fa-f]{6,8}").matcher(screen).find(), "Skin colors belong to its resource layout");
-        var fonts = Pattern.compile("\"(osq_[a-z0-9_]+)\"").matcher(screen);
-        while (fonts.find()) assertTrue(Files.isRegularFile(ASSETS.resolve("font/" + fonts.group(1) + ".json")), fonts.group(1));
         var terminal = JsonParser.parseString(Files.readString(ASSETS.resolve("osq_light/layout/building_access_terminal.json"))).getAsJsonObject();
         var entropy = JsonParser.parseString(Files.readString(ASSETS.resolve("osq_light/layout/star_computation_engine.json"))).getAsJsonObject();
         var colors = new HashMap<String, String>();
@@ -106,12 +104,12 @@ class BuildingTerminalAssetsTest {
     @Test
     void statusIndicatorStaysNextToTheMeasuredLabelInBothLanguages() throws Exception {
         String source = Files.readString(JAVA.resolve("client/BuildingTerminalScreen.java"));
-        assertTrue(source.contains("float statusWidth = Math.min(48, OsqFonts.widthF(font, status.getString(), DETAIL_FONT))"),
-                "Use the rendered font metrics, with the same width cap as the status label");
-        assertTrue(source.contains("float statusX = x + 226 - statusWidth"), "Keep each status group right-aligned");
-        assertTrue(source.contains("fill(g, statusX - 6, y + 9, 2, 2, color(tint))"),
+        assertTrue(source.contains("float statusWidth = OsqFonts.widthF(font, status.getString(),"),
+                "Finite status labels use their full measured width, never an arbitrary truncation cap");
+        assertTrue(source.contains("float statusX = remove.x - 6 - statusWidth"), "Keep the full status group left of Remove");
+        assertTrue(source.contains("fill(g, statusX - 6, actionCenter - 1.5f, 2, 2, color(tint))"),
                 "The two-pixel indicator must end four pixels before the label");
-        assertTrue(source.contains("centered(g, status, statusX, y + 10, statusWidth, tint, \"left\""));
+        assertTrue(source.contains("centered(g, status, statusX, actionCenter, statusWidth, tint, \"left\""));
         assertFalse(source.contains("fill(g, x + 172, y + 8"), "Do not restore the detached indicator column");
     }
 
@@ -165,19 +163,6 @@ class BuildingTerminalAssetsTest {
         assertTrue(source.contains("onDrag(double mouseX, double mouseY"));
         assertTrue(source.contains("isDragging() && getFocused() == scrollbar"),
                 "Vanilla container drag handling must explicitly forward captured scrollbar drags");
-        var light = JsonParser.parseString(Files.readString(ASSETS.resolve("osq_light/layout/building_access_terminal.json"))).getAsJsonObject();
-        var dark = JsonParser.parseString(Files.readString(Path.of("resourcepacks/OmniSequence Dark/assets/molecularmanipulator/osq_light/layout/building_access_terminal.json"))).getAsJsonObject();
-        var darkControls = new HashMap<String, String>();
-        for (var element : dark.getAsJsonArray("draw")) {
-            var entry = element.getAsJsonObject();
-            if (entry.has("k") && "ctl".equals(entry.get("k").getAsString()))
-                darkControls.put(entry.get("id").getAsString(), entry.get("rect").toString());
-        }
-        for (var element : light.getAsJsonArray("draw")) {
-            var entry = element.getAsJsonObject();
-            if (entry.has("k") && "ctl".equals(entry.get("k").getAsString()))
-                assertEquals(entry.get("rect").toString(), darkControls.get(entry.get("id").getAsString()));
-        }
     }
 
     @Test

@@ -13,16 +13,14 @@ import org.junit.jupiter.api.Test;
 
 /** Tests the actual packaged union silhouettes, not a flat-color imitation of glass. */
 class OsqConnectedTabsTest {
-    private static final List<Path> ROOTS=List.of(
-            Path.of("src/main/resources/assets/molecularmanipulator"),
-            Path.of("resourcepacks/OmniSequence Dark/assets/molecularmanipulator"));
+    private static final Path ASSETS=Path.of("src/main/resources/assets/molecularmanipulator");
 
     private static OsqLayout load(Path file) throws Exception {
         var constructor=OsqLayout.class.getDeclaredConstructor(JsonObject.class);constructor.setAccessible(true);
         return constructor.newInstance(JsonParser.parseString(Files.readString(file)).getAsJsonObject());
     }
-    private static BufferedImage image(Path root,OsqLayout.Entry surface) throws Exception {
-        return ImageIO.read(root.resolve("textures/gui/sprites/"+surface.sprite.split(":",2)[1]+".png").toFile());
+    private static BufferedImage image(OsqLayout.Entry surface) throws Exception {
+        return ImageIO.read(ASSETS.resolve("textures/gui/sprites/"+surface.sprite.split(":",2)[1]+".png").toFile());
     }
     private static List<OsqLayout.Entry> tabs(OsqLayout layout) {
         return layout.draw.stream().filter(e->e.tabSurface!=null).toList();
@@ -33,37 +31,33 @@ class OsqConnectedTabsTest {
         return delta;
     }
 
-    @Test void everyTabShipsItsOwnConnectedGlassInBothThemesWithIdenticalGeometry() throws Exception {
+    @Test void everyTabShipsItsOwnConnectedGlassAtTheAuthoredGeometry() throws Exception {
         int total=0;
-        try(var paths=Files.list(ROOTS.getFirst().resolve("osq_light/layout"))){
+        try(var paths=Files.list(ASSETS.resolve("osq_light/layout"))){
             for(var file:paths.filter(p->p.toString().endsWith(".json")).toList()){
-                var light=load(file);var dark=load(ROOTS.getLast().resolve("osq_light/layout/"+file.getFileName()));
-                assertEquals(tabs(light).size(),tabs(dark).size());
-                for(var tab:tabs(light)){
-                    var other=dark.findControl(tab.id);assertNotNull(other.tabSurface);
-                    assertEquals(tab.x,other.x);assertEquals(tab.y,other.y);assertEquals(tab.w,other.w);assertEquals(22,tab.h);
-                    assertEquals(tab.tabPanel,other.tabPanel);
-                    assertEquals(tab.tabSurface.x,other.tabSurface.x);assertEquals(tab.tabSurface.y,other.tabSurface.y);
-                    assertEquals(tab.tabSurface.w,other.tabSurface.w);assertEquals(tab.tabSurface.h,other.tabSurface.h);
-                    for(int i=0;i<2;i++){
-                        var source=i==0?tab:other;var pixels=image(ROOTS.get(i),source.tabSurface);
-                        assertEquals(Math.round(source.tabSurface.w*4),pixels.getWidth());
-                        assertEquals(Math.round(source.tabSurface.h*4),pixels.getHeight());
-                        assertNotNull((i==0?light:dark).find(source.tabPanel));
-                    }
+                var layout=load(file);
+                for(var tab:tabs(layout)){
+                    assertEquals(22,tab.h);
+                    assertTrue(tab.w>0);
+                    assertNotNull(layout.find(tab.tabPanel));
+                    var surface=tab.tabSurface;var pixels=image(surface);
+                    assertEquals(Math.round(surface.w*4),pixels.getWidth());
+                    assertEquals(Math.round(surface.h*4),pixels.getHeight());
+                    assertTrue(tab.x>=surface.x&&tab.x+tab.w<=surface.x+surface.w);
+                    assertTrue(tab.y>=surface.y&&tab.y+tab.h<=surface.y+surface.h);
                     total++;
                 }
             }
         }
-        assertEquals(41,total,"All five navigation families, including compact layouts, have real surfaces");
+        assertEquals(42,total,"All navigation families, including the orrery upgrade tab and compact layouts, have real surfaces");
     }
 
     @Test void selectedOpeningsHaveContinuousMaterialWithoutTheOldTopRuleOrShadow() throws Exception {
-        for(var root:ROOTS)try(var paths=Files.list(root.resolve("osq_light/layout"))){
+        try(var paths=Files.list(ASSETS.resolve("osq_light/layout"))){
             for(var file:paths.filter(p->p.toString().endsWith(".json")).toList()){
                 var layout=load(file);
                 for(var tab:tabs(layout)){
-                    var surface=tab.tabSurface;var pixels=image(root,surface);
+                    var surface=tab.tabSurface;var pixels=image(surface);
                     int join=Math.round((tab.y+tab.h-surface.y)*4);
                     for(float fraction:new float[]{.25f,.5f,.75f}){
                         int x=Math.round((tab.x+tab.w*fraction-surface.x)*4);
@@ -80,25 +74,25 @@ class OsqConnectedTabsTest {
 
     @Test void flushOuterEdgesAreStraightAcrossTheJoinWithoutCornerNubs() throws Exception {
         int checked=0;
-        for(var root:ROOTS)for(String page:List.of("fab_assembly_patterns","fab_assembly_input","fab_assembly_catalyst","seq_center_overview")){
-            var layout=load(root.resolve("osq_light/layout/"+page+".json"));
+        for(String page:List.of("fab_assembly_patterns","fab_assembly_input","fab_assembly_catalyst","seq_center_overview")){
+            var layout=load(ASSETS.resolve("osq_light/layout/"+page+".json"));
             var tab=tabs(layout).getFirst();
             // Assembly's first tab meets the parent's left edge; the last center
             // tab meets its right edge. Inspect both outside contour directions.
             if(page.startsWith("seq_"))tab=tabs(layout).getLast();
-            var surface=tab.tabSurface;var pixels=image(root,surface);
+            var surface=tab.tabSurface;var pixels=image(surface);
             int x=Math.round(((page.startsWith("seq_")?tab.x+tab.w-.5f:tab.x+.5f)-surface.x)*4);
             int join=Math.round((tab.y+tab.h-surface.y)*4);
             int color=pixels.getRGB(x,join-8);
-            for(int y=join-8;y<join+8;y++)assertEquals(color,pixels.getRGB(x,y),root+" "+page+" outside edge must not step or protrude");
+            for(int y=join-8;y<join+8;y++)assertEquals(color,pixels.getRGB(x,y),page+" outside edge must not step or protrude");
             checked++;
         }
-        assertEquals(8,checked);
+        assertEquals(4,checked);
     }
 
-    private static BufferedImage renderedParent(Path root,OsqLayout.Entry parent) throws Exception {
-        var source=image(root,parent);
-        var metadata=root.resolve("textures/gui/sprites/"+parent.sprite.split(":",2)[1]+".png.mcmeta");
+    private static BufferedImage renderedParent(OsqLayout.Entry parent) throws Exception {
+        var source=image(parent);
+        var metadata=ASSETS.resolve("textures/gui/sprites/"+parent.sprite.split(":",2)[1]+".png.mcmeta");
         int width=Math.round((parent.w+parent.pad[0]+parent.pad[2])*4);
         int height=Math.round((parent.h+parent.pad[1]+parent.pad[3])*4);
         if(!Files.exists(metadata)){
@@ -133,13 +127,13 @@ class OsqConnectedTabsTest {
 
     @Test void connectedPanelsKeepTheirActualCardEdgesAndShadowsOutsideTheOpening() throws Exception {
         int checked=0;
-        for(var root:ROOTS)try(var paths=Files.list(root.resolve("osq_light/layout"))){
+        try(var paths=Files.list(ASSETS.resolve("osq_light/layout"))){
             for(var file:paths.filter(p->p.toString().endsWith(".json")).toList()){
                 var layout=load(file);
                 for(var tab:tabs(layout)){
-                    var original=renderedParent(root,layout.find(tab.tabPanel));var bounds=solidBounds(original);
+                    var original=renderedParent(layout.find(tab.tabPanel));var bounds=solidBounds(original);
                     for(var surface:java.util.stream.Stream.of(tab.tabSurface,tab.tabSingleSurface).filter(java.util.Objects::nonNull).toList()){
-                        var pixels=image(root,surface);
+                        var pixels=image(surface);
                         int parentTop=Math.round((tab.y+tab.h-surface.y)*4);
                         int parentBottom=pixels.getHeight()-12,parentRight=pixels.getWidth()-12;
                         int sourceY=(bounds[1]+bounds[3])/2,targetY=(parentTop+parentBottom)/2;
@@ -157,15 +151,15 @@ class OsqConnectedTabsTest {
                 }
             }
         }
-        assertEquals(98,checked,"Both themes and dedicated single-block silhouettes retain the real parent frame");
+        assertEquals(50,checked,"All navigation families, including orrery upgrades and dedicated single-block silhouettes, retain the real parent frame");
     }
 
     private static int brightness(int color) { return ((color>>>16&255)+(color>>>8&255)+(color&255))/3; }
 
     @Test void selectedTabsContinueTheOrdinaryCardsTopLeftLightingRatherThanAWhiteRing() throws Exception {
-        try(var paths=Files.list(ROOTS.getFirst().resolve("osq_light/layout"))){
+        try(var paths=Files.list(ASSETS.resolve("osq_light/layout"))){
             for(var file:paths.filter(p->p.toString().endsWith(".json")).toList())for(var tab:tabs(load(file))){
-                var surface=tab.tabSurface;var pixels=image(ROOTS.getFirst(),surface);
+                var surface=tab.tabSurface;var pixels=image(surface);
                 int y=Math.round((tab.y+tab.h/2-surface.y)*4);
                 int left=Math.round((tab.x-surface.x)*4),right=Math.round((tab.x+tab.w-surface.x)*4);
                 assertTrue(brightness(pixels.getRGB(left+1,y))>brightness(pixels.getRGB(right-2,y))+20,
@@ -175,36 +169,31 @@ class OsqConnectedTabsTest {
     }
 
     @Test void assemblyMetadataFramesKeepTheirThinEdgesAtBothLiveCardSizes() throws Exception {
-        for(var root:ROOTS)for(String page:List.of("fab_assembly_patterns","fab_assembly_input","fab_assembly_catalyst")){
-            var layout=load(root.resolve("osq_light/layout/"+page+".json"));var card=layout.find("meta");
-            var pixels=image(root,card);boolean dark=root.equals(ROOTS.getLast());
+        for(String page:List.of("fab_assembly_patterns","fab_assembly_input","fab_assembly_catalyst")){
+            var layout=load(ASSETS.resolve("osq_light/layout/"+page+".json"));var card=layout.find("meta");
+            var pixels=image(card);
             assertArrayEquals(new int[]{3,3,3,3},card.pad);
-            assertFalse(Files.exists(root.resolve("textures/gui/sprites/"+card.sprite.split(":",2)[1]+".png.mcmeta")),
+            assertFalse(Files.exists(ASSETS.resolve("textures/gui/sprites/"+card.sprite.split(":",2)[1]+".png.mcmeta")),
                     "A fixed baked card must not be nine-slice stretched again");
             assertEquals(Math.round((card.w+6)*4),pixels.getWidth());
             assertEquals(Math.round((card.h+6)*4),pixels.getHeight());
             int x=pixels.getWidth()/2,y=pixels.getHeight()/2;
-            if(!dark){
-                assertTrue(brightness(pixels.getRGB(13,y))>brightness(pixels.getRGB(pixels.getWidth()-14,y))+25,
-                        "The metadata card uses the ordinary card's directional bevel, not a symmetric ring");
-                assertTrue(brightness(pixels.getRGB(x,13))>brightness(pixels.getRGB(x,pixels.getHeight()-14))+25);
-                assertTrue(brightness(pixels.getRGB(13,y))>230);
-                assertTrue(brightness(pixels.getRGB(16,y))<225,"The highlight is subpixel, not a stretched white frame");
-            }else{
-                assertTrue(rgbDelta(pixels.getRGB(13,y),pixels.getRGB(pixels.getWidth()-14,y))<=2,
-                        "Dark cards keep their subdued native edges, not a bright four-sided outline");
-            }
+            assertTrue(brightness(pixels.getRGB(13,y))>brightness(pixels.getRGB(pixels.getWidth()-14,y))+25,
+                    "The metadata card uses the ordinary card's directional bevel, not a symmetric ring");
+            assertTrue(brightness(pixels.getRGB(x,13))>brightness(pixels.getRGB(x,pixels.getHeight()-14))+25);
+            assertTrue(brightness(pixels.getRGB(13,y))>230);
+            assertTrue(brightness(pixels.getRGB(16,y))<225,"The highlight is subpixel, not a stretched white frame");
         }
     }
 
     @Test void singleBlockWidthsUseTheirOwnBakedSilhouettesRatherThanStretchingTheOriginalTab() throws Exception {
-        for(var root:ROOTS)for(String page:List.of("sing_overview","sing_collection","sing_duplication","sing_compact")){
-            var layout=load(root.resolve("osq_light/layout/"+page+".json"));
+        for(String page:List.of("sing_overview","sing_collection","sing_duplication","sing_compact")){
+            var layout=load(ASSETS.resolve("osq_light/layout/"+page+".json"));
             OsqSingularityPages.configure(layout,true);
             assertEquals(2,tabs(layout).size());
             for(var tab:tabs(layout)){
                 assertSame(tab.tabSingleSurface,tab.tabSurface);
-                var pixels=image(root,tab.tabSurface);
+                var pixels=image(tab.tabSurface);
                 int top=Math.round((tab.y-tab.tabSurface.y)*4);
                 int x=Math.round((tab.x+tab.w/2-tab.tabSurface.x)*4);
                 assertTrue((pixels.getRGB(x,top)>>>24)>=220,"The real card bevel retains its antialiased top edge");

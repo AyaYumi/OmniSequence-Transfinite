@@ -1,9 +1,11 @@
 package com.atir.molecularmanipulator.client;
 
+import appeng.client.gui.StackWithBounds;
 import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import net.minecraft.Util;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
@@ -41,7 +43,7 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         var selection=researchPanel==null?null:researchPanel.selection();
         ui=new OsqUi("fab_overview");imageWidth=ui.layout.width;imageHeight=ui.layout.height+24;super.init();
         // A fitted footer keeps the effect control clear of both research tabs and native inventory slots.
-        addScreenWidget(new MachineEffectButton(leftPos + imageWidth - 128, topPos + ui.layout.height + 3, 120,
+        addScreenWidget(new MachineEffectButton(ui, ui.buttonBox(imageWidth - 128, ui.layout.height + 3, 120, 18), leftPos, topPos,
                 () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         ui.inventory(menu);ui.slots(menu.getSlots(appeng.menu.SlotSemantics.MACHINE_INPUT),"qes");
         buildButton=addScreenWidget(ui.button("build",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.fabrication.build"),menu::requestBuild));
@@ -68,7 +70,7 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         ui.number(226.36f,188,()->"512");
         ui.width(16.5f,116,40);ui.width(59.23f,116,65);
         ui.width(212.5f,129,20);ui.width(233.95f,129,78);
-        ui.width(276,87,55);ui.width(327.36f,63,25);
+        ui.width(276,87,174);ui.width(327.36f,63,25);
         ui.color("gui.molecularmanipulator.fab.s026",()->menu.quantumFrequency==0?ui.palette.ink3:
                 menu.quantumLinkState==QuantumLinkState.CONNECTED||menu.quantumLinkState==QuantumLinkState.CONNECTED_BUILD_ONLY?ui.palette.ok:ui.palette.warn);
         ui.sprite(285.63f,44,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
@@ -84,9 +86,6 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         menu.showResearchPage(visible);
         updatePageWidgets();
     }
-    void testPage(boolean research){setResearchPage(research);}
-    void testDetails(){setResearchPage(true);researchPanel.showDetails(true);}
-
     private void updatePageWidgets() {
         buildButton.visible = !researchPage && !menu.legacyStructure;
         updateButton.visible = !researchPage && menu.legacyStructure;
@@ -100,6 +99,16 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         if (researchPanel != null && researchPanel.scroll(logicalMouseX(mouseX) - leftPos,
                 logicalMouseY(mouseY) - topPos, scrollY)) return true;
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    /** Research rows are drawn outside native slots; expose their visible screen area to JEI. */
+    public StackWithBounds researchIngredientAt(double mouseX,double mouseY) {
+        if(!researchPage||researchPanel==null)return null;
+        var ingredient=researchPanel.ingredientAt(logicalMouseX(mouseX)-leftPos,logicalMouseY(mouseY)-topPos);
+        if(ingredient==null)return null;
+        var area=ingredient.bounds();
+        return new StackWithBounds(ingredient.stack(),responsiveArea(
+                new Rect2i(leftPos+area.getX(),topPos+area.getY(),area.getWidth(),area.getHeight())));
     }
 
     @Override

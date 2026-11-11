@@ -31,19 +31,21 @@ public final class MolecularAutoCrafterConfigScreen extends ResponsiveContainerS
         ui=new OsqUi("seq_autocrafter_config");imageWidth=ui.layout.width;imageHeight=ui.layout.height;super.init();sync();
         menu.getSlots(SlotSemantics.ENCODED_PATTERN).forEach(slot->{slot.x=-1000;slot.y=-1000;});
         limit=addScreenWidget(amountField("limit",limitDraft));
-        limitApply=addScreenWidget(ui.button("limit_set",leftPos,topPos,()->Component.literal("+"),this::applyLimit));
-        var target=addScreenWidget(ui.button("src_target",leftPos,topPos,()->tr("limit_source_destination"),()->setMode(true)));
-        var network=addScreenWidget(ui.button("src_me",leftPos,topPos,()->tr("limit_source_network"),()->setMode(false)));
+        limitApply=addScreenWidget(ui.button("limit_set",leftPos,topPos,()->tr("apply"),this::applyLimit));
+        var target=addScreenWidget(ui.button("src_target",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.seq.s006"),()->setMode(true)));
+        var network=addScreenWidget(ui.button("src_me",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.seq.s007"),()->setMode(false)));
+        target.setTooltip(Tooltip.create(tr("limit_source_destination_hint")));
+        network.setTooltip(Tooltip.create(tr("limit_source_network_hint")));
         ui.state(target,()->menu.outputLimitMode==MolecularAutoCrafter.OutputLimitMode.DESTINATION?"active":"normal");
         ui.state(network,()->menu.outputLimitMode==MolecularAutoCrafter.OutputLimitMode.NETWORK?"active":"normal");
         for(int i=0;i<fields.length;i++){final int input=i;
             fields[i]=addScreenWidget(amountField("rsv"+(i%PAGE_SIZE),drafts[i]));
-            apply[i]=addScreenWidget(ui.button("ok"+(i%PAGE_SIZE),leftPos,topPos,()->Component.literal("+"),()->applyReserve(input)));
+            apply[i]=addScreenWidget(ui.button("ok"+(i%PAGE_SIZE),leftPos,topPos,()->tr("apply"),()->applyReserve(input)));
         }
         addScreenWidget(ui.button("back",leftPos,topPos,()->Component.translatable("gui.back"),menu::requestBack));
         save=addScreenWidget(ui.button("save",leftPos,topPos,()->tr("save_all"),this::applyAll));
-        addScreenWidget(ui.button("prev",leftPos,topPos,()->Component.literal("<"),()->changePage(-1)));
-        addScreenWidget(ui.button("next",leftPos,topPos,()->Component.literal(">"),()->changePage(1)));
+        addScreenWidget(ui.button("prev",leftPos,topPos,()->tr("previous_page"),()->changePage(-1)));
+        addScreenWidget(ui.button("next",leftPos,topPos,()->tr("next_page"),()->changePage(1)));
         ui.text("gui.molecularmanipulator.page",()->OsqUi.tr("gui.molecularmanipulator.page",page+1,pageCount()));
         for(var e:ui.layout.draw)if("text".equals(e.type)&&((e.baseline>=124&&e.baseline<218)||(e.x>=39&&e.x<158&&e.baseline<55)))ui.at(e.x,e.baseline,Component::empty);
         ui.omit("gui.molecularmanipulator.auto_craft_amount_range");

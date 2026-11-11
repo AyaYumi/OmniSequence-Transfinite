@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "QEQ",
+    "FSF",
+    "QEQ"
+  ],
+  "key": {
+    "Q": { "item": "minecraft:quartz_block" },
+    "E": { "item": "ae2:engineering_processor" },
+    "F": { "item": "ae2:fluix_crystal" },
+    "S": { "item": "molecularmanipulator:star_chart_processor" }
+  },
+  "result": {
+    "id": "molecularmanipulator:star_sea_calculation_mainframe",
+    "count": 1
+  }
+}

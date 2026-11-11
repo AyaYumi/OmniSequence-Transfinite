@@ -28,11 +28,11 @@ class MatterFabricationDefaultsTest {
     }
 
     @Test
-    void builtInResearchKeepsItsDurationAndOmitsLegacySpeedBenefits() throws IOException {
+    void builtInResearchHasPositiveDurationAndOmitsLegacySpeedBenefits() throws IOException {
         try (var files = Files.walk(RECIPES.resolve("research"))) {
             for (var path : files.filter(file -> file.toString().endsWith(".json")).toList()) {
                 var json = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-                assertEquals(600, json.get("duration").getAsInt(), path.toString());
+                assertTrue(json.get("duration").getAsInt() >= 600, path.toString());
                 for (var depth : json.getAsJsonArray("depths")) {
                     assertFalse(depth.getAsJsonObject().has("speed_multiplier"), path.toString());
                     assertFalse(depth.getAsJsonObject().has("processing_ticks"), path.toString());

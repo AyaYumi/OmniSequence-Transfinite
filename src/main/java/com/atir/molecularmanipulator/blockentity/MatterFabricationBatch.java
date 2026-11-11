@@ -80,8 +80,8 @@ final class MatterFabricationBatch {
         if (count <= 0) return null;
         RecipeHolder<MatterFabricationRecipe> missingCatalyst = null;
         for (var holder : candidates) {
-            if (MatterResearchApi.canUseRecipe(host, holder)
-                    && validInputs(holder.value(), supplied, count)) {
+            if (validInputs(holder.value(), supplied, count)
+                    && MatterResearchApi.canUseRecipe(host, holder)) {
                 if (host.hasCatalysts(holder.value())) return holder;
                 if (missingCatalyst == null) missingCatalyst = holder;
             }
@@ -89,7 +89,7 @@ final class MatterFabricationBatch {
         return missingCatalyst;
     }
 
-    private static boolean validInputs(MatterFabricationRecipe recipe, Map<AEKey, Long> supplied, long count) {
+    static boolean validInputs(MatterFabricationRecipe recipe, Map<AEKey, Long> supplied, long count) {
         try {
             for (var entry : supplied.entrySet()) {
                 if (entry.getKey() == null || entry.getValue() <= 0) return false;
@@ -157,8 +157,15 @@ final class MatterFabricationBatch {
 
     boolean accept(MatterFabricationBlockEntity host, RecipeHolder<MatterFabricationRecipe> holder, Map<AEKey, Long> supplied,
             long count, Map<AEKey, Long> expectedOutputs) {
+        return MatterResearchApi.canUseRecipe(host, holder)
+                && acceptAdmitted(host, holder, supplied, count, expectedOutputs);
+    }
+
+    /** Only for slices of an already admitted MatterPatternBuffer queue, which owns all supplied inputs. */
+    boolean acceptAdmitted(MatterFabricationBlockEntity host, RecipeHolder<MatterFabricationRecipe> holder,
+            Map<AEKey, Long> supplied, long count, Map<AEKey, Long> expectedOutputs) {
         try {
-            if (count <= 0 || !MatterResearchApi.canUseRecipe(host, holder) || !validInputs(holder.value(), supplied, count)
+            if (count <= 0 || !validInputs(holder.value(), supplied, count)
                     || count > capacity(host, holder, Map.of())) return false;
             var output = outputs(holder.value());
             var scaled = new LinkedHashMap<AEKey, Long>(); output.forEach((key, amount) -> scaled.put(key, Math.multiplyExact(amount, count)));

@@ -6,6 +6,7 @@ import appeng.api.stacks.AEKey;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
+import com.atir.molecularmanipulator.research.MachineResearchGate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -34,6 +35,7 @@ public final class MatterRecipeIndex {
     private final Map<Map<AEKey, Long>, List<RecipeHolder<MatterFabricationRecipe>>> byOutput = new HashMap<>();
     private final Map<ResourceLocation, List<RecipeHolder<MatterResearchRecipe>>> researchByRecipe = new HashMap<>();
     private final Map<ResourceLocation, List<RecipeHolder<MatterResearchRecipe>>> dynamicResearchByRecipe = new HashMap<>();
+    private final java.util.Set<ResourceLocation> machineGatedRecipes = new java.util.HashSet<>();
     private final Map<ResourceLocation, Integer> branchCounts = new HashMap<>();
     private final Map<ResourceLocation, Map<String, Integer>> researchOutputBranchCounts = new HashMap<>();
 
@@ -44,6 +46,7 @@ public final class MatterRecipeIndex {
         var imported = MatterRecipeBridge.importRecipes(level, source, machines);
         for (var value : imported) {
             var holder = value.holder();
+            machineGatedRecipes.add(holder.id());
             if (allFabrication.stream().noneMatch(existing -> existing.id().equals(holder.id()))) {
                 allFabrication.add(holder);
                 branchCounts.put(holder.id(), value.branchCount());
@@ -59,8 +62,11 @@ public final class MatterRecipeIndex {
             byOutput.computeIfAbsent(output, ignored -> new ArrayList<>()).add(holder);
         }
         byOutput.replaceAll((output, recipes) -> List.copyOf(recipes));
-        var definitions = new ArrayList<>(manager.getAllRecipesFor(ModContent.MATTER_RESEARCH_RECIPE_TYPE.get()).stream()
-                .filter(holder -> holder.value().available())
+        var available = manager.getAllRecipesFor(ModContent.MATTER_RESEARCH_RECIPE_TYPE.get()).stream()
+                .filter(holder -> holder.value().available()).toList();
+        var definitions = new ArrayList<>(available.stream()
+                .map(holder -> MachineResearchGate.isMachineResearch(holder.id())
+                        ? new RecipeHolder<>(holder.id(), MachineResearchGate.apply(holder.value(), available)) : holder)
                 .sorted(Comparator.<RecipeHolder<MatterResearchRecipe>>comparingInt(holder -> holder.value().sortOrder())
                         .thenComparing(holder -> holder.id().toString())).toList());
         var importedByMachine = new LinkedHashMap<String, List<RecipeHolder<MatterFabricationRecipe>>>();
@@ -74,11 +80,10 @@ public final class MatterRecipeIndex {
             var id = MolecularManipulator.id("research/machine/" + machine.key());
             MatterResearchRecipe definition;
             if (machine.declaration() == null) {
-                var parent = ResourceLocation.parse("molecularmanipulator:research/ae_foundation");
                 definition = new MatterResearchRecipe("research.molecularmanipulator.machine." + machine.key(),
-                        manager.byKey(parent).isPresent() ? List.of(parent) : List.of(),
+                        List.of(),
                         List.of(new MatterResearchRecipe.Cost(Ingredient.of(item), 1)), 600, 512,
-                        unlocks, List.of(machine.modId()), 1000 + definitions.size(), 2);
+                        unlocks, List.of(machine.modId()), 1000 + definitions.size(), 4);
             } else {
                 var configured = machine.declaration().research();
                 var allUnlocks = new ArrayList<>(configured.unlocks());
@@ -88,6 +93,7 @@ public final class MatterRecipeIndex {
                         configured.requiredMods(), configured.sortOrder(), configured.stage(),
                         configured.depths(), configured.prerequisiteLevels());
             }
+            definition = MachineResearchGate.apply(definition, available);
             var holder = new RecipeHolder<>(id, definition);
             definitions.add(holder);
             var counts = new HashMap<String, Integer>();
@@ -103,6 +109,7 @@ public final class MatterRecipeIndex {
             researchById.put(holder.id(), holder);
             for (var recipe : holder.value().unlocks()) {
                 researchByRecipe.computeIfAbsent(recipe, ignored -> new ArrayList<>()).add(holder);
+                if (MachineResearchGate.isMachineResearch(holder.id())) machineGatedRecipes.add(recipe);
             }
         }
         dynamicResearchByRecipe.replaceAll((recipe, owners) -> List.copyOf(owners));
@@ -132,6 +139,8 @@ public final class MatterRecipeIndex {
     public List<RecipeHolder<MatterFabricationRecipe>> fabrication() { return fabrication; }
 
     public RecipeHolder<MatterFabricationRecipe> fabrication(ResourceLocation id) { return fabricationById.get(id); }
+
+    public boolean requiresMachineResearchGate(ResourceLocation id) { return machineGatedRecipes.contains(id); }
 
     public List<RecipeHolder<MatterResearchRecipe>> research() { return research; }
     public RecipeHolder<MatterResearchRecipe> research(ResourceLocation id) { return researchById.get(id); }

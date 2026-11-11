@@ -1,6 +1,12 @@
 # AppliedEnhancements dependency / 编译依赖
 
-For OmniSequence 2.1.0 on Minecraft 1.21.1 / Java 21 and AE2 19.2.18.
+**For developers building from source.** Players installing a released mod JAR can use the [installation guide](../README.md#install); they do not need to fill this directory.
+
+**这页供源码编译者使用。** 直接安装发布版的玩家请看[安装步骤](../README.zh-CN.md#安装)，无需准备此目录。
+
+## Prepare the local build inputs / 准备本地编译依赖
+
+For OmniSequence 21.3.0.0 on Minecraft 1.21.1 / Java 21 and AE2 19.2.18.
 
 This branch compiles against `appliedenhancements-1.1.4.jar` in this directory.
 The minimum supported runtime version remains 1.1.2.
@@ -26,6 +32,8 @@ pinned compatible public releases. These are compile-only dependencies;
 they are not embedded in the output and are optional at runtime.
 
 上述 CPU JAR 仅提供编译接口，不嵌入产物，也不成为必需运行依赖。
+
+## Version-specific integrations / 特定版本兼容范围
 
 The additional Data Energistics **Digital Storage Depot** capacity-simulation hook
 is enabled only for **3.3.0** and **3.3.5**. It counts each physical slot's free

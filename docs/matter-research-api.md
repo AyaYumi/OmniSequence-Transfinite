@@ -1,6 +1,11 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.1.0**.
+**For modpack and mod authors.** Use this page to add things the well can make,
+choose which research unlocks them, or import another machine's supported recipes.
+For building and operating a well, start with the [player guide](../README.md) or
+press **G** on its controller in game. The schemas and Java contracts below are author reference.
+
+Available since OmniSequence: Transfinite **2.0.0**; current for **21.3.0.0**.
 Target: Minecraft **1.21.1** / NeoForge, Java **21**, AE2 **19.2.18**, and the
 required prerequisite Applied Enhancements **1.1.2+** (compile API **1.1.4**). The Mod ID stays
 `molecularmanipulator`.
@@ -25,6 +30,11 @@ and not to a global network.
 ---
 
 ## 1. Quick start: custom well recipes behind research
+
+With KubeJS installed, save this complete script as
+`kubejs/server_scripts/well_research.js`, then run `/reload`. It adds a cobblestone-to-stone
+process and the research that opens it. In a formed, powered well, complete AE Foundation,
+then the new research to use the process. The example uses its own three-round depth table.
 
 ```javascript
 ServerEvents.recipes(event => {
@@ -134,6 +144,8 @@ ServerEvents.recipes(event => {
   }).id('kubejs:furnace_import');
 });
 ```
+
+Every machine import, including custom declarations below, automatically requires **Sequence≥3 AND Computation≥3**, with an effective display stage of at least 4. Custom stricter prerequisites are preserved; this minimum cannot be lowered.
 
 The generated research ID is `molecularmanipulator:research/machine/kubejs/furnace_import`.
 Imported recipe IDs start with `molecularmanipulator:fabrication/import/machine/kubejs/furnace_import/`.
@@ -264,8 +276,10 @@ Each `depths` element:
 
 ### 2.2 Long values and `2^53 - 1`
 
-Every long field (`count`, `material_multiplier`, `parallel`, `speed_multiplier`)
-accepts a decimal string, and quoting is recommended. Above JavaScript's exact
+Every **research** long field (`count`, `material_multiplier`, `parallel`, `speed_multiplier`)
+accepts a decimal string, and quoting is recommended. This does not apply to fabrication
+item counts, generic-stack `#` amounts or star research's `information_cost`; those have
+their own numeric codecs. Above JavaScript's exact
 integer limit `2^53 - 1` a string is **mandatory** — write
 `'9223372036854775807'`, never a float or `'9.22E18'`. Nothing detects a
 precision loss for you; a wrong JavaScript number is silently wrong. Costs whose
@@ -276,7 +290,8 @@ or becoming free.
 
 ## 3. Default nine-round progression
 
-Used when `depths` is omitted, and by the four ordinary built-in branches. Costs are
+Used when `depths` is omitted. Built-in research follows these parallel limits but
+can replace each round's material cost with explicit `ingredients` (§6). Costs are
 charged per round and are not the difference from the previous round. `parallel`
 is how many complete recipe executions a single craft may run.
 
@@ -316,7 +331,7 @@ fallback does not unlock research-gated recipes.
 
 | Field | Meaning |
 | --- | --- |
-| `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: ...}` with a positive integer count. Defaults to empty. |
+| `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: ...}`. `count` is a numeric integer in `1..2147483647`, default `1`; the list defaults to empty. This is not the research long-string format. |
 | `catalysts` | Optional prerequisite stacks, in the same format as `ingredients`. Defaults to empty. All assemblies in one formed well contribute their catalyst inventories; catalysts are never consumed or multiplied by batch count/research parallelism and are excluded from encoded pattern inputs. |
 | `results` | Up to **6** item outputs as strict stacks `{id: ..., count: ...}`. |
 | `fluid_input` | Optional fluid input `{id: ..., amount: ...}` in mB. Does not count toward the twelve-input limit. |
@@ -381,12 +396,23 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 ```
 
 The older 6-, 7-, and 8-argument constructors remain available; omitted generic
-input/output lists default to empty. The complete constructor accepts both lists:
+input/output lists default to empty. The 9-argument constructor accepts both lists:
 
 ```java
 new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
         aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
 ```
+
+To provide retained catalysts, use the 10-argument overload:
+
+```java
+new MatterFabricationRecipe(ingredients, catalysts, results, fluidInput, fluidResult,
+        aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+```
+
+The canonical record also has a final nullable `ResourceLocation sourceRecipeId`.
+Runtime machine imports attach it with `withSourceRecipeId(...)` to preserve source
+recipe-lock checks. It is **not a JSON field**; normal native recipes leave it null.
 
 ### 4.2 Research permission
 
@@ -398,8 +424,9 @@ granting research is removed, or when its required mod is missing. A recipe whos
 granting research is not currently available (for example AdvancedAE is absent)
 is locked rather than silently opened.
 
-Recipe permission applies to the Matter Fabrication Well. It does not globally
-block other machines, and already-built multiblocks keep working.
+This per-well research permission does not globally block other machines, and
+already-built multiblocks keep working. Independent [star-research recipe locks](recipe-permissions.zh-CN.md)
+also apply at covered execution paths, including the well.
 
 ---
 
@@ -481,70 +508,59 @@ are internal and are not public Java API.
 
 ## 6. Built-in research and unlock chain
 
-| Research ID (prefix `molecularmanipulator:research/`) | Time per round | Research power | First-completion unlocks |
-| --- | --- | --- | --- |
-| `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, Pattern Assembly and Molecular Auto Crafter |
-| `nomai_materials` | 600 ticks / 30 s | 256 AE/t | Ghost Matter and Gravity Crystal; one round, stage `0`, `sort_order: 5`, requires one `ae_foundation` completion |
-| `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
-| `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
-| `event_horizon` | 600 ticks / 30 s | 2048 AE/t | Miniature Black Hole, Miniature White Hole and all 13 Singularity Hub structural blocks |
-| `machine/<machine_key>` | 600 ticks / 30 s | 512 AE/t | Recipes imported from that addon machine (when the mod and machine are present) |
+The default tree has six tiers and ten main researches, plus Exotic Matter and machine integrations.
+AdvancedAE is optional to load the mod, but the default Quantum Materials, Computation,
+Event Horizon, Stellar and Transfinite branches require it. Without that mod, those
+research definitions are unavailable, rather than an alternative route to the same devices.
 
-The 30 seconds applies to the first unlock and to every later deep-research round
-of the built-in researches. Custom `duration` values stay free in ticks and still
-default to 1200; a started round keeps the duration snapshot from its start.
+| ID (prefix `molecularmanipulator:research/`) | Tier | Parents (one completion unless specified) | Time / power | Unlocks |
+| --- | --- | --- | --- | --- |
+| `ae_foundation` | I | None | 600tick / 256AE/t | AE processing, assembly, auto crafter |
+| `star_marrow_materials` | II | Foundation | 900 / 512 | Five materials and both advanced anchors |
+| `star_marrow_crystallization` | II | Star Marrow | 1200 / 512 | Signal/water proliferation with retained rock |
+| `eae_materials` | II | Foundation | 900 / 512 | 14 curated EAE material processes |
+| `quantum_materials` | II | EAE | 1200 / 1024 | 13 curated AAE material processes |
+| `sequence_array` | III | EAE, Star Marrow | 1200 / 1024 | Sequence/rewrite parts, storage/parallel matrices |
+| `omni_computation` | III | Quantum, Star Marrow | 1800 / 2048 | Computation structure, Omniscient matrix |
+| `event_horizon` | IV | Sequence, Computation | 1800 / 4096 | Black/white holes, nine hub structures |
+| `stellar_fabrication` | V | Horizon | 2400 / 8192 | Supernova, hub controller, resource core |
+| `transfinite_fabrication` | VI | Stellar | 3600 / 16384 | Transfinite Compute Nexus |
+| `nomai_materials` | Special 0 | Foundation | 600 / 256 | Ghost Matter, Gravity Crystal |
+| `machine/<key>` | Post-III branch | **Sequence≥3 AND Computation≥3** | Default600 / 512 | Imported machine processes |
 
-The Molecular Auto Crafter (`molecular_auto_crafter`) belongs to tier-one
-`ae_foundation`, rather than `sequence_array`; later foundation completions raise
-parallelism for its Fabrication Well recipe. Crafting it still requires an active
-Star Computation Engine on the well's ME network with the permanent `foundation`
-node unlocked. `nomai_materials` appears immediately after the foundation branch
-and remains an optional stage-zero, single-round research. Existing wells keep
-their research completion counts. Other branches, prerequisites and addon research
-are unchanged.
+There is no separate `terminal_fabrication` well research. The auto crafter belongs to Foundation.
+Star research is a separate team-permanent permission: the only default node is **Single-Block Integration / 单方块集成**
+(`molecularmanipulator:material`, legacy bit 1). It requires the core's **actual L3**,
+`information_cost: 0` and `prerequisites: []`, but still needs a manual unlock at a formed,
+online engine bound to the player's team.
 
-Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts use 100× ordinary ingredient quantities, retaining outputs and power; built-in fabrication base durations are uniformly 400 ticks. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
+The sole bundled lock, `molecularmanipulator:recipe_locks/material`, targets only
+`molecularmanipulator:molecular_manipulator` and `molecularmanipulator:transfinite_compute_nexus`.
+Their well research remains required, and the nexus recipe still requires AdvancedAE.
+Matrices, advanced anchors, the auto crafter and the Well, Sequence Array and Omni Computation
+multiblock controllers have no default star-research gate; their well research and other recipe
+conditions remain unchanged. See the [star node guide](star-research-nodes.zh-CN.md) and
+[recipe-permission guide](recipe-permissions.zh-CN.md) (Chinese) for configuration and coverage.
 
-These stage-two branches require **one** `ae_foundation` completion by default.
-Built-in additions use IDs under
-`molecularmanipulator:fabrication/research_materials/<modid>/<item>`. Addon machine
-recipes use `molecularmanipulator:fabrication/import/machine/<machine_key>/<output>`;
-each machine with supported recipes has its own research branch. The importer reads
-the effective recipe manager after reload, including changes made through KubeJS
-`ServerEvents.recipes`. Distinct input branches remain separate recipes. Identical
-inputs and counts for the same output are merged, while the research panel shows one
-output row with the number of branches. Supported AE item, fluid, lightning, and data
-resources keep their native ingredient identity in JEI.
+All static research has nine rounds. Later rounds explicitly replace costs with sustainable expansion materials, rather than repeatedly charging original machines. Research grants parallelism only; the engine supplies speed. Custom durations and depth lists remain configurable.
 
-Without AdvancedAE the Omni-Computation branch and its material recipes do not
-load, and the interface lists nothing for them. The Sequence Array branch is
-guarded by `required_mods: ["extendedae"]`.
+All built-in and custom machine imports automatically add `sequence_array: 3` and `omni_computation: 3`, preserving stricter numeric or `max` requirements. Three means total completions including the first. Admission, orders, preparation and active tasks read current prerequisites. Imported-recipe use also rechecks this minimum, including legacy completions, administrative completion assignments and alternative research owners.
 
-The Molecular Sequence Rewrite Array (`molecular_manipulator`) and the Assembler
-Matrix Sequence Rewrite Core (`assembler_matrix_molecular_core`) moved into the
-stage-two Sequence Array branch: their crafting recipes are now well recipes
-using the same materials and counts, at 400 ticks and 512 AE/t base. The branch's
-first completion unlocks both, and its deep research increases their recipe
-parallelism. Already-built machines keep working.
+Tier II curated recipes under `fabrication/research_materials/<modid>/<item>` are startup material processes, not whole-machine imports, so they remain available before tier III. Whole-machine imports retain `fabrication/import/machine/<key>/` IDs and individual research; reload rebuilds their indexes and gates.
 
-The Transfinite Compute Nexus recipe, `molecularmanipulator:transfinite_compute_nexus`,
-is unlocked by the Omni-Computation branch at 400 ticks and 4096 AE/t before
-production bonuses, inherits that branch's well bonuses, and is itself gated on
-AdvancedAE. Once placed, the block's idle draw is configured separately through
-`transfinite_compute_nexus.idle_power`, defaulting to 16384 AE/t; that setting
-covers only the single-block nexus, while the Omni-Computation Core multiblock
-keeps its fixed 8192 AE/t idle draw.
+The five Star Marrow materials use native well recipes, preserving dust/processor/alloy/component recipe IDs. Old cradle board conversion and machine/workbench production routes are removed. The crystallization recipe `fabrication/internal/star_marrow_crystal` consumes `ae_inputs: [{"#t":"molecularmanipulator:star_signal_flow","#":1024}]` and 8000mB water, with one retained Flawless rock, to produce 64 crystals at 400tick/512AE/t. It requires a Pattern Assembly and does not generate signal. Survival Star Signal Flow
+is produced separately by the Star Sea Calculation Mainframe; it is not a well-research reward.
 
-The well controller, the five structural blocks and the four item/fluid ports are
-crafted from vanilla AE materials and are not gated by research. Pattern
-assemblies are crafted inside the well and need the first tier-one completion.
+Do not confuse `star_signal_storage_component` (a researched well process yielding eight
+components) with `star_signal_storage_cell` (the finished storage cell). The latter remains
+an ordered `minecraft:crafting_shaped` recipe with rows **`GDG / DCD / IPI`**:
+`G = ae2:quartz_vibrant_glass`, `D = star_marrow_crystal_dust`,
+`C = star_signal_storage_component`, `I = star_marrow_alloy_ingot`,
+`P = star_chart_processor` (unqualified ingredient IDs use `molecularmanipulator`).
 
-Service blocks link to the controller on the **24 positions in front of the well**
-and the **20 central platform positions** (five on each of the four collar
-segments), 44 bays in total. The nine former outer positions are no longer
-accepted. Pattern assemblies and the four item/fluid ports share the same bay set.
-The blocks themselves can be placed anywhere, but only a bay position links to the
-controller; the placement preview highlights the legal bays.
+Event Horizon's first round costs 64 Sequence crystals, 64 Computation pylons, 32 of each matrix and 1024 AE Singularities. Supernova and hub cores belong to Stellar; the nexus belongs to Transfinite. Black/white hole recipes retain their material costs and 400-tick fabrication times.
+
+Legacy progress maps once: Foundation→Star Marrow/EAE/Quantum, Computation→Transfinite, Horizon→Stellar. It does not grant Sequence completions or crystallization. Paid tasks retain terms and wait for current parents; completing old tasks also migrates their split permissions. Retired board batches return original crystals. Existing inventory and structures remain valid; matrix production uses current owners.
 
 ---
 
@@ -582,12 +598,9 @@ when one craft outputs 16 of the same item, a single batch is capped at
 `Long.MAX_VALUE / 16`. Power is charged as the recipe's per-tick draw times the
 batch's craft count.
 
-Native tests cover the numeric side through the public API: the pattern assembly
-accepts and commits a 3,000,000,000-craft generic batch and keeps those amounts
-long-valued across NBT round trips, while the Sequence Rewrite Array and
-Assembler Matrix providers prepare `Long.MAX_VALUE / 4` crafts with exact output
-counts and reject multiplication or buffer overflow without consuming inputs.
-That verifies capacity, not that any pack has free materials or power.
+Batch admission rejects multiplication or per-key buffer overflow without consuming
+inputs. Persistent batch buffers retain long-valued amounts across NBT saves;
+that capacity does not provide free materials or power.
 
 Started work keeps its materials, outputs and power snapshot. Its duration is
 recomputed from the current recipe and the controller's grid benefits, including
@@ -599,7 +612,7 @@ ticks, bounded below completion. Queued work stores material ownership and the
 recipe ID and rechecks the current recipe, permission and profile before starting.
 Work that cannot proceed retains its materials inside the assembly.
 
-### 7.1 Known limitations in 2.1.0
+### 7.1 Known limitations in 21.3.0.0
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.
@@ -686,10 +699,11 @@ and from `unlock_all`, and naming it directly reports it as unavailable.
 Changing a research's state or count ends that research's active attempt. Already
 spent materials are not refunded, and nothing extra is charged; `unlock_all` ends
 the active attempts of everything it maxes out. Setting one research leaves other
-branches' counts, tasks and invested materials alone. Reverting tier one pauses
-unfinished tier-two research until the prerequisite is met again (one completion
-by default), while tier-two completion records and granted production permissions
-are kept. Results are written to the controller's NBT and pushed to open menus.
+branches' counts, tasks and invested materials alone. Revoking a prerequisite pauses
+unfinished dependent research until its current requirements are met again; existing
+completion records remain. Ordinary recipes retain their granted well permission,
+but machine-import recipes continuously recheck the minimum of three completions
+in each Tier III branch. Results are written to the controller's NBT and pushed to open menus.
 
 ---
 
@@ -721,7 +735,7 @@ API; the separate batch API stays at v1.
 | `orderMissing(controller, resourceId, toMaximum)`, `stopPreparation(controller, resourceId)` | Server owner-thread operations returning whether the request was accepted. Ordering continuously prepares materials; `true` targets all remaining rounds. Stop accepts preparation only and returns `false` once research starts. |
 | `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; ordinary manual tasks using `setPaused(..., false)` re-check the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
 | `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
-| `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
+| `canUseRecipe`, `isRecipeUnlocked` | Check this well's research plus global recipe locks and, for imports, the source recipe ID and dual-Tier-III minimum. Other executors must call the hook to enforce these rules. `canUseRecipe` takes a `RecipeHolder<MatterFabricationRecipe>`. |
 | `productionProfile` | `(parallel, ticks)`: highest parallel limit among completed owner branches; unowned, ungated recipes inherit completed `ae_foundation` parallelism, otherwise `1`. Ticks come from the current recipe base duration and `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)`, independently of research depth. |
 | `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
 | `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
@@ -751,4 +765,5 @@ Java map accepts positive counts or `0` for maximum, while JSON and KubeJS accep
 a positive integer or the string `"max"` and reject `0` and negatives.
 
 Other recipe executors must call the permission and production-parameter hooks
-themselves.
+themselves. `productionProfile` computes batch and timing limits; it is not a permission
+check, material reservation or guarantee that the network can supply the batch.

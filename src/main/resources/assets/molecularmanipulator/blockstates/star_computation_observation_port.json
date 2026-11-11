@@ -4,20 +4,20 @@
       "model": "molecularmanipulator:block/star_computation_observation_port"
     },
     "facing=north,formed=true,invisible=false": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed"
+      "model": "molecularmanipulator:block/star_computation_observation_port"
     },
     "facing=north,formed=false,invisible=true": {
       "model": "molecularmanipulator:block/star_computation_observation_port"
     },
     "facing=north,formed=true,invisible=true": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed"
+      "model": "molecularmanipulator:block/star_computation_observation_port"
     },
     "facing=east,formed=false,invisible=false": {
       "model": "molecularmanipulator:block/star_computation_observation_port",
       "y": 90
     },
     "facing=east,formed=true,invisible=false": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed",
+      "model": "molecularmanipulator:block/star_computation_observation_port",
       "y": 90
     },
     "facing=east,formed=false,invisible=true": {
@@ -25,7 +25,7 @@
       "y": 90
     },
     "facing=east,formed=true,invisible=true": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed",
+      "model": "molecularmanipulator:block/star_computation_observation_port",
       "y": 90
     },
     "facing=south,formed=false,invisible=false": {
@@ -33,7 +33,7 @@
       "y": 180
     },
     "facing=south,formed=true,invisible=false": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed",
+      "model": "molecularmanipulator:block/star_computation_observation_port",
       "y": 180
     },
     "facing=south,formed=false,invisible=true": {
@@ -41,7 +41,7 @@
       "y": 180
     },
     "facing=south,formed=true,invisible=true": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed",
+      "model": "molecularmanipulator:block/star_computation_observation_port",
       "y": 180
     },
     "facing=west,formed=false,invisible=false": {
@@ -49,7 +49,7 @@
       "y": 270
     },
     "facing=west,formed=true,invisible=false": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed",
+      "model": "molecularmanipulator:block/star_computation_observation_port",
       "y": 270
     },
     "facing=west,formed=false,invisible=true": {
@@ -57,7 +57,7 @@
       "y": 270
     },
     "facing=west,formed=true,invisible=true": {
-      "model": "molecularmanipulator:block/star_computation_observation_port_formed",
+      "model": "molecularmanipulator:block/star_computation_observation_port",
       "y": 270
     }
   }

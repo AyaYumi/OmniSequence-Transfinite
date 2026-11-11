@@ -8,6 +8,35 @@
     "minVersion": "0.5.0"
   },
   "mixins": [
+    "RecipeLockRecipeManagerMixin",
+    "RecipeLockCraftingMenuMixin",
+    "RecipeLockQuickMoveMixin",
+    "RecipeLockSlotMixin",
+    "RecipeLockResultSlotMixin",
+    "RecipeLockServerPlaceRecipeMixin",
+    "RecipeLockFurnaceMixin",
+    "RecipeLockStonecutterMenuMixin",
+    "RecipeLockSmithingMenuMixin",
+    "RecipeLockCampfireMixin",
+    "RecipeLockCrafterMixin",
+    "RecipeLockAEMolecularAssemblerMixin",
+    "RecipeLockAEInscriberMixin",
+    "RecipeLockAEInscriberRecipesMixin",
+    "RecipeLockAECraftingTermMenuMixin",
+    "RecipeLockAECraftingTermRefreshMixin",
+    "RecipeLockAECraftingTermSlotMixin",
+    "RecipeLockAEPatternProviderMixin",
+    "RecipeLockExtendedCraftingThreadMixin",
+    "RecipeLockExtendedInscriberThreadMixin",
+    "RecipeLockExtendedMachinePollingMixin",
+    "RecipeLockExtendedRecipeExecutorMixin",
+    "RecipeLockExtendedRecipeSearchMixin",
+    "RecipeLockAdvancedReactionChamberMixin",
+    "RecipeLockAdvancedReactionRecipesMixin",
+    "RecipeLockAdvancedQuantumCrafterMixin",
+    "DetachedSignalServerMixin",
+    "DetachedSignalChunkTickMixin",
+    "DetachedSignalPlayerTickMixin",
     "BuildingChunkLockMixin",
     "BuildingNodePauseMixin",
     "BuildingNodePauseMixin$InitQueue",
@@ -80,6 +109,7 @@
     "ExtendedAEPlusFabricationProviderUploadMixin"
   ],
   "client": [
+    "DetachedSignalClientTimeMixin",
     "GpuEffectMeshDataMixin",
     "GhostMatterGameRendererMixin",
     "LanternClientInventoryMixin",
@@ -97,7 +127,9 @@
     "Ae2UtilityJeiAmountMixin",
     "Ae2UtilityJeiKeyMixin",
     "JeiResponsiveRenderMixin",
-    "JeiResponsiveSlotMixin"
+    "JeiResponsiveSlotMixin",
+    "JeiRecipeLockLayoutMixin",
+    "JeiRecipeLockSlotMixin"
   ],
   "injectors": {
     "defaultRequire": 1

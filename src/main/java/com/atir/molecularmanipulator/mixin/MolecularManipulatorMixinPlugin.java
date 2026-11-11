@@ -28,6 +28,12 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         var loadingModList = FMLLoader.getLoadingModList();
+        if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("RecipeLockAdvanced")) {
+            // Private execution hooks are verified against this implementation, not guessed across versions.
+            var advanced = loadingModList == null ? null : loadingModList.getModFileById("advanced_ae");
+            return advanced != null && advanced.getMods().stream().anyMatch(mod ->
+                    mod.getModId().equals("advanced_ae") && mod.getVersion().toString().equals("1.6.12-1.21.1"));
+        }
         if (mixinClassName.endsWith(".SingularityLithiumCollisionMixin")) {
             return loadingModList != null && loadingModList.getModFileById("lithium") != null;
         }
@@ -87,7 +93,9 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         if (LABELED_PATTERNS_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("ae2labeledpatterns") != null;
         }
-        if (JEI_RESPONSIVE_SLOT_MIXIN.equals(mixinClassName) || JEI_RESPONSIVE_RENDER_MIXIN.equals(mixinClassName)) {
+        if (JEI_RESPONSIVE_SLOT_MIXIN.equals(mixinClassName) || JEI_RESPONSIVE_RENDER_MIXIN.equals(mixinClassName)
+                || mixinClassName.endsWith(".JeiRecipeLockLayoutMixin")
+                || mixinClassName.endsWith(".JeiRecipeLockSlotMixin")) {
             return loadingModList != null && loadingModList.getModFileById("jei") != null;
         }
         if (mixinClassName.endsWith(".JeiAeStackAmountMixin")) {

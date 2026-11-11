@@ -98,6 +98,8 @@ public final class MatterResearchProgress {
     private void replenish(MatterFabricationBlockEntity machine, ResourceLocation id, Map<AEItemKey,Long> sharedStock) {
         var prep = preparations.get(id);
         if (prep == null || !ready(machine) || hasRefunds()) return;
+        var current = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(machine.getLevel()).research(id);
+        if (current == null || !prerequisitesMet(machine, current.value())) return;
         var costs = prep.costs;
         var matches = prep.matcher.matches(sharedStock, preparationKeyIndex);
         var stock = new LinkedHashMap<AEItemKey, Long>();
@@ -169,6 +171,7 @@ public final class MatterResearchProgress {
             var prep=preparations.get(id);
             var task=prep==null ? new Task(definition.value(),encode(definition.value(),registries),count+1)
                     :new Task(prep.definition,prep.terms,prep.firstRound,prep.round,true);
+            task.legacyStageTerms = prep != null && prep.legacyStageTerms;
             if (!pay(machine, task, prep, sharedStock)) return false;
             tasks.put(id, task);
             autoStart.remove(id);
@@ -340,6 +343,7 @@ public final class MatterResearchProgress {
             task.status = "running"; task.progress++; machine.saveChanges();
             if (task.progress >= task.definition.duration()) {
                 completions.merge(entry.getKey(), task.round, Math::max); iterator.remove();
+                if (task.legacyStageTerms) ResearchStageMigration.completedLegacyTask(completions, entry.getKey(), task.round);
                 permissionRevision++;
                 cachedLive = null;
                 visualCompletionSerial++;
@@ -353,11 +357,13 @@ public final class MatterResearchProgress {
         var tag = new CompoundTag(); var done = new ListTag(); var counts = new CompoundTag();
         completions.forEach((id, count) -> { done.add(StringTag.valueOf(id.toString())); counts.putInt(id.toString(), count); });
         tag.put("completed", done); tag.put("completions", counts);
+        tag.putInt("stage_version", ResearchStageMigration.VERSION);
         var active = new ListTag();
         tasks.forEach((id, task) -> {
             var value = new CompoundTag(); value.putString("id", id.toString()); value.putString("terms", task.terms);
             value.putLongArray("paid", task.paid); value.putInt("progress", task.progress); value.putBoolean("paused", task.paused);
             value.putInt("round", task.round);value.putInt("first_round",task.firstRound);value.putBoolean("ordered",task.ordered); active.add(value);
+            value.putBoolean("legacy_stage_terms", task.legacyStageTerms);
         });
         unavailableTasks.values().forEach(value -> active.add(value.copy())); tag.put("tasks", active);
         var pending = new ListTag(); refunds.forEach((key, amount) -> pending.add(GenericStack.writeTag(registries, new GenericStack(key, amount))));
@@ -370,6 +376,7 @@ public final class MatterResearchProgress {
         preparations.forEach((id,prep)-> {
             var value=new CompoundTag();value.putString("id",id.toString());value.putString("terms",prep.terms);
             value.putInt("first_round",prep.firstRound);value.putInt("round",prep.round);
+            value.putBoolean("legacy_stage_terms", prep.legacyStageTerms);
             var reserved=new ListTag();prep.reserved.forEach((key,amount)->reserved.add(GenericStack.writeTag(registries,new GenericStack(key,amount))));
             value.put("reserved",reserved);preparing.add(value);
         });
@@ -402,6 +409,7 @@ public final class MatterResearchProgress {
                 String terms=value.getString("terms");
                 var definition=MatterResearchRecipe.CODEC.codec().parse(registries.createSerializationContext(JsonOps.INSTANCE),JsonParser.parseString(terms)).getOrThrow();
                 var prep=new Preparation(definition,terms,value.getInt("first_round"),value.getInt("round"));
+                prep.legacyStageTerms = tag.getInt("stage_version") < ResearchStageMigration.VERSION || value.getBoolean("legacy_stage_terms");
                 for(var stored:value.getList("reserved",10)) {var stack=GenericStack.readTag(registries,(CompoundTag)stored);if(stack!=null && stack.what() instanceof AEItemKey key && stack.amount()>0)prep.reserved.merge(key,stack.amount(),Math::addExact);}
                 preparations.put(id,prep);autoStart.add(id);
             } catch(RuntimeException error) {
@@ -418,6 +426,7 @@ public final class MatterResearchProgress {
                 String terms = value.getString("terms");
                 var definition = MatterResearchRecipe.CODEC.codec().parse(registries.createSerializationContext(JsonOps.INSTANCE), JsonParser.parseString(terms)).getOrThrow();
                 var task = new Task(definition, terms,value.contains("first_round")?value.getInt("first_round"):round, round,value.getBoolean("ordered")); var paid = value.getLongArray("paid");
+                task.legacyStageTerms = tag.getInt("stage_version") < ResearchStageMigration.VERSION || value.getBoolean("legacy_stage_terms");
                 if (paid.length != task.paid.length) throw new IllegalArgumentException("Research cost snapshot length changed");
                 for (int j = 0; j < paid.length; j++) task.paid[j] = Math.max(0, Math.min(paid[j], task.costs.get(j).count()));
                 task.progress = Math.max(0, Math.min(value.getInt("progress"), definition.duration() - 1));
@@ -437,6 +446,7 @@ public final class MatterResearchProgress {
                 refunds.merge(key, stack.amount(), Math::addExact);
             } catch (RuntimeException error) { unavailableRefunds.add(raw.copy()); }
         }
+        ResearchStageMigration.migrate(completions, tag.getInt("stage_version"));
     }
 
     public String clientState() { return state().toString(); }
@@ -554,6 +564,7 @@ public final class MatterResearchProgress {
         return first + second;
     }
     private static final class Preparation {
+        boolean legacyStageTerms;
         final MatterResearchRecipe definition; final String terms; final int firstRound,round;
         final List<MatterResearchRecipe.Cost> costs;
         final ResearchIngredientIndex matcher;
@@ -565,6 +576,7 @@ public final class MatterResearchProgress {
         }
     }
     private static final class Task {
+        boolean legacyStageTerms;
         final MatterResearchRecipe definition; final String terms; final int firstRound,round; final boolean ordered;
         final List<MatterResearchRecipe.Cost> costs; final long[] paid;
         int progress; boolean paused; String status = "running";

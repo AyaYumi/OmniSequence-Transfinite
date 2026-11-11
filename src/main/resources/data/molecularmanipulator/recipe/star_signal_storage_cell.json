@@ -1,14 +1,28 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "ingredients": [
-    {
-      "item": "ae2:item_cell_housing"
-    },
-    {
-      "item": "molecularmanipulator:star_signal_storage_component"
-    }
+  "pattern": [
+    "GDG",
+    "DCD",
+    "IPI"
   ],
+  "key": {
+    "G": {
+      "item": "ae2:quartz_vibrant_glass"
+    },
+    "D": {
+      "item": "molecularmanipulator:star_marrow_crystal_dust"
+    },
+    "C": {
+      "item": "molecularmanipulator:star_signal_storage_component"
+    },
+    "I": {
+      "item": "molecularmanipulator:star_marrow_alloy_ingot"
+    },
+    "P": {
+      "item": "molecularmanipulator:star_chart_processor"
+    }
+  },
   "result": {
     "count": 1,
     "id": "molecularmanipulator:star_signal_storage_cell"

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import net.minecraft.resources.ResourceLocation;
 
-/** Shared engine research costs, stable save bits and the actual recipes those bits permit. */
+/** Shared legacy research costs, stable save bits and default recipe display lists. */
 public final class StarComputationRecipes {
     public record Node(int index, String id, long entropy, long informationCost, int prerequisiteMask,
                        List<ResourceLocation> recipeIds) {
@@ -20,33 +20,23 @@ public final class StarComputationRecipes {
 
     /** Never reorder these nodes: their indices are permanent team and legacy core save bits. */
     public static final List<Node> NODES = List.of(
-            node(0, "foundation", 90, 512, 0,
-                    "molecular_auto_crafter", "molecular_center_casing", "molecular_center_coil",
-                    "molecular_center_glass", "molecular_center_stabilizer"),
-            // Base anchors cap at 900. The quantum anchor must unlock before requiring quantum entropy.
-            node(1, "material", 900, 2048, 1,
-                    "quantum_star_position_anchor", "molecular_manipulator", "molecular_center_core",
-                    "molecular_center_controller", "assembler_matrix_molecular_core"),
-            // Quantum anchors cap at 9000. Terminal anchors must be available at that threshold.
-            node(2, "quantum", 9000, 8192, 1 << 1,
-                    "terminal_star_position_anchor", "omni_computation_controller", "omni_computation_casing",
-                    "omni_computation_glass", "computation_crystal_pylon", "computation_data_entangler",
-                    "computation_energy_stabilizer", "computation_output_node"),
-            node(3, "terminal", 18000, 16384, 1,
-                    "infinite_crafting_storage", "infinite_parallel_matrix", "universal_pattern_matrix"),
-            node(4, "transfinite", 90000, 65536, (1 << 2) | (1 << 3),
-                    "transfinite_compute_nexus"));
+            node(0, "foundation", 90, 512, 0),
+            // The sole built-in research: free at L3, no prerequisite; keep its permanent legacy bit 1.
+            node(1, "material", 900, 0, 0, "molecular_manipulator", "transfinite_compute_nexus"),
+            node(2, "quantum", 9000, 8192, 1 << 1),
+            node(3, "terminal", 18000, 16384, 1),
+            node(4, "transfinite", 90000, 65536, (1 << 2) | (1 << 3)));
     public static final int ALL_UNLOCKS = (1 << NODES.size()) - 1;
     private static final Map<ResourceLocation, Integer> RECIPE_MASKS = recipeMasks();
 
     private StarComputationRecipes() {}
 
-    /** The same immutable IDs used by enforcement, suitable for recipe output/tooltips on either side. */
+    /** Immutable default recipe IDs for the research menu; data-pack lock rules are resolved separately. */
     public static List<ResourceLocation> recipeIds(int index) {
         return index >= 0 && index < NODES.size() ? NODES.get(index).recipeIds() : List.of();
     }
 
-    /** Unlisted recipes have no engine requirement; existing matter research still applies separately. */
+    /** Default gate mask for menu and legacy callers; data-pack lock rules and matter research apply separately. */
     public static int requiredMask(ResourceLocation recipeId) {
         return RECIPE_MASKS.getOrDefault(recipeId, 0);
     }

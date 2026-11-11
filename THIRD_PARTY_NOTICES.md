@@ -36,9 +36,7 @@ project-authored assets released under the project license, with this exception:
   Source: https://github.com/AppliedEnergistics/Applied-Energistics-2/tree/neoforge/v19.2.17
   License: https://creativecommons.org/licenses/by-nc-sa/3.0/
 
-The GUI uses bundled Inter, Inter Tight, JetBrains Mono, and Source Han Sans SC
-font files. Their SIL Open Font License texts are included in
-`licenses/` and in the mod JAR.
+The GUI uses the default Minecraft font. No font files are bundled with the mod.
 
 ## NeoForged MDK template
 

@@ -62,6 +62,33 @@ class JeiAeStackAmountsTest {
     }
 
     @Test
+    void researchHoverPassesRealItemAndFluidIngredientsWithTheVisibleRowAreaToJei() {
+        var area=new net.minecraft.client.renderer.Rect2i(200,150,166,4);
+        Object[][] received={null};
+        var builder=Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{mezz.jei.api.gui.builder.IClickableIngredientFactory.IBuilder.class},(proxy,method,args)->{
+                    assertSame(area,args[0],"JEI must receive the clipped screen-space hit area");
+                    return Optional.empty();
+                });
+        var factory=(mezz.jei.api.gui.builder.IClickableIngredientFactory)Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{mezz.jei.api.gui.builder.IClickableIngredientFactory.class},(proxy,method,args)->{
+                    received[0]=args;return builder;
+                });
+        var named=new net.minecraft.world.item.ItemStack(Items.DIAMOND);
+        named.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,net.minecraft.network.chat.Component.literal("Research sample"));
+        var item=AEItemKey.of(named);
+        MatterFabricationJeiIngredients.clickable(factory,new appeng.client.gui.StackWithBounds(new GenericStack(item,Long.MAX_VALUE),area));
+        assertEquals(1,received[0].length);
+        var stack=(net.minecraft.world.item.ItemStack)received[0][0];
+        assertEquals(1,stack.getCount());assertEquals(item,AEItemKey.of(stack),"Keep the item's components when bookmarking");
+        var fluid=appeng.api.stacks.AEFluidKey.of(net.minecraft.world.level.material.Fluids.WATER);
+        MatterFabricationJeiIngredients.clickable(factory,new appeng.client.gui.StackWithBounds(new GenericStack(fluid,Long.MAX_VALUE),area));
+        assertSame(mezz.jei.api.neoforge.NeoForgeTypes.FLUID_STACK,received[0][0]);
+        var fluidStack=(net.neoforged.neoforge.fluids.FluidStack)received[0][1];
+        assertEquals(fluid,appeng.api.stacks.AEFluidKey.of(fluidStack));assertEquals(1000,fluidStack.getAmount());
+    }
+
+    @Test
     void unrelatedSlotsAndInvalidMetadataRetainTheOriginalQuantity() {
         var stack = new GenericStack(AEItemKey.of(Items.DIAMOND), 16);
         for (var name : new String[] {"", "othermod:amount/128", "molecularmanipulator:ae_stack_amount/0",

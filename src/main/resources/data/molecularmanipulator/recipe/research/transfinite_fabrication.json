@@ -1,0 +1,408 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.transfinite_fabrication",
+  "prerequisites": [
+    "molecularmanipulator:research/stellar_fabrication"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:miniature_supernova"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:infinite_crafting_storage"
+      },
+      "count": 128
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:infinite_parallel_matrix"
+      },
+      "count": 128
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:universal_pattern_matrix"
+      },
+      "count": 128
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:computation_energy_stabilizer"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "advanced_ae:quantum_processor"
+      },
+      "count": 256
+    }
+  ],
+  "duration": 3600,
+  "ae_per_tick": 16384,
+  "unlocks": [
+    "molecularmanipulator:transfinite_compute_nexus"
+  ],
+  "required_mods": [
+    "extendedae",
+    "advanced_ae"
+  ],
+  "sort_order": 60,
+  "stage": 6,
+  "depths": [
+    {
+      "material_multiplier": 1,
+      "parallel": 1
+    },
+    {
+      "material_multiplier": 2,
+      "parallel": 256,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 2
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 512
+        }
+      ]
+    },
+    {
+      "material_multiplier": 4,
+      "parallel": 65536,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 4
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 1024
+        }
+      ]
+    },
+    {
+      "material_multiplier": 8,
+      "parallel": 16777216,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 8
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 2048
+        }
+      ]
+    },
+    {
+      "material_multiplier": 16,
+      "parallel": 4294967296,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 16
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 4096
+        }
+      ]
+    },
+    {
+      "material_multiplier": 32,
+      "parallel": 1099511627776,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 32
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 8192
+        }
+      ]
+    },
+    {
+      "material_multiplier": 64,
+      "parallel": 281474976710656,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 16384
+        }
+      ]
+    },
+    {
+      "material_multiplier": 128,
+      "parallel": 72057594037927936,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 32768
+        }
+      ]
+    },
+    {
+      "material_multiplier": 256,
+      "parallel": 9223372036854775807,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:miniature_supernova"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_crafting_storage"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:infinite_parallel_matrix"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:universal_pattern_matrix"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:computation_energy_stabilizer"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 65536
+        }
+      ]
+    }
+  ],
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "extendedae"
+    },
+    {
+      "type": "neoforge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ]
+}

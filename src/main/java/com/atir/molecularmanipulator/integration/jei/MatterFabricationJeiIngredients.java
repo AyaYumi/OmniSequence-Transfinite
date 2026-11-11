@@ -1,12 +1,19 @@
 package com.atir.molecularmanipulator.integration.jei;
 
 import appeng.api.client.AEKeyRendering;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import appeng.client.gui.StackWithBounds;
 import com.atir.molecularmanipulator.client.AEStackIcon;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import mezz.jei.api.gui.builder.IClickableIngredientFactory;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
+import mezz.jei.api.neoforge.NeoForgeTypes;
+import mezz.jei.api.runtime.IClickableIngredient;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -35,6 +42,27 @@ final class MatterFabricationJeiIngredients {
         slot.addIngredient(type, ingredient);
         slot.setCustomRenderer(type, new KeyRenderer<>(stack));
         return true;
+    }
+
+    static Optional<? extends IClickableIngredient<?>> clickable(IClickableIngredientFactory factory, StackWithBounds stack) {
+        var key=stack.stack().what();
+        if(key instanceof AEItemKey item)
+            return factory.createBuilder(item.toStack()).buildWithArea(stack.bounds());
+        if(key instanceof AEFluidKey fluid)
+            return factory.createBuilder(NeoForgeTypes.FLUID_STACK,fluid.toStack(1000))
+                    .buildWithArea(stack.bounds());
+        for(var converter:IngredientConverters.getConverters()) {
+            var ingredient=clickableWithConverter(factory,stack,converter);
+            if(ingredient.isPresent())return ingredient;
+        }
+        return Optional.empty();
+    }
+
+    private static <T> Optional<? extends IClickableIngredient<?>> clickableWithConverter(
+            IClickableIngredientFactory factory, StackWithBounds stack, IngredientConverter<T> converter) {
+        T ingredient=converter.getIngredientFromStack(stack.stack());
+        return ingredient==null?Optional.empty():factory.createBuilder(converter.getIngredientType(),ingredient)
+                .buildWithArea(stack.bounds());
     }
 
     private record KeyRenderer<T>(GenericStack stack) implements IIngredientRenderer<T> {

@@ -5,7 +5,7 @@
  "title": "样板总成 · 催化剂",
  "size": [
   190,
-  382
+  343
  ],
  "left_room": 0,
  "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
@@ -26,7 +26,7 @@
     -1,
     -1,
     192,
-    384
+    345
    ],
    "k": "window",
    "id": "window"
@@ -44,7 +44,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_900_13",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.pattern.title",
    "dynamic": false,
    "width_en": 122
@@ -62,7 +62,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_intertight_700_9",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "center_y": 18.5,
    "draw_x": 142,
@@ -81,7 +81,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 0.6,
-   "font_id": "molecularmanipulator:osq_inter_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "draw_x": 172.19,
    "center_y": 18.5
@@ -111,14 +111,14 @@
    "text": "AE 网络已连接",
    "x": 19,
    "baseline": 32,
-   "width": 48.5,
+   "width": 155,
    "font": "NSC",
    "weight": 600,
    "size": 7.5,
    "color": "#FF3E7F37",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.network_online",
    "dynamic": false,
    "center_y": 32.0,
@@ -157,7 +157,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s001",
    "lang_new": true,
@@ -217,7 +217,7 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.pattern.rename",
    "dynamic": false,
    "center_y": 49.5,
@@ -274,7 +274,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.patterns",
    "dynamic": false,
    "center_y": 79,
@@ -332,7 +332,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.input_tab",
    "dynamic": false,
    "center_y": 79,
@@ -390,7 +390,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.auto_craft_output",
    "dynamic": false,
    "center_y": 79,
@@ -448,7 +448,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.catalysts",
    "dynamic": false,
    "center_y": 79,
@@ -1227,7 +1227,7 @@
    ],
    "rect": [
     8,
-    286,
+    247,
     174,
     88
    ],
@@ -1247,7 +1247,7 @@
    ],
    "rect": [
     14,
-    292,
+    253,
     18,
     18
    ],
@@ -1260,7 +1260,7 @@
    "item": "ae:processing_pattern",
    "count": "4",
    "x": 15,
-   "y": 293,
+   "y": 254,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1276,7 +1276,7 @@
    ],
    "rect": [
     32,
-    292,
+    253,
     18,
     18
    ],
@@ -1289,7 +1289,7 @@
    "item": "mc:iron_ingot",
    "count": "64",
    "x": 33,
-   "y": 293,
+   "y": 254,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1305,7 +1305,7 @@
    ],
    "rect": [
     50,
-    292,
+    253,
     18,
     18
    ],
@@ -1325,7 +1325,7 @@
    ],
    "rect": [
     68,
-    292,
+    253,
     18,
     18
    ],
@@ -1345,7 +1345,7 @@
    ],
    "rect": [
     86,
-    292,
+    253,
     18,
     18
    ],
@@ -1365,7 +1365,7 @@
    ],
    "rect": [
     104,
-    292,
+    253,
     18,
     18
    ],
@@ -1385,7 +1385,7 @@
    ],
    "rect": [
     122,
-    292,
+    253,
     18,
     18
    ],
@@ -1405,7 +1405,7 @@
    ],
    "rect": [
     140,
-    292,
+    253,
     18,
     18
    ],
@@ -1425,7 +1425,7 @@
    ],
    "rect": [
     158,
-    292,
+    253,
     18,
     18
    ],
@@ -1445,7 +1445,7 @@
    ],
    "rect": [
     14,
-    310,
+    271,
     18,
     18
    ],
@@ -1465,7 +1465,7 @@
    ],
    "rect": [
     32,
-    310,
+    271,
     18,
     18
    ],
@@ -1485,7 +1485,7 @@
    ],
    "rect": [
     50,
-    310,
+    271,
     18,
     18
    ],
@@ -1505,7 +1505,7 @@
    ],
    "rect": [
     68,
-    310,
+    271,
     18,
     18
    ],
@@ -1525,7 +1525,7 @@
    ],
    "rect": [
     86,
-    310,
+    271,
     18,
     18
    ],
@@ -1545,7 +1545,7 @@
    ],
    "rect": [
     104,
-    310,
+    271,
     18,
     18
    ],
@@ -1565,7 +1565,7 @@
    ],
    "rect": [
     122,
-    310,
+    271,
     18,
     18
    ],
@@ -1585,7 +1585,7 @@
    ],
    "rect": [
     140,
-    310,
+    271,
     18,
     18
    ],
@@ -1605,7 +1605,7 @@
    ],
    "rect": [
     158,
-    310,
+    271,
     18,
     18
    ],
@@ -1625,7 +1625,7 @@
    ],
    "rect": [
     14,
-    328,
+    289,
     18,
     18
    ],
@@ -1645,7 +1645,7 @@
    ],
    "rect": [
     32,
-    328,
+    289,
     18,
     18
    ],
@@ -1665,7 +1665,7 @@
    ],
    "rect": [
     50,
-    328,
+    289,
     18,
     18
    ],
@@ -1685,7 +1685,7 @@
    ],
    "rect": [
     68,
-    328,
+    289,
     18,
     18
    ],
@@ -1705,7 +1705,7 @@
    ],
    "rect": [
     86,
-    328,
+    289,
     18,
     18
    ],
@@ -1725,7 +1725,7 @@
    ],
    "rect": [
     104,
-    328,
+    289,
     18,
     18
    ],
@@ -1745,7 +1745,7 @@
    ],
    "rect": [
     122,
-    328,
+    289,
     18,
     18
    ],
@@ -1765,7 +1765,7 @@
    ],
    "rect": [
     140,
-    328,
+    289,
     18,
     18
    ],
@@ -1785,7 +1785,7 @@
    ],
    "rect": [
     158,
-    328,
+    289,
     18,
     18
    ],
@@ -1805,7 +1805,7 @@
    ],
    "rect": [
     14,
-    350,
+    311,
     18,
     18
    ],
@@ -1825,7 +1825,7 @@
    ],
    "rect": [
     32,
-    350,
+    311,
     18,
     18
    ],
@@ -1845,7 +1845,7 @@
    ],
    "rect": [
     50,
-    350,
+    311,
     18,
     18
    ],
@@ -1865,7 +1865,7 @@
    ],
    "rect": [
     68,
-    350,
+    311,
     18,
     18
    ],
@@ -1885,7 +1885,7 @@
    ],
    "rect": [
     86,
-    350,
+    311,
     18,
     18
    ],
@@ -1905,7 +1905,7 @@
    ],
    "rect": [
     104,
-    350,
+    311,
     18,
     18
    ],
@@ -1925,7 +1925,7 @@
    ],
    "rect": [
     122,
-    350,
+    311,
     18,
     18
    ],
@@ -1945,7 +1945,7 @@
    ],
    "rect": [
     140,
-    350,
+    311,
     18,
     18
    ],
@@ -1965,7 +1965,7 @@
    ],
    "rect": [
     158,
-    350,
+    311,
     18,
     18
    ],
@@ -1980,7 +1980,7 @@
    "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
    "rect": [
     186,
-    210,
+    249,
     14,
     14
    ],
@@ -1995,7 +1995,7 @@
    "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
    "rect": [
     187,
-    211,
+    250,
     12,
     12
    ]
@@ -2008,7 +2008,7 @@
    "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
    "rect": [
     186,
-    228,
+    267,
     14,
     14
    ],
@@ -2023,7 +2023,7 @@
    "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
    "rect": [
     187,
-    229,
+    268,
     12,
     12
    ]
@@ -2036,7 +2036,7 @@
    "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
    "rect": [
     186,
-    246,
+    285,
     14,
     14
    ],
@@ -2051,7 +2051,7 @@
    "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
    "rect": [
     187,
-    247,
+    286,
     12,
     12
    ]
@@ -2069,7 +2069,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.fabrication.buffer.catalyst_shared",
    "dynamic": false,
    "center_y": 100.75,
@@ -2090,7 +2090,7 @@
     8,
     211,
     174,
-    68
+    30
    ],
    "k": "card",
    "id": "meta"
@@ -2108,12 +2108,12 @@
    ],
    "rect": [
     12,
-    219.0,
+    217.0,
     6,
     6
    ],
    "id": "assembly_catalyst_count_icon",
-   "draw_y": 219.5
+   "draw_y": 217.5
   },
   {
    "z": 105,
@@ -2128,12 +2128,12 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fabrication.buffer.catalyst_types",
    "lang_new": true,
    "id": "assembly_catalyst_count",
-   "center_y": 222,
+   "center_y": 220,
    "align": "center",
    "draw_x": 16
   },
@@ -2150,12 +2150,12 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fabrication.buffer.catalyst_location",
    "lang_new": true,
    "id": "assembly_catalyst_hint",
-   "center_y": 236,
+   "center_y": 232,
    "align": "center",
    "draw_x": 16
   },
@@ -2172,7 +2172,7 @@
    ],
    "rect": [
     14,
-    249,
+    215,
     162,
     22
    ],
@@ -2192,7 +2192,7 @@
    ],
    "rect": [
     20,
-    252.875,
+    218.875,
     12,
     12.0
    ],
@@ -2211,11 +2211,11 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s005",
    "lang_new": true,
-   "center_y": 258.5,
+   "center_y": 224.5,
    "owner": "return",
    "draw_x": 32
   }
@@ -2746,7 +2746,7 @@
    "id": "inv",
    "r": {
     "x": 8,
-    "y": 208,
+    "y": 247,
     "w": 174,
     "h": 88
    },
@@ -2759,7 +2759,7 @@
    "id": "inv",
    "r": {
     "x": 14,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2772,7 +2772,7 @@
    "id": "inv",
    "r": {
     "x": 32,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2785,7 +2785,7 @@
    "id": "inv",
    "r": {
     "x": 50,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2798,7 +2798,7 @@
    "id": "inv",
    "r": {
     "x": 68,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2811,7 +2811,7 @@
    "id": "inv",
    "r": {
     "x": 86,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2824,7 +2824,7 @@
    "id": "inv",
    "r": {
     "x": 104,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2837,7 +2837,7 @@
    "id": "inv",
    "r": {
     "x": 122,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2850,7 +2850,7 @@
    "id": "inv",
    "r": {
     "x": 140,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2863,7 +2863,7 @@
    "id": "inv",
    "r": {
     "x": 158,
-    "y": 214,
+    "y": 253,
     "w": 18,
     "h": 18
    },
@@ -2876,7 +2876,7 @@
    "id": "inv",
    "r": {
     "x": 14,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2889,7 +2889,7 @@
    "id": "inv",
    "r": {
     "x": 32,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2902,7 +2902,7 @@
    "id": "inv",
    "r": {
     "x": 50,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2915,7 +2915,7 @@
    "id": "inv",
    "r": {
     "x": 68,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2928,7 +2928,7 @@
    "id": "inv",
    "r": {
     "x": 86,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2941,7 +2941,7 @@
    "id": "inv",
    "r": {
     "x": 104,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2954,7 +2954,7 @@
    "id": "inv",
    "r": {
     "x": 122,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2967,7 +2967,7 @@
    "id": "inv",
    "r": {
     "x": 140,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2980,7 +2980,7 @@
    "id": "inv",
    "r": {
     "x": 158,
-    "y": 232,
+    "y": 271,
     "w": 18,
     "h": 18
    },
@@ -2993,7 +2993,7 @@
    "id": "inv",
    "r": {
     "x": 14,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3006,7 +3006,7 @@
    "id": "inv",
    "r": {
     "x": 32,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3019,7 +3019,7 @@
    "id": "inv",
    "r": {
     "x": 50,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3032,7 +3032,7 @@
    "id": "inv",
    "r": {
     "x": 68,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3045,7 +3045,7 @@
    "id": "inv",
    "r": {
     "x": 86,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3058,7 +3058,7 @@
    "id": "inv",
    "r": {
     "x": 104,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3071,7 +3071,7 @@
    "id": "inv",
    "r": {
     "x": 122,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3084,7 +3084,7 @@
    "id": "inv",
    "r": {
     "x": 140,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3097,7 +3097,7 @@
    "id": "inv",
    "r": {
     "x": 158,
-    "y": 250,
+    "y": 289,
     "w": 18,
     "h": 18
    },
@@ -3110,7 +3110,7 @@
    "id": "inv",
    "r": {
     "x": 14,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3123,7 +3123,7 @@
    "id": "inv",
    "r": {
     "x": 32,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3136,7 +3136,7 @@
    "id": "inv",
    "r": {
     "x": 50,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3149,7 +3149,7 @@
    "id": "inv",
    "r": {
     "x": 68,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3162,7 +3162,7 @@
    "id": "inv",
    "r": {
     "x": 86,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3175,7 +3175,7 @@
    "id": "inv",
    "r": {
     "x": 104,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3188,7 +3188,7 @@
    "id": "inv",
    "r": {
     "x": 122,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3201,7 +3201,7 @@
    "id": "inv",
    "r": {
     "x": 140,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3214,7 +3214,7 @@
    "id": "inv",
    "r": {
     "x": 158,
-    "y": 272,
+    "y": 311,
     "w": 18,
     "h": 18
    },
@@ -3227,7 +3227,7 @@
    "id": "ext0",
    "r": {
     "x": 186,
-    "y": 210,
+    "y": 249,
     "w": 14,
     "h": 14
    },
@@ -3240,7 +3240,7 @@
    "id": "ext1",
    "r": {
     "x": 186,
-    "y": 228,
+    "y": 267,
     "w": 14,
     "h": 14
    },
@@ -3253,7 +3253,7 @@
    "id": "ext2",
    "r": {
     "x": 186,
-    "y": 246,
+    "y": 285,
     "w": 14,
     "h": 14
    },
@@ -3265,10 +3265,10 @@
    "k": "ctl",
    "id": "return",
    "r": {
-    "x": 122,
-    "y": 183,
-    "w": 60,
-    "h": 20
+    "x": 14,
+    "y": 215,
+    "w": 162,
+    "h": 22
    },
    "par": -1,
    "item": null,
@@ -3279,9 +3279,9 @@
    "id": "meta",
    "r": {
     "x": 8,
-    "y": 182,
-    "w": 110,
-    "h": 22
+    "y": 211,
+    "w": 174,
+    "h": 30
    }
   }
  ]

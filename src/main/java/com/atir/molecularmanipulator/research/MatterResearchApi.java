@@ -4,7 +4,7 @@ import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
-import com.atir.molecularmanipulator.starcomputation.StarComputationRecipes;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import java.util.List;
 import java.util.function.ToIntFunction;
 import net.minecraft.resources.ResourceLocation;
@@ -128,7 +128,7 @@ public final class MatterResearchApi {
     }
 
     public static boolean canUseRecipe(MatterFabricationBlockEntity machine, RecipeHolder<MatterFabricationRecipe> recipe) {
-        return hasPermission(machine, recipe.id(), recipe.value().requiresResearch());
+        return hasPermission(machine, recipe.id(), recipe.value().requiresResearch(), recipe.value().sourceRecipeId());
     }
 
     /** Query hook for other recipe executors; they must call it themselves to enforce their own permissions. */
@@ -136,20 +136,27 @@ public final class MatterResearchApi {
         var id = ResourceLocation.tryParse(recipeId);
         if (id == null || machine.getLevel() == null) return false;
         var recipe = MatterRecipeIndex.get(machine.getLevel()).fabrication(id);
-        if (recipe != null) return hasPermission(machine, id, recipe.value().requiresResearch());
+        if (recipe != null) return canUseRecipe(machine, recipe);
         var other = machine.getLevel().getRecipeManager().byKey(id).orElse(null);
-        return other != null && hasPermission(machine, id,
-                other.value() instanceof MatterFabricationRecipe fabrication && fabrication.requiresResearch());
+        if (other == null) return false;
+        if (other.value() instanceof MatterFabricationRecipe fabrication) {
+            return hasPermission(machine, id, fabrication.requiresResearch(), fabrication.sourceRecipeId());
+        }
+        return hasPermission(machine, id, false, null);
     }
 
-    private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked) {
+    private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked,
+            @Nullable ResourceLocation sourceRecipeId) {
         if (machine.getLevel() == null) return false;
-        // An engine unlock is an additional requirement, never a substitute for the original research.
-        if (StarComputationRecipes.requiredMask(id) != 0
-                && !StarComputationRecipes.isUnlocked(id, StarComputationNetwork.unlockMask(machine.getMainNode().getGrid()))) {
-            return false;
-        }
-        for (var definition : MatterRecipeIndex.get(machine.getLevel()).researchFor(id)) {
+        // Global recipe rules are additional to this well's original research.
+        // Always use the live machine context; connecting to a grid never copies its unlocks.
+        if (!RecipeLocks.allowed(machine, id)
+                || sourceRecipeId != null && !RecipeLocks.allowed(machine, sourceRecipeId)) return false;
+        var index = MatterRecipeIndex.get(machine.getLevel());
+        // Recheck the minimum even for old completion records or an alternative research owner.
+        if (index.requiresMachineResearchGate(id)
+                && !MachineResearchGate.met(index.research(), machine.getResearch()::completionCount)) return false;
+        for (var definition : index.researchFor(id)) {
             locked = true;
             if (machine.getResearch().completionCount(definition.id()) > 0) return true;
         }

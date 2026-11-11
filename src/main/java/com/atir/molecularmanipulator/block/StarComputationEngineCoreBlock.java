@@ -6,16 +6,20 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 public final class StarComputationEngineCoreBlock extends Block implements EntityBlock {
@@ -39,6 +43,22 @@ public final class StarComputationEngineCoreBlock extends Block implements Entit
 
     public static boolean isStarOrrery(BlockState state) {
         return state.hasProperty(STAR_ORRERY) && state.getValue(STAR_ORRERY);
+    }
+
+    /** The orrery renderer owns formed visuals; physical blocks and interaction remain. */
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        return state.getValue(FORMED) ? RenderShape.INVISIBLE : super.getRenderShape(state);
+    }
+
+    @Override
+    public VoxelShape getOcclusionShape(BlockState state, BlockGetter level, BlockPos pos) {
+        return state.getValue(FORMED) ? Shapes.empty() : super.getOcclusionShape(state, level, pos);
+    }
+
+    @Override
+    public int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
+        return state.getValue(FORMED) ? 0 : super.getLightBlock(state, level, pos);
     }
 
     @Override
@@ -69,8 +89,10 @@ public final class StarComputationEngineCoreBlock extends Block implements Entit
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, net.minecraft.world.entity.LivingEntity placer,
             net.minecraft.world.item.ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
-        if (placer instanceof net.minecraft.server.level.ServerPlayer player
-                && level.getBlockEntity(pos) instanceof StarComputationEngineCoreBlockEntity core) core.bindOwner(player);
+        if (!level.isClientSide && level.getBlockEntity(pos) instanceof StarComputationEngineCoreBlockEntity core) {
+            core.importUpgradeItem(stack);
+            if (placer instanceof net.minecraft.server.level.ServerPlayer player) core.bindOwner(player);
+        }
     }
 
     @Nullable

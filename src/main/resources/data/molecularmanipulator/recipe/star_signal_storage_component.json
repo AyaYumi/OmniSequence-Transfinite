@@ -1,24 +1,32 @@
 {
-  "type": "minecraft:crafting_shaped",
-  "category": "misc",
-  "key": {
-    "a": {
-      "item": "molecularmanipulator:star_marrow_crystal"
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_marrow_crystal"
+      },
+      "count": 32
     },
-    "b": {
-      "tag": "c:dusts/redstone"
+    {
+      "ingredient": {
+        "item": "minecraft:redstone"
+      },
+      "count": 32
     },
-    "c": {
-      "item": "molecularmanipulator:star_chart_processor"
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_chart_processor"
+      },
+      "count": 8
     }
-  },
-  "pattern": [
-    "aba",
-    "bcb",
-    "aba"
   ],
-  "result": {
-    "count": 1,
-    "id": "molecularmanipulator:star_signal_storage_component"
-  }
+  "results": [
+    {
+      "id": "molecularmanipulator:star_signal_storage_component",
+      "count": 8
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 256,
+  "requires_research": true
 }

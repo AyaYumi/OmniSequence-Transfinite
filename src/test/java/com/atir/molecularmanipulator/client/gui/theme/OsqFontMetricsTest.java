@@ -4,12 +4,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class OsqFontMetricsTest {
-    @Test void readsSizeAfterFamilyAndWeight() {
-        assertEquals(6.4f, OsqFontMetrics.providerSize("osq_nsc_600_6_4", 8));
-        assertEquals(26, OsqFontMetrics.providerSize("osq_intertight_700_26", 8));
-        assertEquals(5.4f, OsqFontMetrics.providerSize("osq_inter_500_5_4", 8));
-        assertEquals(8, OsqFontMetrics.providerSize("default", 8));
-        assertEquals(8, OsqFontMetrics.providerSize("osq_nsc_600_NaN", 8));
+    @Test void scalesVanillaNinePixelLineHeightToExplicitDesignUnits() {
+        for (float size : new float[]{7.5f, 8, 9, 13, 15, 26}) {
+            assertEquals(size / 9, OsqFontMetrics.scale(size, 9));
+            assertEquals(size, 9 * OsqFontMetrics.scale(size, 9), .001f);
+        }
+        assertEquals(1, OsqFontMetrics.scale(9, 9));
     }
 
     @Test void scalesModernUiUniformFontSizeToDesignUnits() {
@@ -23,7 +23,17 @@ class OsqFontMetricsTest {
     @Test void rejectsInvalidExternalMetrics() {
         assertEquals(1, OsqFontMetrics.scale(6, 0));
         assertEquals(1, OsqFontMetrics.scale(6, Float.NaN));
+        assertEquals(1, OsqFontMetrics.scale(6, Float.POSITIVE_INFINITY));
+        assertEquals(1, OsqFontMetrics.scale(0, 9));
+        assertEquals(1, OsqFontMetrics.scale(-1, 9));
+        assertEquals(1, OsqFontMetrics.scale(Float.NaN, 9));
+        assertEquals(1, OsqFontMetrics.scale(Float.POSITIVE_INFINITY, 9));
         assertEquals(7, OsqFontMetrics.baseline(Float.POSITIVE_INFINITY));
+        assertEquals(7, OsqFontMetrics.baseline(Float.NaN));
+        assertEquals(7, OsqFontMetrics.baseline(-1));
+        assertEquals(7, OsqFontMetrics.baseline(33));
+        assertEquals(0, OsqFontMetrics.baseline(0));
+        assertEquals(7, OsqFontMetrics.baseline(7));
         assertEquals(9, OsqFontMetrics.baseline(9));
     }
 }

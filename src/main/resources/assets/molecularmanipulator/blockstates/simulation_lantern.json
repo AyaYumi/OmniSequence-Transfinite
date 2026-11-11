@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "molecularmanipulator:block/simulation_lantern"
+    },
+    "lit=true": {
+      "model": "molecularmanipulator:block/simulation_lantern_lit"
+    }
+  }
+}

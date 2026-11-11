@@ -6,7 +6,6 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.ae2.StarSignalKeyType;
 import com.atir.molecularmanipulator.client.render.StarOrreryRenderer;
-import com.atir.molecularmanipulator.client.render.StarComputationEngineFormedGeometry;
 import com.atir.molecularmanipulator.client.render.NexusFormedGeometry;
 import com.atir.molecularmanipulator.client.render.AutoCrafterGlowGeometry;
 import com.atir.molecularmanipulator.client.render.OmniShaders;
@@ -36,11 +35,6 @@ public final class ClientEvents {
     }
 
     @SubscribeEvent
-    public static void registerResourcePacks(net.neoforged.neoforge.event.AddPackFindersEvent event) {
-        com.atir.molecularmanipulator.client.gui.theme.OsqResourcePacks.register(event);
-    }
-
-    @SubscribeEvent
     public static void clientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
         event.enqueueWork(() -> net.neoforged.fml.ModList.get().getModContainerById(MolecularManipulator.MOD_ID)
                 .ifPresent(container -> container.registerExtensionPoint(
@@ -49,12 +43,14 @@ public final class ClientEvents {
         event.enqueueWork(SingularityRenderCompatibility::initialize);
         event.enqueueWork(() -> com.atir.molecularmanipulator.network.WarpScreenPayload.setClientHandler(
                 com.atir.molecularmanipulator.client.render.WarpTransitionOverlay::begin));
+        event.enqueueWork(() -> com.atir.molecularmanipulator.network.DetachedSignalTimePayload.setClientHandler(
+                DetachedSignalClientTime::receive));
         event.enqueueWork(() -> {
             com.atir.molecularmanipulator.network.LanternPayloads.setClientHandler(LanternClient::receive);
             net.minecraft.client.renderer.item.ItemProperties.register(
-                    com.atir.molecularmanipulator.registry.GreenFireLanternContent.ITEM.get(),
+                    com.atir.molecularmanipulator.registry.SimulationLanternContent.ITEM.get(),
                     MolecularManipulator.id("lit"), (stack, level, entity, seed) ->
-                            com.atir.molecularmanipulator.registry.GreenFireLanternContent.isLit(stack) ? 1 : 0);
+                            com.atir.molecularmanipulator.registry.SimulationLanternContent.isLit(stack) ? 1 : 0);
         });
         event.enqueueWork(SingularityFluidClient::registerRenderLayers);
         event.enqueueWork(() -> AEKeyRendering.register(
@@ -97,8 +93,6 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerGeometryLoaders(ModelEvent.RegisterGeometryLoaders event) {
-        event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "star_computation_engine_formed"),
-                StarComputationEngineFormedGeometry.LOADER);
         event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "nexus_formed"),
                 NexusFormedGeometry.LOADER);
         event.register(ResourceLocation.fromNamespaceAndPath(MolecularManipulator.MOD_ID, "auto_crafter_glow"),
@@ -107,6 +101,8 @@ public final class ClientEvents {
 
     @SubscribeEvent
     public static void registerAdditionalModels(ModelEvent.RegisterAdditional event) {
+        event.register(com.atir.molecularmanipulator.client.render.StarSeaCalculationModel.SHELL);
+        event.register(com.atir.molecularmanipulator.client.render.StarSeaCalculationModel.GLASS);
         for (String form : StarOrreryRenderer.FORMS) {
             for (String part : StarOrreryRenderer.PARTS) event.register(StarOrreryRenderer.model(form, part));
             for (int ring = 1; ring <= 9; ring++) {
@@ -118,6 +114,8 @@ public final class ClientEvents {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModContent.STAR_COMPUTATION_ENGINE_CORE_BE.get(), StarOrreryRenderer::new);
+        event.registerBlockEntityRenderer(com.atir.molecularmanipulator.registry.StarSeaCalculationContent.BLOCK_ENTITY.get(),
+                com.atir.molecularmanipulator.client.render.StarSeaCalculationRenderer::new);
         event.registerBlockEntityRenderer(com.atir.molecularmanipulator.registry.WarpContent.WARP_PAD_BE.get(),
                 com.atir.molecularmanipulator.client.render.EndWarpPadRenderer::new);
         event.registerBlockEntityRenderer(ModContent.GHOST_MATTER_BE.get(), GhostMatterRenderer::new);
@@ -147,6 +145,8 @@ public final class ClientEvents {
             com.atir.molecularmanipulator.client.render.ParallelEffectGeometry.clear();
             com.atir.molecularmanipulator.client.render.GpuEffectLayers.clear();
             StarOrreryRenderer.clear();
+            com.atir.molecularmanipulator.client.render.StarSeaCalculationModel.clear();
+            StarSeaCalculationPlacementPreview.clear();
             com.atir.molecularmanipulator.client.render.StarOrreryNebulaRenderer.release();
             MolecularCenterGhostPreview.onResourceReload();
             OmniComputationGhostPreview.onResourceReload();

@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.client.gui.theme.OsqLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -10,16 +11,17 @@ import net.minecraft.network.chat.Component;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
-/** Small AE2 action button: three explicit tiers; Shift-activation clears the machine override. */
-public final class MachineEffectButton extends ResponsiveAE2Button {
+/** OSQ action button: three explicit tiers; Shift-activation clears the machine override. */
+public final class MachineEffectButton extends OsqUi.SkinButton {
     private static final String PREFIX = "gui.molecularmanipulator.effects.";
     private final IntSupplier override;
     private final IntConsumer request;
     private int displayedOverride = Integer.MIN_VALUE;
     private int displayedLevel = Integer.MIN_VALUE;
 
-    public MachineEffectButton(int x, int y, int width, IntSupplier override, IntConsumer request) {
-        super(x, y, width, 18, Component.empty(), button -> {});
+    MachineEffectButton(OsqUi ui, OsqLayout.Entry box, int left, int top,
+            IntSupplier override, IntConsumer request) {
+        ui.super(box, left, top, null, () -> {});
         this.override = override;
         this.request = request;
         refresh();

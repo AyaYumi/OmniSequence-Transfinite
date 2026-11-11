@@ -182,12 +182,12 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             }
             boolean prepared = batchContext != null
                     ? craftingBatcher.prepareSelected(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget,
                             batchContext.firstInputs(),
                             batchContext.craftCount())
                     : craftingBatcher.prepare(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget);
             if (!prepared) {
                 return false;
@@ -235,7 +235,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             return false;
         }
 
-        var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
+        var job = craftingBatcher.prepareReusable(this, patternDetails, inputs,
                 context.craftingId(), context.reusablePlan());
         if (job == null
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),

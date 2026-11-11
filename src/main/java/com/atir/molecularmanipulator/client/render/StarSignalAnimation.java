@@ -10,7 +10,7 @@ public final class StarSignalAnimation {
     private StarSignalAnimation() {
     }
 
-    /** Keep fractional ticks: four subpixel frames per pixel, at the original scroll speed. */
+    /** Keep fractional ticks: two frames per tick give a seamless 1.6-second pulse cycle. */
     public static int frameAt(double gameTicks) {
         if (!Double.isFinite(gameTicks)) {
             throw new IllegalArgumentException("Animation time must be finite");

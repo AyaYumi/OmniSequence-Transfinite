@@ -8,8 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class ConfigFileMigrationTest {
     @TempDir Path directory;
@@ -132,6 +137,128 @@ class ConfigFileMigrationTest {
         assertFalse(config.contains("sequence_array.singularity_collection"));
         assertFalse(config.contains("omni_computation.dispatch.omni_profile_exact_returns"));
         assertFalse(config.contains("omni_computation.dispatch.omni_return_profile_sample_interval"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("explicitCollectorTagCases")
+    void explicitCollectorTagsOverrideMalformedLegacyValues(String itemTags, String legacyTags) throws Exception {
+        var file = directory.resolve(ConfigFileMigration.SERVER_FILE);
+        String original = """
+                [sequence_array]
+                build_blocks_per_tick = 7
+                [singularity_hub.singularity_collection]
+                item_tags = %s
+                %s
+                batch_size = 37
+                interval_ticks = 7
+                item_blacklist = ["minecraft:oak_planks"]
+                [singularity_hub.singularity_duplication]
+                interval_ticks = 53
+                [omni_computation.dispatch]
+                omni_dispatch_max_work_units = 64
+                """.formatted(itemTags, legacyTags);
+        Files.writeString(file, original);
+
+        refreshDirectory();
+
+        String migrated = Files.readString(file);
+        var config = new TomlParser().parse(migrated);
+        assertEquals(itemTags.equals("[]") ? List.of() : List.of("#minecraft:planks"),
+                config.get("singularity_hub.singularity_collection.item_tags"));
+        assertFalse(config.contains("singularity_hub.singularity_collection.raw_ore_tags"));
+        assertFalse(config.contains("singularity_hub.singularity_collection.log_tags"));
+        assertEquals(37, config.getInt("singularity_hub.singularity_collection.batch_size"));
+        assertEquals(7, config.getInt("singularity_hub.singularity_collection.interval_ticks"));
+        assertEquals(List.of("minecraft:oak_planks"), config.get("singularity_hub.singularity_collection.item_blacklist"));
+        assertEquals(53, config.getInt("singularity_hub.singularity_duplication.interval_ticks"));
+        assertEquals(7, config.getInt("sequence_array.build_blocks_per_tick"));
+        assertEquals(64L, config.getLong("omni_computation.dispatch.omni_dispatch_max_work_units"));
+        assertEquals(original, Files.readString(directory.resolve("omnisequence-transfinite-server-1.toml.bak")));
+
+        refreshDirectory();
+        assertEquals(migrated, Files.readString(file), "The cleaned file must not be rewritten on the next startup");
+        assertFalse(Files.exists(directory.resolve("omnisequence-transfinite-server-2.toml.bak")),
+                "Discarded legacy values must not trigger a whole-file schema reset");
+    }
+
+    private static Stream<Arguments> explicitCollectorTagCases() {
+        return Stream.of("[]", "[\"#minecraft:planks\"]").flatMap(itemTags -> Stream.of(
+                "raw_ore_tags = 1\nlog_tags = []",
+                "raw_ore_tags = []\nlog_tags = [42]",
+                "raw_ore_tags = []\nlog_tags = \"#minecraft:logs\"")
+                .map(legacyTags -> Arguments.of(itemTags, legacyTags)));
+    }
+
+    @Test
+    void relocatedMalformedCollectorTagsCannotOverrideAnExplicitCurrentList() throws Exception {
+        var file = directory.resolve(ConfigFileMigration.SERVER_FILE);
+        Files.writeString(file, """
+                [sequence_array.singularity_collection]
+                raw_ore_tags = 1
+                log_tags = [false]
+                batch_size = 37
+                [singularity_hub.singularity_collection]
+                item_tags = []
+                """);
+
+        refreshDirectory();
+
+        var config = new TomlParser().parse(Files.readString(file));
+        assertEquals(List.of(), config.get("singularity_hub.singularity_collection.item_tags"));
+        assertEquals(37, config.getInt("singularity_hub.singularity_collection.batch_size"));
+        assertFalse(config.contains("sequence_array.singularity_collection"));
+        assertFalse(config.contains("singularity_hub.singularity_collection.raw_ore_tags"));
+        assertFalse(config.contains("singularity_hub.singularity_collection.log_tags"));
+    }
+
+    @Test
+    void missingDuplicationBlacklistDefaultsToEmptyWithoutResettingExistingSettings() throws Exception {
+        var file = directory.resolve(ConfigFileMigration.SERVER_FILE);
+        String original = """
+                [singularity_hub.singularity_collection]
+                item_blacklist = ["minecraft:oak_log"]
+                batch_size = 37
+                [singularity_hub.singularity_duplication]
+                energy_priority = ["ae"]
+                fe_per_unit = 1007
+                interval_ticks = 53
+                """;
+        Files.writeString(file, original);
+
+        refreshDirectory();
+
+        assertEquals(original, Files.readString(file), "Adding an option must not reset an existing config");
+        var config = new TomlParser().parse(Files.readString(file));
+        ModConfig.SERVER_SPEC.correct(config);
+        assertEquals(List.of(), config.get("singularity_hub.singularity_duplication.item_blacklist"));
+        assertEquals(List.of("minecraft:oak_log"), config.get("singularity_hub.singularity_collection.item_blacklist"));
+        assertEquals(37, config.getInt("singularity_hub.singularity_collection.batch_size"));
+        assertEquals(List.of("ae"), config.get("singularity_hub.singularity_duplication.energy_priority"));
+        assertEquals(1007, config.getInt("singularity_hub.singularity_duplication.fe_per_unit"));
+        assertEquals(53, config.getInt("singularity_hub.singularity_duplication.interval_ticks"));
+    }
+
+    @Test
+    void duplicationAndCollectionBlacklistsRetainIndependentValues() throws Exception {
+        var file = directory.resolve(ConfigFileMigration.SERVER_FILE);
+        String original = """
+                [singularity_hub.singularity_collection]
+                item_blacklist = ["minecraft:oak_log"]
+                [singularity_hub.singularity_duplication]
+                item_blacklist = [" minecraft:dragon_egg ", "optionalmod:restricted_item"]
+                interval_ticks = 53
+                """;
+        Files.writeString(file, original);
+
+        refreshDirectory();
+
+        assertEquals(original, Files.readString(file), "The new duplication key belongs to the current schema");
+        var config = new TomlParser().parse(Files.readString(file));
+        ModConfig.SERVER_SPEC.correct(config);
+        assertEquals(List.of(" minecraft:dragon_egg ", "optionalmod:restricted_item"),
+                config.get("singularity_hub.singularity_duplication.item_blacklist"));
+        assertEquals(List.of("minecraft:oak_log"), config.get("singularity_hub.singularity_collection.item_blacklist"));
+        assertEquals(53, config.getInt("singularity_hub.singularity_duplication.interval_ticks"));
     }
 
     private void refreshDirectory() throws Exception {

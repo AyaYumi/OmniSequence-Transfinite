@@ -20,6 +20,8 @@ import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
+import com.atir.molecularmanipulator.recipelock.RecipeExecutionContext;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.core.HolderLookup;
@@ -28,6 +30,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -313,8 +316,14 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
         var grid = host.getMainNode().getGrid();
         Level level = host.getLevel();
-        if (grid == null || level == null) {
+        if (grid == null || level == null || level.isClientSide()) {
             config.state = AutoCraftState.MACHINE_OFFLINE;
+            return;
+        }
+        // Decode/plan caches are not permissions. Check the actual host/grid
+        // before taking even the first material of every passive batch.
+        if (!(host instanceof BlockEntity machine) || !RecipeLocks.allowedPattern(machine, details)) {
+            config.state = AutoCraftState.INVALID_PATTERN;
             return;
         }
         var outputs = details.getOutputs();
@@ -354,7 +363,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         var expectedOutputs = new KeyCounter();
         var expectedRemainders = new KeyCounter();
         KeyCounter[] firstInputs;
-        try {
+        try (var scope = RecipeExecutionContext.open(machine)) {
             firstInputs = CraftingCpuHelper.extractPatternInputs(
                     details, craftingInventory, level, expectedOutputs, expectedRemainders);
         } catch (RuntimeException exception) {
@@ -413,7 +422,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                 return;
             }
 
-            if (!prepareOutputs(details, inputs, firstInputs, craftCount, reusablePlan, level)) {
+            if (!prepareOutputs(details, inputs, firstInputs, craftCount, reusablePlan, machine)) {
                 if (extraction != null) extraction.rollbackAdditional(craftingInventory,
                         expectedOutputs, expectedRemainders);
                 if (host.hasAutoCraftRecovery()) {
@@ -509,9 +518,9 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
     private boolean prepareOutputs(IPatternDetails details, KeyCounter[] inputs,
             KeyCounter[] firstInputs, long craftCount,
-            @Nullable MolecularReusableBatchPlan reusablePlan, Level level) {
+            @Nullable MolecularReusableBatchPlan reusablePlan, BlockEntity machine) {
         if (reusablePlan != null) {
-            var job = batcher.prepareReusable(details, inputs, level,
+            var job = batcher.prepareReusable(machine, details, inputs,
                     UUID.randomUUID(), reusablePlan);
             if (job == null) {
                 return false;
@@ -523,9 +532,9 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             return batcher.prepareReusableOutputsForAuto(job, primary, remainders);
         }
         return craftCount > 1
-                ? batcher.prepareSelected(details, inputs, level,
+                ? batcher.prepareSelected(machine, details, inputs,
                         Long.MAX_VALUE, firstInputs, craftCount)
-                : batcher.prepare(details, inputs, level, 1);
+                : batcher.prepare(machine, details, inputs, 1);
     }
 
     private OutputAllowance outputAllowance(IPatternDetails details, PatternConfig config) {

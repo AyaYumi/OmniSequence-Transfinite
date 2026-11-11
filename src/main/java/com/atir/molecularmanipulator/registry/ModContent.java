@@ -49,6 +49,9 @@ import com.atir.molecularmanipulator.menu.BuildingTerminalMenu;
 import com.atir.molecularmanipulator.item.SingularityCosmicItem;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterMachineImportRecipe;
+import com.atir.molecularmanipulator.starcomputation.StarComputationUpgradeRecipe;
+import com.atir.molecularmanipulator.starcomputation.StarResearchNodeRecipe;
+import com.atir.molecularmanipulator.recipelock.RecipeLockRecipe;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
@@ -525,6 +528,20 @@ public final class ModContent {
     public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<MatterMachineImportRecipe>> MATTER_MACHINE_IMPORT_RECIPE_SERIALIZER =
             RECIPE_SERIALIZERS.register("matter_machine_import", MatterMachineImportRecipe.Serializer::new);
 
+    public static final DeferredHolder<RecipeType<?>, RecipeType<StarComputationUpgradeRecipe>> STAR_ORRERY_UPGRADE_RECIPE_TYPE =
+            RECIPE_TYPES.register("star_orrery_upgrade", () -> RecipeType.simple(MolecularManipulator.id("star_orrery_upgrade")));
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<StarComputationUpgradeRecipe>> STAR_ORRERY_UPGRADE_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("star_orrery_upgrade", StarComputationUpgradeRecipe.Serializer::new);
+
+    public static final DeferredHolder<RecipeType<?>, RecipeType<StarResearchNodeRecipe>> STAR_RESEARCH_RECIPE_TYPE =
+            RECIPE_TYPES.register("star_research", () -> RecipeType.simple(MolecularManipulator.id("star_research")));
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<StarResearchNodeRecipe>> STAR_RESEARCH_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("star_research", StarResearchNodeRecipe.Serializer::new);
+    public static final DeferredHolder<RecipeType<?>, RecipeType<RecipeLockRecipe>> RECIPE_LOCK_RECIPE_TYPE =
+            RECIPE_TYPES.register("recipe_lock", () -> RecipeType.simple(MolecularManipulator.id("recipe_lock")));
+    public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<RecipeLockRecipe>> RECIPE_LOCK_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("recipe_lock", RecipeLockRecipe.Serializer::new);
+
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> MAIN_TAB = CREATIVE_TABS.register(
             "main",
             () -> CreativeModeTab.builder()
@@ -574,6 +591,7 @@ public final class ModContent {
                         output.accept(PRIMORDIAL_CRYSTAL_CORE.get());
                         output.accept(STAR_MARROW_SEED.get());
                         output.accept(STAR_SIGNAL_STORAGE_CELL.get());
+                        output.accept(StarSeaCalculationContent.ITEM.get());
                         output.accept(CREATIVE_STAR_SIGNAL_DISK.get());
                         output.accept(GenericStack.wrapInItemStack(StarSignalKey.INSTANCE, 1));
                         output.accept(STAR_MARROW_CRYSTAL_BUD_SMALL_ITEM.get());
@@ -590,7 +608,7 @@ public final class ModContent {
                         output.accept(HighEnergyLabContent.OUTPUT_CRADLE_ITEM.get());
                         output.accept(WarpContent.WARP_PAD_ITEM.get());
                         output.accept(WarpContent.COORDINATE_INSCRIPTION_ITEM.get());
-                        output.accept(GreenFireLanternContent.ITEM.get());
+                        output.accept(SimulationLanternContent.ITEM.get());
                         SingularityContent.displayItems(output);
                         output.accept(BLACK_HOLE.get());
                         output.accept(WHITE_HOLE.get());
@@ -678,7 +696,8 @@ public final class ModContent {
         ModFluids.register(eventBus);
         HighEnergyLabContent.init();
         WarpContent.init();
-        GreenFireLanternContent.init();
+        StarSeaCalculationContent.init();
+        SimulationLanternContent.init();
         BuildingContent.init();
         SingularityContent.init();
         SingularityContent.registerEntities(eventBus);

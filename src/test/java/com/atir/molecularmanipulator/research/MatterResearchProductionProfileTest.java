@@ -89,14 +89,14 @@ class MatterResearchProductionProfileTest {
     }
 
     @Test
-    void engineGateIsStillRequiredBeforeAnyResearchOwnerCanGrantPermission() throws Exception {
+    void globalRecipePermissionIsRequiredBeforeAnyResearchOwnerCanGrantPermission() throws Exception {
         var permission = method("hasPermission");
-        int mask = callIndex(permission, "StarComputationRecipes", "requiredMask");
-        int network = callIndex(permission, "StarComputationNetwork", "unlockMask");
-        int gate = callIndex(permission, "StarComputationRecipes", "isUnlocked");
+        int gate = callIndex(permission, "RecipeLocks", "allowed");
         int research = callIndex(permission, "MatterResearchProgress", "completionCount");
-        assertTrue(mask >= 0 && network > mask && gate > network && research > gate,
-                "Foundation fallback must not replace either engine unlocks or original owner research");
+        assertTrue(gate >= 0 && research > gate,
+                "Foundation fallback must not replace global team/network permissions or original owner research");
+        assertTrue(callIndex(method("canUseRecipe"), "MatterFabricationRecipe", "sourceRecipeId") >= 0,
+                "Imported recipes must carry their source ID through the same permission entry point");
         assertTrue(callIndex(method("canUseRecipe"), "MatterResearchApi", "hasPermission") >= 0);
         assertTrue(callIndex(method("isRecipeUnlocked"), "MatterResearchApi", "hasPermission") >= 0);
     }

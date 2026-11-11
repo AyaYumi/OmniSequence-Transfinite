@@ -520,7 +520,7 @@ public final class StarChartClient {
                 var bytes = Component.literal(String.format(Locale.ROOT, "%.1f KiB", entry.nativeBytes() / 1024D));
                 var label = new OsqLayout.Entry();
                 label.x = 300; label.centerY = row.y + 11; label.w = 78; label.size = 7.5f;
-                label.fontId = "molecularmanipulator:osq_entropy_600_7_5";
+                label.fontId = "minecraft:default";
                 label.color = ui.layout.find("color.muted").color; label.alignment = "right";
                 ui.layout.renderSingleLine(g, font, label, bytes, 0, 0);
                 if (mouseX >= row.x && mouseX < row.x + row.w && mouseY >= row.y && mouseY < row.y + row.h) {

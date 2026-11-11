@@ -181,14 +181,17 @@ public final class ConfigSchemaGuard {
             var existing = oldPaths.stream().filter(config::contains).toList();
             if (existing.isEmpty()) return false;
             var merged = new java.util.LinkedHashMap<String, String>();
-            for (var path : existing) {
-                Object value = config.getRaw(path);
-                if (!(value instanceof List<?> entries)) throw new IllegalArgumentException("Expected tag list at " + path);
-                for (Object entry : entries) {
-                    if (!(entry instanceof String text)) throw new IllegalArgumentException("Expected item tag string");
-                    String normalized = text.trim();
-                    if (normalized.startsWith("#")) normalized = normalized.substring(1);
-                    merged.putIfAbsent(normalized, text.trim());
+            // An explicit current list wins, even if the discarded legacy values are malformed.
+            if (!config.contains(target)) {
+                for (var path : existing) {
+                    Object value = config.getRaw(path);
+                    if (!(value instanceof List<?> entries)) throw new IllegalArgumentException("Expected tag list at " + path);
+                    for (Object entry : entries) {
+                        if (!(entry instanceof String text)) throw new IllegalArgumentException("Expected item tag string");
+                        String normalized = text.trim();
+                        if (normalized.startsWith("#")) normalized = normalized.substring(1);
+                        merged.putIfAbsent(normalized, text.trim());
+                    }
                 }
             }
             backUpConfig(file);

@@ -35,6 +35,18 @@ public final class StarComputationNetwork {
         return engine.getBenefits();
     }
 
+    /** Use permissions are a live union; permanent team saves are never merged by networking. */
+    public static java.util.Set<net.minecraft.resources.ResourceLocation> researchIds(@Nullable IGrid grid) {
+        if (grid == null) return java.util.Set.of();
+        var ids = new java.util.HashSet<net.minecraft.resources.ResourceLocation>();
+        for (var engine : grid.getMachines(StarComputationEngineCoreBlockEntity.class)) {
+            if (!engine.isRemoved() && engine.isFormed() && engine.getMainNode().isActive()) {
+                ids.addAll(engine.getUnlockedResearchIds());
+            }
+        }
+        return java.util.Set.copyOf(ids);
+    }
+
     public static int unlockMask(@Nullable IGrid grid) {
         if (grid == null) return 0;
         int mask = 0;

@@ -25,7 +25,7 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
         imageWidth=ui.layout.width; imageHeight=ui.layout.height+24;
         super.init(); ui.inventory(menu); ui.slots(menu.getSlots(SlotSemantics.MACHINE_INPUT),"qes");
         // Preserve both authored layouts; fit the extra control below them rather than over their headings.
-        addScreenWidget(new MachineEffectButton(leftPos + imageWidth - 128, topPos + ui.layout.height + 3, 120,
+        addScreenWidget(new MachineEffectButton(ui, ui.buttonBox(imageWidth - 128, ui.layout.height + 3, 120, 18), leftPos, topPos,
                 () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
         addScreenWidget(ui.button("projection",leftPos,topPos,
                 () -> tr("projection"), () -> { confirmation.cancel(); OmniComputationGhostPreview.toggle(menu.getCore()); }));
@@ -65,7 +65,6 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
             ui.layout.draw.stream().filter(e->"text".equals(e.type)&&Math.abs(e.x-24.63f)<.8f&&Math.abs(e.baseline-97)<.8f)
                     .findFirst().ifPresent(e->{e.x=76;e.drawX=76f;e.w=54;});}
         else {ui.number(28.48f,97,()->"");ui.number(60.05f,97,()->"/ "+menu.totalParts);ui.number(70.06f,97,()->"");}
-        ui.number(177.53f,95.5f,()->"-");
         ui.width(16.5f,97,legacyLayout?56:41);
         ui.width(60.05f,97,30);
         ui.width(283,224.89f,85);

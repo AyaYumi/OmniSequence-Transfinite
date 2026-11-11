@@ -60,8 +60,12 @@ class ServerRegressionFixture implements AutoCloseable {
     private boolean closed;
 
     ServerRegressionFixture(GameTestHelper helper) {
+        this(helper, helper.getLevel());
+    }
+
+    ServerRegressionFixture(GameTestHelper helper, ServerLevel level) {
         this.helper = helper;
-        level = helper.getLevel();
+        this.level = level;
         helper.testInfo.addListener(new GameTestListener() {
             @Override public void testStructureLoaded(GameTestInfo test) {}
             @Override public void testPassed(GameTestInfo test, GameTestRunner runner) { close(); }

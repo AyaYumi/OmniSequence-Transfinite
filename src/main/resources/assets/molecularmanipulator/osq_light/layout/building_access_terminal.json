@@ -29,16 +29,6 @@
    "slicing": "fixed"
   },
   {
-   "type": "fill",
-   "rect": [
-    333,
-    9,
-    59,
-    15
-   ],
-   "color": "#FFB8BAC8"
-  },
-  {
    "type": "sprite",
    "id": "panel.3",
    "k": "card",

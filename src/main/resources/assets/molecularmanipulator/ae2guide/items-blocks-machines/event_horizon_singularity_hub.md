@@ -22,7 +22,7 @@ item_ids:
 
 # Event Horizon Singularity Hub
 
-The Event Horizon Singularity Hub collects resources continuously and duplicates items using Sequence Matter. Collection and duplication share its ME network and can operate independently.
+This large building supplies your ME network continuously. **Resource Collection** produces the items in its list together; **Matter Duplication** spends Sequence Matter to copy a sample you choose. They run separately: copying does not need collection to be active.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:event_horizon_singularity_hub" />
@@ -33,58 +33,81 @@ The Event Horizon Singularity Hub collects resources continuously and duplicates
 <ItemIcon id="molecularmanipulator:singularity_crystal_tower" />
 </ItemGrid>
 
-## Construction and connection
+Shown in order: controller, track, lens, capture node, resource core and crystal tower. **Open the controller to operate the hub.** Products go straight into ME, rather than dropping out of the central white hole.
 
-1. Complete **Tier 3: Event Horizon** in the well and fabricate the hub parts. The controller and White Hole Resource Core each require a [Miniature Supernova](black_and_white_holes.md).
-2. Gather JEI's structure materials, place the controller and enable **Projection**.
-3. Clear obstructions and select **Build**. Construction uses your inventory before ME storage.
-4. Connect ME power and channels, then check formation and network status in Overview.
-5. Provide ME item storage for collected and copied products, and ME fluid storage for Sequence Matter.
+## What you need
 
-Base Stairs and Slabs are crafted at a crafting table: six Base Casings in the stair shape yield four stairs; three casings in a row yield six slabs.
+- **Research and materials:** complete **Tier IV: Event Horizon Materials** at the well for structure parts, then **Tier V: Stellar Cores** for the controller and White Hole Resource Core. Each of those two needs a [Miniature Supernova](black_and_white_holes.md). JEI's hub structure page lists the full materials.
+- **A site:** the stationary building is **97×97 blocks across and 129 blocks tall**. Its controller is at **base Y + 65**; base Y means the lowest physical block's elevation. Keep the central light well empty and leave clearance around the building for moving parts.
+- **ME access:** power, available channels and enough item storage. Matter generation and copying also need fluid storage; see [Matter Duplication](singularity_matter_duplication.md).
 
-### Complete building package
+## Recommended: unfold a building package
 
-Connect a **Spatial Folding Assembler** to ME to order an **Event Horizon Singularity Hub package**. Each order consumes one controller and every standard construction block in the current suspended design; creative inventory offers the same package. The hub's JEI structure page lists the full materials and package output, with rotation, panning, zoom and layer controls.
+<Row>
+<BlockImage id="molecularmanipulator:folding_assembler" scale="4" />
 
-Use the **Star Chart Calibrator** to select the site, package and facing, then confirm to unfold and form the structure automatically. Allow a **97×97 footprint and 129 blocks of height**, with **controller Y = base Y + 65**. Clear obstructions from the 566 required empty light-well cells too. During unfinished construction, choose **Interrupt and reclaim building** in the calibrator panel; once cleanup finishes, the original package can unfold again. See [Folded Buildings and Relocation](folded_buildings.md).
+<ItemImage id="molecularmanipulator:folded_building_package" scale="4" />
 
-## Controller interface
+<ItemImage id="molecularmanipulator:star_chart_calibrator" scale="4" />
+</Row>
 
-| Page | Function |
+**Order at the assembler → collect the complete package → survey and unfold with the calibrator.** The package already includes the controller and all standard construction blocks.
+
+1. Connect a **Spatial Folding Assembler** to an ME network with autocrafting and order a hub package. The order consumes the controller and full materials; it is not a free building.
+2. Keep the package in your inventory and **right-click the site with a Star Chart Calibrator**. Select the package, position and facing.
+3. Inspect the pale blue projection and gold boundary. Clear red conflicts, including obstructions in the light well, then confirm deployment.
+4. Wait for unfolding to finish, connect ME and check **formed** and **network online** in the controller's **Overview**. The calibrator is reusable.
+
+See [Folded Buildings and Relocation](folded_buildings.md) for surveying and interrupting construction. JEI's structure preview supports rotation, panning, zoom and layer controls.
+
+### Already have a controller? Use automatic construction
+
+Place it, enable **Projection**, prepare the JEI materials and select **Build**. Materials come from your inventory first, then ME. Base Stairs and Slabs use crafting-table recipes: 6 casings make 4 stairs, or 3 casings in a row make 6 slabs.
+
+## How to tell it worked, and what to open next
+
+Once Overview shows **formed** and **network online**, choose the page for your goal:
+
+| Your goal | Action and success sign |
 | --- | --- |
-| Overview | Operating status; projection, construction and whole-machine reclaim |
-| [Resource Collection](singularity_resource_collection.md) | Resource list; start and stop collection |
-| [Matter Duplication](singularity_matter_duplication.md) | Sample and miniature black-hole slots; matter stock and energy use |
+| Collect raw ores, logs and other resources | [Resource Collection](singularity_resource_collection.md) → Start Collection. After startup, resource counts rise in ME. |
+| Generate Sequence Matter fluid | [Matter Duplication](singularity_matter_duplication.md) → insert miniature black holes and supply energy. With no sample, watch ME fluid stock rise. |
+| Copy a chosen item | [Matter Duplication](singularity_matter_duplication.md) → insert a sample and provide matter. Copies appear in ME; the sample stays. |
 
-Start collection and wait for startup, then products enter ME. Stopping collection docks the structure. Black-hole matter generation and sample duplication do not require active resource collection.
+**Stop Collection** docks the moving parts, but does not stop matter generation or copying. Remove black holes or the sample to stop those operations. Lowering **Effects** in Overview changes visuals, not output.
 
-The **Effects** button chooses 0 off, 1 reduced or 2 full for this controller and all viewers. Shift-click restores each client's global setting; production and motion rules are unchanged.
+### Optional: a quantum connection instead of cables
 
-## Quantum connection
+Overview's quantum slot takes a **Quantum Entangled Singularity**. Put its partner in a powered, loaded AE2 quantum bridge to reach a remote ME network. This can supply construction materials before formation too.
 
-Overview's quantum slot accepts only a **Quantum Entangled Singularity**. Put its partner in a powered AE2 quantum bridge to connect a remote network, including construction materials before formation. The link requires an additional **512 AE/t and one channel**.
+**Choose cables or the built-in quantum link, not both.** Remove ME cables from the controller before using its link. The link costs an additional **512 AE/t**, and the network still needs channels. The pair must not already be occupied by other endpoints. After a restart, allow the network time to reconnect.
 
-After reloading, let the loaded endpoints complete normal AE2 initialization to reconnect. A destroyed, unloaded or retuned remote ring is no longer mistaken for a live endpoint because of a stale frequency entry. A genuinely occupied pair still rejects the link.
+## Move the whole machine, not individual blocks
 
-## Reclaiming and relocation
+1. **Stop collection and settle jobs first.** Finish construction or upgrades. Finish or cancel external ME CPU jobs on its network and wait for materials, outputs and refunds to settle.
+2. Select **Reclaim package** in Overview, then confirm as prompted. At normal speed, leave about **0.25–3 seconds** between clicks.
+3. Let moving parts dock safely and collect **one sealed package**. It retains the machine, stored items and fluids, quantum singularity, sample, black holes, processing progress and pending deliveries, along with the existing layout and settings.
+4. Use the calibrator to unfold it elsewhere, including another dimension, **within the same world save**. Check ME and storage before starting collection manually.
 
-1. Stop resource collection and finish any construction or structure upgrade in progress. Finish or cancel external ME CPU jobs on the hub's network and let materials, outputs and refunds settle.
-2. Use the existing **reclaim action in Overview**: click once, then again **5–60 ticks later** (normally 0.25–3 seconds). This seals the controller and the whole machine as **one archived building package**.
-3. Use the Star Chart Calibrator to survey and deploy it elsewhere in the same world. Deployment leaves collection, motion and reclaim stopped; start collection manually when ready.
+While waiting for docking, keep the motion area loaded and clear, and have the requesting player return to operate it. Restarts or that player's temporary absence do not discard the reclaim request. **Cancel** withdraws sealing while safe docking continues. If your inventory was full, free a slot and use the calibrator in the air to collect the package.
 
-If moving parts remain, sealing waits for safe docking. Keep the motion area loaded and clear. The pending request survives reloads and the requester's time offline, and can continue when the requester returns and conditions permit. **Cancel** prevents the eventual archive while docking continues safely.
+**A sealed package needs its building archive in the original save.** Copying just the item to another save does not move the building. Back up or transfer the complete world folder. See [Folded Buildings and Relocation](folded_buildings.md). The [compact hub](compact_singularity_hub.md) does not use this whole-machine reclaim action.
 
-The archive preserves the controller, its saved blueprint version, legacy collection nodes and required empty light-well cells (566 in the current suspended design). It retains native inventories, the Quantum Entangled Singularity and its frequency, sample, miniature black holes, duplication progress, pending outputs, fluids and refunds, buffered energy, effect settings, portable materials and recovery contents. Restoring keeps that structure version. **The compact single-block hub does not use this multiblock reclaim action.**
+## Quick fixes
 
-Normal controller removal retains the quantum slot, sample, miniature black holes and pending recovery contents. Continuous production needs loaded chunks; the server's multiblock chunk-loading setting can keep the structure's required chunks loaded.
+| Problem | What to check |
+| --- | --- |
+| Cannot form or deploy | Check height, red conflicts, missing materials and the empty central light well. |
+| Formed, but no products | Connect ME, start collection and provide item space for every resource. For copying, check the sample and matter separately. |
+| Motion or docking stops | Clear obstacles and load chunks across the **whole motion area**, not just the controller. |
+| Reclaim keeps waiting | Stop collection, settle jobs, have the requester present and let the moving parts dock. |
 
-That setting controls this mod's chunk tickets, not motion permission. With it off, the hub can still start, move and dock while every required chunk in the full motion area is loaded by other means. Missing chunks pause motion and block starting or docking; these checks do not synchronously load them.
+The server's **multiblock chunk-loading** switch decides whether this mod keeps chunks loaded; **it is not permission to move**. With it off, starting, motion and docking still work when all required chunks are already loaded by other means. Missing chunks make the machine wait.
 
-## Recipes
+## Recipe lookup
 
-<RecipeFor id="molecularmanipulator:event_horizon_singularity_hub" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+<RecipeFor id="molecularmanipulator:event_horizon_singularity_hub" fallbackText="Check JEI for the well recipe and research requirements." />
 
-<RecipeFor id="molecularmanipulator:white_hole_resource_core" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+<RecipeFor id="molecularmanipulator:white_hole_resource_core" fallbackText="Check JEI for the well recipe and research requirements." />
 
 <SubPages icons={true} />

@@ -31,21 +31,19 @@ class OsqSpriteGeometryTest {
     }
 
     @Test void everyBundledNineSliceHasValidUvsAtRealisticSizes() throws Exception {
-        for (String root : new String[]{"src/main/resources", "resourcepacks/OmniSequence Dark"}) {
-            try (var files = Files.walk(Path.of(root))) {
-                for (var path : files.filter(p -> p.toString().endsWith(".png.mcmeta")).toList()) {
-                    var metadata = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-                    if (!metadata.has("gui")) continue;
-                    var scaling = metadata.getAsJsonObject("gui").getAsJsonObject("scaling");
-                    if (!"nine_slice".equals(scaling.get("type").getAsString())) continue;
-                    var border = scaling.getAsJsonObject("border");
-                    for (int[] size : new int[][]{{434,306}, {73,17}, {4,3}}) {
-                        var quads = OsqSpriteGeometry.nineSlice(size[0], size[1], scaling.get("width").getAsInt(),
-                                scaling.get("height").getAsInt(), border.get("left").getAsInt(),
-                                border.get("top").getAsInt(), border.get("right").getAsInt(), border.get("bottom").getAsInt());
-                        assertTrue(quads.stream().allMatch(q -> q.width() > 0 && q.height() > 0
-                                && q.u0() >= 0 && q.u1() <= 1 && q.v0() >= 0 && q.v1() <= 1), path.toString());
-                    }
+        try (var files = Files.walk(Path.of("src/main/resources"))) {
+            for (var path : files.filter(p -> p.toString().endsWith(".png.mcmeta")).toList()) {
+                var metadata = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+                if (!metadata.has("gui")) continue;
+                var scaling = metadata.getAsJsonObject("gui").getAsJsonObject("scaling");
+                if (!"nine_slice".equals(scaling.get("type").getAsString())) continue;
+                var border = scaling.getAsJsonObject("border");
+                for (int[] size : new int[][]{{434,306}, {73,17}, {4,3}}) {
+                    var quads = OsqSpriteGeometry.nineSlice(size[0], size[1], scaling.get("width").getAsInt(),
+                            scaling.get("height").getAsInt(), border.get("left").getAsInt(),
+                            border.get("top").getAsInt(), border.get("right").getAsInt(), border.get("bottom").getAsInt());
+                    assertTrue(quads.stream().allMatch(q -> q.width() > 0 && q.height() > 0
+                            && q.u0() >= 0 && q.u1() <= 1 && q.v0() >= 0 && q.v1() <= 1), path.toString());
                 }
             }
         }

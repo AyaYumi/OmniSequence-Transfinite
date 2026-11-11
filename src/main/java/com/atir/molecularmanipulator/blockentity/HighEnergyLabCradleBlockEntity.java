@@ -64,7 +64,8 @@ public final class HighEnergyLabCradleBlockEntity extends BlockEntity {
     }
 
     public boolean start() {
-        if (!input() || stored.isEmpty() || !working.isEmpty() || !ready()) return false;
+        if (!input() || stored.isEmpty() || LabCrystallization.resultFor(stored).isEmpty()
+                || !working.isEmpty() || !ready()) return false;
         working = stored;
         stored = ItemStack.EMPTY;
         progress = 0;
@@ -113,6 +114,18 @@ public final class HighEnergyLabCradleBlockEntity extends BlockEntity {
 
     public void serverTick() {
         if (level == null || level.isClientSide || !input()) return;
+        // Old crystal-to-board batches return their original input, never create a new board.
+        // Drop beside the cradle instead if a different stored stack prevents merging.
+        if (!working.isEmpty() && LabCrystallization.resultFor(working).isEmpty()) {
+            if (stored.isEmpty()) stored = working;
+            else if (ItemStack.isSameItemSameComponents(stored, working)
+                    && stored.getCount() + working.getCount() <= stored.getMaxStackSize()) stored.grow(working.getCount());
+            else Block.popResource(level, worldPosition, working);
+            working = ItemStack.EMPTY;
+            progress = 0;
+            advancing = false;
+            sync();
+        }
         boolean next = !working.isEmpty() && ready();
         if (advancing != next) { advancing = next; sync(); }
         if (!next) return;

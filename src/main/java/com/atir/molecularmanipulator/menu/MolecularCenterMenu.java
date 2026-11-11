@@ -206,6 +206,7 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
                 value -> MachineEffectMenuAccess.apply(this, center, value));
         dynamicEffectOverride = center.getMachineEffects().getOverride();
         automaticPatternUpload = center.isAutomaticPatternUploadEnabled();
+        if (isServerSide()) patternCapacity = getActivePatternSlots();
         applyPage(0);
     }
 
@@ -288,10 +289,15 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
         return page;
     }
 
+    private int getActivePatternSlots() {
+        // COMMON settings are local to each instance; clients use the server's menu snapshot.
+        return isClientSide() ? patternCapacity : Math.min(
+                com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
+                center.getLogic().getFullPatternInventory().size());
+    }
+
     public int getPageCount() {
-        int slots = patternSearchActive
-                ? patternSearchResultCount
-                : com.atir.molecularmanipulator.config.ModConfig.activePatternSlots();
+        int slots = patternSearchActive ? patternSearchResultCount : getActivePatternSlots();
         return Math.max(1, (slots
                 + MolecularCenterBlockEntity.PATTERNS_PER_PAGE - 1) / MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
     }
@@ -541,9 +547,7 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
             return;
         }
 
-        int activeSlots = Math.min(
-                com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
-                center.getLogic().getFullPatternInventory().size());
+        int activeSlots = getActivePatternSlots();
         int resultCount = Math.max(0, Math.min(activeSlots, request.resultCount()));
         int pageCount = Math.max(1, (resultCount + MolecularCenterBlockEntity.PATTERNS_PER_PAGE - 1)
                 / MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
@@ -601,9 +605,7 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
         if (!isClientSide() && getPlayer() instanceof ServerPlayer player
                 && center.getLevel() != null) {
             var inventory = center.getLogic().getFullPatternInventory();
-            int activeSlots = Math.min(
-                    com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
-                    inventory.size());
+            int activeSlots = getActivePatternSlots();
             var entries = PatternSearchIndexBuilder.build(
                     inventory,
                     activeSlots,
@@ -805,9 +807,7 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
             building = center.isBuilding();
             dismantling = center.isDismantling();
             patternRevision = center.getLogic().getPatternRevision();
-            patternCapacity = Math.min(
-                    com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
-                    center.getLogic().getFullPatternInventory().size());
+            patternCapacity = getActivePatternSlots();
             if (patternRevision != countedPatternRevision || patternCapacity != countedPatternCapacity) {
                 int used = 0;
                 var inventory = center.getLogic().getFullPatternInventory();

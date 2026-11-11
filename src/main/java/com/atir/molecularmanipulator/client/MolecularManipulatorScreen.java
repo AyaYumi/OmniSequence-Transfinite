@@ -60,9 +60,9 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
         }
         layoutPatternPage();
         previousPageButton = addScreenWidget(ui.button("prev", leftPos, topPos,
-                () -> Component.literal("<"), () -> changePage(-1)));
+                () -> Component.translatable("gui.molecularmanipulator.page_previous_tooltip"), () -> changePage(-1)));
         nextPageButton = addScreenWidget(ui.button("next", leftPos, topPos,
-                () -> Component.literal(">"), () -> changePage(1)));
+                () -> Component.translatable("gui.molecularmanipulator.page_next_tooltip"), () -> changePage(1)));
         ui.text("gui.molecularmanipulator.page", this::patternPageLabel);
         ui.omit("gui.molecularmanipulator.seq.s019");
         ui.number(16, 160, () -> menu.usedPatternSlots);

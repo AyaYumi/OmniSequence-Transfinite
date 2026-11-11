@@ -1,7 +1,7 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: "Star Marrow Crystals, Crystal Core and Seed"
+  title: "Star Marrow Crystals"
   icon: molecularmanipulator:star_marrow_crystal
   position: 1210
 item_ids:
@@ -22,130 +22,127 @@ item_ids:
 - molecularmanipulator:flawless_star_marrow_parent_rock
 ---
 
-# Star Marrow Crystals, Crystal Core and Seed
+# Star Marrow Crystals
 
-Craft an **Primordial Crystal Core** first, then crystallize it into a **Star Marrow Seed** in the **Twin Singularity Observation Ring**. The seed converts parent rocks. Those parent rocks grow buds and clusters in the same way as Certus Quartz. The same ring also turns a **Star Marrow Crystal** straight into a **Star Chart Circuit Board**; that is the cradles' second conversion.
+Grow Star Marrow Crystals on parent rocks, then process them in the Fabrication Well into the boards, processors and alloys used by star machinery.
 
 <Row>
-<ItemImage id="molecularmanipulator:primordial_crystal_core" scale="6" />
+<ItemImage id="molecularmanipulator:primordial_crystal_core" scale="5" />
 
-<ItemImage id="molecularmanipulator:star_marrow_seed" scale="6" />
+<ItemImage id="molecularmanipulator:star_marrow_seed" scale="5" />
 
-<ItemImage id="molecularmanipulator:star_marrow_crystal" scale="6" />
+<BlockImage id="molecularmanipulator:flawed_star_marrow_parent_rock" scale="4" />
+
+<ItemImage id="molecularmanipulator:star_marrow_crystal" scale="5" />
+</Row>
+
+The starting route, left to right: **craft a core → turn it into a seed → convert a parent rock → harvest crystals**.
+
+## Before you start
+
+- For **2 Primordial Crystal Cores**, gather one each of Charged Certus Quartz Crystal, Sky Stone Dust, Amethyst Shard, Snowball and Ender Pearl Dust.
+- Find an **entroized Fluix parent rock from ExtendedAE**. Any of its four damage stages can be converted; the least entroized needs the fewest seeds.
+- Bring a pickaxe and a way to supply **16 AE/t**, or equivalent FE, to the **Twin Singularity Observation Ring** in the End. Its power console needs no channel.
+
+<RecipeFor id="molecularmanipulator:primordial_crystal_core" />
+
+## 1. Turn cores into seeds
+
+Reach the ring through the coordinate warp pad in the small End ruin south of the main island, near **X 0, Z 224**. Insert an Ender Pearl in the pad's socket. Empty-hand right-click its three coordinate keys to cycle their symbols until they match the ruin's inscriptions, then stand on the pad and empty-hand right-click its center to travel.
+
+At the ring, find the **Power Console**, **Input Cradle** and **Output Cradle**.
+
+1. Supply the power console with AE or FE and keep the ring intact.
+2. Hold Primordial Crystal Cores and right-click the input cradle to load **1–64 cores**.
+3. Empty-hand right-click the input cradle to start the **whole loaded stack**. The output cradle must have room for every resulting seed at once.
+4. Wait **8 seconds** at default power settings. One core becomes one seed; a full stack takes the same time as one core.
+5. Empty-hand right-click the output cradle to collect the seeds. **Start each batch yourself**; completion does not automatically start another.
+
+Shift + empty-hand right-click on the input takes back only cores that have not started. Power loss or insufficient output room pauses an active batch without losing it. The cradles use direct right-click controls, not a GUI, hopper or ME item connection.
+
+## 2. Convert a parent rock and harvest crystals
+
+Right-click the parent rock with a **Star Marrow Seed**. Each use spends one seed and moves it one step along this route:
+
+**Fully → Mostly → Half → Hardly entroized Fluix rock → Heavily Damaged Star Marrow rock → Damaged → Flawed**
+
+Stop once you have a star marrow parent rock, or keep repairing it to **Flawed**. Seeds cannot make it Flawless.
+
+1. Leave space around its faces. Buds can grow on all six sides.
+2. Let the buds grow through the four stages below. Keep the area loaded.
+3. Mine only a **mature cluster** with a pickaxe, leaving the parent rock to grow more.
+
+<Row>
+<BlockImage id="molecularmanipulator:star_marrow_crystal_bud_small" scale="4" />
+
+<BlockImage id="molecularmanipulator:star_marrow_crystal_bud_medium" scale="4" />
+
+<BlockImage id="molecularmanipulator:star_marrow_crystal_bud_large" scale="4" />
 
 <BlockImage id="molecularmanipulator:star_marrow_crystal_cluster" scale="4" />
 </Row>
 
-## Crystal core and seed recipe
+**Small Bud → Medium Bud → Large Bud → Cluster.** A mature cluster drops **3 crystals**, increased by Fortune. Silk Touch gives the cluster block instead; moving a cluster does not replace the need for a parent rock.
 
-Craft shapeless; the ingredients are unchanged:
+Damaged and Flawed rocks can lose a quality tier as crystals grow. Heavily Damaged rocks cannot degrade further; Flawless rocks never degrade.
 
-- 1 Charged Certus Quartz Crystal
-- 1 Sky Stone Dust
-- 1 Amethyst Shard
-- 1 Snowball
-- 1 Ender Pearl Dust
+## 3. Make star materials in the well
 
-This yields **2 Primordial Crystal Cores**. A core cannot be used on a parent rock directly. Take it to the Twin Singularity Observation Ring and crystallize it into a Star Marrow Seed first.
+Use naturally grown crystals to complete **Tier II: Star Marrow Materials** in [Fabrication Research](matter_fabrication_research.md). It needs **16 crystals**, plus the other materials shown in the research panel. Store those research materials in ME.
 
-<RecipeFor id="molecularmanipulator:primordial_crystal_core" fallbackText="No recipe is available in this pack. Check JEI." />
+Afterward, these five products are made **in the Fabrication Well**. You can use [ports](matter_fabrication_ports.md) or [processing patterns](matter_fabrication_pattern_assembly.md). Their base processing time is **20 seconds** before star-engine speed bonuses. They need no signal, Flawless parent rock or star-research unlock.
 
-## The Twin Singularity Observation Ring: two cradle conversions
+- Start with **Circuit Boards**, then make **Star Chart Processors** from boards, redstone and **Printed Silicon**, not loose Silicon. Boards need no catalyst.
+- Make **Crystal Dust**, then **Alloy Ingots** with the fluid input included.
+- Make **Star Signal Storage Components** to build [signal storage cells](star_signal_flow.md).
 
-The two cradles on the front platform handle two conversions. They work the same way; only the input and output differ. Both appear in JEI: look up recipes for the seed or circuit board, or uses for the core, crystal, power console or cradles.
+<RecipeFor id="molecularmanipulator:star_chart_circuit_board" />
 
-| Conversion | Input (input cradle) | Output (output cradle) | Batch size | Time | Power |
-| --- | --- | --- | --- | --- | --- |
-| Core crystallization | Primordial Crystal Cores | Star Marrow Seeds | Any N, up to 64, N:N | 160 ticks (8 seconds) for the whole batch | The existing ring supply, 16 AE/t base for the whole batch; about 2,560 AE per batch at default settings, regardless of N |
-| Circuit board conversion | Star Marrow Crystals | Star Chart Circuit Boards | Any N, up to 64, N:N | 160 ticks (8 seconds) for the whole batch | Same, 16 AE/t base for the whole batch, regardless of N |
-
-Rules shared by both conversions:
-
-- **One input type per batch**: cores and crystals cannot be mixed in the same batch. To switch, take back the unstarted stock from the input cradle first.
-- **The output must fit**: the output cradle has to hold all N results at once, together with whatever is already there. Items can only merge if they are the same item with the same components. If it cannot fit, or the cradle holds an incompatible item, the batch waits in place.
-- **Always manual**: you start every batch yourself and take the results out yourself. A finished batch does not start another automatically.
-
-The steps below use core crystallization as the example. For circuit boards, read "Primordial Crystal Cores" as "Star Marrow Crystals" and "Star Marrow Seeds" as "Star Chart Circuit Boards"; nothing else changes.
-
-1. Right-click the **input cradle** while holding Primordial Crystal Cores. It takes as many as fit, up to 64 total across unstarted stock and the already locked working batch.
-2. Right-click the input cradle with an empty hand to start. **The entire stored stack is locked as one batch**: all N cores share one 160-tick (8 second) cycle and turn into N seeds together, as one simultaneous job.
-3. The **output cradle must be able to fit all N seeds at once**, together with any seeds already there, before the batch starts or resumes. If it cannot, the batch waits in place and never completes partially. At completion, all N seeds are inserted at once.
-4. Right-click the **output cradle** with an empty hand to take the whole stack of Star Marrow Seeds.
-5. To take back cores that have not started yet, **Shift + empty-hand right-click** the input cradle. This only takes new, unlocked stock; the locked batch stays intact and resumes as a whole. Start each batch manually; a finished batch does not start another automatically.
-
-Progress pauses in place, with no partial completion and no extra output, if paid power stops, the linked power interface or ring is missing, the output cradle is missing, or its remaining space cannot fit the whole batch. It resumes when the condition is fixed. Unstarted stock, the whole working batch, the output stack and current progress are saved. Breaking the input cradle drops both unstarted stock and the whole working batch; breaking the output cradle drops its seeds. The cradles have no GUI, and no hopper or ME item automation was added. The pausing, saving and dropping rules above apply to both core crystallization and circuit board conversion.
-
-During the 160-tick animation, one representative stack stands in for the whole batch and shows count N. The cores remain on the input cradle to stabilize until tick 72; from tick 72 to 112 the representative core stack flies into the black hole; at tick 112 all N seeds appear on the white-hole side and travel to the output cradle as one stack; at tick 160 all N Star Marrow Seeds are added at once. For circuit board conversion, the representative image is a Star Marrow Crystal instead and the result is a circuit board; the board likewise appears on the white-hole side only after it has been absorbed. Both cradles display their item and count. Before the batch flies into the black hole, the input cradle count includes the locked batch; after it goes in, the batch is no longer counted there, and only newly inserted, unstarted stock is shown.
-
-An existing Twin Singularity Observation Ring is not rebuilt or overwritten automatically. Old block, item, cradle inventory, processing progress and structure records remain readable under the new IDs. An early cradle block without storage gains it the first time it is right-clicked, and then works normally.
-
-## Converting parent rocks
-
-1. Get an **entroized Fluix parent rock** from ExtendedAE: fully, mostly, half or hardly entroized.
-2. Right-click it with a Star Marrow Seed. Each use consumes one seed and moves the rock one step:
-   - Fully → Mostly → Half → Hardly entroized
-   - Hardly entroized → **Heavily Damaged Star Marrow Parent Rock**
-   - Heavily Damaged → **Damaged Star Marrow Parent Rock**
-   - Damaged → **Flawed Star Marrow Parent Rock**
-3. The seed stops at **Flawed**. It cannot create a Flawless parent rock. To obtain a Flawless parent rock, use a lit [Green Fire Lantern](green_fire_lantern.md) instead.
-
-> Without ExtendedAE, the seed can still repair existing star marrow parent rocks, but it cannot convert entroized Fluix rocks.
-
-## Parent rock tiers
-
-| Tier | Notes |
-| --- | --- |
-| Heavily Damaged Star Marrow Parent Rock | Lowest tier; it never decays further |
-| Damaged Star Marrow Parent Rock | Can decay to Heavily Damaged when a bud grows |
-| Flawed Star Marrow Parent Rock | Can decay to Damaged; the seed stops here |
-| Flawless Star Marrow Parent Rock | Never decays; obtain it through the Green Fire Lantern simulation (see below) |
-
-Each successful bud growth has about a **1 in 12** chance to lower the parent rock by one tier. Heavily Damaged cannot decay further, and Flawless never decays.
-
-## Growth and harvesting
-
-Buds can grow on all six faces of a parent rock:
-
-**Small Bud → Medium Bud → Large Bud → Cluster**
-
-Mine a mature cluster with a pickaxe:
-
-- Without Silk Touch: **3 Star Marrow Crystals**, affected by Fortune
-- With Silk Touch: the cluster block itself, for moving or decoration; continued crystal production requires buds growing on a parent rock
-
-## Materials
-
-| Item | Use |
-| --- | --- |
-| Primordial Crystal Core | Crafting product; crystallizes into a Star Marrow Seed in the observation ring |
-| Star Marrow Crystal | Main cluster drop and base material for the star computation series; also converts into Star Chart Circuit Boards in the observation ring |
-| Star Marrow Crystal Dust | Grind crystals in an Inscriber for alloy processing |
-| Star Marrow Alloy Ingot | Alloyed in the AdvancedAE Reaction Chamber; structural material for the engine and anchors |
-| Star Chart Circuit Board | Made in the Twin Singularity Observation Ring from 1 Star Marrow Crystal, no longer pressed in an Inscriber |
-| Star Chart Processor | Assemble a circuit board, redstone and Printed Silicon in an Inscriber for the engine and anchors |
-
-### Crystal dust and alloy ingots
-
-Without a press installed, the Inscriber turns **1 Star Marrow Crystal into 1 Crystal Dust**. In the **AdvancedAE Reaction Chamber**, combine 4 crystal dust, 4 iron ingots, 1 Fluix Dust, 1 Sky Stone Dust and **500 mB water**, using **51,200 AE** in total, to produce **4 Star Marrow Alloy Ingots**. Reaction Chamber processing needs no Fabrication Well research. This alloy recipe only loads when AdvancedAE is installed.
+<RecipeFor id="molecularmanipulator:star_chart_processor" />
 
 <RecipeFor id="molecularmanipulator:star_marrow_crystal_dust" />
 
 <RecipeFor id="molecularmanipulator:star_marrow_alloy_ingot" />
 
-### Circuit board and processor
+<RecipeFor id="molecularmanipulator:star_signal_storage_component" />
 
-Star Chart Circuit Boards now come only from the Twin Singularity Observation Ring: put **1 Star Marrow Crystal** into the input cradle and take **1 circuit board** from the output cradle. Batch size, time and power match core crystallization; see "Circuit board conversion" above. The old Inscriber recipe that pressed a circuit board with the Calculation Processor Press has been removed.
+## Optional: grow crystals from signal and water
 
-Then place the circuit board in the Inscriber's top slot, redstone in the middle slot and Printed Silicon in the bottom slot to assemble the processor. This step does not consume Star Signal Flow.
+Natural growth remains a complete starting route. For automated crystal production, first make the materials for a [Star Sea Calculation Mainframe](star_sea_calculation_mainframe.md), [signal storage](star_signal_flow.md) and a [Simulation Lantern](simulation_lantern.md).
 
-<RecipeFor id="molecularmanipulator:star_chart_processor" />
+### Obtain one Flawless parent rock
 
-## Flawless parent rock from the lantern
+1. Repair a parent rock to **Flawed** with seeds.
+2. Hold a **lit Simulation Lantern**, preferably in your offhand so you can hold a pickaxe. Follow the [lantern controls](simulation_lantern.md) to enter its simulation.
+3. **Mine the Flawed rock yourself while in the simulation.** You receive a permanent Flawless parent rock. Place it or keep it as a catalyst.
 
-JEI's **Green Fire Simulation · Flawless Rock** page shows Flawed rock as the input, Flawless rock as the output, and the lit lantern as a reusable catalyst. Find it through Flawless rock recipes or the uses of Flawed rock and the lantern.
+This costs no lantern fuel, AE or extra seed. The world rock is still Flawed until harvested and can degrade while growing; if it has already degraded, you receive its real lower tier. Automatic mining does not provide this simulation reward.
 
-A **Flawed** parent rock can become a **Flawless** one without changing the world block: enter the Green Fire Lantern simulation with a lit lantern, then mine the flawed rock or pick-block it in creative. The server checks who performed the action and returns the Flawless parent rock item to that player. Place it and it stays Flawless permanently; it never decays.
+### Set up Signal-Induced Crystallization
 
-The world still holds the original Flawed block while you are only looking at it. Bud growth and the usual chance to lose a tier still happen in the real world and are shared by everyone. If the rock degrades before you mine it, you get the real lower tier. Ordinary players, fake players and automatic tools without a player actor get the real Flawed result, including when using pick-block. Standard tools that pass a player actor are covered; external tools that edit blocks or inventories directly need their own integration.
+1. Complete **Tier II: Signal-Induced Crystallization** after Star Marrow Materials.
+2. Put **one Flawless Star Marrow Parent Rock** in the **Catalyst** page of any assembly in this well. It is kept, never downgraded and need not be multiplied for batches.
+3. Encode the recipe below as a processing pattern, including **1024 bit Star Signal Flow and 8000 mB water**, but not the rock.
+4. Request crystals in ME. Each execution produces **64 crystals**, at a base **20 seconds and 512 AE/t**. It consumes no existing crystals.
 
-The lantern simulation costs no fuel, AE or extra Star Marrow Seeds, and it has no 12-block range requirement. See [Green Fire Lantern](green_fire_lantern.md) for controls and the light radius.
+Signal must arrive through the Pattern Assembly; item/fluid ports alone cannot supply it. Signal, water and power increase with the number of executions.
+
+<RecipeFor id="molecularmanipulator:star_marrow_crystal" />
+
+## What success looks like
+
+The ring delivers seeds to its output cradle. A converted parent rock grows the four visible bud stages and mature clusters drop crystals. In the well, processing produces the materials shown above; the optional signal recipe returns crystals to ME while leaving its rock in the catalyst slot.
+
+## If it does not work
+
+| Problem | Fix |
+| --- | --- |
+| A core does nothing to a rock | Convert it into a **seed** at the ring first. |
+| The cradle refuses an item or waits | It accepts cores only. Check ring power and space for the entire seed batch. Boards are made in the well. |
+| A seed stops working | It stops at **Flawed**. Use the lantern route for Flawless. Without ExtendedAE, seeds can repair existing star marrow rocks but cannot create one from Fluix rock. |
+| No crystals grow | Clear the parent rock's faces and keep the area loaded; do not harvest immature buds. |
+| Signal recipe waits | Check its research, ME signal/water supply and a Flawless rock in this well's catalyst slots. |
+
+## Next steps
+
+Use your first processor to make a [Star Sea Calculation Mainframe](star_sea_calculation_mainframe.md), then install [Star Signal Storage](star_signal_flow.md). See [Simulation Lantern](simulation_lantern.md) for its simulation controls.

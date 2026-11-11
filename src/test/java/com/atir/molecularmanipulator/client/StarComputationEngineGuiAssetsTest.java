@@ -27,8 +27,13 @@ class StarComputationEngineGuiAssetsTest {
             assertTrue(used.add(id), "No GuiSync collision at "+id);
             ids.put(matcher.group(2),id);
         }
-        assertEquals(21, used.size());
+        assertEquals(29, used.size());
         assertEquals(20, ids.get("reclaimArmed"));
+        assertEquals(21, ids.get("upgrades")); assertEquals(22, ids.get("certifiedLevel"));
+        assertEquals(23, ids.get("upgradeTarget")); assertEquals(24, ids.get("upgradeEnergy"));
+        assertEquals(25, ids.get("upgradeRunning")); assertEquals(26, ids.get("upgradeRate"));
+        assertEquals(27, ids.get("upgradeStatus"));
+        assertEquals(28, ids.get("researchNodes"));
         assertEquals(15, ids.get("starOrrery")); assertEquals(16, ids.get("litRings"));
         assertEquals(17, ids.get("anchorsReference")); assertEquals(18, ids.get("anchorsQuantum"));
         assertEquals(19, ids.get("anchorsTerminal"));
@@ -79,7 +84,10 @@ class StarComputationEngineGuiAssetsTest {
         assertTrue(screen.contains("menu.nodeThreshold(node)"));
         assertTrue(screen.contains("menu.levelThreshold(next)"));
         assertTrue(screen.contains("menu::requestToggleOverclock"));
-        assertTrue(screen.contains("menu.requestUnlock(selectedNode)"));
+        assertTrue(screen.contains("menu.requestUnlock(selected().id())"), "Purchases send a stable research ID across reload/reordering");
+        assertFalse(screen.contains("menu.requestUnlock(selectedNode)"), "Viewport positions are never purchase identities");
+        assertTrue(screen.contains(".filter(Node::unlocked).count()"), "The research counter uses the visible directory's synced ownership");
+        assertFalse(screen.contains("Integer.bitCount(menu.unlockMask)"), "Hidden compatibility bits are not displayed as research progress");
         assertTrue(screen.contains("OsqGuide.open(\"star_computation_engine\")"));
         assertTrue(screen.contains("BENEFIT_ICONS"));
     }
@@ -124,6 +132,39 @@ class StarComputationEngineGuiAssetsTest {
     }
 
     @Test
+    void effectiveAnchorMaterialTouchesArmillaryLeftAndBottomBorders() throws Exception {
+        var layout = JsonParser.parseString(Files.readString(
+                ASSETS.resolve("osq_light/layout/star_computation_engine.json"))).getAsJsonObject();
+        var bounds = new HashMap<String,java.awt.geom.Rectangle2D.Float>();
+        for (var element : layout.getAsJsonArray("draw")) {
+            var panel = element.getAsJsonObject();
+            if (!panel.has("id") || !List.of("armillary", "ov_anchors").contains(panel.get("id").getAsString())) continue;
+            var image = javax.imageio.ImageIO.read(ASSETS.resolve("textures/gui/sprites/"
+                    + panel.get("sprite").getAsString().split(":", 2)[1] + ".png").toFile());
+            int left = image.getWidth(), top = image.getHeight(), right = 0, bottom = 0;
+            for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) {
+                if ((image.getRGB(x, y) >>> 24) < 230) continue;
+                left = Math.min(left, x); top = Math.min(top, y);
+                right = Math.max(right, x + 1); bottom = Math.max(bottom, y + 1);
+            }
+            assertTrue(right > left && bottom > top, "The panel must have opaque material");
+            var rect = panel.getAsJsonArray("rect"); var pad = panel.getAsJsonArray("pad");
+            float scaleX = (rect.get(2).getAsFloat() + pad.get(0).getAsInt() + pad.get(2).getAsInt()) / image.getWidth();
+            float scaleY = (rect.get(3).getAsFloat() + pad.get(1).getAsInt() + pad.get(3).getAsInt()) / image.getHeight();
+            bounds.put(panel.get("id").getAsString(), new java.awt.geom.Rectangle2D.Float(
+                    rect.get(0).getAsFloat() - pad.get(0).getAsInt() + left * scaleX,
+                    rect.get(1).getAsFloat() - pad.get(1).getAsInt() + top * scaleY,
+                    (right - left) * scaleX, (bottom - top) * scaleY));
+        }
+        var frame = bounds.get("armillary"); var anchors = bounds.get("ov_anchors");
+        assertNotNull(frame); assertNotNull(anchors);
+        assertEquals(frame.getMinX(), anchors.getMinX(), .01, "No pale gutter beside the grey statistic block");
+        assertEquals(frame.getMaxY(), anchors.getMaxY(), .01, "No pale gutter below the grey statistic block");
+        assertEquals(191, anchors.getMinY(), .01, "Keep the top edge below the ring diagram");
+        assertEquals(93, anchors.getMaxX(), .01, "Keep the right edge clear of the anchor tier counts");
+    }
+
+    @Test
     void palettesAndTranslationsCoverAllThreeBandsWithComfortableControls() throws Exception {
         JsonObject layout = JsonParser.parseString(Files.readString(
                 ASSETS.resolve("osq_light/layout/star_computation_engine.json"))).getAsJsonObject();
@@ -144,13 +185,6 @@ class StarComputationEngineGuiAssetsTest {
         assertEquals("[204,312,92,22]", controls.get("reclaim").get("rect").toString());
         assertEquals("[204,284,188,22]", controls.get("unlock").get("rect").toString());
         assertEquals("[300,312,92,22]", controls.get("guide").get("rect").toString());
-        var dark = JsonParser.parseString(Files.readString(Path.of(
-                "resourcepacks/OmniSequence Dark/assets/molecularmanipulator/osq_light/layout/star_computation_engine.json"))).getAsJsonObject();
-        for (var element : dark.getAsJsonArray("draw")) {
-            var entry = element.getAsJsonObject();
-            if (entry.has("id") && List.of("overclock", "refresh", "reclaim", "unlock", "guide").contains(entry.get("id").getAsString()))
-                assertEquals(controls.get(entry.get("id").getAsString()).get("rect"), entry.get("rect"), "Theme control geometry stays identical");
-        }
         assertEquals("#FFCBCCD4", colours.get("paper"));
         assertEquals("#FF18876D", colours.get("ring_full.bronze"));
         assertEquals("#FF8E95B4", colours.get("ring_full.violet"));
@@ -167,7 +201,7 @@ class StarComputationEngineGuiAssetsTest {
             var lang = JsonParser.parseString(Files.readString(ASSETS.resolve("lang/"+language+".json"))).getAsJsonObject();
             for (String key : List.of("star_orrery", "star_orrery_hint", "star_orrery_rings", "ring", "ring_locked",
                     "anchor_reference", "anchor_quantum", "anchor_terminal", "tier.bronze", "tier.violet", "tier.gold",
-                    "reclaim", "reclaim_confirm", "reclaim_help")) {
+                    "reclaim", "reclaim_confirm", "reclaim_help", "research_scroll_help", "research_range")) {
                 assertTrue(lang.has("gui.molecularmanipulator.star_computation."+key),language+" "+key);
             }
         }

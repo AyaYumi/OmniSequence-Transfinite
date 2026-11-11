@@ -10,39 +10,64 @@ item_ids:
 
 # Molecular Sequence Rewrite Array
 
-The Molecular Sequence Rewrite Array combines pattern storage and recipe execution in one block. It runs crafting, smithing and stonecutting recipes for ME autocrafting.
+## Purpose: store recipes and make their products in one block
+
+Insert **patterns**—recipe cards made in a Pattern Encoding Terminal—then request their products from an ME terminal. The rewrite array performs crafting, smithing and stonecutting inside the block. It does not need a Molecular Assembler beside it.
 
 <Row>
 <BlockImage id="molecularmanipulator:molecular_manipulator" scale="4" />
-
 <ItemImage id="ae2:crafting_pattern" scale="4" />
-
 <ItemImage id="ae2:smithing_table_pattern" scale="4" />
-
 <ItemImage id="ae2:stonecutting_pattern" scale="4" />
 </Row>
 
-## Setup
+Left: the machine. Right: its three supported pattern types, crafting, smithing and stonecutting. Put **processing patterns** for furnaces and other external machines in Pattern Providers instead.
 
-1. Complete **Tier 2: Sequence Array** in the well and fabricate the array.
-2. Connect it to a powered ME network with an available channel.
-3. Insert encoded crafting, smithing or stonecutting patterns.
-4. Request products from an ME terminal. The array receives ingredients and performs the recipes internally.
+Keep these roles separate: a **crafting CPU** accepts an order and arranges its crafting steps; the **rewrite array** stores the recipes and makes the products; **ME storage** holds ingredients and finished items. The array does not replace a CPU or item storage.
 
-Its pattern inventory holds **360 patterns** across ten pages of 36 slots. For recipes using external machines, place processing patterns in a Pattern Provider connected to the required machines.
+## Prepare
 
-## Batch processing
+- Complete one round of **Tier III: Sequence Engineering** in the [Fabrication Well](matter_fabrication_research.md).
+- Bring a [Star Computation Engine](star_computation_engine.md) to **L3**, open Research and actively unlock **Single-Block Integration**. It costs **0 bit**, but reaching the level does not click the unlock for you. By default, this node gates only this machine's and the Transfinite Compute Nexus's fabrication recipes.
+- A powered ME network with item storage, a terminal, an available crafting CPU and **one free channel**. A channel is a network connection allowance for a device.
+- An encoded pattern and the actual ingredients it requires.
 
-Eligible recipes complete a batch in **one tick**. Batch size depends on ingredients, energy and output capacity. Crafting still consumes the recipe's materials and returns containers and tools.
+<RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="Check JEI for the Fabrication Well recipe, ingredients and research requirements." />
 
-Deep research bonuses apply to fabrication recipes in the well, not this device's processing speed.
+## Steps: start with one plank order
 
-## Output and relocation
+1. Place the rewrite array and connect it to that network with ME cable.
+2. Encode an “oak log → oak planks” crafting pattern in a Pattern Encoding Terminal. Insert it into the array's pattern inventory.
+3. Store at least **4 oak logs** in ME and leave room for the products.
+4. Find the crafting entry for oak planks in your ME terminal. Request **16**, select an available crafting CPU and confirm.
+5. Watch the order in Crafting Status. Once it finishes, retrieve the planks from the terminal.
 
-When ME storage is full, products and returned items remain in the device until the network accepts them. Canceling work returns unused ingredients; completed products are retained.
+The pattern library holds **360 patterns** across **10 pages of 36 slots**. Use the page buttons for more space, or organize it through a Pattern Access Terminal on the same network.
 
-Normal removal carries patterns and unfinished contents with the block. Restore its network connection and power to continue.
+## What success looks like
 
-## Recipes
+- The terminal offers the pattern's product as craftable.
+- The test order completes: ME has used 4 logs and received 16 planks.
+- The array has performed the recipe, and the CPU is no longer waiting for its output.
 
-<RecipeFor id="molecularmanipulator:molecular_manipulator" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+Large orders use the available ingredients, energy and output capacity. Suitable recipes run in batches; containers and tools return according to the recipe, with normal durability changes. A Star Computation Engine on the same network can raise crafting parallelism. Deep research raises the corresponding well recipe's parallelism, not this machine's crafting speed.
+
+## Troubleshooting
+
+| What you see | What to do |
+| --- | --- |
+| The terminal does not offer the product | Check that the pattern is encoded for crafting, smithing or stonecutting, and that the array has power and a channel. |
+| The product is listed, but no CPU is available | Connect an idle crafting CPU to the same network. The array does not accept orders itself. |
+| The order keeps waiting for ingredients | Read the missing-material list in Crafting Status. External processing steps need Pattern Providers and the appropriate machines. |
+| Products are made but do not reach storage | Free ME capacity and check that storage accepts the item. Products and returned items wait inside the array until they can be delivered. |
+| The well shows a locked recipe | Check both Sequence Engineering in that well and Single-Block Integration permission. An engine supplying borrowed network permission must stay online. |
+
+Canceling an order stops unexecuted work and returns unused ingredients. Already-made products remain available for delivery.
+
+## Next steps
+
+- More recipes to organize: build a [Sequence Array](sequence_array_controller.md), with a larger library and built-in crafting.
+- Keep everyday items stocked without placing orders: use a [Molecular Auto Crafter](molecular_auto_crafter.md).
+- Orders exceed your CPU's capacity: see the [Omni Computation Core](omni_computation_core.md).
+
+Settle orders before relocating. Normal removal carries patterns and unfinished contents with the block; place it again and restore network power to continue.

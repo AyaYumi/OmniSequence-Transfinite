@@ -44,7 +44,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_900_13",
+   "font_id": "minecraft:default",
    "lang": "block.molecularmanipulator.molecular_center_controller",
    "dynamic": false,
    "width_en": 263
@@ -99,7 +99,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.tab_overview",
    "dynamic": false,
    "center_y": 20,
@@ -157,7 +157,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.tab_auto_craft",
    "dynamic": false,
    "center_y": 20,
@@ -215,7 +215,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.tab_colors",
    "dynamic": false,
    "center_y": 20,
@@ -257,7 +257,7 @@
    "rect": [
     16,
     37.5,
-    88,
+    90,
     18
    ],
    "k": "ctl",
@@ -295,7 +295,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.pattern_search",
    "dynamic": false,
    "center_y": 46.5,
@@ -314,7 +314,7 @@
     0
    ],
    "rect": [
-    106,
+    108,
     38.5,
     16,
     16
@@ -334,7 +334,7 @@
     0
    ],
    "rect": [
-    111.0,
+    113.0,
     42.5,
     7,
     8.0
@@ -347,14 +347,14 @@
    "text": "第 1/8 页",
    "x": 130.98,
    "baseline": 48.5,
-   "width": 38,
+   "width": 36,
    "font": "Inter Tight",
    "weight": 500,
    "size": 7.5,
    "color": "#FF4D4D67",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_intertight_500_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.page",
    "lang_args": [
     "1",
@@ -363,7 +363,7 @@
    "dynamic": false,
    "center_y": 46.5,
    "align": "center",
-   "draw_x": 124
+   "draw_x": 126
   },
   {
    "z": 15,
@@ -1346,7 +1346,7 @@
     8,
     145,
     178,
-    82
+    87
    ],
    "k": "card",
    "id": "quantum"
@@ -1364,10 +1364,10 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.quantum_title",
    "dynamic": false,
-   "center_y": 156,
+   "center_y": 155,
    "width_en": 70
   },
   {
@@ -1387,8 +1387,8 @@
     4,
     4
    ],
-   "draw_x": 16,
-   "draw_y": 169
+   "draw_x": 39,
+   "draw_y": 166
   },
   {
    "z": 79,
@@ -1396,18 +1396,18 @@
    "text": "量子链路稳定",
    "x": 46,
    "baseline": 165.89,
-   "width": 155,
+   "width": 132,
    "font": "NSC",
    "weight": 600,
    "size": 7.5,
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.quantum_state.connected",
    "dynamic": false,
-   "center_y": 171,
-   "draw_x": 23
+   "center_y": 168,
+   "draw_x": 46
   },
   {
    "z": 80,
@@ -1422,11 +1422,11 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.fab.s025",
    "lang_new": true,
-   "center_y": 182,
+   "center_y": 181,
    "draw_x": 16
   },
   {
@@ -1442,9 +1442,9 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_jetbrainsmono_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
-   "center_y": 182,
+   "center_y": 181,
    "draw_x": 52
   },
   {
@@ -1470,30 +1470,12 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.pattern_upload.off",
    "dynamic": false,
    "center_y": 211.5,
    "align": "center",
    "owner": "pattern_upload"
-  },
-  {
-   "z": 83,
-   "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/divider",
-   "slicing": "stretch",
-   "pad": [
-    0,
-    0,
-    0,
-    0
-   ],
-   "rect": [
-    16,
-    189,
-    162,
-    0.5
-   ]
   },
   {
    "z": 84,
@@ -1508,7 +1490,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.overview_quantum_requirements",
    "lang_args": [
     "512"
@@ -1540,7 +1522,7 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.pattern_migration.button",
    "dynamic": false,
    "center_y": 211.5,
@@ -1553,7 +1535,7 @@
    "sprite": "molecularmanipulator:osq_light/seq/slot",
    "slicing": "fixed",
    "pad": [0, 0, 0, 0],
-   "rect": [16, 147, 18, 18],
+   "rect": [16, 153, 18, 18],
    "k": "slot",
    "id": "qes"
   },
@@ -1563,7 +1545,7 @@
    "item": "img:qes",
    "count": "1",
    "x": 17,
-   "y": 148,
+   "y": 154,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1579,9 +1561,9 @@
    ],
    "rect": [
     8,
-    234,
+    238,
     178,
-    88
+    84
    ],
    "k": "card",
    "id": "inv"
@@ -1599,7 +1581,7 @@
    ],
    "rect": [
     16,
-    240,
+    242,
     18,
     18
    ],
@@ -1612,7 +1594,7 @@
    "item": "ae:blank_pattern",
    "count": "64",
    "x": 17,
-   "y": 241,
+   "y": 243,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1628,7 +1610,7 @@
    ],
    "rect": [
     34,
-    240,
+    242,
     18,
     18
    ],
@@ -1641,7 +1623,7 @@
    "item": "ae:blank_pattern",
    "count": "32",
    "x": 35,
-   "y": 241,
+   "y": 243,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1657,7 +1639,7 @@
    ],
    "rect": [
     52,
-    240,
+    242,
     18,
     18
    ],
@@ -1670,7 +1652,7 @@
    "item": "ae:fluix_crystal",
    "count": "48",
    "x": 53,
-   "y": 241,
+   "y": 243,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1686,7 +1668,7 @@
    ],
    "rect": [
     70,
-    240,
+    242,
     18,
     18
    ],
@@ -1706,7 +1688,7 @@
    ],
    "rect": [
     88,
-    240,
+    242,
     18,
     18
    ],
@@ -1726,7 +1708,7 @@
    ],
    "rect": [
     106,
-    240,
+    242,
     18,
     18
    ],
@@ -1746,7 +1728,7 @@
    ],
    "rect": [
     124,
-    240,
+    242,
     18,
     18
    ],
@@ -1766,7 +1748,7 @@
    ],
    "rect": [
     142,
-    240,
+    242,
     18,
     18
    ],
@@ -1786,7 +1768,7 @@
    ],
    "rect": [
     160,
-    240,
+    242,
     18,
     18
    ],
@@ -1806,7 +1788,7 @@
    ],
    "rect": [
     16,
-    258,
+    260,
     18,
     18
    ],
@@ -1826,7 +1808,7 @@
    ],
    "rect": [
     34,
-    258,
+    260,
     18,
     18
    ],
@@ -1846,7 +1828,7 @@
    ],
    "rect": [
     52,
-    258,
+    260,
     18,
     18
    ],
@@ -1866,7 +1848,7 @@
    ],
    "rect": [
     70,
-    258,
+    260,
     18,
     18
    ],
@@ -1886,7 +1868,7 @@
    ],
    "rect": [
     88,
-    258,
+    260,
     18,
     18
    ],
@@ -1899,7 +1881,7 @@
    "item": "mc:amethyst_shard",
    "count": "27",
    "x": 89,
-   "y": 259,
+   "y": 261,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1915,7 +1897,7 @@
    ],
    "rect": [
     106,
-    258,
+    260,
     18,
     18
    ],
@@ -1928,7 +1910,7 @@
    "item": "ae:certus_quartz_crystal",
    "count": "40",
    "x": 107,
-   "y": 259,
+   "y": 261,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -1944,7 +1926,7 @@
    ],
    "rect": [
     124,
-    258,
+    260,
     18,
     18
    ],
@@ -1964,7 +1946,7 @@
    ],
    "rect": [
     142,
-    258,
+    260,
     18,
     18
    ],
@@ -1984,7 +1966,7 @@
    ],
    "rect": [
     160,
-    258,
+    260,
     18,
     18
    ],
@@ -2004,7 +1986,7 @@
    ],
    "rect": [
     16,
-    276,
+    278,
     18,
     18
    ],
@@ -2024,7 +2006,7 @@
    ],
    "rect": [
     34,
-    276,
+    278,
     18,
     18
    ],
@@ -2044,7 +2026,7 @@
    ],
    "rect": [
     52,
-    276,
+    278,
     18,
     18
    ],
@@ -2064,7 +2046,7 @@
    ],
    "rect": [
     70,
-    276,
+    278,
     18,
     18
    ],
@@ -2084,7 +2066,7 @@
    ],
    "rect": [
     88,
-    276,
+    278,
     18,
     18
    ],
@@ -2104,7 +2086,7 @@
    ],
    "rect": [
     106,
-    276,
+    278,
     18,
     18
    ],
@@ -2124,7 +2106,7 @@
    ],
    "rect": [
     124,
-    276,
+    278,
     18,
     18
    ],
@@ -2144,7 +2126,7 @@
    ],
    "rect": [
     142,
-    276,
+    278,
     18,
     18
    ],
@@ -2164,7 +2146,7 @@
    ],
    "rect": [
     160,
-    276,
+    278,
     18,
     18
    ],
@@ -2177,7 +2159,7 @@
    "item": "ae:matter_ball",
    "count": "12",
    "x": 161,
-   "y": 277,
+   "y": 279,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -2193,7 +2175,7 @@
    ],
    "rect": [
     16,
-    298,
+    300,
     18,
     18
    ],
@@ -2206,7 +2188,7 @@
    "item": "ae:certus_quartz_wrench",
    "count": "1",
    "x": 17,
-   "y": 299,
+   "y": 301,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -2222,7 +2204,7 @@
    ],
    "rect": [
     34,
-    298,
+    300,
     18,
     18
    ],
@@ -2235,7 +2217,7 @@
    "item": "ae:network_tool",
    "count": "1",
    "x": 35,
-   "y": 299,
+   "y": 301,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -2251,7 +2233,7 @@
    ],
    "rect": [
     52,
-    298,
+    300,
     18,
     18
    ],
@@ -2264,7 +2246,7 @@
    "item": "mc:diamond_pickaxe",
    "count": "1",
    "x": 53,
-   "y": 299,
+   "y": 301,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -2280,7 +2262,7 @@
    ],
    "rect": [
     70,
-    298,
+    300,
     18,
     18
    ],
@@ -2300,7 +2282,7 @@
    ],
    "rect": [
     88,
-    298,
+    300,
     18,
     18
    ],
@@ -2320,7 +2302,7 @@
    ],
    "rect": [
     106,
-    298,
+    300,
     18,
     18
    ],
@@ -2333,7 +2315,7 @@
    "item": "mc:pink_dye",
    "count": "8",
    "x": 107,
-   "y": 299,
+   "y": 301,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -2349,7 +2331,7 @@
    ],
    "rect": [
     124,
-    298,
+    300,
     18,
     18
    ],
@@ -2369,7 +2351,7 @@
    ],
    "rect": [
     142,
-    298,
+    300,
     18,
     18
    ],
@@ -2389,7 +2371,7 @@
    ],
    "rect": [
     160,
-    298,
+    300,
     18,
     18
    ],
@@ -2402,7 +2384,7 @@
    "item": "mc:golden_carrot",
    "count": "33",
    "x": 161,
-   "y": 299,
+   "y": 301,
    "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
   },
   {
@@ -2457,7 +2439,7 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.preview",
    "dynamic": false,
    "center_y": 309.5,
@@ -2535,7 +2517,7 @@
    "color": "#FFADB0C4",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.build",
    "dynamic": false,
    "center_y": 311.5,
@@ -2594,7 +2576,7 @@
    "color": "#FFF2F2F2",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.dismantle",
    "dynamic": false,
    "center_y": 309.5,
@@ -2718,7 +2700,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.overview_auto_craft",
    "dynamic": false,
    "center_y": 42.72222222222222,
@@ -2730,14 +2712,14 @@
    "text": "3",
    "x": 226.36,
    "baseline": 45,
-   "width": 4.4,
+   "width": 7,
    "font": "Inter Tight",
    "weight": 600,
    "size": 7.5,
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_intertight_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "center_y": 42.72222222222222,
    "draw_x": 236.7
@@ -2755,7 +2737,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "center_y": 42.72222222222222,
    "draw_x": 245.1
@@ -3531,7 +3513,7 @@
     192,
     122,
     232,
-    156
+    164
    ],
    "k": "card",
    "id": "current"
@@ -3549,7 +3531,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_700_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.seq.s004",
    "lang_new": true,
@@ -3590,7 +3572,7 @@
    "color": "#FF4D4D67",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
    "center_y": 153
@@ -3601,14 +3583,14 @@
    "text": "成品限制（0 = 无限）",
    "x": 319,
    "baseline": 132,
-   "width": 71.866,
+   "width": 100,
    "font": "NSC",
    "weight": 500,
    "size": 7.5,
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_500_7_5",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.auto_craft_output_limit",
    "dynamic": false,
    "requires_selection": true,
@@ -3649,7 +3631,7 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
    "center_y": 149.0,
@@ -3710,7 +3692,7 @@
    ],
    "rect": [
     201,
-    157,
+    165,
     214,
     0.5
    ],
@@ -3729,12 +3711,12 @@
    ],
    "rect": [
     201,
-    162,
+    170,
     6,
     6
    ],
    "requires_selection": true,
-   "draw_y": 162.5
+   "draw_y": 170.5
   },
   {
    "z": 217,
@@ -3749,11 +3731,11 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": false,
    "lang": "gui.molecularmanipulator.seq.s008",
    "lang_new": true,
-   "center_y": 165,
+   "center_y": 173,
    "requires_selection": true
   },
   {
@@ -3800,7 +3782,7 @@
    ],
    "rect": [
     200,
-    172,
+    180,
     18,
     18
    ],
@@ -3831,7 +3813,7 @@
    ],
    "rect": [
     224,
-    172,
+    180,
     62,
     18
    ],
@@ -3852,10 +3834,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 181.0,
+   "center_y": 189.0,
    "owner": "rsv_f0",
    "draw_x": 228
   },
@@ -3872,7 +3854,7 @@
    ],
    "rect": [
     290.5,
-    173,
+    181,
     16,
     16
    ],
@@ -3893,7 +3875,7 @@
    ],
    "rect": [
     295.0,
-    176.5,
+    184.5,
     7,
     8.0
    ],
@@ -3913,7 +3895,7 @@
    ],
    "rect": [
     311,
-    172,
+    180,
     18,
     18
    ],
@@ -3944,7 +3926,7 @@
    ],
    "rect": [
     335,
-    172,
+    180,
     62,
     18
    ],
@@ -3965,10 +3947,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 181.0,
+   "center_y": 189.0,
    "owner": "rsv_f1",
    "draw_x": 339
   },
@@ -3985,7 +3967,7 @@
    ],
    "rect": [
     401.5,
-    173,
+    181,
     16,
     16
    ],
@@ -4006,7 +3988,7 @@
    ],
    "rect": [
     406.0,
-    176.5,
+    184.5,
     7,
     8.0
    ],
@@ -4026,7 +4008,7 @@
    ],
    "rect": [
     200,
-    192,
+    200,
     18,
     18
    ],
@@ -4057,7 +4039,7 @@
    ],
    "rect": [
     224,
-    192,
+    200,
     62,
     18
    ],
@@ -4078,10 +4060,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 201.0,
+   "center_y": 209.0,
    "owner": "rsv_f2",
    "draw_x": 228
   },
@@ -4098,7 +4080,7 @@
    ],
    "rect": [
     290.5,
-    193,
+    201,
     16,
     16
    ],
@@ -4119,7 +4101,7 @@
    ],
    "rect": [
     295.0,
-    196.5,
+    204.5,
     7,
     8.0
    ],
@@ -4139,7 +4121,7 @@
    ],
    "rect": [
     311,
-    192,
+    200,
     18,
     18
    ],
@@ -4170,7 +4152,7 @@
    ],
    "rect": [
     335,
-    192,
+    200,
     62,
     18
    ],
@@ -4191,10 +4173,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 201.0,
+   "center_y": 209.0,
    "owner": "rsv_f3",
    "draw_x": 339
   },
@@ -4211,7 +4193,7 @@
    ],
    "rect": [
     401.5,
-    193,
+    201,
     16,
     16
    ],
@@ -4232,7 +4214,7 @@
    ],
    "rect": [
     406.0,
-    196.5,
+    204.5,
     7,
     8.0
    ],
@@ -4252,7 +4234,7 @@
    ],
    "rect": [
     200,
-    212,
+    220,
     18,
     18
    ],
@@ -4283,7 +4265,7 @@
    ],
    "rect": [
     224,
-    212,
+    220,
     62,
     18
    ],
@@ -4304,10 +4286,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 221.0,
+   "center_y": 229.0,
    "owner": "rsv_f4",
    "draw_x": 228
   },
@@ -4324,7 +4306,7 @@
    ],
    "rect": [
     290.5,
-    213,
+    221,
     16,
     16
    ],
@@ -4345,7 +4327,7 @@
    ],
    "rect": [
     295.0,
-    216.5,
+    224.5,
     7,
     8.0
    ],
@@ -4365,7 +4347,7 @@
    ],
    "rect": [
     311,
-    212,
+    220,
     18,
     18
    ],
@@ -4396,7 +4378,7 @@
    ],
    "rect": [
     335,
-    212,
+    220,
     62,
     18
    ],
@@ -4417,10 +4399,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 221.0,
+   "center_y": 229.0,
    "owner": "rsv_f5",
    "draw_x": 339
   },
@@ -4437,7 +4419,7 @@
    ],
    "rect": [
     401.5,
-    213,
+    221,
     16,
     16
    ],
@@ -4458,7 +4440,7 @@
    ],
    "rect": [
     406.0,
-    216.5,
+    224.5,
     7,
     8.0
    ],
@@ -4478,7 +4460,7 @@
    ],
    "rect": [
     200,
-    232,
+    240,
     18,
     18
    ],
@@ -4509,7 +4491,7 @@
    ],
    "rect": [
     224,
-    232,
+    240,
     62,
     18
    ],
@@ -4530,10 +4512,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 241.0,
+   "center_y": 249.0,
    "owner": "rsv_f6",
    "draw_x": 228
   },
@@ -4550,7 +4532,7 @@
    ],
    "rect": [
     290.5,
-    233,
+    241,
     16,
     16
    ],
@@ -4571,7 +4553,7 @@
    ],
    "rect": [
     295.0,
-    236.5,
+    244.5,
     7,
     8.0
    ],
@@ -4591,7 +4573,7 @@
    ],
    "rect": [
     311,
-    232,
+    240,
     18,
     18
    ],
@@ -4622,7 +4604,7 @@
    ],
    "rect": [
     335,
-    232,
+    240,
     62,
     18
    ],
@@ -4643,10 +4625,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 241.0,
+   "center_y": 249.0,
    "owner": "rsv_f7",
    "draw_x": 339
   },
@@ -4663,7 +4645,7 @@
    ],
    "rect": [
     401.5,
-    233,
+    241,
     16,
     16
    ],
@@ -4684,7 +4666,7 @@
    ],
    "rect": [
     406.0,
-    236.5,
+    244.5,
     7,
     8.0
    ],
@@ -4704,7 +4686,7 @@
    ],
    "rect": [
     200,
-    252,
+    260,
     18,
     18
    ],
@@ -4735,7 +4717,7 @@
    ],
    "rect": [
     224,
-    252,
+    260,
     62,
     18
    ],
@@ -4756,10 +4738,10 @@
    "color": "#FF2E2C40",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_7_5",
+   "font_id": "minecraft:default",
    "dynamic": true,
    "requires_selection": true,
-   "center_y": 261.0,
+   "center_y": 269.0,
    "owner": "rsv_f8",
    "draw_x": 228
   },
@@ -4776,7 +4758,7 @@
    ],
    "rect": [
     290.5,
-    253,
+    261,
     16,
     16
    ],
@@ -4797,7 +4779,7 @@
    ],
    "rect": [
     295.0,
-    256.5,
+    264.5,
     7,
     8.0
    ],
@@ -4817,7 +4799,7 @@
    "color": "#FF5D637D",
    "letter_spacing": 0,
    "opacity": 1,
-   "font_id": "molecularmanipulator:osq_nsc_600_8",
+   "font_id": "minecraft:default",
    "lang": "gui.molecularmanipulator.auto_craft_select_hint",
    "dynamic": false,
    "k": "selection_hint",
@@ -5367,7 +5349,7 @@
     "x": 8,
     "y": 145,
     "w": 178,
-    "h": 82
+    "h": 87
    },
    "par": -1,
    "item": null,
@@ -5378,7 +5360,7 @@
    "id": "qes",
    "r": {
     "x": 16,
-    "y": 147,
+    "y": 153,
     "w": 18,
     "h": 18
    },
@@ -5404,9 +5386,9 @@
    "id": "inv",
    "r": {
     "x": 8,
-    "y": 216,
+    "y": 238,
     "w": 178,
-    "h": 88
+    "h": 84
    },
    "par": -1,
    "item": null,
@@ -5417,7 +5399,7 @@
    "id": "inv",
    "r": {
     "x": 16,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5430,7 +5412,7 @@
    "id": "inv",
    "r": {
     "x": 34,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5443,7 +5425,7 @@
    "id": "inv",
    "r": {
     "x": 52,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5456,7 +5438,7 @@
    "id": "inv",
    "r": {
     "x": 70,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5469,7 +5451,7 @@
    "id": "inv",
    "r": {
     "x": 88,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5482,7 +5464,7 @@
    "id": "inv",
    "r": {
     "x": 106,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5495,7 +5477,7 @@
    "id": "inv",
    "r": {
     "x": 124,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5508,7 +5490,7 @@
    "id": "inv",
    "r": {
     "x": 142,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5521,7 +5503,7 @@
    "id": "inv",
    "r": {
     "x": 160,
-    "y": 222,
+    "y": 242,
     "w": 18,
     "h": 18
    },
@@ -5534,7 +5516,7 @@
    "id": "inv",
    "r": {
     "x": 16,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5547,7 +5529,7 @@
    "id": "inv",
    "r": {
     "x": 34,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5560,7 +5542,7 @@
    "id": "inv",
    "r": {
     "x": 52,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5573,7 +5555,7 @@
    "id": "inv",
    "r": {
     "x": 70,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5586,7 +5568,7 @@
    "id": "inv",
    "r": {
     "x": 88,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5599,7 +5581,7 @@
    "id": "inv",
    "r": {
     "x": 106,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5612,7 +5594,7 @@
    "id": "inv",
    "r": {
     "x": 124,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5625,7 +5607,7 @@
    "id": "inv",
    "r": {
     "x": 142,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5638,7 +5620,7 @@
    "id": "inv",
    "r": {
     "x": 160,
-    "y": 240,
+    "y": 260,
     "w": 18,
     "h": 18
    },
@@ -5651,7 +5633,7 @@
    "id": "inv",
    "r": {
     "x": 16,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5664,7 +5646,7 @@
    "id": "inv",
    "r": {
     "x": 34,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5677,7 +5659,7 @@
    "id": "inv",
    "r": {
     "x": 52,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5690,7 +5672,7 @@
    "id": "inv",
    "r": {
     "x": 70,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5703,7 +5685,7 @@
    "id": "inv",
    "r": {
     "x": 88,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5716,7 +5698,7 @@
    "id": "inv",
    "r": {
     "x": 106,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5729,7 +5711,7 @@
    "id": "inv",
    "r": {
     "x": 124,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5742,7 +5724,7 @@
    "id": "inv",
    "r": {
     "x": 142,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5755,7 +5737,7 @@
    "id": "inv",
    "r": {
     "x": 160,
-    "y": 258,
+    "y": 278,
     "w": 18,
     "h": 18
    },
@@ -5768,7 +5750,7 @@
    "id": "inv",
    "r": {
     "x": 16,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5781,7 +5763,7 @@
    "id": "inv",
    "r": {
     "x": 34,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5794,7 +5776,7 @@
    "id": "inv",
    "r": {
     "x": 52,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5807,7 +5789,7 @@
    "id": "inv",
    "r": {
     "x": 70,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5820,7 +5802,7 @@
    "id": "inv",
    "r": {
     "x": 88,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5833,7 +5815,7 @@
    "id": "inv",
    "r": {
     "x": 106,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5846,7 +5828,7 @@
    "id": "inv",
    "r": {
     "x": 124,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5859,7 +5841,7 @@
    "id": "inv",
    "r": {
     "x": 142,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -5872,7 +5854,7 @@
    "id": "inv",
    "r": {
     "x": 160,
-    "y": 280,
+    "y": 300,
     "w": 18,
     "h": 18
    },
@@ -6329,7 +6311,7 @@
     "x": 192,
     "y": 122,
     "w": 232,
-    "h": 156
+    "h": 164
    },
    "par": -1,
    "item": null,

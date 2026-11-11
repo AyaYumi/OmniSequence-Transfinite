@@ -6,15 +6,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 
-/**
- * 界面字体。assets/molecularmanipulator/font/osq_&lt;字体&gt;_&lt;字重&gt;_&lt;字号&gt;.json，每个定义 = 主字体 ttf + 思源黑体（同字重）回退 + minecraft:default。
- * 布局 JSON 的 text 项给出 font_id / x / baseline（GUI px）/ color（#AARRGGBB）/ letter_spacing（px）/ opacity。
- * 共 45 个定义。
- */
+/** Minecraft's active font, measured and drawn in the layout's explicit GUI-pixel sizes. */
 public final class OsqFonts {
     private OsqFonts() {}
 
-    /** Vanilla TTF providers have a seven-pixel baseline regardless of provider size. */
+    /** Vanilla glyph providers use a seven-pixel baseline in the native nine-pixel line. */
     public static float baselineFromTop(ResourceLocation fontId) { return 7; }
     @Deprecated public static float baselineFromTop(float size) { return 7; }
 
@@ -23,10 +19,8 @@ public final class OsqFonts {
         return font.getSplitter().getClass().getName().equals("icyllis.modernui.mc.text.ModernStringSplitter");
     }
 
-    private static float renderingScale(Font font, ResourceLocation fontId) {
-        if (!usesModernText(font) || !fontId.getNamespace().equals("molecularmanipulator")) return 1;
-        float baseSize = ModernMetrics.baseSize();
-        return OsqFontMetrics.scale(OsqFontMetrics.providerSize(fontId.getPath(), baseSize), baseSize);
+    private static float renderingScale(Font font, float size) {
+        return OsqFontMetrics.scale(size, usesModernText(font) ? ModernMetrics.baseSize() : font.lineHeight);
     }
 
     /** Optional public Modern UI metrics; no compile/runtime dependency is added to the mod. */
@@ -57,14 +51,8 @@ public final class OsqFonts {
         static float baseline() { return OsqFontMetrics.baseline(read(BASELINE, 7)); }
     }
 
-    private static final java.util.Map<ResourceLocation, java.util.List<java.awt.Font>> INK_FACES = new java.util.HashMap<>();
-    private static final java.util.Map<ResourceLocation, java.awt.Font> INK_FILES = new java.util.HashMap<>();
-    private static final java.util.Map<String, Float> INK_OFFSETS = new java.util.LinkedHashMap<>(512, .75f, true) {
-        @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, Float> entry) { return size() > 512; }
-    };
-
-    private record WidthKey(ResourceLocation font, String text) {}
-    private record WrapKey(ResourceLocation font, String text, int width) {}
+    private record WidthKey(ResourceLocation font, String text, float size) {}
+    private record WrapKey(ResourceLocation font, String text, float size, float width) {}
     private record GlyphKey(ResourceLocation font, String text) {}
     private static final java.util.Map<String, ResourceLocation> IDS = new java.util.HashMap<>();
     private static final java.util.Map<WidthKey, Float> WIDTHS = bounded(2048);
@@ -88,7 +76,7 @@ public final class OsqFonts {
 
     public static void clearInkMetrics() {
         generation++; metricsGeneration++;
-        OsqSlotGhosts.clear(); INK_FACES.clear(); INK_FILES.clear(); INK_OFFSETS.clear();
+        OsqSlotGhosts.clear();
         WIDTHS.clear(); WRAPS.clear(); GLYPHS.clear();
         metricFont = metricSplitter = metricLanguage = null;
     }
@@ -115,38 +103,14 @@ public final class OsqFonts {
     }
 
     public static float centeredBaselineOffset(Component text, ResourceLocation fontId, float size) {
-        String key = fontId + ":" + size + ":" + text.getString();
-        return INK_OFFSETS.computeIfAbsent(key, unused -> OsqFontInk.centeredBaselineOffset(
-                INK_FACES.computeIfAbsent(fontId, OsqFonts::loadInkFaces), text.getString(), size));
-    }
-
-    private static java.util.List<java.awt.Font> loadInkFaces(ResourceLocation fontId) {
-        var result = new java.util.ArrayList<java.awt.Font>();
-        var resources = net.minecraft.client.Minecraft.getInstance().getResourceManager();
-        try (var reader = resources.openAsReader(ResourceLocation.fromNamespaceAndPath(fontId.getNamespace(), "font/" + fontId.getPath() + ".json"))) {
-            var definition = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
-            for (var item : definition.getAsJsonArray("providers")) {
-                var provider = item.getAsJsonObject();
-                if (!provider.get("type").getAsString().endsWith("ttf")) continue;
-                var file = ResourceLocation.parse(provider.get("file").getAsString()).withPrefix("font/");
-                var face = INK_FILES.get(file);
-                if (face == null) {
-                    try (var stream = resources.open(file)) { face = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, stream); }
-                    INK_FILES.put(file, face);
-                }
-                result.add(face);
-            }
-        } catch (Exception ex) {
-            com.mojang.logging.LogUtils.getLogger().warn("OSQ cannot measure font {}; using proportional centering", fontId, ex);
-        }
-        return java.util.List.copyOf(result);
+        var font = net.minecraft.client.Minecraft.getInstance().font;
+        // Vanilla bitmap and Unifont glyph cells are eight pixels tall. Modern UI uses its em box.
+        float offset = usesModernText(font) ? ModernMetrics.baseline() - ModernMetrics.baseSize() / 2 : 3;
+        return offset * renderingScale(font, size);
     }
 
     public static ResourceLocation id(String fontId) {
-        return IDS.computeIfAbsent(fontId, key -> {
-            int i = key.indexOf(':');
-            return i < 0 ? ResourceLocation.fromNamespaceAndPath("molecularmanipulator", key) : ResourceLocation.parse(key);
-        });
+        return IDS.computeIfAbsent(fontId, ResourceLocation::parse);
     }
 
     public static Component styled(Component text, ResourceLocation font) {
@@ -157,7 +121,7 @@ public final class OsqFonts {
     public static void draw(GuiGraphics g, Font font, Component text, ResourceLocation fontId, float size,
                             float x, float baseline, int argb, float letterSpacing) {
         metricContext(font);
-        float scale = renderingScale(font, fontId);
+        float scale = renderingScale(font, size);
         float nativeBaseline = usesModernText(font) ? ModernMetrics.baseline() : baselineFromTop(fontId);
         g.pose().pushPose();
         g.pose().translate(x, baseline - nativeBaseline * scale, 0);
@@ -177,26 +141,32 @@ public final class OsqFonts {
     }
 
     public static int width(Font font, Component text, ResourceLocation fontId) {
-        return (int) Math.ceil(font.getSplitter().stringWidth(styled(text, fontId)) * renderingScale(font, fontId));
+        return (int) Math.ceil(font.getSplitter().stringWidth(styled(text, fontId)) * renderingScale(font, 7.5f));
     }
-    /** 浮点字宽（GUI px）。 */
+    /** Body-copy convenience; layout entries pass their explicit size to the overload. */
     public static float widthF(Font font, String text, ResourceLocation fontId) {
+        return widthF(font, text, fontId, 7.5f);
+    }
+    public static float widthF(Font font, String text, ResourceLocation fontId, float size) {
         metricContext(font);
-        var key = new WidthKey(fontId, text);
+        var key = new WidthKey(fontId, text, size);
         var cached = WIDTHS.get(key);
         if (cached != null) return cached;
-        float width = font.getSplitter().stringWidth(styled(Component.literal(text), fontId)) * renderingScale(font, fontId);
+        float width = font.getSplitter().stringWidth(styled(Component.literal(text), fontId)) * renderingScale(font, size);
         WIDTHS.put(key, width);
         return width;
     }
 
-    /** Preserve whole integers/English words; CJK can break between characters. */
     public static java.util.List<String> wrap(Font font, String text, ResourceLocation fontId, float maxWidth) {
+        return wrap(font, text, fontId, 7.5f, maxWidth);
+    }
+    /** Preserve whole integers/English words; CJK can break between characters. */
+    public static java.util.List<String> wrap(Font font, String text, ResourceLocation fontId, float size, float maxWidth) {
         metricContext(font);
-        var key = new WrapKey(fontId, text, Float.floatToIntBits(maxWidth));
+        var key = new WrapKey(fontId, text, size, maxWidth);
         var cached = WRAPS.get(key);
         if (cached != null) return cached;
-        var result = wrapText(text, maxWidth, value -> widthF(font, value, fontId));
+        var result = wrapText(text, maxWidth, value -> widthF(font, value, fontId, size));
         WRAPS.put(key, result);
         return result;
     }

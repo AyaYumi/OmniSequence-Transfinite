@@ -21,9 +21,6 @@ public final class LabCrystallization {
         if (input.is(ModContent.PRIMORDIAL_CRYSTAL_CORE.get())) {
             return new ItemStack(ModContent.STAR_MARROW_SEED.get(), input.getCount());
         }
-        if (input.is(ModContent.STAR_MARROW_CRYSTAL.get())) {
-            return new ItemStack(ModContent.STAR_CHART_CIRCUIT_BOARD.get(), input.getCount());
-        }
         return ItemStack.EMPTY;
     }
 

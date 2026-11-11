@@ -61,12 +61,13 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         refresh=addScreenWidget(!secondary&&!menu.getMachine().isSingleBlock()?ui.button("refresh",leftPos,topPos,()->tr("refresh"),()->menu.request("refresh"))
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("refresh"),()->menu.request("refresh")));
         initReclaimControls(secondary);
-        embed=addScreenWidget(ui.rect(246,120,87,17,leftPos,topPos,null,()->menu.request(menu.structureVersion==SingularityStructure.EMBEDDED_VERSION?"upgrade":"embed")));
+        // Transient actions use the free top row of the status card, not the diagnostics headings.
+        embed=addScreenWidget(ui.rect(246,40,87,17,leftPos,topPos,null,()->menu.request(menu.structureVersion==SingularityStructure.EMBEDDED_VERSION?"upgrade":"embed")));
         collectionToggle=addScreenWidget(collectionPage?ui.button("collection",leftPos,topPos,null,()->menu.request("collection"))
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("collection_start"),()->menu.request("collection")));
         if(collectionPage){
-            addScreenWidget(ui.button("prev",leftPos,topPos,()->Component.literal("<"),()->collectionScroll=Math.max(0,collectionScroll-1)));
-            addScreenWidget(ui.button("next",leftPos,topPos,()->Component.literal(">"),()->collectionScroll=Math.min(Math.max(0,(collectionResources().size()-1)/12),collectionScroll+1)));
+            addScreenWidget(ui.button("prev",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.previous_page"),()->collectionScroll=Math.max(0,collectionScroll-1)));
+            addScreenWidget(ui.button("next",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.next_page"),()->collectionScroll=Math.min(Math.max(0,(collectionResources().size()-1)/12),collectionScroll+1)));
             ui.text("gui.molecularmanipulator.page",()->OsqUi.tr("gui.molecularmanipulator.page",collectionScroll+1,Math.max(1,(collectionResources().size()+11)/12)));
             for(var e:ui.layout.draw)if("text".equals(e.type)&&e.baseline>=120&&e.baseline<209)ui.at(e.x,e.baseline,Component::empty);
             ui.number(55.34f,102,()->collectionResources().size());ui.number(108.94f,102,()->menu.collectionBatchSize);
@@ -94,17 +95,9 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         ui.width(172.5f,166.5f,42);ui.width(225.5f,166.5f,42);ui.width(278.5f,166.5f,48);
         ui.color("gui.molecularmanipulator.singularity.network_online",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
         ui.color("gui.molecularmanipulator.sing.s001",()->quantumConnected()?ui.palette.ok:ui.palette.ink3);
-        ui.number(16,203,()->menu.blackHoleCount);ui.number(30.19f,203,()->"/ 64");ui.at(172.5f,181,()->tr("matter_per_cycle",OsqUi.compact(menu.duplicationMatterPerCycle)));ui.number(186.36f,194,()->menu.duplicationIntervalTicks);
-        ui.at(199.53f,181,Component::empty);
-        ui.width(17,242,60);ui.width(86,242,63);ui.width(17,272,60);ui.width(86,272,63);
-        ui.number(17,242,()->formatEnergy(menu.duplicationFePerCycle));ui.number(86,242,()->formatEnergy(menu.lastDuplicationFeConsumed));
-        ui.number(17,272,()->formatEnergy(menu.duplicationAePerCycle));ui.number(86,272,()->formatEnergy(menu.lastDuplicationAeConsumed));
-        ui.text("gui.molecularmanipulator.singularity.duplication_energy",()->tr("duplication_energy",menu.duplicationEnergyPriority));
-        ui.text("gui.molecularmanipulator.singularity.duplication_cost",()->tr("duplication_cost",SingularityDuplicationProcessor.MATTER_PER_ITEM));
+        bindDuplication();
         ui.sprite(17,57,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         ui.color("gui.molecularmanipulator.singularity.collection_network",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
-        ui.text("gui.molecularmanipulator.sing.s017",()->tr("duplication_black_hole_count",menu.blackHoleCount));
-        ui.color("gui.molecularmanipulator.sing.s017",()->menu.blackHoleCount>0?ui.palette.ok:ui.palette.ink3);
         if (compact) {
             ui.text("block.molecularmanipulator.event_horizon_singularity_hub",
                     ()->menu.getMachine().getBlockState().getBlock().getName());
@@ -114,10 +107,28 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
             var dot=ui.layout.find("network_dot");
             ui.sprite(dot.x,dot.y,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         }
-        // The OSQ overview has a free action row above the player inventory.
-        effects = addScreenWidget(new MachineEffectButton(leftPos + 173, topPos + 190, 160,
-                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
+        initEffectControl();
         updateWidgets();
+    }
+
+    private void bindDuplication() {
+        // Keep the original binding anchors while the layout places both metrics in the rate card.
+        ui.number(16,203,()->menu.blackHoleCount);ui.number(30.19f,203,()->"/ 64");
+        ui.number(172.5f,181,()->OsqUi.compact(menu.duplicationMatterPerCycle));
+        ui.number(186.36f,194,()->menu.duplicationIntervalTicks);
+        ui.width(17,242,60);ui.width(86,242,63);ui.width(17,272,60);ui.width(86,272,63);
+        ui.number(17,242,()->formatEnergy(menu.duplicationFePerCycle));ui.number(86,242,()->formatEnergy(menu.lastDuplicationFeConsumed));
+        ui.number(17,272,()->formatEnergy(menu.duplicationAePerCycle));ui.number(86,272,()->formatEnergy(menu.lastDuplicationAeConsumed));
+        ui.text("gui.molecularmanipulator.singularity.duplication_energy",()->tr("duplication_energy",menu.duplicationEnergyPriority));
+        ui.text("gui.molecularmanipulator.singularity.duplication_cost",()->tr("duplication_cost",SingularityDuplicationProcessor.MATTER_PER_ITEM));
+        ui.text("gui.molecularmanipulator.singularity.duplication_fluid_storage",()->Component.literal(
+                tr("duplication_fluid_storage").getString().replace("；","；\n").replace("; ",";\n")));
+    }
+
+    private void initEffectControl() {
+        // Keep the effects action in the vertically centered diagnostics group.
+        effects = addScreenWidget(new MachineEffectButton(ui, ui.buttonBox(173, 178, 160, 18), leftPos, topPos,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
     }
 
     private void initReclaimControls(boolean secondary) {
@@ -126,15 +137,13 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("dismantle"),()->{}));
         dismantle.setTooltip(Tooltip.create(tr("dismantle_hint")));
         ui.state(dismantle,()->armedAt==0?"danger":"confirm");
-        // The collection action row is free while reclaim is pending; never cover its resource slots.
+        // Collection reuses its action row; duplication stays above the flow; overview uses the status card's free top row.
         cancel=addScreenWidget(collectionPage
                 ?ui.button("collection",leftPos,topPos,()->tr("cancel"),()->menu.request("cancel"))
-                :ui.rect(173,120,68,17,leftPos,topPos,()->tr("cancel"),()->menu.request("cancel")));
+                :ui.rect(173,duplicationPage?85:40,68,17,leftPos,topPos,()->tr("cancel"),()->menu.request("cancel")));
     }
 
     private Runnable bOverview(){return this::showOverview;}
-    void testPage(int page){if(page==1)showCollection();else if(page==2)showDuplication();else showOverview();}
-    int detailPage(){return duplicationPage?2:collectionPage?1:0;}
     private void showOverview(){
         if (menu.getMachine().isSingleBlock()) { showCollection(); return; }
         collectionPage=false;duplicationPage=false;rebuildWidgets();

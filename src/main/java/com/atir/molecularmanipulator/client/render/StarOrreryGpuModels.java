@@ -13,6 +13,7 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -149,14 +150,23 @@ final class StarOrreryGpuModels implements AutoCloseable {
                 if (!merged) setupRenderState();
                 try {
                     int draws = marker.drawState().vertexCount() / 4;
-                    for (int draw = 0; draw < draws; draw++) {
-                        var command = model.commands.removeFirst();
-                        model.transform(command);
-                        try {
-                            model.output.bind();
-                            model.output.drawWithShader(RenderSystem.getModelViewMatrix(),
-                                    RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
-                        } finally { VertexBuffer.unbind(); }
+                    if (draws == 0) return;
+                    var shader = RenderSystem.getShader();
+                    shader.setDefaultUniforms(VertexFormat.Mode.QUADS, RenderSystem.getModelViewMatrix(),
+                            RenderSystem.getProjectionMatrix(), Minecraft.getInstance().getWindow());
+                    shader.apply();
+                    try {
+                        model.output.bind();
+                        // Every command has the same layer, shader and world-space draw matrices.
+                        // ComputeBindings restores the active graphics program after each transform;
+                        // do not rebind Iris framebuffers/uniforms for every instance in this segment.
+                        for (int draw = 0; draw < draws; draw++) {
+                            model.transform(model.commands.removeFirst());
+                            model.output.draw();
+                        }
+                    } finally {
+                        try { VertexBuffer.unbind(); }
+                        finally { shader.clear(); }
                     }
                 } finally { if (!merged) clearRenderState(); }
             }

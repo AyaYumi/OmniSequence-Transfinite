@@ -155,6 +155,23 @@ class StarPositionAnchorAssetsTest {
     }
 
     @Test
+    void tierBandsKeepTheirSixteenPixelPanelsAndSingleDistinctAccentColor() throws IOException {
+        var accents = new HashSet<Integer>();
+        for (var tier : TIERS) {
+            var path = ASSETS.resolve("textures/block/star_position_anchor/" + tier + "/band_west_r0c2.png");
+            assertImage(path, 16, 16);
+            var band = ImageIO.read(path.toFile());
+            var colors = new HashSet<Integer>();
+            for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) colors.add(band.getRGB(x, y));
+            colors.remove(band.getRGB(0, 0));
+            colors.remove(band.getRGB(0, 1));
+            colors.remove(band.getRGB(0, 2));
+            assertEquals(1, colors.size(), tier + " anchor band must expose one tier accent color");
+            assertTrue(accents.add(colors.iterator().next()), "Anchor tiers must have distinct accents");
+        }
+    }
+
+    @Test
     void unformedBlocksAndItemsKeepTheirOriginalModelsAndValidTextures() throws IOException {
         for (var tier : TIERS) {
             var blockId = "molecularmanipulator:block/" + tier + "_star_position_anchor";

@@ -1,9 +1,9 @@
 package com.atir.molecularmanipulator.world;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
-import com.atir.molecularmanipulator.block.GreenFireLanternBlock;
+import com.atir.molecularmanipulator.block.SimulationLanternBlock;
 import com.atir.molecularmanipulator.network.LanternPayloads;
-import com.atir.molecularmanipulator.registry.GreenFireLanternContent;
+import com.atir.molecularmanipulator.registry.SimulationLanternContent;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.network.chat.Component;
@@ -62,7 +62,7 @@ public final class LanternSimulation {
     public static InteractionHand heldHand(Player player, boolean litOnly) {
         for (InteractionHand hand : InteractionHand.values()) {
             ItemStack stack = player.getItemInHand(hand);
-            if (GreenFireLanternContent.isLantern(stack) && (!litOnly || GreenFireLanternContent.isLit(stack))) return hand;
+            if (SimulationLanternContent.isLantern(stack) && (!litOnly || SimulationLanternContent.isLit(stack))) return hand;
         }
         return null;
     }
@@ -99,12 +99,12 @@ public final class LanternSimulation {
         ItemStack stack = player.getItemInHand(hand);
         BlockPlaceContext context = new BlockPlaceContext(player.serverLevel(), player, hand, stack, hit);
         if (!player.mayBuild() || !player.serverLevel().mayInteract(player, context.getClickedPos())) return false;
-        boolean wasLit = GreenFireLanternContent.isLit(stack);
+        boolean wasLit = SimulationLanternContent.isLit(stack);
         boolean water = player.serverLevel().getFluidState(context.getClickedPos()).is(net.minecraft.tags.FluidTags.WATER);
-        if (water) GreenFireLanternContent.setLit(stack, false);
-        var result = GreenFireLanternContent.ITEM.get().place(context);
+        if (water) SimulationLanternContent.setLit(stack, false);
+        var result = SimulationLanternContent.ITEM.get().place(context);
         if (!result.consumesAction()) {
-            if (water) GreenFireLanternContent.setLit(stack, wasLit);
+            if (water) SimulationLanternContent.setLit(stack, wasLit);
             player.displayClientMessage(Component.translatable("message.molecularmanipulator.lantern_floor"), true);
             return false;
         }
@@ -120,9 +120,9 @@ public final class LanternSimulation {
         boolean lit;
         if (hand != null) {
             ItemStack stack = player.getItemInHand(hand);
-            lit = GreenFireLanternContent.isLit(stack);
+            lit = SimulationLanternContent.isLit(stack);
             if (!lit && player.isInWater()) return false;
-            GreenFireLanternContent.setLit(stack, !lit);
+            SimulationLanternContent.setLit(stack, !lit);
             player.containerMenu.broadcastChanges();
         } else {
             HitResult target = player.pick(player.blockInteractionRange(), 1, false);
@@ -130,10 +130,10 @@ public final class LanternSimulation {
             var level = player.serverLevel();
             var pos = hit.getBlockPos();
             var state = level.getBlockState(pos);
-            if (!(state.getBlock() instanceof GreenFireLanternBlock) || !player.mayBuild() || !level.mayInteract(player, pos)) return false;
-            lit = state.getValue(GreenFireLanternBlock.LIT);
-            if (!lit && state.getValue(GreenFireLanternBlock.WATERLOGGED)) return false;
-            level.setBlockAndUpdate(pos, state.setValue(GreenFireLanternBlock.LIT, !lit));
+            if (!(state.getBlock() instanceof SimulationLanternBlock) || !player.mayBuild() || !level.mayInteract(player, pos)) return false;
+            lit = state.getValue(SimulationLanternBlock.LIT);
+            if (!lit && state.getValue(SimulationLanternBlock.WATERLOGGED)) return false;
+            level.setBlockAndUpdate(pos, state.setValue(SimulationLanternBlock.LIT, !lit));
         }
         player.serverLevel().playSound(null, player.blockPosition(), lit ? SoundEvents.FIRE_EXTINGUISH
                 : SoundEvents.FLINTANDSTEEL_USE, SoundSource.PLAYERS, .5F, lit ? 1.25F : .8F);
@@ -149,8 +149,8 @@ public final class LanternSimulation {
         if (player.isInWater()) {
             for (InteractionHand hand : InteractionHand.values()) {
                 ItemStack stack = player.getItemInHand(hand);
-                if (GreenFireLanternContent.isLit(stack)) {
-                    GreenFireLanternContent.setLit(stack, false);
+                if (SimulationLanternContent.isLit(stack)) {
+                    SimulationLanternContent.setLit(stack, false);
                     extinguished = true;
                 }
             }

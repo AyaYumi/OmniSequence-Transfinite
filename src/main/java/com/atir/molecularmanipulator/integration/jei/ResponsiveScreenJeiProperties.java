@@ -30,6 +30,10 @@ record ResponsiveScreenJeiProperties(Class<? extends Screen> screenClass, Rect2i
             @Override
             public Optional<? extends IClickableIngredient<?>> getClickableIngredientUnderMouse(
                     IClickableIngredientFactory factory, T screen, double mouseX, double mouseY) {
+                if(screen instanceof com.atir.molecularmanipulator.client.MatterFabricationScreen fabrication) {
+                    var ingredient=fabrication.researchIngredientAt(mouseX,mouseY);
+                    if(ingredient!=null)return MatterFabricationJeiIngredients.clickable(factory,ingredient);
+                }
                 var slot = screen.responsiveSlotAt(mouseX, mouseY);
                 if (slot == null || !slot.isActive() || slot.getItem().isEmpty()) return Optional.empty();
                 var area = screen.responsiveSlotBounds(slot);

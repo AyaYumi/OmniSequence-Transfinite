@@ -17,8 +17,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 /**
  * Observation port of the Star Computation Engine.
  *
- * <p>The port is transparent while unformed, and hidden beneath the core's
- * oversized baked model while formed. Other glass blocks remain unchanged.</p>
+ * <p>The port is transparent while unformed, and hides its ordinary mesh for
+ * the orrery renderer while formed. Other glass blocks remain unchanged.</p>
  */
 public final class StarComputationObservationPortBlock extends TransparentBlock {
     public static final BooleanProperty FORMED = StarComputationEngineCoreBlock.FORMED;

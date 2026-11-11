@@ -111,16 +111,26 @@ class MachineEffectWiringTest {
         assertCall(render, ROOT + "client/render/SingularityWhiteHoleRenderer", "enqueue");
     }
 
-    @Test void smallAe2ButtonsRemainKeyboardActivatableAndReadServerConfirmedState() throws IOException {
+    @Test void skinnedEffectButtonsRemainKeyboardActivatableAndReadServerConfirmedState() throws IOException {
         assertAuthoritativeEffectButton();
         for (var prefix : MACHINES) {
-            assertCall(method(read(ROOT + "client/" + prefix + "Screen"), "init"), ROOT + "client/MachineEffectButton", "<init>");
+            var screen = read(ROOT + "client/" + prefix + "Screen");
+            if (prefix.equals("MolecularCenter")) {
+                assertCall(method(screen, "init"), screen.name, "initColorControls");
+                assertCall(method(screen, "initColorControls"), ROOT + "client/MachineEffectButton", "<init>");
+            } else if (prefix.equals("Singularity")) {
+                assertCall(method(screen, "init"), screen.name, "initEffectControl");
+                assertCall(method(screen, "initEffectControl"), ROOT + "client/MachineEffectButton", "<init>");
+            } else {
+                assertCall(method(screen, "init"), ROOT + "client/MachineEffectButton", "<init>");
+            }
         }
     }
 
     private static void assertAuthoritativeEffectButton() throws IOException {
         var button = read(ROOT + "client/MachineEffectButton");
-        assertEquals(ROOT + "client/ResponsiveAE2Button", button.superName);
+        assertEquals(ROOT + "client/OsqUi$SkinButton", button.superName);
+        assertEquals("net/minecraft/client/gui/components/Button", read(button.superName).superName);
         assertCall(method(button, "onPress"), "net/minecraft/client/gui/screens/Screen", "hasShiftDown");
         assertCall(method(button, "onPress"), SETTINGS, "nextLevel");
         assertCall(method(button, "refresh"), "java/util/function/IntSupplier", "getAsInt");

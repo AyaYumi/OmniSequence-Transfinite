@@ -1,6 +1,8 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.config.Actionable;
+import appeng.api.config.PowerMultiplier;
+import appeng.util.SettingsFrom;
 import appeng.api.networking.GridFlags;
 import appeng.api.orientation.BlockOrientation;
 import appeng.blockentity.grid.AENetworkedBlockEntity;
@@ -10,7 +12,6 @@ import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocators;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.ae2.StarSignalKey;
-import com.atir.molecularmanipulator.client.render.StarComputationEngineModelData;
 import com.atir.molecularmanipulator.starcomputation.StarOrreryLayout;
 import com.atir.molecularmanipulator.starcomputation.StarOrreryFoundation;
 import com.atir.molecularmanipulator.starcomputation.StarOrreryCoreStructure;
@@ -18,12 +19,17 @@ import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.starcomputation.StarComputationRecipes;
 import com.atir.molecularmanipulator.starcomputation.StarComputationResearchData;
+import com.atir.molecularmanipulator.starcomputation.StarResearchNodes;
+import com.atir.molecularmanipulator.starcomputation.StarComputationUpgradeProgress;
+import com.atir.molecularmanipulator.starcomputation.StarComputationUpgrades;
+import com.atir.molecularmanipulator.building.BuildingTransfer;
 import com.atir.molecularmanipulator.integration.FtbTeamOwnership;
 import com.atir.molecularmanipulator.menu.StarComputationEngineMenu;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import java.util.EnumSet;
 import java.util.UUID;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -41,6 +47,9 @@ import java.util.WeakHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
@@ -48,7 +57,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelData;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.ChunkEvent;
@@ -72,12 +80,13 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     private long pendingInformationRefund;
     private UUID boundTeam;
     private int legacyUnlockMask;
+    private final StarComputationUpgradeProgress upgrade = new StarComputationUpgradeProgress();
+    private String upgradeStatus = "idle";
     private record AnchorMember(Direction facing, int index, int slot) {}
 
     private final Map<BlockPos, AnchorMember> managedAnchors = new HashMap<>();
     /** Server-validated visual snapshot sent through AE2's normal BE update stream. */
     private int visualTier;
-    private int visualConnections;
     /** Number of complete outer-prefix rings, zero-based ring count 0..9. */
     private int litRings;
     /** Saved rings that still need runtime revalidation after a reload. */
@@ -132,15 +141,130 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         return getLitRings() > 0 ? visualActivity : 0;
     }
 
-    /** Research budgets use the shared ring thresholds (L1/L3/L6/L7/L9). */
+    /** Legacy UI threshold; server-side data-pack overrides use the same level as the unified purchase path. */
     public int getResearchEntropyThreshold(int node) {
-        return node < 0 || node >= StarComputationRecipes.NODES.size()
-                ? 0 : StarOrreryLayout.threshold(STAR_ORRERY_NODE_LEVELS[node]);
+        if (node < 0 || node >= StarComputationRecipes.NODES.size()) return 0;
+        if (level instanceof ServerLevel) {
+            var recipe = StarResearchNodes.nodes(level).get(StarComputationResearchData.LEGACY_NODE_IDS.get(node));
+            return recipe == null ? 0 : StarOrreryLayout.threshold(recipe.requiredLevel());
+        }
+        return StarOrreryLayout.threshold(STAR_ORRERY_NODE_LEVELS[node]);
+    }
+
+    public int getEffectiveLevel() {
+        return upgrade.effectiveLevel(getLitRings());
     }
 
     public long getEffectiveEntropy() {
-        // Saved or unloaded rings are never benefits before runtime validation.
-        return StarOrreryLayout.entropyForRings(getLitRings());
+        // Physical rings above the certified ceiling never grant benefits or research budgets.
+        return StarOrreryLayout.entropyForRings(getEffectiveLevel());
+    }
+
+    public int getCertifiedLevel() { return upgrade.certifiedLevel(); }
+    public int getUpgradeTarget() { return upgrade.targetLevel(); }
+    public double getUpgradeEnergy() { return upgrade.paidEnergy(); }
+    public boolean isUpgradeRunning() { return upgrade.running(); }
+    public double getUpgradeRate() { return upgrade.actualRate(); }
+    public String getUpgradeStatus() {
+        if (BuildingTransfer.restoring(this)) return "restoring";
+        if (upgrade.migrationPending()) return "migration";
+        if (!upgrade.running() && upgrade.targetLevel() != 0) return "paused";
+        return upgradeStatus;
+    }
+
+    /** Menu permission checks precede this server-only, fresh-structure and fresh-rule check. */
+    public boolean startUpgrade(int target, ServerPlayer player) {
+        if (!(level instanceof ServerLevel) || player.level() != level || !player.mayBuild() || player.isSpectator()
+                || !canInteract(player) || BuildingTransfer.restoring(this) || upgrade.running()
+                || target < 1 || target > 9) return false;
+        bindOwner(player);
+        refreshStructureNow();
+        if (upgrade.migrationPending()) { upgradeStatus = "migration"; return false; }
+        if (!isFormed()) { upgradeStatus = "structure"; return false; }
+        if (target <= 3) {
+            if (getLitRings() != target - 1) return false;
+            String blocked = StarOrreryAutoAssembly.assemble(this, target, player);
+            if (blocked != null) { upgradeStatus = blocked; return false; }
+            refreshStructureNow();
+            upgradeStatus = getLitRings() >= target ? "complete" : "structure";
+            saveChanges();
+            return getLitRings() >= target;
+        }
+        if (target != upgrade.certifiedLevel() + 1) return false;
+        var rule = StarComputationUpgrades.rule(level, target);
+        if (rule != null && rule.recipe().autoBuild()) {
+            var plan = StarOrreryAutoAssembly.plan(this, target, player);
+            if (plan.blocked() != null) { upgradeStatus = plan.blocked(); return false; }
+            if (plan.supplies().stream().anyMatch(supply -> supply.available() < supply.required() - supply.placed())) {
+                upgradeStatus = "anchor_materials";
+                return false;
+            }
+            if (!StarComputationUpgrades.evaluate(this, rule, player).passed()) {
+                upgradeStatus = "conditions";
+                return false;
+            }
+            if (rule.recipe().energy() > 0 && (!getMainNode().isActive() || getMainNode().getGrid() == null)) {
+                upgradeStatus = "offline";
+                return false;
+            }
+            String blocked = StarOrreryAutoAssembly.assemble(this, target, player);
+            if (blocked != null) { upgradeStatus = blocked; return false; }
+            refreshStructureNow();
+        }
+        String blocked = upgradeBlockReason(target, rule);
+        if (blocked != null) { upgradeStatus = blocked; return false; }
+        if (!upgrade.start(target)) return false;
+        upgradeStatus = "running";
+        if (rule.recipe().energy() == 0) tickUpgrade();
+        saveChanges();
+        return true;
+    }
+
+    public boolean pauseUpgrade() {
+        if (!(level instanceof ServerLevel) || !upgrade.pause()) return false;
+        upgradeStatus = "paused";
+        saveChanges();
+        return true;
+    }
+
+    @Nullable
+    private String upgradeBlockReason(int target, @Nullable StarComputationUpgrades.Rule rule) {
+        if (BuildingTransfer.restoring(this)) return "restoring";
+        if (!isFormed() || getLitRings() < target) return "structure";
+        if (rule == null) return "rule_missing";
+        if (rule.recipe().energy() > 0 && (!getMainNode().isActive() || getMainNode().getGrid() == null)) return "offline";
+        return StarComputationUpgrades.evaluate(this, rule).passed() ? null : "conditions";
+    }
+
+    private void tickUpgrade() {
+        upgrade.resetRate();
+        if (!upgrade.running()) return;
+        int target = upgrade.targetLevel();
+        var rule = StarComputationUpgrades.rule(level, target);
+        String blocked = upgradeBlockReason(target, rule);
+        if (blocked != null) {
+            upgradeStatus = blocked;
+            return;
+        }
+        double before = upgrade.paidEnergy();
+        var result = upgrade.tick(rule.recipe().energy(), rule.recipe().aePerTick(),
+                () -> upgradeBlockReason(target, rule) == null,
+                amount -> getMainNode().getGrid() == null ? 0 : getMainNode().getGrid().getEnergyService()
+                        .extractAEPower(amount, Actionable.MODULATE, PowerMultiplier.ONE));
+        upgradeStatus = switch (result) {
+            case COMPLETE -> "complete";
+            case NO_POWER -> "energy";
+            case BLOCKED -> "conditions";
+            case PAUSED -> "paused";
+            case RUNNING -> "running";
+        };
+        if (result == StarComputationUpgradeProgress.Result.COMPLETE) {
+            // Never carry this tick's old-level overclock payment into a newly certified level.
+            overclocked = false;
+            paidTick = Long.MIN_VALUE;
+            syncVisualState();
+        }
+        if (before != upgrade.paidEnergy() || result == StarComputationUpgradeProgress.Result.COMPLETE) saveChanges();
     }
 
     public int getAnchorCount() {
@@ -169,7 +293,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     }
 
     public StarComputationBenefits getBenefits() {
-        return new StarComputationBenefits(getLitRings(), overclocked);
+        return new StarComputationBenefits(getEffectiveLevel(), overclocked);
     }
 
     /** Bounded footprint of the foundation, core, verified/recovering rings and next candidate ring. */
@@ -221,15 +345,6 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
 
     public boolean isOverclocked() { return overclocked; }
 
-    @Override
-    public ModelData getModelData() {
-        var inherited = super.getModelData();
-        return inherited.derive()
-                .with(StarComputationEngineModelData.PROPERTY,
-                        new StarComputationEngineModelData.Snapshot(visualTier, visualConnections))
-                .build();
-    }
-
     public long getInfoConsumption() {
         return getMainNode().isActive() && StarComputationNetwork.best(getMainNode().getGrid()) == this
                 ? getBenefits().infoPerTick() : 0;
@@ -263,6 +378,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     }
 
     private boolean extractInformation(long amount, appeng.api.networking.security.IActionSource source) {
+        if (amount == 0) return true;
         var grid = getMainNode().getGrid();
         if (grid == null) return false;
         var storage = grid.getStorageService().getInventory();
@@ -289,25 +405,45 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         if (!(level instanceof ServerLevel server)) return legacyUnlockMask;
         var data = StarComputationResearchData.get(server);
         data.mergeUnlockMask(boundTeam, legacyUnlockMask);
-        return data.getUnlockMask(boundTeam) | legacyUnlockMask;
+        return data.getUnlockMask(boundTeam);
     }
 
+    /** Import paid legacy core bits first, then expose the complete permanent progress of this bound team only. */
+    public Set<ResourceLocation> getUnlockedResearchIds() {
+        getUnlockMask();
+        return level instanceof ServerLevel server
+                ? StarComputationResearchData.get(server).getUnlockedNodes(boundTeam) : Set.of();
+    }
+
+    /** Returns true only for a new, paid grant. Duplicate/invalid requests never extract information. */
+    public boolean tryUnlockResearch(ServerPlayer player, ResourceLocation id) {
+        if (!(level instanceof ServerLevel server) || !server.getServer().isSameThread()
+                || player.level() != level || isRemoved() || !player.mayBuild() || player.isSpectator()
+                || !level.hasChunkAt(worldPosition) || level.getBlockEntity(worldPosition) != this
+                || !level.mayInteract(player, worldPosition) || !canInteract(player)
+                || boundTeam == null || !boundTeam.equals(FtbTeamOwnership.forPlayer(player))
+                || BuildingTransfer.restoring(this) || !isFormed() || !getMainNode().isActive() || id == null) return false;
+        // Never use StarComputationNetwork's union: borrowed authorization is not permanent team progress.
+        var permanentUnlocks = getUnlockedResearchIds();
+        var catalog = StarResearchNodes.catalog(server);
+        if (!catalog.canUnlock(id, getBenefits().level(), permanentUnlocks)) return false;
+        var node = catalog.nodes().get(id);
+        if (!extractInformation(node.informationCost(), new PlayerSource(player))) return false;
+        var data = StarComputationResearchData.get(server);
+        if (!data.addUnlock(boundTeam, id)) return false;
+        legacyUnlockMask |= data.getUnlockMask(boundTeam);
+        saveChanges();
+        return true;
+    }
+
+    /** Legacy index API only; the dynamic menu purchases by stable resource ID through tryUnlockResearch. */
     public boolean unlockRecipe(int index, ServerPlayer player) {
         if (level == null || level.isClientSide() || player.level() != level || !player.mayBuild() || player.isSpectator()
                 || player.containerMenu == null || !(player.containerMenu instanceof StarComputationEngineMenu)
                 || !isFormed() || !getMainNode().isActive() || !canInteract(player)) return false;
         if (index < 0 || index >= StarComputationRecipes.NODES.size()) return false;
         bindOwner(player);
-        var node = StarComputationRecipes.NODES.get(index);
-        int bit = 1 << index;
-        int mask = getUnlockMask();
-        if ((mask & bit) != 0 || getEffectiveEntropy() < getResearchEntropyThreshold(index)
-                || (mask & node.prerequisiteMask()) != node.prerequisiteMask()) return false;
-        if (!extractInformation(node.informationCost(), new PlayerSource(player))) return false;
-        StarComputationResearchData.get((ServerLevel) level).addUnlock(boundTeam, index);
-        legacyUnlockMask |= bit;
-        saveChanges();
-        return true;
+        return tryUnlockResearch(player, StarComputationResearchData.LEGACY_NODE_IDS.get(index));
     }
 
     public boolean canInteract(Player player) {
@@ -417,16 +553,19 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     }
 
     public void serverTick() {
+        upgrade.resetRate();
+        if (BuildingTransfer.restoring(this)) return;
         refundInformation();
         if (overclocked && StarComputationNetwork.best(getMainNode().getGrid()) == this) payOverclockForCurrentTick();
         if (overclocked && (!isFormed() || !getMainNode().isActive())) {
             overclocked = false;
             saveChanges();
         }
-        if (++tickCounter >= CHECK_INTERVAL || !isStarOrrery()) {
+        if (++tickCounter >= CHECK_INTERVAL || !isStarOrrery() || upgrade.running()) {
             tickCounter = 0;
             refreshStructure();
         }
+        tickUpgrade();
     }
 
     @Override
@@ -596,6 +735,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         litRings = lit;
         pendingLitRings = 0;
         starOrreryValidated = true;
+        if (scan.resolved() && upgrade.migrateVerified(lit)) saveChanges();
         syncVisualState();
     }
 
@@ -621,7 +761,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         return StarOrreryRings.Probe.MATCH;
     }
 
-    private static Block starOrreryAnchorFor(int ring) {
+    static Block starOrreryAnchorFor(int ring) {
         return switch (StarOrreryRings.tierOf(ring)) {
             case 0 -> ModContent.REFERENCE_STAR_POSITION_ANCHOR.get();
             case 1 -> ModContent.QUANTUM_STAR_POSITION_ANCHOR.get();
@@ -654,21 +794,19 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
 
     private void syncVisualState() {
         int nextTier = 0;
-        int nextConnections = 0;
         int nextLit = 0;
         if (isFormed() && starOrreryValidated) {
             nextLit = Math.clamp(litRings, 0, StarOrreryRings.RINGS);
-            nextTier = nextLit == 0 ? 0 : StarOrreryRings.tierOf(nextLit - 1) + 1;
+            int effective = getEffectiveLevel();
+            nextTier = effective == 0 ? 0 : StarOrreryRings.tierOf(effective - 1) + 1;
         }
         int nextActivity = 0;
         if (nextLit > 0 && getMainNode().isActive()
                 && StarComputationNetwork.best(getMainNode().getGrid()) == this) {
             nextActivity = overclocked && level != null && paidTick == level.getGameTime() ? 2 : 1;
         }
-        if (visualTier != nextTier || visualConnections != nextConnections
-                || syncedLitRings != nextLit || visualActivity != nextActivity) {
+        if (visualTier != nextTier || syncedLitRings != nextLit || visualActivity != nextActivity) {
             visualTier = nextTier;
-            visualConnections = nextConnections;
             syncedLitRings = nextLit;
             visualActivity = nextActivity;
             markForClientUpdate();
@@ -684,7 +822,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         }
     }
 
-    /** The core's whole-body model replaces only the verified central members' meshes. */
+    /** Hide verified central meshes for the orrery renderer without removing their blocks. */
     private void updateAllBlockStates() {
         var level = getLevel();
         if (level == null) {
@@ -839,6 +977,39 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
                 || state.getBlock() instanceof StarComputationObservationPortBlock ? withFormed(state, false) : null;
     }
 
+    /** BlockItem placement and AE2 dismantling both restore only the upgrade/owner payload, never saved formation. */
+    public void importUpgradeItem(net.minecraft.world.item.ItemStack stack) {
+        var tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        if (!tag.contains(StarComputationUpgradeProgress.TAG, net.minecraft.nbt.Tag.TAG_COMPOUND)) return;
+        upgrade.load(tag);
+        if (tag.hasUUID("entropy_team")) boundTeam = tag.getUUID("entropy_team");
+        saveChanges();
+    }
+
+    @Override
+    public void exportSettings(SettingsFrom mode, DataComponentMap.Builder builder, Player player) {
+        super.exportSettings(mode, builder, player);
+        if (mode == SettingsFrom.DISMANTLE_ITEM) {
+            var tag = new CompoundTag();
+            tag.put(StarComputationUpgradeProgress.TAG, upgrade.save());
+            if (boundTeam != null) tag.putUUID("entropy_team", boundTeam);
+            builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        }
+    }
+
+    @Override
+    public void importSettings(SettingsFrom mode, DataComponentMap data, Player player) {
+        super.importSettings(mode, data, player);
+        if (mode == SettingsFrom.DISMANTLE_ITEM && level != null && !level.isClientSide()) {
+            var tag = data.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            if (tag.contains(StarComputationUpgradeProgress.TAG, net.minecraft.nbt.Tag.TAG_COMPOUND)) {
+                upgrade.load(tag);
+                if (tag.hasUUID("entropy_team")) boundTeam = tag.getUUID("entropy_team");
+                saveChanges();
+            }
+        }
+    }
+
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
@@ -847,10 +1018,10 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         tag.putInt("entropy_unlocks", legacyUnlockMask);
         tag.putLong("entropy_refund", pendingInformationRefund);
         tag.putInt("entropy_visual_tier", visualTier);
-        tag.putInt("entropy_visual_connections", visualConnections);
         tag.putInt("star_orrery_lit_rings", litRings);
         tag.putInt("star_orrery_pending_rings", pendingLitRings);
         tag.putInt("star_orrery_layout_version", STAR_ORRERY_LAYOUT_VERSION);
+        tag.put(StarComputationUpgradeProgress.TAG, upgrade.save());
         if (boundTeam != null) tag.putUUID("entropy_team", boundTeam);
     }
 
@@ -858,7 +1029,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     protected void writeToStream(RegistryFriendlyByteBuf data) {
         super.writeToStream(data);
         data.writeByte(visualTier);
-        data.writeByte(visualConnections);
+        data.writeByte(0); // Retired shell connection mask; retain the update-stream layout.
         data.writeByte(syncedLitRings);
         data.writeByte(visualActivity);
     }
@@ -867,13 +1038,11 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     protected boolean readFromStream(RegistryFriendlyByteBuf data) {
         boolean changed = super.readFromStream(data);
         int nextTier = Math.clamp(data.readUnsignedByte(), 0, 3);
-        int nextConnections = data.readUnsignedByte() & 0xF;
+        data.readUnsignedByte(); // Retired shell connection mask.
         int nextLit = Math.clamp(data.readUnsignedByte(), 0, StarOrreryRings.RINGS);
         int nextActivity = Math.clamp(data.readUnsignedByte(), 0, 2);
-        changed |= visualTier != nextTier || visualConnections != nextConnections
-                || litRings != nextLit || visualActivity != nextActivity;
+        changed |= visualTier != nextTier || litRings != nextLit || visualActivity != nextActivity;
         visualTier = nextTier;
-        visualConnections = nextConnections;
         litRings = nextLit;
         syncedLitRings = nextLit;
         visualActivity = nextActivity;
@@ -885,11 +1054,12 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadTag(tag, registries);
         formed = tag.getBoolean("formed");
+        upgrade.load(tag);
+        upgradeStatus = upgrade.running() ? "restoring" : upgrade.targetLevel() != 0 ? "paused" : "idle";
         overclocked = tag.getBoolean("entropy_overclocked");
         legacyUnlockMask = tag.getInt("entropy_unlocks") & StarComputationRecipes.ALL_UNLOCKS;
         pendingInformationRefund = Math.max(0, tag.getLong("entropy_refund"));
         visualTier = 0;
-        visualConnections = 0;
         boolean currentLayout = tag.getInt("star_orrery_layout_version") == STAR_ORRERY_LAYOUT_VERSION;
         int savedLit = currentLayout
                 ? Math.clamp(tag.getInt("star_orrery_lit_rings"), 0, StarOrreryRings.RINGS) : 0;

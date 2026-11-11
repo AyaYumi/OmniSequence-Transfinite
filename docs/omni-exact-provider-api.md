@@ -1,6 +1,15 @@
 # Exact-count provider API / 大数供应器接口
 
-Current source: OmniSequence 2.1.0, Minecraft 1.21.1, Java 21, AE2 19.2.18, AppliedEnhancements 1.1.2+ (compile API 1.1.4).
+**For mod developers whose machines handle counts above `long`.** This API lets a
+provider accept an exact logical batch count and return exact amounts of each resource.
+For ordinary whole batches within `long`, start with the [atomic batch API](omni-batch-provider-api.md).
+Players can use the machines without implementing either interface; see the [player guide](../README.md).
+
+**面向模组开发者：** 机器需要处理超出 long 的批次数或产物数量时使用本页接口；
+普通整批接单先看[批量接口](omni-batch-provider-api.zh-CN.md)。玩家无需实现这些接口，
+搭建与操作见[玩家指南](../README.zh-CN.md)。
+
+Current source: OmniSequence 21.3.0.0, Minecraft 1.21.1, Java 21, AE2 19.2.18, AppliedEnhancements 1.1.2+ (compile API 1.1.4).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is
@@ -17,6 +26,10 @@ replace it in `CraftingService.getProviders`.
 | `OmniBigIntegerOutput` | Exact amount for one AEKey |
 | `OmniBigIntegerBatchCallbacks` | Admission, actual output and cancellation callbacks |
 | `OmniBigIntegerOutputReceiver` | Direct same-grid transfer to a live bound CPU with source debit |
+
+Register a capability for your existing provider during integration setup. The example
+names stand for your own provider and adapter classes; the contracts below describe
+what that adapter must validate and persist.
 
 ```java
 OmniBigIntegerProviderAdapterRegistry.register(

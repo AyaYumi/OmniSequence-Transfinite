@@ -130,6 +130,33 @@
    "id": "rc_cont"
   },
   {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/star_computation_engine_up_target",
+   "slicing": "fixed",
+   "pad": [3, 3, 3, 3],
+   "rect": [204, 32, 188, 60],
+   "k": "card",
+   "id": "up_target"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/star_computation_engine_up_conditions",
+   "slicing": "fixed",
+   "pad": [3, 3, 3, 3],
+   "rect": [204, 98, 188, 142],
+   "k": "card",
+   "id": "up_conditions"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/star_computation_engine_up_calibration",
+   "slicing": "fixed",
+   "pad": [3, 3, 3, 3],
+   "rect": [204, 246, 188, 60],
+   "k": "card",
+   "id": "up_calibration"
+  },
+  {
    "z": 6,
    "type": "sprite",
    "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_net_6",
@@ -168,6 +195,120 @@
    ],
    "k": "card",
    "id": "ov_feature"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_rc_power_8",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    11,
+    171,
+    184,
+    50
+   ],
+   "k": "card",
+   "id": "rc_power"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/bar_track_dark",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    24,
+    211,
+    156,
+    1.5
+   ],
+   "id": "rc_power_track",
+   "owner": "rc_power"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/bar_fill_white",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    24,
+    211,
+    156,
+    1.5
+   ],
+   "id": "rc_power_fill",
+   "owner": "rc_power"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_ov_anchors_9",
+   "slicing": "fixed",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    8,
+    191,
+    85,
+    51
+   ],
+   "k": "card",
+   "id": "ov_anchors"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/bar_track_dark",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22,
+    232,
+    65,
+    1.5
+   ],
+   "id": "ov_anchors_track",
+   "owner": "ov_anchors"
+  },
+  {
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/bar_fill_white",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22,
+    232,
+    65,
+    1.5
+   ],
+   "id": "ov_anchors_fill",
+   "owner": "ov_anchors"
   },
   {
    "z": 8,
@@ -893,60 +1034,71 @@
    "type": "control",
    "id": "overview",
    "k": "ctl",
-   "rect": [
-    290,
-    10,
-    45,
-    22
-   ],
+   "rect": [222, 10, 52, 22],
    "z": 44,
    "tab_panel": "ov_feature",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_overview",
-    "rect": [
-     201,
-     7,
-     194,
-     110
-    ],
-    "pad": [
-     0,
-     0,
-     0,
-     0
-    ]
+    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_up_overview",
+    "rect": [201, 7, 194, 110],
+    "pad": [0, 0, 0, 0]
    },
    "tab_text_color": "#FFF2F2F2"
   },
   {
    "type": "control",
+   "id": "upgrade",
+   "k": "ctl",
+   "rect": [278, 10, 52, 22],
+   "z": 44,
+   "tab_panel": "up_target",
+   "tab_surface": {
+    "type": "sprite",
+    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_up_upgrade",
+    "rect": [201, 7, 194, 88],
+    "pad": [0, 0, 0, 0]
+   }
+  },
+  {
+   "type": "control",
    "id": "recipes",
    "k": "ctl",
-   "rect": [
-    339,
-    10,
-    53,
-    22
-   ],
+   "rect": [334, 10, 58, 22],
    "z": 45,
    "tab_panel": "rc_node",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_recipes",
-    "rect": [
-     201,
-     7,
-     194,
-     140
-    ],
-    "pad": [
-     0,
-     0,
-     0,
-     0
-    ]
+    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_up_recipes",
+    "rect": [201, 7, 194, 140],
+    "pad": [0, 0, 0, 0]
    }
+  },
+  {
+   "type": "control",
+   "id": "up_requirements",
+   "k": "ctl",
+   "rect": [213, 117, 170, 106]
+  },
+  {"type": "control", "id": "up_level.1", "k": "ctl", "rect": [17, 56, 18, 22]},
+  {"type": "control", "id": "up_level.2", "k": "ctl", "rect": [36, 56, 18, 22]},
+  {"type": "control", "id": "up_level.3", "k": "ctl", "rect": [55, 56, 18, 22]},
+  {"type": "control", "id": "up_level.4", "k": "ctl", "rect": [74, 56, 18, 22]},
+  {"type": "control", "id": "up_level.5", "k": "ctl", "rect": [93, 56, 18, 22]},
+  {"type": "control", "id": "up_level.6", "k": "ctl", "rect": [112, 56, 18, 22]},
+  {"type": "control", "id": "up_level.7", "k": "ctl", "rect": [131, 56, 18, 22]},
+  {"type": "control", "id": "up_level.8", "k": "ctl", "rect": [150, 56, 18, 22]},
+  {"type": "control", "id": "up_level.9", "k": "ctl", "rect": [169, 56, 18, 22]},
+  {
+   "type": "control",
+   "id": "upgrade_start",
+   "k": "ctl",
+   "rect": [204, 312, 92, 22]
+  },
+  {
+   "type": "control",
+   "id": "upgrade_pause",
+   "k": "ctl",
+   "rect": [300, 312, 92, 22]
   },
   {
    "type": "control",
@@ -1024,11 +1176,12 @@
    "type": "control",
    "id": "node.0",
    "k": "ctl",
+   "sprite": "molecularmanipulator:osq_light/common/button_normal",
    "rect": [
     17,
-    99,
-    46,
-    29
+    50,
+    172,
+    22
    ],
    "z": 51
   },
@@ -1036,11 +1189,12 @@
    "type": "control",
    "id": "node.1",
    "k": "ctl",
+   "sprite": "molecularmanipulator:osq_light/common/button_normal",
    "rect": [
-    78,
-    64,
-    47,
-    29
+    17,
+    74,
+    172,
+    22
    ],
    "z": 52
   },
@@ -1048,11 +1202,12 @@
    "type": "control",
    "id": "node.2",
    "k": "ctl",
+   "sprite": "molecularmanipulator:osq_light/common/button_normal",
    "rect": [
-    141,
-    64,
-    48,
-    29
+    17,
+    98,
+    172,
+    22
    ],
    "z": 53
   },
@@ -1060,11 +1215,12 @@
    "type": "control",
    "id": "node.3",
    "k": "ctl",
+   "sprite": "molecularmanipulator:osq_light/common/button_normal",
    "rect": [
-    78,
-    130,
-    47,
-    29
+    17,
+    122,
+    172,
+    22
    ],
    "z": 54
   },
@@ -1072,11 +1228,12 @@
    "type": "control",
    "id": "node.4",
    "k": "ctl",
+   "sprite": "molecularmanipulator:osq_light/common/button_normal",
    "rect": [
-    141,
-    130,
-    48,
-    29
+    17,
+    146,
+    172,
+    22
    ],
    "z": 55
   },
@@ -2408,6 +2565,21 @@
    ],
    "color": "#FFB8BAC8",
    "z": 160
+  },
+  {"type": "fill", "external": true, "id": "color.upgrade_accent.bronze", "rect": [0, 0, 0, 0], "color": "#FF135E4B"},
+  {"type": "fill", "external": true, "id": "color.upgrade_accent.violet", "rect": [0, 0, 0, 0], "color": "#FF4D3D9C"},
+  {"type": "fill", "external": true, "id": "color.upgrade_accent.gold", "rect": [0, 0, 0, 0], "color": "#FF6B4C09"},
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.stat_muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#B3F2F2F2"
   }
  ],
  "boxes": [
@@ -2479,6 +2651,26 @@
     "y": 32,
     "w": 188,
     "h": 82
+   }
+  },
+  {
+   "k": "card",
+   "id": "rc_power",
+   "r": {
+    "x": 16,
+    "y": 174,
+    "w": 174,
+    "h": 40
+   }
+  },
+  {
+   "k": "card",
+   "id": "ov_anchors",
+   "r": {
+    "x": 16,
+    "y": 191,
+    "w": 77,
+    "h": 45
    }
   }
  ]

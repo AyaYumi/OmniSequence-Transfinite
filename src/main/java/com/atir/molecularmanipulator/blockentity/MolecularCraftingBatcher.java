@@ -9,11 +9,14 @@ import appeng.menu.AutoCraftingMenu;
 import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.recipelock.RecipeExecutionContext;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +41,42 @@ final class MolecularCraftingBatcher {
     private ItemStack craftedOutput = ItemStack.EMPTY;
     private long craftCount;
     private boolean craftingGridPrepared;
+    private Object planRecipeView;
 
+    /** Runtime entry: even a warm plan cache requires a fresh machine/grid authorization. */
+    boolean prepare(BlockEntity machine, IPatternDetails patternDetails, KeyCounter[] inputs, long maxCrafts) {
+        var level = machine.getLevel();
+        if (level == null || level.isClientSide() || !RecipeLocks.allowedPattern(machine, patternDetails)) return false;
+        try (var scope = RecipeExecutionContext.open(machine)) {
+            var recipes = level.getRecipeManager().getRecipes();
+            if (planRecipeView != recipes) {
+                planCache.clear();
+                planRecipeView = recipes;
+            }
+            return prepare(patternDetails, inputs, level, maxCrafts);
+        }
+    }
+
+    boolean prepareSelected(BlockEntity machine, IPatternDetails patternDetails, KeyCounter[] inputs,
+            long maxCrafts, KeyCounter[] firstInputs, long selectedCraftCount) {
+        var level = machine.getLevel();
+        if (level == null || level.isClientSide() || !RecipeLocks.allowedPattern(machine, patternDetails)) return false;
+        try (var scope = RecipeExecutionContext.open(machine)) {
+            return prepareSelected(patternDetails, inputs, level, maxCrafts, firstInputs, selectedCraftCount);
+        }
+    }
+
+    MolecularReusableBatchJob prepareReusable(BlockEntity machine, IPatternDetails patternDetails,
+            KeyCounter[] inputs, UUID craftingId, MolecularReusableBatchPlan reusablePlan) {
+        var level = machine.getLevel();
+        if (level == null || level.isClientSide() || !RecipeLocks.allowedPattern(machine, patternDetails)) return null;
+        try (var scope = RecipeExecutionContext.open(machine)) {
+            return prepareReusable(patternDetails, inputs, level, craftingId, reusablePlan);
+        }
+    }
+
+    // Pure preparation overloads below are also exercised by arithmetic/ownership
+    // unit tests without a running server. Runtime hosts must use the machine overloads.
     boolean prepare(IPatternDetails patternDetails, KeyCounter[] inputs, Level level, long maxCrafts) {
         if (!(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
             return false;

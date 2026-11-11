@@ -5,23 +5,30 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.menu.guisync.PacketWritable;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
+import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
+import com.atir.molecularmanipulator.crafting.PatternRecipeReloads;
+import com.atir.molecularmanipulator.recipelock.RecipeLockRecipe;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.TreeMap;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.Level;
 
-/** Server-resolved outputs, not recipe definitions or guesses based on an item's registry name. */
+/** Server-resolved outputs in current research-list order; contains no cached team/network authorization. */
 public record StarComputationRecipeCatalog(List<List<Entry>> nodes) implements PacketWritable {
-    public static final int NODE_COUNT = 5;
     public static final int MAX_RECIPES_PER_NODE = 8;
     // A Matter recipe may have six item results, one fluid result and six arbitrary AE outputs.
     public static final int MAX_OUTPUTS_PER_RECIPE = MatterFabricationRecipe.MAX_OUTPUTS * 2 + 1;
-    public static final StarComputationRecipeCatalog EMPTY = new StarComputationRecipeCatalog(
-            java.util.Collections.nCopies(NODE_COUNT, List.of()));
+    public static final StarComputationRecipeCatalog EMPTY = new StarComputationRecipeCatalog(List.of());
 
     public record Entry(ResourceLocation id, boolean present, List<GenericStack> outputs) {
         public Entry {
@@ -35,7 +42,6 @@ public record StarComputationRecipeCatalog(List<List<Entry>> nodes) implements P
     }
 
     public StarComputationRecipeCatalog {
-        if (nodes.size() != NODE_COUNT) throw new IllegalArgumentException("Expected five entropy nodes");
         nodes = nodes.stream().map(entries -> {
             if (entries.size() > MAX_RECIPES_PER_NODE) throw new IllegalArgumentException("Too many entropy recipes");
             return List.copyOf(entries);
@@ -66,9 +72,11 @@ public record StarComputationRecipeCatalog(List<List<Entry>> nodes) implements P
     }
 
     private static List<List<Entry>> readNodes(RegistryFriendlyByteBuf buffer) {
-        if (buffer.readVarInt() != NODE_COUNT) throw new IllegalArgumentException("Expected five entropy nodes");
-        var nodes = new ArrayList<List<Entry>>(NODE_COUNT);
-        for (int node = 0; node < NODE_COUNT; node++) {
+        int count = buffer.readVarInt();
+        // Even an empty per-node list consumes a byte. No arbitrary limit on the research directory's size.
+        if (count < 0 || count > buffer.readableBytes()) throw new IllegalArgumentException("Invalid research node count: " + count);
+        var nodes = new ArrayList<List<Entry>>(count);
+        for (int node = 0; node < count; node++) {
             int size = boundedSize(buffer, MAX_RECIPES_PER_NODE);
             var entries = new ArrayList<Entry>(size);
             for (int index = 0; index < size; index++) {
@@ -112,37 +120,57 @@ public record StarComputationRecipeCatalog(List<List<Entry>> nodes) implements P
         return new Entry(id, holder != null, outputs);
     }
 
-    /** Menu-local, server-only cache. Reload can replace holders without replacing RecipeManager. */
+    /** Menu-local, server-only definition cache. Reload can replace holders without replacing RecipeManager. */
     public static final class ServerCache {
-        public static final int CHECK_INTERVAL_TICKS = 10;
         private RecipeManager manager;
-        private List<RecipeHolder<?>> holders = List.of();
-        private long nextCheck;
+        private Collection<RecipeHolder<?>> source;
+        private long generation = Long.MIN_VALUE;
+        private StarResearchNodes.Catalog directory;
         private StarComputationRecipeCatalog catalog = EMPTY;
 
-        public StarComputationRecipeCatalog get(RecipeManager current, HolderLookup.Provider registries, long tick) {
-            if (current == manager && tick < nextCheck) return catalog;
-            nextCheck = tick + CHECK_INTERVAL_TICKS;
-            var currentHolders = new ArrayList<RecipeHolder<?>>();
-            for (var node : StarComputationRecipes.NODES) {
-                for (var id : node.recipeIds()) currentHolders.add(current.byKey(id).orElse(null));
+        public StarComputationRecipeCatalog get(Level level, long tick) {
+            return get(level, StarResearchNodes.catalog(level), tick);
+        }
+
+        /** Pass the same directory used for GuiSync 28 so every preview index addresses that exact list. */
+        public StarComputationRecipeCatalog get(Level level, StarResearchNodes.Catalog currentNodes, long tick) {
+            var current = level.getRecipeManager();
+            var currentSource = current.getRecipes();
+            long currentGeneration = PatternRecipeReloads.generation();
+            // Cheap identity checks run every call; no polling delay may publish previews for a stale node list.
+            if (current == manager && source == currentSource && generation == currentGeneration
+                    && directory == currentNodes) return catalog;
+
+            var recipes = new TreeMap<ResourceLocation, RecipeHolder<?>>();
+            for (var holder : currentSource) recipes.put(holder.id(), holder);
+            // Imported fabrication holders are outside RecipeManager and also inherit their source ID's locks.
+            for (var holder : MatterRecipeIndex.get(level).fabrication()) recipes.putIfAbsent(holder.id(), holder);
+            // Preserve diagnostics for missing exact targets, but let RecipeLocks decide whether selectors match.
+            for (var holder : currentSource) if (holder.value() instanceof RecipeLockRecipe lock && lock.match() != null) {
+                for (var id : lock.match().recipeIds()) recipes.putIfAbsent(id, null);
             }
-            boolean changed = current != manager || holders.size() != currentHolders.size();
-            for (int index = 0; !changed && index < holders.size(); index++) {
-                changed = holders.get(index) != currentHolders.get(index);
+
+            var byNode = new LinkedHashMap<ResourceLocation, List<Entry>>();
+            currentNodes.nodes().keySet().forEach(id -> byNode.put(id, new ArrayList<>()));
+            for (var recipe : recipes.entrySet()) {
+                var holder = recipe.getValue();
+                var requirements = holder == null ? RecipeLocks.requirements(level, recipe.getKey())
+                        : RecipeLocks.requirements(level, holder);
+                var matchingNodes = new LinkedHashSet<ResourceLocation>();
+                for (var rule : requirements) matchingNodes.addAll(rule.nodes());
+                Entry resolved = null;
+                for (var id : matchingNodes) {
+                    var entries = byNode.get(id);
+                    if (entries == null || entries.size() >= MAX_RECIPES_PER_NODE) continue;
+                    if (resolved == null) resolved = resolve(recipe.getKey(), holder, level.registryAccess());
+                    entries.add(resolved);
+                }
             }
-            if (!changed) return catalog;
-            var nodes = new ArrayList<List<Entry>>(NODE_COUNT);
-            int index = 0;
-            for (var node : StarComputationRecipes.NODES) {
-                var entries = new ArrayList<Entry>();
-                for (var id : node.recipeIds()) entries.add(resolve(id, currentHolders.get(index++), registries));
-                nodes.add(entries);
-            }
-            catalog = new StarComputationRecipeCatalog(nodes);
+            catalog = new StarComputationRecipeCatalog(new ArrayList<>(byNode.values()));
             manager = current;
-            // Null holders intentionally represent missing recipes; List.copyOf would reject them.
-            holders = currentHolders;
+            source = currentSource;
+            generation = currentGeneration;
+            directory = currentNodes;
             return catalog;
         }
     }

@@ -2881,7 +2881,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Unique
     private final class NativeBigIntegerBatchCallback
         implements OmniBigIntegerBatchCallbacks, com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutputReceiver {
-        private final IPatternDetails pattern;
         private final OmniExactCraftingState acceptedState = molecularmanipulator$exactState;
         private final Map<AEKey, BigInteger> planned = new HashMap<>();
         private final Set<AEKey> changedKeys = new LinkedHashSet<>();
@@ -2992,10 +2991,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             changedKeys.clear();
         }
 
-        NativeBigIntegerBatchCallback(IPatternDetails pattern,
-                                      BigInteger count,
-                                      long accountingDivisor) {
-            this.pattern = pattern;
+        NativeBigIntegerBatchCallback(IPatternDetails pattern, BigInteger count) {
             for (GenericStack output : pattern.getOutputs()) {
                 if (output == null || output.what() == null || output.amount() <= 0L) {
                     continue;
@@ -3037,9 +3033,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             if (!terminal) {
                 terminal = true;
                 flushChangedKeys();
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
-                        "Native BigInteger batch was cancelled before output completion: pattern={}, planned={}",
-                        pattern == null ? "null" : pattern.getDefinition(), plannedAmount);
             }
         }
 
@@ -3094,8 +3087,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                 return BigInteger.ZERO;
             }
             admitted = admitted.min(requested);
-            var callbackToken = new NativeBigIntegerBatchCallback(
-                    patternDetails, admitted, accountingDivisor);
+            var callbackToken = new NativeBigIntegerBatchCallback(patternDetails, admitted);
             molecularmanipulator$nativeBigIntegerCallback = callbackToken;
             boolean accepted;
             try (var reservation = OmniExactInputReservation.reserve(molecularmanipulator$exactInventory,

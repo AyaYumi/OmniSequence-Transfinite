@@ -8,6 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
@@ -15,6 +16,7 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,10 +31,25 @@ public record MatterFabricationRecipe(
         List<GenericStack> aeOutputs,
         int processingTime,
         double aePerTick,
-        boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
+        boolean requiresResearch,
+        @Nullable ResourceLocation sourceRecipeId) implements Recipe<MatterFabricationRecipeInput> {
     public static final int DEFAULT_PROCESSING_TIME = 20 * 20;
     public static final int MAX_INPUTS = 12;
     public static final int MAX_OUTPUTS = 6;
+
+    /** Native/decoded recipes have no external identity; only runtime imports attach one. */
+    public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<CountedIngredient> catalysts,
+            List<ItemStack> results, FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
+            List<GenericStack> aeOutputs, int processingTime, double aePerTick, boolean requiresResearch) {
+        this(ingredients, catalysts, results, fluidInput, fluidResult, aeInputs, aeOutputs,
+                processingTime, aePerTick, requiresResearch, null);
+    }
+
+    /** Exact source holder ID, never inferred from the internal ID or the output item. Not a JSON field. */
+    public MatterFabricationRecipe withSourceRecipeId(ResourceLocation sourceRecipeId) {
+        return new MatterFabricationRecipe(ingredients, catalysts, results, fluidInput, fluidResult, aeInputs,
+                aeOutputs, processingTime, aePerTick, requiresResearch, java.util.Objects.requireNonNull(sourceRecipeId));
+    }
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
             FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,

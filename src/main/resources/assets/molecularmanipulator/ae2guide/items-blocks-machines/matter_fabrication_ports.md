@@ -13,7 +13,7 @@ item_ids:
 
 # Fabrication Input and Output Ports
 
-Input and output ports supply the [Fabrication Well](matter_fabrication_well.md) and receive its products. All four types require no research and must be installed in the well's service positions.
+Ports let you put ingredients into the [Fabrication Well](matter_fabrication_well.md) and collect finished products, by hand or with pipes.
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_item_input" scale="4" />
@@ -25,39 +25,69 @@ Input and output ports supply the [Fabrication Well](matter_fabrication_well.md)
 <BlockImage id="molecularmanipulator:matter_fabrication_fluid_output" scale="4" />
 </Row>
 
-## Port types
+From left to right: item input, item output, fluid input, fluid output.
 
-| Port | Use | Capacity |
+## Before you start
+
+All four ports can be crafted without research. You need a complete well, a powered ME connection and an unlocked processing recipe.
+
+| Port | Put here / collect here | Capacity |
 | --- | --- | --- |
-| Item input | Receive item ingredients | 16 slots |
-| Item output | Hold item products | 16 slots |
-| Fluid input | Receive fluid ingredients | 4 tanks |
-| Fluid output | Hold fluid products | 4 tanks |
+| Item input | Solid ingredients | 16 slots |
+| Item output | Solid products | 16 slots |
+| Fluid input | Fluid ingredients | 4 tanks |
+| Fluid output | Fluid products | 4 tanks |
 
-Each tank holds **2,147,483,647 mB**. Hold a port to see valid positions. The formed controller uses materials from its input ports to run unlocked recipes.
+Each tank holds **2,147,483,647 mB**. Choose ports for **every input and output** in your recipe; a recipe with a fluid product also needs a fluid output port.
 
-## Pipes and automatic output
+## Run a recipe
 
-Connect item pipes to item inputs and fluid pipes to fluid inputs. Install the appropriate outputs for every product, leave room for them, and extract products with pipes.
+1. **Find an installation position.** Hold a port in either hand. Replace casing marked by a cyan outline; an orange outline marks an occupied position.
+2. **Install inputs and outputs.** Ports use the same 44 positions as Pattern Assemblies. They do not work when simply placed beside the well.
+3. **Add the complete recipe quantities.** Put items into the item input, and fill the fluid input if needed. Pipes can insert the same way.
+4. **Leave output space and power the well.** The controller automatically finds an unlocked recipe and begins processing.
+5. **Collect the products.** Take items from the output port, or use item/fluid pipes to extract them.
 
-Outputs can also send products to adjacent containers. Enable **Auto Output** and select at least one direction. The six directions use world axes and allow multiple selections. Hover a direction button to identify its neighbor. Automatic output is disabled by default.
+**Research does not use these inputs.** Research materials must be stored in ME. Recipes that consume Star Signal Flow need a [Pattern Assembly](matter_fabrication_pattern_assembly.md), because signal cannot be put into an item or fluid port.
 
-## Moving fluids by hand
+### Move fluids by hand
 
-Pick up a filled container with the cursor and **right-click a fluid slot** to fill it. Use an empty container to drain it. Each action handles one container and requires sufficient fluid or capacity.
+Pick up a filled fluid container with your cursor, then **right-click a tank** to fill it. Right-click with an empty container to take fluid out. Each click handles one container and needs enough fluid or free tank space.
 
-## Returning materials
+### Let an output port empty itself
 
-The input port's **Return to ME** button sends unused ingredients to the controller's ME network. Materials that do not fit remain in the port. Normal port removal carries its cache with the block.
+1. Place a suitable receiving container beside the output port.
+2. Open the port and change **Auto: OFF** to **Auto: ON**.
+3. Open **Output sides · select** and enable the side facing that container. You can select several sides.
 
-If processing cannot start, check research unlocks, all required inputs and capacity for every output. Research materials must be in ME storage; input ports do not supply research.
+The direction diagram follows the port's facing: the center is front and the lower-right is back. Hover a side to check the pictured neighboring block. Auto output is off by default and only sends what the destination can accept.
 
-## Recipes
+## What success looks like
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_item_input" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+The port reports **Controller AE network connected**. When a batch completes, input quantities fall and products appear in the matching outputs. With automatic output enabled, those products move into the selected adjacent container.
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_item_output" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+To clear unused input materials, select **All to AE** in the input port. Materials that do not fit in ME remain in the port. Normal removal keeps the port's contents with the block.
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_input" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+## If it does not work
 
-<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_output" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+| Problem | Fix |
+| --- | --- |
+| Port reports disconnected | Check the well's structure and ME connection, and that the port replaced highlighted casing. |
+| Ingredients sit in the input | Check research, exact ingredient types and quantities, power, and room for all products. |
+| Auto output moves nothing | Turn it on, select an output side and check that the neighbor accepts that item or fluid. |
+| Fluid container does nothing | Hold it with the cursor and right-click the tank; check fluid type and available capacity. |
+| All to AE leaves materials behind | Free compatible ME storage and restore the network connection. |
+
+## Port recipes
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_item_input" />
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_item_output" />
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_input" />
+
+<RecipeFor id="molecularmanipulator:matter_fabrication_fluid_output" />
+
+## Next steps
+
+Use a [Pattern Assembly](matter_fabrication_pattern_assembly.md) to order products from ME, or open [Fabrication Research](matter_fabrication_research.md) to unlock more processing recipes.

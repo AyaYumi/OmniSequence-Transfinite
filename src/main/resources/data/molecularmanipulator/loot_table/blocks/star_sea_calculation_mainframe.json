@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "molecularmanipulator:star_sea_calculation_mainframe"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:block_state_property",
+          "block": "molecularmanipulator:star_sea_calculation_mainframe",
+          "properties": { "part": "2" }
+        },
+        { "condition": "minecraft:survives_explosion" }
+      ]
+    }
+  ],
+  "random_sequence": "molecularmanipulator:blocks/star_sea_calculation_mainframe"
+}

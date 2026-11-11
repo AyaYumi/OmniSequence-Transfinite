@@ -53,6 +53,9 @@ public final class MolecularManipulator {
                 com.atir.molecularmanipulator.registry.HighEnergyLabContent.POWER_INTERFACE_BE.get(),
                 (blockEntity, side) -> blockEntity.getEnergyStorage(side));
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                com.atir.molecularmanipulator.registry.StarSeaCalculationContent.BLOCK_ENTITY.get(),
+                (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 ModContent.STAR_COMPUTATION_ENGINE_CORE_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlock(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 (level, pos, state, blockEntity, side) ->

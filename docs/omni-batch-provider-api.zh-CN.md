@@ -1,6 +1,11 @@
 # 万物演算批量样板供应器 API v1
 
-对应 2.1.0，Minecraft 1.21.1 / Java 21 / AE2 19.2.18 / AppliedEnhancements 1.1.2+（编译 API 1.1.4）。
+**面向模组开发者。** 如果你的 AE2 样板供应器能一次接收多份完整配方，可实现这个接单接口，
+由 Omni 分配整批材料，再一次交给机器。普通 AE2 供应器不实现它也能正常接单。
+玩家搭机器请看[玩家指南](../README.zh-CN.md)或游戏内 **G** 指南；这里的 SPI 是开发接口，
+不是需要额外安装的玩家组件。
+
+对应 21.3.0.0，Minecraft 1.21.1 / Java 21 / AE2 19.2.18 / AppliedEnhancements 1.1.2+（编译 API 1.1.4）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 
@@ -27,7 +32,10 @@
 
 Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算枢没有新增供应器 ABI 或资源格式。
 
-接入流程为两阶段：
+## 接入步骤与材料归属
+
+接入流程为两阶段（完整 Java 实现片段见[英文版](omni-batch-provider-api.md#provider-integration)；
+示例中的库存检查、容量与持久队列辅助方法由接入机器实现）：
 
 1. `prepareOmniBatch` 根据一份真实材料与请求上限，返回当前能原子接收的完整配方数；
 2. Omni 抽取实际材料后调用 `commit`，供应器必须通过 delivery 明确接受或拒绝整批。

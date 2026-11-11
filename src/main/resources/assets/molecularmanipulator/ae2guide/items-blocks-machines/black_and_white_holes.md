@@ -12,7 +12,7 @@ item_ids:
 
 # Black Holes and White Holes
 
-Miniature Black Holes transfer nearby dropped items and non-player entities to the nearest same-team Miniature White Hole in the same dimension. They provide item and creature transport and are ingredients for hub components.
+**The black hole is the entrance; the white hole is the exit.** Nearby dropped items and creatures travel to the nearest same-team white hole in the same dimension. No ME cables are needed. Players are not pulled in and cannot use this to teleport themselves.
 
 <Row>
 <ItemImage id="molecularmanipulator:black_hole" scale="6" />
@@ -22,40 +22,48 @@ Miniature Black Holes transfer nearby dropped items and non-player entities to t
 <ItemImage id="molecularmanipulator:miniature_supernova" scale="6" />
 </Row>
 
-## Fabrication
+Left to right: **Miniature Black Hole (entrance) → Miniature White Hole (exit)**. The Miniature Supernova is a hub ingredient, not a transport exit.
 
-Complete **Tier 3: Event Horizon** and process these recipes through the well's [Pattern Assembly](matter_fabrication_pattern_assembly.md). After the first unlock, each recipe has a base time of **20 seconds at 4096 AE/t**, before Star Computation Engine speed bonuses.
+## What you need
 
-| Result | Ingredients |
+- Complete **Tier IV: Event Horizon Materials** at the well for black and white holes. The supernova also needs **Tier V: Stellar Cores**.
+- Process the recipes below through the well's [Pattern Assembly](matter_fabrication_pattern_assembly.md). Each has a base time of **20 seconds at 4096 AE/t**; Star Computation Engine bonuses can shorten it.
+- Leave a safe exit and keep livestock away from the entrance: the black hole also pulls in nearby creatures.
+
+| To make 1 | Ingredients |
 | --- | --- |
-| Miniature Black Hole ×1 | AE2 Singularity ×10,000 |
-| Miniature White Hole ×1 | Miniature Black Hole ×10 |
-| Miniature Supernova ×1 | Miniature Black Hole ×100, Miniature White Hole ×100 |
+| Miniature Black Hole | AE2 Singularity ×10,000 |
+| Miniature White Hole | Miniature Black Hole ×10 |
+| Miniature Supernova | Miniature Black Hole ×100, Miniature White Hole ×100 |
 
-The hub controller and White Hole Resource Core each need one Miniature Supernova.
+The hub controller and White Hole Resource Core each need one supernova. Black-hole items can also generate matter inside a hub; see [Matter Duplication](singularity_matter_duplication.md).
 
-## Setting up transport
+## Set up transport
 
-1. Place a **Miniature White Hole** and leave clear exit space above it.
-2. Have a member of the same FTB team place a **Miniature Black Hole** in the same dimension.
-3. Nearby dropped items and non-player entities are pulled toward the black hole. Reaching its center transfers them above the nearest white hole.
+1. **Place the white hole first.** Prepare clear space above it, with a safe landing, enclosure or item collector.
+2. **Place the black hole.** Both must be in the same dimension and placed by members of the same FTB team. Without FTB Teams, use the same player for both.
+3. **Test with one expendable item.** It is pulled into the entrance, then appears above the nearest matching white hole.
+4. Once the test works, use the route for items or creatures. Each black hole chooses its own nearest exit; you can place multiple white holes.
 
-Players are neither pulled nor transferred. Without a matching white hole, the black hole does not begin pulling. Multiple black holes each choose their nearest exit; there is no white-hole placement limit.
+## How to tell it worked
 
-## Teams and chunks
+The item disappears at the entrance and **that same item or creature** appears above the exit. This transports it, rather than making a copy. Without a matching exit, the black hole does not begin pulling.
 
-Placement binds a hole to the placer's FTB team, or to the individual without FTB Teams. Re-place holes after changing teams to update their ownership.
+A white hole keeps its own chunk loaded until removed. The black hole's chunk must also stay loaded for continuous operation.
 
-A white hole keeps its chunk loaded until removal. A black hole operates only while its own chunk is loaded. Transport preserves the entities and items themselves.
+## Quick fixes
 
-## Use in the hub
+| Problem | What to check |
+| --- | --- |
+| Nothing is pulled in | Check the dimension, team and whether the black hole's chunk is loaded. |
+| Transport stopped after a team change | Team ownership is set on placement. Re-place both holes. |
+| Items arrive at another exit | The nearest same-team white hole wins. Move the exits. |
+| Creatures wander away | Keep the space above the exit clear and add an enclosure. |
 
-Miniature Black Hole items can also go into the hub's dedicated slot, up to **64**, to increase Sequence Matter production. See [Matter Duplication](singularity_matter_duplication.md).
+## Recipe lookup
 
-## Recipes
+<RecipeFor id="molecularmanipulator:black_hole" fallbackText="Check JEI for the well recipe and research requirements." />
 
-<RecipeFor id="molecularmanipulator:black_hole" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+<RecipeFor id="molecularmanipulator:white_hole" fallbackText="Check JEI for the well recipe and research requirements." />
 
-<RecipeFor id="molecularmanipulator:white_hole" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
-
-<RecipeFor id="molecularmanipulator:miniature_supernova" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
+<RecipeFor id="molecularmanipulator:miniature_supernova" fallbackText="Check JEI for the well recipe and research requirements." />

@@ -8,66 +8,90 @@ navigation:
 
 # Fabrication Research
 
-Research unlocks fabrication recipes and later machines. Progress belongs to the current [Fabrication Well](matter_fabrication_well.md); another well needs its own research.
+Research unlocks new Fabrication Well recipes; repeating a research lets that branch process more recipe executions together.
 
 <Row>
-<BlockImage id="molecularmanipulator:matter_fabrication_controller" scale="4" />
+<ItemImage id="ae2:engineering_processor" scale="4" />
 
-<BlockImage id="molecularmanipulator:molecular_center_controller" scale="4" />
+<ItemImage id="molecularmanipulator:star_marrow_crystal" scale="4" />
 
-<BlockImage id="molecularmanipulator:omni_computation_controller" scale="4" />
-
-<BlockImage id="molecularmanipulator:event_horizon_singularity_hub" scale="4" />
+<ItemImage id="molecularmanipulator:star_chart_processor" scale="4" />
 </Row>
 
-## Progression
+## Before you start
 
-| Research | Prerequisite | First completion unlocks | Default power |
+- Build a complete [Fabrication Well](matter_fabrication_well.md) and connect powered ME storage.
+- **Put research materials in that ME network. The well does not take them from your backpack or input ports.**
+- Research belongs to this well. A second well needs its own completions.
+- Start with **Tier I: AE Foundation**. Its first round needs **4 Inscribers, 4 Chargers, 256 Certus Quartz Crystals, 128 Fluix Crystals, and 64 each of Logic, Calculation and Engineering Processors**.
+
+## Complete your first research
+
+1. Open the controller and select **Study**.
+2. Select **Tier I: AE Foundation** in the project list. Read **Stock / round cost** and the listed prerequisites. Scroll the material list to see every requirement.
+3. Store the full cost in ME, then select **Unlock**. All materials for this round are paid at the start.
+4. Keep the structure, network and power available. The first round takes **30 seconds at 256 AE/t** by default.
+5. Look for **1 / 9 completions**. You can now make a [Pattern Assembly](matter_fabrication_pattern_assembly.md) and use the unlocked AE processing recipes.
+
+For another round, select **Deep research**. Manually started research can be paused with **Pause** and continued with **Resume**, keeping paid materials and progress. Separate branches can run at the same time if you supply enough power.
+
+## Which branch should you choose next?
+
+![Main research route: AE Foundation branches into Star Marrow and Extended Materials; the two Tier III branches join before Horizon, Stellar and Transfinite](../assets/diagrams/research-route-en_us.png)
+
+Follow arrows from prerequisite to next research. Both Tier III branches are needed later. Optional Crystallization and Exotic Matter branches are not pictured.
+
+Unless a count is stated, one completion of each prerequisite is enough. Times and power below are defaults; the research panel shows your pack's current requirements.
+
+| Research | Complete first | What it opens | Time / AE per tick |
 | --- | --- | --- | --- |
-| Tier 1: AE materials | None | AE processing, Pattern Assembly, Molecular Auto Crafter and later research materials | 256 AE/t |
-| Special: Exotic Matter Studies | Tier 1 once | [Gravity Crystals and Ghost Matter](nomai_materials.md) | 256 AE/t |
-| Tier 2: Sequence Array | Tier 1 once | Sequence Array, Rewrite Array and Matrix Rewrite Core | 512 AE/t |
-| Tier 2: Omni Computation | Tier 1 once | Omni Computation Core, Compute Nexus and their parts | 1024 AE/t |
-| Tier 3: Event Horizon | Both tier 2 branches once | Miniature Black Hole, White Hole, Supernova and hub parts | 2048 AE/t |
+| I · AE Foundation | Nothing | AE processing, Pattern Assembly, Molecular Auto Crafter | 30 s / 256 |
+| II · Star Marrow Materials | AE Foundation | Boards, processors, dust, alloy, signal components and later star anchors | 45 s / 512 |
+| II · Extended Materials | AE Foundation | ExtendedAE materials and parts needed for progression | 45 s / 512 |
+| II · Quantum Materials | Extended Materials | AdvancedAE materials and parts needed for progression | 60 s / 1024 |
+| III · Sequence Engineering | Extended Materials + Star Marrow Materials | Sequence machinery, rewrite devices, Infinite Crafting Storage and Infinite Parallel Matrix | 60 s / 1024 |
+| III · Computation Architecture | Quantum Materials + Star Marrow Materials | Computation machinery and Omniscient Computation Matrix | 90 s / 2048 |
+| IV · Event Horizon Materials | Sequence Engineering + Computation Architecture | Black/white holes and hub building parts | 90 s / 4096 |
+| V · Stellar Cores | Event Horizon Materials | Miniature Supernova, hub controller and White Hole Resource Core | 120 s / 8192 |
+| VI · Transfinite Integration | Stellar Cores | Transfinite Compute Nexus | 180 s / 16384 |
+| Optional · Signal-Induced Crystallization | Star Marrow Materials | Make crystals from signal and water with a reusable Flawless parent rock | 60 s / 512 |
+| Optional · Exotic Matter Studies | AE Foundation | Ghost Matter and Gravity Crystals | 30 s / 256 |
 
-Each default research round takes **30 seconds**. Both tier 2 branches can progress together; maximum depth is not needed for tier 3. Exotic Matter Studies appears immediately after tier 1 and remains an optional, stage-zero, single-round research that does not require tier 3.
+**You can keep using naturally grown crystals.** Signal-Induced Crystallization is optional; basic star-material processing needs neither signal nor a Flawless parent rock.
 
-The [Molecular Auto Crafter](molecular_auto_crafter.md) belongs to tier 1 rather than the Sequence Array branch. Later tier-1 completions raise parallelism for its Fabrication Well recipe. Crafting it still requires an active [Star Computation Engine](star_computation_engine.md) on the well's ME network with the permanent **Star Computation Foundation** node unlocked. Existing wells keep their research completion counts; other branches, prerequisites and addon research are unchanged.
+### Bringing other machines' recipes into the well
 
-## Starting research
+Machine-integration research requires **at least three completions of both Tier III branches**: Sequence Engineering **3 / 9** and Computation Architecture **3 / 9**. The first round counts toward three. Merely reaching Tier III is not enough.
 
-1. Form the well and connect a powered ME network with storage.
-2. Open **Research**, select a branch and check prerequisites and available ME stock against the round's cost.
-3. Store ingredients in that ME network. Your inventory and input ports do not supply research.
-4. With all materials available, select **Start** to pay the round's cost, then supply power until completion.
+This applies to all default machine integrations and pack-added machine imports, including their production recipes. Tier II Extended/Quantum Materials provide the startup recipes needed to reach those branches. Integrations appear when their required mods are installed.
 
-Each branch runs one round at a time; different branches can run independently. Power loss, disconnection and structure damage retain materials and progress until conditions recover.
+### The separate Star Orrery research
 
-## Ordering materials
+The [Star Computation Engine](star_computation_engine.md) is a **nine-ring Star Orrery**, not a separate small cube. Its default research menu contains only **Single-Block Integration**: reach **L3**, then **actively unlock it for 0 bit**.
 
-ME autocrafting can prepare missing materials. The network needs the required patterns, ingredients and an available crafting CPU.
+That unlock is an additional requirement for the **Molecular Sequence Rewrite Array** and **Transfinite Compute Nexus** only; their well-research requirements still apply. The three matrices, star anchors and Molecular Auto Crafter have no extra star-research unlock in the defaults.
 
-| Action | Effect |
+## Let ME prepare the materials
+
+The network needs suitable patterns, ingredients and an available crafting CPU.
+
+| Button | What happens |
 | --- | --- |
-| Select **Order** | Prepare the next round's materials and start automatically when ready |
-| Hold **Shift** and select **Order to maximum** | Prepare every remaining round and reach maximum depth in one research run |
-| Select **Stop current research** during preparation | Cancel unfinished orders and return cached materials to ME |
+| **Order** | Prepare the next round, then start research automatically. |
+| Hold **Shift** → **Order to Maximum** | Show and prepare the combined cost of every remaining round, then finish them in one research run. |
+| **Stop Current Research**, while preparing | Cancel preparation and unfinished material orders; return reserved materials to ME. |
 
-Holding Shift also changes the material list and displayed rewards to the maximum target. Hover counts for exact amounts.
+**Once ordered research starts, it cannot be stopped or paused.** Ordering to maximum pays for all remaining rounds but takes one research duration at that branch's listed power. Check the total before ordering. Refunds wait safely if ME storage is full.
 
-Preparation continues to replenish shortages. Ordered products are reserved for the current research. Refunds wait if ME storage cannot accept them.
+## Larger batches: all nine rounds
 
-**Research started through ordering cannot stop or pause once running.** A maximum order consumes every remaining round's materials, but uses one research duration and that research's power per tick.
+Every default research has **nine rounds**, including Exotic Matter Studies and machine integrations. The first unlocks recipes. Later rounds increase **parallelism: how many recipe executions can run together**. They do not make one execution faster.
 
-## Deep research
-
-The four ordinary research branches each allow **nine completions** by default. The first unlocks recipes; later completions improve parallelism for that branch's fabrication recipes. Later rounds cost 2, 4, 8, 16, 32, 64, 128 and 256 times the base materials.
-
-| Completions | Parallel limit |
+| Completed rounds | Parallel limit |
 | --- | --- |
 | 1 | 1 |
 | 2 | 256 |
-| 3 | 65.54K |
+| 3 | 65,536 |
 | 4 | 16.78M |
 | 5 | 4.29G |
 | 6 | 1.10T |
@@ -75,22 +99,25 @@ The four ordinary research branches each allow **nine completions** by default. 
 | 8 | 72.06P |
 | 9 | 9.22E |
 
-Basic recipes with no owning research remain usable before research and inherit tier 1's completed parallel limit; without that progress their parallel limit is one. This does not unlock gated recipes or add research-based speed.
+Read each next round's material list: expansion rounds use their own costs, not a repeat of the first round's machine purchases. Actual batches still need enough ingredients, power and output space.
 
-Ingredients, power and output capacity limit actual batches. Deep research changes parallelism only, including the ninth round. Built-in fabrication recipes and generated bridge defaults take **20 seconds (400 ticks)** before speed bonuses; explicit custom recipe times are preserved.
+Production speed comes from the Star Computation Engine on the controller's ME network. It does not shorten research timers. Basic recipes that need no research remain available and use AE Foundation's completed parallel limit, or one execution before any completion.
 
-The [Star Computation Engine](star_computation_engine.md) on the well's ME network supplies production speed. Ordinary levels divide base ticks by the effective speed multiplier and round up, with a one-tick minimum. Level 9 overclocking forces one tick. Level and overclocking changes also rescale existing batches' completed progress to the new duration, rounded down to whole ticks. Research's own duration remains independent.
+## What success looks like
 
-## Tier 3 materials
+The completed count increases, the branch's recipes become available, and later rounds raise the displayed parallel limit. Use the recipe-unlock list to inspect what that branch produces.
 
-The first Event Horizon round consumes one complete Sequence Array material set and one complete Omni Computation Core material set, including controllers and structure blocks.
+## If it does not work
 
-| Material set | Count |
+| Problem | Fix |
 | --- | --- |
-| Sequence Array | 2,345 blocks |
-| Omni Computation Core | 2,289 blocks |
-| Combined | 19 material types; 4,634 blocks |
+| Materials are in your inventory but stock is zero | Store them in the controller's ME network, not its ports. |
+| Unlock / Deep research is unavailable | Check all prerequisite counts, current ME stock, structure and network. |
+| Machine integration stays locked | Complete **both** Tier III branches three times. |
+| Material ordering waits | Open **Details**; check missing patterns, ingredients and CPU availability. |
+| Research stops advancing | Restore structure, network and sufficient power. Paid materials and progress remain. |
+| Array or nexus recipe is still locked | Check both its well research and the L3 **Single-Block Integration** unlock in the Star Orrery. |
 
-Ingredients come from ME storage. Placed buildings are neither dismantled nor credited toward the cost. See [Black and White Holes](black_and_white_holes.md) and [Singularity Hub](event_horizon_singularity_hub.md) for tier 3 recipes and uses.
+## Next steps
 
-Modpacks can adjust prerequisites, depth and rewards. Check the Research page's materials, duration and power before starting.
+Install a [Pattern Assembly](matter_fabrication_pattern_assembly.md), grow [Star Marrow Crystals](star_marrow_crystals.md), or follow [Exotic Matter Studies](nomai_materials.md) for gravity tools.

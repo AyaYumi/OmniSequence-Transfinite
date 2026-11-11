@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.world;
 
-import com.atir.molecularmanipulator.registry.GreenFireLanternContent;
+import com.atir.molecularmanipulator.registry.SimulationLanternContent;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +29,7 @@ public final class LanternInventoryLock {
     }
 
     public static boolean isLantern(ItemStack stack) {
-        return !stack.isEmpty() && GreenFireLanternContent.isLantern(stack);
+        return !stack.isEmpty() && SimulationLanternContent.isLantern(stack);
     }
 
     private static boolean isLockedHand(Player player, int inventorySlot) {

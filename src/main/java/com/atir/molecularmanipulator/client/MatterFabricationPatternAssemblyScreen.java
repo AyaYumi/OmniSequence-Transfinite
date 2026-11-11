@@ -8,6 +8,7 @@ import com.atir.molecularmanipulator.menu.MatterFabricationPatternAssemblyMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import java.util.List;
@@ -36,8 +37,8 @@ public final class MatterFabricationPatternAssemblyScreen extends ResponsiveCont
                     ()->menu.view==selected,()->menu.requestView(selected)));
         }
         if(menu.view==1||menu.view==2){
-            previous=addScreenWidget(ui.button("prev",leftPos,topPos,()->Component.literal("<"),()->menu.requestPage(menu.bufferState.page()-1)));
-            next=addScreenWidget(ui.button("next",leftPos,topPos,()->Component.literal(">"),()->menu.requestPage(menu.bufferState.page()+1)));
+            previous=addScreenWidget(ui.button("prev",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.previous_page"),()->menu.requestPage(menu.bufferState.page()-1)));
+            next=addScreenWidget(ui.button("next",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.next_page"),()->menu.requestPage(menu.bufferState.page()+1)));
             ui.text("gui.molecularmanipulator.page",()->OsqUi.tr("gui.molecularmanipulator.page",menu.bufferState.page()+1,menu.bufferState.pages()));
             for(var e:ui.layout.draw)if("text".equals(e.type)&&e.baseline>=98&&e.baseline<180)ui.at(e.x,e.baseline,Component::empty);
             ui.hide(e -> "slot".equals(e.kind) && "buf".equals(e.id));
@@ -47,13 +48,14 @@ public final class MatterFabricationPatternAssemblyScreen extends ResponsiveCont
                     &&!(e.sprite!=null&&e.sprite.contains("/icons/")&&e.x>=160&&e.y>=95&&e.y<178)
                     && !("tip".equals(e.kind));
         }
-        if(menu.view!=3)refund=addScreenWidget(ui.button("return",leftPos,topPos,()->buffer("refund"),menu::requestRefund));
+        if(menu.view!=3){
+            refund=addScreenWidget(ui.button("return",leftPos,topPos,()->buffer("refund"),menu::requestRefund));
+            refund.setTooltip(Tooltip.create(buffer("refund_hint")));
+        }
         else {var unused=ui.layout.findControl("return");ui.hide(e->ui.layout.owns(unused,e));}
         ui.omit("gui.molecularmanipulator.fab.s001");
         ui.text("gui.molecularmanipulator.fabrication.buffer.network_online",()->buffer(menu.networkOnline?"network_online":"network_offline"));
         ui.number(160.42f,22,()->menu.occupied+" / 36");ui.at(170.19f,22,Component::empty);
-        ui.text("gui.molecularmanipulator.fabrication.buffer.queued",
-                ()->OsqUi.tr("gui.molecularmanipulator.fabrication.buffer.queued",menu.bufferState.queuedPatterns()));
         ui.text("gui.molecularmanipulator.fabrication.buffer.catalyst_types",
                 ()->OsqUi.tr("gui.molecularmanipulator.fabrication.buffer.catalyst_types",menu.sharedCatalystTypes));
         ui.text("gui.molecularmanipulator.fab.s010",()->buffer(menu.view==2?"output_tab":"input_tab"));
@@ -68,9 +70,6 @@ public final class MatterFabricationPatternAssemblyScreen extends ResponsiveCont
         if(!initializedName&&!menu.assemblyName.isBlank()&&!nameField.isFocused()){nameField.setValue(menu.assemblyName);initializedName=true;}refresh();}
     @Override public boolean keyPressed(int key,int scan,int mods){if(nameField.isFocused()&&(key==257||key==335)){saveName();return true;}return super.keyPressed(key,scan,mods);}
     @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui==null)return;
-        centerMetadata("assembly_capacity", "assembly_capacity_icon", buffer("capacity"));
-        centerMetadata("assembly_queue", "assembly_queue_icon",
-                OsqUi.tr("gui.molecularmanipulator.fabrication.buffer.queued",menu.bufferState.queuedPatterns()));
         centerMetadata("assembly_catalyst_count", "assembly_catalyst_count_icon",
                 OsqUi.tr("gui.molecularmanipulator.fabrication.buffer.catalyst_types",menu.sharedCatalystTypes));
         ui.background(g,font,x,y);
@@ -99,7 +98,7 @@ public final class MatterFabricationPatternAssemblyScreen extends ResponsiveCont
         var ink=com.atir.molecularmanipulator.client.gui.theme.OsqIconInk.center(icon.sprite);
         float iconWidth=icon.w*ink.width();
         float textWidth=Math.min(columnWidth-16-iconWidth-3,com.atir.molecularmanipulator.client.gui.theme.OsqFonts.widthF(
-                font,value.getString(),com.atir.molecularmanipulator.client.gui.theme.OsqFonts.id(label.fontId)));
+                font,value.getString(),com.atir.molecularmanipulator.client.gui.theme.OsqFonts.id(label.fontId),label.size));
         float groupWidth=iconWidth+3+textWidth;
         float left=panel.x+(columnWidth-groupWidth)/2;
         icon.drawX=left+iconWidth/2-ink.x()*icon.w;

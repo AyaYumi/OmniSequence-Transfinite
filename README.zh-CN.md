@@ -8,7 +8,7 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.13，源码分支 `1.21.1-neoforge-legacy` |
+| 本模组 | 2.0.14，源码分支 `1.21.1-neoforge-legacy` |
 | Minecraft / Java | 1.21.1 / Java 21 |
 | NeoForge | 21.1.220 或更高 |
 | AppliedEnhancements | 1.1.2 或更高，客户端和服务端都需要 |
@@ -71,6 +71,6 @@
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.13.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.14.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 使用 [MIT 许可证](LICENSE)。

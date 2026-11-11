@@ -2,7 +2,7 @@
 
 These scripts run gameplay regressions in disposable worlds or clients. Choose the
 suite for the behavior you changed; test classes and fixture resources are excluded
-from the normal runtime JAR. Current source: 2.0.13.
+from the normal runtime JAR. Current source: 2.0.14.
 
 测试入口统一在本页。使用 Java 21，在仓库根目录选择一套测试运行；只用 `build/`
 下的隔离目录，不要指向个人存档。必须检查全部必需用例和对应通过标记，不能只看启动成功。

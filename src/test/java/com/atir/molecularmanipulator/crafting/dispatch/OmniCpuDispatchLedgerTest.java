@@ -149,7 +149,9 @@ class OmniCpuDispatchLedgerTest {
         var saved = ledger.write(registries); var restored = new OmniCpuDispatchLedger(); restored.read(saved, registries);
         assertTrue(restored.paused()); assertEquals(saved, restored.write(registries));
         restored.flushFinal((key, amount, mode) -> fail("Uncertain delivery replayed"), (key, amount) -> fail(), () -> {});
-        assertThrows(IllegalStateException.class, () -> restored.refundFinal((key, amount) -> fail()));
+        restored.refundFinal((key, amount) -> fail("Delivery intents are not refundable physical stock"));
+        assertFalse(restored.paused());
+        assertFalse(restored.hasFinalStock());
     }
     @Test void failedFinalProgressRetainsTheKnownAcceptedIntentWithoutReplaying() {
         var ledger = new OmniCpuDispatchLedger(); ledger.ownFinal(OUTPUT, BigInteger.TEN);

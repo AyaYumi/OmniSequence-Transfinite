@@ -1,6 +1,6 @@
 # Integration APIs / 接口文档
 
-Current source: OmniSequence **2.0.13**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
+Current source: OmniSequence **2.0.14**, Minecraft **1.21.1**, NeoForge **21.1.220+**,
 Java **21**, AE2 **19.2.17+**, Applied Enhancements **1.1.2+** (compile API **1.1.4**).
 Mod ID: `molecularmanipulator`.
 
@@ -33,5 +33,4 @@ thread unless the caller has obtained an immutable snapshot.
 游戏配置参考移至项目根目录 `CONFIGURATION.md`。
 
 `blockentity`、`mixin` 和渲染内部类不承诺通用二进制兼容。研究权限、长期材料
-所有权和 AELIS 计划是不同契约，不能相互替代。文档采用当前实现，不保留依赖
-个人机器路径的验证过程。
+所有权和 AELIS 计划是不同契约，不能相互替代。

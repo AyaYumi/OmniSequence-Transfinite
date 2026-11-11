@@ -238,7 +238,14 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     }
     @Override public void omniNative$fail(String reason, Throwable cause) {
         omniDispatch$pause(null, reason);
-        RateLimitedLog.warn("Native batch ownership/accounting is uncertain; CPU suspended: {}", reason, cause);
+        RateLimitedLog.error("Native batch failed: job={}, pattern={}, reason={}",
+                omniNative$jobId(), molecularmanipulator$nativePreferredTask, reason, cause);
+    }
+    @Override public void omniNative$error(IPatternDetails pattern, RuntimeException cause) {
+        molecularmanipulator$dispatchStopped = true;
+        setJobSuspended(true);
+        cluster.markDirty();
+        RateLimitedLog.error("Native batch execution failed: job={}, pattern={}", omniNative$jobId(), pattern, cause);
     }
     @Override public void omniNative$markDirty() { cluster.markDirty(); }
     @Override public long omniNative$workAvailable() {
@@ -269,12 +276,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         cluster.markDirty();
     }
 
-    @Inject(method = "storeItems", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "storeItems", at = @At("HEAD"))
     private void molecularmanipulator$exposeExactRefunds(CallbackInfo callback) {
-        if (molecularmanipulator$dispatchLedger.paused() || molecularmanipulator$dispatchLedger.staging()) {
-            callback.cancel();
-            return;
-        }
         if (job == null && molecularmanipulator$exactInventory.refill(
                 ((CraftingCpuLogic) (Object) this).getInventory())) cluster.markDirty();
     }
@@ -667,8 +670,15 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
 
     @Inject(method = "finishJob", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$holdDispatchAccounting(boolean success, CallbackInfo callback) {
+        if (!success) {
+            molecularmanipulator$dispatchStopped = true;
+            molecularmanipulator$dispatchLedger.refundFinal((key, amount) ->
+                    molecularmanipulator$exactInventory.insertWithoutNotification(getInventory(), key, amount));
+            setJobSuspended(false);
+            return;
+        }
         if (molecularmanipulator$dispatchLedger.paused() || molecularmanipulator$dispatchLedger.staging()
-                || (success && molecularmanipulator$dispatchLedger.hasFinalStock())) {
+                || molecularmanipulator$dispatchLedger.hasFinalStock()) {
             callback.cancel();
             return;
         }
@@ -679,8 +689,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             callback.cancel();
             return;
         }
-        if (!success) molecularmanipulator$dispatchLedger.refundFinal((key, amount) ->
-                molecularmanipulator$exactInventory.insertWithoutNotification(getInventory(), key, amount));
     }
 
     @Inject(method = "finishJob", at = @At("RETURN"))
@@ -840,14 +848,11 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         molecularmanipulator$dispatchProviders.clear();
     }
 
-    @Inject(method = "cancel", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "cancel", at = @At("HEAD"))
     private void molecularmanipulator$recordReusableBatchCancellation(
             CallbackInfo callback) {
-        if (molecularmanipulator$dispatchLedger.paused() || molecularmanipulator$dispatchLedger.staging()) {
-            callback.cancel();
-            return;
-        }
-        var link = cluster.craftingLogic.getLastLink();
+        molecularmanipulator$dispatchStopped = true;
+        var link = getLastLink();
         if (link != null) {
             MolecularBatchCancellationData.markCanceled(
                     cluster.getLevel(), link.getCraftingID());

@@ -152,9 +152,16 @@ public final class MatterRecipeBridge {
             grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(branch);
             info.putIfAbsent(key, new GroupInfo(machine, output, branch.signature));
         }
-        failures.forEach((machine, ids) -> com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
-                "Matter machine import {} skipped {} recipes with unreadable fields/resources or unsupported slot counts: {}",
-                machine, ids.size(), ids));
+        if (!failures.isEmpty()) {
+            int skipped = failures.values().stream().mapToInt(List::size).sum();
+            var examples = failures.entrySet().stream()
+                    .flatMap(entry -> entry.getValue().stream().map(id -> entry.getKey() + ": " + id))
+                    .limit(8).toList();
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
+                    "Matter machine imports skipped {} recipes across {} machines with unreadable fields/resources "
+                            + "or unsupported slot counts; examples (up to 8): {}",
+                    skipped, failures.size(), examples);
+        }
         var byMachineOutput = new LinkedHashMap<String, List<Map.Entry<String, List<Branch>>>>();
         for (var entry : grouped.entrySet()) {
             var group = info.get(entry.getKey());

@@ -177,6 +177,8 @@ class MolecularAdaptiveBatchControllerTest {
         assertEquals(0, available());
         assertTrue(controller.isSingleOnly(provider, pattern));
         controller.setActiveJob(new Object());
+        assertFalse(controller.isSingleOnly(provider, pattern));
+        tick = 20;
         accept(7);
         controller.onStatusVerification(provider, pattern, false);
         assertEquals(0, available());
@@ -197,10 +199,10 @@ class MolecularAdaptiveBatchControllerTest {
         tick++;
         assertEquals(1, available());
         controller.setActiveJob(new Object());
-        assertEquals(1, available());
+        assertEquals(15, available(), "A new job retains the probe target");
         assertFalse(controller.isSingleOnly(provider, pattern));
-        accept(1);
-        assertEquals(2, available());
+        accept(15);
+        assertEquals(16, available());
     }
 
     @Test void providerAndPatternIdentityKeepIndependentCapacity() {

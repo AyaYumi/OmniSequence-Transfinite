@@ -1,6 +1,6 @@
 # 万物演算批量样板供应器 API v1
 
-对应 2.0.13，Minecraft 1.21.1 / Java 21 / AE2 19.2.17+ / Applied Enhancements 1.1.2+（编译 API 1.1.4）。
+对应 2.0.14，Minecraft 1.21.1 / Java 21 / AE2 19.2.17+ / Applied Enhancements 1.1.2+（编译 API 1.1.4）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 

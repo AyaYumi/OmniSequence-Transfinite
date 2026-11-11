@@ -61,23 +61,23 @@ class RateLimitedLogTest {
         var failure = type.methods.stream().filter(method -> method.name.equals("omniNative$fail"))
                 .findFirst().orElseThrow();
         boolean constantTemplate = false;
-        boolean limitedWarning = false;
+        boolean limitedError = false;
         boolean pausesCpu = false;
         for (var instruction : failure.instructions) {
             assertFalse(instruction instanceof InvokeDynamicInsnNode,
                     "Failure reasons must not create a separate rate-limit key for each CPU");
             if (instruction instanceof LdcInsnNode constant) {
-                constantTemplate |= "Native batch ownership/accounting is uncertain; CPU suspended: {}"
+                constantTemplate |= "Native batch failed: job={}, pattern={}, reason={}"
                         .equals(constant.cst);
             }
             if (instruction instanceof MethodInsnNode call) {
-                limitedWarning |= call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
-                        && call.name.equals("warn");
+                limitedError |= call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
+                        && call.name.equals("error");
                 pausesCpu |= call.name.equals("omniDispatch$pause");
             }
         }
         assertTrue(constantTemplate);
-        assertTrue(limitedWarning);
+        assertTrue(limitedError);
         assertTrue(pausesCpu, "Logging cleanup must retain uncertain-ownership suspension");
     }
 

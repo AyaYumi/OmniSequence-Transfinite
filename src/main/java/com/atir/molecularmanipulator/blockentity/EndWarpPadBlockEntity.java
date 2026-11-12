@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import com.atir.molecularmanipulator.block.WarpPadGeometry;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.registry.WarpContent;
 import com.atir.molecularmanipulator.network.WarpScreenPayload;
 import com.atir.molecularmanipulator.world.WarpAnimation;
@@ -245,7 +246,7 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
     }
 
     private void failed(ServerPlayer player, RuntimeException error) {
-        com.atir.molecularmanipulator.MolecularManipulator.LOGGER.error("End warp failed at {}", worldPosition, error);
+        RateLimitedLog.error("End warp failed at {}", worldPosition, error);
         cancelCharge(player, false);
         message(player, "unavailable");
     }

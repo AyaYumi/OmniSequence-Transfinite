@@ -168,7 +168,7 @@ ServerEvents.recipes(event => {
 字段值为数组时逐项读取；物品输入的可替换原料数组应放进 `ingredient`，例如
 `{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`。
 显式映射字段必须可读取、数组必须非空，数量必须是正整数。某项无法解析时整条配方跳过，
-日志会列出对应配方 ID，避免只保留部分原料或产物。
+避免只保留部分原料或产物。导入警告只报告跳过总数及最多 8 个机器/配方 ID 示例。
 
 ### 闪电等特殊 AE 资源
 

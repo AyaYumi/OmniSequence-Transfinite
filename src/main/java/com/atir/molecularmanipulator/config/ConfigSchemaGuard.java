@@ -106,9 +106,6 @@ public final class ConfigSchemaGuard {
             });
             new TomlWriter().write(
                     config, file, WritingMode.REPLACE_ATOMIC);
-            MolecularManipulator.LOGGER.info(
-                    "Removed retired options {} from {} configuration {}",
-                    removed, displayName, file);
             return true;
         } catch (IOException | RuntimeException exception) {
             MolecularManipulator.LOGGER.warn(
@@ -158,9 +155,6 @@ public final class ConfigSchemaGuard {
 
             backUpConfig(file);
             new TomlWriter().write(config, file, WritingMode.REPLACE_ATOMIC);
-            MolecularManipulator.LOGGER.info(
-                    "Categorized {} configuration {} while preserving values: {}",
-                    displayName, file, summarize(movedPaths));
             return true;
         } catch (IOException | RuntimeException exception) {
             MolecularManipulator.LOGGER.warn(
@@ -201,7 +195,6 @@ public final class ConfigSchemaGuard {
                 return null;
             });
             new TomlWriter().write(config, file, WritingMode.REPLACE_ATOMIC);
-            MolecularManipulator.LOGGER.info("Merged collector item tags in {} configuration {}", displayName, file);
             return true;
         } catch (IOException | RuntimeException exception) {
             MolecularManipulator.LOGGER.warn("Could not merge collector tags in {}; existing file retained", file, exception);

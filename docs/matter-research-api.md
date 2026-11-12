@@ -180,8 +180,9 @@ original KubeJS JSON. Arrays are read entry by entry. Alternative item ingredien
 belong inside `ingredient`, for example
 `{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`.
 Explicit paths must be readable, arrays nonempty, and amounts positive integers.
-An unreadable entry skips the whole recipe and logs its ID rather than importing
-only part of its inputs or outputs.
+An unreadable entry skips the whole recipe rather than importing only part of its
+inputs or outputs. Import warnings report the total skipped count and at most eight
+example machine/recipe IDs.
 
 ### Lightning and other special AE resources
 

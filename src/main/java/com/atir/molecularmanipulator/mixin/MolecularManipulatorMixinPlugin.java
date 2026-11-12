@@ -60,11 +60,13 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
                     && mod.getVersion().compareTo(new org.apache.maven.artifact.versioning.DefaultArtifactVersion("21.2.10")) >= 0);
         }
         if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("LightningWireless")) {
-            // Private scheduler hooks are verified against this exact implementation.
+            // Private batch and scheduler hooks are verified only against these implementations.
             // Do not guess compatible descriptors for older or future Lightning builds.
             var lightning = loadingModList == null ? null : loadingModList.getModFileById("ae2lt");
+            var supportedVersions = mixinClassName.endsWith(".LightningWirelessBatchRampMixin")
+                    ? Set.of("2.1.4-beta2") : Set.of("2.1.2-beta4", "2.1.4-beta2");
             return lightning != null && lightning.getMods().stream().anyMatch(mod ->
-                    mod.getModId().equals("ae2lt") && mod.getVersion().toString().equals("2.1.2-beta4"));
+                    mod.getModId().equals("ae2lt") && supportedVersions.contains(mod.getVersion().toString()));
         }
         if (mixinClassName.endsWith(".ThunderboltOmniCpuDispatchMixin")) {
             var thunderbolt = loadingModList == null ? null : loadingModList.getModFileById("thunderbolt");

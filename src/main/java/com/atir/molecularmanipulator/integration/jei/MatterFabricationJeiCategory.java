@@ -5,6 +5,7 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.client.AEKeyRendering;
+import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.client.AEStackIcon;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.ingredients.IIngredientRenderer;
@@ -117,6 +118,10 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
         } else if (stack.what() instanceof AEFluidKey fluid) {
             slot.addIngredient(NeoForgeTypes.FLUID_STACK, fluid.toStack(visibleAmount))
                     .setFluidRenderer(visibleAmount, false, 16, 16);
+        } else if (stack.what() instanceof StarSignalKey signal) {
+            slot.setSlotName(JeiAeStackAmounts.slotName(stack.amount()))
+                    .addIngredient(StarSignalJeiIngredient.TYPE, signal)
+                    .setCustomRenderer(StarSignalJeiIngredient.TYPE, new AeResourceRenderer<>(stack));
         } else if (!ModList.get().isLoaded("ae2jeiintegration")
                 || !MatterFabricationJeiIngredients.add(slot, stack)) {
             if (MISSING_CONVERTERS.add(stack.what().getType())) {

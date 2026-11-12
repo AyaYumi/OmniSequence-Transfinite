@@ -5,6 +5,7 @@ import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.client.gui.StackWithBounds;
+import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.client.AEStackIcon;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import java.util.ArrayList;
@@ -24,6 +25,22 @@ import tamaized.ae2jeiintegration.api.integrations.jei.IngredientConverters;
 /** Keeps addon AE keys in the same JEI ingredient type as their native recipe categories. */
 final class MatterFabricationJeiIngredients {
     private MatterFabricationJeiIngredients() {}
+
+    static void registerStarSignalConverter() {
+        IngredientConverters.register(new IngredientConverter<StarSignalKey>() {
+            @Override public mezz.jei.api.ingredients.IIngredientType<StarSignalKey> getIngredientType() {
+                return StarSignalJeiIngredient.TYPE;
+            }
+
+            @Override public StarSignalKey getIngredientFromStack(GenericStack stack) {
+                return stack.what() instanceof StarSignalKey signal ? signal : null;
+            }
+
+            @Override public GenericStack getStackFromIngredient(StarSignalKey ingredient) {
+                return new GenericStack(ingredient, 1);
+            }
+        });
+    }
 
     static boolean add(IRecipeSlotBuilder slot, GenericStack stack) {
         for (var converter : IngredientConverters.getConverters()) {
@@ -51,6 +68,8 @@ final class MatterFabricationJeiIngredients {
         if(key instanceof AEFluidKey fluid)
             return factory.createBuilder(NeoForgeTypes.FLUID_STACK,fluid.toStack(1000))
                     .buildWithArea(stack.bounds());
+        if(key instanceof StarSignalKey signal)
+            return factory.createBuilder(StarSignalJeiIngredient.TYPE,signal).buildWithArea(stack.bounds());
         for(var converter:IngredientConverters.getConverters()) {
             var ingredient=clickableWithConverter(factory,stack,converter);
             if(ingredient.isPresent())return ingredient;

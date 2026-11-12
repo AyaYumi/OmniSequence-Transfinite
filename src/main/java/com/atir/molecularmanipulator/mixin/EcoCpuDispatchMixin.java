@@ -89,15 +89,8 @@ public abstract class EcoCpuDispatchMixin implements EcoCpuDispatchAccess, OmniC
     }
     @WrapMethod(method = "finishJob")
     private void molecularmanipulator$preserveUncertainJob(boolean success, Operation<Void> original) {
-        if (!omniDispatch$dispatcher().suspended()) original.call(success);
-    }
-    @WrapMethod(method = "cancel")
-    private void molecularmanipulator$preserveUncertainCancellation(Operation<Void> original) {
-        if (!omniDispatch$dispatcher().suspended()) original.call();
-    }
-    @WrapMethod(method = "storeItems")
-    private void molecularmanipulator$preserveUncertainStock(Operation<Void> original) {
-        if (!omniDispatch$dispatcher().suspended()) original.call();
+        if (!success) molecularmanipulator$ecoDispatcher = null;
+        if (!success || !omniDispatch$dispatcher().suspended()) original.call(success);
     }
     @WrapMethod(method = "insert")
     private long molecularmanipulator$preserveUncertainOutput(AEKey key, long amount, Actionable mode, Operation<Long> original) {

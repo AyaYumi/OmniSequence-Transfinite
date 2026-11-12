@@ -87,32 +87,7 @@ public final class OmniThunderboltDispatch {
         if (!batchCapacity) return -1;
         final long work = providerCount + 1;
         schedule.beginTick(now);
-        var tasks = new Iterator<BatchTaskHandle>() {
-            private boolean visited;
-            @Override public boolean hasNext() {
-                return !visited && !host.omniNative$stopped() && work <= host.omniNative$workAvailable();
-            }
-            @Override public BatchTaskHandle next() {
-                if (!hasNext()) throw new NoSuchElementException();
-                visited = true;
-                // Reserve extraction plus every possible provider attempt,
-                // including providers that reject the offered inputs.
-                host.omniNative$attempted(work);
-                return new BatchTaskHandle() {
-                    private long value = Math.min(host.omniNative$taskWindow(pattern), host.omniNative$maximumCopies());
-                    @Override public IPatternDetails details() { return pattern; }
-                    @Override public long getValue() { return value; }
-                    @Override public void setValue(long next) {
-                        if (next < 0 || next > value) throw new IllegalArgumentException("Invalid native task decrement");
-                        long accepted = value - next;
-                        if (accepted > 0) host.omniNative$accepted(pattern, accepted);
-                        value = next;
-                    }
-                };
-            }
-            // The advertised window may be smaller than the exact remaining task.
-            @Override public void remove() { }
-        };
+        var tasks = taskIterator(host, pattern, work);
         var job = new BatchJobView() {
             @Override public Level level() { return level; }
             @Override public UUID craftingId() { return host.omniNative$jobId(); }
@@ -136,9 +111,41 @@ public final class OmniThunderboltDispatch {
             if (host.omniNative$stopped()) return maximum;
             return result.dispatchedCopies() > 0 ? result.consumedCpuOps() : -1;
         } catch (RuntimeException failure) {
-            // Never retry or refund an indeterminate ownership transfer.
-            host.omniNative$fail("THUNDERBOLT_DISPATCH_FAILURE", failure);
+            // The executor reports actual delivery/accounting failures through failDispatch.
+            // An escaped execution error stops the job without inventing an ownership lock.
+            host.omniNative$error(pattern, failure);
             return maximum;
         }
+    }
+
+    static Iterator<BatchTaskHandle> taskIterator(OmniNativeBatchHost host, IPatternDetails pattern, long work) {
+        return new Iterator<>() {
+            private boolean ready;
+            private boolean visited;
+            @Override public boolean hasNext() {
+                if (visited) return false;
+                if (!ready) ready = !host.omniNative$stopped() && work <= host.omniNative$workAvailable();
+                return ready;
+            }
+            @Override public BatchTaskHandle next() {
+                if (!hasNext()) throw new NoSuchElementException();
+                visited = true;
+                // A successful hasNext grants this slice even if its deadline now expires.
+                host.omniNative$attempted(work);
+                return new BatchTaskHandle() {
+                    private long value = Math.min(host.omniNative$taskWindow(pattern), host.omniNative$maximumCopies());
+                    @Override public IPatternDetails details() { return pattern; }
+                    @Override public long getValue() { return value; }
+                    @Override public void setValue(long next) {
+                        if (next < 0 || next > value) throw new IllegalArgumentException("Invalid native task decrement");
+                        long accepted = value - next;
+                        if (accepted > 0) host.omniNative$accepted(pattern, accepted);
+                        value = next;
+                    }
+                };
+            }
+            // The advertised window may be smaller than the exact remaining task.
+            @Override public void remove() { }
+        };
     }
 }

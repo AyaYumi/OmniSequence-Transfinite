@@ -14,6 +14,7 @@ import appeng.core.definitions.AEBlocks;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
+import mezz.jei.api.registration.IModIngredientRegistration;
 import mezz.jei.api.registration.IAdvancedRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
@@ -39,6 +40,14 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
     @Override
     public ResourceLocation getPluginUid() {
         return MolecularManipulator.id("jei_plugin");
+    }
+
+    @Override
+    public void registerIngredients(IModIngredientRegistration registration) {
+        StarSignalJeiIngredient.register(registration);
+        if (net.neoforged.fml.ModList.get().isLoaded("ae2jeiintegration")) {
+            MatterFabricationJeiIngredients.registerStarSignalConverter();
+        }
     }
 
     @Override

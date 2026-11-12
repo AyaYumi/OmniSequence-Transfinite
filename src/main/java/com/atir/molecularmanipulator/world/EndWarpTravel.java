@@ -1,8 +1,8 @@
 package com.atir.molecularmanipulator.world;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.registry.WarpContent;
-import com.mojang.logging.LogUtils;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
@@ -23,12 +23,10 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import org.slf4j.Logger;
 
 /** Prepares the two fixed End destinations once, including in worlds with existing End chunks. */
 @EventBusSubscriber(modid = MolecularManipulator.MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 public final class EndWarpTravel extends SavedData {
-    private static final Logger LOGGER = LogUtils.getLogger();
     private static final String DATA_NAME = "molecularmanipulator_end_warp";
     private static final Factory<EndWarpTravel> FACTORY = new Factory<>(EndWarpTravel::new, EndWarpTravel::load);
     private static final Set<ServerLevel> ISLAND_QUEUE = new HashSet<>();
@@ -162,7 +160,7 @@ public final class EndWarpTravel extends SavedData {
             try {
                 ensureIsland(end);
             } catch (RuntimeException error) {
-                LOGGER.error("Could not prepare the End warp ruin; it can retry on the next End entry", error);
+                RateLimitedLog.error("Could not prepare the End warp ruin; it can retry on the next End entry", error);
             }
         }
     }

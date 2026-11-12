@@ -86,6 +86,7 @@
     "ThunderboltOmniCpuDispatchMixin",
     "LightningWirelessFairPassAccessor",
     "LightningWirelessBatchScopeMixin",
+    "LightningWirelessBatchRampMixin",
     "LightningWirelessOmniDispatchMixin",
     "ExactExecutingJobAccessor",
     "ExactReturnNotificationMixin",

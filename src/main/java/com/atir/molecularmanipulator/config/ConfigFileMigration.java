@@ -141,7 +141,6 @@ public final class ConfigFileMigration {
 
         try {
             Files.copy(legacyFile, file);
-            MolecularManipulator.LOGGER.info("Migrated config file {} to {}", legacyFile, file);
         } catch (FileAlreadyExistsException ignored) {
             // Another startup path completed the same non-overwriting migration.
         } catch (IOException exception) {

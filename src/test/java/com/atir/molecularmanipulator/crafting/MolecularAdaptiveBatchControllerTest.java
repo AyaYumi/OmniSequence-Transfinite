@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 class MolecularAdaptiveBatchControllerTest {
     private static final long PROBE_INTERVAL = MolecularAdaptiveBatchController.RECOVERY_PROBE_INTERVAL_TICKS;
     private long tick;
-    private final MolecularAdaptiveBatchController controller = new MolecularAdaptiveBatchController(() -> tick);
+    private MolecularAdaptiveBatchController controller = new MolecularAdaptiveBatchController(() -> tick);
     private final ICraftingProvider provider = provider(() -> false, false);
     private final IPatternDetails pattern = pattern();
 
@@ -170,6 +170,7 @@ class MolecularAdaptiveBatchControllerTest {
     @Test void finitePhysicalVirtualAndUnlimitedTierBudgetsDoNotBecomeProviderCapacity() {
         for (int level : new int[] {0, 6, 7, 9}) {
             for (boolean overclocked : new boolean[] {false, true}) {
+                controller = new MolecularAdaptiveBatchController(() -> tick);
                 controller.setActiveJob(new Object());
                 tick = 0;
                 var benefits = new StarComputationBenefits(level, overclocked);
@@ -244,6 +245,7 @@ class MolecularAdaptiveBatchControllerTest {
         assertEquals(0, available());
         assertTrue(controller.isSingleOnly(provider, pattern));
         controller.setActiveJob(new Object());
+        tick += PROBE_INTERVAL;
         accept(7);
         controller.onStatusVerification(provider, pattern, false);
         assertEquals(0, available());
@@ -281,10 +283,10 @@ class MolecularAdaptiveBatchControllerTest {
         tick += 10_000;
         assertEquals(1, available());
         controller.setActiveJob(new Object());
-        assertEquals(1, available());
+        assertEquals(15, available(), "Changing jobs clears the fallback but retains the learned target");
         assertFalse(controller.isSingleOnly(provider, pattern));
         accept(1);
-        assertEquals(2, available());
+        assertEquals(14, available());
     }
 
     @Test void providerAndPatternIdentityKeepIndependentCapacity() {
@@ -305,10 +307,11 @@ class MolecularAdaptiveBatchControllerTest {
         controller.onRejected(provider, pattern, 1);
         long rejected = controller.getLastAttemptOrder(provider, pattern);
         controller.onBusy(provider, pattern);
+        long busy = controller.getLastAttemptOrder(provider, pattern);
         assertTrue(rejected > first);
-        assertTrue(controller.getLastAttemptOrder(provider, pattern) > rejected);
+        assertTrue(busy > rejected);
         controller.setActiveJob(new Object());
-        assertEquals(Long.MIN_VALUE, controller.getLastAttemptOrder(provider, pattern));
+        assertEquals(busy, controller.getLastAttemptOrder(provider, pattern));
     }
 
     @Test void growthAndCooldownSaturateAtLongMaxWithoutWrapping() {
@@ -381,7 +384,7 @@ class MolecularAdaptiveBatchControllerTest {
         assertEquals(Long.MAX_VALUE, controller.getReusableWindowCap(live, pattern));
     }
 
-    @Test void jobSwitchClearsReusableCapsAndTheSameJobPreservesThem() {
+    @Test void jobSwitchAndTheSameJobBothPreserveReusableCaps() {
         var job = new Object();
         controller.setActiveJob(job);
         controller.onReusableRejected(provider, pattern, 64);
@@ -389,7 +392,7 @@ class MolecularAdaptiveBatchControllerTest {
         controller.setActiveJob(job);
         assertEquals(56, controller.getReusableWindowCap(provider, pattern));
         controller.setActiveJob(new Object());
-        assertEquals(Long.MAX_VALUE, controller.getReusableWindowCap(provider, pattern));
+        assertEquals(56, controller.getReusableWindowCap(provider, pattern));
         assertEquals(1, available());
     }
 

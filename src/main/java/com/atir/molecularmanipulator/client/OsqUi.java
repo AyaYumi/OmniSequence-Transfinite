@@ -29,8 +29,9 @@ final class OsqUi {
     private final Map<OsqLayout.Entry, IntSupplier> colors = new IdentityHashMap<>();
     private final Map<String, BooleanSupplier> selectedTabs = new LinkedHashMap<>();
     Predicate<OsqLayout.Entry> visible = e -> !"tip".equals(e.kind);
-    OsqUi(String name) {
-        layout = OsqLayout.forTheme(name, false);
+    OsqUi(String name) { this(OsqLayout.forTheme(name, false)); }
+    OsqUi(OsqLayout layout) {
+        this.layout = layout;
         var window = layout.find("window");
         palette = OsqPalette.of(layout.family, window.pad[3] > 1);
         // Explicit centers from the approved layouts take precedence. Only fill
@@ -152,7 +153,10 @@ final class OsqUi {
             var box=layout.findControl(id);
             if(selected.getAsBoolean()&&box.tabSurface!=null) {
                 var parent=layout.find(box.tabPanel);
-                if(parent!=null&&visible.test(parent)&&!hidden.contains(parent))surfaces.put(parent,box.tabSurface);
+                if(parent!=null&&visible.test(parent)&&!hidden.contains(parent)) {
+                    box.tabSurface.joinedTab=box;
+                    surfaces.put(parent,box.tabSurface);
+                }
             }
         });
         return surfaces;

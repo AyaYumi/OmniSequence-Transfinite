@@ -25,8 +25,9 @@
     0,
     0
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_window",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -44,8 +45,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_panel.3",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -63,8 +65,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_panel.5",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature_card",
+   "material": "feature",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -82,8 +85,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_panel.7",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -101,8 +105,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_panel.10",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -120,8 +125,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_card.0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "external": true
   },
   {
@@ -169,8 +175,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_card.1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "external": true
   },
   {
@@ -218,8 +225,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_card.2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "external": true
   },
   {
@@ -267,8 +275,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_card.3",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "external": true
   },
   {
@@ -316,8 +325,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/building_access_terminal_card.4",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "external": true
   },
   {

@@ -125,7 +125,7 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
         } else if (!ModList.get().isLoaded("ae2jeiintegration")
                 || !MatterFabricationJeiIngredients.add(slot, stack)) {
             if (MISSING_CONVERTERS.add(stack.what().getType())) {
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("No native JEI ingredient converter for AE key {}", stack.what());
+                MolecularManipulator.LOGGER.warn("No native JEI ingredient converter for AE key {}", stack.what());
             }
         }
     }
@@ -186,8 +186,8 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
 
     @Override public void draw(MatterFabricationRecipe recipe, IRecipeSlotsView slots, GuiGraphics graphics, double mouseX, double mouseY) {
         var font = Minecraft.getInstance().font;
-        graphics.fill(0, 0, getWidth(), getHeight(), AeUiTheme.PANEL);
-        graphics.fill(0, 0, 184, 19, AeUiTheme.PANEL_INSET);
+        AeUiTheme.panel(graphics, 0, 0, getWidth(), getHeight());
+        AeUiTheme.insetPanel(graphics, 0, 0, 184, 19);
         var info = stages.getOrDefault(recipe, new StageInfo(text("unassigned"), List.of(), AeUiTheme.WARNING));
         graphics.fill(0, 0, 3, 19, info.color());
         var label = info.label();

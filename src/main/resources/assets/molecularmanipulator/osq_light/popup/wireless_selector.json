@@ -1,0 +1,28 @@
+{
+  "screen": "wireless_selector",
+  "family": "seq",
+  "size": [280, 288],
+  "left_room": 0,
+  "draw": [
+    {"type": "sprite", "id": "window", "k": "window", "sprite": "molecularmanipulator:osq_light/common/glass_window", "material": "window", "rect": [-1, -1, 282, 290], "pad": [0, 0, 0, 0]},
+    {"type": "sprite", "id": "current", "k": "card", "sprite": "molecularmanipulator:osq_light/common/glass_card", "material": "card", "rect": [12, 44, 256, 46], "pad": [3, 3, 3, 3]},
+    {"type": "sprite", "id": "hubs", "k": "card", "sprite": "molecularmanipulator:osq_light/common/glass_card", "material": "card", "rect": [12, 108, 256, 114], "pad": [3, 3, 3, 3]},
+    {"type": "sprite", "sprite": "molecularmanipulator:osq_light/seq/divider", "rect": [12, 37, 256, 1]},
+    {"type": "text", "text": "远程连接", "lang": "gui.molecularmanipulator.wireless_selector.title", "x": 35, "baseline": 21, "center_y": 18, "width": 198, "size": 12, "font_id": "minecraft:default", "color": "#FF2E2C40", "letter_spacing": 0, "opacity": 1, "dynamic": false},
+    {"type": "text", "text": "当前连接", "lang": "gui.molecularmanipulator.wireless_selector.current", "x": 20, "baseline": 57, "center_y": 54, "width": 82, "size": 7.5, "font_id": "minecraft:default", "color": "#FF5D637D", "letter_spacing": 0, "opacity": 1, "dynamic": false},
+    {"type": "text", "text": "选择同队枢纽", "lang": "gui.molecularmanipulator.wireless_selector.choose", "x": 12, "baseline": 102, "center_y": 99, "width": 256, "size": 9, "font_id": "minecraft:default", "color": "#FF2E2C40", "letter_spacing": 0, "opacity": 1, "dynamic": false},
+    {"type": "sprite", "id": "disconnect", "k": "ctl", "sprite": "molecularmanipulator:osq_light/seq/button_normal", "rect": [200, 63, 60, 22]},
+    {"type": "text", "owner": "disconnect", "text": "断开", "lang": "gui.molecularmanipulator.wireless_selector.disconnect", "x": 204, "baseline": 77, "center_y": 74, "width": 52, "size": 7.5, "font_id": "minecraft:default", "color": "#FFF2F2F2", "letter_spacing": 0, "opacity": 1, "dynamic": false},
+    {"type": "sprite", "id": "row0", "k": "ctl", "sprite": "molecularmanipulator:osq_light/seq/row_normal", "rect": [12, 108, 256, 38]},
+    {"type": "sprite", "id": "row1", "k": "ctl", "sprite": "molecularmanipulator:osq_light/seq/row_normal", "rect": [12, 146, 256, 38]},
+    {"type": "sprite", "id": "row2", "k": "ctl", "sprite": "molecularmanipulator:osq_light/seq/row_normal", "rect": [12, 184, 256, 38]},
+    {"type": "sprite", "id": "prev", "k": "ctl", "ae_icon": "ARROW_LEFT", "sprite": "molecularmanipulator:osq_light/seq/key13_normal", "rect": [12, 226, 22, 18]},
+    {"type": "sprite", "id": "next", "k": "ctl", "ae_icon": "ARROW_RIGHT", "sprite": "molecularmanipulator:osq_light/seq/key13_normal", "rect": [246, 226, 22, 18]},
+    {"type": "sprite", "id": "cancel", "k": "ctl", "sprite": "molecularmanipulator:osq_light/seq/button_normal", "rect": [12, 260, 68, 22]},
+    {"type": "text", "owner": "cancel", "text": "取消", "lang": "gui.molecularmanipulator.wireless_selector.cancel", "x": 16, "baseline": 274, "center_y": 271, "width": 60, "size": 7.5, "font_id": "minecraft:default", "color": "#FFF2F2F2", "letter_spacing": 0, "opacity": 1, "dynamic": false},
+    {"type": "sprite", "id": "connect", "k": "ctl", "sprite": "molecularmanipulator:osq_light/seq/button_normal", "rect": [87, 260, 181, 22]},
+    {"type": "text", "owner": "connect", "text": "连接所选枢纽", "lang": "gui.molecularmanipulator.wireless_selector.connect", "x": 94, "baseline": 274, "center_y": 271, "width": 167, "size": 7.5, "font_id": "minecraft:default", "color": "#FFF2F2F2", "letter_spacing": 0, "opacity": 1, "dynamic": false},
+    {"type": "sprite", "id": "sidebar", "k": "edge", "sprite": "molecularmanipulator:osq_light/seq/edge_key", "rect": [0, 0, 22, 22]},
+    {"type": "sprite", "owner": "sidebar", "sprite": "molecularmanipulator:osq_light/seq/icons/wireless_hub_16", "rect": [3, 3, 16, 16]}
+  ]
+}

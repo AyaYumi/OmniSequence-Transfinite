@@ -14,8 +14,9 @@
   {
    "z": 0,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_center_colors_window_0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
    "pad": [
     0,
     0,
@@ -71,7 +72,8 @@
    "tab_panel": "colors",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/seq/tabs/seq_center_colors_tab0",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      189,
      7,
@@ -129,7 +131,8 @@
    "tab_panel": "colors",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/seq/tabs/seq_center_colors_tab1",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      189,
      7,
@@ -187,7 +190,8 @@
    "tab_panel": "colors",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/seq/tabs/seq_center_colors_tab2",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      189,
      7,
@@ -226,8 +230,9 @@
   {
    "z": 8,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_center_colors_patterns_1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1334,8 +1339,9 @@
   {
    "z": 76,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_center_colors_quantum_2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1551,8 +1557,9 @@
   {
    "z": 89,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_center_colors_inv_3",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -2689,8 +2696,9 @@
   {
    "z": 154,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_center_colors_colors_4",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -3925,8 +3933,9 @@
   {
    "z": 220,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_center_colors_legacy_5",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,

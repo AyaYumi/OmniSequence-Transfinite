@@ -25,6 +25,8 @@ import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.building.BuildingTransfer;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.registry.ModFluids;
@@ -52,7 +54,8 @@ import net.neoforged.neoforge.event.level.BlockEvent;
 import java.util.*;
 
 /** Construction terminal and tag-driven resource collection controller. */
-public final class SingularityBlockEntity extends AENetworkedInvBlockEntity implements MachineEffectHost {
+public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
+        implements MachineEffectHost, SequenceWirelessHost {
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
     @Override public MachineEffectSettings getMachineEffects() { return machineEffects; }
     public enum Operation { IDLE, BUILD, DISMANTLE }
@@ -64,6 +67,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
     private static final String PACKAGE_RECLAIM_REQUESTER_TAG = "singularityPackageReclaimRequester";
     private static final double QUANTUM_LINK_POWER = 512.0;
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> 4);
     private final AppEngInternalInventory duplicationInventory = new AppEngInternalInventory(this, 2);
     private final SingularityDuplicationProcessor duplication = new SingularityDuplicationProcessor(this::saveChanges);
     private final SingularityMotionState motion = new SingularityMotionState(this);
@@ -139,11 +143,13 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
         updateQuantumLink();
     }
     @Override public void onChunkUnloaded() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.onChunkUnloaded();
     }
     @Override public void setRemoved() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.setRemoved();
@@ -214,6 +220,8 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
                 ? Math.max(0L, stack.getOrDefault(AEComponents.ENTANGLED_SINGULARITY_ID, 0L)) : 0;
     }
     public QuantumLinkState getQuantumLinkState() { return quantumLinkState; }
+    @Override public SequenceWirelessLink getWirelessLink() { return wirelessLink; }
+    @Override public void refreshRemoteConnection() { updateQuantumLink(); }
     public boolean collectionActive() { return collectionActive; }
     public List<Item> collectionResources() {
         return collectionResources.get(level.registryAccess(), ModConfig.SINGULARITY_COLLECTION_ITEM_TAGS.get(),
@@ -253,6 +261,13 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
 
     private void updateQuantumLink() {
         if (!(level instanceof ServerLevel serverLevel)) return;
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -872,6 +887,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
     }
     @Override public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        wirelessLink.save(tag);
         machineEffects.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         duplicationInventory.writeToNBT(tag, DUPLICATION_INVENTORY_TAG, registries);
@@ -894,6 +910,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
     }
     @Override public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag, registries);
         machineEffects.load(tag);
         collectionInterval = 0;
@@ -940,13 +957,14 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
         nextInspection = 0;
     }
     public boolean hasRemovalRecovery() {
-        return !recovery.isEmpty() || !quantumInventory.isEmpty() || !duplicationInventory.isEmpty()
+        return wirelessLink.isBound() || !recovery.isEmpty() || !quantumInventory.isEmpty() || !duplicationInventory.isEmpty()
                 || duplication.hasContents() || motion.hasBodies() || motion.hasPortable();
     }
     @Override public void addAdditionalDrops(net.minecraft.world.level.Level level, BlockPos pos, List<ItemStack> drops) {
         if (!hasRemovalRecovery()) return;
         var data = new CompoundTag(); super.saveAdditional(data, level.registryAccess());
         var portable = new CompoundTag(); portable.put("inv", data.getCompound("inv"));
+        wirelessLink.save(portable);
         quantumInventory.writeToNBT(portable, QUANTUM_INVENTORY_TAG, level.registryAccess());
         duplicationInventory.writeToNBT(portable, DUPLICATION_INVENTORY_TAG, level.registryAccess());
         portable.put("singularityDuplication", duplication.save(level.registryAccess()));
@@ -954,6 +972,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
         drops.add(RetainedBlockContents.createDrop(this, portable));
     }
     @Override public void clearContent() {
+        wirelessLink.clear();
         super.clearContent(); quantumInventory.clear(); duplicationInventory.clear(); duplication.clear(); motion.clear();
         packageReclaimRequester = null;
     }

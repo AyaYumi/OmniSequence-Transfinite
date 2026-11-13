@@ -17,6 +17,8 @@ import appeng.api.orientation.BlockOrientation;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.block.MolecularAutoCrafterBlock;
@@ -41,13 +43,14 @@ import java.util.List;
 
 /** Single-block host for the sequence array's passive auto-crafting subsystem. */
 public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockEntity
-        implements InternalInventoryHost, MolecularAutoCrafterHost {
+        implements InternalInventoryHost, MolecularAutoCrafterHost, SequenceWirelessHost {
     private static final String OUTPUTS_TAG = "outputs";
     private static final String OUTPUT_READY_TAG = "output_ready_tick";
     private static final String OUTPUT_MODE_TAG = "output_mode";
     private static final String OUTPUT_SIDES_TAG = "output_sides";
     private static final int MAX_BUFFERED_TYPES = 256;
 
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> 128.0);
     private final MachineSource actionSource = new MachineSource(this);
     private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final MolecularAutoCrafter autoCrafter = new MolecularAutoCrafter(this);
@@ -65,6 +68,14 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         super(ModContent.MOLECULAR_AUTO_CRAFTER_BE.get(), pos, state);
         getMainNode().setFlags(GridFlags.REQUIRE_CHANNEL).setIdlePowerUsage(128.0);
     }
+
+    @Override public SequenceWirelessLink getWirelessLink() { return wirelessLink; }
+    @Override public void refreshRemoteConnection() {
+        wirelessLink.update(false, MolecularCenterBlockEntity.QuantumLinkState.CONNECTED);
+    }
+    @Override public void onReady() { super.onReady(); refreshRemoteConnection(); }
+    @Override public void onChunkUnloaded() { wirelessLink.disconnect(); super.onChunkUnloaded(); }
+    @Override public void setRemoved() { wirelessLink.disconnect(); super.setRemoved(); }
 
     @Override
     protected PatternProviderLogic createLogic() {
@@ -334,6 +345,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     public void serverTick() {
         Level level = getLevel();
         if (level == null || level.isClientSide()) return;
+        if (level.getGameTime() % 20 == 0) refreshRemoteConnection();
         flushOutputs(level);
         autoCrafter.tick(level.getGameTime());
         updateWorkingState();
@@ -395,7 +407,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     }
 
     public boolean hasRemovalRecovery() {
-        return !bufferedOutputs.isEmpty() || !autoCrafter.getPatternInventory().isEmpty();
+        return wirelessLink.isBound() || !bufferedOutputs.isEmpty() || !autoCrafter.getPatternInventory().isEmpty();
     }
 
     @Override
@@ -408,6 +420,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
 
     @Override
     public void clearContent() {
+        wirelessLink.clear();
         super.clearContent();
         bufferedOutputs.clear();
         autoCrafter.clear();
@@ -419,6 +432,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        wirelessLink.save(tag);
         autoCrafter.save(tag, registries);
         var outputs = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
@@ -436,6 +450,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag, registries);
         autoCrafter.load(tag, registries);
         bufferedOutputs.clear();

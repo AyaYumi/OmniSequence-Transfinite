@@ -76,6 +76,7 @@ public final class SingularityMenu extends BuildingMenu {
     @GuiSync(45) public int collectionIntervalTicks = 20;
     @GuiSync(46) public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
     @GuiSync(47) public boolean packageReclaimRequested;
+    @GuiSync(48) public boolean wirelessBound;
     private final AppEngSlot quantumSlot;
     private final AppEngSlot duplicationSampleSlot;
     private final AppEngSlot blackHoleSlot;
@@ -278,6 +279,7 @@ public final class SingularityMenu extends BuildingMenu {
             packageReclaimRequested = machine.packageReclaimRequested();
             motionMode = machine.motion().mode(); motionMessage = machine.motion().message(); movingBodies = machine.motion().hasBodies();
             quantumFrequency = machine.getQuantumFrequency(); quantumLinkState = machine.getQuantumLinkState();
+            wirelessBound = machine.getWirelessLink().isBound();
             collectionActive = machine.collectionActive(); collectionStarting = machine.collectionStarting();
             collectionBatchSize = machine.collectionBatchSizeForMenu();
             collectionIntervalTicks = machine.collectionIntervalTicksForMenu();

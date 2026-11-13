@@ -32,6 +32,8 @@ import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -67,7 +69,8 @@ import java.util.List;
 import java.util.UUID;
 
 public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
-        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost, MachineEffectHost {
+        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost, MachineEffectHost,
+        SequenceWirelessHost {
     public static final int PATTERNS_PER_PAGE = 36;
     public static final int MAX_PATTERN_PAGES = 300;
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
@@ -128,6 +131,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> ModConfig.IDLE_POWER.get());
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
     // Undecodable legacy items (e.g. EAEP temporarily absent) must survive saves and recovery drops.
     private Tag retiredUploadCoreData;
@@ -352,6 +356,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     @Override
     public void onChunkUnloaded() {
         patternStorageReady = false;
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.onChunkUnloaded();
@@ -360,13 +365,15 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     @Override
     public void setRemoved() {
         patternStorageReady = false;
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.setRemoved();
     }
 
     public boolean hasRemovalRecovery() {
-        return activeReusableBatch != null
+        return wirelessLink.isBound()
+                || activeReusableBatch != null
                 || quarantinedReusableBatchTag != null
                 || !pendingPrimaryOutputs.isEmpty()
                 || !pendingByproducts.isEmpty()
@@ -391,6 +398,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         // must not empty crystals that remain in the world or in recovered block items.
         patternStorageReady = false;
         super.clearContent();
+        wirelessLink.clear();
         quantumInventory.clear();
         retiredUploadCoreData = null;
         pendingPrimaryOutputs.clear();
@@ -467,6 +475,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
         autoCrafter.save(tag, registries);
+        wirelessLink.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         if (retiredUploadCoreData != null) tag.put(MATRIX_UPLOAD_CORE_TAG, retiredUploadCoreData.copy());
         else tag.remove(MATRIX_UPLOAD_CORE_TAG);
@@ -479,6 +488,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         patternStorageReady = false;
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag, registries);
         getLogic().invalidateUploadIndex();
         formed = tag.getBoolean("molecular_center_formed");
@@ -896,10 +906,27 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 && stack.getOrDefault(AEComponents.ENTANGLED_SINGULARITY_ID, 0L) > 0;
     }
 
+    @Override
+    public SequenceWirelessLink getWirelessLink() {
+        return wirelessLink;
+    }
+
+    @Override
+    public void refreshRemoteConnection() {
+        updateQuantumLink();
+    }
+
     private void updateQuantumLink() {
         if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
             return;
         }
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -2771,7 +2798,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         WIRED_CONFLICT,
         CONNECTED,
         CONNECTION_ERROR,
-        CONNECTED_BUILD_ONLY
+        CONNECTED_BUILD_ONLY,
+        QUANTUM_CONFLICT,
+        ACCESS_DENIED
     }
 
     private record FlushResult(boolean changed, boolean blocked, long transferred) {

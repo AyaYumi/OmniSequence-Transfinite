@@ -1,26 +1,23 @@
 # 万物演算批量样板供应器 API v1
 
-**面向模组开发者。** 如果你的 AE2 样板供应器能一次接收多份完整配方，可实现这个接单接口，
-由 Omni 分配整批材料，再一次交给机器。普通 AE2 供应器不实现它也能正常接单。
-玩家搭机器请看[玩家指南](../README.zh-CN.md)或游戏内 **G** 指南；这里的 SPI 是开发接口，
-不是需要额外安装的玩家组件。
+模组开发者可实现此接口，让 AE2 样板供应器一次接收多份完整配方，由 Omni 分配并交付整批材料。
+普通 AE2 供应器无需实现它也能正常接单。玩家搭建与操作见[玩家指南](../README.zh-CN.md)或游戏内 G 指南。
 
-对应 21.3.0.0，Minecraft 1.21.1 / Java 21 / AE2 19.2.18 / AppliedEnhancements 1.1.2+（编译 API 1.1.4）。
+对应 21.3.0.1，Minecraft 1.21.1 / Java 21 / AE2 19.2.18 / AppliedEnhancements 1.1.2+（编译 API 1.1.4）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 
 自 OmniSequence: Transfinite 1.3.9 起提供。
 
-运行时 ABI 仍为 **1**。
+运行时 ABI 仍为 1。
 本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
 不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。
 
-此 SPI 面向“机器自身保存编码样板，并作为 AE2 `ICraftingProvider` 接单”的设备。
-普通供应器本来就能按单份配方使用 AE2；只有希望由万物演算核心或超限算枢一次分配多份完整
-材料时，才需要实现 `OmniBatchCraftingProvider`。
+此 SPI 面向自身保存编码样板、作为 AE2 `ICraftingProvider` 接单的设备。
+希望由万物演算核心或超限算枢一次分配多份完整材料时，实现 `OmniBatchCraftingProvider`。
 
 普通供应器可直接通过既有 `pushPattern` 使用自适应推送，多材料配方和自定义实现也适用，
-不需要额外接口。首发为一份原始任务；后续完整调用在同一 tick 按 1、2、4……轮次增长，
+不需要额外接口。首次调用发配一份原始任务；后续完整调用在同一 tick 按 1、2、4……轮次增长，
 直到供应器忙碌或拒绝接收。之后维持本轮实际成功调用数，满 20 tick 再按基线加
 1、2、4……探测。原生翻倍任务保留原有身份和数量。以下原子批量 SPI 继续负责一次
 带明确份数的整批事务交付。
@@ -46,7 +43,7 @@ Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算
 运行时 ABI 检查应调用 `OmniBatchCraftingApi.apiVersion()`，不要依赖可能被 Java
 内联的 `API_VERSION` 常量。
 
-关键约束：
+材料归属规则：
 
 - `accept` 是唯一的所有权提交点。调用前，整批材料必须已经全部进入持久目标，或先
   写入供应器自身可保存的队列；
@@ -66,16 +63,18 @@ Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算
 公开输入记录使用 AEKey，可表示已注册附属类型；具体可处理类型由供应器决定。
 数量沿用该 Key 的 AE 原生单位（物品个数、流体 mB 等）。数量为 long，
 接收前必须检查每种 Key 的加法和乘法溢出；Long.MAX_VALUE 上限不会绕过实际原料、
-供电、队列容量或产物计数限制。内置物质构筑井样板总成通过自身持久输入输出缓存实现
-本接口，支持构筑井配方声明的所有已注册 AEKey 输入。接收与排队任务开工前检查
-研究权限，开工时计算生产限制和加成。已开始加工的任务跨重载保留原料、产物与功率快照；
-耗时随当前引擎收益调整，进度按比例换算。排队任务保存原料所有权与配方 ID，使用当前配方定义。`ae_inputs`、产物隔离和
+供电、队列容量或产物计数限制。
+
+内置物质构筑井样板总成通过自身持久输入输出缓存实现本接口，支持构筑井配方声明的
+所有已注册 AEKey 输入。接收与排队任务开工前检查研究权限，开工时计算生产限制和加成。
+已开始加工的任务跨重载保留原料、产物与功率快照；耗时随当前引擎收益调整，进度按比例换算。
+排队任务保存原料所有权与配方 ID，使用当前配方定义。`ae_inputs`、产物隔离和
 尚存的同产物重叠配方限制见[构筑井 API](matter-research-api.zh-CN.md)。
 
 ## 可选供应器适配
 
-无需修改第三方供应器类或让其直接实现 Omni 接口，兼容模组可通过
-`OmniBatchProviderAdapterRegistry.register` 注册整批能力。兼容类应仅在
+可选兼容模组可通过 `OmniBatchProviderAdapterRegistry.register` 为第三方供应器注册整批能力，
+无需修改供应器类或让其直接实现 Omni 接口。兼容类应仅在
 `molecularmanipulator` 已加载时启用，依赖使用 `compileOnly`。示例：
 
 ```java
@@ -123,8 +122,8 @@ AE2 完成已接收批次的预计产物记账后，才调用
 
 BigInteger 精确数量兼容也必须保留 AE2 发布的原始 `ICraftingProvider` 对象。第三方应
 通过 `OmniBigIntegerProviderAdapterRegistry.register` 注册“供应器/样板识别条件”和
-能力工厂，不要在 `CraftingService.getProviders` 中用代理替换供应器。这样既可按具体
-样板解析大数能力，又不会破坏 AE2 附属模组按对象身份保存的适配器映射。
+能力工厂，不要在 `CraftingService.getProviders` 中用代理替换供应器。这样可按具体
+样板解析大数能力，并保留 AE2 附属模组按对象身份保存的适配器映射。
 
 若第三方模组自己也修改了 AE2 CPU 的材料倍增逻辑，应在其 CPU Mixin 中调用
 `OmniBatchCraftingApi.isOmniManagedCpu(this)`。返回 `true` 时跳过自身倍增，交给

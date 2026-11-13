@@ -1,15 +1,14 @@
 # Omni Batch Provider API v1
 
-**For mod developers:** use this interface when an AE2 pattern provider can accept
-several complete crafts at once instead of receiving them one by one. It lets
-Omni allocate the materials and hand the whole batch to your machine safely.
-Ordinary AE2 providers need no new interface to keep working. Players looking for
-machine setup should use the [player guide](../README.md) or the in-game **G** guide.
+For mod developers: use this interface to let Omni allocate materials and deliver
+several complete crafts to your AE2 pattern provider as one atomic batch.
+Ordinary AE2 providers need no new interface to keep working. For machine setup,
+see the [player guide](../README.md) or the in-game G guide.
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 21.3.0.0 on Minecraft 1.21.1 / Java 21, with AE2 19.2.18
-and AppliedEnhancements 1.1.2+ (compile API 1.1.4). The runtime ABI remains **1**.
+Current for OmniSequence 21.3.0.1 on Minecraft 1.21.1 / Java 21, with AE2 19.2.18
+and AppliedEnhancements 1.1.2+ (compile API 1.1.4). The runtime ABI remains 1.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -18,11 +17,9 @@ planning and cycle-execution APIs; importing Omni's internal planner/Mixin class
 is not a supported integration. Compile against the separate mod JARs without
 embedding their classes.
 
-This SPI is for AE2 machines that store encoded patterns and act as
-`ICraftingProvider` implementations. A normal provider already works with AE2
-one craft at a time. Implement this SPI only when the machine wants an
-Omni-Computation Core or Transfinite Compute Nexus to allocate several complete crafts and deliver them as
-one atomic transaction.
+Implement this SPI on an AE2 machine that stores encoded patterns and acts as an
+`ICraftingProvider` when it can accept several complete crafts as one atomic
+transaction from an Omni-Computation Core or Transfinite Compute Nexus.
 
 Ordinary providers also receive adaptive dispatch through their existing
 `pushPattern` contract, including multi-input recipes and custom implementations.
@@ -30,8 +27,8 @@ The first ordinary call contains one original task. Further complete calls grow
 in same-tick rounds of 1, 2, 4, ... until the provider becomes busy or rejects a
 call. Omni retains the successful calls per tick and, after 20 ticks, probes that
 baseline plus 1, 2, 4, ... again. Native doubled tasks retain their identity and
-counts. This requires no additional provider interface; the atomic SPI below
-remains available for providers that can accept one counted transaction.
+counts. Providers that can accept one counted transaction can use the atomic SPI
+below.
 
 A single remaining craft uses the original one-craft path rather than waiting for
 another batch. Reusable-tool handling in built-in machines retains returned tools
@@ -114,12 +111,11 @@ public final class ExamplePatternMachine
 ```
 
 Both input lists preserve the original pattern-input slot, and multiple
-substituted keys in one slot remain separate entries. They intentionally use
-different public types: `OmniBatchProbe.Input` is only the actual selection for
-the first craft and is a capacity hint. `OmniBatchRequest.Input` is the
-authoritative key and total amount delivered at commit time. AE2 substitutions
-may make its keys or ratios differ from `probe * craftCount`; never validate the
-delivery with that multiplication.
+substituted keys in one slot remain separate entries. `OmniBatchProbe.Input`
+describes the actual selection for the first craft and is a capacity hint.
+`OmniBatchRequest.Input` gives the authoritative key and total amount delivered
+at commit time. AE2 substitutions may make its keys or ratios differ from
+`probe * craftCount`; never validate the delivery with that multiplication.
 
 The request also carries a unique dispatch ID, the current AE2 crafting-job ID
 when available, the exact accepted craft count, and the authoritative total
@@ -155,7 +151,7 @@ whole range or reject atomically at commit time.
   pause unrelated patterns or providers.
 - Use `dispatchId` for idempotency if the provider has a durable work queue.
 
-API v1 deliberately batches only purely consumable inputs. Recipes with
+API v1 batches only purely consumable inputs. Recipes with
 returned containers, reusable tools, or durability transitions keep the safe
 one-craft path unless an existing internal Omni machine handles them. Such internal
 handling does not extend the public v1 ownership contract.
@@ -220,7 +216,7 @@ This registry is additive; the existing API ABI remains version 1.
 ## Post-accounting output flush
 
 An instant provider may finish a large aggregate before AE2 records its expected
-outputs in the crafting job. If it deliberately delays new outputs until the next
+outputs in the crafting job. If it delays new outputs until the next
 tick, the job can pause whenever its `long`-sized `waitingFor` window fills.
 
 Providers that own a durable output queue can implement
@@ -258,8 +254,8 @@ if (OmniBatchCraftingApi.isOmniManagedCpu(this)) {
 return runTheModsOwnCpuBatching(...);
 ```
 
-The provider-side admission above then lets Omni perform extraction, AE power,
-task decrement, expected-output accounting, rollback, and fair CPU scheduling.
+With provider-side admission, Omni handles extraction, AE power, task decrement,
+expected-output accounting, rollback, and fair CPU scheduling.
 This query is read-only and does not submit or migrate a crafting job.
 
 Prefer a chainable Mixin Extras wrapper or an inject-and-cancel hook for CPU

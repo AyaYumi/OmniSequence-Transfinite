@@ -1,15 +1,15 @@
 # Exact-count provider API / 大数供应器接口
 
-**For mod developers whose machines handle counts above `long`.** This API lets a
-provider accept an exact logical batch count and return exact amounts of each resource.
+Use this API when your provider needs batch or output counts above `long`. It
+accepts an exact logical batch count and returns exact amounts for each resource.
 For ordinary whole batches within `long`, start with the [atomic batch API](omni-batch-provider-api.md).
 Players can use the machines without implementing either interface; see the [player guide](../README.md).
 
-**面向模组开发者：** 机器需要处理超出 long 的批次数或产物数量时使用本页接口；
+机器需要处理超出 long 的批次数或产物数量时，可使用本页接口。
 普通整批接单先看[批量接口](omni-batch-provider-api.zh-CN.md)。玩家无需实现这些接口，
 搭建与操作见[玩家指南](../README.zh-CN.md)。
 
-Current source: OmniSequence 21.3.0.0, Minecraft 1.21.1, Java 21, AE2 19.2.18, AppliedEnhancements 1.1.2+ (compile API 1.1.4).
+Current for OmniSequence 21.3.0.1, Minecraft 1.21.1, Java 21, AE2 19.2.18, AppliedEnhancements 1.1.2+ (compile API 1.1.4).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is
@@ -27,9 +27,9 @@ replace it in `CraftingService.getProviders`.
 | `OmniBigIntegerBatchCallbacks` | Admission, actual output and cancellation callbacks |
 | `OmniBigIntegerOutputReceiver` | Direct same-grid transfer to a live bound CPU with source debit |
 
-Register a capability for your existing provider during integration setup. The example
-names stand for your own provider and adapter classes; the contracts below describe
-what that adapter must validate and persist.
+Register a capability for your existing provider during integration setup. Replace
+the example provider and adapter names with your own classes. The adapter must
+validate and persist state according to the contracts below.
 
 ```java
 OmniBigIntegerProviderAdapterRegistry.register(
@@ -46,13 +46,13 @@ direct interface. Predicates run without factories for capability classification
 ## Admission and ownership
 
 `getMaximumBigIntegerCrafts(pattern, unitPrototype, requested)` must return a
-currently admissible positive count no larger than requested. Zero/null declines.
-The unit prototype is the real extracted one-craft input; a provider must validate
+currently admissible positive count no larger than requested. Return zero or null
+to decline. The unit prototype is the real extracted one-craft input; a provider must validate
 its keys and reserve every additional finite material required by the accepted
 count. An exact logical count does not create physical input ownership.
 
 `pushBigIntegerCraftingPattern` returns false without retaining the prototype.
-True commits the agreed batch and requires durable input/output ownership.
+Returning true commits the agreed batch and requires durable input/output ownership.
 `lastAcceptedBigIntegerCrafts()` may return a smaller exact positive count when
 capacity changed; null guarantees the requested count was accepted. Validate
 additional material, output capacity and durable state before returning success.
@@ -88,9 +88,9 @@ the current documented method signatures and isolate optional class loading.
 ## Complete plans and secondary outputs
 
 Read `AelisExactCraftingPlanApi.read(plan)` and its `executionRequirement()`
-before building an exact CPU ledger. Exact pattern counts are
-a complete replacement ledger, not an additive overflow patch; do not merge them
-with the long task map. Keep the returned plan from metadata attachment/copying.
+before building an exact CPU ledger. Exact pattern counts replace the complete
+ledger; do not add them to the long task map. Use the plan returned when metadata
+is attached or copied.
 
 Preserve native scaled-pattern identity, weighted batch counts and unscaled
 remainders. If an optional rewrite cannot be reconciled, continue with the
@@ -111,7 +111,7 @@ only the amount actually awaited advances expected-output progress.
 单份发配、队列映射与背压仍使用 AE 注册的对象。
 
 容量返回值不得超过请求。提交前核对一份实际原料原型，并持有额外有限材料与产物
-空间。拒绝不得留下原料，接受必须保存长期所有权；如果实际接受量变小，通过
+空间。拒绝不得留下原料，接受必须持久保存原料和产物的所有权；如果实际接受量变小，通过
 `lastAcceptedBigIntegerCrafts()` 返回真实次数。原生一次原子提交才标记
 `usesNativeBigIntegerBatch()`，不能把它当作普通 long 循环不断调用。
 

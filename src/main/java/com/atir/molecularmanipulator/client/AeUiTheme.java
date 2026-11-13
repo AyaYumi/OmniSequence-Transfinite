@@ -4,6 +4,7 @@ import appeng.client.gui.style.ScreenStyle;
 import appeng.client.gui.style.Blitter;
 import appeng.client.gui.widgets.AE2Button;
 import appeng.client.gui.widgets.AETextField;
+import com.atir.molecularmanipulator.client.gui.theme.OsqLayout;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -69,8 +70,15 @@ public final class AeUiTheme {
     }
 
     public static void panel(GuiGraphics graphics, int left, int top, int right, int bottom) {
-        graphics.fill(left, top, right, bottom, PANEL);
-        flatOutline(graphics, left, top, right, bottom, SHADOW);
+        material(graphics, left, top, right, bottom, "window");
+    }
+
+    private static void material(GuiGraphics graphics, int left, int top, int right, int bottom, String kind) {
+        var entry = new OsqLayout.Entry();
+        entry.sprite = "molecularmanipulator:osq_light/common/glass_" + kind;
+        entry.material = kind;
+        entry.x = left; entry.y = top; entry.w = right - left; entry.h = bottom - top;
+        OsqLayout.drawSprite(graphics, entry, 0, 0);
     }
 
     public static void label(GuiGraphics graphics, Font font, Component text, int x, int y, int width, int color) {
@@ -83,18 +91,15 @@ public final class AeUiTheme {
     }
 
     public static void area(GuiGraphics graphics, int left, int top, int right, int bottom) {
-        graphics.fill(left, top, right, bottom, PANEL);
-        flatOutline(graphics, left, top, right, bottom, HIGHLIGHT);
+        material(graphics, left, top, right, bottom, "card");
     }
 
     public static void insetPanel(GuiGraphics graphics, int left, int top, int right, int bottom) {
-        graphics.fill(left, top, right, bottom, PANEL_INSET);
-        flatOutline(graphics, left, top, right, bottom, SHADOW);
+        material(graphics, left, top, right, bottom, "card");
     }
 
     public static void insetArea(GuiGraphics graphics, int left, int top, int right, int bottom) {
-        graphics.fill(left, top, right, bottom, PANEL_INSET);
-        flatOutline(graphics, left, top, right, bottom, HIGHLIGHT);
+        material(graphics, left, top, right, bottom, "card");
     }
 
     public static void slot(GuiGraphics graphics, int left, int top) {

@@ -47,6 +47,8 @@ public final class MolecularManipulator {
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 com.atir.molecularmanipulator.registry.BuildingContent.ASSEMBLER_BE.get(), (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
+                com.atir.molecularmanipulator.registry.WirelessContent.HUB_BE.get(), (blockEntity, context) -> blockEntity);
+        event.registerBlockEntity(AECapabilities.IN_WORLD_GRID_NODE_HOST,
                 com.atir.molecularmanipulator.registry.HighEnergyLabContent.POWER_INTERFACE_BE.get(),
                 (blockEntity, context) -> blockEntity);
         event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK,

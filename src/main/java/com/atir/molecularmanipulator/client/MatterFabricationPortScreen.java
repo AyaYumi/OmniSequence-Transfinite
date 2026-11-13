@@ -90,7 +90,7 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
     }
     @Override public void containerTick(){super.containerTick();refresh();}
     boolean directionsOpen(){return directionsOpen;}
-    @Override public boolean keyPressed(int key,int scan,int mods){if(key==256&&directionsOpen){directionsOpen=false;refresh();return true;}return super.keyPressed(key,scan,mods);}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(wirelessPanelOpen())return super.keyPressed(key,scan,mods);if(key==256&&directionsOpen){directionsOpen=false;refresh();return true;}return super.keyPressed(key,scan,mods);}
     @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui!=null)ui.background(g,font,x,y);}
     @Override public void drawFG(GuiGraphics g,int ox,int oy,int mx,int my){
         if(ui==null)return;ui.foreground(g,font);
@@ -111,13 +111,14 @@ public final class MatterFabricationPortScreen extends ResponsiveContainerScreen
         }
     }
     @Override public boolean mouseClicked(double x,double y,int button){
+        if(wirelessPanelOpen())return super.mouseClicked(x,y,button);
         if(!directionsOpen&&menu.getPort().getPortType().isFluid()&&(button==0||button==1)){
             int tank=tankAt(logicalMouseX(x)-leftPos,logicalMouseY(y)-topPos);
             if(tank>=0){if(button==1)menu.interactFluid(tank);else menu.requestFluidTransfer(tank);return true;}
         }return super.mouseClicked(x,y,button);
     }
     @Override public void render(GuiGraphics g,int mx,int my,float pt){super.render(g,mx,my,pt);
-        if(directionsOpen||!menu.getPort().getPortType().isFluid())return;int i=tankAt(logicalMouseX(mx)-leftPos,logicalMouseY(my)-topPos);if(i<0)return;
+        if(wirelessPanelOpen()||directionsOpen||!menu.getPort().getPortType().isFluid())return;int i=tankAt(logicalMouseX(mx)-leftPos,logicalMouseY(my)-topPos);if(i<0)return;
         var s=menu.getTankStack(i);g.renderComponentTooltip(font,List.of(s==null?text("empty_tank"):s.what().getDisplayName(),
                 Component.literal(DisplayNumbers.exact(s==null?0:s.amount())+" / "+DisplayNumbers.exact(MatterFabricationPortBlockEntity.FLUID_CAPACITY)+" mB"),text("fluid_click")),mx,my);
     }

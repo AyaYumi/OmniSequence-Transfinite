@@ -42,19 +42,19 @@ Each tank holds **2,147,483,647 mB**. Choose ports for **every input and output*
 
 ## Run a recipe
 
-1. **Find an installation position.** Hold a port in either hand. Replace casing marked by a cyan outline; an orange outline marks an occupied position.
-2. **Install inputs and outputs.** Ports use the same 44 positions as Pattern Assemblies. They do not work when simply placed beside the well.
-3. **Add the complete recipe quantities.** Put items into the item input, and fill the fluid input if needed. Pipes can insert the same way.
-4. **Leave output space and power the well.** The controller automatically finds an unlocked recipe and begins processing.
-5. **Collect the products.** Take items from the output port, or use item/fluid pipes to extract them.
+1. Hold a port in either hand. Replace casing marked by a cyan outline; orange marks an occupied position.
+2. Install the inputs and outputs your recipe needs. Ports share 44 positions with Pattern Assemblies and must replace casing at those positions.
+3. Put the full recipe quantities into the item and fluid inputs. Pipes can also insert ingredients.
+4. Leave output space and power the well. The controller automatically starts a matching unlocked recipe.
+5. Collect products by hand or extract them with item/fluid pipes.
 
-**Research does not use these inputs.** Research materials must be stored in ME. Recipes that consume Star Signal Flow need a [Pattern Assembly](matter_fabrication_pattern_assembly.md), because signal cannot be put into an item or fluid port.
+Research takes materials from ME storage. Recipes that consume Star Signal Flow need a [Pattern Assembly](matter_fabrication_pattern_assembly.md), because signal cannot go into an item or fluid port.
 
 ### Move fluids by hand
 
 Pick up a filled fluid container with your cursor, then **right-click a tank** to fill it. Right-click with an empty container to take fluid out. Each click handles one container and needs enough fluid or free tank space.
 
-### Let an output port empty itself
+### Automatic output
 
 1. Place a suitable receiving container beside the output port.
 2. Open the port and change **Auto: OFF** to **Auto: ON**.
@@ -64,9 +64,11 @@ The direction diagram follows the port's facing: the center is front and the low
 
 ## What success looks like
 
-The port reports **Controller AE network connected**. When a batch completes, input quantities fall and products appear in the matching outputs. With automatic output enabled, those products move into the selected adjacent container.
+The port reports Controller AE network connected. When a batch completes, input quantities fall and products appear in the matching outputs. With automatic output enabled, products move into the selected adjacent container.
 
-To clear unused input materials, select **All to AE** in the input port. Materials that do not fit in ME remain in the port. Normal removal keeps the port's contents with the block.
+The right sidebar's Remote connection manages the well controller's wireless binding. It does not give the port a separate link. See [Sequence Wireless Hub setup](sequence_array_controller.md).
+
+To clear unused inputs, select All to AE. Materials that do not fit in ME stay in the port. Normal removal keeps the port's contents with the block; the wireless binding belongs to the controller and is retained through its normal recovery or building packaging.
 
 ## If it does not work
 

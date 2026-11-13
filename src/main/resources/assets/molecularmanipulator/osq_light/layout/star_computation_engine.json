@@ -12,8 +12,9 @@
   {
    "z": 0,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_window_0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
    "pad": [
     0,
     0,
@@ -32,8 +33,9 @@
   {
    "z": 1,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_armillary_1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -52,8 +54,9 @@
   {
    "z": 2,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_inv_2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -72,8 +75,9 @@
   {
    "z": 3,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_ov_benefit_3",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -92,8 +96,9 @@
   {
    "z": 4,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_rc_node_4",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -112,8 +117,9 @@
   {
    "z": 5,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_rc_cont_5",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -131,8 +137,9 @@
   },
   {
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/star_computation_engine_up_target",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [3, 3, 3, 3],
    "rect": [204, 32, 188, 60],
    "k": "card",
@@ -140,8 +147,9 @@
   },
   {
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/star_computation_engine_up_conditions",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [3, 3, 3, 3],
    "rect": [204, 98, 188, 142],
    "k": "card",
@@ -149,8 +157,9 @@
   },
   {
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/star_computation_engine_up_calibration",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [3, 3, 3, 3],
    "rect": [204, 246, 188, 60],
    "k": "card",
@@ -159,8 +168,9 @@
   {
    "z": 6,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_net_6",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -179,8 +189,9 @@
   {
    "z": 7,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_ov_feature_7",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature",
+   "material": "feature",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -198,8 +209,9 @@
   },
   {
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_rc_power_8",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature",
+   "material": "feature",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -255,8 +267,9 @@
   },
   {
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/negative_entropy_engine_ov_anchors_9",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature_card",
+   "material": "feature",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1039,7 +1052,8 @@
    "tab_panel": "ov_feature",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_up_overview",
+    "sprite": "molecularmanipulator:osq_light/common/glass_feature_card",
+    "material": "feature",
     "rect": [201, 7, 194, 110],
     "pad": [0, 0, 0, 0]
    },
@@ -1054,7 +1068,8 @@
    "tab_panel": "up_target",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_up_upgrade",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [201, 7, 194, 88],
     "pad": [0, 0, 0, 0]
    }
@@ -1068,7 +1083,8 @@
    "tab_panel": "rc_node",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/star_computation_engine_up_recipes",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [201, 7, 194, 140],
     "pad": [0, 0, 0, 0]
    }

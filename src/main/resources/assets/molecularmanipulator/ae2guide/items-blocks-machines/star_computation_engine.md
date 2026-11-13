@@ -17,7 +17,7 @@ item_ids:
 
 # Star Computation Engine
 
-Build this **Nine-Ring Star Orrery** to speed up Fabrication Wells, let sequence machines craft larger batches and give crafting CPUs room for larger orders on the same ME network. Start with one ring for an immediate benefit, then expand. You do not need all nine rings at once.
+The Nine-Ring Star Orrery boosts supported machines on its ME network. Wells process faster, sequence machines craft larger batches and crafting CPUs gain capacity for larger orders. Start with one ring, then expand as needed.
 
 <Row>
 <BlockImage id="molecularmanipulator:star_computation_engine_core" scale="4" />
@@ -29,7 +29,7 @@ Build this **Nine-Ring Star Orrery** to speed up Fabrication Wells, let sequence
 <BlockImage id="molecularmanipulator:terminal_star_position_anchor" scale="4" />
 </Row>
 
-Left to right: central core; Reference anchors for rings 1–3; Quantum anchors for rings 4–6; Terminal anchors for rings 7–9.
+Left to right: central core, Reference anchors for rings 1 to 3, Quantum anchors for rings 4 to 6 and Terminal anchors for rings 7 to 9.
 
 ## Prepare
 
@@ -37,13 +37,13 @@ Left to right: central core; Reference anchors for rings 1–3; Quantum anchors 
 - Check JEI's **Star Orrery Structure** preview for the full material list and required space. Left-drag rotates, right-drag pans, scrolling zooms, and layer controls reveal the foundation.
 - A powered ME network with **one free channel**. A channel is a device connection allowance. The whole engine uses one channel and **16 AE/t** idle power.
 
-**The small central cube is not a complete machine.** Even L0, with no rings, requires both **27 central blocks** and **928 real foundation blocks** below them.
+Even L0, with no rings, requires all **27 central blocks** and **928 real foundation blocks** below them.
 
 ## Recommended start: order a complete L1 package
 
-1. Connect a [Spatial Folding Assembler](folded_buildings.md) to ME and order **Star Orrery L1** from the terminal. This consumes the whole building's actual materials and includes the center, foundation and first ring—not just 24 anchors.
+1. Connect a [Spatial Folding Assembler](folded_buildings.md) to ME and order Star Orrery L1 from the terminal. The package consumes the whole building's materials, including the center, foundation and first ring of 24 anchors.
 2. Keep the package in your inventory. Right-click the site with a **Star Chart Calibrator**, choose the package and facing, inspect the preview and confirm deployment. The selected base is the lowest foundation layer; the **core is 37 blocks above it**.
-3. Connect ME cable to the formed orrery's central casing, observation port, core or valid ring anchor. Foundation blocks do not connect, and loose parts are not a substitute for a formed machine.
+3. Connect ME cable to the formed orrery's central casing, observation port, core or valid ring anchor. Foundation blocks cannot connect, and loose parts need a formed machine. For wireless access, use Remote connection in the right sidebar; follow [Sequence Wireless Hub setup](sequence_array_controller.md).
 4. Right-click a valid part to open **Overview**. Check formation, ME online status and effective **L1**. Wells on that network now get **2× processing speed** by default, without producing Star Signal Flow first.
 
 You can instead order a complete L2 or L3 package. These include the first two or three rings, still using only Reference anchors. Each package contains:
@@ -56,9 +56,9 @@ You can instead order a complete L2 or L3 package. These include the first two o
 
 ## Building by hand: center and foundation
 
-### Center: three joined layers, nine blocks each
+### Center: three layers of nine blocks
 
-This diagram places the layers **side by side at the same height** so you can see inside. **Left: bottom; middle: center; right: top.** Stack them directly on top of each other in the real build to make a 3×3×3 cube.
+The three layers are shown side by side so you can see inside: bottom on the left, center in the middle and top on the right. Stack them directly above each other to build the 3×3×3 center.
 
 <GameScene zoom="3" background="transparent" interactive={true}>
   <ImportStructure src="../assets/structures/orrery-core-layers.snbt" />
@@ -95,9 +95,9 @@ Formation changes the appearance to a floating ring frame, but the original bloc
 | 4 / 5 / 6 | Quantum | 48 / 56 / 64 |
 | 7 / 8 / 9 | Terminal | 72 / 80 / 88 |
 
-Totals are **96 Reference**, **168 Quantum** and **240 Terminal** anchors. Hand-building L1–L3 also activates them automatically; L4–L9 require sequential confirmation on Upgrade. Default upgrades have no additional energy, research or quest payment. Normal idle power and overclock costs remain separate.
+Totals are **96 Reference**, **168 Quantum** and **240 Terminal** anchors. Hand-building L1 to L3 activates those levels automatically; L4 to L9 require sequential confirmation on Upgrade. Default upgrades have no additional energy, research or quest payment. Normal idle power and overclock costs remain separate.
 
-**Read the level in Overview, not just the visible rings.** A damaged inner ring disables itself and outer rings; completing outer rings alone cannot skip levels. If a pack adds upgrade conditions, this page lists them. An upgrade requiring energy calibration shows paid progress and pause/resume controls.
+Check the effective level in Overview. A damaged inner ring disables itself and outer rings, so complete each ring in order. Pack-added upgrade conditions appear on Upgrade. Energy calibration shows paid progress and pause/resume controls.
 
 ## L3: unlock two single-block machines for free
 
@@ -105,7 +105,7 @@ There is one default team research: **Single-Block Integration**.
 
 1. Use your team's orrery. Keep it formed and ME-online, and confirm its **effective level is at least L3**.
 2. Open **Recipe Tree** and select **Single-Block Integration**.
-3. Click **Unlock**. It costs **0 bit**, has no prerequisite and needs no signal balance. **Free still requires an explicit click.**
+3. Click Unlock to activate the research for **0 bit**. It has no prerequisite and needs no signal balance.
 
 | Machine | Fabrication Well research still needed |
 | --- | --- |
@@ -118,12 +118,12 @@ The unlock is **permanent team progress** and survives dismantling or restarting
 
 ## What do the benefits mean?
 
-- **Assembler parallelism**: recipe copies a supported sequence machine can make together.
-- **CPU parallelism**: crafting steps an Omni CPU can advance together.
-- **CPU crafting storage**: workspace for orders and intermediate ingredients, **not ME warehouse capacity**.
-- **Well speed**: shorter production time, not faster research. Nine-round deep research increases batch size separately.
+- Assembler parallelism is the number of recipe copies a supported sequence machine can make together.
+- CPU parallelism is the number of crafting steps an Omni CPU can advance together.
+- CPU crafting storage is workspace for orders and intermediate ingredients. ME item storage is separate.
+- Well speed reduces production time. Research time stays the same, and nine-round deep research increases batch size separately.
 
-These are **non-overclocked** values. Overview and Upgrade show live capabilities.
+These values apply without overclocking. Check Overview and Upgrade for live capabilities.
 
 | Level | Assembler parallelism | CPU parallelism | CPU crafting storage | Well speed |
 | --- | ---: | ---: | ---: | ---: |
@@ -143,8 +143,8 @@ A network uses **one best active engine**; engines do not stack. Power, channels
 
 Produce Star Signal Flow with a [Star Sea Calculation Mainframe](star_sea_calculation_mainframe.md), store it in a [Star Signal Storage Cell](star_signal_flow.md), then enable overclock on Overview. Star Signal Flow is not AE power; ordinary benefits do not consume it.
 
-- L1–L9 consume **2 / 4 / 8 / 16 / 32 / 64 / 128 / 256 / 512 bit per tick**. At normal speed, a second is about 20 ticks.
-- L1–L8 overclocking doubles the four benefits above. It **does not raise the level or replace research**.
+- L1 to L9 consume **2 / 4 / 8 / 16 / 32 / 64 / 128 / 256 / 512 bit per tick**. At normal speed, a second is about 20 ticks.
+- L1 to L8 overclocking doubles the four benefits above. Level and research requirements still apply.
 - Only continuously paid **L9 overclock** provides unlimited parallelism, unlimited CPU crafting storage and **1-tick** well production. Normal L9 remains finite as listed.
 - Insufficient signal switches overclock off, returning to normal benefits. Disconnection or broken structure removes benefits. Permanent research is retained.
 
@@ -159,7 +159,9 @@ Produce Star Signal Flow with a [Star Sea Calculation Mainframe](star_sea_calcul
 | L3 but the recipe is locked | Explicitly unlock Single-Block Integration and finish the machine's well research. |
 | Overclock turns itself off | Check signal stock, production rate and ME status. |
 
-Before moving the engine, settle external ME crafting orders. Click **Reclaim package** on Overview, wait briefly and confirm again within three seconds. Redeploy with the Calibrator **in the same world**. Package grade follows the consecutive complete physical rings at reclaim; see [Relocation](folded_buildings.md). Old-world cubes also need the complete center and real foundation; missing materials are not supplied automatically.
+Before moving the engine, settle external ME crafting orders. Click Reclaim package on Overview, wait briefly and confirm within three seconds. Redeploy with the Calibrator in the same world. Package grade follows the consecutive complete physical rings at reclaim; see [Relocation](folded_buildings.md). Normal recovery and packaging retain the wireless binding. Rebind if the wireless hub was moved or replaced.
+
+Old-world cubes also need the complete center and real foundation. Supply any missing materials.
 
 ## Recipes
 

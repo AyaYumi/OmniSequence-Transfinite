@@ -28,7 +28,7 @@ The Matter Fabrication Well turns ingredients into advanced materials; its resea
 
 ## Before you start
 
-- Reserve **41 × 41 blocks, 27 blocks tall**. This is a building, not just the controller block.
+- Reserve **41 × 41 blocks, 27 blocks tall** for the complete building.
 - Craft the controller below. The controller, basic building parts and input/output ports need no research.
 - Use JEI's **Complete Matter Fabrication Well** page for the full building-material list.
 - Prepare a powered ME network with storage and an available channel for the controller. It uses **16 AE/t** at idle; processing and research need additional power.
@@ -37,11 +37,11 @@ The Matter Fabrication Well turns ingredients into advanced materials; its resea
 
 ## Build it
 
-1. **Place the controller.** Open it and select **Project** to see the building's position. Remove blocks marked as conflicts before construction.
-2. **Supply building materials.** Keep them in your inventory or in ME storage connected to the controller. Select **Build**; it uses your inventory first, then ME.
-3. **Wait for construction to finish.** Reopen the controller and use **Scan** to check any missing or conflicting blocks.
-4. **Install ports.** Hold an [input or output port](matter_fabrication_ports.md) to highlight valid positions, then replace the highlighted casing blocks. Install the input and output types your first recipe needs.
-5. **Check the network.** The controller must show **Online** before you research or process materials.
+1. Place the controller. Open it and select Project to see the building's position. Clear blocks marked as conflicts.
+2. Keep building materials in your inventory or ME storage connected to the controller. Select Build; it uses your inventory first, then ME.
+3. Wait for construction to finish. Reopen the controller and use Scan to find missing or conflicting blocks.
+4. Hold an [input or output port](matter_fabrication_ports.md) to highlight valid positions, then replace the highlighted casing. Install the input and output types your first recipe needs.
+5. Check that the controller shows Online before starting research or processing.
 
 There are **44 places for ports or Pattern Assemblies**: 24 along the front steps and four groups of five around the central platform. These devices replace casing at those positions; placing them beside the building does not connect them.
 
@@ -64,21 +64,25 @@ The structure count is complete and the network shows **Online**. While processi
 | --- | --- |
 | Construction stops | Read the missing-material message, clear projection conflicts and keep the whole building area loaded. |
 | Structure incomplete | Use **Project** and **Scan**; check that ports replaced highlighted casing positions. |
-| AE network offline / insufficient power | Check the controller's cable, channel and ME energy supply. A connected cable alone does not guarantee enough power. |
+| AE network offline / insufficient power | Check the selected ME connection, channel and energy supply. A cable or saved wireless binding alone does not guarantee power or an online link. |
 | No processing recipe | Check the recipe's research requirement and every ingredient quantity. Research materials belong in ME, processing materials in inputs. |
 | Output blocked | Empty the appropriate item/fluid output ports, or free ME storage for assembly jobs. |
 
-## Useful controls
+## Connections and controls
 
-- **Remote building materials:** put one Quantum Entangled Singularity in the controller and its partner in a powered AE2 quantum bridge. The link adds **512 AE/t** and needs a channel. Before the well is complete, it can already supply building materials.
-- **Effects:** choose off, reduced or full effects for this well. This does not change production. Shift-click restores each viewer's global setting.
-- **Reclaim Package:** click once, then confirm within three seconds to pack the building and its contents. Finish or cancel external ME crafting jobs first. See [Folded Buildings and Relocation](folded_buildings.md).
+For wireless ME access, use Remote connection in the right sidebar to bind the well to a Sequence Wireless Hub. Ports and Pattern Assemblies manage this same controller binding. Follow the [wireless setup](sequence_array_controller.md) for connection requirements.
 
-Normal removal retains the controller's research and accepted work, ports' contents, and assemblies' patterns and materials. Restore the building, network and power to continue.
+You can also use a Quantum Entangled Singularity in the controller with its partner in a powered AE2 quantum bridge. This alternative adds **512 AE/t** and needs a channel. It can supply building materials before the well is complete.
+
+Choose off, reduced or full Effects for this well. This changes visuals only. Shift-click restores each viewer's global setting.
+
+To move the building, click Reclaim Package, then confirm within three seconds. Finish or cancel external ME crafting jobs first. The package retains the building's contents and wireless binding. See [Folded Buildings and Relocation](folded_buildings.md).
+
+Normal removal retains research, accepted work, port contents, assembly patterns and materials, and the controller's wireless binding. Restore the building, ME connection and power to continue. If the wireless hub was moved or replaced, rebind the well.
 
 ## Next steps
 
-- [Fabrication Research](matter_fabrication_research.md) — unlock your first recipes.
-- [Input and Output Ports](matter_fabrication_ports.md) — feed the well and collect products.
-- [Pattern Assembly](matter_fabrication_pattern_assembly.md) — request products from an ME terminal.
-- [Star Marrow Crystals](star_marrow_crystals.md) — start the crystal and star-material supply line.
+- [Fabrication Research](matter_fabrication_research.md): unlock your first recipes.
+- [Input and Output Ports](matter_fabrication_ports.md): feed the well and collect products.
+- [Pattern Assembly](matter_fabrication_pattern_assembly.md): request products from an ME terminal.
+- [Star Marrow Crystals](star_marrow_crystals.md): start the crystal and star-material supply line.

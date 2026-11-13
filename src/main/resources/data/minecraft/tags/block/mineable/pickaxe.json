@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "molecularmanipulator:folding_assembler",
+    "molecularmanipulator:sequence_wireless_hub",
     "molecularmanipulator:end_warp_pad",
     "molecularmanipulator:star_sea_calculation_mainframe",
     "molecularmanipulator:warp_coordinate_inscription",

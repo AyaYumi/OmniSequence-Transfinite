@@ -6,7 +6,7 @@
 
 ## Prepare the local build inputs / 准备本地编译依赖
 
-For OmniSequence 21.3.0.0 on Minecraft 1.21.1 / Java 21 and AE2 19.2.18.
+For OmniSequence 21.3.0.1 on Minecraft 1.21.1 / Java 21 and AE2 19.2.18.
 
 This branch compiles against `appliedenhancements-1.1.4.jar` in this directory.
 The minimum supported runtime version remains 1.1.2.

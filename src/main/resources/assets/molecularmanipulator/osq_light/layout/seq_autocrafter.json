@@ -14,8 +14,9 @@
   {
    "z": 0,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_autocrafter_window_0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
    "pad": [
     0,
     0,
@@ -133,8 +134,9 @@
   {
    "z": 8,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_autocrafter_slots_1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -909,8 +911,9 @@
   {
    "z": 58,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_autocrafter_inv_2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1760,8 +1763,9 @@
   {
    "z": 104,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/seq/glass/seq_autocrafter_dirs",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_popup",
+   "material": "popup",
+   "slicing": "nine_slice",
    "pad": [
     8,
     6,

@@ -14,7 +14,7 @@ import net.minecraft.world.entity.player.Inventory;
 import java.util.Locale;
 import java.util.List;
 
-/** Fabrication telemetry, quantum construction link and structure-management controls. */
+/** Fabrication telemetry, remote connection and structure-management controls. */
 public final class MatterFabricationScreen extends ResponsiveContainerScreen<MatterFabricationMenu> {
     private static final int CYAN = AeUiTheme.CYAN;
     private static final long DISMANTLE_CONFIRM_MILLIS = 3_000L;
@@ -65,19 +65,23 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
         ui.number(16.5f,116,()->menu.correctParts);ui.number(29.03f,116,()->"");ui.number(59.23f,116,()->"/ "+menu.totalParts);ui.number(69.34f,116,()->"");
         ui.number(212.5f,129,()->menu.progress);ui.number(233.95f,129,()->"/ "+Math.max(0,menu.processingTime)+" t");
         ui.number(367.59f,126,()->Math.round(100*processRatio())+"%");
-        ui.number(66.02f,168,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.text("gui.molecularmanipulator.fab.s024", () -> Component.translatable(menu.wirelessBound
+                ? "gui.molecularmanipulator.wireless_hub.requirements" : "gui.molecularmanipulator.fab.s024"));
+        ui.text("gui.molecularmanipulator.fab.s025", this::remoteTargetLabel);
+        ui.at(66.02f,168,this::remoteTarget);
         ui.text("gui.molecularmanipulator.fab.s026",()->Component.translatable("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
         ui.number(226.36f,188,()->"512");
         ui.width(16.5f,116,40);ui.width(59.23f,116,65);
         ui.width(212.5f,129,20);ui.width(233.95f,129,78);
         ui.width(276,87,174);ui.width(327.36f,63,25);
-        ui.color("gui.molecularmanipulator.fab.s026",()->menu.quantumFrequency==0?ui.palette.ink3:
+        ui.color("gui.molecularmanipulator.fab.s026",()->!menu.wirelessBound&&menu.quantumFrequency==0?ui.palette.ink3:
                 menu.quantumLinkState==QuantumLinkState.CONNECTED||menu.quantumLinkState==QuantumLinkState.CONNECTED_BUILD_ONLY?ui.palette.ok:ui.palette.warn);
         ui.sprite(285.63f,44,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         ui.sprite(213,61,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         ui.progress(17,122,()->menu.correctParts/(double)Math.max(1,menu.totalParts));
         ui.progress(213,151,this::processRatio);
-        ui.at(238.27f,188,()->Component.translatable("gui.molecularmanipulator.fabrication.link_details"));
+        ui.at(238.27f,188,()->Component.translatable(menu.wirelessBound
+                ? "gui.molecularmanipulator.wireless_hub.link_details" : "gui.molecularmanipulator.fabrication.link_details"));
         setResearchPage(researchPage);
     }
 
@@ -96,6 +100,7 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (wirelessPanelOpen()) return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         if (researchPanel != null && researchPanel.scroll(logicalMouseX(mouseX) - leftPos,
                 logicalMouseY(mouseY) - topPos, scrollY)) return true;
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
@@ -103,7 +108,7 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
 
     /** Research rows are drawn outside native slots; expose their visible screen area to JEI. */
     public StackWithBounds researchIngredientAt(double mouseX,double mouseY) {
-        if(!researchPage||researchPanel==null)return null;
+        if(wirelessPanelOpen()||!researchPage||researchPanel==null)return null;
         var ingredient=researchPanel.ingredientAt(logicalMouseX(mouseX)-leftPos,logicalMouseY(mouseY)-topPos);
         if(ingredient==null)return null;
         var area=ingredient.bounds();
@@ -114,11 +119,11 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
+        if (wirelessPanelOpen()) return;
         double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
         List<Component> tooltip = researchPage ? researchPanel.tooltipAt(x, y)
                 : x >= 39 && x < 190 && y >= 196 && y < 209
-                        ? List.of(Component.translatable("gui.molecularmanipulator.fab.s025").append(": ")
-                                .append(menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT)))
+                        ? List.of(remoteTargetLabel().copy().append(": ").append(remoteTarget()))
                 : x >= 17 && x < 190 && y >= 220 && y < 238
                         ? List.of(Component.translatable("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)))
                 : x >= 213 && x < 384 && y >= 55 && y < 71
@@ -202,6 +207,17 @@ public final class MatterFabricationScreen extends ResponsiveContainerScreen<Mat
                     menu.operationProgress, menu.operationTotal);
         }
         return Component.translatable("gui.molecularmanipulator.fabrication.operation_idle");
+    }
+
+    private Component remoteTargetLabel() {
+        return Component.translatable(menu.wirelessBound
+                ? "gui.molecularmanipulator.remote_target" : "gui.molecularmanipulator.fab.s025");
+    }
+
+    private Component remoteTarget() {
+        return menu.wirelessBound ? Component.translatable("gui.molecularmanipulator.wireless_hub.short")
+                : Component.literal(menu.quantumFrequency == 0 ? "-"
+                        : Long.toUnsignedString(menu.quantumFrequency, 16).toUpperCase(Locale.ROOT));
     }
 
     private Component stateLabel() {

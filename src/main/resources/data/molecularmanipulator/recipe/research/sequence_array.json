@@ -64,6 +64,7 @@
   "duration": 1200,
   "ae_per_tick": 1024,
   "unlocks": [
+    "molecularmanipulator:sequence_wireless_hub",
     "molecularmanipulator:molecular_center_casing",
     "molecularmanipulator:molecular_center_coil",
     "molecularmanipulator:molecular_center_controller",

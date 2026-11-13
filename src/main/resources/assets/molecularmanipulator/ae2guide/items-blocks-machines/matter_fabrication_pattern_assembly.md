@@ -10,7 +10,7 @@ item_ids:
 
 # Fabrication Pattern Assembly
 
-A Pattern Assembly lets you request Fabrication Well products from an ME terminal instead of loading ingredients into ports yourself.
+A Pattern Assembly lets you request Fabrication Well products from an ME terminal. The network supplies ingredients for each order.
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
@@ -33,15 +33,15 @@ From left to right: the assembly, a terminal for encoding patterns, and a termin
 
 ## Set up your first order
 
-1. **Install the assembly.** Hold it to highlight valid positions, then replace one of the well's highlighted casing blocks. The well must remain complete and online.
-2. **Encode a processing pattern.** In the Pattern Encoding Terminal, open the desired Fabrication Well recipe in JEI. Select **Encode and upload to fabrication well** to encode it and send it to an assembly.
-3. **Check the Pattern page.** The uploaded pattern should appear there. Each assembly holds **36 patterns**. You can also encode a matching processing pattern manually and insert it yourself.
-4. **Supply reusable tools separately.** If JEI lists a catalyst, put it in the **Catalyst** page as described below. Do not add it to the pattern's consumed inputs.
-5. **Request the product in ME.** The crafting CPU delivers ingredients to the assembly; the well processes them and sends products back to ME.
+1. Hold the assembly to highlight valid positions, then replace one of the well's highlighted casing blocks. Keep the well complete and online.
+2. In the Pattern Encoding Terminal, open a Fabrication Well recipe in JEI. Select Encode and upload to fabrication well to encode a processing pattern and send it to an assembly.
+3. Check the assembly's Pattern page. Each assembly holds **36 patterns**. You can also encode a matching processing pattern manually and insert it yourself.
+4. Put any catalyst listed in JEI into the Catalyst page as described below. Leave it out of the pattern's consumed inputs.
+5. Request the product in ME. The crafting CPU delivers ingredients to the assembly, and the well processes them and returns products to ME.
 
 Assemblies support items, fluids and recipe resources such as Star Signal Flow. You do not need input/output ports for an assembly-driven job.
 
-### Where does JEI upload send the pattern?
+### Pattern upload destination
 
 Upload uses **one Blank Pattern**, first from the terminal's local slot, then from connected ME storage. It looks for a loaded assembly in a complete well belonging to your team, preferring the nearest with space in your dimension. Missing destinations, full assemblies and duplicate patterns do not spend a blank.
 
@@ -51,7 +51,7 @@ ExtendedAE Plus automatic destination selection is supported for **1.6.4.1**.
 
 ## Reusable catalysts
 
-A **catalyst** is a tool the recipe needs nearby but does not consume. Each assembly has **36 catalyst slots**, shared with the loaded assemblies in the same complete well.
+A catalyst is a reusable tool required by a recipe. Each assembly has **36 catalyst slots**, shared with loaded assemblies in the same complete well.
 
 <Row>
 <ItemImage id="molecularmanipulator:ghost_matter" scale="4" />
@@ -69,7 +69,9 @@ If a catalyst is removed, work waits with its materials and progress until you p
 
 ## What success looks like
 
-The product is craftable in ME, the assembly shows **Connected to AE**, and a requested job returns its output to storage.
+The product is craftable in ME, the assembly shows Connected to AE, and a requested job returns its output to storage.
+
+Remote connection in the right sidebar manages the well controller's binding, shared by its ports and assemblies. See [Sequence Wireless Hub setup](sequence_array_controller.md). The assembly does not bind separately.
 
 | Assembly page | What to look for |
 | --- | --- |
@@ -78,7 +80,7 @@ The product is craftable in ME, the assembly shows **Connected to AE**, and a re
 | Output | Products waiting for ME to accept them |
 | Catalyst | Reusable tools shared by this well |
 
-**Return inputs** sends back only work that has not started. Active work keeps its materials. Full ME storage leaves products and refunds safely buffered until space is available. Normal assembly removal retains patterns, catalysts, work and stored materials.
+Return inputs sends back work that has not started; active work keeps its materials. If ME storage is full, products and refunds wait safely in the assembly. Normal removal retains patterns, catalysts, work and stored materials. The controller's wireless binding is also retained through normal recovery and building packaging.
 
 ## If it does not work
 

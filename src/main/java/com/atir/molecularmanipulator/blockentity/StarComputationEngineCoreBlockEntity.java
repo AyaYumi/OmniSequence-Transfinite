@@ -24,6 +24,8 @@ import com.atir.molecularmanipulator.starcomputation.StarComputationUpgradeProgr
 import com.atir.molecularmanipulator.starcomputation.StarComputationUpgrades;
 import com.atir.molecularmanipulator.building.BuildingTransfer;
 import com.atir.molecularmanipulator.integration.FtbTeamOwnership;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.menu.StarComputationEngineMenu;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import java.util.EnumSet;
@@ -65,13 +67,14 @@ import org.jetbrains.annotations.Nullable;
 
 /** Server-side owner of the central 3x3x3 body, physical foundation and nine anchor rings. */
 @EventBusSubscriber(modid = MolecularManipulator.MOD_ID)
-public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlockEntity {
+public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlockEntity implements SequenceWirelessHost {
     private static final int CHECK_INTERVAL = 10;
     private static final int STAR_ORRERY_LAYOUT_VERSION = 2;
     private static final int[] STAR_ORRERY_NODE_LEVELS = {1, 3, 6, 7, 9};
     /** Deferred chunk-local repair also covers orphaned shells whose controller no longer exists. */
     private static final Map<ServerLevel, Set<ChunkPos>> LEGACY_VISUAL_CHUNKS = new WeakHashMap<>();
 
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> 16.0);
     private boolean formed;
     private boolean needsStateSync = true;
     private int tickCounter;
@@ -105,6 +108,20 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         super(ModContent.STAR_COMPUTATION_ENGINE_CORE_BE.get(), pos, state);
         getMainNode().setFlags(GridFlags.REQUIRE_CHANNEL).setIdlePowerUsage(16);
     }
+
+    @Override public SequenceWirelessLink getWirelessLink() { return wirelessLink; }
+    @Override public void refreshRemoteConnection() {
+        wirelessLink.update(false, isFormed() ? MolecularCenterBlockEntity.QuantumLinkState.CONNECTED
+                : MolecularCenterBlockEntity.QuantumLinkState.STRUCTURE_INCOMPLETE);
+    }
+    @Override public void onReady() {
+        if (BuildingTransfer.restoring(this)) return;
+        super.onReady();
+        refreshRemoteConnection();
+    }
+    @Override public void onChunkUnloaded() { wirelessLink.disconnect(); super.onChunkUnloaded(); }
+    @Override public void setRemoved() { wirelessLink.disconnect(); super.setRemoved(); }
+    @Override public void clearContent() { wirelessLink.clear(); super.clearContent(); }
 
     @Override
     protected Item getItemFromBlockEntity() { return getBlockState().getBlock().asItem(); }
@@ -555,6 +572,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     public void serverTick() {
         upgrade.resetRate();
         if (BuildingTransfer.restoring(this)) return;
+        if (level.getGameTime() % 20 == 0) refreshRemoteConnection();
         refundInformation();
         if (overclocked && StarComputationNetwork.best(getMainNode().getGrid()) == this) payOverclockForCurrentTick();
         if (overclocked && (!isFormed() || !getMainNode().isActive())) {
@@ -980,6 +998,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     /** BlockItem placement and AE2 dismantling both restore only the upgrade/owner payload, never saved formation. */
     public void importUpgradeItem(net.minecraft.world.item.ItemStack stack) {
         var tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        wirelessLink.load(tag);
         if (!tag.contains(StarComputationUpgradeProgress.TAG, net.minecraft.nbt.Tag.TAG_COMPOUND)) return;
         upgrade.load(tag);
         if (tag.hasUUID("entropy_team")) boundTeam = tag.getUUID("entropy_team");
@@ -992,6 +1011,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         if (mode == SettingsFrom.DISMANTLE_ITEM) {
             var tag = new CompoundTag();
             tag.put(StarComputationUpgradeProgress.TAG, upgrade.save());
+            wirelessLink.save(tag);
             if (boundTeam != null) tag.putUUID("entropy_team", boundTeam);
             builder.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         }
@@ -1002,6 +1022,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
         super.importSettings(mode, data, player);
         if (mode == SettingsFrom.DISMANTLE_ITEM && level != null && !level.isClientSide()) {
             var tag = data.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            wirelessLink.load(tag);
             if (tag.contains(StarComputationUpgradeProgress.TAG, net.minecraft.nbt.Tag.TAG_COMPOUND)) {
                 upgrade.load(tag);
                 if (tag.hasUUID("entropy_team")) boundTeam = tag.getUUID("entropy_team");
@@ -1013,6 +1034,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        wirelessLink.save(tag);
         tag.putBoolean("formed", formed);
         tag.putBoolean("entropy_overclocked", overclocked);
         tag.putInt("entropy_unlocks", legacyUnlockMask);
@@ -1052,6 +1074,7 @@ public final class StarComputationEngineCoreBlockEntity extends AENetworkedBlock
 
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
+        wirelessLink.load(tag);
         super.loadTag(tag, registries);
         formed = tag.getBoolean("formed");
         upgrade.load(tag);

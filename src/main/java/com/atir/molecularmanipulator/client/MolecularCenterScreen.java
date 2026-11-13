@@ -94,6 +94,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (wirelessPanelOpen()) return super.mouseClicked(mouseX, mouseY, button);
         double logicalX = logicalMouseX(mouseX);
         double logicalY = logicalMouseY(mouseY);
         boolean clickedDismantle = button == 0 && dismantleControl != null
@@ -133,7 +134,8 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         bindQuantumLink();
         ui.sprite(201,42.5f,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
         ui.sprite(240.95f,228,()->ui.sprite("dot_"+(menu.operational?"ok":"mute")));
-        ui.sprite(39,167,()->ui.sprite("dot_"+(menu.quantumFrequency==0?"mute":"ok")));
+        ui.sprite(39,167,()->ui.sprite("dot_"+(!menu.wirelessBound&&menu.quantumFrequency==0
+                ?"mute":quantumConnected()?"ok":"warn")));
         ui.color("gui.molecularmanipulator.formed",()->menu.formed?ui.palette.ok:ui.palette.warn);
         ui.color("gui.molecularmanipulator.overview_online",()->menu.operational?ui.palette.ok:ui.palette.ink3);
         bindOverviewTelemetry();
@@ -357,11 +359,18 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private void bindQuantumLink() {
         ui.text("gui.molecularmanipulator.quantum_state.connected", () -> OsqUi.tr(
                 "gui.molecularmanipulator.quantum_state." + menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
-        ui.number(65.39f, 179.5f, () -> formatFrequency(menu.quantumFrequency));
+        ui.text("gui.molecularmanipulator.fab.s025", () -> OsqUi.tr(menu.wirelessBound
+                ? "gui.molecularmanipulator.remote_target" : "gui.molecularmanipulator.fab.s025"));
+        ui.at(65.39f, 179.5f, () -> menu.wirelessBound
+                ? OsqUi.tr("gui.molecularmanipulator.wireless_hub.short")
+                : Component.literal(formatFrequency(menu.quantumFrequency)));
+        ui.color("gui.molecularmanipulator.quantum_state.connected", () -> !menu.wirelessBound && menu.quantumFrequency == 0
+                ? ui.palette.ink3 : quantumConnected() ? ui.palette.ok : ui.palette.warn);
         var state=ui.layout.findText("gui.molecularmanipulator.quantum_state.connected");var panel=ui.layout.find("quantum");
         ui.width(46,165.89f,panel.x+panel.w-8-(state.drawX==null?state.x:state.drawX));
-        ui.text("gui.molecularmanipulator.overview_quantum_requirements", () -> OsqUi.tr(
-                "gui.molecularmanipulator.overview_quantum_requirements", 512));
+        ui.text("gui.molecularmanipulator.overview_quantum_requirements", () -> menu.wirelessBound
+                ? OsqUi.tr("gui.molecularmanipulator.wireless_hub.requirements")
+                : OsqUi.tr("gui.molecularmanipulator.overview_quantum_requirements", 512));
     }
 
     /** Shared by all three pages; layout-owned controls never cover overview status text. */
@@ -452,6 +461,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (wirelessPanelOpen()) return super.keyPressed(keyCode, scanCode, modifiers);
         if (detailTab == TAB_AUTO_CRAFT
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             if (autoCraftOutputLimit.isFocused() && autoCraftOutputLimit.active) {
@@ -630,6 +640,11 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 : "gui.molecularmanipulator.preview");
     }
 
+
+    private boolean quantumConnected() {
+        return menu.quantumLinkState == MolecularCenterBlockEntity.QuantumLinkState.CONNECTED
+                || menu.quantumLinkState == MolecularCenterBlockEntity.QuantumLinkState.CONNECTED_BUILD_ONLY;
+    }
 
     private static String formatFrequency(long frequency) {
         return Long.toUnsignedString(frequency, 16).toUpperCase(Locale.ROOT);

@@ -27,6 +27,8 @@ import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.OmniCpuStorage;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import com.atir.molecularmanipulator.mixin.CraftingCPUClusterAccessor;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -65,7 +67,8 @@ import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity implements InternalInventoryHost, MachineEffectHost {
+public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
+        implements InternalInventoryHost, MachineEffectHost, SequenceWirelessHost {
     public static final long INFINITE_STORAGE = Long.MAX_VALUE;
     public static final long INFINITE_PARALLELISM = Long.MAX_VALUE;
     public static final int AE2_MAX_THREADS_PER_BLOCK = 16;
@@ -115,6 +118,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private final boolean singleBlock;
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
     private final AppEngInternalInventory quantumInventory;
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, this::idlePowerUsage);
     private OmniComputationStructure.Inspection inspection =
             new OmniComputationStructure.Inspection(OmniComputationStructure.structureBlockCount(), 0,
                     OmniComputationStructure.structureBlockCount(), 0, false,
@@ -295,6 +299,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void onChunkUnloaded() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         retireStoredCpus(true);
@@ -303,6 +308,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void setRemoved() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         retireStoredCpus(true);
@@ -310,7 +316,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public boolean hasRemovalRecovery() {
-        return !quantumInventory.isEmpty() || hasStoredCpuContents();
+        return wirelessLink.isBound() || !quantumInventory.isEmpty() || hasStoredCpuContents();
     }
 
     /** Snapshot CPU contents before AbstractCraftingUnitBlock breaks the cluster on removal. */
@@ -328,6 +334,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public void addAdditionalDrops(Level level, BlockPos pos, List<ItemStack> drops) {
         if (!hasRemovalRecovery()) return;
         var contents = new CompoundTag();
+        wirelessLink.save(contents);
         quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG, level.registryAccess());
         if (hasStoredCpuContents()) {
             var cpus = new ListTag();
@@ -396,6 +403,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void clearContent() {
         super.clearContent();
+        wirelessLink.clear();
         quantumInventory.clear();
         retireStoredCpus(false);
     }
@@ -597,11 +605,28 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return quantumLinkState;
     }
 
+    @Override
+    public SequenceWirelessLink getWirelessLink() {
+        return wirelessLink;
+    }
+
+    @Override
+    public void refreshRemoteConnection() {
+        updateQuantumLink();
+    }
+
     private void updateQuantumLink() {
         if (singleBlock) return;
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(MolecularCenterBlockEntity.QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -1425,7 +1450,12 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return;
         }
         centeredCore.loadTag(payload, registries);
+        // The replacement owns the binding; source removal must not drop a second bound controller.
+        wirelessLink.clear();
         if (!level.removeBlock(worldPosition, false)) {
+            centeredCore.wirelessLink.clear();
+            wirelessLink.load(payload);
+            updateQuantumLink();
             level.setBlock(targetPos, displacedState, 3);
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_unavailable"), false);
@@ -1792,6 +1822,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        wirelessLink.save(tag);
         machineEffects.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG, registries);
         tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
@@ -1868,6 +1899,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             tag.remove(UPGRADE_ACTIVE_TAG);
             tag.remove(DISMANTLE_PLAN_TAG);
         }
+        wirelessLink.load(tag);
         super.loadTag(tag, registries);
         machineEffects.load(tag);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG, registries);

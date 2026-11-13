@@ -14,8 +14,9 @@
   {
    "z": 0,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_port_item_window_0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
    "pad": [
     0,
     0,
@@ -132,8 +133,9 @@
   {
    "z": 8,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_port_item_cache_1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -688,8 +690,9 @@
   {
    "z": 39,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_port_item_inv_2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1530,8 +1533,9 @@
   {
    "z": 84,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_port_item_dirs",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_popup",
+   "material": "popup",
+   "slicing": "nine_slice",
    "pad": [
     8,
     6,

@@ -1,14 +1,14 @@
 # OmniSequence: Transfinite
 
-[简体中文](README.zh-CN.md) · [Configuration](CONFIGURATION.md) · [Author / API reference](docs/README.md)
+[简体中文](README.zh-CN.md) · [Configuration](docs/README.md#configuration--配置) · [API reference](docs/README.md)
 
-An AE2 and ExtendedAE expansion for a growing automated base. Use the **Matter Fabrication Well** to research and process materials, **Sequence devices** to manage recipes and keep stock, and **computation cores** to run large crafting jobs. Later, a **Star Orrery** speeds up the network and a **Singularity Hub** collects resources and copies items.
+An AE2 and ExtendedAE expansion for automated bases. Research and process materials in a Matter Fabrication Well, manage recipes and stock with Sequence devices, and run large crafting jobs with computation cores. A Star Orrery speeds up machines on the same network. A Singularity Hub collects resources and copies items.
 
-**New player?** Install the dependencies below, build your first well, then follow the in-game guide. Hover an item in your inventory or JEI and press the AE2 guide key, default **G**; associated blocks also open their guide pages. If G does nothing, check the guide binding in **Options → Controls**. The guide is available in English and Simplified Chinese.
+Install the dependencies below, build your first well, then follow the in-game guide. Hover an item in your inventory or JEI and press the AE2 guide key, default **G**. Related blocks have guide entries too. If the key does nothing, check its binding under Options, Controls. The guide is available in English and Simplified Chinese.
 
 ## Install
 
-This branch is **21.3.0.0** for **Minecraft 1.21.1 / NeoForge**, using **Java 21**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
+This branch is **21.3.0.1** for **Minecraft 1.21.1 / NeoForge**, using **Java 21**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
 
 | Required component | Version for this branch |
 | --- | --- |
@@ -56,10 +56,10 @@ You need a powered **ME network** first: AE2 cables, item storage and a terminal
 
 | Step | What it opens |
 | --- | --- |
-| I — AE Foundation | Basic AE processes, Pattern Assembly, Auto Crafter |
-| II — Star Marrow / Extended / Quantum Materials | Materials for later devices; Quantum requires AdvancedAE |
-| III — Sequence Engineering / Computation Architecture | Sequence devices and crafting-CPU structures |
-| IV → V → VI — Event Horizon → Stellar Cores → Transfinite Integration | Hole devices and hub structure, then hub controller, then Compute Nexus |
+| I: AE Foundation | Basic AE processes, Pattern Assembly, Auto Crafter |
+| II: Star Marrow / Extended / Quantum Materials | Materials for later devices; Quantum requires AdvancedAE |
+| III: Sequence Engineering / Computation Architecture | Sequence devices and crafting-CPU structures |
+| IV → V → VI: Event Horizon → Stellar Cores → Transfinite Integration | Hole devices and hub structure, then hub controller, then Compute Nexus |
 
 Each parent normally needs **one completion**. Machine-integration research is different: **both Tier III branches must each have three total completions**, including the first unlock round. It imports another machine's supported recipes into the well; the curated Tier II material recipes are not subject to that three-round gate.
 
@@ -73,6 +73,7 @@ Two optional branches are available: **Exotic Matter Studies** after Tier I unlo
 | --- | --- |
 | Research or process materials | **Matter Fabrication Well**; add a **Pattern Assembly** for ME autocrafting |
 | Store many patterns and keep several products stocked | **Sequence Array**: large pattern library and nine independent restocking positions |
+| Connect supported machines wirelessly across dimensions | **Sequence Wireless Hub**: one wired block, many receivers; select a same-team hub from the side button |
 | Batch crafting, smithing or stonecutting in one block | **Molecular Sequence Rewrite Array**: 360 pattern slots; requires Single-Block Integration as well as well research |
 | Add batch execution to an ExtendedAE Assembler Matrix | **Assembler Matrix Sequence Rewrite Core** |
 | Maintain a product target while reserving ingredients | **Molecular Auto Crafter** |
@@ -87,6 +88,26 @@ Two optional branches are available: **Exotic Matter Studies** after Tier I unlo
 
 On a Sequence Array, **Auto upload** receives newly encoded crafting, smithing and stonecutting patterns from native AE2 terminals on the same network. It starts **off**. **Migrate patterns** is a one-click move of existing physical patterns from public slots and online storage cells. Processing patterns stay at their source; full-library leftovers stay there too. Existing pattern items and their components are preserved.
 
+## Sequence Wireless Hub
+
+Connect a Sequence Wireless Hub to your main ME network with cable. It can link several supported machines across dimensions, with no distance limit.
+
+1. Remove the receiver's external ME cables and any singularity in its quantum slot.
+2. Open the machine and click **Remote connection** on the right.
+3. Select a hub, check its name and location, then click **Connect selected hub**.
+
+The panel shows the current binding and actual link status. Click **Disconnect** to remove the binding. No card or machine slot is needed. The panel's purple block thumbnails identify the hub; read the status text to check whether it is online.
+
+Supported receivers are Matter Fabrication Wells, Sequence Arrays, Molecular Sequence Rewrite Arrays, Sequence Auto Crafters, Star Computation Engines, multiblock Omni Computation Cores and both Singularity Hub variants. The Transfinite Compute Nexus does not support this connection. The button is available on machine tabs and auto-crafting configuration pages. Fabrication ports and Pattern Assemblies manage their controller's binding.
+
+Complete Tier III: Sequence Engineering to unlock the hub. Its well recipe needs 8 AE2 Quantum Rings, 1 Quantum Link Chamber and 4 Star Chart Processors, taking 400 ticks at 512 AE/t. The hub itself uses 64 AE/t, plus 512 AE/t per established link and the receivers' normal power. Its default 32-channel bandwidth follows AE2 settings; a machine may need more than one channel.
+
+The list shows loaded hubs belonging to the machine's placement team. Team members or administrators can manage the connection. Opening a screen keeps the original owner, and machines cannot link across teams. Without FTB Teams, each player has separate ownership. Both ends need loaded chunks; wireless provides no chunkloading. Each machine still needs its usual structure, research and channels. Paired-singularity quantum links remain available as another connection method.
+
+Bindings survive saves and supported machine packaging. Moving or replacing the hub creates a new identity, so its receivers must select it again. Empty-hand right-click shows the hub's status, link count and usage. Press **G** for the full guide.
+
+An AE2 Memory Card can also bind a machine: sneak-right-click the hub, then right-click the receiver. Sneak-right-click the receiver with that selected card to unbind. The same team checks apply, and the card is not needed afterward.
+
 ## Star Orrery: speed first, single-block permission at L3
 
 The engine is **not a standalone 3×3×3 machine**. Even L0 needs both:
@@ -96,7 +117,7 @@ The engine is **not a standalone 3×3×3 machine**. Even L0 needs both:
 
 Use JEI's **Star Orrery Structure** preview or order a complete **L1/L2/L3 package**. Every package includes the full center and foundation, plus its first 1/2/3 rings: **979/1011/1051 blocks** total. The core is 37 blocks above the package's selected base.
 
-Open **Upgrade** and supply the anchors shown. Existing correctly placed anchors count; only missing anchors are taken, inventory first and then the same powered ME network. L1/L2/L3 use **24/56/96 cumulative Reference anchors**. L4–L9 must be upgraded in order. Defaults add **no separate upgrade energy, quest or research payment**, and completing one level does not start the next. Missing inner rings lower the usable level; stacking engines does not multiply the speed bonus.
+Open **Upgrade** and supply the anchors shown. Existing correctly placed anchors count; only missing anchors are taken, inventory first and then the same powered ME network. L1/L2/L3 use **24/56/96 cumulative Reference anchors**. Levels L4 to L9 must be upgraded in order. Defaults add **no separate upgrade energy, quest or research payment**, and completing one level does not start the next. Missing inner rings lower the usable level; stacking engines does not multiply the speed bonus.
 
 At **actual L3**, open **Recipe Tree**, select **Single-Block Integration** and **click Unlock**. It is the **only default star research**, costs **0 bits**, and has **no prerequisite**. Free does not mean automatic. The engine must be formed, ME-online and bound to your team.
 
@@ -127,7 +148,7 @@ These are the actual in-game item icons:
 1. Connect a **Spatial Folding Assembler** to ME. Its seven complete packages appear as craftable products in the ME terminal: Well, Sequence Array, Omni Computation Core, Singularity Hub and Orrery L1/L2/L3. Request one with ME autocrafting. The order still costs the controller and all standard materials and respects their research requirements.
 2. Right-click a site with the **Star Chart Calibrator**. Select the package, base and facing; inspect the projection for conflicts, then confirm. For a Singularity Hub reserve **97×97 blocks, 129 blocks tall**; its controller is 65 blocks above the base. Required empty light-well positions must also stay clear.
 3. **Esc only closes the panel.** Right-click to reopen the same pinned site; use **Cancel point** to choose another. Withdraw unfinished construction with **Interrupt and reclaim building**, not sneak-right-click.
-4. To relocate a working multiblock, use its machine screen's reclaim control after construction/upgrades and external ME crafting jobs have settled. This includes Wells, Arrays, multiblock computation cores, multiblock Hubs and formed Orreries. A Hub must stop collection and dock its moving parts first. An Orrery archive package reflects its actual consecutive physical rings, including L0 and L4–L9.
+4. To relocate a working multiblock, use its machine screen's reclaim control after construction/upgrades and external ME crafting jobs have settled. This includes Wells, Arrays, multiblock computation cores, multiblock Hubs and formed Orreries. A Hub must stop collection and dock its moving parts first. An Orrery archive package reflects its actual consecutive physical rings, including L0 and L4 to L9.
 
 **Back up the whole world.** Building contents live in `<world>/data/molecularmanipulator/buildings/`; the package holds a reference, so copying only the item into another save does not copy the building. An old archive restores its original contents, not free missing parts. Old engine cubes need the complete central body and real Orrery foundation before they can form.
 
@@ -149,11 +170,11 @@ Black/white holes bind to the placer's FTB team, or the individual without FTB T
 
 ## Settings and author reference
 
-Players can normally keep the defaults. Server owners can change power, pattern capacity, collection lists, production and chunk loading in `config/omnisequence-transfinite-server.toml`; rendering detail uses `config/omnisequence-transfinite-client.toml`. These are instance-wide files, not per-world `serverconfig/`. Save and restart after editing. See [Configuration](CONFIGURATION.md).
+Players can keep the defaults. Server owners can change power, pattern capacity, collection lists, production and chunk loading in `config/omnisequence-transfinite-server.toml`; rendering detail uses `config/omnisequence-transfinite-client.toml`. These are instance-wide files, outside per-world `serverconfig/`. Save and restart after editing. The [configuration reference](docs/README.md#configuration--配置) lists the fields and examples.
 
-**Modpack and mod authors:** [docs/README.md](docs/README.md) links to recipe/research schemas, KubeJS examples, global recipe permissions, Orrery upgrade rules and Java provider contracts. Players do not need to implement those interfaces.
+Modpack and mod authors can use [docs/README.md](docs/README.md) for recipe and research formats, KubeJS examples, team recipe permissions, Orrery upgrade rules and Java provider contracts.
 
-### Build from source — developers
+### Build from source
 
 Use Java 21 and prepare the local dependencies described in [libs/README.md](libs/README.md), including `appliedenhancements-1.1.4.jar` and the optional compile-time API JARs. Then run:
 
@@ -161,6 +182,6 @@ Use Java 21 and prepare the local dependencies described in [libs/README.md](lib
 ./gradlew build apiJavadoc
 ```
 
-On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-21.3.0.0.jar`; Java API documentation is generated under `build/docs/api/`.
+On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-21.3.0.1.jar`; Java API documentation is generated under `build/docs/api/`.
 
-The GUI uses the default Minecraft font; no font files are bundled. Code is licensed under the [MIT License](LICENSE), and the adapted AE2 texture retains CC BY-NC-SA 3.0; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).
+The GUI uses the active Minecraft font; no font files are bundled. Code uses the [MIT License](LICENSE). Adapted AE2 and ExtendedAE textures retain their CC BY-NC-SA 3.0 and LGPL-3.0 licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).

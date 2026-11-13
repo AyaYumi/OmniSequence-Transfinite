@@ -137,12 +137,10 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         for (String id : List.of("window", "armillary")) {
             var surface = ui.layout.find(id);
             surface.h -= RECIPE_COMPACT;
-            surface.sprite += "_recipes";
         }
+        // Shared frames resize directly, and reflection UVs use the moved layout coordinates.
         for (var entry : ui.layout.draw) if (entry.id != null && List.of("inv", "net", "unlock", "prerequisites", "guide").contains(entry.id)) {
             entry.y -= RECIPE_COMPACT;
-            // Re-crop moved material instead of translating its reflection with the panel.
-            if (entry.sprite != null && entry.sprite.contains("/glass/")) entry.sprite += "_recipes";
         }
     }
 
@@ -165,6 +163,7 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     // Handle this list before that path; pointer scrolling must never depend on focus.
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (wirelessPanelOpen()) return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         if (recipesPage && researchScrollbar != null && researchScrollbar.visible && scrollY != 0) {
             double x = logicalMouseX(mouseX), y = logicalMouseY(mouseY);
             var first = nodeButtons.getFirst();
@@ -181,6 +180,7 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (wirelessPanelOpen()) return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
         // Container drag handling otherwise consumes native scrollbar drags as inventory input.
         if (recipesPage && researchScrollbar != null && button == 0 && isDragging()
                 && researchScrollbar.draggingScrollbar) {
@@ -256,6 +256,7 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
 
     @Override
     public boolean keyPressed(int key, int scan, int modifiers) {
+        if (wirelessPanelOpen()) return super.keyPressed(key, scan, modifiers);
         if (recipesPage && (getFocused() == researchScrollbar || nodeButtons.contains(getFocused()))) {
             int index = selected().index();
             switch (key) {
@@ -942,7 +943,7 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
         super.render(g, mx, my, pt);
-        if (ui == null) return;
+        if (wirelessPanelOpen() || ui == null) return;
         double x = logicalMouseX(mx) - leftPos, y = logicalMouseY(my) - topPos;
         if (upgradePage) {
             List<Component> tooltip = upgradeTooltip(x, y);

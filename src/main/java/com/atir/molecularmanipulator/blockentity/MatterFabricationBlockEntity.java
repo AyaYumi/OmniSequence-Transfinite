@@ -31,6 +31,8 @@ import com.atir.molecularmanipulator.research.MatterResearchProgress;
 import com.atir.molecularmanipulator.research.ResearchMaterialOrderService;
 import com.atir.molecularmanipulator.research.ResearchVisualState;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.integration.FtbTeamOwnership;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
@@ -69,7 +71,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntity implements MachineEffectHost {
+public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntity
+        implements MachineEffectHost, SequenceWirelessHost {
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
 
     @Override
@@ -115,6 +118,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     private final MatterFabricationBatch batch = new MatterFabricationBatch();
     private long manualCrafts = 1;
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> IDLE_POWER);
     private IGridConnection quantumConnection;
     private IGridNode quantumRemoteNode;
     private long quantumConnectionFrequency;
@@ -256,6 +260,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
 
     @Override
     public void onChunkUnloaded() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.onChunkUnloaded();
@@ -263,6 +268,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
 
     @Override
     public void setRemoved() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.setRemoved();
@@ -274,7 +280,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     }
 
     public boolean hasRemovalRecovery() {
-        return !inventory.isEmpty() || !quantumInventory.isEmpty() || batch.hasWork() || research.hasStoredMaterials()
+        return wirelessLink.isBound() || !inventory.isEmpty() || !quantumInventory.isEmpty() || batch.hasWork() || research.hasStoredMaterials()
                 || researchOrders.hasPending() || !pendingMigrationServiceBlocks.isEmpty() || !pendingDismantleRecovery.isEmpty();
     }
 
@@ -284,6 +290,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         // Only the inherited inventory belongs in the portable payload, not the AE grid node.
         var contents = new CompoundTag();
         contents.put("inv", payload.getCompound("inv"));
+        wirelessLink.save(contents);
         quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG, registries);
         if (research.hasProgress()) contents.put(RESEARCH_TAG, research.save());
         if (researchOrders.hasPending()) contents.put(RESEARCH_ORDERS_TAG, researchOrders.save(registries, false));
@@ -298,6 +305,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void clearContent() {
         super.clearContent();
+        wirelessLink.clear();
         quantumInventory.clear();
         batch.clear();
         research.clearStoredMaterials();
@@ -332,10 +340,27 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         return quantumLinkState;
     }
 
+    @Override
+    public SequenceWirelessLink getWirelessLink() {
+        return wirelessLink;
+    }
+
+    @Override
+    public void refreshRemoteConnection() {
+        updateQuantumLink();
+    }
+
     private void updateQuantumLink() {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -476,8 +501,10 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void exportSettings(SettingsFrom mode, DataComponentMap.Builder builder, Player player) {
         super.exportSettings(mode, builder, player);
-        if (mode == SettingsFrom.DISMANTLE_ITEM && (research.hasProgress() || batch.hasWork() || researchOrders.hasPending())) {
+        if (mode == SettingsFrom.DISMANTLE_ITEM
+                && (wirelessLink.isBound() || research.hasProgress() || batch.hasWork() || researchOrders.hasPending())) {
             var tag = new CompoundTag();
+            wirelessLink.save(tag);
             if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
             if (batch.hasWork()) tag.put(BATCH_TAG, batch.save(level.registryAccess()));
             if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(level.registryAccess(), false));
@@ -490,6 +517,14 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
         super.importSettings(mode, input, player);
         if (mode == SettingsFrom.DISMANTLE_ITEM && level != null && !level.isClientSide()) {
             var tag = input.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+            // Full retained contents may already have restored the binding.
+            if (!wirelessLink.isBound()) {
+                wirelessLink.load(tag);
+                if (wirelessLink.isBound()) {
+                    updateQuantumLink();
+                    saveChanges();
+                }
+            }
             if (tag.contains(BATCH_TAG)) batch.load(tag.getCompound(BATCH_TAG), level.registryAccess());
             if (tag.contains(RESEARCH_TAG)) {
                 research.load(tag.getCompound(RESEARCH_TAG), level.registryAccess());
@@ -1914,6 +1949,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
+        wirelessLink.save(tag);
         machineEffects.save(tag);
         tag.putBoolean(TEAM_BOUND_TAG, teamBindingInitialized);
         if (boundTeam != null) tag.putUUID(TEAM_TAG, boundTeam); else tag.remove(TEAM_TAG);
@@ -1964,6 +2000,7 @@ public final class MatterFabricationBlockEntity extends AENetworkedInvBlockEntit
     @Override
     public void loadTag(CompoundTag tag, HolderLookup.Provider registries) {
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag, registries);
         machineEffects.load(tag);
         boundTeam = tag.hasUUID(TEAM_TAG) ? tag.getUUID(TEAM_TAG) : null;

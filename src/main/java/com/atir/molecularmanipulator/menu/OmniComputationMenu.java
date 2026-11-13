@@ -70,6 +70,8 @@ public final class OmniComputationMenu extends BuildingMenu {
     public long cpuParallel = 16;
     @GuiSync(23)
     public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
+    @GuiSync(24)
+    public boolean wirelessBound;
 
     private final OmniComputationCoreBlockEntity core;
 
@@ -187,6 +189,7 @@ public final class OmniComputationMenu extends BuildingMenu {
             lastMaterialCalculationMillis = core.getLastMaterialCalculationMillis();
             quantumFrequency = core.getQuantumFrequency();
             quantumLinkState = core.getQuantumLinkState();
+            wirelessBound = core.getWirelessLink().isBound();
             legacyStructure = core.hasLegacyStructure();
             legacyStructureUpdateDismissed = core.isLegacyStructureUpdateDismissed();
             dismantlableBlocks = core.getDismantlableBlocks();

@@ -156,6 +156,8 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
     public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
     @GuiSync(89)
     public boolean automaticPatternUpload;
+    @GuiSync(90)
+    public boolean wirelessBound;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
@@ -802,6 +804,7 @@ public final class MolecularCenterMenu extends BuildingMenu implements PatternSe
             latticeColor = center.getLatticeColor();
             quantumLinkState = center.getQuantumLinkState();
             quantumFrequency = center.getQuantumFrequency();
+            wirelessBound = center.getWirelessLink().isBound();
             legacyStructure = center.hasLegacyStructure();
             legacyStructureUpdateDismissed = center.isLegacyStructureUpdateDismissed();
             building = center.isBuilding();

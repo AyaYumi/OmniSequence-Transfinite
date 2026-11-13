@@ -25,8 +25,9 @@
     0,
     0
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/star_chart_calibrator_window",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -44,8 +45,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/star_chart_calibrator_package",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -63,8 +65,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/star_chart_calibrator_placement",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
   },
   {
    "type": "sprite",
@@ -82,8 +85,9 @@
     3,
     3
    ],
-   "sprite": "molecularmanipulator:osq_light/sing/glass/star_chart_calibrator_survey",
-   "slicing": "fixed"
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
   },
   {
    "type": "text",

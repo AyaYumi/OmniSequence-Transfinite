@@ -14,8 +14,9 @@
   {
    "z": 0,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/omni/glass/omni_core_window_0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
    "pad": [
     0,
     0,
@@ -70,8 +71,9 @@
   {
    "z": 3,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/omni/glass/omni_core_hero_1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -254,8 +256,9 @@
   {
    "z": 16,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/omni/glass/omni_core_ae_2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -420,8 +423,9 @@
   {
    "z": 25,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/omni/glass/omni_core_compute_3",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature",
+   "material": "feature",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -627,8 +631,9 @@
   {
    "z": 36,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/omni/glass/omni_core_inv_4",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1475,8 +1480,9 @@
   {
    "z": 85,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/omni/glass/omni_core_quantum_5",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,

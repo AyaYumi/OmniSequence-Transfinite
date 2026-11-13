@@ -75,6 +75,8 @@ public final class MatterFabricationMenu extends BuildingMenu {
     public MatterResearchMenuState researchState = new MatterResearchMenuState("{\"completed\":[],\"tasks\":{}}");
     @GuiSync(29)
     public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
+    @GuiSync(30)
+    public boolean wirelessBound;
 
     private long lastResearchSync = Long.MIN_VALUE;
     private ResourceLocation selectedResearch;
@@ -255,6 +257,7 @@ public final class MatterFabricationMenu extends BuildingMenu {
             updatingStructure = machine.isUpdatingStructure();
             quantumFrequency = machine.getQuantumFrequency();
             quantumLinkState = machine.getQuantumLinkState();
+            wirelessBound = machine.getWirelessLink().isBound();
             dynamicEffectOverride = machine.getMachineEffects().getOverride();
             long now = machine.getLevel().getGameTime();
             if (lastResearchSync == Long.MIN_VALUE || now - lastResearchSync >= 5) {

@@ -22,7 +22,7 @@ item_ids:
 
 # Event Horizon Singularity Hub
 
-This large building supplies your ME network continuously. **Resource Collection** produces the items in its list together; **Matter Duplication** spends Sequence Matter to copy a sample you choose. They run separately: copying does not need collection to be active.
+This building supplies resources to ME continuously. Resource Collection produces the items in its list together. Matter Duplication spends Sequence Matter to copy a sample you choose. These operations run independently.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:event_horizon_singularity_hub" />
@@ -33,13 +33,13 @@ This large building supplies your ME network continuously. **Resource Collection
 <ItemIcon id="molecularmanipulator:singularity_crystal_tower" />
 </ItemGrid>
 
-Shown in order: controller, track, lens, capture node, resource core and crystal tower. **Open the controller to operate the hub.** Products go straight into ME, rather than dropping out of the central white hole.
+Shown in order: controller, track, lens, capture node, resource core and crystal tower. Operate the hub through its controller. Products go directly into ME.
 
 ## What you need
 
-- **Research and materials:** complete **Tier IV: Event Horizon Materials** at the well for structure parts, then **Tier V: Stellar Cores** for the controller and White Hole Resource Core. Each of those two needs a [Miniature Supernova](black_and_white_holes.md). JEI's hub structure page lists the full materials.
-- **A site:** the stationary building is **97×97 blocks across and 129 blocks tall**. Its controller is at **base Y + 65**; base Y means the lowest physical block's elevation. Keep the central light well empty and leave clearance around the building for moving parts.
-- **ME access:** power, available channels and enough item storage. Matter generation and copying also need fluid storage; see [Matter Duplication](singularity_matter_duplication.md).
+- Complete Tier IV: Event Horizon Materials at the well for structure parts, then Tier V: Stellar Cores for the controller and White Hole Resource Core. Each of those two needs a [Miniature Supernova](black_and_white_holes.md). JEI's hub structure page lists the full materials.
+- Reserve **97×97 blocks across and 129 blocks tall** for the stationary building. Its controller is at **base Y + 65**; base Y is the lowest physical block's elevation. Keep the central light well empty and leave room around the building for moving parts.
+- Prepare ME power, available channels and enough item storage. Matter generation and copying also need fluid storage; see [Matter Duplication](singularity_matter_duplication.md).
 
 ## Recommended: unfold a building package
 
@@ -51,9 +51,9 @@ Shown in order: controller, track, lens, capture node, resource core and crystal
 <ItemImage id="molecularmanipulator:star_chart_calibrator" scale="4" />
 </Row>
 
-**Order at the assembler → collect the complete package → survey and unfold with the calibrator.** The package already includes the controller and all standard construction blocks.
+The package includes the controller and all standard construction blocks. Use a Star Chart Calibrator to choose the site and unfold it.
 
-1. Connect a **Spatial Folding Assembler** to an ME network with autocrafting and order a hub package. The order consumes the controller and full materials; it is not a free building.
+1. Connect a Spatial Folding Assembler to an ME network with autocrafting and order a hub package. The order consumes the controller and full materials.
 2. Keep the package in your inventory and **right-click the site with a Star Chart Calibrator**. Select the package, position and facing.
 3. Inspect the pale blue projection and gold boundary. Clear red conflicts, including obstructions in the light well, then confirm deployment.
 4. Wait for unfolding to finish, connect ME and check **formed** and **network online** in the controller's **Overview**. The calibrator is reusable.
@@ -64,7 +64,7 @@ See [Folded Buildings and Relocation](folded_buildings.md) for surveying and int
 
 Place it, enable **Projection**, prepare the JEI materials and select **Build**. Materials come from your inventory first, then ME. Base Stairs and Slabs use crafting-table recipes: 6 casings make 4 stairs, or 3 casings in a row make 6 slabs.
 
-## How to tell it worked, and what to open next
+## Start production
 
 Once Overview shows **formed** and **network online**, choose the page for your goal:
 
@@ -76,18 +76,20 @@ Once Overview shows **formed** and **network online**, choose the page for your 
 
 **Stop Collection** docks the moving parts, but does not stop matter generation or copying. Remove black holes or the sample to stop those operations. Lowering **Effects** in Overview changes visuals, not output.
 
-### Optional: a quantum connection instead of cables
+### Remote ME connections
 
-Overview's quantum slot takes a **Quantum Entangled Singularity**. Put its partner in a powered, loaded AE2 quantum bridge to reach a remote ME network. This can supply construction materials before formation too.
+Use Remote connection in the right sidebar to bind this machine to a Sequence Wireless Hub. Follow the [wireless setup](sequence_array_controller.md) for requirements.
 
-**Choose cables or the built-in quantum link, not both.** Remove ME cables from the controller before using its link. The link costs an additional **512 AE/t**, and the network still needs channels. The pair must not already be occupied by other endpoints. After a restart, allow the network time to reconnect.
+For a built-in quantum connection, put a Quantum Entangled Singularity in Overview's quantum slot and its partner in a powered, loaded AE2 quantum bridge. It can supply construction materials before formation.
 
-## Move the whole machine, not individual blocks
+Use one connection method at a time. Disconnect the wireless hub and remove external ME cables before using the quantum slot. The quantum link costs an additional **512 AE/t** and still needs channels. The pair must be free of other endpoints. After a restart, allow time for the network to reconnect.
 
-1. **Stop collection and settle jobs first.** Finish construction or upgrades. Finish or cancel external ME CPU jobs on its network and wait for materials, outputs and refunds to settle.
-2. Select **Reclaim package** in Overview, then confirm as prompted. At normal speed, leave about **0.25–3 seconds** between clicks.
-3. Let moving parts dock safely and collect **one sealed package**. It retains the machine, stored items and fluids, quantum singularity, sample, black holes, processing progress and pending deliveries, along with the existing layout and settings.
-4. Use the calibrator to unfold it elsewhere, including another dimension, **within the same world save**. Check ME and storage before starting collection manually.
+## Relocation
+
+1. Stop collection and settle jobs. Finish construction or upgrades. Finish or cancel external ME CPU jobs on its network and wait for materials, outputs and refunds to settle.
+2. Select Reclaim package in Overview, then confirm as prompted. At normal speed, leave about **0.25 to 3 seconds** between clicks.
+3. Let moving parts dock safely and collect one sealed package. It retains stored items and fluids, quantum singularity, sample, black holes, processing progress and pending deliveries, along with the machine's layout, settings and wireless binding.
+4. Use the calibrator to unfold it elsewhere, including another dimension, within the same world save. Restore the chosen ME connection and check storage before starting collection manually. If the wireless hub was moved or replaced, rebind this machine.
 
 While waiting for docking, keep the motion area loaded and clear, and have the requesting player return to operate it. Restarts or that player's temporary absence do not discard the reclaim request. **Cancel** withdraws sealing while safe docking continues. If your inventory was full, free a slot and use the calibrator in the air to collect the package.
 
@@ -102,7 +104,7 @@ While waiting for docking, keep the motion area loaded and clear, and have the r
 | Motion or docking stops | Clear obstacles and load chunks across the **whole motion area**, not just the controller. |
 | Reclaim keeps waiting | Stop collection, settle jobs, have the requester present and let the moving parts dock. |
 
-The server's **multiblock chunk-loading** switch decides whether this mod keeps chunks loaded; **it is not permission to move**. With it off, starting, motion and docking still work when all required chunks are already loaded by other means. Missing chunks make the machine wait.
+The server's multiblock chunk-loading switch controls whether this mod keeps chunks loaded. With it off, starting, motion and docking still work when all required chunks are loaded by other means. Missing chunks make the machine wait.
 
 ## Recipe lookup
 

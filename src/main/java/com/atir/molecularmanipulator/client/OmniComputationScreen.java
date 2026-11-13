@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
 import appeng.menu.SlotSemantics;
+import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -53,7 +54,11 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
                 ?tr("calculating",menu.activeMaterialCalculations):tr("calculation_idle"));
         ui.text("gui.molecularmanipulator.omni.calculation_stats",()->tr("calculation_stats",menu.completedMaterialCalculations,menu.lastMaterialCalculationMillis));
         ui.text("gui.molecularmanipulator.quantum_state.connected",()->OsqUi.tr("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
-        ui.number(302.39f,238.5f,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.text("gui.molecularmanipulator.fab.s025", () -> OsqUi.tr(menu.wirelessBound
+                ? "gui.molecularmanipulator.remote_target" : "gui.molecularmanipulator.fab.s025"));
+        ui.at(302.39f,238.5f,()->menu.wirelessBound
+                ? OsqUi.tr("gui.molecularmanipulator.wireless_hub.short")
+                : Component.literal(menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT)));
         ui.at(253,96,()->capacity(menu.storageBytes, true));
         ui.at(314,96,()->capacity(menu.cpuParallel, false));
         ui.width(253,96,56);
@@ -70,8 +75,10 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
         ui.width(283,224.89f,85);
         ui.sprite(17,43,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
         ui.sprite(296.83f,56,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
-        ui.sprite(276,222.89f,()->ui.sprite("dot_"+(menu.quantumFrequency==0?"mute":"ok")));
-        ui.color("gui.molecularmanipulator.quantum_state.connected",()->menu.quantumFrequency==0?ui.palette.ink3:ui.palette.ok);
+        ui.sprite(276,222.89f,()->ui.sprite("dot_"+(!menu.wirelessBound&&menu.quantumFrequency==0
+                ?"mute":quantumConnected()?"ok":"warn")));
+        ui.color("gui.molecularmanipulator.quantum_state.connected",()->!menu.wirelessBound&&menu.quantumFrequency==0
+                ?ui.palette.ink3:quantumConnected()?ui.palette.ok:ui.palette.warn);
         refresh();
     }
     static Component capacity(long value, boolean storage) {
@@ -80,6 +87,10 @@ public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniC
         if (value >= 1L << 30) return Component.literal((value >> 30) + " GiB");
         if (value >= 1L << 20) return Component.literal((value >> 20) + " MiB");
         return Component.literal(value + " B");
+    }
+    private boolean quantumConnected() {
+        return menu.quantumLinkState == QuantumLinkState.CONNECTED
+                || menu.quantumLinkState == QuantumLinkState.CONNECTED_BUILD_ONLY;
     }
     private Component tr(String key,Object...args){return OsqUi.tr("gui.molecularmanipulator.omni."+key,args);}
     private void refresh(){

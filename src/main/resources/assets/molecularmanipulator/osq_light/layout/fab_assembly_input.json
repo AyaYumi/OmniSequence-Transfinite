@@ -14,8 +14,9 @@
   {
    "z": 0,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_assembly_input_window_0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
    "pad": [
     0,
     0,
@@ -246,7 +247,8 @@
    "tab_panel": "body",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/fab/tabs/fab_assembly_input_tab0",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      66,
@@ -304,7 +306,8 @@
    "tab_panel": "body",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/fab/tabs/fab_assembly_input_tab1",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      66,
@@ -362,7 +365,8 @@
    "tab_panel": "body",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/fab/tabs/fab_assembly_input_tab2",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      66,
@@ -420,7 +424,8 @@
    "tab_panel": "body",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/fab/tabs/fab_assembly_input_tab3",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      66,
@@ -459,8 +464,9 @@
   {
    "z": 19,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_assembly_input_body_1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -903,8 +909,9 @@
   {
    "z": 44,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_assembly_input_inv_2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1765,8 +1772,9 @@
   {
    "z": 89.75,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/fab/glass/fab_assembly_input_meta_3",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,

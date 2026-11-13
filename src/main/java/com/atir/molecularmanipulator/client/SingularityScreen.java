@@ -71,7 +71,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
             ui.text("gui.molecularmanipulator.page",()->OsqUi.tr("gui.molecularmanipulator.page",collectionScroll+1,Math.max(1,(collectionResources().size()+11)/12)));
             for(var e:ui.layout.draw)if("text".equals(e.type)&&e.baseline>=120&&e.baseline<209)ui.at(e.x,e.baseline,Component::empty);
             ui.number(55.34f,102,()->collectionResources().size());ui.number(108.94f,102,()->menu.collectionBatchSize);
-            ui.number(88.42f,64,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+            ui.at(88.42f,64,this::remoteTarget);
             ui.width(114.97f,64,317);ui.width(17,64,125);
             ui.sprite(114.59f,45,()->ui.sprite("dot_"+(menu.collectionActive?"ok":"mute")));
             ui.at(17,102,()->tr("collection_resources",collectionResources().size(),menu.collectionBatchSize,menu.collectionIntervalTicks));
@@ -84,7 +84,11 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         ui.text("gui.molecularmanipulator.singularity.collection_running",()->tr(menu.collectionStarting?"collection_starting_status":menu.collectionActive?"collection_running":"collection_stopped"));
         ui.text("gui.molecularmanipulator.singularity.collection_network",()->tr("collection_network",tr(menu.networkOnline?"online":"offline")));
         ui.text("gui.molecularmanipulator.sing.s001",()->OsqUi.tr("gui.molecularmanipulator.quantum_state."+quantumStateKey()));
-        ui.number(66.02f,187.5f,()->menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT));
+        ui.text("gui.molecularmanipulator.singularity.quantum_input_hint", () -> OsqUi.tr(menu.wirelessBound
+                ? "gui.molecularmanipulator.wireless_hub.requirements" : "gui.molecularmanipulator.singularity.quantum_input_hint"));
+        ui.text("gui.molecularmanipulator.fab.s025", () -> OsqUi.tr(menu.wirelessBound
+                ? "gui.molecularmanipulator.remote_target" : "gui.molecularmanipulator.fab.s025"));
+        ui.at(66.02f,187.5f,this::remoteTarget);
         ui.width(96.72f,185.8f,132);
         ui.width(24.5f,120,48);ui.width(75.02f,120,70);
         ui.sprite(243.7f,52,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
@@ -94,7 +98,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         ui.number(172.5f,166.5f,()->menu.missing);ui.number(225.5f,166.5f,()->menu.conflicts);ui.number(278.5f,166.5f,()->menu.unloaded);
         ui.width(172.5f,166.5f,42);ui.width(225.5f,166.5f,42);ui.width(278.5f,166.5f,48);
         ui.color("gui.molecularmanipulator.singularity.network_online",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
-        ui.color("gui.molecularmanipulator.sing.s001",()->quantumConnected()?ui.palette.ok:ui.palette.ink3);
+        ui.color("gui.molecularmanipulator.sing.s001",()->!menu.wirelessBound&&menu.quantumFrequency==0
+                ?ui.palette.ink3:quantumConnected()?ui.palette.ok:ui.palette.warn);
         bindDuplication();
         ui.sprite(17,57,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
         ui.color("gui.molecularmanipulator.singularity.collection_network",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
@@ -243,6 +248,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if(wirelessPanelOpen())return super.mouseScrolled(mouseX,mouseY,scrollX,scrollY);
         double x=logicalMouseX(mouseX)-leftPos,y=logicalMouseY(mouseY)-topPos;
         if(collectionPage&&x>=8&&x<342&&y>=132&&y<229&&scrollY!=0){collectionScroll=Math.clamp(collectionScroll+(scrollY<0?1:-1),0,Math.max(0,(collectionResources().size()-1)/12));return true;}
         return super.mouseScrolled(mouseX,mouseY,scrollX,scrollY);
@@ -253,6 +259,12 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
     }
     private static String formatEnergy(double value) {
         return String.format(Locale.ROOT, "%,.3f", value).replaceAll("0+$", "").replaceAll("\\.$", "");
+    }
+
+    private Component remoteTarget() {
+        return menu.wirelessBound ? OsqUi.tr("gui.molecularmanipulator.wireless_hub.short")
+                : Component.literal(menu.quantumFrequency == 0 ? "-"
+                        : Long.toUnsignedString(menu.quantumFrequency, 16).toUpperCase(Locale.ROOT));
     }
 
     private boolean quantumConnected() {

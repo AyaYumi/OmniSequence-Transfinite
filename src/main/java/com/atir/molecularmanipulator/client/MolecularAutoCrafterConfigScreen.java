@@ -77,7 +77,7 @@ public final class MolecularAutoCrafterConfigScreen extends ResponsiveContainerS
         save.active=ready&&valid()&&dirty();
     }
     @Override public void containerTick(){super.containerTick();sync();refresh();}
-    @Override public boolean keyPressed(int key,int scan,int mods){if(key==257||key==335){if(limit.isFocused()){applyLimit();return true;}for(int i=0;i<count();i++)if(fields[i].visible&&fields[i].isFocused()){applyReserve(i);return true;}}return super.keyPressed(key,scan,mods);}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(wirelessPanelOpen())return super.keyPressed(key,scan,mods);if(key==257||key==335){if(limit.isFocused()){applyLimit();return true;}for(int i=0;i<count();i++)if(fields[i].visible&&fields[i].isFocused()){applyReserve(i);return true;}}return super.keyPressed(key,scan,mods);}
     private IPatternDetails details(){if(minecraft==null||minecraft.level==null)return null;var stack=menu.getSelectedPattern();if(!ItemStack.matches(decoded,stack)){
         decoded=stack.copy();try{pattern=stack.isEmpty()?null:PatternDetailsHelper.decodePattern(stack,minecraft.level);}catch(RuntimeException | LinkageError error){pattern=null;}}
         return pattern;

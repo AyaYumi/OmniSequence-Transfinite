@@ -3,7 +3,7 @@ package com.atir.molecularmanipulator.client.gui.theme;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Vanilla 1.21.1 sprite tessellation, separated from GL for regression tests. */
+/** GUI sprite tessellation, with vanilla tiling and continuous shared-material frames. */
 final class OsqSpriteGeometry {
     record Quad(int x, int y, int width, int height, float u0, float v0, float u1, float v1) {}
 
@@ -46,6 +46,24 @@ final class OsqSpriteGeometry {
             tiled(result, l, t, width-r-l, height-b-t, l, t, sourceWidth-r-l, sourceHeight-b-t, sourceWidth, sourceHeight);
             // Match vanilla's asymmetric-border source width, including its clipped right edge.
             tiled(result, width-r, t, l, height-b-t, sourceWidth-r, t, r, sourceHeight-b-t, sourceWidth, sourceHeight);
+        }
+        return List.copyOf(result);
+    }
+
+    /** Constant-color frame strips need one continuous quad, not a seam every few GUI pixels. */
+    static List<Quad> frame(int width, int height, int sourceWidth, int sourceHeight,
+            int left, int top, int right, int bottom) {
+        if (width <= 0 || height <= 0) return List.of();
+        int l = Math.min(left, width / 2), r = Math.min(right, width / 2);
+        int t = Math.min(top, height / 2), b = Math.min(bottom, height / 2);
+        int[] x = {0, l, width-r, width}, y = {0, t, height-b, height};
+        int[] u = {0, left, sourceWidth-right, sourceWidth}, v = {0, top, sourceHeight-bottom, sourceHeight};
+        var result = new ArrayList<Quad>(9);
+        for (int row = 0; row < 3; row++) for (int col = 0; col < 3; col++) {
+            int w = x[col+1] - x[col], h = y[row+1] - y[row];
+            if (w > 0 && h > 0) result.add(new Quad(x[col], y[row], w, h,
+                    u[col]/(float)sourceWidth, v[row]/(float)sourceHeight,
+                    u[col+1]/(float)sourceWidth, v[row+1]/(float)sourceHeight));
         }
         return List.copyOf(result);
     }

@@ -10,9 +10,7 @@ item_ids:
 
 # Transfinite Compute Nexus
 
-## Purpose: a whole computation core's order handling in one block
-
-The Transfinite Compute Nexus is a single-block **crafting CPU**, the device that accepts terminal orders and arranges crafting steps. It provides the [Omni Computation Core](omni_computation_core.md)'s order handling without the large structure. It does not store recipes or make products itself.
+The Transfinite Compute Nexus is a single-block crafting CPU. It provides the [Omni Computation Core](omni_computation_core.md)'s order handling without the large structure. It accepts terminal orders and arranges crafting steps; separate machines store patterns and make the products.
 
 <Row>
 <BlockImage id="molecularmanipulator:transfinite_compute_nexus" scale="4" />
@@ -20,7 +18,7 @@ The Transfinite Compute Nexus is a single-block **crafting CPU**, the device tha
 <ItemImage id="ae2:crafting_terminal" scale="4" />
 </Row>
 
-Shown above: the nexus, ME cable and the terminal used to place orders. The network also needs item storage and machines that perform the recipes. **Patterns** are encoded recipe cards kept in a Sequence Array, rewrite machine or Pattern Provider; ingredients and products belong in ME storage.
+Connect the nexus to ME cable and use a terminal to place orders. The network also needs item storage and machines to perform recipes. Keep encoded patterns in a Sequence Array, rewrite machine or Pattern Provider, and store ingredients and products in ME.
 
 ## Prepare
 
@@ -32,15 +30,15 @@ Shown above: the nexus, ME cable and the terminal used to place orders. The netw
 
 <RecipeFor id="molecularmanipulator:transfinite_compute_nexus" fallbackText="Check JEI for the Fabrication Well recipe, AdvancedAE materials and research requirements." />
 
-## Steps: connect it and try one order
+## Connect and try an order
 
 1. Place the nexus and connect ME cable to **any face**. All six faces accept cable connections.
 2. Put the terminal, ME storage and actual crafting machines on the same network. Check that the nexus has power and a channel.
-3. Put an “oak log → oak planks” pattern in a rewrite machine or a Sequence Array's main library. Store at least **4 logs** in ME.
+3. Put an "oak log → oak planks" pattern in a rewrite machine or a Sequence Array's main library. Store at least **4 logs** in ME.
 4. Request **16 planks** from the terminal. Choose the Transfinite Compute Nexus as the CPU in crafting confirmation, then confirm.
 5. Watch progress in AE2 Crafting Status and retrieve the planks from ME when it finishes.
 
-The nexus needs cable or another external ME device. A disconnected group made only of adjacent nexuses cannot operate.
+The nexus needs cable or another external ME device. A disconnected group made only of adjacent nexuses cannot operate. It does not support Sequence Wireless Hub binding; that option is available on the [multiblock core](omni_computation_core.md).
 
 ## What success looks like
 
@@ -48,18 +46,18 @@ The nexus needs cable or another external ME device. A disconnected group made o
 - The test order completes, turning 4 logs from ME into 16 planks.
 - The nexus manages the order, crafting machines make it and ME storage receives it. No patterns or ingredients need to go into the nexus.
 
-### Compact does not mean unlimited by default
+### Crafting capacity and order limits
 
 The nexus has the same limits as the Omni Computation Core. **Crafting storage** is workspace for orders, not item-cell capacity. **Recipe parallelism** is not the number of independent orders.
 
 | Star Computation Engine state | Nexus capabilities |
 | --- | --- |
 | No active, valid engine | **1 MiB crafting storage, recipe parallelism 16**, one independent order at a time. |
-| L1–L6, normal operation | Increased crafting storage and recipe parallelism; still one independent order at a time. |
-| L7–L9, normal operation | Multiple independent orders share this machine's allowance. Normal L9 still has finite limits. |
+| L1 to L6, normal operation | Increased crafting storage and recipe parallelism; still one independent order at a time. |
+| L7 to L9, normal operation | Multiple independent orders share this machine's allowance. Normal L9 still has finite limits. |
 | L9, overclock enabled and continuously paid | Unlimited crafting-storage and recipe-parallelism limits. Ingredients, power, machine speed and output space still determine actual production. |
 
-L1–L8 overclocking continuously consumes **star signal flow** from the same network and doubles crafting storage and recipe parallelism. Multiple orders begin at L7, independently of overclocking. Insufficient signal flow ends overclocking and restores finite normal capabilities. See the [Omni Computation Core](omni_computation_core.md) for details and supported machine integrations.
+L1 to L8 overclocking continuously consumes star signal flow from the same network and doubles crafting storage and recipe parallelism. Multiple orders begin at L7, independently of overclocking. Insufficient signal flow ends overclocking and restores finite normal capabilities. See the [Omni Computation Core](omni_computation_core.md) for details and supported machine integrations.
 
 ## Troubleshooting
 
@@ -79,4 +77,4 @@ L1–L8 overclocking continuously consumes **star signal flow** from the same ne
 - Want everyday products replenished automatically: use a [Molecular Auto Crafter](molecular_auto_crafter.md), without repeatedly placing CPU orders.
 - Need more simultaneous or larger orders: improve the [Star Computation Engine](star_computation_engine.md) on the same network, along with item storage, energy and crafting machines.
 
-Settle orders before relocating. Normal removal retains recoverable tasks and contents; place the nexus again and restore an online ME connection to continue.
+Settle orders before relocating. Normal removal retains recoverable tasks and contents. Place the nexus again and restore its external ME connection to continue.

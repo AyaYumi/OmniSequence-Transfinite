@@ -29,11 +29,15 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         extends RestorableContainerScreen<T> {
     private static final int SCREEN_MARGIN = 4;
     private static final int TERMINAL_BUTTON_SPACE = 24;
+    private static final int BLOCKED_MOUSE = -10000;
     private boolean renderingScaledContent;
+    private boolean renderingWirelessPanel;
     private boolean dispatchingLogicalInput;
     private int rawMouseX;
     private int rawMouseY;
     private TabButton terminalButton;
+    private net.minecraft.client.gui.components.Button wirelessButton;
+    private SequenceWirelessPanel wirelessPanel;
 
     protected ResponsiveContainerScreen(T menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -49,6 +53,67 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
     protected void init() {
         super.init();
         addTerminalButton();
+        addWirelessButton();
+        positionWirelessPanel();
+        if (wirelessPanel != null) {
+            addWidget(wirelessPanel);
+            setFocused(wirelessPanel);
+        }
+    }
+
+    private void addWirelessButton() {
+        wirelessButton = null;
+        if (!(menu instanceof BuildingMenu building)) return;
+        wirelessButton = SequenceWirelessPanel.sideButton(leftPos + imageWidth + SequenceWirelessPanel.EDGE_GAP,
+                topPos + 72, this::wirelessPanelOpen, () -> openWirelessPanel(building));
+        wirelessButton.visible = hasWirelessHost(building);
+        addScreenWidget(wirelessButton);
+    }
+
+    private boolean hasWirelessHost(BuildingMenu building) {
+        return building.wirelessAvailable
+                || com.atir.molecularmanipulator.integration.ae2.SequenceWirelessAccess.host(menu.getBlockEntity()) != null;
+    }
+
+    private void openWirelessPanel(BuildingMenu building) {
+        wirelessPanel = new SequenceWirelessPanel(building, font, this::closeWirelessPanel);
+        positionWirelessPanel();
+        addWidget(wirelessPanel);
+        setFocused(wirelessPanel);
+        setDragging(false);
+        hoveredSlot = null;
+        building.requestWirelessOpen(true);
+    }
+
+    private void closeWirelessPanel() {
+        if (wirelessPanel != null) removeWidget(wirelessPanel);
+        wirelessPanel = null;
+        setFocused(null);
+        setDragging(false);
+        if (menu instanceof BuildingMenu building) building.requestWirelessOpen(false);
+    }
+
+    private void positionWirelessPanel() {
+        if (wirelessPanel != null) wirelessPanel.position(leftPos + (imageWidth - SequenceWirelessPanel.WIDTH) / 2,
+                topPos + (imageHeight - SequenceWirelessPanel.HEIGHT) / 2);
+    }
+
+    protected final boolean wirelessPanelOpen() { return wirelessPanel != null; }
+
+    private void renderWirelessPanel(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        if (wirelessPanel == null) return;
+        graphics.pose().pushPose();
+        renderingWirelessPanel = true;
+        try {
+            graphics.pose().translate(0, 0, 600);
+            graphics.fill(0, 0, width, height, 0x66211E2E);
+            float scale = responsiveScale();
+            if (scale < 1) applyResponsiveTransform(graphics, scale);
+            wirelessPanel.render(graphics, (int) logicalMouseX(mouseX), (int) logicalMouseY(mouseY), partialTick);
+        } finally {
+            renderingWirelessPanel = false;
+            graphics.pose().popPose();
+        }
     }
 
     private void addTerminalButton() {
@@ -70,18 +135,28 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         if (terminalButton != null && menu instanceof BuildingMenu building) {
             terminalButton.visible = building.terminalAccess;
         }
-        rawMouseX = mouseX;
-        rawMouseY = mouseY;
+        if (wirelessButton != null && menu instanceof BuildingMenu building) wirelessButton.visible = hasWirelessHost(building);
+        // Hover is recomputed by widget rendering, not just mouseMoved. The modal
+        // alone receives the real pointer, including LDLib's raw-coordinate renderer.
+        rawMouseX = wirelessPanel == null ? mouseX : BLOCKED_MOUSE;
+        rawMouseY = wirelessPanel == null ? mouseY : BLOCKED_MOUSE;
+        if (wirelessPanel != null) {
+            // The opening button's click dispatcher may restore its focus after onPress.
+            if (getFocused() != wirelessPanel) setFocused(wirelessPanel);
+            setDragging(false);
+            hoveredSlot = null;
+        }
         float scale = responsiveScale();
         if (scale >= 1.0F) {
-            super.render(graphics, mouseX, mouseY, partialTick);
+            super.render(graphics, rawMouseX, rawMouseY, partialTick);
+            renderWirelessPanel(graphics, mouseX, mouseY, partialTick);
             return;
         }
 
-        int logicalMouseX = (int) Math.floor(toLogicalX(mouseX, scale));
-        int logicalMouseY = (int) Math.floor(toLogicalY(mouseY, scale));
+        int logicalMouseX = (int) Math.floor(toLogicalX(rawMouseX, scale));
+        int logicalMouseY = (int) Math.floor(toLogicalY(rawMouseY, scale));
         renderTransparentBackground(graphics);
-        screenContent.render(graphics, renderables, mouseX, mouseY, partialTick, () -> {
+        screenContent.render(graphics, renderables, rawMouseX, rawMouseY, partialTick, () -> {
             renderingScaledContent = true;
             graphics.pose().pushPose();
             try {
@@ -92,6 +167,7 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
                 renderingScaledContent = false;
             }
         });
+        renderWirelessPanel(graphics, mouseX, mouseY, partialTick);
     }
 
     /** Native AE2 slot silhouettes, without the opaque tile behind them. */
@@ -123,6 +199,10 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
+        if (wirelessPanel != null) {
+            wirelessPanel.mouseMoved(logicalMouseX(mouseX), logicalMouseY(mouseY));
+            return;
+        }
         if (responsiveScale() < 1.0F) {
             for (var child : externalChildren()) child.mouseMoved(mouseX, mouseY);
         }
@@ -134,6 +214,7 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (wirelessPanel != null) return wirelessPanel.mouseClicked(logicalMouseX(mouseX), logicalMouseY(mouseY), button);
         restoreScreenWidgets();
         if (responsiveScale() < 1.0F) {
             for (var child : externalChildren()) {
@@ -149,6 +230,11 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (wirelessPanel != null) {
+            wirelessPanel.mouseReleased(logicalMouseX(mouseX), logicalMouseY(mouseY), button);
+            setDragging(false);
+            return true;
+        }
         if (hasExternalFocus()) {
             setDragging(false);
             return getFocused().mouseReleased(mouseX, mouseY, button);
@@ -159,6 +245,7 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button,
             double dragX, double dragY) {
+        if (wirelessPanel != null) return true;
         float scale = responsiveScale();
         if (hasExternalFocus()) {
             return isDragging() && button == 0 && getFocused().mouseDragged(mouseX, mouseY, button, dragX, dragY);
@@ -173,6 +260,7 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (wirelessPanel != null) return wirelessPanel.mouseScrolled(logicalMouseX(mouseX), logicalMouseY(mouseY), scrollX, scrollY);
         if (responsiveScale() < 1.0F) {
             for (var child : externalChildren()) {
                 if (child.isMouseOver(mouseX, mouseY) && child.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
@@ -183,6 +271,21 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
                 logicalMouseY(mouseY),
                 scrollX,
                 scrollY));
+    }
+
+    @Override
+    public boolean keyPressed(int key, int scan, int modifiers) {
+        return wirelessPanel != null ? wirelessPanel.keyPressed(key, scan, modifiers) : super.keyPressed(key, scan, modifiers);
+    }
+
+    @Override
+    public boolean keyReleased(int key, int scan, int modifiers) {
+        return wirelessPanel != null || super.keyReleased(key, scan, modifiers);
+    }
+
+    @Override
+    public boolean charTyped(char character, int modifiers) {
+        return wirelessPanel != null || super.charTyped(character, modifiers);
     }
 
     @Override
@@ -214,6 +317,7 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     /** Container render events run inside the fitted panel, but JEI draws in screen space. */
     public final void renderExternalOverlay(GuiGraphics graphics, int mouseX, int mouseY, Renderable overlay) {
+        if (wirelessPanel != null) return;
         if (!renderingScaledContent) {
             overlay.render(graphics, mouseX, mouseY, 0);
             return;
@@ -237,6 +341,7 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
 
     /** Finds a menu slot from raw screen coordinates, accounting for the fitted panel scale. */
     public final Slot responsiveSlotAt(double mouseX, double mouseY) {
+        if (wirelessPanel != null) return null;
         if (menu == null) return getSlotUnderMouse();
         int x = (int) mouseX;
         int y = (int) mouseY;
@@ -263,20 +368,32 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
             areas.add(new Rect2i(terminalButton.getX(), terminalButton.getY(),
                     terminalButton.getWidth(), terminalButton.getHeight()));
         }
+        if (wirelessButton != null && wirelessButton.visible) {
+            areas.add(new Rect2i(wirelessButton.getX(), wirelessButton.getY(), wirelessButton.getWidth(), wirelessButton.getHeight()));
+        }
+        if (wirelessPanel != null) areas.add(new Rect2i(leftPos + (imageWidth - SequenceWirelessPanel.WIDTH) / 2,
+                topPos + (imageHeight - SequenceWirelessPanel.HEIGHT) / 2, SequenceWirelessPanel.WIDTH, SequenceWirelessPanel.HEIGHT));
         return renderingScaledContent || responsiveScale() >= 1.0F
                 ? areas : areas.stream().map(this::responsiveArea).toList();
     }
 
     @Override
     public StackWithBounds getStackUnderMouse(double mouseX, double mouseY) {
+        if (wirelessPanel != null) return null;
         var stack = super.getStackUnderMouse(mouseX, mouseY);
         return stack == null || responsiveScale() >= 1.0F
                 ? stack : new StackWithBounds(stack.stack(), responsiveArea(stack.bounds()));
     }
 
     @Override
+    protected void renderTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (wirelessPanel == null) super.renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    @Override
     public void setTooltipForNextRenderPass(List<FormattedCharSequence> tooltip,
             ClientTooltipPositioner positioner, boolean override) {
+        if (wirelessPanel != null && !renderingWirelessPanel) return;
         super.setTooltipForNextRenderPass(
                 tooltip,
                 renderingScaledContent ? DefaultTooltipPositioner.INSTANCE : positioner,
@@ -302,7 +419,15 @@ public abstract class ResponsiveContainerScreen<T extends AEBaseMenu>
         float availableHeight = Math.max(1, height - SCREEN_MARGIN * 2);
         // Keep the panel centered while fitting its attached return button inside the viewport.
         int sideSpace = terminalButton != null && terminalButton.visible ? TERMINAL_BUTTON_SPACE : 0;
-        return Math.min(1.0F, Math.min(availableWidth / (imageWidth + sideSpace * 2), availableHeight / imageHeight));
+        if (wirelessButton != null && wirelessButton.visible) sideSpace = Math.max(sideSpace,
+                SequenceWirelessPanel.EDGE_WIDTH + SequenceWirelessPanel.EDGE_GAP);
+        int contentWidth = imageWidth + sideSpace * 2;
+        int contentHeight = imageHeight;
+        if (wirelessPanel != null) {
+            contentWidth = Math.max(contentWidth, SequenceWirelessPanel.WIDTH + 6);
+            contentHeight = Math.max(contentHeight, SequenceWirelessPanel.HEIGHT + 6);
+        }
+        return Math.min(1.0F, Math.min(availableWidth / contentWidth, availableHeight / contentHeight));
     }
 
     private float visualLeft(float scale) {

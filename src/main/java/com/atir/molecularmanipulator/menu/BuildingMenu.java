@@ -14,9 +14,16 @@ import net.minecraft.world.inventory.MenuType;
 public abstract class BuildingMenu extends AEBaseMenu {
     private static final String RETURN = "building_terminal_return";
     @GuiSync(30000) public boolean terminalAccess;
+    @GuiSync(30001) public boolean wirelessAvailable;
+    @GuiSync(30002) public SequenceWirelessMenuState wirelessState = SequenceWirelessMenuState.EMPTY;
+    private final SequenceWirelessMenu wireless = new SequenceWirelessMenu(this);
 
     protected BuildingMenu(MenuType<?> type, int id, Inventory inventory, Object host) {
         super(type, id, inventory, host);
+        registerClientAction(SequenceWirelessMenu.OPEN, Boolean.class, wireless::open);
+        registerClientAction(SequenceWirelessMenu.PAGE, Integer.class, wireless::page);
+        registerClientAction(SequenceWirelessMenu.CONNECT, String.class, wireless::connect);
+        registerClientAction(SequenceWirelessMenu.DISCONNECT, wireless::disconnect);
         registerClientAction(RETURN, () -> {
             if (isServerSide() && getPlayer().containerMenu == this && getLocator() instanceof BuildingTerminalLocator locator
                     && locator.isValid(getPlayer())) {
@@ -26,6 +33,10 @@ public abstract class BuildingMenu extends AEBaseMenu {
     }
 
     public void requestTerminal() { if (isClientSide()) sendClientAction(RETURN); }
+    public void requestWirelessOpen(boolean open) { if (isClientSide()) sendClientAction(SequenceWirelessMenu.OPEN, open); }
+    public void requestWirelessPage(int page) { if (isClientSide()) sendClientAction(SequenceWirelessMenu.PAGE, page); }
+    public void requestWirelessConnect(String id) { if (isClientSide()) sendClientAction(SequenceWirelessMenu.CONNECT, id); }
+    public void requestWirelessDisconnect() { if (isClientSide()) sendClientAction(SequenceWirelessMenu.DISCONNECT); }
 
     /** Keep terminal context across detail pages instead of reverting to a local, chunk-dependent locator. */
     protected final MenuHostLocator buildingLocator() {
@@ -45,6 +56,7 @@ public abstract class BuildingMenu extends AEBaseMenu {
                 setValidMenu(false);
                 return;
             }
+            wireless.broadcast();
         }
         super.broadcastChanges();
     }

@@ -65,11 +65,9 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
         imageHeight+=DIRECTIONS_EXTRA_HEIGHT;
         var window=ui.layout.find("window");
         window.h+=DIRECTIONS_EXTRA_HEIGHT;
-        window.sprite+="_directions";
+        // Shared material samples follow the live geometry; no size-specific texture is required.
         for(var entry:ui.layout.draw)if("inv".equals(entry.id)||entry.external){
             entry.y+=DIRECTIONS_EXTRA_HEIGHT;
-            // The expanded page uses a crop of the same window-space light field.
-            if(entry.sprite!=null&&entry.sprite.contains("/glass/"))entry.sprite+="_directions";
         }
     }
     private void toggleDirections(){if(adjacent()){directionsOpen=!directionsOpen;rebuildWidgets();}}
@@ -96,7 +94,7 @@ public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<
         if(directionsOpen)for(var slot:menu.getPatternSlots()){slot.x=-1000;slot.y=-1000;}}
     @Override public void containerTick(){super.containerTick();refresh();}
     boolean directionsOpen(){return directionsOpen;}
-    @Override public boolean keyPressed(int key,int scan,int mods){if(key==256&&directionsOpen){directionsOpen=false;rebuildWidgets();return true;}return super.keyPressed(key,scan,mods);}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(wirelessPanelOpen())return super.keyPressed(key,scan,mods);if(key==256&&directionsOpen){directionsOpen=false;rebuildWidgets();return true;}return super.keyPressed(key,scan,mods);}
     @Override protected void slotClicked(Slot slot,int id,int button,ClickType type){int i=menu.getPatternSlots().indexOf(slot);if(i>=0&&button==1&&type==ClickType.PICKUP){menu.requestConfig(i);return;}super.slotClicked(slot,id,button,type);}
     @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui!=null)ui.background(g,font,x,y);}
     @Override public void drawFG(GuiGraphics g,int ox,int oy,int mx,int my){if(ui!=null)ui.foreground(g,font);}

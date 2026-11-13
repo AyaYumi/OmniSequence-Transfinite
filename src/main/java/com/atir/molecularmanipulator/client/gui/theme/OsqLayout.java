@@ -26,8 +26,8 @@ import java.util.function.Predicate;
 public final class OsqLayout {
     public static final class Entry {
         public String type, sprite, id, kind, text, lang, fontId, color, item, ownerId, aeIcon;
-        public String tabPanel, tabTextColor;
-        public Entry tabSurface, tabSingleSurface;
+        public String tabPanel, tabTextColor, material;
+        public Entry tabSurface, tabSingleSurface, joinedTab;
         public float x, y, w, h, baseline, size, letterSpacing, opacity = 1f;
         public boolean external, dynamic, langNew, wrap, requiresSelection;
         public Float centerY, drawX, drawY;
@@ -93,6 +93,7 @@ public final class OsqLayout {
             if (d.has("draw_y")) e.drawY = d.get("draw_y").getAsFloat();
             if (english && d.has("draw_x_en")) e.drawX = d.get("draw_x_en").getAsFloat();
             if (d.has("k")) e.kind = d.get("k").getAsString();
+            if (d.has("material")) e.material = d.get("material").getAsString();
             if (d.has("rect")) { JsonArray r = d.getAsJsonArray("rect"); e.x = r.get(0).getAsFloat(); e.y = r.get(1).getAsFloat(); e.w = r.get(2).getAsFloat(); e.h = r.get(3).getAsFloat(); }
             if (d.has("pad")) for (int i = 0; i < 4; i++) e.pad[i] = d.getAsJsonArray("pad").get(i).getAsInt();
             e.requiresSelection = d.has("requires_selection") && d.get("requires_selection").getAsBoolean();
@@ -121,6 +122,7 @@ public final class OsqLayout {
         var entry = new Entry();
         entry.type = "sprite";
         entry.sprite = json.get("sprite").getAsString();
+        if (json.has("material")) entry.material = json.get("material").getAsString();
         var rect = json.getAsJsonArray("rect");
         entry.x = rect.get(0).getAsFloat(); entry.y = rect.get(1).getAsFloat();
         entry.w = rect.get(2).getAsFloat(); entry.h = rect.get(3).getAsFloat();
@@ -156,6 +158,13 @@ public final class OsqLayout {
             if (!"sprite".equals(e.type) && !"holo".equals(e.type)) batch.flush();
             switch (e.type) {
                 case "sprite", "holo" -> { if (e.sprite != null) drawSprite(g, surfaces.getOrDefault(e, e), left, top); }
+                case "reflection" -> {
+                    float x = e.drawX == null ? e.x : e.drawX;
+                    float y = e.drawY == null ? e.y : e.drawY;
+                    if (e.sprite != null) OsqReflectionLayer.draw(g, e.spriteId(),
+                            Math.round(left + x), Math.round(top + y), Math.round(e.w), Math.round(e.h),
+                            Math.round(x), Math.round(y), e.opacity);
+                }
                 case "fill" -> g.fill(Math.round(left + e.x), Math.round(top + e.y), Math.round(left + e.x + e.w), Math.round(top + e.y + e.h), e.color());
                 case "text" -> {
                     Component c = e.staticText();
@@ -188,7 +197,8 @@ public final class OsqLayout {
         if (width > 0 && height > 0) {
             g.pose().scale((e.w + e.pad[0] + e.pad[2]) / width,
                     (e.h + e.pad[1] + e.pad[3]) / height, 1);
-            OsqSpriteRenderer.draw(g, e.spriteId(), 0, 0, width, height);
+            if (e.material == null) OsqSpriteRenderer.draw(g, e.spriteId(), 0, 0, width, height);
+            else OsqMaterialSurface.draw(g, e, e.spriteId(), width, height);
         }
         g.pose().popPose();
     }

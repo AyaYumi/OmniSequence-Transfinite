@@ -1,0 +1,14 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    { "ingredient": { "item": "ae2:quantum_ring" }, "count": 8 },
+    { "ingredient": { "item": "ae2:quantum_link" }, "count": 1 },
+    { "ingredient": { "item": "molecularmanipulator:star_chart_processor" }, "count": 4 }
+  ],
+  "results": [
+    { "id": "molecularmanipulator:sequence_wireless_hub", "count": 1 }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 512,
+  "requires_research": true
+}

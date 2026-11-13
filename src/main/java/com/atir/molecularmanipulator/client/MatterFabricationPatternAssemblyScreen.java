@@ -68,7 +68,7 @@ public final class MatterFabricationPatternAssemblyScreen extends ResponsiveCont
     private void saveName(){menu.requestRename(nameField.getValue());nameField.setFocused(false);}
     @Override public void containerTick(){super.containerTick();if(displayedView!=menu.view){previous=next=refund=null;rebuildWidgets();return;}
         if(!initializedName&&!menu.assemblyName.isBlank()&&!nameField.isFocused()){nameField.setValue(menu.assemblyName);initializedName=true;}refresh();}
-    @Override public boolean keyPressed(int key,int scan,int mods){if(nameField.isFocused()&&(key==257||key==335)){saveName();return true;}return super.keyPressed(key,scan,mods);}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(wirelessPanelOpen())return super.keyPressed(key,scan,mods);if(nameField.isFocused()&&(key==257||key==335)){saveName();return true;}return super.keyPressed(key,scan,mods);}
     @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui==null)return;
         centerMetadata("assembly_catalyst_count", "assembly_catalyst_count_icon",
                 OsqUi.tr("gui.molecularmanipulator.fabrication.buffer.catalyst_types",menu.sharedCatalystTypes));
@@ -107,11 +107,13 @@ public final class MatterFabricationPatternAssemblyScreen extends ResponsiveCont
         label.w=textWidth;
     }
     @Override public boolean mouseScrolled(double mx,double my,double sx,double sy){
+        if(wirelessPanelOpen())return super.mouseScrolled(mx,my,sx,sy);
         double x=logicalMouseX(mx)-leftPos,y=logicalMouseY(my)-topPos;
         if((menu.view==1||menu.view==2)&&x>=8&&x<182&&y>=112&&y<202&&sy!=0){menu.requestPage(menu.bufferState.page()+(sy<0?1:-1));return true;}
         return super.mouseScrolled(mx,my,sx,sy);
     }
     @Override public void render(GuiGraphics g,int mx,int my,float pt){super.render(g,mx,my,pt);
+        if(wirelessPanelOpen())return;
         double x=logicalMouseX(mx)-leftPos,y=logicalMouseY(my)-topPos;
         if((menu.view==1||menu.view==2)&&!menu.bufferState.unavailable()&&x>=14&&x<176&&y>=112&&y<202){int row=(int)((y-112)/22);
             if(row<menu.bufferState.contents().size()){var s=menu.bufferState.contents().get(row);g.renderComponentTooltip(font,List.of(s.what().getDisplayName(),Component.literal(DisplayNumbers.exact(s.amount()))),mx,my);}}

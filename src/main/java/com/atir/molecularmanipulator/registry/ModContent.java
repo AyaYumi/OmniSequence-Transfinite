@@ -552,6 +552,7 @@ public final class ModContent {
                         output.accept(FOLDED_BUILDING_PACKAGE.get());
                         output.accept(BuildingContent.CALIBRATOR.get());
                         output.accept(BuildingContent.ASSEMBLER_ITEM.get());
+                        output.accept(WirelessContent.HUB_ITEM.get());
                         for (var building : com.atir.molecularmanipulator.building.BuildingType.orderable())
                             output.accept(com.atir.molecularmanipulator.building.BuildingPackage.fresh(building));
                         output.accept(MOLECULAR_MANIPULATOR_ITEM.get());
@@ -699,6 +700,7 @@ public final class ModContent {
         StarSeaCalculationContent.init();
         SimulationLanternContent.init();
         BuildingContent.init();
+        WirelessContent.register(eventBus);
         SingularityContent.init();
         SingularityContent.registerEntities(eventBus);
         BLOCKS.register(eventBus);
@@ -725,6 +727,7 @@ public final class ModContent {
     public static void bindBlockEntity() {
         HighEnergyLabContent.bindBlockEntity();
         BuildingContent.bind();
+        WirelessContent.bind();
         SingularityContent.bindBlockEntity();
         TRANSFINITE_COMPUTE_NEXUS.get().setBlockEntity(
                 OmniComputationCoreBlockEntity.class, OMNI_COMPUTATION_CONTROLLER_BE.get(), null, null);

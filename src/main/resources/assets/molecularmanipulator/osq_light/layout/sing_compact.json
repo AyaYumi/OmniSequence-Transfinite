@@ -14,8 +14,9 @@
   {
    "z": 0,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/sing_compact_window_0",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
    "pad": [
     0,
     0,
@@ -70,7 +71,8 @@
    "tab_panel": "state",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/sing_compact_tab0",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      35,
@@ -128,7 +130,8 @@
    "tab_panel": "state",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/sing_compact_tab1",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      35,
@@ -144,7 +147,8 @@
    },
    "tab_single_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/sing_compact_tab1_single",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      35,
@@ -202,7 +206,8 @@
    "tab_panel": "state",
    "tab_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/sing_compact_tab2",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      35,
@@ -218,7 +223,8 @@
    },
    "tab_single_surface": {
     "type": "sprite",
-    "sprite": "molecularmanipulator:osq_light/sing/tabs/sing_compact_tab2_single",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
     "rect": [
      5,
      35,
@@ -257,8 +263,9 @@
   {
    "z": 8,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/sing_compact_inv_1",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -997,8 +1004,9 @@
   {
    "z": 65,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/sing_compact_state_2",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,
@@ -1147,8 +1155,9 @@
   {
    "z": 73,
    "type": "sprite",
-   "sprite": "molecularmanipulator:osq_light/sing/glass/sing_compact_info_3",
-   "slicing": "fixed",
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature",
+   "material": "feature",
+   "slicing": "nine_slice",
    "pad": [
     3,
     3,

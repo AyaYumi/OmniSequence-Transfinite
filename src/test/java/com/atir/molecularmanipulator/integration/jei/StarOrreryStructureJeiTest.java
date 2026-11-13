@@ -342,12 +342,30 @@ class StarOrreryStructureJeiTest {
     }
 
     @Test
-    void packageTitleOverloadKeepsTheExistingMaterialPanelGeometry() {
-        var original = new UiRenderRecorder();
+    void packageTitleOverloadKeepsTheExistingMaterialPanelGeometry() throws Exception {
+        // The panel now submits real material sprites. This headless suite records text and slots,
+        // so inspect the shared overload and exercise its frames before GPU submission.
+        var source = java.nio.file.Files.readString(java.nio.file.Path.of(
+                "src/main/java/com/atir/molecularmanipulator/integration/jei/StructureJeiLayout.java"))
+                .replaceAll("(?m)//.*$", "").replaceAll("\\s+", "");
+        assertTrue(source.contains("staticvoiddrawMaterials(GuiGraphicsgraphics){drawMaterials(graphics,"
+                + "Component.translatable(\"gui.molecularmanipulator.jei_structure_controller\"));}"));
+        assertTrue(source.contains("AeUiTheme.panel(graphics,0,top,InteractiveStructurePreviewWidget.WIDTH,top+58);"));
+        assertTrue(source.contains("AeUiTheme.insetPanel(graphics,3,top+2,195,top+57);"));
+        assertTrue(source.contains("AeUiTheme.insetPanel(graphics,199,top+2,245,top+57);"));
+        assertTrue(source.contains("InteractiveStructurePreviewWidget.text(graphics,outputTitle,201,top+6,42,AeUiTheme.PRIMARY_TEXT,true);"));
+        for (int[] rect : new int[][]{{0, 0, InteractiveStructurePreviewWidget.WIDTH, 58}, {3, 2, 192, 55}, {199, 2, 46, 55}}) {
+            var entry = new com.atir.molecularmanipulator.client.gui.theme.OsqLayout.Entry();
+            entry.material = rect[0] == 0 ? "window" : "card";
+            entry.sprite = "molecularmanipulator:osq_light/common/glass_" + entry.material;
+            entry.x = rect[0]; entry.y = StructureJeiLayout.previewHeight() + rect[1];
+            entry.w = rect[2]; entry.h = rect[3];
+            var frame = UiRenderRecorder.surface(entry);
+            assertEquals(rect[2] * 4, frame.getWidth()); assertEquals(rect[3] * 4, frame.getHeight());
+        }
         var packages = new UiRenderRecorder();
-        StructureJeiLayout.drawMaterials(original);
-        StructureJeiLayout.drawMaterials(packages, Component.literal("Package"));
-        assertEquals(original.rects, packages.rects);
+        InteractiveStructurePreviewWidget.text(packages, Component.literal("Package"), 201,
+                StructureJeiLayout.previewHeight() + 6, 42, com.atir.molecularmanipulator.client.AeUiTheme.PRIMARY_TEXT, true);
         assertTrue(packages.text.stream().anyMatch(text -> text.value().equals("Package")));
     }
 

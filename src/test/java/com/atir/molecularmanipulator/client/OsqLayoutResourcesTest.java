@@ -207,11 +207,14 @@ class OsqLayoutResourcesTest {
         }
     }
 
-    @Test void omniWindowKeepsItsUnpaddedBakedGlass() throws Exception {
+    @Test void omniWindowKeepsItsUnpaddedSharedFrame() throws Exception {
         var window=json(LIGHT.resolve("osq_light/layout/omni_core.json")).getAsJsonArray("draw").get(0).getAsJsonObject();
         assertEquals(0,window.getAsJsonArray("pad").get(3).getAsInt());
-        assertTrue(window.get("sprite").getAsString().contains("/glass/"));
-        assertEquals("fixed",window.get("slicing").getAsString());
+        assertEquals("molecularmanipulator:osq_light/common/glass_window",window.get("sprite").getAsString());
+        assertEquals("window",window.get("material").getAsString());
+        assertEquals("nine_slice",window.get("slicing").getAsString());
+        var frame=UiRenderRecorder.surface(window);
+        assertEquals(386*4,frame.getWidth());assertEquals(276*4,frame.getHeight());
     }
 
     @Test void omniComputeCardsKeepTheAuthoredFeatureMaterialAndLightForeground() throws Exception {
@@ -226,9 +229,9 @@ class OsqLayoutResourcesTest {
             int material=neutral.getRGB(neutral.getWidth()/2,neutral.getHeight()/2);
             // The runtime count surface and authored compute card use the same feature material.
             assertEquals(0xFF55536C,material);
-            var image=javax.imageio.ImageIO.read(LIGHT.resolve("textures/gui/sprites/"
-                    +card.get("sprite").getAsString().split(":",2)[1]+".png").toFile());
-            assertEquals("fixed",card.get("slicing").getAsString());
+            assertEquals("feature",card.get("material").getAsString());
+            var image=UiRenderRecorder.surface(card);
+            assertEquals("nine_slice",card.get("slicing").getAsString());
             assertEquals(592,image.getWidth());assertEquals(424,image.getHeight());
             assertEquals(material,image.getRGB(image.getWidth()/2,image.getHeight()*7/10),
                     name+" must use the existing feature material, not raised-control gray");

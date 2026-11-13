@@ -819,7 +819,7 @@
   "gui.molecularmanipulator.singularity.guide": "指南",
   "gui.molecularmanipulator.singularity.guide_hint": "打开当前页面对应的指南。",
   "gui.molecularmanipulator.singularity.quantum_input": "远程连接",
-  "gui.molecularmanipulator.singularity.quantum_input_hint": "使用配对奇点，或在界面侧边选择无线枢纽。",
+  "gui.molecularmanipulator.singularity.quantum_input_hint": "配对奇点／侧栏选枢纽",
   "gui.molecularmanipulator.singularity.running_status": "运行状态：%s",
   "gui.molecularmanipulator.singularity.status.starting": "天枢正在启动",
   "gui.molecularmanipulator.singularity.status.collecting": "资源采集中",

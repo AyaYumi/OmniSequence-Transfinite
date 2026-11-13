@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.client.gui.theme;
 import com.atir.molecularmanipulator.client.ResponsiveContainerScreen;
 import com.atir.molecularmanipulator.client.ResponsiveScreenTestFixture;
 import com.atir.molecularmanipulator.client.SingularityScreen;
+import com.atir.molecularmanipulator.client.UiRenderRecorder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.awt.geom.Rectangle2D;
@@ -247,8 +248,7 @@ class OsqRequestedUiTest {
                 assertEquals(5,surface.x);assertEquals(66,surface.y);assertEquals(180,surface.w);assertEquals(142,surface.h);
             }
             for(var card:List.of(meta,inventory,l.find("window"))) {
-                var file=Path.of(root,"assets/molecularmanipulator/textures/gui/sprites/"+card.sprite.split(":",2)[1]+".png");
-                var pixels=ImageIO.read(file.toFile());
+                var pixels=UiRenderRecorder.surface(card);
                 assertEquals(Math.round((card.w+card.pad[0]+card.pad[2])*4),pixels.getWidth());
                 assertEquals(Math.round((card.h+card.pad[1]+card.pad[3])*4),pixels.getHeight());
             }

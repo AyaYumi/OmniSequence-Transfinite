@@ -139,8 +139,7 @@ class StarComputationEngineGuiAssetsTest {
         for (var element : layout.getAsJsonArray("draw")) {
             var panel = element.getAsJsonObject();
             if (!panel.has("id") || !List.of("armillary", "ov_anchors").contains(panel.get("id").getAsString())) continue;
-            var image = javax.imageio.ImageIO.read(ASSETS.resolve("textures/gui/sprites/"
-                    + panel.get("sprite").getAsString().split(":", 2)[1] + ".png").toFile());
+            var image = UiRenderRecorder.surface(panel);
             int left = image.getWidth(), top = image.getHeight(), right = 0, bottom = 0;
             for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) {
                 if ((image.getRGB(x, y) >>> 24) < 230) continue;
@@ -160,8 +159,8 @@ class StarComputationEngineGuiAssetsTest {
         assertNotNull(frame); assertNotNull(anchors);
         assertEquals(frame.getMinX(), anchors.getMinX(), .01, "No pale gutter beside the grey statistic block");
         assertEquals(frame.getMaxY(), anchors.getMaxY(), .01, "No pale gutter below the grey statistic block");
-        assertEquals(191, anchors.getMinY(), .01, "Keep the top edge below the ring diagram");
-        assertEquals(93, anchors.getMaxX(), .01, "Keep the right edge clear of the anchor tier counts");
+        assertEquals(191, anchors.getMinY(), .25, "Keep the top edge below the ring diagram, allowing one antialiased texel");
+        assertEquals(93, anchors.getMaxX(), .25, "Keep the right edge clear of the anchor tier counts");
     }
 
     @Test

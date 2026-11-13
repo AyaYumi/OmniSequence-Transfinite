@@ -183,7 +183,7 @@ class OsqRuntimeReadabilityTest {
                 assertTrue(ui.layout.draw.stream().filter(e->box.id.equals(e.ownerId)).allMatch(e->ui.layout.owns(box,e)));
             }
             assertTrue(card.y+card.h+14<=ui.layout.findControl("projection").y);
-            var image=javax.imageio.ImageIO.read(ASSETS.resolve("textures/gui/sprites/"+card.sprite.split(":",2)[1]+".png").toFile());
+            var image=UiRenderRecorder.surface(card);
             assertEquals(Math.round((card.w+card.pad[0]+card.pad[2])*4),image.getWidth());
             assertEquals(Math.round((card.h+card.pad[1]+card.pad[3])*4),image.getHeight());
         }
@@ -816,12 +816,12 @@ class OsqRuntimeReadabilityTest {
             ResponsiveScreenTestFixture.set(setting,"cachedValue",2);
             for(String language:List.of("zh_cn","en_us"))try(var context=new Context(false,language)){
                 var ui=new OsqUi("sing_overview");var card=ui.layout.find("inspect");
-                var image=javax.imageio.ImageIO.read(ASSETS.resolve("textures/gui/sprites/"+card.sprite.split(":",2)[1]+".png").toFile());
+                var image=UiRenderRecorder.surface(card);
                 int top=-1,bottom=-1;
                 for(int y=0;y<image.getHeight();y++)if((image.getRGB(image.getWidth()/2,y)>>>24)>=230){if(top<0)top=y;bottom=y;}
                 assertTrue(top>=0&&bottom>top);
                 float frameTop=card.y-card.pad[1]+top/4f,frameBottom=card.y-card.pad[1]+(bottom+1)/4f;
-                assertEquals(116f,frameTop);assertEquals(210f,frameBottom);
+                assertEquals(116f,frameTop,.25f);assertEquals(210f,frameBottom,.25f);
                 var screen=ResponsiveScreenTestFixture.allocate(SingularityScreen.class);
                 var menu=ResponsiveScreenTestFixture.allocate(com.atir.molecularmanipulator.menu.SingularityMenu.class);
                 screenState(screen,menu,ui,context.font);
@@ -1372,8 +1372,7 @@ class OsqRuntimeReadabilityTest {
             for(boolean recipes:new boolean[]{false,true}){
                 var engine=engine(context,recipes,customResearchNodes(5,false));var ui=engine.ui;var menu=engine.menu;
                 var panel=ui.layout.find(recipes?"rc_power":"ov_anchors");
-                var sprite=javax.imageio.ImageIO.read(ASSETS.resolve("textures/gui/sprites/"+
-                        panel.sprite.substring(panel.sprite.indexOf(':')+1)+".png").toFile());
+                var sprite=UiRenderRecorder.surface(panel);
                 var progress=(Map<OsqLayout.Entry,java.util.function.DoubleSupplier>)field(ui,"progress");
                 var bar=ui.layout.find(recipes?"rc_power_fill":"ov_anchors_fill");
                 assertNotNull(progress.get(bar));

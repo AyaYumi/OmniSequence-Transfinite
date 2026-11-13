@@ -742,10 +742,10 @@ class MatterResearchPrerequisitesTest {
         var renderer = OsqSpriteRenderer.class;
         var keyType = Class.forName(renderer.getName() + "$Key");
         var meshType = Class.forName(renderer.getName() + "$Mesh");
-        var keyConstructor = keyType.getDeclaredConstructor(ResourceLocation.class, int.class, int.class);
-        var meshConstructor = meshType.getDeclaredConstructor(ResourceLocation.class, float[].class);
+        var keyConstructor = keyType.getDeclaredConstructor(ResourceLocation.class, int.class, int.class, boolean.class);
+        var meshConstructor = meshType.getDeclaredConstructor(ResourceLocation.class, float[].class, boolean.class);
         keyConstructor.setAccessible(true); meshConstructor.setAccessible(true);
-        var key = keyConstructor.newInstance(ResourceLocation.parse(input.ui.sprite("slot")), 18, 18);
+        var key = keyConstructor.newInstance(ResourceLocation.parse(input.ui.sprite("slot")), 18, 18, false);
         @SuppressWarnings("unchecked") var cache = (Map<Object, Object>) field(renderer, "CACHE");
         var savedCache = new LinkedHashMap<>(cache);
         var blend = field(GlStateManager.class, "BLEND");
@@ -762,7 +762,7 @@ class MatterResearchPrerequisitesTest {
         try {
             thread.set(null, Thread.currentThread()); enabled.set(mode, true);
             src.set(blend, 770); dst.set(blend, 771); srcAlpha.set(blend, 1); dstAlpha.set(blend, 0);
-            cache.put(key, meshConstructor.newInstance(null, new float[0]));
+            cache.put(key, meshConstructor.newInstance(null, new float[0], false));
             input.panel.drawForeground(ink);
             assertEquals(pose, ink.pose().last().pose(), "Drawing restores the caller's pose");
             return ink;

@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.client.gui.theme;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.atir.molecularmanipulator.client.UiRenderRecorder;
 import com.atir.molecularmanipulator.client.VanillaFontTestFixture;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -40,8 +41,7 @@ class OsqRefinedLayoutTest {
         for (String root : ROOTS) for (String name : List.of("fab_port_item", "fab_port_fluid", "seq_autocrafter")) {
             var page = layout(root, name);
             var popup = page.find("dirs");
-            var image = ImageIO.read(Path.of(root, ASSETS, "textures/gui/sprites/"
-                    + popup.sprite.split(":", 2)[1] + ".png").toFile());
+            var image = UiRenderRecorder.surface(popup);
             assertEquals(Math.round((popup.w + popup.pad[0] + popup.pad[2]) * 4), image.getWidth());
             assertEquals(Math.round((popup.h + popup.pad[1] + popup.pad[3]) * 4), image.getHeight());
             int top = -1, bottom = -1;
@@ -154,15 +154,18 @@ class OsqRefinedLayoutTest {
         }
     }
 
-    @Test void refinedSurfaceIsAnIndividualHighDensitySprite() throws Exception {
+    @Test void refinedSurfacesUseSharedFramesAtTheirLiveDimensions() throws Exception {
         var layout = layout(ROOTS.getFirst(), "fab_overview");
         for (var entry : List.of(layout.find("window"), layout.find("quantum"))) {
-            assertTrue(entry.sprite.contains("/glass/"));
+            assertTrue(entry.sprite.startsWith("molecularmanipulator:osq_light/common/glass_"));
             var file = Path.of(ROOTS.getFirst(), ASSETS, "textures/gui/sprites/" + entry.sprite.split(":", 2)[1] + ".png");
-            var image = ImageIO.read(file.toFile());
+            var source = ImageIO.read(file.toFile());
+            assertEquals(64, source.getWidth()); assertEquals(64, source.getHeight());
+            var image = UiRenderRecorder.surface(entry);
             assertEquals(Math.round((entry.w + entry.pad[0] + entry.pad[2]) * 4), image.getWidth());
             assertEquals(Math.round((entry.h + entry.pad[1] + entry.pad[3]) * 4), image.getHeight());
-            assertFalse(Files.exists(Path.of(file + ".mcmeta")), "Fixed artwork must not be nine-sliced");
+            var metadata = JsonParser.parseString(Files.readString(Path.of(file + ".mcmeta"))).getAsJsonObject();
+            assertEquals("nine_slice", metadata.getAsJsonObject("gui").getAsJsonObject("scaling").get("type").getAsString());
         }
     }
 

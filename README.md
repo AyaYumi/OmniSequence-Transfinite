@@ -100,7 +100,7 @@ The panel shows the current binding and actual link status. Click **Disconnect**
 
 Supported receivers are Matter Fabrication Wells, Sequence Arrays, Molecular Sequence Rewrite Arrays, Sequence Auto Crafters, Star Computation Engines, multiblock Omni Computation Cores and both Singularity Hub variants. The Transfinite Compute Nexus does not support this connection. The button is available on machine tabs and auto-crafting configuration pages. Fabrication ports and Pattern Assemblies manage their controller's binding.
 
-Complete Tier III: Sequence Engineering to unlock the hub. Its well recipe needs 8 AE2 Quantum Rings, 1 Quantum Link Chamber and 4 Star Chart Processors, taking 400 ticks at 512 AE/t. The hub itself uses 64 AE/t, plus 512 AE/t per established link and the receivers' normal power. Its default 32-channel bandwidth follows AE2 settings; a machine may need more than one channel.
+Craft the hub before building a Star Orrery: put 1 Quantum Link Chamber in the center of a crafting table and 8 AE2 Quantum Rings around it. No research unlock is required. The hub itself uses 64 AE/t, plus 512 AE/t per established link and the receivers' normal power. Its default 32-channel bandwidth follows AE2 settings; a machine may need more than one channel.
 
 The list shows loaded hubs belonging to the machine's placement team. Team members or administrators can manage the connection. Opening a screen keeps the original owner, and machines cannot link across teams. Without FTB Teams, each player has separate ownership. Both ends need loaded chunks; wireless provides no chunkloading. Each machine still needs its usual structure, research and channels. Paired-singularity quantum links remain available as another connection method.
 

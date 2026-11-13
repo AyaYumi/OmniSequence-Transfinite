@@ -106,9 +106,9 @@ The upper section shows the current binding and actual link status. Click Discon
 
 An AE2 Memory Card is an optional backup way to bind. Sneak-right-click the hub with the card, then right-click the machine. To unbind, sneak-right-click the machine with a selected card. You do not need to keep the card afterward, and it cannot bypass team checks.
 
-Unlock the hub with Tier III: Sequence Engineering research. Its Matter Fabrication Well recipe uses **8 AE2 Quantum Rings + 1 Quantum Link Chamber + 4 Star Chart Processors**, taking **400 ticks at 512 AE/t**.
+Craft the hub at a crafting table before building a Star Orrery. Put **1 AE2 Quantum Link Chamber** in the center and **8 Quantum Rings** around it to make **1 hub**. No research unlock is required.
 
-<RecipeFor id="molecularmanipulator:sequence_wireless_hub" fallbackText="Check JEI for the Sequence Wireless Hub's Fabrication Well recipe, unlocked by Tier III: Sequence Engineering." />
+<RecipeFor id="molecularmanipulator:sequence_wireless_hub" fallbackText="Crafting table: put 1 AE2 Quantum Link Chamber in the center and 8 Quantum Rings around it. Available before the Star Orrery, with no research unlock." />
 
 The hub is a native AE2 dense node with **32 channels by default**, following AE2 configuration. That bandwidth does not guarantee connections for 32 devices, because other nodes inside a machine may also use channels.
 

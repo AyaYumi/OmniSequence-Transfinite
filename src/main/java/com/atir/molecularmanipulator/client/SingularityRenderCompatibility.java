@@ -20,10 +20,13 @@ public final class SingularityRenderCompatibility {
             var config = Class.forName(configClass);
             allow(config, "entityWhitelist", "molecularmanipulator:singularity_assembly");
             allow(config, "tileEntityWhitelist", "molecularmanipulator:event_horizon_singularity_hub");
+            allow(config, "tileEntityWhitelist", "molecularmanipulator:star_computation_engine_core");
             allow(config, "tileEntityWhitelist", "molecularmanipulator:cosmic_singularity");
             allow(config, "tileEntityWhitelist", "molecularmanipulator:white_hole_resource_core");
         } catch (ReflectiveOperationException | RuntimeException | LinkageError ex) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Could not register Singularity distance-culling compatibility", ex);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Could not register oversized-renderer distance-culling compatibility. "
+                    + "Allow molecularmanipulator:singularity_assembly, event_horizon_singularity_hub and "
+                    + "star_computation_engine_core in Sodium Extras.", ex);
         }
     }
 
@@ -35,13 +38,14 @@ public final class SingularityRenderCompatibility {
             java.util.function.Function<net.minecraft.world.level.block.entity.BlockEntity, Boolean> blocks =
                     block -> block instanceof com.atir.molecularmanipulator.blockentity.SingularityBlockEntity
                             || block instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity
-                            || block instanceof com.atir.molecularmanipulator.blockentity.SingularityCoreBlockEntity;
+                            || block instanceof com.atir.molecularmanipulator.blockentity.SingularityCoreBlockEntity
+                            || block instanceof com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
             java.util.function.Function<net.minecraft.world.entity.Entity, Boolean> entities =
                     entity -> entity instanceof com.atir.molecularmanipulator.entity.SingularityAssemblyEntity;
             type.getMethod("addDynamicBlockEntityWhitelist", java.util.function.Function.class).invoke(instance, blocks);
             type.getMethod("addDynamicEntityWhitelist", java.util.function.Function.class).invoke(instance, entities);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError failure) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Could not register Singularity Entity Culling compatibility", failure);
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("Could not register oversized-renderer Entity Culling compatibility", failure);
         }
     }
 

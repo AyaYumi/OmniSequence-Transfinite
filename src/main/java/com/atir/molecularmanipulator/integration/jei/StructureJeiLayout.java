@@ -36,6 +36,10 @@ final class StructureJeiLayout {
     static int materialY(int index, int previewHeight) { return previewHeight + 18 + index / 7 * MATERIAL_ROW_HEIGHT; }
 
     static void drawMaterials(GuiGraphics graphics) {
+        drawMaterials(graphics, Component.translatable("gui.molecularmanipulator.jei_structure_controller"));
+    }
+
+    static void drawMaterials(GuiGraphics graphics, Component outputTitle) {
         int top = previewHeight();
         OmniUiTheme.panel(graphics, 0, top, InteractiveStructurePreviewWidget.WIDTH, top + MATERIAL_HEIGHT);
         OmniUiTheme.insetPanel(graphics, 3, top + 2, 195, top + MATERIAL_HEIGHT - 1);
@@ -44,7 +48,6 @@ final class StructureJeiLayout {
                 Component.translatable("gui.molecularmanipulator.jei_materials"),
                 8, top + 6, 181, OmniUiTheme.PRIMARY_TEXT, false);
         InteractiveStructurePreviewWidget.text(graphics,
-                Component.translatable("gui.molecularmanipulator.jei_structure_controller"),
-                201, top + 6, 42, OmniUiTheme.PRIMARY_TEXT, true);
+                outputTitle, 201, top + 6, 42, OmniUiTheme.PRIMARY_TEXT, true);
     }
 }

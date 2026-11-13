@@ -34,11 +34,11 @@
   ],
   "results": [
     {
-      "item": "molecularmanipulator:event_horizon_singularity_hub",
+      "id": "molecularmanipulator:event_horizon_singularity_hub",
       "count": 1
     }
   ],
-  "processing_time": 600,
+  "processing_time": 400,
   "ae_per_tick": 4096,
   "requires_research": true
 }

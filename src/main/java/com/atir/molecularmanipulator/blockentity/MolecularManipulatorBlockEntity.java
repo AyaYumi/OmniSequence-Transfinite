@@ -17,10 +17,14 @@ import appeng.menu.ISubMenu;
 import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocator;
 import com.atir.molecularmanipulator.MolecularManipulator;
+
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
@@ -41,7 +45,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.List;
 
 public final class MolecularManipulatorBlockEntity extends PatternProviderBlockEntity
-        implements SegmentedPatternContainerHost {
+        implements SegmentedPatternContainerHost, SequenceWirelessHost {
     public static final int PATTERN_SLOTS = 360;
     public static final int PATTERNS_PER_PAGE = 36;
     public static final long VIRTUAL_PARALLEL_LIMIT = Long.MAX_VALUE;
@@ -51,6 +55,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     private static final String ACTIVE_REUSABLE_BATCH_TAG =
             "active_reusable_batch";
 
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> 8.0);
     private final MachineSource actionSource = new MachineSource(this);
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
@@ -70,6 +75,14 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         super(ModContent.MOLECULAR_MANIPULATOR_BLOCK_ENTITY.get(), pos, blockState);
         getMainNode().setIdlePowerUsage(8.0);
     }
+
+    @Override public SequenceWirelessLink getWirelessLink() { return wirelessLink; }
+    @Override public void refreshRemoteConnection() {
+        wirelessLink.update(false, MolecularCenterBlockEntity.QuantumLinkState.CONNECTED);
+    }
+    @Override public void onReady() { super.onReady(); refreshRemoteConnection(); }
+    @Override public void onChunkUnloaded() { wirelessLink.disconnect(); super.onChunkUnloaded(); }
+    @Override public void setRemoved() { wirelessLink.disconnect(); super.setRemoved(); }
 
     @Override
     protected PatternProviderLogic createLogic() {
@@ -91,7 +104,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     }
 
     public boolean hasRemovalRecovery() {
-        return hasActiveReusableBatch() || !bufferedOutputs.isEmpty()
+        return wirelessLink.isBound() || hasActiveReusableBatch() || !bufferedOutputs.isEmpty()
                 || RetainedBlockContents.hasPatternContents(this);
     }
 
@@ -105,6 +118,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
 
     @Override
     public void clearContent() {
+        wirelessLink.clear();
         super.clearContent();
         bufferedOutputs.clear();
         activeReusableBatch = null;
@@ -115,6 +129,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     private ItemStack createRemovalRecovery(
             ) {
         var payload = new CompoundTag();
+        wirelessLink.save(payload);
         getLogic().writeToNBT(payload);
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
@@ -141,13 +156,15 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     long getRemainingAssemblerBudget() {
         var level = getLevel();
         return level == null || getMainNode().getGrid() == null ? 0
-                : assemblerBudget.remaining(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT);
+                : assemblerBudget.remaining(level.getGameTime(),
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
     }
 
     private boolean consumeAssemblerBudget(long crafts) {
         var level = getLevel();
         return level != null && getMainNode().getGrid() != null
-                && assemblerBudget.tryConsume(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT, crafts);
+                && assemblerBudget.tryConsume(level.getGameTime(),
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel(), crafts);
     }
 
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
@@ -177,12 +194,12 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             }
             boolean prepared = batchContext != null
                     ? craftingBatcher.prepareSelected(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget,
                             batchContext.firstInputs(),
                             batchContext.craftCount())
                     : craftingBatcher.prepare(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget);
             if (!prepared) {
                 return false;
@@ -230,7 +247,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             return false;
         }
 
-        var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
+        var job = craftingBatcher.prepareReusable(this, patternDetails, inputs,
                 context.craftingId(), context.reusablePlan());
         if (job == null
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),
@@ -316,6 +333,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     @Override
     public void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
+        wirelessLink.save(tag);
         var outputList = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
             if (entry.getKey() != null && entry.getLongValue() > 0) {
@@ -336,6 +354,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     @Override
     public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag);
         bufferedOutputs.clear();
         var outputList = tag.getList(OUTPUT_BUFFER_TAG, Tag.TAG_COMPOUND);
@@ -368,6 +387,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         if (level == null || level.isClientSide()) {
             return;
         }
+        if (level.getGameTime() % 20 == 0) refreshRemoteConnection();
         processReusableBatch(level);
         flushBufferedOutputs(level);
     }

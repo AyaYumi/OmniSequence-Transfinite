@@ -8,10 +8,5 @@
     "PLAYER_INVENTORY": {"left": 10, "top": 88, "grid": "BREAK_AFTER_9COLS"},
     "PLAYER_HOTBAR": {"left": 10, "top": 146, "grid": "HORIZONTAL"}
   },
-  "text": {
-    "inventory": {
-      "text": {"translate": "container.inventory"},
-      "position": {"left": 10, "top": 76}
-    }
-  }
+  "text": {}
 }

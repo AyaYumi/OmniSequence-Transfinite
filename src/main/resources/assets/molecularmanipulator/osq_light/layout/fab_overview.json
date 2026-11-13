@@ -1,0 +1,2807 @@
+{
+ "screen": "fab_overview",
+ "machine": "matter_fabrication",
+ "family": "fab",
+ "title": "物质构筑井控制器 · 总览",
+ "size": [
+  400,
+  344
+ ],
+ "left_room": 0,
+ "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
+ "density": 4,
+ "draw": [
+  {
+   "z": 0,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    -1,
+    -1,
+    402,
+    346
+   ],
+   "k": "window",
+   "id": "window"
+  },
+  {
+   "z": 1,
+   "type": "text",
+   "text": "物质构筑井控制器",
+   "x": 12,
+   "baseline": 23,
+   "width": 99.84,
+   "font": "NSC",
+   "weight": 900,
+   "size": 13,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "block.molecularmanipulator.matter_fabrication_controller",
+   "dynamic": false,
+   "width_en": 275
+  },
+  {
+   "z": 2,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/tab_active",
+   "slicing": "nine",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    299,
+    10,
+    45,
+    22
+   ],
+   "k": "ctl",
+   "id": "tab0",
+   "tab_panel": "state",
+   "tab_surface": {
+    "type": "sprite",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
+    "rect": [
+     201,
+     7,
+     194,
+     94
+    ],
+    "pad": [
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "z": 3,
+   "type": "text",
+   "text": "总览",
+   "x": 346.75,
+   "baseline": 16.5,
+   "width": 35,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s014",
+   "lang_new": true,
+   "center_y": 20,
+   "align": "center",
+   "draw_x": 304,
+   "owner": "tab0"
+  },
+  {
+   "z": 4,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/tab_normal",
+   "slicing": "nine",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    348,
+    10,
+    44,
+    22
+   ],
+   "k": "ctl",
+   "id": "tab1",
+   "tab_panel": "state",
+   "tab_surface": {
+    "type": "sprite",
+    "sprite": "molecularmanipulator:osq_light/common/glass_card",
+    "material": "card",
+    "rect": [
+     201,
+     7,
+     194,
+     94
+    ],
+    "pad": [
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "z": 5,
+   "type": "text",
+   "text": "研究",
+   "x": 372.63,
+   "baseline": 16.5,
+   "width": 34,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.research.research_tab",
+   "dynamic": false,
+   "center_y": 20,
+   "align": "center",
+   "draw_x": 353,
+   "owner": "tab1"
+  },
+  {
+   "z": 6,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    8,
+    32,
+    190,
+    108
+   ],
+   "k": "card",
+   "id": "hero"
+  },
+  {
+   "z": 13,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/count_block_h41",
+   "slicing": "nine_h",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    8,
+    87,
+    118,
+    41
+   ],
+   "k": "blk",
+   "id": "count"
+  },
+  {
+   "z": 14,
+   "type": "text",
+   "text": "已匹配方块",
+   "x": 17,
+   "baseline": 97.5,
+   "width": 37.473,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#C7F2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s017",
+   "lang_new": true,
+   "width_en": 96
+  },
+  {
+   "z": 15,
+   "type": "text",
+   "text": "6",
+   "x": 16.5,
+   "baseline": 116,
+   "width": 10.03,
+   "font": "Inter Tight",
+   "weight": 700,
+   "size": 17,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 111
+  },
+  {
+   "z": 16,
+   "type": "text",
+   "text": "927",
+   "x": 29.03,
+   "baseline": 116,
+   "width": 28.2,
+   "font": "Inter Tight",
+   "weight": 700,
+   "size": 17,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 111,
+   "draw_x": 30.53
+  },
+  {
+   "z": 17,
+   "type": "text",
+   "text": "/ 6",
+   "x": 59.23,
+   "baseline": 116,
+   "width": 9.513,
+   "font": "Inter",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 0.75,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 111,
+   "draw_x": 62.73
+  },
+  {
+   "z": 18,
+   "type": "text",
+   "text": "927",
+   "x": 69.34,
+   "baseline": 116,
+   "width": 13.638,
+   "font": "Inter",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 0.75,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 111,
+   "draw_x": 76.243
+  },
+  {
+   "z": 19,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/bar_track_block",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    17,
+    122,
+    90,
+    1.5
+   ]
+  },
+  {
+   "z": 20,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/bar_fill_white",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    17,
+    122,
+    90,
+    1.5
+   ]
+  },
+  {
+   "z": 22,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    8,
+    250,
+    190,
+    88
+   ],
+   "k": "card",
+   "id": "inv"
+  },
+  {
+   "z": 23,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 24,
+   "type": "item",
+   "item": "mc:iron_ingot",
+   "count": "64",
+   "x": 23.0,
+   "y": 257,
+   "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+  },
+  {
+   "z": 25,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 26,
+   "type": "item",
+   "item": "mc:gold_ingot",
+   "count": "32",
+   "x": 41.0,
+   "y": 257,
+   "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+  },
+  {
+   "z": 27,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 28,
+   "type": "item",
+   "item": "mc:quartz",
+   "count": "64",
+   "x": 59.0,
+   "y": 257,
+   "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+  },
+  {
+   "z": 29,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 30,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 31,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 32,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 33,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 34,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166.0,
+    256,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 35,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 36,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 37,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 38,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 39,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 40,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 41,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 42,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 43,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166.0,
+    274,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 44,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 45,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 46,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 47,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 48,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 49,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 50,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 51,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 52,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166.0,
+    292,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 53,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    22.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 54,
+   "type": "item",
+   "item": "ae:processing_pattern",
+   "count": "8",
+   "x": 23.0,
+   "y": 315,
+   "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+  },
+  {
+   "z": 55,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    40.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 56,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    58.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 57,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    76.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 58,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    94.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 59,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    112.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 60,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    130.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 61,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    148.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 62,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    166.0,
+    314,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "inv"
+  },
+  {
+   "z": 63,
+   "type": "sprite",
+   "external": true,
+   "sprite": null,
+   "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+   "rect": [
+    396,
+    208,
+    14,
+    14
+   ],
+   "k": "edge",
+   "id": "ext0"
+  },
+  {
+   "z": 64,
+   "type": "sprite",
+   "external": true,
+   "sprite": null,
+   "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+   "rect": [
+    397,
+    209,
+    12,
+    12
+   ]
+  },
+  {
+   "z": 65,
+   "type": "sprite",
+   "external": true,
+   "sprite": null,
+   "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+   "rect": [
+    396,
+    226,
+    14,
+    14
+   ],
+   "k": "edge",
+   "id": "ext1"
+  },
+  {
+   "z": 66,
+   "type": "sprite",
+   "external": true,
+   "sprite": null,
+   "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+   "rect": [
+    397,
+    227,
+    12,
+    12
+   ]
+  },
+  {
+   "z": 67,
+   "type": "sprite",
+   "external": true,
+   "sprite": null,
+   "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+   "rect": [
+    396,
+    244,
+    14,
+    14
+   ],
+   "k": "edge",
+   "id": "ext2"
+  },
+  {
+   "z": 68,
+   "type": "sprite",
+   "external": true,
+   "sprite": null,
+   "note": "外部模组按键（排序 / 整理），仅占位，不属于本模组贴图",
+   "rect": [
+    397,
+    245,
+    12,
+    12
+   ]
+  },
+  {
+   "z": 69,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    204,
+    32,
+    188,
+    66
+   ],
+   "k": "card",
+   "id": "state"
+  },
+  {
+   "z": 70,
+   "type": "text",
+   "text": "正在构筑物质",
+   "x": 212.5,
+   "baseline": 51,
+   "width": 69.13,
+   "font": "NSC",
+   "weight": 700,
+   "size": 12,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.fabrication.state.running",
+   "dynamic": false,
+   "center_y": 46.0,
+   "width_en": 171
+  },
+  {
+   "z": 71,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/dot_ok",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    285.63,
+    44,
+    4,
+    4
+   ],
+   "draw_y": 44.0
+  },
+  {
+   "z": 72,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/dot_ok",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    213,
+    61,
+    4,
+    4
+   ],
+   "draw_y": 61.0
+  },
+  {
+   "z": 73,
+   "type": "text",
+   "text": "ME：在线 · 1 频道",
+   "x": 220,
+   "baseline": 61,
+   "width": 65.312,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.singularity.network_online",
+   "dynamic": false,
+   "center_y": 63,
+   "width_en": 90
+  },
+  {
+   "z": 74,
+   "type": "text",
+   "text": "耗能",
+   "x": 314,
+   "baseline": 63,
+   "width": 16.7,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s018",
+   "lang_new": true,
+   "center_y": 63,
+   "width_en": 18
+  },
+  {
+   "z": 75,
+   "type": "text",
+   "text": "65.54K",
+   "x": 327.36,
+   "baseline": 63,
+   "width": 23.637,
+   "font": "Inter Tight",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 63,
+   "draw_x": 334.7
+  },
+  {
+   "z": 76,
+   "type": "text",
+   "text": "AE/t",
+   "x": 347.61,
+   "baseline": 63,
+   "width": 22,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "center_y": 63,
+   "draw_x": 362.337
+  },
+  {
+   "z": 77,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/divider",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    213,
+    70,
+    170,
+    0.5
+   ]
+  },
+  {
+   "z": 78,
+   "type": "text",
+   "text": "结构",
+   "x": 213,
+   "baseline": 79,
+   "width": 15.025,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s019",
+   "lang_new": true,
+   "center_y": 77,
+   "width_en": 59
+  },
+  {
+   "z": 79,
+   "type": "text",
+   "text": "6927 / 6927",
+   "x": 213,
+   "baseline": 86,
+   "width": 108,
+   "font": "Inter Tight",
+   "weight": 700,
+   "size": 7.5,
+   "color": "#FF3E7F37",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 90
+  },
+  {
+   "z": 80,
+   "type": "text",
+   "text": "结构操作",
+   "x": 276,
+   "baseline": 79,
+   "width": 30.025,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s020",
+   "lang_new": true,
+   "center_y": 46,
+   "draw_x": 17,
+   "width_en": 174
+  },
+  {
+   "z": 81,
+   "type": "text",
+   "text": "待命",
+   "x": 276,
+   "baseline": 87,
+   "width": 174,
+   "font": "NSC",
+   "weight": 700,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s021",
+   "lang_new": true,
+   "center_y": 66,
+   "draw_x": 17,
+   "width_en": 174
+  },
+  {
+   "z": 82,
+   "type": "text",
+   "text": "批次",
+   "x": 334,
+   "baseline": 79,
+   "width": 15.025,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s022",
+   "lang_new": true,
+   "center_y": 77,
+   "width_en": 49
+  },
+  {
+   "z": 83,
+   "type": "text",
+   "text": "4",
+   "x": 334,
+   "baseline": 86,
+   "width": 4.614,
+   "font": "Inter Tight",
+   "weight": 700,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 90
+  },
+  {
+   "z": 84,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature",
+   "material": "feature",
+   "slicing": "nine_slice",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    199,
+    101,
+    198,
+    62
+   ],
+   "k": "card",
+   "id": "progress"
+  },
+  {
+   "z": 85,
+   "type": "text",
+   "text": "本批构筑进度",
+   "x": 213,
+   "baseline": 110,
+   "width": 45.025,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#99F2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s023",
+   "lang_new": true,
+   "center_y": 115,
+   "width_en": 171
+  },
+  {
+   "z": 86,
+   "type": "text",
+   "text": "64",
+   "x": 212.5,
+   "baseline": 129,
+   "width": 19.45,
+   "font": "Inter Tight",
+   "weight": 700,
+   "size": 16,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 139
+  },
+  {
+   "z": 87,
+   "type": "text",
+   "text": "/ 120 t",
+   "x": 233.95,
+   "baseline": 129,
+   "width": 17.713,
+   "font": "Inter",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 0.7,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "draw_x": 235.95,
+   "center_y": 139
+  },
+  {
+   "z": 88,
+   "type": "text",
+   "text": "53%",
+   "x": 367.59,
+   "baseline": 126,
+   "width": 15.41,
+   "font": "Inter Tight",
+   "weight": 600,
+   "size": 8,
+   "color": "#B3F2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 139
+  },
+  {
+   "z": 89,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/bar_track_dark",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    213,
+    151,
+    170,
+    2
+   ]
+  },
+  {
+   "z": 90,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/bar_fill_acc",
+   "slicing": "stretch",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    213,
+    151,
+    90.09,
+    2
+   ]
+  },
+  {
+   "z": 91,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    8,
+    146,
+    190,
+    98
+   ],
+   "k": "card",
+   "id": "quantum"
+  },
+  {
+   "z": 92,
+   "type": "text",
+   "text": "量子缠绕态奇点",
+   "x": 39,
+   "baseline": 148,
+   "width": 52.455,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.singularity.quantum_input",
+   "dynamic": false,
+   "center_y": 160,
+   "width_en": 145
+  },
+  {
+   "z": 93,
+   "type": "text",
+   "text": "放入缠绕态奇点，从远端 AE 抽取搭建材料",
+   "x": 39,
+   "baseline": 155.5,
+   "width": 172,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s024",
+   "lang_new": true,
+   "center_y": 179,
+   "draw_x": 17
+  },
+  {
+   "z": 94,
+   "type": "text",
+   "text": "量子频率",
+   "x": 39,
+   "baseline": 168,
+   "width": 30.025,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FF3E7F37",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s025",
+   "lang_new": true,
+   "center_y": 202
+  },
+  {
+   "z": 95,
+   "type": "text",
+   "text": "75BCD15",
+   "x": 66.02,
+   "baseline": 168,
+   "width": 120.975,
+   "font": "JetBrains Mono",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 202,
+   "draw_x": 73.025
+  },
+  {
+   "z": 96,
+   "type": "text",
+   "text": "· 施工链路稳定",
+   "x": 17,
+   "baseline": 191,
+   "width": 177,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FF3E7F37",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s026",
+   "lang_new": true,
+   "center_y": 229
+  },
+  {
+   "z": 97,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/slot",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    16,
+    152,
+    18,
+    18
+   ],
+   "k": "slot",
+   "id": "qes"
+  },
+  {
+   "z": 98,
+   "type": "item",
+   "item": "img:qes",
+   "count": "1",
+   "x": 17,
+   "y": 147,
+   "note": "物品由 GuiGraphics.renderItem 绘制；此处为演示物品"
+  },
+  {
+   "z": 98.5,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "rect": [
+    204,
+    169,
+    188,
+    57
+   ],
+   "k": "card",
+   "id": "supply"
+  },
+  {
+   "z": 99,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/icons/net_mute_6",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    213,
+    181,
+    6,
+    6
+   ],
+   "draw_y": 181.5
+  },
+  {
+   "z": 100,
+   "type": "text",
+   "text": "AE 批量与接口投料 · 样板总成自动接入网络",
+   "x": 222,
+   "baseline": 172,
+   "width": 166,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s027",
+   "lang_new": true,
+   "center_y": 184,
+   "width_en": 166
+  },
+  {
+   "z": 101,
+   "type": "text",
+   "text": "链路",
+   "x": 213,
+   "baseline": 188,
+   "width": 16.7,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": false,
+   "lang": "gui.molecularmanipulator.fab.s028",
+   "lang_new": true,
+   "center_y": 200
+  },
+  {
+   "z": 102,
+   "type": "text",
+   "text": "512",
+   "x": 226.36,
+   "baseline": 188,
+   "width": 35,
+   "font": "Inter Tight",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 200,
+   "draw_x": 233.7
+  },
+  {
+   "z": 103,
+   "type": "text",
+   "text": "AE/t · 1 频道 · 仅抽取搭建材料",
+   "x": 238.27,
+   "baseline": 188,
+   "width": 171,
+   "font": "NSC",
+   "weight": 500,
+   "size": 7.5,
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "dynamic": true,
+   "center_y": 216,
+   "draw_x": 213
+  },
+  {
+   "z": 104,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/button_disabled",
+   "slicing": "nine",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    204,
+    232,
+    188,
+    22
+   ],
+   "k": "ctl",
+   "id": "build"
+  },
+  {
+   "z": 105,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/icons/build_dis_8",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    210,
+    239.5,
+    8,
+    8.0
+   ],
+   "owner": "build"
+  },
+  {
+   "z": 106,
+   "type": "text",
+   "text": "安放",
+   "x": 222,
+   "baseline": 216.5,
+   "width": 166,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FFADB0C4",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.fabrication.build",
+   "dynamic": false,
+   "center_y": 243.5,
+   "owner": "build",
+   "draw_x": 222
+  },
+  {
+   "z": 107,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/button_normal",
+   "slicing": "nine",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    204,
+    260,
+    188,
+    22
+   ],
+   "k": "ctl",
+   "id": "preview"
+  },
+  {
+   "z": 108,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/icons/proj_ink_8",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    210,
+    265.5,
+    8,
+    8.0
+   ],
+   "owner": "preview"
+  },
+  {
+   "z": 109,
+   "type": "text",
+   "text": "投影",
+   "x": 222,
+   "baseline": 239.5,
+   "width": 166,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.omni.projection",
+   "dynamic": false,
+   "center_y": 269.5,
+   "owner": "preview",
+   "draw_x": 222
+  },
+  {
+   "z": 110,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/toggle_on",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    371,
+    264.5,
+    15,
+    8
+   ],
+   "owner": "preview"
+  },
+  {
+   "z": 111,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/button_normal",
+   "slicing": "nine",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    204,
+    288,
+    188,
+    22
+   ],
+   "k": "ctl",
+   "id": "refresh"
+  },
+  {
+   "z": 112,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/icons/refresh_ink_8",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    210,
+    293.5,
+    8,
+    8.0
+   ],
+   "owner": "refresh"
+  },
+  {
+   "z": 113,
+   "type": "text",
+   "text": "检测",
+   "x": 222,
+   "baseline": 262.5,
+   "width": 166,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.omni.refresh",
+   "dynamic": false,
+   "center_y": 297.5,
+   "owner": "refresh",
+   "draw_x": 222
+  },
+  {
+   "z": 114,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/button_danger",
+   "slicing": "nine",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    204,
+    316,
+    188,
+    22
+   ],
+   "k": "ctl",
+   "id": "dismantle"
+  },
+  {
+   "z": 115,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/fab/icons/x_white_8",
+   "slicing": "fixed",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    210,
+    321.5,
+    8,
+    8.0
+   ],
+   "owner": "dismantle"
+  },
+  {
+   "z": 116,
+   "type": "text",
+   "text": "拆除",
+   "x": 222,
+   "baseline": 285.5,
+   "width": 166,
+   "font": "NSC",
+   "weight": 600,
+   "size": 7.5,
+   "color": "#FFF2F2F2",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "font_id": "minecraft:default",
+   "lang": "gui.molecularmanipulator.fabrication.dismantle",
+   "dynamic": false,
+   "center_y": 325.5,
+   "owner": "dismantle",
+   "draw_x": 222
+  }
+ ],
+ "boxes": [
+  {
+   "k": "ctl",
+   "id": "tabs",
+   "r": {
+    "x": 339.75,
+    "y": 9,
+    "w": 52.25,
+    "h": 15
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "card",
+   "id": "hero",
+   "r": {
+    "x": 8,
+    "y": 32,
+    "w": 190,
+    "h": 96
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "blk",
+   "id": "count",
+   "r": {
+    "x": 8,
+    "y": 87,
+    "w": 118,
+    "h": 41
+   },
+   "par": 1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "card",
+   "id": "inv",
+   "r": {
+    "x": 8,
+    "y": 206,
+    "w": 190,
+    "h": 88
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 22.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": "mc:iron_ingot",
+   "n": "64"
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 40.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": "mc:gold_ingot",
+   "n": "32"
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 58.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": "mc:quartz",
+   "n": "64"
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 76.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 94.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 112.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 130.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 148.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 166.0,
+    "y": 212,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 22.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 40.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 58.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 76.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 94.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 112.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 130.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 148.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 166.0,
+    "y": 230,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 22.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 40.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 58.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 76.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 94.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 112.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 130.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 148.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 166.0,
+    "y": 248,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 22.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": "ae:processing_pattern",
+   "n": "8"
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 40.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 58.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 76.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 94.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 112.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 130.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 148.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "inv",
+   "r": {
+    "x": 166.0,
+    "y": 270,
+    "w": 18,
+    "h": 18
+   },
+   "par": 3,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "edge",
+   "id": "ext0",
+   "r": {
+    "x": 396,
+    "y": 208,
+    "w": 14,
+    "h": 14
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "edge",
+   "id": "ext1",
+   "r": {
+    "x": 396,
+    "y": 226,
+    "w": 14,
+    "h": 14
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "edge",
+   "id": "ext2",
+   "r": {
+    "x": 396,
+    "y": 244,
+    "w": 14,
+    "h": 14
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "card",
+   "id": "state",
+   "r": {
+    "x": 204,
+    "y": 32,
+    "w": 188,
+    "h": 58
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "card",
+   "id": "progress",
+   "r": {
+    "x": 204,
+    "y": 96,
+    "w": 188,
+    "h": 52
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "card",
+   "id": "quantum",
+   "r": {
+    "x": 8,
+    "y": 134,
+    "w": 188,
+    "h": 42
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "slot",
+   "id": "qes",
+   "r": {
+    "x": 16,
+    "y": 146,
+    "w": 18,
+    "h": 18
+   },
+   "par": 45,
+   "item": "img:qes",
+   "n": "1"
+  },
+  {
+   "k": "ctl",
+   "id": "build",
+   "r": {
+    "x": 204,
+    "y": 208,
+    "w": 188,
+    "h": 17
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "ctl",
+   "id": "preview",
+   "r": {
+    "x": 204,
+    "y": 231,
+    "w": 188,
+    "h": 17
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "ctl",
+   "id": "refresh",
+   "r": {
+    "x": 204,
+    "y": 254,
+    "w": 188,
+    "h": 17
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "ctl",
+   "id": "dismantle",
+   "r": {
+    "x": 204,
+    "y": 277,
+    "w": 188,
+    "h": 17
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "card",
+   "id": "supply",
+   "r": {
+    "x": 204,
+    "y": 154,
+    "w": 188,
+    "h": 48
+   }
+  }
+ ]
+}

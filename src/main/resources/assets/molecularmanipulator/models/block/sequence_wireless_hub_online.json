@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "cutout",
+  "ambientocclusion": true,
+  "textures": {
+    "housing": "molecularmanipulator:block/sequence_wireless_hub_housing",
+    "glow": "molecularmanipulator:block/sequence_wireless_hub_glow",
+    "particle": "molecularmanipulator:block/sequence_wireless_hub"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 16, 16],
+      "shade": true,
+      "faces": {
+        "north": { "texture": "#housing", "cullface": "north", "uv": [0, 0, 16, 16] },
+        "south": { "texture": "#housing", "cullface": "south", "uv": [0, 0, 16, 16] },
+        "west": { "texture": "#housing", "cullface": "west", "uv": [0, 0, 16, 16] },
+        "east": { "texture": "#housing", "cullface": "east", "uv": [0, 0, 16, 16] },
+        "up": { "texture": "#housing", "cullface": "up", "uv": [0, 0, 16, 16] },
+        "down": { "texture": "#housing", "cullface": "down", "uv": [0, 0, 16, 16] }
+      }
+    },
+    {
+      "from": [0, 0, 0],
+      "to": [16, 16, 16],
+      "shade": false,
+      "forge_data": {
+        "block_light": 15,
+        "sky_light": 15,
+        "ambient_occlusion": false
+      },
+      "faces": {
+        "north": { "texture": "#glow", "cullface": "north", "uv": [0, 0, 16, 16] },
+        "south": { "texture": "#glow", "cullface": "south", "uv": [0, 0, 16, 16] },
+        "west": { "texture": "#glow", "cullface": "west", "uv": [0, 0, 16, 16] },
+        "east": { "texture": "#glow", "cullface": "east", "uv": [0, 0, 16, 16] },
+        "up": { "texture": "#glow", "cullface": "up", "uv": [0, 0, 16, 16] },
+        "down": { "texture": "#glow", "cullface": "down", "uv": [0, 0, 16, 16] }
+      }
+    }
+  ]
+}

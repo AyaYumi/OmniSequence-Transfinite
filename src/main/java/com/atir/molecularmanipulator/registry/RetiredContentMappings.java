@@ -8,7 +8,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.MissingMappingsEvent;
 
-/** Removed ports have no usable replacement and are cleared when old worlds load. */
+/** Removed content has no usable replacement and is cleared when old worlds load. */
 @Mod.EventBusSubscriber(modid = MolecularManipulator.MOD_ID)
 public final class RetiredContentMappings {
     private RetiredContentMappings() { }
@@ -17,7 +17,8 @@ public final class RetiredContentMappings {
             if (mapping.getKey().getPath().equals("resource_confluence_port")) mapping.remap(Blocks.AIR);
         }
         for (var mapping : event.getMappings(Registries.ITEM, MolecularManipulator.MOD_ID)) {
-            if (mapping.getKey().getPath().equals("resource_confluence_port")) mapping.remap(Items.AIR);
+            if (mapping.getKey().getPath().equals("resource_confluence_port")
+                    || mapping.getKey().getPath().equals("singularity_sequence_matter")) mapping.remap(Items.AIR);
         }
     }
 }

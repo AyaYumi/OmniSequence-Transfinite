@@ -25,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @OnlyIn(Dist.CLIENT)
 public final class OmniRenderLayers extends RenderType {
+    static final VertexFormat WELL_INK_FORMAT = new VertexFormat(com.google.common.collect.ImmutableMap.of(
+            "Position", DefaultVertexFormat.ELEMENT_POSITION, "UV0", DefaultVertexFormat.ELEMENT_UV0,
+            "Color", DefaultVertexFormat.ELEMENT_COLOR));
 
     private static final ResourceLocation EFFECT_TEXTURE = new ResourceLocation(
             "molecularmanipulator", "textures/effect/singularity_white.png");
@@ -46,9 +49,30 @@ public final class OmniRenderLayers extends RenderType {
             createTranslucentEmissiveColor();
     private static final RenderType ADDITIVE_DEPTH_COLOR = createAdditiveDepthColor();
     private static final RenderType ADDITIVE_COLOR = createAdditiveColor();
-    private static final RenderType PLACEMENT_LINES = create(
-            "omni_placement_lines", DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 1536, false, false,
-            CompositeState.builder()
+    private static final RenderType DETACHED_SIGNAL_STREAMS = RenderType.create(
+            "omni_detached_signal_streams", DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS,
+            4096, false, false, CompositeState.builder()
+                    .setShaderState(POSITION_COLOR_SHADER).setTransparencyState(LIGHTNING_TRANSPARENCY)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                    .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                    .setWriteMaskState(COLOR_WRITE).createCompositeState(false));
+    private static final RenderType STAR_ORRERY_CRYSTAL = createStarOrreryColor("omni_star_orrery_crystal", true);
+    private static final RenderType STAR_ORRERY_GLOW = createStarOrreryColor("omni_star_orrery_glow", false);
+    private static final RenderType STAR_ORRERY_RAIN_DEPTH = createStarOrreryRain("omni_star_orrery_rain_depth", true);
+    private static final RenderType STAR_ORRERY_RAIN_GLOW = createStarOrreryRain("omni_star_orrery_rain_glow", false);
+    // The ink sheet is alpha-blended and depth-tested, but never seals the well
+    // with a depth-writing disk. UVs encode machine space, not camera-facing art.
+    private static final RenderType STAR_ORRERY_WELL_INK = RenderType.create(
+            "omni_star_orrery_well_ink", WELL_INK_FORMAT, VertexFormat.Mode.QUADS,
+            256, false, true, CompositeState.builder()
+                    .setShaderState(new ShaderStateShard(OmniShaders::starOrreryWellInk))
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                    .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                    .setWriteMaskState(COLOR_WRITE).createCompositeState(false));
+    private static final RenderType PLACEMENT_LINES = RenderType.create(
+            "omni_placement_lines", DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 1536,
+            false, false, CompositeState.builder()
                     .setShaderState(RENDERTYPE_LINES_SHADER)
                     .setLineState(new LineStateShard(java.util.OptionalDouble.of(2.0)))
                     .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
@@ -122,6 +146,18 @@ public final class OmniRenderLayers extends RenderType {
         return ADDITIVE_COLOR;
     }
 
+    /** Two-sided void glyphs: preserve block occlusion and use the orrery's emissive path under Iris. */
+    public static RenderType detachedSignalStreams() {
+        // POSITION_COLOR is not an emissive material in shader packs. The existing
+        // beacon layer keeps every glyph full-bright without adding a depth-writing pass.
+        return SingularityEffectLayers.shadersActive() ? starOrreryRainShader(true) : DETACHED_SIGNAL_STREAMS;
+    }
+
+    /** Translucent ink diffusion inside the open star_orrery well; no depth writes. */
+    public static RenderType starOrreryWellInk() {
+        return STAR_ORRERY_WELL_INK;
+    }
+
     /** Service sockets remain visible through the well without changing scene depth. */
     public static RenderType placementLines() {
         return PLACEMENT_LINES;
@@ -176,8 +212,55 @@ public final class OmniRenderLayers extends RenderType {
     }
 
     private static VertexConsumer shaderCompatible(MultiBufferSource buffers, RenderType vanilla, RenderType shader) {
-        return SingularityEffectLayers.shadersActive()
-                ? new SingularityShaderVertices(buffers.getBuffer(shader)) : buffers.getBuffer(vanilla);
+        if (!SingularityEffectLayers.shadersActive()) return buffers.getBuffer(vanilla);
+        var gpu = GpuEffectLayers.consumer(buffers, shader);
+        return gpu != null ? gpu : new SingularityShaderVertices(buffers.getBuffer(shader));
+    }
+
+    /** StarOrrery-only color geometry uses the same distance fog as the model sheets. */
+    public static VertexConsumer starOrreryCrystal(MultiBufferSource buffers) {
+        return shaderCompatible(buffers, STAR_ORRERY_CRYSTAL, SHADER_EFFECT_DEPTH);
+    }
+
+    public static VertexConsumer starOrreryGlow(MultiBufferSource buffers) {
+        // The vanilla emissive shader fades emission rather than adding fog-colored light.
+        return shaderCompatible(buffers, STAR_ORRERY_GLOW, additiveEmissive(EFFECT_TEXTURE));
+    }
+
+    /**
+     * Falling code is emissive along its whole trail. Iris maps the ordinary
+     * entity shaders back to block-entity materials while a BER is active;
+     * its beacon program keeps a dedicated emissive path in that same phase.
+     */
+    public static VertexConsumer starOrreryRain(MultiBufferSource buffers, boolean glow) {
+        return shaderCompatible(buffers, glow ? STAR_ORRERY_GLOW : STAR_ORRERY_CRYSTAL, starOrreryRainShader(glow));
+    }
+
+    static RenderType starOrreryRainShader(boolean glow) {
+        return glow ? STAR_ORRERY_RAIN_GLOW : STAR_ORRERY_RAIN_DEPTH;
+    }
+
+    private static RenderType createStarOrreryRain(String name, boolean writeDepth) {
+        return RenderType.create(name, DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS,
+                4096, false, false, CompositeState.builder()
+                        .setShaderState(RENDERTYPE_BEACON_BEAM_SHADER)
+                        .setTextureState(new TextureStateShard(EFFECT_TEXTURE, false, false))
+                        .setTransparencyState(writeDepth ? TRANSLUCENT_TRANSPARENCY : LIGHTNING_TRANSPARENCY)
+                        .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                        .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                        .setWriteMaskState(writeDepth ? COLOR_DEPTH_WRITE : COLOR_WRITE)
+                        .createCompositeState(false));
+    }
+
+    private static RenderType createStarOrreryColor(String name, boolean writeDepth) {
+        return RenderType.create(name, DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS,
+                4096, false, false, CompositeState.builder()
+                        .setShaderState(new ShaderStateShard(OmniShaders::starOrreryColor))
+                        .setTransparencyState(writeDepth ? TRANSLUCENT_TRANSPARENCY : LIGHTNING_TRANSPARENCY)
+                        .setDepthTestState(LEQUAL_DEPTH_TEST).setCullState(NO_CULL)
+                        .setLightmapState(NO_LIGHTMAP).setOverlayState(NO_OVERLAY)
+                        .setWriteMaskState(writeDepth ? COLOR_DEPTH_WRITE : COLOR_WRITE)
+                        .createCompositeState(false));
     }
 
     private static RenderType createShaderEffect(String name, boolean writeDepth) {

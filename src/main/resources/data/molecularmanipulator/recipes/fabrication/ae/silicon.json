@@ -14,7 +14,7 @@
       "count": 16
     }
   ],
-  "processing_time": 100,
+  "processing_time": 400,
   "ae_per_tick": 128,
   "requires_research": true
 }

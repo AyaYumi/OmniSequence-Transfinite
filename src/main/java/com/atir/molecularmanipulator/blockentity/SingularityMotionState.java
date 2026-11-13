@@ -47,7 +47,7 @@ public final class SingularityMotionState {
     /** Starts motion as part of the resource-collection device lifecycle. */
     public boolean startForCollection(ServerPlayer player) {
         if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
-                || mode == DOCKING || machine.embedRequested()) return false;
+                || mode == DOCKING || machine.embedRequested() || machine.packageReclaimRequested()) return false;
         if (mode != RUNNING) toggleInternal(player);
         return mode == RUNNING;
     }
@@ -64,7 +64,8 @@ public final class SingularityMotionState {
     }
 
     private void toggleInternal(ServerPlayer player) {
-        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE || mode == DOCKING || machine.embedRequested()) return;
+        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
+                || mode == DOCKING || machine.embedRequested() || machine.packageReclaimRequested()) return;
         operator = player.getUUID(); machine.setRecoveryOwner(player);
         // Stopping an already-running carriage must never be blocked by a
         // later layout migration. Freeze it first; migration can then finish
@@ -112,8 +113,10 @@ public final class SingularityMotionState {
         configureBodies(); machine.scheduleInspection(); changed();
     }
     public void dock(ServerPlayer player, boolean reclaim) {
-        if (!machine.canManage(player) || !hasBodies() || mode == DOCKING) return;
+        if (!machine.canManage(player) || !hasBodies()) return;
         operator = player.getUUID(); machine.setRecoveryOwner(player); reclaimAfterDock = reclaim;
+        // A package request can adopt an existing collection-stop dock without restarting its pose.
+        if (mode == DOCKING) { changed(); return; }
         if (!migrateFixedJoints()) return;
         phase = clock(); epoch = now(); mode = DOCKING; message = "docking"; dockingFrozen = false;
         if (blockedAhead()) freezeDocking("dock_obstacle");

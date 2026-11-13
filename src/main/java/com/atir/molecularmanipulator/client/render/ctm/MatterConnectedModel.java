@@ -125,7 +125,7 @@ public final class MatterConnectedModel extends BakedModelWrapper<BakedModel> {
         if (patches.stream().noneMatch(patch -> patch.remapped())) return List.of(quad);
         TextureAtlasSprite filler = null;
         if (patches.stream().anyMatch(patch -> patch.useCasingBackground(info.face()))) {
-            var name = new ResourceLocation("molecularmanipulator", "block/matter_fabrication_casing_top");
+            var name = new ResourceLocation("molecularmanipulator", MatterConnectedTextureRules.fillerTexture(info.face()));
             filler = context.spriteLookup.apply(name);
             if (filler == null || !filler.contents().name().equals(name)) return List.of(quad);
         }

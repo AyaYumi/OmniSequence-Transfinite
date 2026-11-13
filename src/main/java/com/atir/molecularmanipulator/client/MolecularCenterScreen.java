@@ -12,11 +12,14 @@ import appeng.menu.slot.FakeSlot;
 import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
+import com.atir.molecularmanipulator.client.gui.theme.OsqFonts;
+import com.atir.molecularmanipulator.client.gui.theme.OsqLayout;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
@@ -33,15 +36,10 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     static final int TAB_OVERVIEW = 0;
     static final int TAB_AUTO_CRAFT = 1;
     static final int TAB_COLORS = 2;
-    private static final int PANEL_LEFT = 198;
-    private static final int PANEL_RIGHT = 426;
-    private static final int LEFT_CONTENT_LEFT = 8;
-    private static final int LEFT_CONTENT_RIGHT = 188;
-    private static final int DETAIL_CONTENT_LEFT = PANEL_LEFT + 9;
-    private static final int DETAIL_CONTENT_RIGHT = PANEL_RIGHT - 7;
     private static final int DISMANTLE_CONFIRM_TICKS = 60;
     private static final int DISMANTLE_CONFIRM_DELAY_TICKS = 6;
     private static final int SEARCH_DEBOUNCE_TICKS = 5;
+    private static final int AUTO_CRAFT_RESERVE_TOP = 180;
 
     private EditBox patternSearch;
     private EditBox autoCraftOutputLimit;
@@ -49,6 +47,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private final List<CompactCogButton> autoCraftConfigButtons = new java.util.ArrayList<>();
     private final List<AECheckbox> autoCraftToggleButtons = new java.util.ArrayList<>();
     private final PatternSearchIndexState patternSearchIndex = new PatternSearchIndexState();
+    private final PatternSearchCandidates patternSearchCandidates = new PatternSearchCandidates();
     private List<Integer> filteredPatternSlots = List.of();
     private String patternSearchQuery = "";
     private int patternSearchDebounce;
@@ -58,7 +57,17 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     private int detailTab = TAB_OVERVIEW;
     private int dismantleConfirmTicks;
     private int displayedAutoCraftSlot = Integer.MIN_VALUE;
-    private MolecularCenterControls modularView;
+    private OsqUi ui;
+    private ItemStack cachedPatternStack = ItemStack.EMPTY;
+    private IPatternDetails cachedPatternDetails;
+    private boolean uiRebuilding;
+    private net.minecraft.client.gui.components.Button buildControl, dismantleControl;
+    private final net.minecraft.client.gui.components.Button[] runControls=new net.minecraft.client.gui.components.Button[9], reserveControls=new net.minecraft.client.gui.components.Button[9];
+    private net.minecraft.client.gui.components.Button limitControl;
+    private final StructureUpdateConfirmation colorUpdateConfirmation=new StructureUpdateConfirmation();
+    private MachineEffectButton effectsButton;
+    private net.minecraft.client.gui.components.Button patternUploadButton;
+    private net.minecraft.client.gui.components.Button migratePatternsButton;
 
     public MolecularCenterScreen(MolecularCenterMenu menu, Inventory playerInventory, Component title,
             ScreenStyle style) {
@@ -85,11 +94,12 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (wirelessPanelOpen()) return super.mouseClicked(mouseX, mouseY, button);
         double logicalX = logicalMouseX(mouseX);
         double logicalY = logicalMouseY(mouseY);
-        boolean clickedDismantle = button == 0
-                && logicalX >= leftPos + 154 && logicalX < leftPos + 212
-                && logicalY >= topPos + 4 && logicalY < topPos + 22;
+        boolean clickedDismantle = button == 0 && dismantleControl != null
+                && logicalX >= dismantleControl.getX() && logicalX < dismantleControl.getX() + dismantleControl.getWidth()
+                && logicalY >= dismantleControl.getY() && logicalY < dismantleControl.getY() + dismantleControl.getHeight();
         if (!clickedDismantle) {
             cancelDismantleConfirmation();
         }
@@ -98,71 +108,109 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
     @Override
     protected void init() {
-        if (modularView != null) {
-            modularView.close();
-        }
-        super.init();
+        uiRebuilding=true;
+        ui=new OsqUi(detailTab==TAB_AUTO_CRAFT?"seq_center_autocraft":detailTab==TAB_COLORS?"seq_center_colors":"seq_center_overview");
+        imageWidth=ui.layout.width;imageHeight=ui.layout.height;super.init();
         menu.setPatternSearchIndexListener(this::acceptPatternSearchIndexChunk);
-        dismantleConfirmTicks = 0;
+        ui.inventory(menu);ui.slots(menu.getPatternSlots(),"pat");
+        ui.slot(menu.getQuantumSlot(),"qes");
+        patternSearch=addScreenWidget(ui.field("search",leftPos,topPos,font,OsqUi.tr("gui.molecularmanipulator.pattern_search")));
+        patternSearch.setValue(patternSearchQuery);patternSearch.setResponder(this::patternSearchChanged);
+        if(!patternSearchQuery.isBlank())patternSearchDebounce=1;
+        addScreenWidget(ui.button("prev",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.page_previous_tooltip"),()->changePatternPage(-1)));
+        addScreenWidget(ui.button("next",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.page_next_tooltip"),()->changePatternPage(1)));
+        ui.omit("gui.molecularmanipulator.pattern_search");
+        ui.text("gui.molecularmanipulator.page",()->OsqUi.tr("gui.molecularmanipulator.page",menu.getPage()+1,menu.getPageCount()));
+        String[] tabs={"tab_overview","tab_auto_craft","tab_colors"};
+        for(int i=0;i<3;i++){final int tab=i;addScreenWidget(ui.tab("tab"+i,leftPos,topPos,
+                ()->OsqUi.tr("gui.molecularmanipulator."+tabs[tab]),()->detailTab==tab,()->selectTab(tab)));}
+        addScreenWidget(ui.button("projection",leftPos,topPos,this::previewLabel,()->{MolecularCenterGhostPreview.toggle(menu.getCenter());menu.requestPreview();}));
+        buildControl=addScreenWidget(ui.button("build",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.build"),menu::requestBuild));
+        var dismantle=addScreenWidget(ui.button("dismantle",leftPos,topPos,this::dismantleLabel,this::dismantleClicked));
+        dismantleControl=dismantle;
+        ui.state(dismantle,()->dismantleConfirming()?"confirm":"danger");
+        ui.text("gui.molecularmanipulator.formed",()->OsqUi.tr(menu.formed?"gui.molecularmanipulator.formed":"gui.molecularmanipulator.incomplete"));
+        ui.text("gui.molecularmanipulator.overview_online",()->OsqUi.tr("gui.molecularmanipulator.overview_"+(menu.operational?"online":"offline")));
+        bindQuantumLink();
+        ui.sprite(201,42.5f,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
+        ui.sprite(240.95f,228,()->ui.sprite("dot_"+(menu.operational?"ok":"mute")));
+        ui.sprite(39,167,()->ui.sprite("dot_"+(!menu.wirelessBound&&menu.quantumFrequency==0
+                ?"mute":quantumConnected()?"ok":"warn")));
+        ui.color("gui.molecularmanipulator.formed",()->menu.formed?ui.palette.ok:ui.palette.warn);
+        ui.color("gui.molecularmanipulator.overview_online",()->menu.operational?ui.palette.ok:ui.palette.ink3);
+        bindOverviewTelemetry();
+        autoCraftConfigButtons.clear();autoCraftToggleButtons.clear();
+        autoCraftOutputLimit=addScreenWidget(detailTab==TAB_AUTO_CRAFT?ui.field("limit",leftPos,topPos,font,Component.empty())
+                :new EditBox(font,-1000,-1000,40,10,Component.empty()));
+        configureLongField(autoCraftOutputLimit,menu.autoCraftOutputLimit,"gui.molecularmanipulator.auto_craft_output_limit_tooltip");
+        for(int i=0;i<9;i++){final int input=i;
+            autoCraftInputReserves[i]=addScreenWidget(detailTab==TAB_AUTO_CRAFT?ui.field("rsv_f"+i,leftPos,topPos,font,Component.empty())
+                    :new EditBox(font,-1000,-1000,40,10,Component.empty()));
+            configureLongField(autoCraftInputReserves[i],menu.getAutoCraftInputReserve(i),"gui.molecularmanipulator.auto_craft_input_reserve_tooltip");
+            if(detailTab==TAB_AUTO_CRAFT){
+                ui.slot(menu.getAutoCraftPatternSlots().get(i),"res"+i);
+                addScreenWidget(ui.button("cfg"+i,leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.auto_craft_select_slot",input+1),()->menu.requestSelectAutoCraftSlot(input)));
+                var b=addScreenWidget(ui.button("run"+i,leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.auto_craft_"+((menu.autoCraftEnabledMask&(1<<input))!=0?"stop_slot":"start_slot"),input+1),()->menu.requestToggleAutoCraft(input)));
+                runControls[i]=b;
+                ui.state(b,()->(menu.autoCraftEnabledMask&(1<<input))!=0?"active":"normal");
+                ui.icon(b,()->(menu.autoCraftEnabledMask&(1<<input))!=0?"pause":"play");
+                var apply=addScreenWidget(ui.button("rsv_ok"+i,leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.auto_craft_apply"),()->menu.requestSetAutoCraftInputReserve(input,autoCraftInputReserveInput(input))));
+                reserveControls[i]=apply;
+                ui.state(apply,()->input<menu.autoCraftInputCount?"normal":"disabled");
+            }
+        }
+        if(detailTab==TAB_AUTO_CRAFT){ui.number(226.36f,45,()->Integer.bitCount(menu.autoCraftEnabledMask));ui.number(231.22f,45,()->"/ 9");ui.width(231.22f,45,24);
+            ui.number(230,143.89f,()->menu.autoCraftSelectedSlot<0?"": "#"+(menu.autoCraftSelectedSlot+1)+" · "+OsqUi.tr("gui.molecularmanipulator.auto_craft_state."+menu.autoCraftState.name().toLowerCase(Locale.ROOT)).getString());
+            ui.width(230,143.89f,82);
+            ui.at(223,137,()->{var d=selectedAutoCraftPattern();return d==null?OsqUi.tr("gui.molecularmanipulator.auto_craft_select_hint"):d.getPrimaryOutput().what().getDisplayName();});
+            ui.width(223,137,88);
+        }
+        if(detailTab==TAB_AUTO_CRAFT)limitControl=addScreenWidget(ui.button("limit_set",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.auto_craft_apply"),()->menu.requestSetAutoCraftOutputLimit(autoCraftOutputLimitInput())));
+        initColorControls();
+        initPatternTransferControls();
+        ui.visible=e->{
+            if("tip".equals(e.kind))return false;
+            if(detailTab==TAB_AUTO_CRAFT&&e.requiresSelection&&!hasSelectedAutoCraftDetails())return false;
+            if(detailTab==TAB_AUTO_CRAFT&&"selection_hint".equals(e.kind))return !hasSelectedAutoCraftDetails();
+            if(detailTab==TAB_COLORS&&!menu.legacyStructure&&e.x>=192&&e.y>=192&&e.y<282)return false;
+            if(detailTab==TAB_COLORS&&!menu.legacyStructure&&"text".equals(e.type)&&e.x>=192&&e.baseline>=192&&e.baseline<282)return false;
+            if(detailTab==TAB_AUTO_CRAFT&&e.id!=null&&e.id.startsWith("rsv"))
+                return autoCraftReserveVisible(e,hasSelectedAutoCraftDetails());
+            return true;
+        };
+        uiRebuilding=false;selectTab(detailTab);
+    }
 
-        patternSearch = AeUiTheme.tallTextField(style, font, leftPos + 17, topPos + 33, 112, 16,
-                Component.translatable("gui.molecularmanipulator.pattern_search"),
-                Component.translatable("gui.molecularmanipulator.pattern_search_tooltip"));
-        patternSearch.setMaxLength(64);
-        patternSearch.setValue(patternSearchQuery);
-        patternSearch.setResponder(this::patternSearchChanged);
-        addScreenWidget(patternSearch);
-        if (!patternSearchQuery.isBlank()) {
-            patternSearchDebounce = 1;
-        }
-        autoCraftOutputLimit = AeUiTheme.tallTextField(style, font,
-                leftPos + 226, topPos + 90, 141, 16,
-                Component.translatable("gui.molecularmanipulator.auto_craft_output_limit"),
-                Component.translatable("gui.molecularmanipulator.auto_craft_output_limit_tooltip"));
-        configureLongField(autoCraftOutputLimit, menu.autoCraftOutputLimit,
-                "gui.molecularmanipulator.auto_craft_output_limit_tooltip");
-        addScreenWidget(autoCraftOutputLimit);
-        for (int input = 0; input < autoCraftInputReserves.length; input++) {
-            int columnX = input % 2 == 0 ? 207 : 313;
-            int rowY = 123 + input / 2 * 22;
-            var reserve = AeUiTheme.tallTextField(style, font,
-                    leftPos + columnX + 18, topPos + rowY, 48, 16,
-                    Component.translatable("gui.molecularmanipulator.auto_craft_input_reserve_index",
-                            input + 1),
-                    Component.translatable("gui.molecularmanipulator.auto_craft_input_reserve_tooltip"));
-            configureLongField(reserve, menu.getAutoCraftInputReserve(input),
-                    "gui.molecularmanipulator.auto_craft_input_reserve_tooltip");
-            autoCraftInputReserves[input] = reserve;
-            addScreenWidget(reserve);
-        }
-        autoCraftConfigButtons.clear();
-        autoCraftToggleButtons.clear();
-        for (int slot = 0; slot < MolecularAutoCrafter.PATTERN_SLOTS; slot++) {
-            int selectedSlot = slot;
-            var configButton = new CompactCogButton(
-                    leftPos + MolecularCenterMenu.AUTO_CRAFT_PATTERN_X + slot * 18 + 2,
-                    topPos + 32,
-                    () -> menu.requestSelectAutoCraftSlot(selectedSlot));
-            configButton.setTooltip(Tooltip.create(Component.translatable(
-                    "gui.molecularmanipulator.auto_craft_select_slot", slot + 1)));
-            autoCraftConfigButtons.add(configButton);
-            addScreenWidget(configButton);
+    private boolean autoCraftReserveVisible(OsqLayout.Entry entry, boolean selected) {
+        int input="slot".equals(entry.kind)?Math.round((entry.y-AUTO_CRAFT_RESERVE_TOP)/20)*2+(entry.x>300?1:0)
+                :Integer.parseInt(entry.id.replaceAll("\\D",""));
+        return selected&&input<menu.autoCraftInputCount;
+    }
 
-            var toggleButton = new AECheckbox(
-                    leftPos + MolecularCenterMenu.AUTO_CRAFT_PATTERN_X + slot * 18 + 1,
-                    topPos + 70,
-                    16,
-                    16,
-                    style,
-                    Component.empty());
-            toggleButton.setRadio(true);
-            toggleButton.setChangeListener(
-                    () -> menu.requestToggleAutoCraft(selectedSlot));
-            autoCraftToggleButtons.add(toggleButton);
-            addScreenWidget(toggleButton);
+    private void initColorControls() {
+        if (detailTab == TAB_COLORS) {
+            for (int target = 0; target < 5; target++) for (int channel = 0; channel < 3; channel++) {
+                final int t = target, c = channel;
+                addScreenWidget(ui.button("c" + target + "RGB".charAt(channel), leftPos, topPos,
+                        () -> Component.literal("RGB".substring(c, c + 1) + " " + ((visualColor(t) >> (16 - c * 8)) & 255)),
+                        () -> menu.requestAdjustVisualColor(t, c,
+                                (net.minecraft.client.gui.screens.Screen.hasShiftDown() ? -1 : 1)
+                                        * (net.minecraft.client.gui.screens.Screen.hasControlDown() ? 1 : 17))));
+            }
+            addScreenWidget(ui.button("reset", leftPos, topPos,
+                    () -> OsqUi.tr("gui.molecularmanipulator.visual_color_reset"), menu::requestResetVisualColors));
+            if (menu.legacyStructure) {
+                final var confirm = colorUpdateConfirmation;
+                addScreenWidget(ui.button("update", leftPos, topPos,
+                        () -> OsqUi.tr("gui.molecularmanipulator.structure_update_confirm"),
+                        () -> { if (confirm.click()) menu.requestStructureUpdate(); }));
+                addScreenWidget(ui.button("keep", leftPos, topPos,
+                        () -> OsqUi.tr("gui.molecularmanipulator.structure_update_keep_legacy"), menu::requestKeepLegacyStructure));
+            }
         }
-        selectTab(detailTab);
-        modularView = new MolecularCenterControls(this, menu);
+        // The effects selector shares the reset row, below all five RGB rows.
+        effectsButton = addScreenWidget(new MachineEffectButton(ui, ui.buttonBox(200, 177, 136, 22), leftPos, topPos,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
     }
 
     void changePatternPage(int offset) {
@@ -221,9 +269,10 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     }
 
     private void rebuildPatternSearchResults() {
-        filteredPatternSlots = patternSearchIndex.entries().stream()
-                .filter(entry -> ClientSearchMatcher.matchesPattern(entry, patternSearchQuery))
-                .map(entry -> entry.sourceSlot())
+        var query = ClientSearchMatcher.compile(patternSearchQuery);
+        filteredPatternSlots = patternSearchCandidates.snapshot(patternSearchIndex, Language.getInstance()).stream()
+                .filter(entry -> query.matches(entry.candidates()))
+                .map(PatternSearchCandidates.Entry::sourceSlot)
                 .toList();
         showPatternSearchPage(0);
     }
@@ -243,10 +292,11 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     }
 
     void selectTab(int tab) {
-        detailTab = Math.max(TAB_OVERVIEW, Math.min(TAB_COLORS, tab));
+        int nextTab=Math.max(TAB_OVERVIEW,Math.min(TAB_COLORS,tab));
+        if(nextTab!=detailTab&&!uiRebuilding){detailTab=nextTab;rebuildWidgets();return;}
+        detailTab=nextTab;
         boolean autoCraftVisible = detailTab == TAB_AUTO_CRAFT;
-        boolean autoCraftSelected = menu.autoCraftSelectedSlot >= 0
-                && menu.autoCraftState != MolecularAutoCrafter.AutoCraftState.EMPTY;
+        boolean autoCraftSelected = hasSelectedAutoCraftDetails();
         autoCraftOutputLimit.visible = autoCraftVisible && autoCraftSelected;
         for (int input = 0; input < autoCraftInputReserves.length; input++) {
             autoCraftInputReserves[input].visible = autoCraftVisible
@@ -255,41 +305,105 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         for (var slot : menu.getAutoCraftPatternSlots()) {
             slot.setActive(autoCraftVisible);
         }
-        boolean overviewVisible = detailTab == TAB_OVERVIEW;
-        menu.getQuantumSlot().setActive(overviewVisible);
+        menu.getQuantumSlot().setActive(ui.layout.find("qes") != null);
+        effectsButton.visible = detailTab == TAB_COLORS;
+        refreshPatternTransferControls();
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
+        if(buildControl!=null)buildControl.active=!menu.formed&&!menu.building&&!menu.dismantling;
+        if(dismantleControl!=null)dismantleControl.active=!menu.building&&!menu.dismantling&&menu.formed;
     }
 
     @Override
     public void containerTick() {
         super.containerTick();
+        colorUpdateConfirmation.tick(menu.legacyStructure&&!menu.building&&!menu.dismantling);
         if (patternSearchDebounce > 0 && --patternSearchDebounce == 0) {
             applyPatternSearchQuery();
         }
-        if (!patternSearchQuery.isBlank()
-                && indexedPatternRevision != menu.patternRevision
-                && !patternSearchIndexPending
-                && patternSearchDebounce == 0) {
-            requestPatternSearchIndex();
+        if (!patternSearchQuery.isBlank() && !patternSearchIndexPending && patternSearchDebounce == 0) {
+            if (indexedPatternRevision != menu.patternRevision) {
+                requestPatternSearchIndex();
+            } else if (patternSearchIndex.complete() && !patternSearchCandidates.isCurrent(patternSearchIndex, Language.getInstance())) {
+                rebuildPatternSearchResults();
+            }
         }
         if (dismantleConfirmTicks > 0) {
             --dismantleConfirmTicks;
         }
         refreshAutoCraftFields();
         refreshAutoCraftIconButtons();
-        if (modularView != null) {
-            modularView.tick();
+
+        if(buildControl!=null)buildControl.active=!menu.formed&&!menu.building&&!menu.dismantling;
+        if(dismantleControl!=null)dismantleControl.active=!menu.building&&!menu.dismantling&&menu.formed;
+        refreshPatternTransferControls();
+    }
+
+    private void bindOverviewTelemetry() {
+        if (detailTab != TAB_OVERVIEW) return;
+        ui.progress(209,93,()->menu.usedPatternSlots/(double)Math.max(1,menu.patternCapacity));
+        ui.number(208.5f,87,()->menu.usedPatternSlots);ui.number(217.63f,87,()->"");
+        var used=ui.layout.find("pattern_used");var capacity=ui.layout.find("pattern_capacity");var count=ui.layout.find("count");
+        ui.number(249.58f,87,()->{
+            float width=OsqFonts.widthF(font,Integer.toString(menu.usedPatternSlots),OsqFonts.id(used.fontId),used.size);
+            capacity.drawX=OsqLayout.textX(used,width)+width+8;
+            capacity.w=count.x+count.w-8-capacity.drawX;
+            return "/ "+menu.patternCapacity;
+        });
+        ui.number(200.5f,181,()->Integer.bitCount(menu.autoCraftEnabledMask));ui.number(211.31f,181,()->"/ 9");
+        ui.number(254,177,()->menu.activePipelineRecipes);ui.number(301.09f,177,()->OsqUi.compact(menu.activePipelineCrafts));
+        ui.number(352,177,()->OsqUi.compact(menu.pendingOutputAmount));
+        ui.width(254,177,34);ui.width(301.09f,177,34);ui.width(352,177,60);
+    }
+
+    private void bindQuantumLink() {
+        ui.text("gui.molecularmanipulator.quantum_state.connected", () -> OsqUi.tr(
+                "gui.molecularmanipulator.quantum_state." + menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
+        ui.text("gui.molecularmanipulator.fab.s025", () -> OsqUi.tr(menu.wirelessBound
+                ? "gui.molecularmanipulator.remote_target" : "gui.molecularmanipulator.fab.s025"));
+        ui.at(65.39f, 179.5f, () -> menu.wirelessBound
+                ? OsqUi.tr("gui.molecularmanipulator.wireless_hub.short")
+                : Component.literal(formatFrequency(menu.quantumFrequency)));
+        ui.color("gui.molecularmanipulator.quantum_state.connected", () -> !menu.wirelessBound && menu.quantumFrequency == 0
+                ? ui.palette.ink3 : quantumConnected() ? ui.palette.ok : ui.palette.warn);
+        var state=ui.layout.findText("gui.molecularmanipulator.quantum_state.connected");var panel=ui.layout.find("quantum");
+        ui.width(46,165.89f,panel.x+panel.w-8-(state.drawX==null?state.x:state.drawX));
+        ui.text("gui.molecularmanipulator.overview_quantum_requirements", () -> menu.wirelessBound
+                ? OsqUi.tr("gui.molecularmanipulator.wireless_hub.requirements")
+                : OsqUi.tr("gui.molecularmanipulator.overview_quantum_requirements", 512));
+    }
+
+    /** Shared by all three pages; layout-owned controls never cover overview status text. */
+    private void initPatternTransferControls() {
+        patternUploadButton = addScreenWidget(ui.button("pattern_upload", leftPos, topPos,
+                this::patternUploadLabel, () -> menu.requestSetPatternUpload(!menu.automaticPatternUpload)));
+        patternUploadButton.setTooltip(Tooltip.create(Component.translatable(
+                "gui.molecularmanipulator.pattern_upload.tooltip")));
+        ui.state(patternUploadButton, () -> menu.automaticPatternUpload ? "active" : "normal");
+        migratePatternsButton = addScreenWidget(ui.button("migrate_patterns", leftPos, topPos,
+                () -> Component.translatable("gui.molecularmanipulator.pattern_migration.button"),
+                menu::requestMigratePatterns));
+        migratePatternsButton.setTooltip(Tooltip.create(Component.translatable(
+                "gui.molecularmanipulator.pattern_migration.tooltip")));
+        refreshPatternTransferControls();
+    }
+
+    private void refreshPatternTransferControls() {
+        if (migratePatternsButton != null) {
+            migratePatternsButton.active = menu.operational && !menu.building && !menu.dismantling;
         }
+    }
+
+    private Component patternUploadLabel() {
+        return Component.translatable(menu.automaticPatternUpload
+                ? "gui.molecularmanipulator.pattern_upload.on" : "gui.molecularmanipulator.pattern_upload.off");
     }
 
     @Override
     public void removed() {
         menu.setPatternSearchIndexListener(null);
-        if (modularView != null) {
-            modularView.close();
-            modularView = null;
-        }
+        patternSearchCandidates.clear();
+
         super.removed();
     }
 
@@ -347,6 +461,7 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (wirelessPanelOpen()) return super.keyPressed(keyCode, scanCode, modifiers);
         if (detailTab == TAB_AUTO_CRAFT
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             if (autoCraftOutputLimit.isFocused() && autoCraftOutputLimit.active) {
@@ -370,228 +485,21 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
     @Override
     public void drawBG(GuiGraphics graphics, int x, int y, int mouseX, int mouseY,
             float partialTick) {
-        super.drawBG(graphics, x, y, mouseX, mouseY, partialTick);
-        AeUiTheme.area(graphics, x + 4, y + 28, x + 192, y + 153);
-        AeUiTheme.area(graphics, x + 4, y + 157, x + 192, y + imageHeight - 4);
-        AeUiTheme.area(graphics, x + PANEL_LEFT, y + 28, x + PANEL_RIGHT,
-                y + imageHeight - (detailTab == TAB_AUTO_CRAFT ? 2 : 4));
-        if (menu.legacyStructure && detailTab == TAB_COLORS) {
-            AeUiTheme.insetPanel(graphics, x + 204, y + 219, x + 422, y + 257);
-            drawPanelBorder(graphics, x + 204, y + 219, x + 422, y + 257, AeUiTheme.WARNING);
-        }
-        drawSlotGrid(graphics, MolecularCenterMenu.PATTERN_X, MolecularCenterMenu.PATTERN_Y, 9, 4);
-        if (detailTab == TAB_AUTO_CRAFT) {
-            drawSlotGrid(graphics, MolecularCenterMenu.AUTO_CRAFT_PATTERN_X,
-                    MolecularCenterMenu.AUTO_CRAFT_PATTERN_Y,
-                    MolecularAutoCrafter.PATTERN_SLOTS, 1);
-            for (int slot = 0; slot < MolecularAutoCrafter.PATTERN_SLOTS; slot++) {
-                int slotX = leftPos + MolecularCenterMenu.AUTO_CRAFT_PATTERN_X + slot * 18;
-                int slotY = topPos + MolecularCenterMenu.AUTO_CRAFT_PATTERN_Y;
-                int markerColor = (menu.autoCraftEnabledMask & (1 << slot)) != 0
-                        ? AeUiTheme.SUCCESS
-                        : AeUiTheme.MUTED_TEXT;
-                graphics.fill(slotX, slotY + 18, slotX + 16, slotY + 20, markerColor);
-                if (slot == menu.autoCraftSelectedSlot) {
-                    drawPanelBorder(graphics, slotX - 1, slotY - 1,
-                            slotX + 17, slotY + 17, AeUiTheme.CYAN);
-                }
-            }
-        }
-        drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_MAIN_Y, 9, 3);
-        drawSlotGrid(graphics, MolecularCenterMenu.PLAYER_X, MolecularCenterMenu.PLAYER_HOTBAR_Y, 9, 1);
-        if (detailTab == TAB_OVERVIEW) {
-            drawSlotFrame(graphics, MolecularCenterMenu.QUANTUM_SLOT_X, MolecularCenterMenu.QUANTUM_SLOT_Y,
-                    0xFF55799E);
-            graphics.fill(x + 207, y + 148, x + 418, y + 149, AeUiTheme.SHADOW);
-        }
-    }
-
-    private void drawSlotGrid(GuiGraphics graphics, int startX, int startY, int columns, int rows) {
-        for (int row = 0; row < rows; row++) {
-            for (int column = 0; column < columns; column++) {
-                drawPlainSlotFrame(graphics, startX + column * 18, startY + row * 18);
-            }
-        }
-        AeUiTheme.slotGridOutline(graphics,
-                leftPos + startX - 1, topPos + startY - 1, columns, rows);
-    }
-
-    private void drawSlotFrame(GuiGraphics graphics, int slotX, int slotY, int borderColor) {
-        int x = leftPos + slotX;
-        int y = topPos + slotY;
-        AeUiTheme.slot(graphics, x - 1, y - 1);
-        graphics.fill(x - 1, y - 1, x + 17, y, borderColor);
-    }
-
-
-    private void drawPlainSlotFrame(GuiGraphics graphics, int slotX, int slotY) {
-        AeUiTheme.slot(graphics, leftPos + slotX - 1, topPos + slotY - 1);
-    }
-
-    private static void drawPanelBorder(GuiGraphics graphics, int left, int top, int right, int bottom, int color) {
-        graphics.fill(left, top, right, top + 1, color);
-        graphics.fill(left, bottom - 1, right, bottom, color);
-        graphics.fill(left, top, left + 1, bottom, color);
-        graphics.fill(right - 1, top, right, bottom, color);
+        if(ui!=null)ui.background(graphics,font,x,y);
     }
 
     @Override
     public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        var pageText = patternSearchIndexPending && !patternSearchQuery.isBlank()
-                ? Component.translatable("gui.molecularmanipulator.pattern_search_indexing")
-                : !patternSearchQuery.isBlank() && menu.patternSearchActive
-                        && menu.patternSearchResultCount == 0
-                                ? Component.translatable("gui.molecularmanipulator.pattern_search_no_results")
-                                : Component.translatable("gui.molecularmanipulator.page", menu.getPage() + 1,
-                                        menu.getPageCount());
-        drawRightAlignedFittedString(graphics, pageText, LEFT_CONTENT_RIGHT, 36, 55,
-                AeUiTheme.MUTED_TEXT);
-        graphics.drawString(font, playerInventoryTitle, 17, 174, AeUiTheme.PRIMARY_TEXT, false);
-
-        switch (detailTab) {
-            case TAB_OVERVIEW -> renderOverview(graphics);
-            case TAB_AUTO_CRAFT -> renderAutoCraftTab(graphics);
-            case TAB_COLORS -> renderColorsTab(graphics);
+        if(ui==null)return;ui.foreground(graphics,font);
+        if(detailTab==TAB_AUTO_CRAFT){
+            var details=hasSelectedAutoCraftDetails()?selectedAutoCraftPattern():null;if(details!=null){AEStackIcon.draw(graphics,details.getPrimaryOutput(),201,131);
+                for(int i=0;i<Math.min(menu.autoCraftInputCount,9);i++){var stack=selectedAutoCraftInput(details,i);if(stack!=null)AEStackIcon.draw(graphics,stack,i%2==0?201:312,AUTO_CRAFT_RESERVE_TOP+1+i/2*20);}}
         }
-        if (menu.legacyStructure && detailTab == TAB_COLORS) {
-            drawFittedString(graphics, Component.translatable(
-                    "gui.molecularmanipulator.structure_update_projection_warning"),
-                    210, 222, 204, AeUiTheme.WARNING);
-        }
-    }
-
-    private void renderOverview(GuiGraphics graphics) {
-        int width = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.overview_title"),
-                DETAIL_CONTENT_LEFT, 36, width, AeUiTheme.ACCENT);
-
-        Component structure = menu.legacyStructure
-                ? Component.translatable("gui.molecularmanipulator.structure_legacy_139")
-                : Component.translatable(menu.formed
-                        ? "gui.molecularmanipulator.formed"
-                        : "gui.molecularmanipulator.incomplete");
-        drawOverviewRow(graphics, "overview_structure", structure, 50,
-                menu.formed && !menu.legacyStructure ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        drawOverviewRow(graphics, "overview_network",
-                Component.translatable(menu.operational
-                        ? "gui.molecularmanipulator.overview_online"
-                        : "gui.molecularmanipulator.overview_offline"),
-                67, menu.operational ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        drawOverviewRow(graphics, "overview_patterns",
-                Component.literal(formatAmount(menu.usedPatternSlots) + " / "
-                        + formatAmount(menu.patternCapacity)), 84, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "overview_auto_craft",
-                Component.literal(Integer.bitCount(menu.autoCraftEnabledMask) + " / "
-                        + MolecularAutoCrafter.PATTERN_SLOTS), 101, AeUiTheme.PRIMARY_TEXT);
-        drawOverviewRow(graphics, "overview_pipeline",
-                menu.activePipelineRecipes > 0
-                        ? Component.translatable("gui.molecularmanipulator.overview_pipeline_active",
-                                menu.activePipelineRecipes, formatAmount(menu.activePipelineCrafts))
-                        : Component.translatable("gui.molecularmanipulator.overview_pipeline_idle"),
-                118, menu.activePipelineRecipes > 0 ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-        drawOverviewRow(graphics, "overview_pending",
-                menu.pipelineBlocked
-                        ? Component.translatable("gui.molecularmanipulator.overview_output_blocked",
-                                formatAmount(menu.pendingOutputAmount))
-                        : Component.literal(formatAmount(menu.pendingOutputAmount)), 135,
-                menu.pipelineBlocked ? AeUiTheme.WARNING : AeUiTheme.PRIMARY_TEXT);
-
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.quantum_title"),
-                DETAIL_CONTENT_LEFT, 155, width, AeUiTheme.CYAN);
-        var state = menu.quantumLinkState;
-        int stateColor = switch (state) {
-            case CONNECTED -> AeUiTheme.SUCCESS;
-            case CONNECTED_BUILD_ONLY -> AeUiTheme.CYAN;
-            case EMPTY, SEARCHING -> AeUiTheme.MUTED_TEXT;
-            case REMOTE_MISSING, REMOTE_OFFLINE, STRUCTURE_INCOMPLETE -> AeUiTheme.WARNING;
-            default -> AeUiTheme.ERROR;
-        };
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_status",
-                Component.translatable("gui.molecularmanipulator.quantum_state."
-                        + state.name().toLowerCase(Locale.ROOT))),
-                DETAIL_CONTENT_LEFT, 171, width, stateColor);
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.quantum_frequency",
-                menu.quantumFrequency == 0 ? "-" : formatFrequency(menu.quantumFrequency)),
-                DETAIL_CONTENT_LEFT, 185, width, AeUiTheme.PRIMARY_TEXT);
-        drawCenteredFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.quantum_singularity"),
-                MolecularCenterMenu.QUANTUM_SLOT_X + 8, 198, 90, AeUiTheme.PRIMARY_TEXT);
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.overview_quantum_requirements",
-                        formatAmount((long) MolecularCenterBlockEntity.QUANTUM_LINK_POWER)),
-                DETAIL_CONTENT_LEFT, 242, width, AeUiTheme.MUTED_TEXT);
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.spawn_protection"),
-                DETAIL_CONTENT_LEFT, menu.legacyStructure ? 252 : 256, width, AeUiTheme.SUCCESS);
-        if (!menu.legacyStructure) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.spawn_protection_area"),
-                    DETAIL_CONTENT_LEFT, 270, width, AeUiTheme.MUTED_TEXT);
-        }
-    }
-
-    private void drawOverviewRow(GuiGraphics graphics, String key, Component value, int y, int valueColor) {
-        drawKeyValueRow(graphics,
-                Component.translatable("gui.molecularmanipulator." + key), value,
-                DETAIL_CONTENT_LEFT, DETAIL_CONTENT_RIGHT, y, 6,
-                AeUiTheme.MUTED_TEXT, valueColor);
-    }
-
-
-    private void renderAutoCraftTab(GuiGraphics graphics) {
-        int contentWidth = DETAIL_CONTENT_RIGHT - DETAIL_CONTENT_LEFT;
-        if (menu.autoCraftSelectedSlot < 0) {
-            drawFittedString(graphics,
-                    Component.translatable("gui.molecularmanipulator.auto_craft_select_hint"),
-                    DETAIL_CONTENT_LEFT, 92, contentWidth, AeUiTheme.MUTED_TEXT);
-            return;
-        }
-
-        IPatternDetails details = selectedAutoCraftPattern();
-        GenericStack output = details == null ? null : details.getPrimaryOutput();
-        Component outputName = output == null
-                ? Component.translatable("gui.molecularmanipulator.auto_craft_invalid_pattern")
-                : output.what().getDisplayName();
-        if (output != null) {
-            AEStackIcon.draw(graphics, output, DETAIL_CONTENT_LEFT, 90);
-        }
-        autoCraftOutputLimit.setTooltip(Tooltip.create(Component.translatable(
-                "gui.molecularmanipulator.auto_craft_output_limit_for_tooltip", outputName)));
-
-        drawFittedString(graphics,
-                Component.translatable("gui.molecularmanipulator.auto_craft_materials"),
-                DETAIL_CONTENT_LEFT, 111, contentWidth, AeUiTheme.ACCENT);
-
-        for (int inputIndex = 0; inputIndex < menu.autoCraftInputCount
-                && inputIndex < autoCraftInputReserves.length; inputIndex++) {
-            GenericStack input = selectedAutoCraftInput(details, inputIndex);
-            if (input == null) {
-                continue;
-            }
-            int columnX = inputIndex % 2 == 0 ? DETAIL_CONTENT_LEFT : 313;
-            int rowY = 123 + inputIndex / 2 * 22;
-            AEStackIcon.draw(graphics, input, columnX, rowY);
-            autoCraftInputReserves[inputIndex].setTooltip(Tooltip.create(Component.translatable(
-                    "gui.molecularmanipulator.auto_craft_input_reserve_for_tooltip",
-                    inputIndex + 1, input.what().getDisplayName())));
-        }
-
-    }
-
-    private void renderColorsTab(GuiGraphics graphics) {
-        graphics.drawString(font, Component.translatable("gui.molecularmanipulator.visual_colors"),
-                210, 31, AeUiTheme.ACCENT, false);
-        for (int target = 0; target < 5; target++) {
-            int color = visualColor(target);
-            int y = 43 + target * 32;
-            graphics.drawString(font,
-                    Component.translatable("gui.molecularmanipulator.visual_color." + target),
-                    210, y, AeUiTheme.PRIMARY_TEXT, false);
-            graphics.drawString(font, String.format(Locale.ROOT, "#%06X", color),
-                    266, y, color, false);
-            graphics.fill(308, y + 2, 316, y + 10, 0xFF000000 | color);
+        if (detailTab == TAB_COLORS) for (int i = 0; i < 5; i++) {
+            var swatch = ui.layout.find("sw" + i);
+            graphics.fill(Math.round(swatch.x) + 1, Math.round(swatch.y) + 1,
+                    Math.round(swatch.x + swatch.w) - 1, Math.round(swatch.y + swatch.h) - 1,
+                    0xFF000000 | visualColor(i));
         }
     }
 
@@ -607,10 +515,16 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
             return;
         }
         boolean autoCraftVisible = detailTab == TAB_AUTO_CRAFT;
-        boolean selected = menu.autoCraftSelectedSlot >= 0
-                && menu.autoCraftState != MolecularAutoCrafter.AutoCraftState.EMPTY;
+        boolean selected = hasSelectedAutoCraftDetails();
         autoCraftOutputLimit.visible = autoCraftVisible && selected;
         autoCraftOutputLimit.active = selected;
+        if(detailTab==TAB_AUTO_CRAFT){
+            limitControl.visible=selected;limitControl.active=selected;
+            for(int i=0;i<9;i++){
+                reserveControls[i].visible=selected&&i<menu.autoCraftInputCount;reserveControls[i].active=selected&&i<menu.autoCraftInputCount;
+                runControls[i].active=menu.getAutoCraftPatternSlots().get(i).hasItem();
+            }
+        }
 
         boolean selectedSlotChanged = displayedAutoCraftSlot != menu.autoCraftSelectedSlot;
         if (selectedSlotChanged) {
@@ -661,16 +575,23 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
         }
     }
 
+    boolean hasSelectedAutoCraftDetails() {
+        return menu.autoCraftSelectedSlot >= 0
+                && menu.autoCraftState != MolecularAutoCrafter.AutoCraftState.EMPTY
+                && selectedAutoCraftPattern() != null;
+    }
+
     private IPatternDetails selectedAutoCraftPattern() {
         ItemStack pattern = menu.getSelectedAutoCraftPatternStack();
         if (pattern.isEmpty() || minecraft == null || minecraft.level == null) {
             return null;
         }
-        try {
-            return PatternDetailsHelper.decodePattern(pattern, minecraft.level);
-        } catch (RuntimeException | LinkageError ignored) {
-            return null;
+        if (!ItemStack.matches(pattern, cachedPatternStack)) {
+            cachedPatternStack = pattern.copy();
+            try { cachedPatternDetails = PatternDetailsHelper.decodePattern(pattern, minecraft.level); }
+            catch (RuntimeException | LinkageError ignored) { cachedPatternDetails = null; }
         }
+        return cachedPatternDetails;
     }
 
     private static GenericStack selectedAutoCraftInput(IPatternDetails details, int inputIndex) {
@@ -719,22 +640,11 @@ public final class MolecularCenterScreen extends ResponsiveContainerScreen<Molec
                 : "gui.molecularmanipulator.preview");
     }
 
-    private static String formatAmount(long amount) {
-        if (amount >= 1_000_000_000_000L) {
-            return String.format(Locale.ROOT, "%.1fT", amount / 1_000_000_000_000.0);
-        }
-        if (amount >= 1_000_000_000L) {
-            return String.format(Locale.ROOT, "%.1fG", amount / 1_000_000_000.0);
-        }
-        if (amount >= 1_000_000L) {
-            return String.format(Locale.ROOT, "%.1fM", amount / 1_000_000.0);
-        }
-        if (amount >= 1_000L) {
-            return String.format(Locale.ROOT, "%.1fK", amount / 1_000.0);
-        }
-        return Long.toString(amount);
-    }
 
+    private boolean quantumConnected() {
+        return menu.quantumLinkState == MolecularCenterBlockEntity.QuantumLinkState.CONNECTED
+                || menu.quantumLinkState == MolecularCenterBlockEntity.QuantumLinkState.CONNECTED_BUILD_ONLY;
+    }
 
     private static String formatFrequency(long frequency) {
         return Long.toUnsignedString(frequency, 16).toUpperCase(Locale.ROOT);

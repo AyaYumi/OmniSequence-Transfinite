@@ -1,5 +1,7 @@
 package com.atir.molecularmanipulator.research;
 
+import static com.atir.molecularmanipulator.starcomputation.StarComputationRecipeCodecs.optionalField;
+
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipeInput;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.mojang.serialization.Codec;
@@ -26,17 +28,17 @@ public record MatterResearchRecipe(net.minecraft.resources.ResourceLocation id, 
         implements Recipe<MatterFabricationRecipeInput> {
     public static final MapCodec<MatterResearchRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             Codec.STRING.fieldOf("title").forGetter(MatterResearchRecipe::title),
-            ResourceLocation.CODEC.listOf().optionalFieldOf("prerequisites", List.of()).forGetter(MatterResearchRecipe::prerequisites),
+            optionalField(ResourceLocation.CODEC.listOf(), "prerequisites", List.of()).forGetter(MatterResearchRecipe::prerequisites),
             Cost.CODEC.listOf().fieldOf("ingredients").forGetter(MatterResearchRecipe::ingredients),
-            Codec.intRange(1, Integer.MAX_VALUE).optionalFieldOf("duration", 1200).forGetter(MatterResearchRecipe::duration),
-            Codec.doubleRange(0, Double.MAX_VALUE).optionalFieldOf("ae_per_tick", 256.0).forGetter(MatterResearchRecipe::aePerTick),
-            ResourceLocation.CODEC.listOf().optionalFieldOf("unlocks", List.of()).forGetter(MatterResearchRecipe::unlocks),
-            Codec.STRING.listOf().optionalFieldOf("required_mods", List.of()).forGetter(MatterResearchRecipe::requiredMods),
-            Codec.INT.optionalFieldOf("sort_order", 0).forGetter(MatterResearchRecipe::sortOrder),
-            Codec.intRange(0, Integer.MAX_VALUE).optionalFieldOf("stage", 1).forGetter(MatterResearchRecipe::stage),
-            ResearchDepth.CODEC.listOf().optionalFieldOf("depths", ResearchDepth.DEFAULTS).forGetter(MatterResearchRecipe::depths),
-            Codec.unboundedMap(ResourceLocation.CODEC, ResearchCodecs.PREREQUISITE_LEVEL)
-                    .optionalFieldOf("prerequisite_levels", Map.of()).forGetter(MatterResearchRecipe::prerequisiteLevels)
+            optionalField(Codec.intRange(1, Integer.MAX_VALUE), "duration", 1200).forGetter(MatterResearchRecipe::duration),
+            optionalField(Codec.doubleRange(0, Double.MAX_VALUE), "ae_per_tick", 256.0).forGetter(MatterResearchRecipe::aePerTick),
+            optionalField(ResourceLocation.CODEC.listOf(), "unlocks", List.of()).forGetter(MatterResearchRecipe::unlocks),
+            optionalField(Codec.STRING.listOf(), "required_mods", List.of()).forGetter(MatterResearchRecipe::requiredMods),
+            optionalField(Codec.INT, "sort_order", 0).forGetter(MatterResearchRecipe::sortOrder),
+            optionalField(Codec.intRange(0, Integer.MAX_VALUE), "stage", 1).forGetter(MatterResearchRecipe::stage),
+            optionalField(ResearchDepth.CODEC.listOf(), "depths", ResearchDepth.DEFAULTS).forGetter(MatterResearchRecipe::depths),
+            optionalField(Codec.unboundedMap(ResourceLocation.CODEC, ResearchCodecs.PREREQUISITE_LEVEL),
+                    "prerequisite_levels", Map.of()).forGetter(MatterResearchRecipe::prerequisiteLevels)
     ).apply(instance, MatterResearchRecipe::new));
 
     public MatterResearchRecipe(String title, List<ResourceLocation> prerequisites, List<Cost> ingredients, int duration, double aePerTick, List<ResourceLocation> unlocks, List<String> requiredMods, int sortOrder, int stage, List<ResearchDepth> depths, Map<ResourceLocation, Integer> prerequisiteLevels) {

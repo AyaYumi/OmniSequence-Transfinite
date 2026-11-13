@@ -1,175 +1,123 @@
 package com.atir.molecularmanipulator.client;
 
+import appeng.api.client.AEKeyRendering;
+import appeng.api.stacks.AEFluidKey;
 import appeng.client.gui.style.ScreenStyle;
+import appeng.menu.SlotSemantics;
 import com.atir.molecularmanipulator.menu.MatterFabricationPatternAssemblyMenu;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
-import appeng.api.stacks.AEFluidKey;
-import appeng.api.client.AEKeyRendering;
-import java.util.List;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
+import java.util.List;
 
-/** Renameable 36-slot pattern assembly terminal. */
-public final class MatterFabricationPatternAssemblyScreen
-        extends ResponsiveContainerScreen<MatterFabricationPatternAssemblyMenu> {
+/** Supplied layout with rename drafts, server-backed tab changes and cache paging. */
+public final class MatterFabricationPatternAssemblyScreen extends ResponsiveContainerScreen<MatterFabricationPatternAssemblyMenu> {
+    private OsqUi ui;
     private EditBox nameField;
+    private int displayedView=-1;
     private boolean initializedName;
-    private final Button[] tabs = new Button[4];
-    private Button previous, next, refund;
-
-    public MatterFabricationPatternAssemblyScreen(MatterFabricationPatternAssemblyMenu menu,
-            Inventory playerInventory, Component title, ScreenStyle style) {
-        super(menu, playerInventory, title, style);
-    }
-
-    @Override
-    protected void init() {
-        String draft = nameField == null ? null : nameField.getValue();
-        super.init();
-        nameField = OmniUiTheme.tallTextField(style, font, leftPos + 20, topPos + 48, 154, 20,
-                Component.translatable("gui.molecularmanipulator.fabrication.pattern.name_hint"),
-                Component.translatable("gui.molecularmanipulator.fabrication.pattern.name"));
-        nameField.setMaxLength(64);
-        if (draft != null) nameField.setValue(draft);
-        addScreenWidget(nameField);
-        addScreenWidget(OmniUiTheme.button(leftPos + 182, topPos + 48, 46, 20,
-                Component.translatable("gui.molecularmanipulator.fabrication.pattern.rename"),
-                button -> saveName()));
-        for (int i = 0; i < tabs.length; i++) {
-            final int view = i;
-            tabs[i] = addScreenWidget(OmniUiTheme.button(leftPos + 18 + i * 54, topPos + 90, 50, 16,
-                    text(i == 0 ? "patterns" : i == 1 ? "input_tab" : i == 2 ? "output_tab" : "catalysts"), button -> menu.requestView(view)));
-            tabs[i].setTooltip(Tooltip.create(text(i == 3 ? "catalyst_hint" : "capacity")));
+    private Button previous,next,refund;
+    public MatterFabricationPatternAssemblyScreen(MatterFabricationPatternAssemblyMenu menu,Inventory inventory,Component title,ScreenStyle style){super(menu,inventory,title,style);}
+    @Override protected void init(){
+        String draft=nameField==null?null:nameField.getValue();displayedView=menu.view;
+        ui=new OsqUi(menu.view==3?"fab_assembly_catalyst":menu.view==1||menu.view==2?"fab_assembly_input":"fab_assembly_patterns");
+        imageWidth=ui.layout.width;imageHeight=ui.layout.height;super.init();
+        ui.inventory(menu);ui.slots(menu.getSlots(SlotSemantics.ENCODED_PATTERN),"pat");
+        ui.slots(menu.getSlots(SlotSemantics.MACHINE_INPUT),menu.view==3?"cat":"pat");ui.slots(menu.getSlots(SlotSemantics.ENCODED_PATTERN),"pat");
+        nameField=addScreenWidget(ui.field("name",leftPos,topPos,font,text("name_hint")));
+        if(draft!=null)nameField.setValue(draft);
+        else if(!menu.assemblyName.isBlank()){nameField.setValue(menu.assemblyName);initializedName=true;}
+        addScreenWidget(ui.button("save",leftPos,topPos,()->text("rename"),this::saveName));
+        String[] keys={"patterns","input_tab","output_tab","catalysts"};
+        for(int i=0;i<4;i++){final int selected=i;
+            addScreenWidget(ui.tab("tab"+i,leftPos,topPos,()->buffer(keys[selected]),
+                    ()->menu.view==selected,()->menu.requestView(selected)));
         }
-        previous = addScreenWidget(OmniUiTheme.button(leftPos + 18, topPos + 198, 24, 16, Component.literal("<"),
-                button -> menu.requestPage(menu.bufferState.page() - 1)));
-        next = addScreenWidget(OmniUiTheme.button(leftPos + 102, topPos + 198, 24, 16, Component.literal(">"),
-                button -> menu.requestPage(menu.bufferState.page() + 1)));
-        refund = addScreenWidget(OmniUiTheme.button(leftPos + 134, topPos + 198, 96, 16, text("refund"), button -> menu.requestRefund()));
-        refund.setTooltip(Tooltip.create(text("refund_hint")));
-        updateControls();
-    }
-
-    @Override
-    public void containerTick() {
-        super.containerTick();
-        updateControls();
-        if (!initializedName && nameField != null && !menu.assemblyName.isBlank()) {
-            nameField.setValue(menu.assemblyName);
-            initializedName = true;
+        if(menu.view==1||menu.view==2){
+            previous=addScreenWidget(ui.button("prev",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.previous_page"),()->menu.requestPage(menu.bufferState.page()-1)));
+            next=addScreenWidget(ui.button("next",leftPos,topPos,()->Component.translatable("gui.molecularmanipulator.next_page"),()->menu.requestPage(menu.bufferState.page()+1)));
+            ui.text("gui.molecularmanipulator.page",()->OsqUi.tr("gui.molecularmanipulator.page",menu.bufferState.page()+1,menu.bufferState.pages()));
+            for(var e:ui.layout.draw)if("text".equals(e.type)&&e.baseline>=98&&e.baseline<180)ui.at(e.x,e.baseline,Component::empty);
+            ui.hide(e -> "slot".equals(e.kind) && "buf".equals(e.id));
+            // The source's per-row extract controls have no corresponding server operation.
+            // Do not fabricate one or attach a bulk refund to a single-item button.
+            ui.visible=e->!("ctl".equals(e.kind)&&e.id!=null&&e.id.startsWith("take"))
+                    &&!(e.sprite!=null&&e.sprite.contains("/icons/")&&e.x>=160&&e.y>=95&&e.y<178)
+                    && !("tip".equals(e.kind));
         }
-    }
-
-    private void updateControls() {
-        for (int i = 0; i < tabs.length; i++) if (tabs[i] != null) {
-            tabs[i].active = menu.view != i;
-            ((OmniButton) tabs[i]).setSelected(menu.view == i);
+        if(menu.view!=3){
+            refund=addScreenWidget(ui.button("return",leftPos,topPos,()->buffer("refund"),menu::requestRefund));
+            refund.setTooltip(Tooltip.create(buffer("refund_hint")));
         }
-        if (previous != null) {
-            previous.visible = next.visible = menu.view == 1 || menu.view == 2;
-            previous.active = menu.bufferState.page() > 0;
-            next.active = menu.bufferState.page() + 1 < menu.bufferState.pages();
-            refund.active = menu.canRefund;
-            refund.visible = menu.view != 3;
-        }
-        menu.updatePatternSlots();
+        else {var unused=ui.layout.findControl("return");ui.hide(e->ui.layout.owns(unused,e));}
+        ui.omit("gui.molecularmanipulator.fab.s001");
+        ui.text("gui.molecularmanipulator.fabrication.buffer.network_online",()->buffer(menu.networkOnline?"network_online":"network_offline"));
+        ui.number(160.42f,22,()->menu.occupied+" / 36");ui.at(170.19f,22,Component::empty);
+        ui.text("gui.molecularmanipulator.fabrication.buffer.catalyst_types",
+                ()->OsqUi.tr("gui.molecularmanipulator.fabrication.buffer.catalyst_types",menu.sharedCatalystTypes));
+        ui.text("gui.molecularmanipulator.fab.s010",()->buffer(menu.view==2?"output_tab":"input_tab"));
+        refresh();
     }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
-        double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if ((menu.view == 1 || menu.view == 2) && x >= 12 && x < 236 && y >= 110 && y < 218 && scrollY != 0) {
-            menu.requestPage(menu.bufferState.page() + (scrollY < 0 ? 1 : -1)); return true;
-        }
-        return super.mouseScrolled(mouseX, mouseY, scrollY);
+    private void refresh(){menu.updatePatternSlots();
+        if(previous!=null){previous.active=menu.bufferState.page()>0;next.active=menu.bufferState.page()+1<menu.bufferState.pages();}
+        if(refund!=null)refund.active=menu.canRefund;
     }
-
-    @Override
-    public appeng.client.gui.StackWithBounds getStackUnderMouse(double mouseX, double mouseY) {
-        double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if ((menu.view == 1 || menu.view == 2) && x >= 18 && x < 230 && y >= 112 && y < 192) {
-            int row = (int) (y - 112) / 20;
-            if (row < menu.bufferState.contents().size()) return new appeng.client.gui.StackWithBounds(
-                    menu.bufferState.contents().get(row), new net.minecraft.client.renderer.Rect2i(
-                            responsiveScreenX(leftPos + 18), responsiveScreenY(topPos + 112 + row * 20),
-                            responsiveScreenLength(212), responsiveScreenLength(20)));
-        }
-        return super.getStackUnderMouse(mouseX, mouseY);
+    private void saveName(){menu.requestRename(nameField.getValue());nameField.setFocused(false);}
+    @Override public void containerTick(){super.containerTick();if(displayedView!=menu.view){previous=next=refund=null;rebuildWidgets();return;}
+        if(!initializedName&&!menu.assemblyName.isBlank()&&!nameField.isFocused()){nameField.setValue(menu.assemblyName);initializedName=true;}refresh();}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(wirelessPanelOpen())return super.keyPressed(key,scan,mods);if(nameField.isFocused()&&(key==257||key==335)){saveName();return true;}return super.keyPressed(key,scan,mods);}
+    @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui==null)return;
+        centerMetadata("assembly_catalyst_count", "assembly_catalyst_count_icon",
+                OsqUi.tr("gui.molecularmanipulator.fabrication.buffer.catalyst_types",menu.sharedCatalystTypes));
+        ui.background(g,font,x,y);
     }
-
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if ((menu.view == 1 || menu.view == 2) && x >= 18 && x < 230 && y >= 112 && y < 192) {
-            int row = (int) (y - 112) / 20;
-            if (row < menu.bufferState.contents().size()) {
-                var stack = menu.bufferState.contents().get(row);
-                graphics.renderComponentTooltip(font, List.of(stack.what().getDisplayName(),
-                        text("amount", DisplayNumbers.exact(stack.amount()) + (stack.what() instanceof AEFluidKey ? " mB" : ""))), mouseX, mouseY);
-            }
+    @Override public void drawFG(GuiGraphics g,int ox,int oy,int mx,int my){if(ui==null)return;ui.foreground(g,font);
+        if(menu.view!=1&&menu.view!=2)return;
+        var state=menu.bufferState;
+        if(state.unavailable()||state.contents().isEmpty()){
+            ui.centeredText(g,buffer(state.unavailable()?"unavailable":"empty"),14,158,162,ui.palette.ink3);
+            return;
+        }
+        for(int i=0;i<Math.min(com.atir.molecularmanipulator.menu.MatterPatternBufferMenuState.PAGE_SIZE,state.contents().size());i++){
+            var stack=state.contents().get(i);float y=112+i*22;
+            ui.slotBackground(g,14,y);
+            AEKeyRendering.drawInGui(minecraft,g,15,Math.round(y)+1,stack.what());
+            ui.centeredText(g,stack.what().getDisplayName(),37,y+9,139,ui.palette.ink);
+            ui.centeredText(g,Component.literal(OsqUi.compact(stack.amount())+(stack.what() instanceof AEFluidKey?" mB":"")),37,y+19,139,ui.palette.ink);
         }
     }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (nameField != null && nameField.isFocused() && (keyCode == 257 || keyCode == 335)) {
-            saveName();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+    /** Center each live icon/label group inside the left metadata column, not its example string. */
+    private void centerMetadata(String textId, String iconId, Component value) {
+        var label=ui.layout.find(textId);var icon=ui.layout.find(iconId);
+        if(label==null||icon==null)return;
+        var panel=ui.layout.find("meta");
+        float columnWidth=panel.w;
+        var ink=com.atir.molecularmanipulator.client.gui.theme.OsqIconInk.center(icon.sprite);
+        float iconWidth=icon.w*ink.width();
+        float textWidth=Math.min(columnWidth-16-iconWidth-3,com.atir.molecularmanipulator.client.gui.theme.OsqFonts.widthF(
+                font,value.getString(),com.atir.molecularmanipulator.client.gui.theme.OsqFonts.id(label.fontId),label.size));
+        float groupWidth=iconWidth+3+textWidth;
+        float left=panel.x+(columnWidth-groupWidth)/2;
+        icon.drawX=left+iconWidth/2-ink.x()*icon.w;
+        icon.drawY=label.centerY-ink.y()*icon.h;
+        label.drawX=left+iconWidth+3;
+        label.w=textWidth;
     }
-
-    private void saveName() {
-        if (nameField != null) {
-            menu.requestRename(nameField.getValue());
-            nameField.setFocused(false);
-        }
+    @Override public boolean mouseScrolled(double mx,double my,double sy){
+        if(wirelessPanelOpen())return super.mouseScrolled(mx,my,sy);
+        double x=logicalMouseX(mx)-leftPos,y=logicalMouseY(my)-topPos;
+        if((menu.view==1||menu.view==2)&&x>=8&&x<182&&y>=112&&y<202&&sy!=0){menu.requestPage(menu.bufferState.page()+(sy<0?1:-1));return true;}
+        return super.mouseScrolled(mx,my,sy);
     }
-
-    @Override
-    public void drawBG(GuiGraphics graphics, int x, int y, int mouseX, int mouseY,
-            float partialTick) {
-        super.drawBG(graphics, x, y, mouseX, mouseY, partialTick);
-        graphics.fill(x + 12, y + 36, x + 236, y + 37, OmniUiTheme.SHADOW);
-        MachineUiLayout.PATTERN_ASSEMBLY.draw(graphics, x, y);
-        if (menu.view == 0 || menu.view == 3) OmniUiTheme.slotGrid(graphics, x + 43, y + 110, 9, 4);
+    @Override public void render(GuiGraphics g,int mx,int my,float pt){super.render(g,mx,my,pt);
+        if(wirelessPanelOpen())return;
+        double x=logicalMouseX(mx)-leftPos,y=logicalMouseY(my)-topPos;
+        if((menu.view==1||menu.view==2)&&!menu.bufferState.unavailable()&&x>=14&&x<176&&y>=112&&y<202){int row=(int)((y-112)/22);
+            if(row<menu.bufferState.contents().size()){var s=menu.bufferState.contents().get(row);g.renderComponentTooltip(font,List.of(s.what().getDisplayName(),Component.literal(DisplayNumbers.exact(s.amount()))),mx,my);}}
     }
-
-    @Override
-    public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        var displayTitle = title.getString().isBlank() ? Component.translatable("block.molecularmanipulator.matter_fabrication_pattern_assembly") : title;
-        OmniUiTheme.label(graphics, font, displayTitle, 14, 8, 220, OmniUiTheme.PRIMARY_TEXT);
-        graphics.fill(14, 24, 18, 28, menu.networkOnline ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
-        OmniUiTheme.label(graphics, font, text(menu.networkOnline ? "network_online" : "network_offline"), 23, 22, 128, OmniUiTheme.MUTED_TEXT);
-        OmniUiTheme.label(graphics, font, Component.translatable("gui.molecularmanipulator.fabrication.pattern.used", menu.occupied),
-                164, 22, 70, OmniUiTheme.PRIMARY_TEXT);
-        if (menu.view == 0) {
-            var status = menu.bufferState.unavailable() ? text("unavailable")
-                    : menu.waitingForCatalyst ? text("waiting_catalyst")
-                    : !menu.controllerReady && (menu.bufferState.processing() || menu.bufferState.queuedPatterns() > 0) ? text("waiting") : text("capacity");
-            drawFittedString(graphics, status, 20, 186, 208, OmniUiTheme.MUTED_TEXT);
-            drawFittedString(graphics, text("queued", menu.bufferState.queuedPatterns()), 20, 202, 108, OmniUiTheme.MUTED_TEXT);
-        } else if (menu.view == 3) {
-            drawFittedString(graphics, text("catalyst_shared"), 20, 186, 208, OmniUiTheme.MUTED_TEXT);
-            drawFittedString(graphics, text("catalyst_types", menu.sharedCatalystTypes), 20, 202, 208, OmniUiTheme.MUTED_TEXT);
-        } else {
-            if (menu.bufferState.unavailable()) drawFittedString(graphics, text("unavailable"), 20, 118, 208, OmniUiTheme.WARNING);
-            else if (menu.bufferState.contents().isEmpty()) drawFittedString(graphics, text("empty"), 20, 118, 208, OmniUiTheme.MUTED_TEXT);
-            else for (int row = 0; row < menu.bufferState.contents().size(); row++) {
-                var stack = menu.bufferState.contents().get(row); int y = 112 + row * 20;
-                AEKeyRendering.drawInGui(net.minecraft.client.Minecraft.getInstance(), graphics, 20, y, stack.what());
-                drawFittedString(graphics, stack.what().getDisplayName(), 42, y, 184, OmniUiTheme.PRIMARY_TEXT);
-                drawFittedString(graphics, Component.literal(DisplayNumbers.compact(stack.amount()) + (stack.what() instanceof AEFluidKey ? " mB" : "")),
-                        42, y + 10, 184, OmniUiTheme.MUTED_TEXT);
-            }
-            drawCenteredFittedString(graphics, Component.literal((menu.bufferState.page() + 1) + "/" + menu.bufferState.pages()), 72, 202, 54, OmniUiTheme.MUTED_TEXT);
-        }
-        OmniUiTheme.label(graphics, font, Component.translatable("container.inventory"), 44, 224, 162, OmniUiTheme.PRIMARY_TEXT);
-    }
-
-    private static Component text(String key, Object... args) { return Component.translatable("gui.molecularmanipulator.fabrication.buffer." + key, args); }
+    private static Component buffer(String key){return OsqUi.tr("gui.molecularmanipulator.fabrication.buffer."+key);}
+    private static Component text(String key){return OsqUi.tr("gui.molecularmanipulator.fabrication.pattern."+key);}
 }

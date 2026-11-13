@@ -6,8 +6,8 @@ import appeng.api.stacks.AEKey;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
+import com.atir.molecularmanipulator.research.MachineResearchGate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -36,6 +36,7 @@ public final class MatterRecipeIndex {
     private final Map<Map<AEKey, Long>, List<MatterFabricationRecipe>> byOutput = new HashMap<>();
     private final Map<ResourceLocation, List<MatterResearchRecipe>> researchByRecipe = new HashMap<>();
     private final Map<ResourceLocation, List<MatterResearchRecipe>> dynamicResearchByRecipe = new HashMap<>();
+    private final java.util.Set<ResourceLocation> machineGatedRecipes = new java.util.HashSet<>();
     private final Map<ResourceLocation, Integer> branchCounts = new HashMap<>();
     private final Map<ResourceLocation, Map<String, Integer>> researchOutputBranchCounts = new HashMap<>();
 
@@ -46,6 +47,7 @@ public final class MatterRecipeIndex {
         var imported = MatterRecipeBridge.importRecipes(level, source.values(), machines);
         for (var value : imported) {
             var holder = value.holder();
+            machineGatedRecipes.add(holder.id());
             if (allFabrication.stream().noneMatch(existing -> existing.id().equals(holder.id()))) {
                 allFabrication.add(holder);
                 branchCounts.put(holder.id(), value.branchCount());
@@ -61,8 +63,11 @@ public final class MatterRecipeIndex {
             byOutput.computeIfAbsent(output, ignored -> new ArrayList<>()).add(holder);
         }
         byOutput.replaceAll((output, recipes) -> List.copyOf(recipes));
-        var definitions = new ArrayList<>(manager.getAllRecipesFor(ModContent.MATTER_RESEARCH_RECIPE_TYPE.get()).stream()
-                .filter(holder -> holder.value().available())
+        var available = manager.getAllRecipesFor(ModContent.MATTER_RESEARCH_RECIPE_TYPE.get()).stream()
+                .filter(holder -> holder.value().available()).toList();
+        var definitions = new ArrayList<>(available.stream()
+                .map(holder -> MachineResearchGate.isMachineResearch(holder.id())
+                        ? MachineResearchGate.apply(holder.value(), available).withId(holder.id()) : holder)
                 .sorted(Comparator.<MatterResearchRecipe>comparingInt(holder -> holder.value().sortOrder())
                         .thenComparing(holder -> holder.id().toString())).toList());
         var importedByMachine = new LinkedHashMap<String, List<MatterFabricationRecipe>>();
@@ -76,11 +81,10 @@ public final class MatterRecipeIndex {
             var id = MolecularManipulator.id("research/machine/" + machine.key());
             MatterResearchRecipe definition;
             if (machine.declaration() == null) {
-                var parent = new ResourceLocation("molecularmanipulator:research/ae_foundation");
                 definition = new MatterResearchRecipe("research.molecularmanipulator.machine." + machine.key(),
-                        manager.byKey(parent).isPresent() ? List.of(parent) : List.of(),
+                        List.of(),
                         List.of(new MatterResearchRecipe.Cost(Ingredient.of(item), 1)), 600, 512,
-                        unlocks, List.of(machine.modId()), 1000 + definitions.size(), 2);
+                        unlocks, List.of(machine.modId()), 1000 + definitions.size(), 4);
             } else {
                 var configured = machine.declaration().research();
                 var allUnlocks = new ArrayList<>(configured.unlocks());
@@ -90,6 +94,7 @@ public final class MatterRecipeIndex {
                         configured.requiredMods(), configured.sortOrder(), configured.stage(),
                         configured.depths(), configured.prerequisiteLevels());
             }
+            definition = MachineResearchGate.apply(definition, available);
             var holder = definition.withId(id);
             definitions.add(holder);
             var counts = new HashMap<String, Integer>();
@@ -99,13 +104,13 @@ public final class MatterRecipeIndex {
             }
             researchOutputBranchCounts.put(id, counts);
         }
-        definitions.forEach(holder -> researchById.put(holder.id(), holder));
         research = definitions.stream().sorted(Comparator.<MatterResearchRecipe>comparingInt(holder -> holder.value().sortOrder())
                 .thenComparing(holder -> holder.id().toString())).toList();
         for (var holder : research) {
             researchById.put(holder.id(), holder);
             for (var recipe : holder.value().unlocks()) {
                 researchByRecipe.computeIfAbsent(recipe, ignored -> new ArrayList<>()).add(holder);
+                if (MachineResearchGate.isMachineResearch(holder.id())) machineGatedRecipes.add(recipe);
             }
         }
         dynamicResearchByRecipe.replaceAll((recipe, owners) -> List.copyOf(owners));
@@ -115,8 +120,8 @@ public final class MatterRecipeIndex {
 
     public static MatterRecipeIndex get(Level level) {
         var manager = level.getRecipeManager();
-        // In 1.21.1 this is the cached values view of RecipeManager's immutable byName map.
-        // Both data-pack apply and replaceRecipes (also client sync) replace that map, even for identical IDs/counts.
+        // Forge replaces the immutable byName map on data-pack reload and client sync.
+        // Track that map's identity even when recipe IDs and counts stay the same.
         var source = ((RecipeManagerAccessor) manager).molecularmanipulator$getRecipesByName();
         synchronized (CACHE) {
             var index = CACHE.get(manager);
@@ -141,6 +146,8 @@ public final class MatterRecipeIndex {
     public List<MatterFabricationRecipe> fabrication() { return fabrication; }
 
     public MatterFabricationRecipe fabrication(ResourceLocation id) { return fabricationById.get(id); }
+
+    public boolean requiresMachineResearchGate(ResourceLocation id) { return machineGatedRecipes.contains(id); }
 
     public List<MatterResearchRecipe> research() { return research; }
     public MatterResearchRecipe research(ResourceLocation id) { return researchById.get(id); }

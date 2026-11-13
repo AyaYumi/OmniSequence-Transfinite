@@ -13,7 +13,9 @@
         {
           "condition": "minecraft:block_state_property",
           "block": "molecularmanipulator:ghost_matter",
-          "properties": { "dispersed": "false" }
+          "properties": {
+            "dispersed": "false"
+          }
         },
         {
           "condition": "minecraft:survives_explosion"

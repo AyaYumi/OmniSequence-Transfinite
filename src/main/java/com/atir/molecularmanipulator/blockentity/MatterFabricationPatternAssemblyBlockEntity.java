@@ -11,8 +11,6 @@ import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocator;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.integration.MatterFabricationPatternUpload;
-import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
-import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
@@ -109,7 +107,9 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
         }
     }
     void patternsChanged() { if (buffer != null) buffer.patternsChanged(); }
-    public void serverTick() { buffer.serverTick(); }
+    public void serverTick() {
+        if (!com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) buffer.serverTick();
+    }
 
     @Override
     public void clearContent() {
@@ -135,7 +135,8 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     }
 
     public boolean isOperational() {
-        return getController() != null && getMainNode().isActive();
+        return getController() != null && getMainNode().isActive()
+                && !com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this);
     }
 
     public boolean acceptPattern(IPatternDetails details, KeyCounter[] inputs) {
@@ -171,6 +172,7 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
 
     @Override
     public void onReady() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         super.onReady();
         if (level != null && !level.isClientSide() && dataCpuRegistration == null) {
             dataCpuRegistration = com.atir.molecularmanipulator.integration.cpu.MatterFabricationCpuCompat.registerDataProvider(getLogic());

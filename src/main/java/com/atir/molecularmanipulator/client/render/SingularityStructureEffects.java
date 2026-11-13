@@ -53,8 +53,16 @@ public final class SingularityStructureEffects {
     }
     public static void render(PoseStack poses, VertexConsumer out, Frame frame, boolean detailed,
                               SingularityMotionGeometry.Pose[] motion, boolean suspended) {
+        renderRange(poses, out, frame, detailed, motion, suspended, 0, 12);
+    }
+
+    /** Original ceremony components: center (0), rings (1..3), then towers (4..11). */
+    public static void renderRange(PoseStack poses, VertexConsumer out, Frame frame, boolean detailed,
+            SingularityMotionGeometry.Pose[] motion, boolean suspended, int fromInclusive, int toExclusive) {
+        java.util.Objects.checkFromToIndex(fromInclusive, toExclusive, 12);
         var effect = new SingularityStructureEffects(poses, out, frame, detailed);
-        effect.suspended = suspended; effect.ceremony(motion);
+        effect.suspended = suspended;
+        effect.ceremonyRange(motion, fromInclusive, toExclusive);
     }
     public static void renderCrystal(PoseStack poses, VertexConsumer out, Frame frame, boolean detailed,
                                      SingularityMotionGeometry.Pose[] motion, boolean suspended) {
@@ -68,20 +76,26 @@ public final class SingularityStructureEffects {
     }
 
     private void ceremony(SingularityMotionGeometry.Pose[] motion) {
-        gain = frame.power() * (.15 + .85 * opening(65, 75));
-        axis();
-        if (suspended) {
-            // Keep the central astrolabe as a surrounding silhouette. The white-hole pass
-            // is composited afterward, so these rings remain around the horizon instead of
-            // drawing a bar through it.
-            poses.pushPose();
-            poses.translate(0, 12.5, 0);
-            astrolabe();
-            poses.popPose();
-            suspendedCrystals(true, motion);
+        ceremonyRange(motion, 0, 12);
+    }
+
+    private void ceremonyRange(SingularityMotionGeometry.Pose[] motion, int fromInclusive, int toExclusive) {
+        if (fromInclusive == 0 && toExclusive > 0) {
+            gain = frame.power() * (.15 + .85 * opening(65, 75));
+            axis();
+            if (suspended) {
+                // Keep the central astrolabe as a surrounding silhouette. The white-hole pass
+                // is composited afterward, so these rings remain around the horizon instead of
+                // drawing a bar through it.
+                poses.pushPose();
+                poses.translate(0, 12.5, 0);
+                astrolabe();
+                poses.popPose();
+                suspendedCrystals(true, motion);
+            }
+            else { astrolabe(); crystals(true); }
         }
-        else { astrolabe(); crystals(true); }
-        for (int ring = 0; ring < 3; ring++) {
+        for (int ring = Math.max(0, fromInclusive - 1); ring < Math.min(3, toExclusive - 1); ring++) {
             gain = frame.power() * (.18 + .82 * opening(30 + ring * 20, 40));
             var part = pose(motion, ring);
             poses.pushPose();
@@ -90,7 +104,7 @@ public final class SingularityStructureEffects {
             orbit(RADII[ring], ring);
             poses.popPose();
         }
-        for (int tower = 0; tower < 8; tower++) {
+        for (int tower = Math.max(0, fromInclusive - 4); tower < Math.min(8, toExclusive - 4); tower++) {
             gain = frame.power() * (.12 + .88 * opening(tower * 4, 40));
             double lift = pose(motion, tower + 3).lift();
             double x = SingularityMotionGeometry.towerX(tower), z = SingularityMotionGeometry.towerZ(tower);

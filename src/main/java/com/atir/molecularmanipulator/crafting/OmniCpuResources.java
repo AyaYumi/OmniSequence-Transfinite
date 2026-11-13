@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.crafting;
 
+import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import java.math.BigInteger;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -11,6 +12,10 @@ public final class OmniCpuResources {
     /** AE2 adds one; even the unlimited sentinel must leave room for that addition. */
     public static int coProcessors(long parallelism) {
         return (int) Math.max(0L, Math.min(Integer.MAX_VALUE - 1L, parallelism - 1L));
+    }
+
+    public static boolean acceptsNewJob(StarComputationBenefits benefits, boolean primary) {
+        return primary || benefits.virtualCpu();
     }
 
     public static int singleDispatchLimit(long parallelism, int configured) {

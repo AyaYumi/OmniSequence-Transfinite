@@ -1,8 +1,10 @@
 package com.atir.molecularmanipulator.world;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.blockentity.StarOrreryOwnership;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
+import com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.config.ModConfig;
 import java.util.HashSet;
@@ -45,6 +47,7 @@ public final class MultiblockChunkLoading {
     }
 
     public static Set<ChunkPos> requiredChunks(BlockEntity machine) {
+        if (machine instanceof StarComputationEngineCoreBlockEntity core) return core.getChunkLoadingChunks();
         if (machine instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity cosmic
                 && cosmic.isWhiteHole()) return Set.of(new ChunkPos(machine.getBlockPos()));
         if (machine instanceof com.atir.molecularmanipulator.blockentity.SingularityBlockEntity singularity) return singularity.getChunkLoadingChunks();
@@ -110,18 +113,26 @@ public final class MultiblockChunkLoading {
 
     @SubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
-        // Forge saves and restores the tickets. Only drop the in-memory index.
-        if (event.getLevel() instanceof ServerLevel level) ACTIVE.remove(level);
+        // NeoForge saves and restores the tickets. Only drop the in-memory index.
+        if (event.getLevel() instanceof ServerLevel level) {
+            ACTIVE.remove(level);
+            StarOrreryOwnership.clear(level);
+        }
     }
 
     private static void validateTickets(ServerLevel level, TicketHelper helper) {
         for (var entry : helper.getBlockTickets().entrySet()) {
             var machine = level.getBlockEntity(entry.getKey());
-            if (!(machine instanceof MolecularCenterBlockEntity
+            boolean valid = machine instanceof MolecularCenterBlockEntity
                     || machine instanceof OmniComputationCoreBlockEntity
                     || machine instanceof MatterFabricationBlockEntity
                     || machine instanceof com.atir.molecularmanipulator.blockentity.SingularityBlockEntity
-                    || machine instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity)) {
+                    || machine instanceof com.atir.molecularmanipulator.blockentity.CosmicSingularityBlockEntity;
+            if (machine instanceof StarComputationEngineCoreBlockEntity core) {
+                // Legacy cores never force-load chunks; only the explicit star_orrery opt-in does.
+                valid = core.isStarOrrery();
+            }
+            if (!valid) {
                 helper.removeAllTickets(entry.getKey());
             } else {
                 // Runtime formation has not been checked yet. Keep the saved ticking

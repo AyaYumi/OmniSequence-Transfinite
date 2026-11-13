@@ -1,0 +1,42 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_marrow_crystal_dust"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:iron_ingot"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_dust"
+      },
+      "count": 8
+    },
+    {
+      "ingredient": {
+        "item": "ae2:sky_dust"
+      },
+      "count": 8
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:star_marrow_alloy_ingot",
+      "count": 32
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 1024,
+  "requires_research": true,
+  "fluid_input": {
+    "id": "minecraft:water",
+    "amount": 4000
+  }
+}

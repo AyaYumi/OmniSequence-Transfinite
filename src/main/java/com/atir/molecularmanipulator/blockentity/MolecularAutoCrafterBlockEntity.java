@@ -16,8 +16,9 @@ import appeng.api.util.AECableType;
 import appeng.api.orientation.BlockOrientation;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.block.MolecularAutoCrafterBlock;
@@ -42,16 +43,19 @@ import java.util.List;
 
 /** Single-block host for the sequence array's passive auto-crafting subsystem. */
 public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockEntity
-        implements InternalInventoryHost, MolecularAutoCrafterHost {
-    private static final String AUTO_CRAFTER_TAG = "sequence_auto_crafter";
+        implements InternalInventoryHost, MolecularAutoCrafterHost, SequenceWirelessHost {
     private static final String OUTPUTS_TAG = "outputs";
     private static final String OUTPUT_READY_TAG = "output_ready_tick";
     private static final String OUTPUT_MODE_TAG = "output_mode";
     private static final String OUTPUT_SIDES_TAG = "output_sides";
     private static final int MAX_BUFFERED_TYPES = 256;
 
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> 128.0);
     private final MachineSource actionSource = new MachineSource(this);
+    private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
     private final MolecularAutoCrafter autoCrafter = new MolecularAutoCrafter(this);
+    // Safety recovery only (legacy saves, failed rollback or input refunds).
+    // Normal production goes straight to the destination; there is no output inventory/menu.
     private final Object2LongOpenHashMap<AEKey> bufferedOutputs = new Object2LongOpenHashMap<>();
     private final AEKeyTransferScheduler outputTransferScheduler = new AEKeyTransferScheduler();
     private boolean assembling;
@@ -64,6 +68,14 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         super(ModContent.MOLECULAR_AUTO_CRAFTER_BE.get(), pos, state);
         getMainNode().setFlags(GridFlags.REQUIRE_CHANNEL).setIdlePowerUsage(128.0);
     }
+
+    @Override public SequenceWirelessLink getWirelessLink() { return wirelessLink; }
+    @Override public void refreshRemoteConnection() {
+        wirelessLink.update(false, MolecularCenterBlockEntity.QuantumLinkState.CONNECTED);
+    }
+    @Override public void onReady() { super.onReady(); refreshRemoteConnection(); }
+    @Override public void onChunkUnloaded() { wirelessLink.disconnect(); super.onChunkUnloaded(); }
+    @Override public void setRemoved() { wirelessLink.disconnect(); super.setRemoved(); }
 
     @Override
     protected PatternProviderLogic createLogic() {
@@ -133,6 +145,14 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
 
     public boolean isOperational() {
         return getLevel() != null && getMainNode().isActive();
+    }
+
+    @Override
+    public long getAutoCraftingBudget() {
+        var level = getLevel();
+        return level == null || getMainNode().getGrid() == null ? 0
+                : assemblerBudget.remaining(level.getGameTime(),
+                        MolecularAutoCrafterHost.super.getAutoCraftingBudget());
     }
 
     @Override
@@ -223,10 +243,22 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     public boolean deliverAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount,
             MolecularAutoCrafterHost.OutputDestination destination) {
+        var level = getLevel();
+        if (assembling || level == null || getMainNode().getGrid() == null) {
+            return false;
+        }
+        long reservationTick = level.getGameTime();
+        if (!assemblerBudget.tryConsume(reservationTick,
+                MolecularAutoCrafterHost.super.getAutoCraftingBudget(), craftCount)) {
+            return false;
+        }
         assembling = true;
         try {
             var result = MolecularAutoCraftOutput.deliver(primary, remainders, destination);
-            if (!result.committed()) return false;
+            if (!result.committed()) {
+                assemblerBudget.refund(reservationTick, craftCount);
+                return false;
+            }
             // Keep old saved outputs and exceptional recovery, never normal production.
             addOutputs(result.recovery());
             if (!bufferedOutputs.isEmpty()) outputReadyTick = gameTime + 1;
@@ -305,17 +337,6 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
         }
     }
 
-    /** Snapshot for the output-buffer slots; the machine remains the owner of these resources. */
-    public List<GenericStack> getBufferedAutoCraftOutputs() {
-        var result = new ArrayList<GenericStack>();
-        for (var entry : bufferedOutputs.object2LongEntrySet()) {
-            if (entry.getLongValue() > 0) {
-                result.add(new GenericStack(entry.getKey(), entry.getLongValue()));
-            }
-        }
-        return result;
-    }
-
     private void addOutputs(Object2LongOpenHashMap<AEKey> outputs) {
         for (var entry : outputs.object2LongEntrySet()) {
             bufferedOutputs.put(entry.getKey(), Math.addExact(
@@ -326,6 +347,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     public void serverTick() {
         Level level = getLevel();
         if (level == null || level.isClientSide()) return;
+        if (level.getGameTime() % 20 == 0) refreshRemoteConnection();
         flushOutputs(level);
         autoCrafter.tick(level.getGameTime());
         updateWorkingState();
@@ -389,7 +411,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     }
 
     public boolean hasRemovalRecovery() {
-        return !bufferedOutputs.isEmpty() || !autoCrafter.getPatternInventory().isEmpty();
+        return wirelessLink.isBound() || !bufferedOutputs.isEmpty() || !autoCrafter.getPatternInventory().isEmpty();
     }
 
     @Override
@@ -402,6 +424,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
 
     @Override
     public void clearContent() {
+        wirelessLink.clear();
         super.clearContent();
         bufferedOutputs.clear();
         autoCrafter.clear();
@@ -413,6 +436,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     @Override
     public void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
+        wirelessLink.save(tag);
         autoCrafter.save(tag);
         var outputs = new ListTag();
         for (var entry : bufferedOutputs.object2LongEntrySet()) {
@@ -430,6 +454,7 @@ public final class MolecularAutoCrafterBlockEntity extends PatternProviderBlockE
     @Override
     public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag);
         autoCrafter.load(tag);
         bufferedOutputs.clear();

@@ -73,6 +73,12 @@ public final class GhostMatterBlockEntity extends BlockEntity {
         }
     }
 
+    @Override
+    public AABB getRenderBoundingBox() {
+        var origin = origin(worldPosition);
+        return new AABB(origin, origin).inflate(RADIUS);
+    }
+
     public static Vec3 origin(BlockPos pos) { return pos.getCenter().add(0, -.25, 0); }
 
     public boolean affects(LivingEntity entity) {

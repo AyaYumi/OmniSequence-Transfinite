@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
@@ -13,7 +12,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.MenuType;
 
-public final class OmniComputationMenu extends AEBaseMenu {
+public final class OmniComputationMenu extends BuildingMenu {
     private static final String ACTION_BUILD = "omni_build";
     private static final String ACTION_DISMANTLE = "omni_dismantle";
     private static final String ACTION_REFRESH = "omni_refresh";
@@ -64,7 +63,13 @@ public final class OmniComputationMenu extends AEBaseMenu {
     @GuiSync(20)
     public int dismantlableBlocks;
     @GuiSync(21)
+    public long storageBytes = 1024L * 1024;
+    @GuiSync(22)
+    public long cpuParallel = 16;
+    @GuiSync(23)
     public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
+    @GuiSync(24)
+    public boolean wirelessBound;
 
     private final OmniComputationCoreBlockEntity core;
 
@@ -171,6 +176,8 @@ public final class OmniComputationMenu extends AEBaseMenu {
             conflictParts = inspection.conflicts();
             activeJobs = core.getActiveJobCount();
             cpuLanes = core.getCpuLaneCount();
+            storageBytes = core.getStorageBytes();
+            cpuParallel = core.getParallelismLimit();
             building = core.isBuilding();
             dismantling = core.isDismantling();
             buildProgress = core.getBuildProgress();
@@ -180,6 +187,7 @@ public final class OmniComputationMenu extends AEBaseMenu {
             lastMaterialCalculationMillis = core.getLastMaterialCalculationMillis();
             quantumFrequency = core.getQuantumFrequency();
             quantumLinkState = core.getQuantumLinkState();
+            wirelessBound = core.getWirelessLink().isBound();
             legacyStructure = core.hasLegacyStructure();
             legacyStructureUpdateDismissed = core.isLegacyStructureUpdateDismissed();
             dismantlableBlocks = core.getDismantlableBlocks();

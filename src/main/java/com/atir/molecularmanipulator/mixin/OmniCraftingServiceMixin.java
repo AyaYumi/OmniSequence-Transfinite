@@ -80,8 +80,11 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
 
     @ModifyVariable(method = "submitJob", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private ICraftingPlan molecularmanipulator$rewriteSmartDoublingPlan(ICraftingPlan plan) {
-        return OmniSmartDoublingPlanner.rewriteForSubmission(plan,
-                pattern -> ((CraftingService) (Object) this).getProviders(pattern));
+        if (com.atir.molecularmanipulator.starcomputation.StarComputationNetwork.forGrid(grid).virtualCpu()) {
+            return OmniSmartDoublingPlanner.rewriteForSubmission(plan,
+                    pattern -> ((CraftingService) (Object) this).getProviders(pattern));
+        }
+        return plan;
     }
 
     @Inject(method = "getProviders", at = @At("HEAD"), cancellable = true)

@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
 import appeng.menu.implementations.MenuTypeBuilder;
@@ -14,7 +13,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 /** A single, renameable 9 x 4 processing-pattern bank. */
-public final class MatterFabricationPatternAssemblyMenu extends AEBaseMenu {
+public final class MatterFabricationPatternAssemblyMenu extends BuildingMenu {
     private static final String ACTION_RENAME = "rename_assembly";
     private static final String ACTION_VIEW = "buffer_view", ACTION_PAGE = "buffer_page", ACTION_REFUND = "buffer_refund";
 

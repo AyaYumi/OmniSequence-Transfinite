@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,formed=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_core"
+    },
+    "facing=north,formed=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_core"
+    },
+    "facing=east,formed=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_core",
+      "y": 90
+    },
+    "facing=east,formed=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_core",
+      "y": 90
+    },
+    "facing=south,formed=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_core",
+      "y": 180
+    },
+    "facing=south,formed=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_core",
+      "y": 180
+    },
+    "facing=west,formed=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_core",
+      "y": 270
+    },
+    "facing=west,formed=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_core",
+      "y": 270
+    }
+  }
+}

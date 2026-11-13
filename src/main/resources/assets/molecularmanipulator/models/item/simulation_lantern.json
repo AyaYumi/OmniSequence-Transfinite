@@ -1,0 +1,11 @@
+{
+  "parent": "molecularmanipulator:block/simulation_lantern",
+  "overrides": [
+    {
+      "predicate": {
+        "molecularmanipulator:lit": 1
+      },
+      "model": "molecularmanipulator:block/simulation_lantern_lit"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "molecularmanipulator:end_warp_ruin",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "molecularmanipulator:fixed",
+    "chunk_x": 0,
+    "chunk_z": 14,
+    "salt": 92824714
+  }
+}

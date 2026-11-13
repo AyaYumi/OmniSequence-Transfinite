@@ -3,8 +3,12 @@ package com.atir.molecularmanipulator.client;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
 import com.atir.molecularmanipulator.blockentity.OmniCrownGeometry;
+import com.atir.molecularmanipulator.client.render.ForgeRenderSupport;
+import com.atir.molecularmanipulator.client.render.EarlyFrameGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderGeometry;
 import com.atir.molecularmanipulator.client.render.OmniRenderLayers;
+import com.atir.molecularmanipulator.client.render.ParallelEffectGeometry;
+import com.atir.molecularmanipulator.client.render.SingularityShaderVertices;
 import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import appeng.block.crafting.AbstractCraftingUnitBlock;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -14,13 +18,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import java.util.List;
-import java.util.function.DoubleFunction;
-import java.util.function.DoublePredicate;
 
 /**
  * Vertex-built singularity computer for the omni computation array.
@@ -30,13 +32,15 @@ import java.util.function.DoublePredicate;
  * routers. The remaining geometry reads as an engineered compute chassis.</p>
  */
 public final class OmniComputationRenderer
-        implements BlockEntityRenderer<OmniComputationCoreBlockEntity> {
+        implements BlockEntityRenderer<OmniComputationCoreBlockEntity>,
+        EarlyFrameGeometry.Source<OmniComputationCoreBlockEntity, OmniComputationRenderer.Snapshot> {
     private static final int CYAN = 0x55EEFF;
     private static final int BLUE = 0x409CFF;
     private static final int PURPLE = 0x9D61FF;
     private static final int DEEP_PURPLE = 0x572DCC;
     private static final int GOLD = 0xFFD98A;
     private static final int WHITE = 0xF2FCFF;
+    private final ParallelEffectGeometry geometry = new ParallelEffectGeometry();
 
     public OmniComputationRenderer(BlockEntityRendererProvider.Context context) {
     }
@@ -44,12 +48,46 @@ public final class OmniComputationRenderer
     @Override
     public void render(OmniComputationCoreBlockEntity core, float partialTick,
             PoseStack poseStack, MultiBufferSource buffers, int packedLight, int packedOverlay) {
-        if (core.isSingleBlock()) return;
+        var snapshot = EarlyFrameGeometry.take(this, core, partialTick, poseStack);
+        if (snapshot == null) snapshot = capture(core, partialTick, poseStack, geometry);
+        if (snapshot == null) return;
+        var frame = snapshot;
+        try (frame) {
+            var poses = snapshot.poses();
+            var layout = snapshot.layout();
+            if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
+                var depth = OmniRenderLayers.singularityComputeDepth(buffers);
+                if (snapshot.prepared() != null) OmniOrbitalEffects.submit(snapshot.prepared(), depth, false);
+                else renderCrownLayoutPass(layout, poses, depth,
+                        snapshot.orreryAngle(), snapshot.strength(), snapshot.completion(),
+                        snapshot.detailed(), false);
+                var glow = OmniRenderLayers.singularityComputeGlow(buffers);
+                if (snapshot.prepared() != null) OmniOrbitalEffects.submit(snapshot.prepared(), glow, true);
+                else renderCrownLayoutPass(layout, poses, glow,
+                        snapshot.orreryAngle(), snapshot.strength(), snapshot.completion(),
+                        snapshot.detailed(), true);
+            } else {
+                drawComputationAnomalyOccluder(poses.last(),
+                        OmniRenderLayers.singularityOccluder(buffers), snapshot.detailed());
+                drawGate(poses, OmniRenderLayers.singularityComputeDepth(buffers), snapshot.angle(),
+                        snapshot.pulse(), snapshot.strength(), snapshot.activity(),
+                        snapshot.completion(), snapshot.segments(), snapshot.detailed(), true, false);
+                drawGate(poses, OmniRenderLayers.singularityComputeGlow(buffers), snapshot.angle(),
+                        snapshot.pulse(), snapshot.strength(), snapshot.activity(),
+                        snapshot.completion(), snapshot.segments(), snapshot.detailed(), true, true);
+            }
+        }
+    }
+
+    @Override
+    public Snapshot capture(OmniComputationCoreBlockEntity core, float partialTick,
+            PoseStack base, ParallelEffectGeometry geometry) {
+        if (core.isSingleBlock()) return null;
         int effectLevel = MachineEffectLevels.forMachine(core);
         if (effectLevel <= 0 || core.getLevel() == null
-                || !core.getBlockState().getValue(AbstractCraftingUnitBlock.POWERED)) return;
+                || !core.getBlockState().getValue(AbstractCraftingUnitBlock.POWERED)) return null;
         var layout = core.getVisualLayout();
-        if (!layout.isFormed()) return;
+        if (!layout.isFormed()) return null;
         var facing = core.getBlockState().getValue(HorizontalDirectionalBlock.FACING);
         var visualCenter = OmniComputationStructure.worldPoint(core.getBlockPos(), facing,
                 OmniComputationStructure.VISUAL_CENTER_X, OmniComputationStructure.visualCenterY(layout),
@@ -62,23 +100,44 @@ public final class OmniComputationRenderer
         double distance = visualCenter.distanceToSqr(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
         boolean detailed = effectLevel > 1 && distance < 128.0 * 128.0;
         int segments = distance > 144.0 * 144.0 ? 32 : distance > 82.0 * 82.0 ? 56 : detailed ? 96 : 68;
-        poseStack.pushPose();
-        poseStack.translate(visualCenter.x - core.getBlockPos().getX(), visualCenter.y - core.getBlockPos().getY(),
-                visualCenter.z - core.getBlockPos().getZ());
-        poseStack.mulPose(Axis.YP.rotationDegrees(facingRotation(facing)));
+        var poses = localPose(base, visualCenter, core.getBlockPos(), facing);
+        double orreryAngle = 0;
+        ParallelEffectGeometry.Frame prepared = null;
         if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
-            renderCrownLayoutPass(layout, poseStack, OmniRenderLayers.singularityComputeDepth(buffers),
-                    core.getClientOrreryAngle(), strength, completion, detailed, false);
-            renderCrownLayoutPass(layout, poseStack, OmniRenderLayers.singularityComputeGlow(buffers),
-                    core.getClientOrreryAngle(), strength, completion, detailed, true);
-        } else {
-            drawComputationAnomalyOccluder(poseStack.last(), OmniRenderLayers.singularityOccluder(buffers), detailed);
-            drawGate(poseStack, OmniRenderLayers.singularityComputeDepth(buffers), angle, pulse, strength,
-                    activity, completion, segments, detailed, true, false);
-            drawGate(poseStack, OmniRenderLayers.singularityComputeGlow(buffers), angle, pulse, strength,
-                    activity, completion, segments, detailed, true, true);
+            orreryAngle = core.getClientOrreryAngle();
+            prepared = OmniOrbitalEffects.prepare(geometry, poses,
+                    orreryAngle, strength, completion, detailed);
         }
-        poseStack.popPose();
+        return new Snapshot(ForgeRenderSupport.copyPose(poses.last()), layout, orreryAngle, angle, pulse, strength,
+                activity, completion, segments, detailed, prepared);
+    }
+
+    private static PoseStack localPose(PoseStack base, Vec3 visualCenter, BlockPos blockPos, Direction facing) {
+        var poses = new PoseStack();
+        poses.last().pose().set(base.last().pose());
+        poses.last().normal().set(base.last().normal());
+        poses.translate(visualCenter.x - blockPos.getX(), visualCenter.y - blockPos.getY(),
+                visualCenter.z - blockPos.getZ());
+        poses.mulPose(Axis.YP.rotationDegrees(facingRotation(facing)));
+        return poses;
+    }
+
+    /** Immutable frame values plus the optional prepared color geometry for one renderer capture. */
+    public record Snapshot(PoseStack.Pose pose, OmniComputationStructure.StructureLayout layout,
+            double orreryAngle, float angle, float pulse, float strength, int activity,
+            float completion, int segments, boolean detailed, ParallelEffectGeometry.Frame prepared)
+            implements EarlyFrameGeometry.Snapshot {
+        private PoseStack poses() {
+            var poses = new PoseStack();
+            poses.last().pose().set(pose.pose());
+            poses.last().normal().set(pose.normal());
+            return poses;
+        }
+
+        @Override
+        public void close() {
+            if (prepared != null) prepared.close();
+        }
     }
 
     /** Builds the POSITION_COLOR vertices used by the computation effect passes. */
@@ -92,8 +151,10 @@ public final class OmniComputationRenderer
     static void renderCrownLayoutPass(OmniComputationStructure.StructureLayout layout,
             PoseStack poseStack, VertexConsumer consumer, double angle,
             float activityStrength, float completionPulse, boolean detailed, boolean glow) {
-        if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
-            OmniOrbitalEffects.render(poseStack, consumer, angle, activityStrength, completionPulse, detailed, glow);
+        try (var batch = SingularityShaderVertices.batch(consumer)) {
+            if (layout == OmniComputationStructure.StructureLayout.CURRENT) {
+                OmniOrbitalEffects.render(poseStack, consumer, angle, activityStrength, completionPulse, detailed, glow);
+            }
         }
     }
 

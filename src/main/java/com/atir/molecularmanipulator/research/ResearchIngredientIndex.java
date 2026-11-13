@@ -19,7 +19,7 @@ final class ResearchIngredientIndex {
         this.costs = costs;
         for (int row = 0; row < costs.size(); row++) {
             Ingredient ingredient = costs.get(row).ingredient();
-            if (!ingredient.isSimple()) { custom.add(row); continue; }
+            if (!ingredient.isVanilla() || !ingredient.isSimple()) { custom.add(row); continue; }
             for (var example : ingredient.getItems()) ordinary.computeIfAbsent(example.getItem(), ignored -> new BitSet()).set(row);
         }
     }

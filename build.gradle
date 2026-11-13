@@ -84,10 +84,12 @@ tasks.named('jarJar', Jar).configure {
     archiveClassifier = project.hasProperty('ae2_uelm_version') ? 'uelm' : ''
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('CONFIGURATION.md')
+    from('licenses') { into 'licenses' }
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
-                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
+                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md',
+                'recipe-permissions.zh-CN.md', 'star-research-nodes.zh-CN.md',
+                'star-orrery-upgrades.md', 'star-orrery-upgrades.zh-CN.md'
         into 'docs'
     }
 }
@@ -222,10 +224,12 @@ tasks.named('jar', Jar).configure {
     reproducibleFileOrder = true
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('CONFIGURATION.md')
+    from('licenses') { into 'licenses' }
     from('docs') {
         include 'README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
-                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md'
+                'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md',
+                'recipe-permissions.zh-CN.md', 'star-research-nodes.zh-CN.md',
+                'star-orrery-upgrades.md', 'star-orrery-upgrades.zh-CN.md'
         into 'docs'
     }
     finalizedBy 'reobfJar'
@@ -314,7 +318,9 @@ def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
     doLast {
         new java.util.zip.ZipFile(releaseJar.get().asFile).withCloseable { archive ->
             def apiDocs = ['README.md', 'matter-research-api.md', 'matter-research-api.zh-CN.md',
-                    'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md']
+                    'omni-batch-provider-api.md', 'omni-batch-provider-api.zh-CN.md', 'omni-exact-provider-api.md',
+                    'recipe-permissions.zh-CN.md', 'star-research-nodes.zh-CN.md',
+                    'star-orrery-upgrades.md', 'star-orrery-upgrades.zh-CN.md']
             def packagedDocs = archive.entries().toList().findAll { !it.directory && it.name.startsWith('docs/') }
                     .collect { it.name.substring('docs/'.length()) }
             if (packagedDocs.toSet() != apiDocs.toSet())

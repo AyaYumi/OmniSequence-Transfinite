@@ -12,10 +12,10 @@ import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.CraftingEvent;
 import appeng.me.helpers.MachineSource;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -87,13 +87,15 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     public long getRemainingAssemblerBudget() {
         var level = getLevel();
         return level == null || getMainNode().getGrid() == null ? 0
-                : assemblerBudget.remaining(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT);
+                : assemblerBudget.remaining(level.getGameTime(),
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
     }
 
     private boolean consumeAssemblerBudget(long crafts) {
         var level = getLevel();
         return level != null && getMainNode().getGrid() != null
-                && assemblerBudget.tryConsume(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT, crafts);
+                && assemblerBudget.tryConsume(level.getGameTime(),
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel(), crafts);
     }
 
     public boolean hasRemovalRecovery() {
@@ -167,12 +169,12 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             }
             boolean prepared = batchContext != null
                     ? craftingBatcher.prepareSelected(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget,
                             batchContext.firstInputs(),
                             batchContext.craftCount())
                     : craftingBatcher.prepare(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget);
             if (!prepared) {
                 return false;
@@ -229,7 +231,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             return false;
         }
 
-        var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
+        var job = craftingBatcher.prepareReusable(this, patternDetails, inputs,
                 context.craftingId(), context.reusablePlan());
         if (job == null
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),

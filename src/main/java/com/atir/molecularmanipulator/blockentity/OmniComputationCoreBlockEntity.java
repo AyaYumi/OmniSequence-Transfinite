@@ -21,9 +21,13 @@ import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.OmniCpuResources;
 import com.atir.molecularmanipulator.crafting.OmniDispatchBudgetLedger;
 import com.atir.molecularmanipulator.crafting.OmniDispatchLaneRotation;
+import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.OmniCpuStorage;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.OmniCraftingServiceBridge;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import com.atir.molecularmanipulator.mixin.CraftingCPUClusterAccessor;
 import com.atir.molecularmanipulator.registry.ModContent;
@@ -42,7 +46,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -62,7 +65,8 @@ import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity implements InternalInventoryHost, MachineEffectHost {
+public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
+        implements InternalInventoryHost, MachineEffectHost, SequenceWirelessHost {
     public static final long INFINITE_STORAGE = Long.MAX_VALUE;
     public static final long INFINITE_PARALLELISM = Long.MAX_VALUE;
     public static final int AE2_MAX_THREADS_PER_BLOCK = 16;
@@ -112,6 +116,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     private final boolean singleBlock;
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
     private final AppEngInternalInventory quantumInventory;
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, this::idlePowerUsage);
     private OmniComputationStructure.Inspection inspection =
             new OmniComputationStructure.Inspection(OmniComputationStructure.structureBlockCount(), 0,
                     OmniComputationStructure.structureBlockCount(), 0, false,
@@ -221,7 +226,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public long getStorageBytes() {
-        return structureFormed ? INFINITE_STORAGE : 0;
+        return structureFormed ? entropyBenefits().storageBytes() : 0;
     }
 
     @Override
@@ -230,7 +235,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public long getParallelismLimit() {
-        return structureFormed ? INFINITE_PARALLELISM : 0;
+        return structureFormed ? entropyBenefits().cpuParallel() : 0;
+    }
+
+    public StarComputationBenefits entropyBenefits() {
+        return StarComputationNetwork.forGrid(getMainNode().getGrid());
     }
 
     private boolean hasUnrestoredCpuStates() {
@@ -238,7 +247,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public boolean canAcceptNewJob(CraftingCPUCluster cpu) {
-        return structureFormed && !hasUnrestoredCpuStates() && !cpu.isDestroyed();
+        return structureFormed && !hasUnrestoredCpuStates() && !cpu.isDestroyed()
+                && OmniCpuResources.acceptsNewJob(entropyBenefits(), cpu == getCluster());
     }
 
     private Map<CraftingCPUCluster, BigInteger> occupiedCpuStorage() {
@@ -275,6 +285,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void onReady() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         super.onReady();
         scheduleStructureCheck();
         updateQuantumLink();
@@ -286,6 +297,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void onChunkUnloaded() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         retireStoredCpus(true);
@@ -294,6 +306,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
 
     @Override
     public void setRemoved() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(MolecularCenterBlockEntity.QuantumLinkState.SEARCHING);
         retireStoredCpus(true);
@@ -301,7 +314,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public boolean hasRemovalRecovery() {
-        return !quantumInventory.isEmpty() || hasStoredCpuContents();
+        return wirelessLink.isBound() || !quantumInventory.isEmpty() || hasStoredCpuContents();
     }
 
     /** Snapshot CPU contents before AbstractCraftingUnitBlock breaks the cluster on removal. */
@@ -319,6 +332,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public void addAdditionalDrops(Level level, BlockPos pos, List<ItemStack> drops) {
         if (!hasRemovalRecovery()) return;
         var contents = new CompoundTag();
+        wirelessLink.save(contents);
         quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG);
         if (hasStoredCpuContents()) {
             var cpus = new ListTag();
@@ -387,6 +401,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void clearContent() {
         super.clearContent();
+        wirelessLink.clear();
         quantumInventory.clear();
         retireStoredCpus(false);
     }
@@ -449,6 +464,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     public void serverTick() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         if (level == null || level.isClientSide()) {
             return;
         }
@@ -584,11 +600,28 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return quantumLinkState;
     }
 
+    @Override
+    public SequenceWirelessLink getWirelessLink() {
+        return wirelessLink;
+    }
+
+    @Override
+    public void refreshRemoteConnection() {
+        updateQuantumLink();
+    }
+
     private void updateQuantumLink() {
         if (singleBlock) return;
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(MolecularCenterBlockEntity.QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -740,7 +773,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     }
 
     private CraftingCPUCluster createVirtualCpu() {
-        if (hasUnrestoredCpuStates()) return null;
+        if (hasUnrestoredCpuStates() || !entropyBenefits().virtualCpu()) return null;
         return createVirtualCpu(allocateVirtualCpuLaneId());
     }
 
@@ -791,7 +824,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 idleCount++;
             }
         }
-        if (idleCount == 0) {
+        if (idleCount == 0 && entropyBenefits().virtualCpu()) {
             createVirtualCpu();
             idleCount = 1;
         }
@@ -1254,6 +1287,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
         return inspection;
     }
 
+    public OmniComputationStructure.StructureLayout getFoldingLayout() { return knownLayout; }
+
     public boolean hasLegacyStructure() {
         return structureFormed
                 && inspection.layout().requiresUpdate();
@@ -1270,6 +1305,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     public boolean isDismantling() {
         return dismantling;
     }
+
+    public boolean isStructureUpdating() { return rebuildingLegacyStructure; }
 
     public int getDismantlableBlocks() {
         return dismantlableBlocks;
@@ -1431,7 +1468,12 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             return;
         }
         centeredCore.loadTag(payload);
+        // The replacement owns the binding; source removal must not drop a second bound controller.
+        wirelessLink.clear();
         if (!level.removeBlock(worldPosition, false)) {
+            centeredCore.wirelessLink.clear();
+            wirelessLink.load(payload);
+            updateQuantumLink();
             level.setBlock(targetPos, displacedState, 3);
             player.displayClientMessage(Component.translatable(
                     "message.molecularmanipulator.structure_update_unavailable"), false);
@@ -1479,51 +1521,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
                 "message.molecularmanipulator.legacy_structure_retained"), false);
     }
 
+    /** Keep new recovery on the archive path; legacy dismantle plans remain readable for existing saves. */
     public void startDismantle(ServerPlayer player) {
-        if (singleBlock) return;
-        if (level == null || level.isClientSide() || building || dismantling || !player.mayBuild()) {
-            return;
-        }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        if (dismantlePlan == null || dismantlePlan.isComplete()) {
-            refreshStructureNow();
-            if (knownLayout == OmniComputationStructure.StructureLayout.INCOMPLETE) {
-                player.displayClientMessage(Component.translatable(
-                        "message.molecularmanipulator.dismantle_layout_unknown"), false);
-                return;
-            }
-            if (!OmniComputationStructure.areRequiredChunksLoaded(level, worldPosition, facing, knownLayout)) {
-                player.displayClientMessage(Component.translatable(
-                        "message.molecularmanipulator.omni.chunks_unloaded"), false);
-                return;
-            }
-            dismantlePlan = DismantlePlan.create(OmniComputationStructure.dismantleEntries(
-                    level, worldPosition, facing, knownLayout));
-        }
-        if (!dismantlePlan.remainingChunksLoaded(level)) {
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.omni.chunks_unloaded"), false);
-            return;
-        }
-        if (dismantlePlan.isComplete()) {
-            dismantlePlan = null;
-            knownLayout = OmniComputationStructure.StructureLayout.INCOMPLETE;
-            dismantlableBlocks = 0;
-            setChanged();
-            player.displayClientMessage(
-                    Component.translatable("message.molecularmanipulator.omni.nothing_to_dismantle"), false);
-            return;
-        }
-        buildQueue = List.of();
-        buildCursor = dismantlePlan.completed();
-        buildTotal = dismantlePlan.total();
-        buildOwner = player.getUUID();
-        dismantling = true;
-        dismantleBlockedNotified = false;
-        structureFormed = false;
-        updateSubType(true);
-        updateQuantumLink();
-        setChanged();
+        if (!singleBlock) com.atir.molecularmanipulator.building.BuildingTransfer.seal(player, this);
     }
 
     private void processBuild() {
@@ -1840,6 +1840,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
     @Override
     public void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
+        wirelessLink.save(tag);
         machineEffects.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
         tag.putBoolean(LEGACY_STRUCTURE_UPDATE_DISMISSED_TAG, legacyStructureUpdateDismissed);
@@ -1916,6 +1917,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity im
             tag.remove(UPGRADE_ACTIVE_TAG);
             tag.remove(DISMANTLE_PLAN_TAG);
         }
+        wirelessLink.load(tag);
         super.loadTag(tag);
         machineEffects.load(tag);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);

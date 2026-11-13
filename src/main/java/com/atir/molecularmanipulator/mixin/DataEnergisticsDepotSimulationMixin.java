@@ -18,7 +18,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class DataEnergisticsDepotSimulationMixin {
     @Shadow @Final private DigitalStorageDepotBlockEntity this$0;
 
-    @Inject(method = "insertItem", at = @At("HEAD"), cancellable = true, require = 1)
+    @Inject(method = "insertItem(Lappeng/api/stacks/AEItemKey;JLappeng/api/config/Actionable;)J",
+            at = @At("HEAD"), cancellable = true, require = 1)
     private void molecularmanipulator$simulateActualItemRoom(AEItemKey key, long amount,
             Actionable mode, CallbackInfoReturnable<Long> callback) {
         if (mode == Actionable.SIMULATE) {

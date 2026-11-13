@@ -1,0 +1,243 @@
+{
+  "credit": "Approved lab power platform / Downloads model export",
+  "ambientocclusion": true,
+  "textures": {
+    "atlas": "molecularmanipulator:block/lab_power_platform_on",
+    "particle": "#atlas"
+  },
+  "elements": [
+    {
+      "name": "entry_lower_step",
+      "from": [
+        0,
+        8.8,
+        0
+      ],
+      "to": [
+        16,
+        10.8,
+        12.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.8,
+            0.125
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.2,
+            0.0,
+            12.0,
+            0.125
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.2,
+            11.7,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.0,
+            11.7,
+            0.8
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.0,
+            11.7,
+            0.125
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.0,
+            11.7,
+            0.125
+          ]
+        }
+      }
+    },
+    {
+      "name": "entry_upper_step",
+      "from": [
+        0,
+        10.8,
+        0
+      ],
+      "to": [
+        16,
+        12.8,
+        4.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            0.0,
+            0.0,
+            0.3,
+            0.125
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            0.2,
+            0.0,
+            0.5,
+            0.125
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            0.33333333,
+            0.2,
+            0.66666667,
+            0.5
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            0.33333333,
+            0.0,
+            0.66666667,
+            0.3
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            0.33333333,
+            0.0,
+            0.66666667,
+            0.125
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            0.33333333,
+            0.0,
+            0.66666667,
+            0.125
+          ]
+        }
+      }
+    },
+    {
+      "name": "entry_lower_step_mount",
+      "from": [
+        0,
+        0,
+        0
+      ],
+      "to": [
+        16,
+        8.8,
+        12.8
+      ],
+      "faces": {
+        "east": {
+          "texture": "#atlas",
+          "uv": [
+            11.0,
+            0.0,
+            11.8,
+            0.55
+          ]
+        },
+        "west": {
+          "texture": "#atlas",
+          "uv": [
+            11.2,
+            0.0,
+            12.0,
+            0.55
+          ]
+        },
+        "up": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.2,
+            11.7,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.0,
+            11.7,
+            0.8
+          ]
+        },
+        "south": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.0,
+            11.7,
+            0.55
+          ]
+        },
+        "north": {
+          "texture": "#atlas",
+          "uv": [
+            11.3,
+            0.0,
+            11.7,
+            0.55
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "scale": [
+        0.65,
+        0.65,
+        0.65
+      ]
+    },
+    "ground": {
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.35,
+        0.35,
+        0.35
+      ]
+    }
+  }
+}

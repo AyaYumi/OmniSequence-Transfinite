@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "facing=north,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing"
+    },
+    "facing=north,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing"
+    },
+    "facing=north,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing"
+    },
+    "facing=north,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing"
+    },
+    "facing=east,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 90
+    },
+    "facing=east,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 90
+    },
+    "facing=east,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 90
+    },
+    "facing=east,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 90
+    },
+    "facing=south,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 180
+    },
+    "facing=south,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 180
+    },
+    "facing=south,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 180
+    },
+    "facing=south,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 180
+    },
+    "facing=west,formed=false,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 270
+    },
+    "facing=west,formed=true,invisible=false": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 270
+    },
+    "facing=west,formed=false,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 270
+    },
+    "facing=west,formed=true,invisible=true": {
+      "model": "molecularmanipulator:block/star_computation_engine_casing",
+      "y": 270
+    }
+  }
+}

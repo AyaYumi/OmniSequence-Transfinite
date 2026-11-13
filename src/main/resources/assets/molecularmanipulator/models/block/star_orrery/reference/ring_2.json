@@ -1,0 +1,10 @@
+{
+  "loader": "forge:obj",
+  "model": "molecularmanipulator:models/block/star_orrery/reference/ring_2.obj",
+  "flip_v": true,
+  "render_type": "minecraft:cutout",
+  "automatic_culling": false,
+  "emissive_ambient": false,
+  "shade_quads": true,
+  "ambientocclusion": false
+}

@@ -24,6 +24,14 @@
     "molecularmanipulator:matter_fabrication_glass",
     "molecularmanipulator:matter_fabrication_coil",
     "molecularmanipulator:matter_fabrication_stabilizer",
-    "molecularmanipulator:matter_fabrication_core"
+    "molecularmanipulator:matter_fabrication_core",
+    "molecularmanipulator:star_computation_engine_core",
+    "molecularmanipulator:star_computation_engine_casing",
+    "molecularmanipulator:star_computation_observation_port",
+    "molecularmanipulator:reference_star_position_anchor",
+    "molecularmanipulator:quantum_star_position_anchor",
+    "molecularmanipulator:terminal_star_position_anchor",
+    "molecularmanipulator:star_orrery_engraved_plinth",
+    "molecularmanipulator:star_orrery_gilded_plinth"
   ]
 }

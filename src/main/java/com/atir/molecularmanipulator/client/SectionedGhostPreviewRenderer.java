@@ -85,6 +85,12 @@ final class SectionedGhostPreviewRenderer implements AutoCloseable {
                 pendingSections.remove(next.getKey());
                 continue;
             }
+            // Never display an obsolete section over blocks which have just been built.
+            // Rebuilding is still budgeted; unchanged section buffers stay on the GPU.
+            if (existing != null) {
+                sections.remove(next.getKey());
+                existing.close();
+            }
             if (!next.getValue().equals(pendingSections.get(next.getKey()))) {
                 pendingSections.remove(next.getKey());
                 pendingSections.put(next.getKey(), next.getValue());

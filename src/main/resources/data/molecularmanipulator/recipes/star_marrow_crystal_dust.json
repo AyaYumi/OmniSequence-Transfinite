@@ -1,0 +1,20 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_marrow_crystal"
+      },
+      "count": 64
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:star_marrow_crystal_dust",
+      "count": 64
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 128,
+  "requires_research": true
+}

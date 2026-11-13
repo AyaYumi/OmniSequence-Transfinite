@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "molecularmanipulator:twin_singularity_observation_ring",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "molecularmanipulator:fixed",
+    "chunk_x": 512,
+    "chunk_z": 512,
+    "salt": 92824713
+  }
+}

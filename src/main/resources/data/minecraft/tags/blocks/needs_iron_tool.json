@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "molecularmanipulator:molecular_manipulator",
+    "molecularmanipulator:star_sea_calculation_mainframe",
     "molecularmanipulator:assembler_matrix_molecular_core"
   ]
 }

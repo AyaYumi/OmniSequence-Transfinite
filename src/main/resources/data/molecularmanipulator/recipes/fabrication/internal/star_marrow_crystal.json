@@ -1,0 +1,31 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [],
+  "results": [
+    {
+      "id": "molecularmanipulator:star_marrow_crystal",
+      "count": 64
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 512,
+  "requires_research": true,
+  "fluid_input": {
+    "id": "minecraft:water",
+    "amount": 8000
+  },
+  "catalysts": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:flawless_star_marrow_parent_rock"
+      },
+      "count": 1
+    }
+  ],
+  "ae_inputs": [
+    {
+      "#t": "molecularmanipulator:star_signal_flow",
+      "#": 1024
+    }
+  ]
+}

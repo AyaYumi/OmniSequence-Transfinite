@@ -1,8 +1,8 @@
 package com.fish_dan_.data_energistics.blockentity.storage;
 
-import appeng.api.inventories.InternalInventory;
+import appeng.util.inv.AppEngInternalInventory;
 
-/** Compile-only signature; no third-party implementation is bundled. */
+/** Compile-only 3.3.0 signature; the concrete return type is part of the JVM method descriptor. */
 public abstract class DigitalStorageDepotBlockEntity {
-    public abstract InternalInventory getStorageInventory();
+    public abstract AppEngInternalInventory getStorageInventory();
 }

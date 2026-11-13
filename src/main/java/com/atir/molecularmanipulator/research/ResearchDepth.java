@@ -1,5 +1,7 @@
 package com.atir.molecularmanipulator.research;
 
+import static com.atir.molecularmanipulator.starcomputation.StarComputationRecipeCodecs.optionalField;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
@@ -10,11 +12,11 @@ import java.util.Optional;
 public record ResearchDepth(long materialMultiplier, long parallel, long speedMultiplier, int processingTicks,
         Optional<List<MatterResearchRecipe.Cost>> ingredients) {
     public static final Codec<ResearchDepth> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            ResearchCodecs.POSITIVE_LONG.optionalFieldOf("material_multiplier", 1L).forGetter(ResearchDepth::materialMultiplier),
+            optionalField(ResearchCodecs.POSITIVE_LONG, "material_multiplier", 1L).forGetter(ResearchDepth::materialMultiplier),
             ResearchCodecs.POSITIVE_LONG.fieldOf("parallel").forGetter(ResearchDepth::parallel),
-            ResearchCodecs.POSITIVE_LONG.optionalFieldOf("speed_multiplier", 1L).forGetter(ResearchDepth::speedMultiplier),
-            Codec.intRange(0, Integer.MAX_VALUE).optionalFieldOf("processing_ticks", 0).forGetter(ResearchDepth::processingTicks),
-            MatterResearchRecipe.Cost.CODEC.listOf().optionalFieldOf("ingredients").forGetter(ResearchDepth::ingredients)
+            optionalField(ResearchCodecs.POSITIVE_LONG, "speed_multiplier", 1L).forGetter(ResearchDepth::speedMultiplier),
+            optionalField(Codec.intRange(0, Integer.MAX_VALUE), "processing_ticks", 0).forGetter(ResearchDepth::processingTicks),
+            optionalField(MatterResearchRecipe.Cost.CODEC.listOf(), "ingredients").forGetter(ResearchDepth::ingredients)
     ).apply(instance, ResearchDepth::new));
     public static final List<ResearchDepth> DEFAULTS = defaults();
 
@@ -25,8 +27,9 @@ public record ResearchDepth(long materialMultiplier, long parallel, long speedMu
         ingredients = ingredients.map(List::copyOf);
     }
 
+    /** Legacy speed fields remain decodable; research now grants parallelism only. */
     public int ticks(int baseTicks) {
-        return processingTicks > 0 ? processingTicks : (int) ((Math.max(1, baseTicks) - 1L) / speedMultiplier + 1);
+        return Math.max(1, baseTicks);
     }
 
     public List<MatterResearchRecipe.Cost> costs(List<MatterResearchRecipe.Cost> base) {
@@ -38,7 +41,7 @@ public record ResearchDepth(long materialMultiplier, long parallel, long speedMu
         var result = new ArrayList<ResearchDepth>();
         for (int i = 0; i < 9; i++) {
             result.add(new ResearchDepth(1L << i, i == 8 ? Long.MAX_VALUE : 1L << (i * 8),
-                    1L << i, i == 8 ? 1 : 0, Optional.empty()));
+                    1L, 0, Optional.empty()));
         }
         return List.copyOf(result);
     }

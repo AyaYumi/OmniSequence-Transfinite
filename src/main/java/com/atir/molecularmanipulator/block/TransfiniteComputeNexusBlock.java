@@ -79,7 +79,10 @@ public final class TransfiniteComputeNexusBlock extends AbstractCraftingUnitBloc
             if (!level.isClientSide()) {
                 level.setBlockAndUpdate(pos, state.cycle(HorizontalDirectionalBlock.FACING));
             }
+            return InteractionResult.sidedSuccess(level.isClientSide());
         }
+        var memoryCard = OmniComputationControllerBlock.useMemoryCard(level, pos, player, heldItem);
+        if (memoryCard != InteractionResult.PASS) return memoryCard;
         // Tasks are managed through AE2 terminals; this variant has no machine screen.
         return InteractionResult.sidedSuccess(level.isClientSide());
     }

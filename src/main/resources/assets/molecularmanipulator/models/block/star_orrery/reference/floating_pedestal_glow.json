@@ -1,0 +1,10 @@
+{
+  "loader": "forge:obj",
+  "model": "molecularmanipulator:models/block/star_orrery/reference/floating_pedestal_glow.obj",
+  "flip_v": true,
+  "render_type": "minecraft:translucent",
+  "automatic_culling": false,
+  "emissive_ambient": false,
+  "shade_quads": false,
+  "ambientocclusion": false
+}

@@ -107,9 +107,11 @@ public final class MatterPatternBuffer {
                 if (pattern == null) continue;
                 var storedRecipe = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(controller.getLevel()).fabrication(work.recipe);
                 if (storedRecipe == null || !MatterFabricationBatch.outputs(storedRecipe.value()).equals(MatterFabricationBatch.patternOutputs(pattern))) continue;
-                // Preserve the admitted branch when catalyst availability changes between enqueue and processing.
-                var recipe = MatterFabricationBatch.match(controller, List.of(storedRecipe), work.inputs, work.crafts);
-                if (recipe == null) continue;
+                // enqueue already approved and acquired this entire queue entry.
+                // Revalidate its exact branch/materials, not the now-possibly-revoked
+                // shared authorization. No new inputs are acquired by this split.
+                var recipe = storedRecipe;
+                if (!MatterFabricationBatch.validInputs(recipe.value(), work.inputs, work.crafts)) continue;
                 if (!controller.hasCatalysts(recipe.value())) {
                     waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.WAITING_CATALYST, 0, 0, 0, false);
                     continue;
@@ -121,7 +123,7 @@ public final class MatterPatternBuffer {
                 if (count <= 0) { waiting = new MatterFabricationBatch.Update(MatterFabricationBlockEntity.ProcessingState.OUTPUT_BLOCKED, 0, 0, 0, false); continue; }
                 var supplied = MatterFabricationBatch.takeInputs(recipe.value(), work.inputs, work.crafts, count);
                 if (supplied == null) continue;
-                if (!active.accept(controller, recipe, supplied, count, scaled(unitOutputs, count))) continue;
+                if (!active.acceptAdmitted(controller, recipe, supplied, count, scaled(unitOutputs, count))) continue;
                 activeCraftingId = work.craftingId;
                 queued.remove(work);
                 work.crafts -= count;

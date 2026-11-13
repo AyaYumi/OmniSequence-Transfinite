@@ -226,7 +226,7 @@ public final class EcoOmniParentOrder {
         var goal = GenericStack.readTag(tag.getCompound("goal"));
         if (goal == null) throw new IllegalArgumentException("Missing parent goal");
         var fuzzy = new LinkedHashSet<ResourceLocation>();
-        tag.getList("fuzzy", Tag.TAG_STRING).forEach(value -> fuzzy.add(ResourceLocation.parse(value.getAsString())));
+        tag.getList("fuzzy", Tag.TAG_STRING).forEach(value -> fuzzy.add(new ResourceLocation(value.getAsString())));
         var options = new ECOPlannerOptions(tag.getBoolean("cycles"), tag.getBoolean("ignoreSubstitutions"),
                 Set.copyOf(fuzzy), tag.getBoolean("planningLog"));
         var preview = new LinkedHashMap<AEKey, BigInteger>();

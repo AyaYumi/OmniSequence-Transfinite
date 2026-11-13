@@ -246,10 +246,14 @@ public final class OmniCpuDispatchLedger {
             dirty.run();
         }
     }
+    /** End the job, returning only physical stock still held by this CPU. */
     public void refundFinal(java.util.function.BiConsumer<AEKey, BigInteger> store) {
-        if (paused() || staging()) throw new IllegalStateException("Uncertain owned output stock cannot be refunded");
         finalStock.forEach(store);
-        finalStock.clear(); ordinaryCredits.clear(); exactOrder = false;
+        finalStock.clear();
+        // Waiting credits and delivery intents are not CPU-owned material.
+        ordinaryCredits.clear(); deliveryIntent.clear();
+        if (active != null) active.settled = true;
+        active = null; paused = ""; failedSnapshot = null; exactOrder = false;
     }
     private static void subtract(Map<AEKey, BigInteger> map, AEKey key, BigInteger amount) {
         var rest = map.getOrDefault(key, BigInteger.ZERO).subtract(amount);

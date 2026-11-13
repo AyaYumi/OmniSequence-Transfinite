@@ -15,24 +15,24 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.api.storage.MEStorage;
 import appeng.api.util.AECableType;
-import appeng.block.crafting.PatternProviderBlock;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.blockentity.crafting.PatternProviderBlockEntity;
-import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternContainer;
 import appeng.items.tools.powered.WirelessTerminalItem;
 import appeng.me.helpers.MachineSource;
 import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -43,7 +43,6 @@ import java.util.HashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -68,7 +67,8 @@ import java.util.List;
 import java.util.UUID;
 
 public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
-        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost, MachineEffectHost {
+        implements InternalInventoryHost, SegmentedPatternContainerHost, MolecularAutoCrafterHost, MachineEffectHost,
+        SequenceWirelessHost {
     public static final int PATTERNS_PER_PAGE = 36;
     public static final int MAX_PATTERN_PAGES = 300;
     public static final int MAX_PATTERN_SLOTS = PATTERNS_PER_PAGE * MAX_PATTERN_PAGES;
@@ -129,7 +129,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     private final SegmentedPatternContainers terminalPatternContainers =
             new SegmentedPatternContainers(this);
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> ModConfig.IDLE_POWER.get());
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
+    // Undecodable legacy items (e.g. EAEP temporarily absent) must survive saves and recovery drops.
+    private Tag retiredUploadCoreData;
     private boolean automaticPatternUpload;
     private final MolecularCraftingBatcher craftingBatcher = new MolecularCraftingBatcher();
     private final MolecularAssemblerTickBudget assemblerBudget = new MolecularAssemblerTickBudget();
@@ -225,7 +228,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public <T> net.minecraftforge.common.util.LazyOptional<T> getCapability(
             net.minecraftforge.common.capabilities.Capability<T> capability, Direction side) {
         if (capability == net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER) {
-            return isRemoved() ? net.minecraftforge.common.util.LazyOptional.empty() : externalPatternCapability.cast();
+            return isRemoved() || com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)
+                    ? net.minecraftforge.common.util.LazyOptional.empty() : externalPatternCapability.cast();
         }
         return super.getCapability(capability, side);
     }
@@ -249,7 +253,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     boolean canAccessExternalPatterns() {
         return level != null && !level.isClientSide() && !isRemoved() && patternStorageReady
                 && !restoringPatternInventory && !building && !dismantling && !structureUpdating
-                && (!patternsInCrystals || usesPatternShards());
+                && (!patternsInCrystals || usesPatternShards())
+                && !com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this);
     }
 
     boolean canMutateExternalPatterns() {
@@ -314,6 +319,16 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return isOperational() && canMutateExternalPatterns();
     }
 
+    /** Automated encoders use the same live decode/ownership validation as the external pattern port. */
+    public boolean canAcceptExternalPatternUpload(ItemStack pattern) {
+        if (!canAcceptExternalPatternUpload()) return false;
+        try {
+            return isSupportedExternalPattern(pattern);
+        } catch (RuntimeException invalidPattern) {
+            return false;
+        }
+    }
+
 
     public MolecularAutoCrafter getAutoCrafter() {
         return autoCrafter;
@@ -349,6 +364,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     @Override
     public void onReady() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         super.onReady();
         refreshStructure();
         normalizeIsolatedControllerAnchor();
@@ -362,6 +378,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     @Override
     public void onChunkUnloaded() {
         patternStorageReady = false;
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.onChunkUnloaded();
@@ -370,19 +387,22 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     @Override
     public void setRemoved() {
         patternStorageReady = false;
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval(QuantumLinkState.SEARCHING);
         super.setRemoved();
     }
 
     public boolean hasRemovalRecovery() {
-        return activeReusableBatch != null
+        return wirelessLink.isBound()
+                || activeReusableBatch != null
                 || quarantinedReusableBatchTag != null
                 || !pendingPrimaryOutputs.isEmpty()
                 || !pendingByproducts.isEmpty()
                 || !reusableBatchRefunds.isEmpty()
                 || RetainedBlockContents.hasPatternContents(this)
                 || !quantumInventory.isEmpty()
+                || retiredUploadCoreData != null
                 || !autoCrafter.getPatternInventory().isEmpty();
     }
 
@@ -400,7 +420,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         // must not empty crystals that remain in the world or in recovered block items.
         patternStorageReady = false;
         super.clearContent();
+        wirelessLink.clear();
         quantumInventory.clear();
+        retiredUploadCoreData = null;
         pendingPrimaryOutputs.clear();
         pendingByproducts.clear();
         reusableBatchRefunds.clear();
@@ -476,7 +498,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         tag.putLong(OUTPUT_READY_TICK_TAG, outputReadyTick);
         autoCrafter.save(tag);
+        wirelessLink.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
+        if (retiredUploadCoreData != null) tag.put(MATRIX_UPLOAD_CORE_TAG, retiredUploadCoreData.copy());
+        else tag.remove(MATRIX_UPLOAD_CORE_TAG);
         tag.putBoolean(AUTOMATIC_PATTERN_UPLOAD_TAG, automaticPatternUpload);
         writeVisualColors(tag);
     }
@@ -485,6 +510,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public void loadTag(CompoundTag tag) {
         patternStorageReady = false;
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag);
         getLogic().invalidateUploadIndex();
         machineEffects.load(tag);
@@ -582,14 +608,14 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         outputReadyTick = tag.contains(OUTPUT_READY_TICK_TAG, Tag.TAG_LONG)
                 ? tag.getLong(OUTPUT_READY_TICK_TAG)
                 : Long.MIN_VALUE;
-        // Return the real item from the removed slot through the existing output buffer.
-        var retiredCoreInventory = new AppEngInternalInventory(1);
-        retiredCoreInventory.readFromNBT(tag, MATRIX_UPLOAD_CORE_TAG);
-        var retiredCore = retiredCoreInventory.getStackInSlot(0);
+        // The functional slot is retired, but its real item belongs to the player. Known
+        // items return via the durable output escrow; missing-mod/corrupt data stays raw.
+        var legacyCoreData = tag.get(MATRIX_UPLOAD_CORE_TAG);
+        retiredUploadCoreData = migrateRetiredUploadCore(legacyCoreData, pendingPrimaryOutputs);
         automaticPatternUpload = tag.contains(AUTOMATIC_PATTERN_UPLOAD_TAG)
-                ? tag.getBoolean(AUTOMATIC_PATTERN_UPLOAD_TAG) : !retiredCore.isEmpty();
-        var retiredCoreKey = AEItemKey.of(retiredCore);
-        if (retiredCoreKey != null) pendingPrimaryOutputs.addTo(retiredCoreKey, retiredCore.getCount());
+                ? tag.getBoolean(AUTOMATIC_PATTERN_UPLOAD_TAG)
+                : legacyCoreData instanceof ListTag cores && !cores.isEmpty();
+        machineEffects.load(tag);
         quantumInventory.readFromNBT(tag, QUANTUM_INVENTORY_TAG);
         RetiredMatterRewriteContents.migrate(tag, quantumInventory, pendingPrimaryOutputs);
         fieldColor = readColor(tag, FIELD_COLOR_TAG, DEFAULT_FIELD_COLOR);
@@ -598,6 +624,30 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         secondaryRingColor = readColor(tag, SECONDARY_RING_COLOR_TAG, DEFAULT_SECONDARY_RING_COLOR);
         latticeColor = readColor(tag, LATTICE_COLOR_TAG, DEFAULT_LATTICE_COLOR);
         autoCrafter.load(tag);
+    }
+
+    /** Return only unclaimed legacy entries, without mutating the caller's saved payload. */
+    static Tag migrateRetiredUploadCore(Tag saved, Object2LongOpenHashMap<AEKey> outputs) {
+        if (saved == null) return null;
+        if (!(saved instanceof ListTag cores)) return saved.copy();
+        var retained = new ListTag();
+        for (var entry : cores) {
+            boolean migrated = false;
+            if (entry instanceof CompoundTag item && item.getInt("Slot") == 0) {
+                try {
+                    var stack = ItemStack.of(item);
+                    var key = AEItemKey.of(stack);
+                    if (key != null) {
+                        outputs.put(key, Math.addExact(outputs.getLong(key), stack.getCount()));
+                        migrated = true;
+                    }
+                } catch (RuntimeException invalidOrOverflowingItem) {
+                    // A missing item registration, invalid component or full escrow is not item deletion.
+                }
+            }
+            if (!migrated) retained.add(entry.copy());
+        }
+        return retained.isEmpty() ? null : retained;
     }
 
     private void writeVisualColors(CompoundTag tag) {
@@ -698,7 +748,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     public boolean isOperational() {
-        return formed && getMainNode().isActive();
+        return formed && getMainNode().isActive()
+                && !com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this);
     }
 
     boolean hasActiveReusableBatch() {
@@ -725,6 +776,23 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
 
     public long getLastPipelineTransfer() {
         return lastPipelineTransfer;
+    }
+
+    long getRemainingAssemblerBudget() {
+        return level == null || getMainNode().getGrid() == null ? 0
+                : assemblerBudget.remaining(level.getGameTime(),
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
+    }
+
+    private boolean consumeAssemblerBudget(long crafts) {
+        return level != null && getMainNode().getGrid() != null
+                && assemblerBudget.tryConsume(level.getGameTime(),
+                        StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel(), crafts);
+    }
+
+    @Override
+    public long getAutoCraftingBudget() {
+        return getRemainingAssemblerBudget();
     }
 
     @Override
@@ -767,10 +835,17 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public boolean deliverAutoCraftOutputs(Object2LongOpenHashMap<AEKey> primary,
             Object2LongOpenHashMap<AEKey> remainders, long gameTime, long craftCount,
             MolecularAutoCrafterHost.OutputDestination destination) {
+        if (assembling || level == null || !consumeAssemblerBudget(craftCount)) {
+            return false;
+        }
+        long reservationTick = level.getGameTime();
         assembling = true;
         try {
             var result = MolecularAutoCraftOutput.deliver(primary, remainders, destination);
-            if (!result.committed()) return false;
+            if (!result.committed()) {
+                assemblerBudget.refund(reservationTick, craftCount);
+                return false;
+            }
             // Passive output no longer enters the CPU pipeline. The existing
             // persisted refund escrow retains only exceptional failed delivery.
             addOutputs(reusableBatchRefunds, result.recovery());
@@ -851,10 +926,27 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
                 && (stack.hasTag() ? stack.getTag().getLong(appeng.blockentity.qnb.QuantumBridgeBlockEntity.TAG_FREQUENCY) : 0L) > 0;
     }
 
+    @Override
+    public SequenceWirelessLink getWirelessLink() {
+        return wirelessLink;
+    }
+
+    @Override
+    public void refreshRemoteConnection() {
+        updateQuantumLink();
+    }
+
     private void updateQuantumLink() {
         if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
             return;
         }
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -1180,6 +1272,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     public void serverTick() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         if (level == null || level.isClientSide()) {
             return;
         }
@@ -1235,6 +1328,8 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     public boolean isDismantling() {
         return dismantling;
     }
+
+    public boolean isStructureUpdating() { return structureUpdating; }
 
     public boolean hasLegacyStructure() {
         return structureUpdating
@@ -1406,33 +1501,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         saveChanges();
     }
 
-    private void rollbackStructureUpdate(BlockPos visualCenterPos, BlockState visualCenterState,
-            BlockPos upperCorePos, BlockState upperCoreState) {
-        try {
-            level.setBlock(upperCorePos, upperCoreState, 3);
-            if (!level.getBlockState(upperCorePos).equals(upperCoreState)) {
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                        "Failed to restore the molecular center upper stabilizer at {}", upperCorePos);
-            }
-        } catch (RuntimeException exception) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                    "Exception while restoring the molecular center upper stabilizer at {}",
-                    upperCorePos, exception);
-        }
-        try {
-            level.setBlock(visualCenterPos, visualCenterState, 3);
-            if (!level.getBlockState(visualCenterPos).equals(visualCenterState)) {
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                        "Failed to restore the molecular center visual core at {}", visualCenterPos);
-            }
-        } catch (RuntimeException exception) {
-            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.error(
-                    "Exception while restoring the molecular center visual core at {}",
-                    visualCenterPos, exception);
-        }
-        refreshStructure();
-    }
-
     public void keepLegacyStructure(ServerPlayer player) {
         if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
             return;
@@ -1449,52 +1517,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         saveChanges();
     }
 
+    /** New recovery requests seal the controller and actual members together, including the crystal library. */
     public void startDismantle(ServerPlayer player) {
-        if (level == null || level.isClientSide() || !player.mayBuild() || building || dismantling) {
-            return;
-        }
-        var facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        var detected = MolecularCenterStructure.detectLayout(level, worldPosition, facing);
-        var source = structureUpdating ? structureUpdateSourceLayout
-                : detected.isFormed() ? detected : lastKnownStructureLayout;
-        if (!source.isFormed()) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.dismantle_layout_unknown"), false);
-            return;
-        }
-        var plan = MolecularCenterStructure.createDismantlePlan(level, worldPosition, facing, source, structureUpdating);
-        if (plan == null) {
-            player.displayClientMessage(Component.translatable(
-                    "message.molecularmanipulator.build_area_unavailable"), false);
-            return;
-        }
-        if (detected.isFormed()) {
-            structureLayout = detected;
-            lastKnownStructureLayout = detected;
-        }
-        dismantleLayout = source;
-        dismantleIncludesUpgrade = structureUpdating;
-        dismantlePlan = plan;
-        dismantling = !plan.isComplete();
-        building = false;
-        repairOnlyBuild = false;
-        structureUpdating = false;
-        structureUpdateSourceLayout = MolecularCenterStructure.StructureLayout.INCOMPLETE;
-        buildQueueInitialized = false;
-        buildWorkParts = List.of();
-        formed = false;
-        discardPatternMirror();
-        level.setBlock(worldPosition, getBlockState().setValue(
-                net.minecraft.world.level.block.state.properties.BlockStateProperties.POWERED, false), 3);
-        onGridConnectableSidesChanged();
-        syncShellConnections(false);
-        updateQuantumLink();
-        workCursor = plan.completed();
-        workTotal = plan.total();
-        workConflicts = 0;
-        workOwner = player.getUUID();
-        getLogic().updatePatterns();
-        saveChanges();
+        com.atir.molecularmanipulator.building.BuildingTransfer.seal(player, this);
     }
 
     private void deactivateStructureForWork() {
@@ -2398,16 +2423,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         workCursor++;
     }
 
-    long getRemainingAssemblerBudget() {
-        return level == null || getMainNode().getGrid() == null ? 0
-                : assemblerBudget.remaining(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT);
-    }
-
-    private boolean consumeAssemblerBudget(long crafts) {
-        return level != null && getMainNode().getGrid() != null
-                && assemblerBudget.tryConsume(level.getGameTime(), VIRTUAL_PARALLEL_LIMIT, crafts);
-    }
-
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
         if (assembling || hasActiveReusableBatch() || !isOperational()
                 || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
@@ -2432,12 +2447,12 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             }
             boolean prepared = batchContext != null
                     ? craftingBatcher.prepareSelected(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget,
                             batchContext.firstInputs(),
                             batchContext.craftCount())
                     : craftingBatcher.prepare(
-                            patternDetails, inputs, level,
+                            this, patternDetails, inputs,
                             remainingBudget);
             if (!prepared) {
                 return false;
@@ -2483,7 +2498,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return false;
         }
 
-        var job = craftingBatcher.prepareReusable(patternDetails, inputs, level,
+        var job = craftingBatcher.prepareReusable(this, patternDetails, inputs,
                 context.craftingId(), context.reusablePlan());
         if (job == null
                 || !canQueueOutputs(job.projectedPrimaryOutputs(),
@@ -2600,7 +2615,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             return;
         }
 
-        // The complete accepted batch is a constant-size aggregate operation.
+        // Loaded jobs retain their inputs and share this allowance with passive crafting.
         long step = job.nextStep(getRemainingAssemblerBudget());
         if (step <= 0) {
             return;
@@ -2770,13 +2785,6 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
     }
 
-    private static long saturatedMultiply(long first, long second) {
-        if (first <= 0 || second <= 0) {
-            return 0;
-        }
-        return first > Long.MAX_VALUE / second ? Long.MAX_VALUE : first * second;
-    }
-
     public boolean schedulePatternRebuild(Runnable rebuild) {
         if (level != null && !level.isClientSide() && level.getServer() != null) {
             // Server.execute may execute inline on its own thread. Queue through AE2
@@ -2809,7 +2817,9 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         WIRED_CONFLICT,
         CONNECTED,
         CONNECTION_ERROR,
-        CONNECTED_BUILD_ONLY
+        CONNECTED_BUILD_ONLY,
+        QUANTUM_CONFLICT,
+        ACCESS_DENIED
     }
 
     private record FlushResult(boolean changed, boolean blocked, long transferred) {

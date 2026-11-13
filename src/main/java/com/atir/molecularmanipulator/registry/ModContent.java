@@ -1,7 +1,14 @@
 package com.atir.molecularmanipulator.registry;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.ae2.StarSignalKey;
+import com.atir.molecularmanipulator.ae2.StarSignalKeyType;
 import com.atir.molecularmanipulator.block.AssemblerMatrixMolecularCoreBlock;
+import com.atir.molecularmanipulator.block.StarPositionAnchorBlock;
+import com.atir.molecularmanipulator.block.StarMarrowParentRockBlock;
+import com.atir.molecularmanipulator.block.StarComputationEngineCasingBlock;
+import com.atir.molecularmanipulator.block.StarComputationEngineCoreBlock;
+import com.atir.molecularmanipulator.block.StarComputationObservationPortBlock;
 import com.atir.molecularmanipulator.block.CosmicSingularityBlock;
 import com.atir.molecularmanipulator.block.GravityCrystalBlock;
 import com.atir.molecularmanipulator.block.GhostMatterBlock;
@@ -33,10 +40,18 @@ import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafterBlockEntity
 import com.atir.molecularmanipulator.blockentity.MolecularCenterCrystalBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterShellBlockEntity;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
+import com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
+import com.atir.molecularmanipulator.item.CreativeStarSignalDiskItem;
+import com.atir.molecularmanipulator.item.StarMarrowSeedItem;
+import com.atir.molecularmanipulator.item.BuildingTerminalItem;
+import com.atir.molecularmanipulator.menu.BuildingTerminalMenu;
 import com.atir.molecularmanipulator.item.SingularityCosmicItem;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterMachineImportRecipe;
+import com.atir.molecularmanipulator.starcomputation.StarComputationUpgradeRecipe;
+import com.atir.molecularmanipulator.starcomputation.StarResearchNodeRecipe;
+import com.atir.molecularmanipulator.recipelock.RecipeLockRecipe;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
@@ -46,6 +61,11 @@ import com.atir.molecularmanipulator.menu.MolecularCenterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterConfigMenu;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
+import com.atir.molecularmanipulator.menu.StarComputationEngineMenu;
+import appeng.api.stacks.AEKeyTypes;
+import appeng.api.stacks.GenericStack;
+import appeng.core.definitions.AEItems;
+import appeng.items.storage.BasicStorageCell;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
@@ -55,13 +75,18 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.AmethystClusterBlock;
+import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.RegisterEvent;
 import net.minecraftforge.registries.RegistryObject;
-import net.minecraft.world.level.block.Block;
 
 public final class ModContent {
+    private static final ResourceLocation AE_KEY_TYPE_REGISTRY = new ResourceLocation("ae2", "keytypes");
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(Registries.BLOCK, MolecularManipulator.MOD_ID);
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(Registries.ITEM, MolecularManipulator.MOD_ID);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
@@ -74,9 +99,12 @@ public final class ModContent {
             DeferredRegister.create(Registries.RECIPE_TYPE, MolecularManipulator.MOD_ID);
     public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS =
             DeferredRegister.create(Registries.RECIPE_SERIALIZER, MolecularManipulator.MOD_ID);
-
     public static final RegistryObject<MolecularManipulatorBlock> MOLECULAR_MANIPULATOR =
             BLOCKS.register("molecular_manipulator", MolecularManipulatorBlock::new);
+    public static final RegistryObject<BuildingTerminalItem> BUILDING_ACCESS_TERMINAL = ITEMS.register(
+            "building_access_terminal", () -> new BuildingTerminalItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<com.atir.molecularmanipulator.item.FoldedBuildingPackageItem> FOLDED_BUILDING_PACKAGE = ITEMS.register(
+            "folded_building_package", () -> new com.atir.molecularmanipulator.item.FoldedBuildingPackageItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<BlockItem> MOLECULAR_MANIPULATOR_ITEM =
             ITEMS.register("molecular_manipulator",
                     () -> new BlockItem(MOLECULAR_MANIPULATOR.get(), new Item.Properties()));
@@ -199,6 +227,124 @@ public final class ModContent {
     public static final RegistryObject<BlockItem> MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM = registerBlockItem(
             "matter_fabrication_pattern_assembly", MATTER_FABRICATION_PATTERN_ASSEMBLY);
 
+    public static final RegistryObject<StarComputationEngineCoreBlock> STAR_COMPUTATION_ENGINE_CORE =
+            BLOCKS.register("star_computation_engine_core", () -> new StarComputationEngineCoreBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> state.getValue(StarComputationEngineCoreBlock.FORMED) ? 15 : 8)));
+    public static final RegistryObject<BlockItem> STAR_COMPUTATION_ENGINE_CORE_ITEM = registerBlockItem(
+            "star_computation_engine_core", STAR_COMPUTATION_ENGINE_CORE);
+    public static final RegistryObject<StarComputationEngineCasingBlock> STAR_COMPUTATION_ENGINE_CASING =
+            BLOCKS.register("star_computation_engine_casing", () -> new StarComputationEngineCasingBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> state.getValue(StarComputationEngineCasingBlock.FORMED) ? 10 : 3)));
+    public static final RegistryObject<BlockItem> STAR_COMPUTATION_ENGINE_CASING_ITEM = registerBlockItem(
+            "star_computation_engine_casing", STAR_COMPUTATION_ENGINE_CASING);
+    /** Real foundation blocks retain collision and drops beneath the formed pedestal model. */
+    public static final RegistryObject<com.atir.molecularmanipulator.block.StarOrreryFoundationBlock> STAR_ORRERY_ENGRAVED_PLINTH = BLOCKS.register(
+            "star_orrery_engraved_plinth", () -> new com.atir.molecularmanipulator.block.StarOrreryFoundationBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()));
+    public static final RegistryObject<BlockItem> STAR_ORRERY_ENGRAVED_PLINTH_ITEM = registerBlockItem(
+            "star_orrery_engraved_plinth", STAR_ORRERY_ENGRAVED_PLINTH);
+    public static final RegistryObject<com.atir.molecularmanipulator.block.StarOrreryFoundationBlock> STAR_ORRERY_GILDED_PLINTH = BLOCKS.register(
+            "star_orrery_gilded_plinth", () -> new com.atir.molecularmanipulator.block.StarOrreryFoundationBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops().lightLevel(state -> 5)));
+    public static final RegistryObject<BlockItem> STAR_ORRERY_GILDED_PLINTH_ITEM = registerBlockItem(
+            "star_orrery_gilded_plinth", STAR_ORRERY_GILDED_PLINTH);
+    public static final RegistryObject<StarComputationObservationPortBlock> STAR_COMPUTATION_OBSERVATION_PORT =
+            BLOCKS.register("star_computation_observation_port", () -> new StarComputationObservationPortBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(5.0F, 1200.0F).requiresCorrectToolForDrops()
+                            .noOcclusion()
+                            .lightLevel(state -> state.getValue(StarComputationObservationPortBlock.FORMED) ? 13 : 8)));
+    public static final RegistryObject<BlockItem> STAR_COMPUTATION_OBSERVATION_PORT_ITEM = registerBlockItem(
+            "star_computation_observation_port", STAR_COMPUTATION_OBSERVATION_PORT);
+    public static final RegistryObject<StarPositionAnchorBlock> REFERENCE_STAR_POSITION_ANCHOR =
+            BLOCKS.register("reference_star_position_anchor", () -> new StarPositionAnchorBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(8.0F, 1200.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 7)));
+    public static final RegistryObject<BlockItem> REFERENCE_STAR_POSITION_ANCHOR_ITEM = registerBlockItem(
+            "reference_star_position_anchor", REFERENCE_STAR_POSITION_ANCHOR);
+    public static final RegistryObject<StarPositionAnchorBlock> QUANTUM_STAR_POSITION_ANCHOR =
+            BLOCKS.register("quantum_star_position_anchor", () -> new StarPositionAnchorBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(9.0F, 1500.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 11)));
+    public static final RegistryObject<BlockItem> QUANTUM_STAR_POSITION_ANCHOR_ITEM = registerBlockItem(
+            "quantum_star_position_anchor", QUANTUM_STAR_POSITION_ANCHOR);
+    public static final RegistryObject<StarPositionAnchorBlock> TERMINAL_STAR_POSITION_ANCHOR =
+            BLOCKS.register("terminal_star_position_anchor", () -> new StarPositionAnchorBlock(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(10.0F, 1800.0F).requiresCorrectToolForDrops()
+                            .lightLevel(state -> 15)));
+    public static final RegistryObject<BlockItem> TERMINAL_STAR_POSITION_ANCHOR_ITEM = registerBlockItem(
+            "terminal_star_position_anchor", TERMINAL_STAR_POSITION_ANCHOR);
+    public static final RegistryObject<Item> STAR_MARROW_ALLOY_INGOT = ITEMS.register(
+            "star_marrow_alloy_ingot", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> STAR_MARROW_CRYSTAL = ITEMS.register(
+            "star_marrow_crystal", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> STAR_MARROW_CRYSTAL_DUST = ITEMS.register(
+            "star_marrow_crystal_dust", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> STAR_CHART_PROCESSOR = ITEMS.register(
+            "star_chart_processor", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> STAR_CHART_CIRCUIT_BOARD = ITEMS.register(
+            "star_chart_circuit_board", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> STAR_SIGNAL_STORAGE_COMPONENT = ITEMS.register(
+            "star_signal_storage_component", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> PRIMORDIAL_CRYSTAL_CORE = ITEMS.register(
+            "primordial_crystal_core", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> STAR_MARROW_SEED = ITEMS.register(
+            "star_marrow_seed", () -> new StarMarrowSeedItem(new Item.Properties()));
+    public static final RegistryObject<BasicStorageCell> STAR_SIGNAL_STORAGE_CELL = ITEMS.register(
+            "star_signal_storage_cell",
+            // AE2 takes capacity in KiB: 256 * 1024 KiB = 256 MiB.
+            () -> new BasicStorageCell(new Item.Properties().stacksTo(1), STAR_SIGNAL_STORAGE_COMPONENT.get(),
+                    AEItems.ITEM_CELL_HOUSING, 0.5, 256 * 1024, 1, 1, StarSignalKeyType.INSTANCE));
+    public static final RegistryObject<Item> CREATIVE_STAR_SIGNAL_DISK = ITEMS.register(
+            "creative_star_signal_disk",
+            () -> new CreativeStarSignalDiskItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<AmethystClusterBlock> STAR_MARROW_CRYSTAL_BUD_SMALL =
+            registerEntropyQuartzCluster("star_marrow_crystal_bud_small", 0.35F, 3, 4, 4);
+    public static final RegistryObject<BlockItem> STAR_MARROW_CRYSTAL_BUD_SMALL_ITEM =
+            registerBlockItem("star_marrow_crystal_bud_small", STAR_MARROW_CRYSTAL_BUD_SMALL);
+    public static final RegistryObject<AmethystClusterBlock> STAR_MARROW_CRYSTAL_BUD_MEDIUM =
+            registerEntropyQuartzCluster("star_marrow_crystal_bud_medium", 0.45F, 4, 3, 6);
+    public static final RegistryObject<BlockItem> STAR_MARROW_CRYSTAL_BUD_MEDIUM_ITEM =
+            registerBlockItem("star_marrow_crystal_bud_medium", STAR_MARROW_CRYSTAL_BUD_MEDIUM);
+    public static final RegistryObject<AmethystClusterBlock> STAR_MARROW_CRYSTAL_BUD_LARGE =
+            registerEntropyQuartzCluster("star_marrow_crystal_bud_large", 0.55F, 5, 3, 8);
+    public static final RegistryObject<BlockItem> STAR_MARROW_CRYSTAL_BUD_LARGE_ITEM =
+            registerBlockItem("star_marrow_crystal_bud_large", STAR_MARROW_CRYSTAL_BUD_LARGE);
+    public static final RegistryObject<AmethystClusterBlock> STAR_MARROW_CRYSTAL_CLUSTER =
+            registerEntropyQuartzCluster("star_marrow_crystal_cluster", 0.7F, 7, 3, 12);
+    public static final RegistryObject<BlockItem> STAR_MARROW_CRYSTAL_CLUSTER_ITEM =
+            registerBlockItem("star_marrow_crystal_cluster", STAR_MARROW_CRYSTAL_CLUSTER);
+    public static final RegistryObject<StarMarrowParentRockBlock> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("heavily_damaged_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
+                    parentRockProperties(1), null, 0));
+    public static final RegistryObject<BlockItem> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("heavily_damaged_star_marrow_parent_rock", HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK);
+    public static final RegistryObject<StarMarrowParentRockBlock> DAMAGED_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("damaged_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
+                    parentRockProperties(2), () -> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK.get(), 12));
+    public static final RegistryObject<BlockItem> DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("damaged_star_marrow_parent_rock", DAMAGED_STAR_MARROW_PARENT_ROCK);
+    public static final RegistryObject<StarMarrowParentRockBlock> FLAWED_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("flawed_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
+                    parentRockProperties(3), () -> DAMAGED_STAR_MARROW_PARENT_ROCK.get(), 12));
+    public static final RegistryObject<BlockItem> FLAWED_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("flawed_star_marrow_parent_rock", FLAWED_STAR_MARROW_PARENT_ROCK);
+    public static final RegistryObject<StarMarrowParentRockBlock> FLAWLESS_STAR_MARROW_PARENT_ROCK =
+            BLOCKS.register("flawless_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
+                    // Flawless parent rock is permanent; only damaged stages decay.
+                    parentRockProperties(4), null, 0));
+    public static final RegistryObject<BlockItem> FLAWLESS_STAR_MARROW_PARENT_ROCK_ITEM =
+            registerBlockItem("flawless_star_marrow_parent_rock", FLAWLESS_STAR_MARROW_PARENT_ROCK);
+
     public static final RegistryObject<TransfiniteComputeNexusBlock> TRANSFINITE_COMPUTE_NEXUS =
             BLOCKS.register("transfinite_compute_nexus", TransfiniteComputeNexusBlock::new);
     public static final RegistryObject<BlockItem> TRANSFINITE_COMPUTE_NEXUS_ITEM =
@@ -289,9 +435,6 @@ public final class ModContent {
     public static final RegistryObject<BlockEntityType<GhostMatterBlockEntity>> GHOST_MATTER_BE =
             BLOCK_ENTITIES.register("ghost_matter", () -> BlockEntityType.Builder.of(
                     GhostMatterBlockEntity::new, GHOST_MATTER_BLOCK.get()).build(null));
-    static {
-
-    }
     public static final RegistryObject<BlockEntityType<CosmicSingularityBlockEntity>> COSMIC_SINGULARITY_BE =
             BLOCK_ENTITIES.register("cosmic_singularity", () -> BlockEntityType.Builder.of(
                     CosmicSingularityBlockEntity::new, BLACK_HOLE_BLOCK.get(), WHITE_HOLE_BLOCK.get()).build(null));
@@ -320,6 +463,17 @@ public final class ModContent {
             OMNI_COMPUTATION_CONTROLLER_BE = BLOCK_ENTITIES.register("omni_computation_controller",
                     () -> BlockEntityType.Builder.of(OmniComputationCoreBlockEntity::new,
                             OMNI_COMPUTATION_CONTROLLER.get(), TRANSFINITE_COMPUTE_NEXUS.get()).build(null));
+    public static final RegistryObject<BlockEntityType<StarComputationEngineCoreBlockEntity>>
+            STAR_COMPUTATION_ENGINE_CORE_BE = BLOCK_ENTITIES.register("star_computation_engine_core",
+                    () -> BlockEntityType.Builder.of(StarComputationEngineCoreBlockEntity::new,
+                            STAR_COMPUTATION_ENGINE_CORE.get()).build(null));
+    public static final RegistryObject<BlockEntityType<com.atir.molecularmanipulator.blockentity.StarComputationProxyBlockEntity>>
+            STAR_COMPUTATION_PROXY_BE = BLOCK_ENTITIES.register("star_computation_proxy",
+                    () -> BlockEntityType.Builder.of(
+                            com.atir.molecularmanipulator.blockentity.StarComputationProxyBlockEntity::new,
+                            STAR_COMPUTATION_ENGINE_CASING.get(), STAR_COMPUTATION_OBSERVATION_PORT.get(),
+                            REFERENCE_STAR_POSITION_ANCHOR.get(), QUANTUM_STAR_POSITION_ANCHOR.get(),
+                            TERMINAL_STAR_POSITION_ANCHOR.get()).build(null));
     public static final RegistryObject<BlockEntityType<MolecularAutoCrafterBlockEntity>>
             MOLECULAR_AUTO_CRAFTER_BE = BLOCK_ENTITIES.register("molecular_auto_crafter",
                     () -> BlockEntityType.Builder.of(MolecularAutoCrafterBlockEntity::new,
@@ -338,12 +492,16 @@ public final class ModContent {
                     "matter_fabrication_pattern_assembly",
                     () -> BlockEntityType.Builder.of(MatterFabricationPatternAssemblyBlockEntity::new,
                             MATTER_FABRICATION_PATTERN_ASSEMBLY.get()).build(null));
+    public static final RegistryObject<MenuType<BuildingTerminalMenu>> BUILDING_ACCESS_TERMINAL_MENU =
+            MENUS.register("building_access_terminal", () -> BuildingTerminalMenu.TYPE);
     public static final RegistryObject<MenuType<MolecularManipulatorMenu>> MOLECULAR_MANIPULATOR_MENU =
             MENUS.register("molecular_manipulator", () -> MolecularManipulatorMenu.TYPE);
     public static final RegistryObject<MenuType<MolecularCenterMenu>> MOLECULAR_CENTER_MENU =
             MENUS.register("molecular_center", () -> MolecularCenterMenu.TYPE);
     public static final RegistryObject<MenuType<OmniComputationMenu>> OMNI_COMPUTATION_MENU =
             MENUS.register("omni_computation", () -> OmniComputationMenu.TYPE);
+    public static final RegistryObject<MenuType<StarComputationEngineMenu>> STAR_COMPUTATION_ENGINE_MENU =
+            MENUS.register("star_computation_engine", () -> StarComputationEngineMenu.TYPE);
     public static final RegistryObject<MenuType<MolecularAutoCrafterMenu>> MOLECULAR_AUTO_CRAFTER_MENU =
             MENUS.register("molecular_auto_crafter", () -> MolecularAutoCrafterMenu.TYPE);
     public static final RegistryObject<MenuType<MolecularAutoCrafterConfigMenu>> MOLECULAR_AUTO_CRAFTER_CONFIG_MENU =
@@ -373,12 +531,33 @@ public final class ModContent {
     public static final RegistryObject<RecipeSerializer<MatterResearchRecipe>> MATTER_RESEARCH_RECIPE_SERIALIZER =
             RECIPE_SERIALIZERS.register("matter_research", MatterResearchRecipe.Serializer::new);
 
+    public static final RegistryObject<RecipeType<StarComputationUpgradeRecipe>> STAR_ORRERY_UPGRADE_RECIPE_TYPE =
+            RECIPE_TYPES.register("star_orrery_upgrade", () -> RecipeType.simple(MolecularManipulator.id("star_orrery_upgrade")));
+    public static final RegistryObject<RecipeSerializer<StarComputationUpgradeRecipe>> STAR_ORRERY_UPGRADE_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("star_orrery_upgrade", StarComputationUpgradeRecipe.Serializer::new);
+
+    public static final RegistryObject<RecipeType<StarResearchNodeRecipe>> STAR_RESEARCH_RECIPE_TYPE =
+            RECIPE_TYPES.register("star_research", () -> RecipeType.simple(MolecularManipulator.id("star_research")));
+    public static final RegistryObject<RecipeSerializer<StarResearchNodeRecipe>> STAR_RESEARCH_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("star_research", StarResearchNodeRecipe.Serializer::new);
+    public static final RegistryObject<RecipeType<RecipeLockRecipe>> RECIPE_LOCK_RECIPE_TYPE =
+            RECIPE_TYPES.register("recipe_lock", () -> RecipeType.simple(MolecularManipulator.id("recipe_lock")));
+    public static final RegistryObject<RecipeSerializer<RecipeLockRecipe>> RECIPE_LOCK_RECIPE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("recipe_lock", RecipeLockRecipe.Serializer::new);
+
     public static final RegistryObject<CreativeModeTab> MAIN_TAB = CREATIVE_TABS.register(
             "main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.molecularmanipulator"))
                     .icon(() -> MOLECULAR_MANIPULATOR_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
+                        output.accept(BUILDING_ACCESS_TERMINAL.get());
+                        output.accept(FOLDED_BUILDING_PACKAGE.get());
+                        output.accept(BuildingContent.CALIBRATOR.get());
+                        output.accept(BuildingContent.ASSEMBLER_ITEM.get());
+                        output.accept(WirelessContent.HUB_ITEM.get());
+                        for (var building : com.atir.molecularmanipulator.building.BuildingType.orderable())
+                            output.accept(com.atir.molecularmanipulator.building.BuildingPackage.fresh(building));
                         output.accept(MOLECULAR_MANIPULATOR_ITEM.get());
                         output.accept(ASSEMBLER_MATRIX_MOLECULAR_CORE_ITEM.get());
                         output.accept(MOLECULAR_AUTO_CRAFTER_ITEM.get());
@@ -399,6 +578,41 @@ public final class ModContent {
                         output.accept(MATTER_FABRICATION_FLUID_INPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_FLUID_OUTPUT_ITEM.get());
                         output.accept(MATTER_FABRICATION_PATTERN_ASSEMBLY_ITEM.get());
+                        output.accept(STAR_COMPUTATION_ENGINE_CORE_ITEM.get());
+                        output.accept(STAR_COMPUTATION_ENGINE_CASING_ITEM.get());
+                        output.accept(STAR_ORRERY_ENGRAVED_PLINTH_ITEM.get());
+                        output.accept(STAR_ORRERY_GILDED_PLINTH_ITEM.get());
+                        output.accept(STAR_COMPUTATION_OBSERVATION_PORT_ITEM.get());
+                        output.accept(REFERENCE_STAR_POSITION_ANCHOR_ITEM.get());
+                        output.accept(QUANTUM_STAR_POSITION_ANCHOR_ITEM.get());
+                        output.accept(TERMINAL_STAR_POSITION_ANCHOR_ITEM.get());
+                        output.accept(STAR_MARROW_ALLOY_INGOT.get());
+                        output.accept(STAR_MARROW_CRYSTAL.get());
+                        output.accept(STAR_MARROW_CRYSTAL_DUST.get());
+                        output.accept(STAR_CHART_PROCESSOR.get());
+                        output.accept(STAR_CHART_CIRCUIT_BOARD.get());
+                        output.accept(STAR_SIGNAL_STORAGE_COMPONENT.get());
+                        output.accept(PRIMORDIAL_CRYSTAL_CORE.get());
+                        output.accept(STAR_MARROW_SEED.get());
+                        output.accept(STAR_SIGNAL_STORAGE_CELL.get());
+                        output.accept(StarSeaCalculationContent.ITEM.get());
+                        output.accept(CREATIVE_STAR_SIGNAL_DISK.get());
+                        output.accept(GenericStack.wrapInItemStack(StarSignalKey.INSTANCE, 1));
+                        output.accept(STAR_MARROW_CRYSTAL_BUD_SMALL_ITEM.get());
+                        output.accept(STAR_MARROW_CRYSTAL_BUD_MEDIUM_ITEM.get());
+                        output.accept(STAR_MARROW_CRYSTAL_BUD_LARGE_ITEM.get());
+                        output.accept(STAR_MARROW_CRYSTAL_CLUSTER_ITEM.get());
+                        output.accept(FLAWLESS_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(FLAWED_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM.get());
+                        output.accept(HighEnergyLabContent.POWER_INTERFACE_ITEM.get());
+                        output.accept(HighEnergyLabContent.PLATFORM_ITEM.get());
+                        output.accept(HighEnergyLabContent.INPUT_CRADLE_ITEM.get());
+                        output.accept(HighEnergyLabContent.OUTPUT_CRADLE_ITEM.get());
+                        output.accept(WarpContent.WARP_PAD_ITEM.get());
+                        output.accept(WarpContent.COORDINATE_INSCRIPTION_ITEM.get());
+                        output.accept(SimulationLanternContent.ITEM.get());
                         SingularityContent.displayItems(output);
                         output.accept(BLACK_HOLE.get());
                         output.accept(WHITE_HOLE.get());
@@ -455,13 +669,41 @@ public final class ModContent {
                         .lightLevel(state -> lightLevel), type));
     }
 
-    private static <T extends net.minecraft.world.level.block.Block> RegistryObject<BlockItem> registerBlockItem(
+    private static RegistryObject<AmethystClusterBlock> registerEntropyQuartzCluster(
+            String id, float strength, int height, int width, int lightLevel) {
+        return BLOCKS.register(id, () -> new AmethystClusterBlock(height, width,
+                net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                        .strength(strength)
+                        .noOcclusion()
+                        .noCollission()
+                        .isViewBlocking((state, level, pos) -> false)
+                        .isSuffocating((state, level, pos) -> false)
+                        .lightLevel(state -> lightLevel)
+                        .sound(SoundType.AMETHYST)));
+    }
+
+    private static net.minecraft.world.level.block.state.BlockBehaviour.Properties parentRockProperties(int lightLevel) {
+        return net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                .strength(2.5F, 6F)
+                .requiresCorrectToolForDrops()
+                .randomTicks()
+                .lightLevel(state -> lightLevel)
+                .sound(SoundType.AMETHYST);
+    }
+
+    private static <T extends Block> RegistryObject<BlockItem> registerBlockItem(
             String id, RegistryObject<T> block) {
         return ITEMS.register(id, () -> new BlockItem(block.get(), new Item.Properties()));
     }
 
     public static void register(IEventBus eventBus) {
         ModFluids.register(eventBus);
+        HighEnergyLabContent.init();
+        WarpContent.init();
+        StarSeaCalculationContent.init();
+        SimulationLanternContent.init();
+        BuildingContent.init();
+        WirelessContent.init();
         SingularityContent.init();
         SingularityContent.registerEntities(eventBus);
         BLOCKS.register(eventBus);
@@ -471,9 +713,22 @@ public final class ModContent {
         CREATIVE_TABS.register(eventBus);
         RECIPE_TYPES.register(eventBus);
         RECIPE_SERIALIZERS.register(eventBus);
+        eventBus.addListener(ModContent::registerAeKeyTypes);
+        // Run after every content register, including the separately attached worldgen registers.
+        eventBus.addListener(EventPriority.LOW, RegistryIdMappings::registerAliases);
+    }
+
+    public static void registerAeKeyTypes(RegisterEvent event) {
+        // AE2 15 creates this Forge registry in NewRegistryEvent; it does not exist in mod constructors.
+        if (event.getRegistryKey().location().equals(AE_KEY_TYPE_REGISTRY)) {
+            AEKeyTypes.register(StarSignalKeyType.INSTANCE);
+        }
     }
 
     public static void bindBlockEntity() {
+        HighEnergyLabContent.bindBlockEntity();
+        BuildingContent.bind();
+        WirelessContent.bind();
         SingularityContent.bindBlockEntity();
         TRANSFINITE_COMPUTE_NEXUS.get().setBlockEntity(
                 OmniComputationCoreBlockEntity.class, OMNI_COMPUTATION_CONTROLLER_BE.get(), null, null);

@@ -1,11 +1,14 @@
 package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
+import appeng.menu.SlotSemantics;
 import com.atir.molecularmanipulator.blockentity.MolecularManipulatorBlockEntity;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
+
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -14,11 +17,14 @@ import java.util.List;
 public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<MolecularManipulatorMenu> {
     private static final int HIDDEN_SLOT_POSITION = -10_000;
     private static final int SEARCH_DEBOUNCE_TICKS = 5;
+    private static final String LAYOUT = "seq_manipulator";
 
     private EditBox patternSearch;
-    private OmniButton previousPage, nextPage;
-    private int usedPatterns;
+    private OsqUi ui;
+    private net.minecraft.client.gui.components.Button previousPageButton;
+    private net.minecraft.client.gui.components.Button nextPageButton;
     private final PatternSearchIndexState patternSearchIndex = new PatternSearchIndexState();
+    private final PatternSearchCandidates patternSearchCandidates = new PatternSearchCandidates();
     private List<Integer> filteredPatternSlots = List.of();
     private String patternSearchQuery = "";
     private int patternSearchDebounce;
@@ -34,11 +40,14 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
 
     @Override
     protected void init() {
+        imageWidth = 190;
+        imageHeight = 272;
         super.init();
+        ui = new OsqUi(LAYOUT);
         menu.setPatternSearchIndexListener(this::acceptPatternSearchIndexChunk);
-        patternSearch = OmniUiTheme.textField(style, font, leftPos + 62, topPos + 36, 116, 12,
-                Component.translatable("gui.molecularmanipulator.pattern_search"),
-                Component.translatable("gui.molecularmanipulator.pattern_search_tooltip"));
+        layoutInventorySlots();
+        patternSearch = ui.field("search", leftPos, topPos, font,
+                Component.translatable("gui.molecularmanipulator.pattern_search"));
         patternSearch.setMaxLength(64);
         patternSearch.setValue(patternSearchQuery);
         patternSearch.setResponder(this::patternSearchChanged);
@@ -47,13 +56,15 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
             patternSearchDebounce = 1;
         }
         layoutPatternPage();
-        previousPage = addScreenWidget(OmniUiTheme.button(leftPos + 51, topPos + 18, 16, 16,
-                Component.literal("<"), button -> changePage(-1)));
-        nextPage = addScreenWidget(OmniUiTheme.button(leftPos + 127, topPos + 18, 16, 16,
-                Component.literal(">"), button -> changePage(1)));
-        previousPage.setTooltip(Tooltip.create(Component.translatable("gui.molecularmanipulator.page_previous_tooltip")));
-        nextPage.setTooltip(Tooltip.create(Component.translatable("gui.molecularmanipulator.page_next_tooltip")));
-        updateNavigation();
+        previousPageButton = addScreenWidget(ui.button("prev", leftPos, topPos,
+                () -> Component.translatable("gui.molecularmanipulator.page_previous_tooltip"), () -> changePage(-1)));
+        nextPageButton = addScreenWidget(ui.button("next", leftPos, topPos,
+                () -> Component.translatable("gui.molecularmanipulator.page_next_tooltip"), () -> changePage(1)));
+        ui.text("gui.molecularmanipulator.page", this::patternPageLabel);
+        ui.omit("gui.molecularmanipulator.seq.s019");
+        ui.number(16, 160, () -> menu.usedPatternSlots);
+        ui.number(35.42f, 160, () -> "/ " + menu.getPatternSlots().size());
+        refreshPageButtons();
     }
 
     @Override
@@ -62,13 +73,14 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
         if (patternSearchDebounce > 0 && --patternSearchDebounce == 0) {
             applyPatternSearchQuery();
         }
-        if (!patternSearchQuery.isBlank()
-                && indexedPatternRevision != menu.patternRevision
-                && !patternSearchIndexPending
-                && patternSearchDebounce == 0) {
-            requestPatternSearchIndex();
+        if (!patternSearchQuery.isBlank() && !patternSearchIndexPending && patternSearchDebounce == 0) {
+            if (indexedPatternRevision != menu.patternRevision) {
+                requestPatternSearchIndex();
+            } else if (patternSearchIndex.complete() && !patternSearchCandidates.isCurrent(patternSearchIndex, Language.getInstance())) {
+                rebuildPatternSearchResults();
+            }
         }
-        updateNavigation();
+        refreshPageButtons();
         if (patternSearchQuery.isBlank() && autoPageRevision != menu.patternRevision) {
             autoPageRevision = menu.patternRevision;
             autoAdvanceFullPage();
@@ -90,43 +102,42 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     @Override
     public void removed() {
         menu.setPatternSearchIndexListener(null);
+        patternSearchCandidates.clear();
         super.removed();
-    }
-
-    private void updateNavigation() {
-        previousPage.active = !patternSearchWaiting() && menu.getPage() > 0;
-        nextPage.active = !patternSearchWaiting() && menu.getPage() + 1 < menu.getPageCount();
-        usedPatterns = menu.occupiedPatternSlots;
     }
 
     @Override
     public void drawBG(GuiGraphics guiGraphics, int offsetX, int offsetY, int mouseX, int mouseY,
             float partialTicks) {
-        super.drawBG(guiGraphics, offsetX, offsetY, mouseX, mouseY, partialTicks);
-        MachineUiLayout.MOLECULAR_ARRAY.draw(guiGraphics, offsetX, offsetY);
-        OmniUiTheme.progress(guiGraphics, offsetX + 15, offsetY + 126, 162, 3,
-                usedPatterns / (float) Math.max(1, menu.getPatternSlots().size()), OmniUiTheme.CYAN);
+        if (ui != null) ui.background(guiGraphics, font, offsetX, offsetY);
     }
 
     @Override
     public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        drawFittedString(graphics, Component.translatable("gui.molecularmanipulator.molecular_manipulator"),
-                8, 7, 178, OmniUiTheme.PRIMARY_TEXT);
-        drawCenteredFittedString(graphics, patternPageLabel(), 97, 22, 58,
-                patternSearchWaiting() ? OmniUiTheme.WARNING : patternSearchHasNoResults() ? OmniUiTheme.ERROR : OmniUiTheme.PRIMARY_TEXT);
-        drawRightAlignedFittedString(graphics, Component.literal(usedPatterns + "/" + menu.getPatternSlots().size()),
-                178, 22, 32, OmniUiTheme.MUTED_TEXT);
-        graphics.drawString(font, Component.translatable("gui.ae2.Patterns"), 12, 39, OmniUiTheme.PRIMARY_TEXT, false);
-        graphics.drawString(font, playerInventoryTitle, 12, 136, OmniUiTheme.PRIMARY_TEXT, false);
+        // Vanilla has already translated the pose to leftPos/topPos in renderLabels.
+        if (ui != null) ui.foreground(graphics, font);
     }
 
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if (x >= 146 && x < 180 && y >= 20 && y < 32 || x >= 15 && x < 177 && y >= 126 && y < 130) {
-            graphics.renderComponentTooltip(font, List.of(Component.translatable("gui.molecularmanipulator.pattern_capacity_tooltip")), mouseX, mouseY);
+    private void layoutInventorySlots() {
+        var inventory = menu.getSlots(SlotSemantics.PLAYER_INVENTORY);
+        for (int index = 0; index < inventory.size(); index++) {
+            var slot = inventory.get(index);
+            slot.x = 15 + index % 9 * 18;
+            slot.y = 182 + index / 9 * 18;
         }
+        var hotbar = menu.getSlots(SlotSemantics.PLAYER_HOTBAR);
+        for (int index = 0; index < hotbar.size(); index++) {
+            var slot = hotbar.get(index);
+            slot.x = 15 + index * 18;
+            slot.y = 240;
+        }
+    }
+
+    private void refreshPageButtons() {
+        if (previousPageButton == null || nextPageButton == null) return;
+        boolean waiting = patternSearchWaiting();
+        previousPageButton.active = !waiting && menu.getPage() > 0;
+        nextPageButton.active = !waiting && menu.getPage() + 1 < menu.getPageCount();
     }
 
     void changePage(int offset) {
@@ -171,8 +182,8 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
             int sourceSlot = visibleSlots[pageIndex];
             if (sourceSlot >= 0 && sourceSlot < slots.size()) {
                 var slot = slots.get(sourceSlot);
-                slot.x = 16 + pageIndex % 9 * 18;
-                slot.y = 52 + pageIndex / 9 * 18;
+                slot.x = 15 + pageIndex % 9 * 18;
+                slot.y = 56 + pageIndex / 9 * 18;
             }
         }
     }
@@ -226,9 +237,10 @@ public final class MolecularManipulatorScreen extends ResponsiveContainerScreen<
     }
 
     private void rebuildPatternSearchResults() {
-        filteredPatternSlots = patternSearchIndex.entries().stream()
-                .filter(entry -> ClientSearchMatcher.matchesPattern(entry, patternSearchQuery))
-                .map(entry -> entry.sourceSlot())
+        var query = ClientSearchMatcher.compile(patternSearchQuery);
+        filteredPatternSlots = patternSearchCandidates.snapshot(patternSearchIndex, Language.getInstance()).stream()
+                .filter(entry -> query.matches(entry.candidates()))
+                .map(PatternSearchCandidates.Entry::sourceSlot)
                 .toList();
         showPatternSearchPage(0);
     }

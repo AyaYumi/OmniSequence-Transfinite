@@ -4,6 +4,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterStructure;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
+import com.atir.molecularmanipulator.registry.BuildingContent;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.registry.ModFluids;
 import mezz.jei.api.forge.ForgeTypes;
@@ -13,10 +14,12 @@ import appeng.core.definitions.AEBlocks;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
+import mezz.jei.api.registration.IModIngredientRegistration;
 import mezz.jei.api.registration.IAdvancedRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.registration.ISubtypeRegistration;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.runtime.IJeiRuntime;
 import com.atir.molecularmanipulator.client.MatterFabricationPatternAssemblyScreen;
@@ -40,13 +43,31 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
     }
 
     @Override
+    public void registerIngredients(IModIngredientRegistration registration) {
+        StarSignalJeiIngredient.register(registration);
+        MatterFabricationJeiIngredients.registerStarSignalConverter();
+    }
+
+    @Override
+    public void registerItemSubtypes(ISubtypeRegistration registration) {
+        registration.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ModContent.FOLDED_BUILDING_PACKAGE.get(),
+                FoldedBuildingPackageSubtypeInterpreter.INSTANCE);
+    }
+
+    @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
+        registration.addRecipeCategories(new TwinSingularityObservationRingJeiCategory(
+                registration.getJeiHelpers().getGuiHelper()));
+        registration.addRecipeCategories(new LanternSimulationJeiCategory(
+                registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new SingularityStructureJeiCategory(registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MolecularCenterJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MatterFabricationJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
         registration.addRecipeCategories(new MatterFabricationStructureJeiCategory(
+                registration.getJeiHelpers().getGuiHelper()));
+        registration.addRecipeCategories(new StarOrreryStructureJeiCategory(
                 registration.getJeiHelpers().getGuiHelper()));
         if (AdvancedAEIntegration.isLoaded()) {
             registration.addRecipeCategories(new OmniComputationJeiCategory(
@@ -56,11 +77,12 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
+        registration.addRecipes(TwinSingularityObservationRingJeiCategory.TYPE,
+                TwinSingularityObservationRingJeiCategory.recipes());
+        registration.addRecipes(LanternSimulationJeiCategory.TYPE, List.of(LanternSimulationJeiCategory.recipe()));
         registration.addIngredientInfo(new FluidStack(ModFluids.SEQUENCE_MATTER.get(), 1000),
                 ForgeTypes.FLUID_STACK, Component.translatable("guide.molecularmanipulator.sequence_matter.jei"));
-        registration.addRecipes(SingularityStructureJeiCategory.TYPE, List.of(new SingularityStructureJeiRecipe(
-                com.atir.molecularmanipulator.blockentity.SingularityStructure.materials(),
-                new ItemStack(com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER.get()))));
+        registration.addRecipes(SingularityStructureJeiCategory.TYPE, List.of(SingularityStructureJeiRecipe.recipe()));
         registration.addRecipes(MolecularCenterJeiCategory.TYPE, List.of(new MolecularCenterJeiRecipe(
                 createStructureMaterials(), new ItemStack(ModContent.MOLECULAR_CENTER_CONTROLLER_ITEM.get()))));
         var level = net.minecraft.client.Minecraft.getInstance().level;
@@ -73,6 +95,7 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
                 List.of(new MatterFabricationStructureJeiRecipe(
                         createMatterFabricationStructureMaterials(),
                         new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()))));
+        registration.addRecipes(StarOrreryStructureJeiCategory.TYPE, StarOrreryStructureJeiRecipe.recipes());
         if (AdvancedAEIntegration.isLoaded()) {
             registration.addRecipes(OmniComputationJeiCategory.TYPE, List.of(new OmniComputationJeiRecipe(
                     createOmniStructureMaterials(),
@@ -82,23 +105,40 @@ public final class MolecularCenterJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
+        registration.addRecipeCatalyst(new ItemStack(
+                com.atir.molecularmanipulator.registry.HighEnergyLabContent.POWER_INTERFACE_ITEM.get()),
+                TwinSingularityObservationRingJeiCategory.TYPE);
+        registration.addRecipeCatalyst(new ItemStack(
+                com.atir.molecularmanipulator.registry.HighEnergyLabContent.INPUT_CRADLE_ITEM.get()),
+                TwinSingularityObservationRingJeiCategory.TYPE);
+        registration.addRecipeCatalyst(new ItemStack(
+                com.atir.molecularmanipulator.registry.HighEnergyLabContent.OUTPUT_CRADLE_ITEM.get()),
+                TwinSingularityObservationRingJeiCategory.TYPE);
+        registration.addRecipeCatalyst(com.atir.molecularmanipulator.registry.SimulationLanternContent.stack(true),
+                LanternSimulationJeiCategory.TYPE);
         registration.addRecipeCatalyst(new ItemStack(com.atir.molecularmanipulator.registry.SingularityContent.CONTROLLER.get()), SingularityStructureJeiCategory.TYPE);
         registration.addRecipeCatalyst(
                 new ItemStack(ModContent.MATTER_FABRICATION_CONTROLLER_ITEM.get()),
                 MatterFabricationJeiCategory.TYPE,
                 MatterFabricationStructureJeiCategory.TYPE);
+        registration.addRecipeCatalyst(new ItemStack(ModContent.STAR_COMPUTATION_ENGINE_CORE_ITEM.get()),
+                StarOrreryStructureJeiCategory.TYPE);
+        registration.addRecipeCatalyst(new ItemStack(BuildingContent.ASSEMBLER_ITEM.get()),
+                StarOrreryStructureJeiCategory.TYPE, SingularityStructureJeiCategory.TYPE);
     }
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
-        registration.addGuiScreenHandler(com.atir.molecularmanipulator.client.SingularityScreen.class, ResponsiveScreenJeiProperties.handler());
-        registration.addGuiScreenHandler(ResponsiveContainerScreen.class, ResponsiveScreenJeiProperties.handler());
-        registration.addGuiScreenHandler(MolecularCenterScreen.class, ResponsiveScreenJeiProperties.handler());
-        registration.addGuiScreenHandler(OmniComputationScreen.class, ResponsiveScreenJeiProperties.handler());
-        registration.addGuiScreenHandler(MatterFabricationScreen.class, ResponsiveScreenJeiProperties.handler());
-        registration.addGuiScreenHandler(MatterFabricationPortScreen.class, ResponsiveScreenJeiProperties.handler());
+        registration.addGuiScreenHandler(com.atir.molecularmanipulator.client.SingularityScreen.class, ResponsiveScreenJeiProperties.screenHandler());
+        registration.addGuiScreenHandler(ResponsiveContainerScreen.class, ResponsiveScreenJeiProperties.screenHandler());
+        registration.addGuiScreenHandler(MolecularCenterScreen.class, ResponsiveScreenJeiProperties.screenHandler());
+        registration.addGuiScreenHandler(OmniComputationScreen.class, ResponsiveScreenJeiProperties.screenHandler());
+        registration.addGuiScreenHandler(MatterFabricationScreen.class, ResponsiveScreenJeiProperties.screenHandler());
+        registration.addGuiScreenHandler(MatterFabricationPortScreen.class, ResponsiveScreenJeiProperties.screenHandler());
         registration.addGuiScreenHandler(MatterFabricationPatternAssemblyScreen.class,
-                ResponsiveScreenJeiProperties.handler());
+                ResponsiveScreenJeiProperties.screenHandler());
+        registration.addGuiContainerHandler(ResponsiveContainerScreen.class,
+                ResponsiveScreenJeiProperties.containerHandler());
     }
 
     @Override

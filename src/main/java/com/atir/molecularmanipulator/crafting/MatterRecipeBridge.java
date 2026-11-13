@@ -88,7 +88,7 @@ public final class MatterRecipeBridge {
 
     record Input(Ingredient ingredient, int count) {}
     record LightningRequirement(String tier, long amount) {}
-    private record Branch(Output output,
+    private record Branch(Recipe<?> source, Output output,
             List<MatterFabricationRecipe.CountedIngredient> ingredients,
             List<MatterFabricationRecipe.CountedIngredient> catalysts,
             FluidStack fluid, List<appeng.api.stacks.GenericStack> aeInputs, String signature) {}
@@ -149,19 +149,27 @@ public final class MatterRecipeBridge {
                     recordFailure(failures, machine, holder.getId());
                     continue;
                 }
-                var branch = convert(level, recipe, output, encoded, type, machine);
+                var branch = convert(level, holder, output, encoded, type, machine);
                 if (branch == null) {
                     recordFailure(failures, machine, holder.getId());
                     continue;
                 }
-                var key = machine.key + "|" + outputKey(output) + "|" + branch.signature;
+                // Distinct source IDs remain distinct permission candidates even for identical materials.
+                var key = machine.key + "|" + outputKey(output) + "|" + branch.signature + "|" + holder.getId();
                 grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(branch);
                 info.putIfAbsent(key, new GroupInfo(machine, output, branch.signature));
             }
         }
-        failures.forEach((machine, ids) -> com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
-                "Matter machine import {} skipped {} recipes with unreadable fields/resources or unsupported slot counts: {}",
-                machine, ids.size(), ids));
+        if (!failures.isEmpty()) {
+            int skipped = failures.values().stream().mapToInt(List::size).sum();
+            var examples = failures.entrySet().stream()
+                    .flatMap(entry -> entry.getValue().stream().map(id -> entry.getKey() + ": " + id))
+                    .limit(8).toList();
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
+                    "Matter machine imports skipped {} recipes across {} machines with unreadable fields/resources "
+                            + "or unsupported slot counts; examples (up to 8): {}",
+                    skipped, failures.size(), examples);
+        }
         var byMachineOutput = new LinkedHashMap<String, List<Map.Entry<String, List<Branch>>>>();
         for (var entry : grouped.entrySet()) {
             var group = info.get(entry.getKey());
@@ -171,7 +179,9 @@ public final class MatterRecipeBridge {
         var result = new ArrayList<ImportedRecipe>();
         var usedIds = new LinkedHashSet<ResourceLocation>();
         for (var entries : byMachineOutput.values()) {
-            entries.sort(Comparator.comparing(entry -> info.get(entry.getKey()).signature));
+            entries.sort(Comparator.<Map.Entry<String, List<Branch>>, String>comparing(
+                    entry -> info.get(entry.getKey()).signature)
+                    .thenComparing(entry -> entry.getValue().get(0).source().getId().toString()));
             var first = info.get(entries.get(0).getKey());
             var outputId = !first.output.items().isEmpty()
                     ? BuiltInRegistries.ITEM.getKey(first.output.items().get(0).getItem())
@@ -202,8 +212,9 @@ public final class MatterRecipeBridge {
                 var fabrication = new MatterFabricationRecipe(branch.ingredients(), branch.catalysts(),
                         branch.output().items(), branch.fluid(),
                         outputFluids.isEmpty() ? FluidStack.EMPTY : outputFluids.get(0),
-                        branch.aeInputs(), aeOutputs, declaration == null ? 200 : declaration.processingTime(),
-                        declaration == null ? 256 : declaration.aePerTick(), true);
+                        branch.aeInputs(), aeOutputs, declaration == null ? MatterFabricationRecipe.DEFAULT_PROCESSING_TIME : declaration.processingTime(),
+                        declaration == null ? 256 : declaration.aePerTick(), true)
+                        .withSourceRecipeId(branch.source().getId());
                 result.add(new ImportedRecipe(fabrication.withId(id), group.machine.key,
                         group.machine.modId,
                         group.output.items().isEmpty() ? ItemStack.EMPTY : group.output.items().get(0),
@@ -576,8 +587,9 @@ public final class MatterRecipeBridge {
         return 1;
     }
 
-    private static Branch convert(Level level, Recipe<?> recipe, Output output, JsonElement encoded, String type,
+    private static Branch convert(Level level, Recipe<?> source, Output output, JsonElement encoded, String type,
             MachineSpec machine) {
+        var recipe = source;
         try {
             var parsed = new ArrayList<Input>();
             var catalysts = new ArrayList<MatterFabricationRecipe.CountedIngredient>();
@@ -614,7 +626,7 @@ public final class MatterRecipeBridge {
                 }
             } else if (encoded != null) {
                 if (!type.equals("ae2lt:crystal_catalyzer")) {
-                    collectInputs(level, encoded, parsed, false);
+                    parsed.addAll(readItemInputs(JsonOps.INSTANCE, encoded));
                 }
                 collectGenericInputs(level, encoded, aeInputs);
                 if (LIGHTNING_RECIPE_TYPES.contains(type) && encoded instanceof JsonObject object) {
@@ -674,33 +686,52 @@ public final class MatterRecipeBridge {
                     .map(value -> value.what().toString() + "#" + value.amount()).sorted().reduce("", (a,b) -> a + ";" + b);
             if (!catalysts.isEmpty()) signature += "|catalysts=" + catalysts.stream()
                     .map(value -> ingredientKey(value.ingredient()) + "=" + value.count()).sorted().reduce("", (a,b) -> a + ";" + b);
-            return new Branch(output, List.copyOf(ingredients), List.copyOf(catalysts), fluid,
+            return new Branch(source, output, List.copyOf(ingredients), List.copyOf(catalysts), fluid,
                     List.copyOf(aeInputs), signature);
         } catch (RuntimeException ignored) { return null; }
     }
 
-    private static void collectInputs(Level level, JsonElement element, List<Input> result,
+    static List<Input> readItemInputs(DynamicOps<JsonElement> ops, JsonElement element) {
+        var result = new ArrayList<Input>();
+        collectInputs(ops, element, result, false);
+        return List.copyOf(result);
+    }
+
+    private static void collectInputs(DynamicOps<JsonElement> ops, JsonElement element, List<Input> result,
             boolean outputContext) {
         if (element == null || element.isJsonNull()) return;
         if (element.isJsonArray()) {
-            for (var child : element.getAsJsonArray()) collectInputs(level, child, result, outputContext);
+            for (var child : element.getAsJsonArray()) collectInputs(ops, child, result, outputContext);
             return;
         }
         if (!(element instanceof JsonObject object)) return;
+        if (!outputContext && object.has("type") && !object.has("fluid")) {
+            var ingredient = parseIngredient(ops, object);
+            if (ingredient.isPresent()) {
+                result.add(new Input(ingredient.get(), amount(object)));
+                return;
+            }
+            var ingredientType = ResourceLocation.tryParse(text(object, "type"));
+            // Recipe roots also have a type. Other typed inputs must decode as a whole;
+            // descending into a failed compound would turn alternatives into required slots.
+            if (ingredientType != null && !BuiltInRegistries.RECIPE_SERIALIZER.containsKey(ingredientType)) {
+                throw new IllegalArgumentException("Unreadable custom ingredient: " + ingredientType);
+            }
+        }
         if (!outputContext && (object.has("item") || object.has("tag")) && !object.has("fluid")) {
-            parseIngredient(level, object, amount(object)).ifPresent(value -> result.add(new Input(value, amount(object))));
+            parseIngredient(ops, object).ifPresent(value -> result.add(new Input(value, amount(object))));
             return;
         }
         if (!outputContext && object.has("ingredient")
                 && !(object.get("ingredient") instanceof JsonObject ingredient && ingredient.has("fluid"))) {
-            parseIngredient(level, object.get("ingredient"), amount(object))
+            parseIngredient(ops, object.get("ingredient"))
                     .ifPresent(value -> result.add(new Input(value, amount(object))));
             return;
         }
         for (var entry : object.entrySet()) {
             var key = entry.getKey().toLowerCase();
             boolean childOutput = outputContext || isOutputField(key);
-            if (!key.contains("fluid")) collectInputs(level, entry.getValue(), result, childOutput);
+            if (!key.contains("fluid")) collectInputs(ops, entry.getValue(), result, childOutput);
         }
     }
 
@@ -763,8 +794,11 @@ public final class MatterRecipeBridge {
     }
 
     private static java.util.Optional<Ingredient> parseIngredient(Level level, JsonElement element, int ignored) {
+        return parseIngredient(JsonOps.INSTANCE, element);
+    }
+
+    private static java.util.Optional<Ingredient> parseIngredient(DynamicOps<JsonElement> ops, JsonElement element) {
         try {
-            DynamicOps<JsonElement> ops = JsonOps.INSTANCE;
             return ForgeRecipeCodecs.INGREDIENT.parse(ops, element).result();
         } catch (RuntimeException ignoredError) { return java.util.Optional.empty(); }
     }

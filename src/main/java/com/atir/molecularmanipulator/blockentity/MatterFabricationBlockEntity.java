@@ -23,12 +23,15 @@ import appeng.me.helpers.PlayerSource;
 import appeng.util.inv.AppEngInternalInventory;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipeInput;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchProgress;
 import com.atir.molecularmanipulator.research.ResearchMaterialOrderService;
 import com.atir.molecularmanipulator.research.ResearchVisualState;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.integration.FtbTeamOwnership;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
@@ -62,7 +65,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity implements MachineEffectHost {
+public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity
+        implements MachineEffectHost, SequenceWirelessHost {
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
 
     @Override
@@ -108,6 +112,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     private final MatterFabricationBatch batch = new MatterFabricationBatch();
     private long manualCrafts = 1;
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> IDLE_POWER);
     private IGridConnection quantumConnection;
     private IGridNode quantumRemoteNode;
     private long quantumConnectionFrequency;
@@ -133,6 +138,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     private double clientResearchSample;
     private int progress;
     private ResourceLocation activeRecipeId;
+    private boolean manualAdmitted;
     private ResourceLocation patternRecipeId;
     private BlockPos processingAssembly;
     private int nextAssembly;
@@ -142,9 +148,10 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     private final List<MatterFabricationPatternAssemblyBlockEntity> serviceAssemblies = new ArrayList<>();
     private com.atir.molecularmanipulator.crafting.MatterRecipeIndex selectionIndex;
     private MatterFabricationPortBlockEntity selectionItems, selectionFluids;
-    private long selectionItemRevision, selectionFluidRevision, selectionResearchRevision;
+    private long selectionItemRevision, selectionFluidRevision;
     private ResourceLocation selectionPattern;
-    private RecipeSelection cachedSelection;
+    // Structural matches only. Authorization is live and is never a cached result.
+    private List<RecipeSelection> cachedSelections = List.of();
     private boolean selectionCached;
     private long catalystCacheTick = Long.MIN_VALUE;
     private Map<AEItemKey, Long> sharedCatalysts = Map.of();
@@ -239,7 +246,18 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     }
 
     @Override
+    public <T> net.minecraftforge.common.util.LazyOptional<T> getCapability(
+            net.minecraftforge.common.capabilities.Capability<T> capability, Direction side) {
+        if (capability == net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER
+                && (isRemoved() || com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this))) {
+            return net.minecraftforge.common.util.LazyOptional.empty();
+        }
+        return super.getCapability(capability, side);
+    }
+
+    @Override
     public void onReady() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         super.onReady();
         migrateTeamBinding();
         scheduleStructureCheck();
@@ -248,6 +266,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
 
     @Override
     public void onChunkUnloaded() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.onChunkUnloaded();
@@ -255,6 +274,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
 
     @Override
     public void setRemoved() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.setRemoved();
@@ -266,7 +286,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     }
 
     public boolean hasRemovalRecovery() {
-        return !inventory.isEmpty() || !quantumInventory.isEmpty() || batch.hasWork() || research.hasStoredMaterials()
+        return wirelessLink.isBound() || !inventory.isEmpty() || !quantumInventory.isEmpty() || batch.hasWork() || research.hasStoredMaterials()
                 || researchOrders.hasPending() || !pendingMigrationServiceBlocks.isEmpty() || !pendingDismantleRecovery.isEmpty();
     }
 
@@ -276,6 +296,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         // Only the inherited inventory belongs in the portable payload, not the AE grid node.
         var contents = new CompoundTag();
         contents.put("inv", payload.getCompound("inv"));
+        wirelessLink.save(contents);
         quantumInventory.writeToNBT(contents, QUANTUM_INVENTORY_TAG);
         if (research.hasProgress()) contents.put(RESEARCH_TAG, research.save());
         if (researchOrders.hasPending()) contents.put(RESEARCH_ORDERS_TAG, researchOrders.save(false));
@@ -290,6 +311,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     @Override
     public void clearContent() {
         super.clearContent();
+        wirelessLink.clear();
         quantumInventory.clear();
         batch.clear();
         research.clearStoredMaterials();
@@ -324,10 +346,27 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         return quantumLinkState;
     }
 
+    @Override
+    public SequenceWirelessLink getWirelessLink() {
+        return wirelessLink;
+    }
+
+    @Override
+    public void refreshRemoteConnection() {
+        updateQuantumLink();
+    }
+
     private void updateQuantumLink() {
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -468,8 +507,10 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     @Override
     public void exportSettings(SettingsFrom mode, CompoundTag builder, Player player) {
         super.exportSettings(mode, builder, player);
-        if (mode == SettingsFrom.DISMANTLE_ITEM && (research.hasProgress() || batch.hasWork() || researchOrders.hasPending())) {
+        if (mode == SettingsFrom.DISMANTLE_ITEM
+                && (wirelessLink.isBound() || research.hasProgress() || batch.hasWork() || researchOrders.hasPending())) {
             var tag = new CompoundTag();
+            wirelessLink.save(tag);
             if (research.hasProgress()) tag.put(RESEARCH_TAG, research.save());
             if (batch.hasWork()) tag.put(BATCH_TAG, batch.save());
             if (researchOrders.hasPending()) tag.put(RESEARCH_ORDERS_TAG, researchOrders.save(false));
@@ -482,6 +523,14 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         super.importSettings(mode, input, player);
         if (mode == SettingsFrom.DISMANTLE_ITEM && level != null && !level.isClientSide()) {
             var tag = input;
+            // Full retained contents may already have restored the binding.
+            if (!wirelessLink.isBound()) {
+                wirelessLink.load(tag);
+                if (wirelessLink.isBound()) {
+                    updateQuantumLink();
+                    saveChanges();
+                }
+            }
             if (tag.contains(BATCH_TAG)) batch.load(tag.getCompound(BATCH_TAG));
             if (tag.contains(RESEARCH_TAG)) {
                 research.load(tag.getCompound(RESEARCH_TAG));
@@ -505,6 +554,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     }
 
     public void serverTick() {
+        if (com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return;
         if (level == null || level.isClientSide()) {
             return;
         }
@@ -919,49 +969,9 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         return true;
     }
 
-    private void releasePendingServiceBlocks(ServerPlayer player) {
-        for (var stack : pendingMigrationServiceBlocks) {
-            returnPreservedServiceBlock(player, stack);
-        }
-        pendingMigrationServiceBlocks.clear();
-    }
-
-    private void returnPreservedServiceBlock(ServerPlayer player, ItemStack stack) {
-        if (stack.isEmpty()) {
-            return;
-        }
-        var remainder = insertIntoNetwork(stack);
-        if (remainder.isEmpty()) {
-            return;
-        }
-        var playerRemainder = remainder.copy();
-        player.getInventory().add(playerRemainder);
-        if (!playerRemainder.isEmpty()) {
-            player.drop(playerRemainder, false);
-        }
-    }
-
+    /** New recovery requests use the same archive transaction as the calibrator. Old saved dismantles still resume below. */
     public void startDismantle(ServerPlayer player) {
-        if (level == null || level.isClientSide() || building || dismantling
-                || updatingStructure || !player.mayBuild()) {
-            return;
-        }
-        Direction facing = getBlockState().getValue(HorizontalDirectionalBlock.FACING);
-        dismantlePlan = captureActualDismantlePlan(facing);
-        if (dismantlePlan == null || dismantlePlan.isComplete()) {
-            player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
-                    "message.molecularmanipulator.fabrication.nothing_to_dismantle"), false);
-            return;
-        }
-        dismantling = true;
-        building = false;
-        buildCursor = 0;
-        buildOwner = player.getUUID();
-        structureFormed = false;
-        resetProgress();
-        updateOptionalLinks();
-        setState(ProcessingState.DISMANTLING);
-        saveChanges();
+        com.atir.molecularmanipulator.building.BuildingTransfer.seal(player, this);
     }
 
     private void processDismantle() {
@@ -1227,20 +1237,6 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         saveChanges();
     }
 
-    private void storeRecoveredMaterial(ServerPlayer player, ItemStack stack) {
-        if (stack.isEmpty() || player.getAbilities().instabuild) {
-            return;
-        }
-        var remainder = insertIntoNetwork(stack);
-        if (!remainder.isEmpty()) {
-            var playerRemainder = remainder.copy();
-            player.getInventory().add(playerRemainder);
-            if (!playerRemainder.isEmpty()) {
-                player.drop(playerRemainder, false);
-            }
-        }
-    }
-
     private boolean takeBuildMaterial(ServerPlayer player, ItemStack template) {
         if (player.getAbilities().instabuild) {
             return true;
@@ -1357,6 +1353,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         var recipe = holder.value();
         if (!holder.id().equals(activeRecipeId)) {
             progress = 0;
+            manualAdmitted = false;
             currentProcessingTime = 0;
             activeRecipeId = holder.id();
         }
@@ -1371,7 +1368,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
             setState(ProcessingState.WAITING_CATALYST);
             return;
         }
-        if (progress == 0) manualCrafts = manualBatchLimit(recipe, input, profile.parallel());
+        if (!manualAdmitted) manualCrafts = manualBatchLimit(recipe, input, profile.parallel());
         if (manualCrafts <= 0) {
             setState(outputsFit(recipe, 1) ? ProcessingState.WAITING_POWER : ProcessingState.OUTPUT_BLOCKED); return;
         }
@@ -1387,6 +1384,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
             return;
         }
 
+        manualAdmitted = true;
         progress++;
         setState(ProcessingState.RUNNING);
         if (progress >= currentProcessingTime) {
@@ -1402,30 +1400,42 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         long itemRevision = items == null ? 0 : items.contentsRevision();
         long fluidRevision = fluids == null ? 0 : fluids.contentsRevision();
         var index = com.atir.molecularmanipulator.crafting.MatterRecipeIndex.get(level);
-        long researchRevision = research.permissionRevision();
         if (selectionCached && selectionIndex == index && selectionItems == items && selectionFluids == fluids
                 && selectionItemRevision == itemRevision && selectionFluidRevision == fluidRevision
-                && selectionResearchRevision == researchRevision && java.util.Objects.equals(selectionPattern, patternRecipeId)) {
-            return cachedSelection;
+                && java.util.Objects.equals(selectionPattern, patternRecipeId)) {
+            return selectPermittedRecipe();
         }
-        cachedSelection = null;
+        var matches = new ArrayList<RecipeSelection>();
         if (inputsAreEmpty()) {
             patternRecipeId = null;
         } else {
-            outer: for (var input : snapshotInputs()) {
+            for (var input : snapshotInputs()) {
                 for (var holder : index.fabrication()) {
                     if ((patternRecipeId == null || holder.id().equals(patternRecipeId))
-                            && holder.value().matches(input, level) && MatterResearchApi.canUseRecipe(this, holder)) {
-                        cachedSelection = new RecipeSelection(input, holder);
-                        break outer;
+                            && holder.value().matches(input, level)) {
+                        matches.add(new RecipeSelection(input, holder));
                     }
                 }
             }
         }
+        cachedSelections = List.copyOf(matches);
         selectionCached = true; selectionIndex = index; selectionItems = items; selectionFluids = fluids;
         selectionItemRevision = itemRevision; selectionFluidRevision = fluidRevision;
-        selectionResearchRevision = researchRevision; selectionPattern = patternRecipeId;
-        return cachedSelection;
+        selectionPattern = patternRecipeId;
+        return selectPermittedRecipe();
+    }
+
+    private RecipeSelection selectPermittedRecipe() {
+        if (manualAdmitted && activeRecipeId != null) {
+            // The first processing tick admitted this exact manual batch. Finish
+            // it after sharing expires, but never use that approval for a new one.
+            return cachedSelections.stream().filter(selection -> selection.holder().id().equals(activeRecipeId))
+                    .findFirst().orElse(null);
+        }
+        for (var selection : cachedSelections) {
+            if (MatterResearchApi.canUseRecipe(this, selection.holder())) return selection;
+        }
+        return null;
     }
 
     private List<MatterFabricationRecipeInput> snapshotInputs() {
@@ -1525,6 +1535,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
             return;
         }
         progress = 0;
+        manualAdmitted = false;
         activeRecipeId = null;
         patternRecipeId = null;
         var inputPort = getPort(MatterFabricationStructure.ITEM_INPUT);
@@ -1567,7 +1578,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     private boolean canAdmitBatch() {
         return level != null && !level.isClientSide() && structureFormed && getMainNode().isActive()
                 && !building && !dismantling && !updatingStructure && inputsAreEmpty()
-                && (batch.hasWork() || progress == 0);
+                && (batch.hasWork() || !manualAdmitted && progress == 0);
     }
 
     boolean hasBatchWork() { return batch.hasWork(); }
@@ -1609,7 +1620,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     private boolean processPatternBuffers() {
         if (!structureFormed || !getMainNode().isActive()) { processingAssembly = null; return false; }
         // Do not interrupt a manual recipe that is already consuming processing time.
-        if (processingAssembly == null && activeRecipeId != null && progress > 0) return false;
+        if (processingAssembly == null && activeRecipeId != null && manualAdmitted) return false;
         refreshServiceCache();
         var assemblies = serviceAssemblies;
         if (assemblies.isEmpty()) { processingAssembly = null; return false; }
@@ -1809,6 +1820,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
 
     private void resetProgress() {
         progress = 0;
+        manualAdmitted = false;
         activeRecipeId = null;
         currentProcessingTime = 0;
         currentAePerTick = 0.0;
@@ -1945,6 +1957,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     @Override
     public void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
+        wirelessLink.save(tag);
         machineEffects.save(tag);
         tag.putBoolean(TEAM_BOUND_TAG, teamBindingInitialized);
         if (boundTeam != null) tag.putUUID(TEAM_TAG, boundTeam); else tag.remove(TEAM_TAG);
@@ -1955,6 +1968,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         else tag.remove(RESEARCH_ORDERS_TAG);
         if (batch.hasWork()) tag.put(BATCH_TAG, batch.save()); else tag.remove(BATCH_TAG);
         tag.putLong("fabrication_manual_crafts", manualCrafts);
+        tag.putBoolean("fabrication_manual_admitted", manualAdmitted);
         tag.putInt(PROGRESS_TAG, progress);
         tag.putInt("fabrication_processing_duration", currentProcessingTime);
         if (activeRecipeId != null) {
@@ -1994,6 +2008,7 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
     @Override
     public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag);
         machineEffects.load(tag);
         boundTeam = tag.hasUUID(TEAM_TAG) ? tag.getUUID(TEAM_TAG) : null;
@@ -2006,6 +2021,9 @@ public final class MatterFabricationBlockEntity extends AENetworkInvBlockEntity 
         progress = Math.max(0, tag.getInt(PROGRESS_TAG));
         currentProcessingTime = Math.max(0, tag.getInt("fabrication_processing_duration"));
         activeRecipeId = ResourceLocation.tryParse(tag.getString(ACTIVE_RECIPE_TAG));
+        // Keep admission independent from rounded/rescaled progress (which may be zero).
+        manualAdmitted = activeRecipeId != null && (tag.contains("fabrication_manual_admitted")
+                ? tag.getBoolean("fabrication_manual_admitted") : progress > 0);
         patternRecipeId = ResourceLocation.tryParse(tag.getString(PATTERN_RECIPE_TAG));
         building = tag.getBoolean(BUILDING_TAG);
         dismantling = tag.getBoolean(DISMANTLING_TAG);

@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "molecularmanipulator:warp_coordinate_inscription",
+          "functions": [
+            {
+              "function": "minecraft:copy_state",
+              "block": "molecularmanipulator:warp_coordinate_inscription",
+              "properties": [
+                "glyph"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

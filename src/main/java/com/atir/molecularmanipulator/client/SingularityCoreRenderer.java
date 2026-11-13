@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.blockentity.SingularityCoreBlockEntity;
 import com.atir.molecularmanipulator.client.render.SingularityEffectLayers;
+import com.atir.molecularmanipulator.client.render.SingularityShaderVertices;
 import com.atir.molecularmanipulator.client.render.SingularityCoreEffects;
 import com.atir.molecularmanipulator.blockentity.MachineEffectLevels;
 import com.atir.molecularmanipulator.blockentity.SingularityStructure;
@@ -30,10 +31,14 @@ public final class SingularityCoreRenderer implements BlockEntityRenderer<Singul
         float phase = (core.getBlockPos().asLong() & 255) / 255.0F * 360.0F;
         poses.pushPose();
         poses.translate(0.5, 0.5, 0.5);
-        SingularityCoreEffects.render(poses, SingularityEffectLayers.crystal(buffers),
-                time, phase, full, false);
-        SingularityCoreEffects.render(poses, SingularityEffectLayers.glow(buffers),
-                time, phase, full, true);
+        var crystal = SingularityEffectLayers.crystal(buffers);
+        try (var batch = SingularityShaderVertices.batch(crystal)) {
+            SingularityCoreEffects.render(poses, crystal, time, phase, full, false);
+        }
+        var glow = SingularityEffectLayers.glow(buffers);
+        try (var batch = SingularityShaderVertices.batch(glow)) {
+            SingularityCoreEffects.render(poses, glow, time, phase, full, true);
+        }
         poses.popPose();
     }
 

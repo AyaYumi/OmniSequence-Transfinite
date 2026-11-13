@@ -48,8 +48,8 @@ public final class MatterFabricationPortBlock extends AEBaseEntityBlock<MatterFa
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos,
-            Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
+    public InteractionResult onActivated(Level level, BlockPos pos, Player player,
+            net.minecraft.world.InteractionHand hand, ItemStack stack, BlockHitResult hit) {
         var blockEntity = getBlockEntity(level, pos);
         if (blockEntity == null) {
             return InteractionResult.PASS;

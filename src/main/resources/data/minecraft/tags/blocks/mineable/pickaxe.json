@@ -1,6 +1,15 @@
 {
   "replace": false,
   "values": [
+    "molecularmanipulator:folding_assembler",
+    "molecularmanipulator:sequence_wireless_hub",
+    "molecularmanipulator:end_warp_pad",
+    "molecularmanipulator:star_sea_calculation_mainframe",
+    "molecularmanipulator:warp_coordinate_inscription",
+    "molecularmanipulator:twin_singularity_observation_ring_power_interface",
+    "molecularmanipulator:twin_singularity_observation_ring_platform",
+    "molecularmanipulator:twin_singularity_observation_ring_input_cradle",
+    "molecularmanipulator:twin_singularity_observation_ring_output_cradle",
     "molecularmanipulator:transfinite_compute_nexus",
     "molecularmanipulator:molecular_manipulator",
     "molecularmanipulator:assembler_matrix_molecular_core",
@@ -47,6 +56,22 @@
     "molecularmanipulator:singularity_base_slab",
     "molecularmanipulator:black_hole",
     "molecularmanipulator:white_hole",
-    "molecularmanipulator:gravity_crystal"
+    "molecularmanipulator:gravity_crystal",
+    "molecularmanipulator:star_marrow_crystal_bud_small",
+    "molecularmanipulator:star_marrow_crystal_bud_medium",
+    "molecularmanipulator:star_marrow_crystal_bud_large",
+    "molecularmanipulator:star_marrow_crystal_cluster",
+    "molecularmanipulator:flawless_star_marrow_parent_rock",
+    "molecularmanipulator:flawed_star_marrow_parent_rock",
+    "molecularmanipulator:damaged_star_marrow_parent_rock",
+    "molecularmanipulator:heavily_damaged_star_marrow_parent_rock",
+    "molecularmanipulator:star_computation_engine_core",
+    "molecularmanipulator:star_computation_engine_casing",
+    "molecularmanipulator:star_computation_observation_port",
+    "molecularmanipulator:reference_star_position_anchor",
+    "molecularmanipulator:quantum_star_position_anchor",
+    "molecularmanipulator:terminal_star_position_anchor",
+    "molecularmanipulator:star_orrery_engraved_plinth",
+    "molecularmanipulator:star_orrery_gilded_plinth"
   ]
 }

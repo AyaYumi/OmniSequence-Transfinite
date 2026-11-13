@@ -24,6 +24,7 @@ float sceneDistance(vec2 uv) {
 
 void main() {
     vec2 uv = gl_FragCoord.xy / SceneSize;
+    // Bobbing translates the projection eye; use that same origin for rays and depths.
     vec3 ray = normalize(viewPoint(uv, 0.5) - ViewOrigin);
     vec3 relativeCenter = CoreCenter - ViewOrigin;
     vec3 coreColor = vec3(HoleKind);

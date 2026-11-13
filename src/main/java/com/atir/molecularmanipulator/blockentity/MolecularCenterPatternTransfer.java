@@ -9,11 +9,10 @@ import appeng.api.storage.cells.StorageCell;
 import java.util.function.BooleanSupplier;
 import net.minecraft.world.item.ItemStack;
 
-/** Synchronous transfers between explicitly selected physical inventories, not arbitrary capabilities. */
+/** Synchronous transfers between explicitly selected pattern inventories, not arbitrary capabilities. */
 public final class MolecularCenterPatternTransfer {
     private MolecularCenterPatternTransfer() {}
 
-    /** Also used by the encoding-menu upload: the source slot must really lose exactly one item. */
     public static boolean fromInventory(InternalInventory source, int sourceSlot,
             InternalInventory destination, int destinationSlot, BooleanSupplier writable) {
         if (source == destination || sourceSlot < 0 || sourceSlot >= source.size()) return false;

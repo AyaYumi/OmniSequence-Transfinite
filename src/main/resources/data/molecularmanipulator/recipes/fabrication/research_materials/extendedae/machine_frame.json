@@ -13,13 +13,13 @@
   "ingredients": [
     {
       "ingredient": {
-        "tag": "c:ingots/copper"
+        "tag": "forge:ingots/copper"
       },
       "count": 2
     },
     {
       "ingredient": {
-        "tag": "c:ingots/infused_entro"
+        "tag": "forge:ingots/infused_entro"
       },
       "count": 4
     },
@@ -31,7 +31,7 @@
     },
     {
       "ingredient": {
-        "tag": "c:ingots/iron"
+        "tag": "forge:ingots/iron"
       },
       "count": 2
     }
@@ -42,7 +42,7 @@
       "count": 1
     }
   ],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 128.0,
   "requires_research": true
 }

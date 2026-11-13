@@ -59,11 +59,12 @@ public final class MolecularAutoCrafterBlock extends AEBaseEntityBlock<Molecular
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
-        return useWithoutItem(state, level, pos, player, hit);
+        return super.use(state, level, pos, player, hand, hit);
     }
 
-    private InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos,
-            Player player, BlockHitResult hit) {
+    @Override
+    public InteractionResult onActivated(Level level, BlockPos pos, Player player, InteractionHand hand,
+            ItemStack stack, BlockHitResult hit) {
         if (!level.isClientSide() && getBlockEntity(level, pos) != null) {
             getBlockEntity(level, pos).openMenu(player, MenuLocators.forBlockEntity(getBlockEntity(level, pos)));
         }

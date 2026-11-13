@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "RRR",
+    "RLR",
+    "RRR"
+  ],
+  "key": {
+    "R": {
+      "item": "ae2:quantum_ring"
+    },
+    "L": {
+      "item": "ae2:quantum_link"
+    }
+  },
+  "result": {
+    "item": "molecularmanipulator:sequence_wireless_hub",
+    "count": 1
+  }
+}

@@ -5,11 +5,13 @@ import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.client.AEKeyRendering;
+import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.client.AEStackIcon;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.world.item.TooltipFlag;
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.client.AeUiTheme;
 import com.atir.molecularmanipulator.client.OmniUiTheme;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
@@ -33,7 +35,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fml.ModList;
 
 /** Compact AE recipe sheet with labeled reusable catalysts in the material flow. */
 public final class MatterFabricationJeiCategory implements IRecipeCategory<MatterFabricationRecipe> {
@@ -117,10 +118,13 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
         } else if (stack.what() instanceof AEFluidKey fluid) {
             slot.addIngredient(ForgeTypes.FLUID_STACK, new net.minecraftforge.fluids.FluidStack(fluid.getFluid(), visibleAmount))
                     .setFluidRenderer(visibleAmount, false, 16, 16);
-        } else if (!ModList.get().isLoaded("ae2jeiintegration")
-                || !MatterFabricationJeiIngredients.add(slot, stack)) {
+        } else if (stack.what() instanceof StarSignalKey signal) {
+            slot.setSlotName(JeiAeStackAmounts.slotName(stack.amount()))
+                    .addIngredient(StarSignalJeiIngredient.TYPE, signal)
+                    .setCustomRenderer(StarSignalJeiIngredient.TYPE, new AeResourceRenderer<>(stack));
+        } else if (!MatterFabricationJeiIngredients.add(slot, stack)) {
             if (MISSING_CONVERTERS.add(stack.what().getType())) {
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("No native JEI ingredient converter for AE key {}", stack.what());
+                MolecularManipulator.LOGGER.warn("No native JEI ingredient converter for AE key {}", stack.what());
             }
         }
     }
@@ -181,8 +185,8 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
 
     @Override public void draw(MatterFabricationRecipe recipe, IRecipeSlotsView slots, GuiGraphics graphics, double mouseX, double mouseY) {
         var font = Minecraft.getInstance().font;
-        OmniUiTheme.panel(graphics, 0, 0, getWidth(), getHeight());
-        graphics.fill(1, 1, 183, 19, OmniUiTheme.PANEL_INSET);
+        AeUiTheme.panel(graphics, 0, 0, getWidth(), getHeight());
+        AeUiTheme.insetPanel(graphics, 0, 0, 184, 19);
         var info = stages.getOrDefault(recipe, new StageInfo(text("unassigned"), List.of(), OmniUiTheme.WARNING));
         graphics.fill(0, 0, 3, 19, info.color());
         var label = info.label();

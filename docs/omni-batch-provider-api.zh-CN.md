@@ -1,28 +1,36 @@
 # 万物演算批量样板供应器 API v1
 
-对应 2.0.13-forge，Minecraft 1.20.1 / Java 17 / AE2 15.4.10 / Applied Enhancements 1.1.2-forge+（编译 API 为 1.1.4-forge）。
+模组开发者可实现此接口，让 AE2 样板供应器一次接收多份完整配方，由 Omni 分配并交付整批材料。
+普通 AE2 供应器无需实现它也能正常接单。玩家搭建与操作见[玩家指南](../README.zh-CN.md)或游戏内 G 指南。
+
+对应 20.3.0.1，Minecraft 1.20.1 / Forge / Java 17 / AE2 15.4.10 / AppliedEnhancements 1.1.2-forge+（编译 API 1.1.4-forge）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 
-自 OmniSequence: Transfinite 1.3.9 起提供。
-
-运行时 ABI 仍为 **1**。
+自 OmniSequence: Transfinite 1.3.9 起提供，运行时 ABI 仍为 1。
 本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
 不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。
 
-此 SPI 面向“机器自身保存编码样板，并作为 AE2 `ICraftingProvider` 接单”的设备。
-普通供应器本来就能按单份配方使用 AE2；只有希望由万物演算核心或超限算枢一次分配多份完整
-材料时，才需要实现 `OmniBatchCraftingProvider`。
+此 SPI 面向自身保存编码样板、作为 AE2 `ICraftingProvider` 接单的设备。
+希望由万物演算核心或超限算枢一次分配多份完整材料时，实现 `OmniBatchCraftingProvider`。
 
 普通供应器可直接通过既有 `pushPattern` 使用自适应推送，多材料配方和自定义实现也适用，
-不需要额外接口。首发为一份原始任务；后续完整调用在同一 tick 按 1、2、4、8……轮次增长，
-直到供应器忙碌或拒绝接收。之后保留本轮实际成功调用数作为基线，满 20 tick 再按基线加
-1、2、4、8……探测。原生翻倍任务保留原有身份和数量。以下原子批量 SPI 保持不变，
-继续用于一次带明确份数的整批事务交付。
+不需要额外接口。首次调用发配一份原始任务；后续完整调用在同一 tick 按 1、2、4……轮次增长，
+直到供应器忙碌或拒绝接收。之后维持本轮实际成功调用数，满 20 tick 再按基线加
+1、2、4……探测。原生翻倍任务保留原有身份和数量。需要一次交付整批材料时，
+可使用原子批量 SPI。
+
+只剩一份的尾单走原始单份路径，不必等待凑批。内置机器的工具续用会保留返还工具与
+可确定的耐久变化，供后续合成继续使用，不复制工具，也不把它每次当作新耗材扣除。
+循环执行共享种子库存，当前阶段无法投料时让出调度机会，让其他可执行任务继续。
+这些路径仍受当前 CPU 存储与并行上限、材料、供电和机器接收能力限制。
 
 Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算枢没有新增供应器 ABI 或资源格式。
 
-接入流程为两阶段：
+## 接入步骤与材料归属
+
+接入流程为两阶段（完整 Java 实现片段见[英文版](omni-batch-provider-api.md#provider-integration)；
+示例中的库存检查、容量与持久队列辅助方法由接入机器实现）：
 
 1. `prepareOmniBatch` 根据一份真实材料与请求上限，返回当前能原子接收的完整配方数；
 2. Omni 抽取实际材料后调用 `commit`，供应器必须通过 delivery 明确接受或拒绝整批。
@@ -33,7 +41,7 @@ Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算
 运行时 ABI 检查应调用 `OmniBatchCraftingApi.apiVersion()`，不要依赖可能被 Java
 内联的 `API_VERSION` 常量。
 
-关键约束：
+材料归属规则：
 
 - `accept` 是唯一的所有权提交点。调用前，整批材料必须已经全部进入持久目标，或先
   写入供应器自身可保存的队列；
@@ -48,21 +56,23 @@ Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算
   停止无关样板或其他机器；
 - 建议持久队列使用 `dispatchId` 去重；
 - v1 只开放纯消耗材料的批量交付，返还容器、可复用工具和耐久变化配方继续安全地
-  走单份路径。
+  走单份路径；内置机器的专门处理不会扩展公开 v1 的材料归属契约。
 
 公开输入记录使用 AEKey，可表示已注册附属类型；具体可处理类型由供应器决定。
 数量沿用该 Key 的 AE 原生单位（物品个数、流体 mB 等）。数量为 long，
 接收前必须检查每种 Key 的加法和乘法溢出；Long.MAX_VALUE 上限不会绕过实际原料、
-供电、队列容量或产物计数限制。内置物质构筑井样板总成通过自身持久输入输出缓存实现
-本接口，支持构筑井配方声明的所有已注册 AEKey 输入。接收与排队任务开工前检查
-研究权限，开工时计算生产限制和加成。已开始加工的任务跨重载保留加工参数快照；
-排队任务保存原料所有权与配方 ID，并使用当前配方定义。`ae_inputs`、产物隔离和
+供电、队列容量或产物计数限制。
+
+内置物质构筑井样板总成通过自身持久输入输出缓存实现本接口，支持构筑井配方声明的
+所有已注册 AEKey 输入。接收与排队任务开工前检查研究权限，开工时计算生产限制和加成。
+已开始加工的任务跨重载保留原料、产物与功率快照；耗时随当前引擎收益调整，进度按比例换算。
+排队任务保存原料所有权与配方 ID，使用当前配方定义。`ae_inputs`、产物隔离和
 尚存的同产物重叠配方限制见[构筑井 API](matter-research-api.zh-CN.md)。
 
 ## 可选供应器适配
 
-无需修改第三方供应器类或让其直接实现 Omni 接口，兼容模组可通过
-`OmniBatchProviderAdapterRegistry.register` 注册整批能力。兼容类应仅在
+可选兼容模组可通过 `OmniBatchProviderAdapterRegistry.register` 为第三方供应器注册整批能力，
+无需修改供应器类或让其直接实现 Omni 接口。兼容类应仅在
 `molecularmanipulator` 已加载时启用，依赖使用 `compileOnly`。示例：
 
 ```java
@@ -110,8 +120,8 @@ AE2 完成已接收批次的预计产物记账后，才调用
 
 BigInteger 精确数量兼容也必须保留 AE2 发布的原始 `ICraftingProvider` 对象。第三方应
 通过 `OmniBigIntegerProviderAdapterRegistry.register` 注册“供应器/样板识别条件”和
-能力工厂，不要在 `CraftingService.getProviders` 中用代理替换供应器。这样既可按具体
-样板解析大数能力，又不会破坏 AE2 附属模组按对象身份保存的适配器映射。
+能力工厂，不要在 `CraftingService.getProviders` 中用代理替换供应器。这样可按具体
+样板解析大数能力，并保留 AE2 附属模组按对象身份保存的适配器映射。
 
 若第三方模组自己也修改了 AE2 CPU 的材料倍增逻辑，应在其 CPU Mixin 中调用
 `OmniBatchCraftingApi.isOmniManagedCpu(this)`。返回 `true` 时跳过自身倍增，交给
@@ -121,7 +131,7 @@ CPU 兼容 Hook 建议使用可链式的 Mixin Extras 包装，或 inject-and-ca
 对同一个 `ICraftingProvider.pushPattern` 调用使用硬 `@Redirect`，可能在执行上述判断
 前就发生注入冲突；已有 Redirect 应在 Omni 加载时条件禁用，并把判断移到兼容 Hook。
 
-API 中没有任何特定模组的类名或硬编码适配。第三方应把 OmniSequence 声明为
+API 中没有针对特定模组的类名或硬编码适配。第三方应把 OmniSequence 声明为
 `compileOnly`，并仅在 Mod ID `molecularmanipulator` 已加载时启用兼容类或条件 Mixin。
 
 ## 循环事务、副产物与原生倍增
@@ -132,36 +142,15 @@ API 中没有任何特定模组的类名或硬编码适配。第三方应把 Omn
 `beginDispatch(actualInputs, actualCrafts)`，持久所有权移交时确认 `accepted()`。
 拒绝后关闭事务会恢复循环记账；CPU 仍负责退回自己持有的实物。库存为 null 时
 本次不可发配，`maximumCrafts()` 只表示当前阶段上限，不保证材料或队列容量。
-支持的 AES Forge 运行时为 1.1.2-forge 或更新版本；不要在首次抽料后重新获取上下文。
+该共享接口在支持的 AppliedEnhancements 1.1.2-forge+ 运行环境中可用，不要在首次抽料后重新获取上下文。
 
 完整记录主产物与所有物品、流体副产物。优化或外部批量包装不可识别时，保留
 原始完整任务账本并回退普通规划/发配，不能因副产物直接中断规划，也不能将
 long 预览窗口当成完整订单。供应器仍须满足真实材料、容量和持久所有权契约。
 
-使用支持的 AES Forge 运行时接入时，通过 `AelisSmartDoublingApi.isExternallyManaged(pattern)`
-判断是否已由外部管理倍率。保留原生样板包装、供应器分配与原样板尾数，避免
-再次倍增；仅安装附属不会让全部样板绕过本地处理。该查询不代表所有权或大数执行能力。
-
-## Forge 可选原生 CPU API
-
-物质构筑井样板总成在已安装的 Forge 附属提供匹配公开 API 时接入以下派发契约。
-研究、催化剂、容量与持久材料所有权检查仍适用，Omni 批量 ABI 保持 1。
-
-| 附属契约 | 准入与接收数量语义 |
-| --- | --- |
-| ECO `ECOFastPathDispatchProvider` | 快速准备核验完整输入和输出；有容器余量或精确输入超出持久 long 表示范围时拒绝此路径。 |
-| Thunderbolt `IBatchCraftingProvider` | `pushBatch` 使用可复用的单份材料原型，返回**未接收的剩余次数**。 |
-| Data Energistics `CountedCraftingProviderAdapter` | 以原始供应器身份注册；一次性准入报告次数，提交成功后才确认材料所有权移交，供应器断开时取消注册。 |
-
-原生计数派发跳过本地智能翻倍。外部倍率样板仍按完整输入/输出比例处理，接收的批次
-保存完整材料向量；容量查询不移交材料，也不授权额外倍增。
-
-ECO 可选运行依赖最低为 **20.4.2**。原生批量／精确计划兼容使用真实 Forge **20.5.0** API
-编译，仅在该版本或更高版本启用；较旧的受支持 ECO 版本保留普通 AE 派发和按任务取消。
-`src/optionalCpuApi` 为其他可选接口提供 Java 17 编译签名，不进入运行时或发布 JAR。
-Thunderbolt 还须提供公开批量接口；Data Energistics 契约不可用时保留普通 AE 派发。
-这些 Forge 依赖没有 legacy 的 Thunderbolt 原生执行器与 Trinity 计数 CPU 契约，
-因此本移植不提供对应执行器钩子。匹配的 Forge 附属需单独安装。
+通过 `AelisSmartDoublingApi.isExternallyManaged(pattern)` 判断是否已由外部管理倍率。
+保留原生样板包装、供应器分配与原样板尾数，避免再次倍增；仅安装附属不会让全部样板
+绕过本地处理。该查询不代表所有权或大数执行能力，相关类型应放在对应的兼容类中加载。
 
 ## 大数能力
 

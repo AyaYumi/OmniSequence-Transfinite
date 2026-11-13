@@ -1,290 +1,105 @@
 package com.atir.molecularmanipulator.client;
 
-import appeng.client.gui.Icon;
-import appeng.client.gui.style.PaletteColor;
+import appeng.api.orientation.RelativeSide;
 import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafterBlockEntity;
-import com.atir.molecularmanipulator.blockentity.MolecularAutoCrafter;
 import com.atir.molecularmanipulator.menu.MolecularAutoCrafterMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.*;
+import java.util.*;
 
-/** Compact AE2 pattern controls and the player inventory. */
 public final class MolecularAutoCrafterScreen extends ResponsiveContainerScreen<MolecularAutoCrafterMenu> {
-    private static final int CONTROL_SIZE = 16;
-    private static final int CONTROL_ICON_SIZE = 16;
-    private final MolecularAutoCrafterIconButton[] configureButtons =
-            new MolecularAutoCrafterIconButton[MolecularAutoCrafter.PATTERN_SLOTS];
-    private final MolecularAutoCrafterIconButton[] startButtons =
-            new MolecularAutoCrafterIconButton[MolecularAutoCrafter.PATTERN_SLOTS];
-    private MolecularAutoCrafterIconButton outputModeButton;
-    private MolecularAutoCrafterIconButton outputDirectionButton;
-    private DirectionPopup directionPopup;
-    private boolean directionPopupOpen;
-
-    public MolecularAutoCrafterScreen(MolecularAutoCrafterMenu menu, Inventory inventory,
-            Component title, ScreenStyle style) {
-        super(menu, inventory, title, style);
-    }
-
-    @Override
-    protected void slotClicked(Slot slot, int slotId, int mouseButton, ClickType clickType) {
-        int index = menu.getPatternSlots().indexOf(slot);
-        if (index >= 0 && mouseButton == 1 && clickType == ClickType.PICKUP) {
-            menu.requestConfig(index);
-            return;
+    private static final int DIRECTIONS_EXTRA_HEIGHT=14;
+    private OsqUi ui;
+    private boolean directionsOpen;
+    private final List<Button> sideButtons=new ArrayList<>();
+    private final Button[] configs=new Button[9],runs=new Button[9];
+    private Button directionControl, outputModeControl;
+    private Component outputModeTooltip, directionTooltip;
+    private final Component[] sideTooltips=new Component[6];
+    public MolecularAutoCrafterScreen(MolecularAutoCrafterMenu menu,Inventory inventory,Component title,ScreenStyle style){super(menu,inventory,title,style);}
+    @Override protected void init(){
+        outputModeTooltip=directionTooltip=null;
+        Arrays.fill(sideTooltips,null);
+        if(!adjacent())directionsOpen=false;
+        ui=new OsqUi("seq_autocrafter");configureDirectionPage();super.init();
+        ui.inventory(menu);ui.slots(menu.getPatternSlots(),"res");sideButtons.clear();
+        ui.text("block.molecularmanipulator.molecular_auto_crafter",()->directionsOpen?tr("output_directions")
+                :menu.getMachine().getBlockState().getBlock().getName());
+        for(int i=0;i<9;i++){final int index=i;
+            configs[i]=addScreenWidget(ui.button("cfg"+i,leftPos,topPos,()->tr("select_slot",index+1),()->menu.requestConfig(index)));
+            runs[i]=addScreenWidget(ui.button("run"+i,leftPos,topPos,()->tr((menu.enabledMask&(1<<index))!=0?"stop_slot":"start_slot",index+1),()->menu.requestToggle(index)));
+            ui.state(runs[i],()->(menu.enabledMask&(1<<index))!=0?"active":"normal");
+            ui.icon(runs[i],()->(menu.enabledMask&(1<<index))!=0?"pause":"play");
         }
-        super.slotClicked(slot, slotId, mouseButton, clickType);
-    }
-
-    @Override
-    protected void init() {
-        if (outputModeButton == null) {
-            outputModeButton = addToLeftToolbar(new MolecularAutoCrafterIconButton(
-                    0, 0, Icon.AUTO_EXPORT_ON, Component.empty(), menu::requestOutputModeToggle));
-            outputDirectionButton = addToLeftToolbar(new MolecularAutoCrafterIconButton(
-                    0, 0, Icon.SCHEDULING_ROUND_ROBIN, Component.empty(), this::toggleDirectionPopup));
-        }
-        super.init();
-        directionPopup = new DirectionPopup(leftPos + 82, topPos + 82);
-        addScreenWidget(directionPopup);
-        var slots = menu.getPatternSlots();
-        for (int index = 0; index < slots.size(); index++) {
-            int selected = index;
-            Slot slot = slots.get(index);
-            int x = leftPos + slot.x + (16 - CONTROL_SIZE) / 2;
-            configureButtons[index] = addScreenWidget(new MolecularAutoCrafterIconButton(
-                    x, topPos + slot.y - 20, CONTROL_SIZE, CONTROL_ICON_SIZE, Icon.WRENCH,
-                    Component.translatable("gui.molecularmanipulator.auto_craft_select_slot", index + 1),
-                    () -> menu.requestConfig(selected)));
-            startButtons[index] = addScreenWidget(new MolecularAutoCrafterIconButton(
-                    x, topPos + slot.y + 20, CONTROL_SIZE, CONTROL_ICON_SIZE, Icon.ENTER,
-                    Component.empty(),
-                    () -> menu.requestToggle(selected)));
-        }
-        refreshControls();
-    }
-
-    @Override
-    public void containerTick() {
-        super.containerTick();
-        refreshControls();
-    }
-
-    private void refreshControls() {
-        boolean adjacent = menu.outputMode == MolecularAutoCrafterBlockEntity.OutputMode.ADJACENT;
-        outputModeButton.setIcon(adjacent ? Icon.AUTO_EXPORT_OFF : Icon.AUTO_EXPORT_ON);
-        outputModeButton.setMessage(Component.translatable(adjacent
-                ? "gui.molecularmanipulator.auto_craft_output_adjacent"
-                : "gui.molecularmanipulator.auto_craft_output_network"));
-        outputModeButton.setTooltip(Tooltip.create(Component.translatable(adjacent
-                ? "gui.molecularmanipulator.auto_craft_output_adjacent"
-                : "gui.molecularmanipulator.auto_craft_output_network").copy().append("\n")
-                .append(Component.translatable(adjacent
-                        ? "gui.molecularmanipulator.auto_craft_output_adjacent_hint"
-                        : "gui.molecularmanipulator.auto_craft_output_network_hint"))));
-        outputDirectionButton.visible = adjacent;
-        outputDirectionButton.active = adjacent;
-        outputDirectionButton.setMessage(Component.translatable(
-                "gui.molecularmanipulator.auto_craft_output_directions"));
-        outputDirectionButton.setTooltip(Tooltip.create(Component.translatable(
-                "gui.molecularmanipulator.auto_craft_output_directions_hint")));
-        if (!adjacent) directionPopupOpen = false;
-        outputDirectionButton.setSelected(adjacent && directionPopupOpen);
-        if (directionPopup != null) {
-            directionPopup.visible = directionPopupOpen && adjacent;
-            if (directionPopup.visible && !directionPopup.dragged) positionPopupUnderButton();
-        }
-
-        var slots = menu.getPatternSlots();
-        for (int index = 0; index < slots.size(); index++) {
-            boolean occupied = !slots.get(index).getItem().isEmpty();
-            boolean enabled = (menu.enabledMask & (1 << index)) != 0;
-            configureButtons[index].active = occupied;
-            startButtons[index].active = occupied;
-            startButtons[index].setSelected(enabled);
-            startButtons[index].setIcon(enabled ? Icon.CLEAR : Icon.ENTER);
-            startButtons[index].setMessage(Component.translatable(
-                    enabled ? "gui.molecularmanipulator.auto_craft_stop_slot"
-                            : "gui.molecularmanipulator.auto_craft_start_slot", index + 1));
-            startButtons[index].setTooltip(Tooltip.create(startButtons[index].getMessage()));
-        }
-    }
-
-    @Override
-    public void drawBG(GuiGraphics graphics, int x, int y, int mouseX, int mouseY, float partialTick) {
-        super.drawBG(graphics, x, y, mouseX, mouseY, partialTick);
-        // Slot coordinates describe the 16px item interior, not the 18px frame.
-        for (Slot slot : menu.slots) {
-            if (slot.isActive()) {
-                Icon.SLOT_BACKGROUND.getBlitter().dest(x + slot.x - 1, y + slot.y - 1).blit(graphics);
-            }
-        }
-        int gridX = x + MolecularAutoCrafterMenu.GRID_X - 1;
-        OmniUiTheme.slotGridOutline(graphics, gridX, y + MolecularAutoCrafterMenu.PATTERN_Y - 1, 9, 1);
-        OmniUiTheme.slotGridOutline(graphics, gridX, y + MolecularAutoCrafterMenu.INVENTORY_Y - 1, 9, 3);
-        OmniUiTheme.slotGridOutline(graphics, gridX, y + MolecularAutoCrafterMenu.HOTBAR_Y - 1, 9, 1);
-    }
-
-    @Override
-    public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        var displayName = getGuiDisplayName(title);
-        drawFittedString(graphics, displayName.getString().isBlank()
-                        ? Component.translatable("gui.ae2.Patterns") : displayName,
-                MolecularAutoCrafterMenu.GRID_X, 6, 160,
-                style.getColor(PaletteColor.DEFAULT_TEXT_COLOR).toARGB());
-    }
-
-    private void toggleDirectionPopup() {
-        if (menu.outputMode == MolecularAutoCrafterBlockEntity.OutputMode.ADJACENT) {
-            directionPopupOpen = !directionPopupOpen;
-            if (directionPopup != null) {
-                directionPopup.visible = directionPopupOpen;
-                if (directionPopupOpen && !directionPopup.dragged) positionPopupUnderButton();
-            }
-        }
-    }
-
-    private void positionPopupUnderButton() {
-        directionPopup.setX(outputDirectionButton.getX() + outputDirectionButton.getWidth()
-                - directionPopup.getWidth());
-        directionPopup.setY(outputDirectionButton.getY() + outputDirectionButton.getHeight() + 4);
-    }
-
-    private final class DirectionPopup extends AbstractButton {
-        private static final int CELL_SIZE = 18;
-        private static final int CELL_STEP = 20;
-        private static final int GRID_X = 8;
-        private static final int GRID_Y = 24;
-        private static final int POPUP_WIDTH = 106;
-        private static final int POPUP_HEIGHT = 92;
-        private static final int[][] CELLS = {
-                {1, 0}, {1, 2}, {0, 1}, {2, 1}, {1, 1}, {2, 2}
+        var help=addScreenWidget(ui.button("tool0",leftPos,topPos,()->tr("help"),this::openGuide));
+        help.setTooltip(Tooltip.create(tr("help")));
+        outputModeControl=addScreenWidget(ui.button("tool1",leftPos,topPos,this::outputModeLabel,menu::requestOutputModeToggle));
+        ui.icon(outputModeControl,()->adjacent()?"out":"net");
+        var direction=addScreenWidget(ui.button("tool2",leftPos,topPos,()->tr("output_directions"),this::toggleDirections));
+        ui.state(direction,()->directionsOpen?"active":"normal");
+        directionControl=direction;
+        for(int i=0;i<6;i++){var side=OsqNeighborDirections.OUTPUT_SIDES[i];var b=addScreenWidget(ui.button(OsqNeighborDirections.IDS[i],leftPos,topPos,()->OsqNeighborDirections.label(side),()->menu.requestOutputSideToggle(outputSide(side).get3DDataValue())));
+            ui.state(b,()->(menu.outputSides&(1<<outputSide(side).get3DDataValue()))!=0?"active":"normal");
+            ui.itemIcon(b,()->OsqNeighborDirections.icon(menu.getMachine().getLevel(),menu.getMachine().getBlockPos(),outputSide(side)));
+            sideButtons.add(b);}
+        ui.visible=e->{
+            if("tip".equals(e.kind))return false;
+            if("dirs".equals(e.id))return directionsOpen;
+            return !("slots".equals(e.id)||"res".equals(e.id))||!directionsOpen;
         };
-        private boolean dragging;
-        private int dragOffsetX;
-        private int dragOffsetY;
-        private boolean dragged;
-
-        private DirectionPopup(int x, int y) {
-            super(x, y, POPUP_WIDTH, POPUP_HEIGHT, Component.empty());
-            visible = false;
-        }
-
-        @Override
-        public void onPress() {
-            // Direction cells are handled by mouseClicked below.
-        }
-
-        @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            if (!visible || button != 0 || !isMouseOver(mouseX, mouseY)) return false;
-            int localX = (int) mouseX - getX();
-            int localY = (int) mouseY - getY();
-            if (localX >= POPUP_WIDTH - 22 && localY >= POPUP_HEIGHT - 22) {
-                directionPopupOpen = false;
-                visible = false;
-                return true;
-            }
-            if (localY < 18) {
-                dragging = true;
-                dragOffsetX = localX;
-                dragOffsetY = localY;
-                return true;
-            }
-            for (int index = 0; index < CELLS.length; index++) {
-                int cellLeft = GRID_X + CELLS[index][0] * CELL_STEP;
-                int cellTop = GRID_Y + CELLS[index][1] * CELL_STEP;
-                if (localX >= cellLeft && localX < cellLeft + CELL_SIZE
-                        && localY >= cellTop && localY < cellTop + CELL_SIZE) {
-                    menu.requestOutputSideToggle(directions()[index].get3DDataValue());
-                    return true;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public boolean mouseDragged(double mouseX, double mouseY, int button,
-                double dragX, double dragY) {
-            if (!dragging || button != 0) return false;
-            setX((int) mouseX - dragOffsetX);
-            setY((int) mouseY - dragOffsetY);
-            dragged = true;
-            return true;
-        }
-
-        @Override
-        public boolean mouseReleased(double mouseX, double mouseY, int button) {
-            if (button != 0) return false;
-            dragging = false;
-            return true;
-        }
-
-        @Override
-        public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            if (!visible) return;
-            OmniUiTheme.panel(graphics, getX(), getY(), getX() + POPUP_WIDTH, getY() + POPUP_HEIGHT);
-            drawFittedString(graphics, Component.translatable(
-                    "gui.molecularmanipulator.auto_craft_output_directions"),
-                    getX() + 8, getY() + 5, POPUP_WIDTH - 16, OmniUiTheme.PRIMARY_TEXT);
-            int sides = menu.outputSides;
-            var directions = directions();
-            for (int index = 0; index < CELLS.length; index++) {
-                int cellLeft = getX() + GRID_X + CELLS[index][0] * CELL_STEP;
-                int cellTop = getY() + GRID_Y + CELLS[index][1] * CELL_STEP;
-                boolean selected = (sides & 1 << directions[index].get3DDataValue()) != 0;
-                boolean hovered = mouseX >= cellLeft && mouseX < cellLeft + CELL_SIZE
-                        && mouseY >= cellTop && mouseY < cellTop + CELL_SIZE;
-                Icon background = Icon.TOOLBAR_BUTTON_BACKGROUND;
-                if (selected || hovered) graphics.fill(cellLeft, cellTop, cellLeft + CELL_SIZE,
-                        cellTop + CELL_SIZE, OmniUiTheme.BUTTON_HOVER_SHADE);
-                background.getBlitter().dest(cellLeft, cellTop, CELL_SIZE, CELL_SIZE)
-                        .blit(graphics);
-                var neighbor = neighborStack(directions[index]);
-                if (!neighbor.isEmpty()) graphics.renderItem(neighbor, cellLeft + 1, cellTop + 1);
-            }
-            int closeLeft = getX() + POPUP_WIDTH - 20;
-            int closeTop = getY() + POPUP_HEIGHT - 20;
-            boolean closeHovered = mouseX >= closeLeft && mouseX < closeLeft + 18
-                    && mouseY >= closeTop && mouseY < closeTop + 18;
-            if (closeHovered) graphics.fill(closeLeft, closeTop, closeLeft + 18,
-                    closeTop + 18, OmniUiTheme.BUTTON_HOVER_SHADE);
-            Icon.TOOLBAR_BUTTON_BACKGROUND.getBlitter()
-                    .dest(closeLeft, closeTop, 18, 18).blit(graphics);
-            Icon.CLEAR.getBlitter().dest(closeLeft + 3, closeTop + 3, 12, 12)
-                    .blit(graphics);
-        }
-
-        private ItemStack neighborStack(Direction direction) {
-            var machine = menu.getMachine();
-            var level = machine.getLevel();
-            if (level == null) return ItemStack.EMPTY;
-            var state = level.getBlockState(machine.getBlockPos().relative(direction));
-            return state.isAir() ? ItemStack.EMPTY : new ItemStack(state.getBlock());
-        }
-
-        private Direction[] directions() {
-            var facing = menu.getMachine().getBlockState()
-                    .getValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING);
-            // The panel is viewed from the machine's front, looking against its facing.
-            return new Direction[] {
-                    Direction.UP, Direction.DOWN, facing.getClockWise(),
-                    facing.getCounterClockWise(), facing, facing.getOpposite()
-            };
-        }
-
-        @Override
-        protected void updateWidgetNarration(NarrationElementOutput narration) {
-            defaultButtonNarrationText(narration);
+        refresh();
+    }
+    private Direction outputSide(RelativeSide side){return OsqNeighborDirections.worldSide(menu.getMachine().getBlockState(),side);}
+    private boolean adjacent(){return menu.outputMode==MolecularAutoCrafterBlockEntity.OutputMode.ADJACENT;}
+    private Component outputModeLabel(){return tr("output_mode",tr(adjacent()?"output_adjacent":"output_network"));}
+    private void configureDirectionPage(){
+        imageWidth=ui.layout.width;imageHeight=ui.layout.height;
+        if(!directionsOpen)return;
+        // The larger direction card needs its own space, not the inventory's top edge.
+        imageHeight+=DIRECTIONS_EXTRA_HEIGHT;
+        var window=ui.layout.find("window");
+        window.h+=DIRECTIONS_EXTRA_HEIGHT;
+        // Shared material samples follow the live geometry; no size-specific texture is required.
+        for(var entry:ui.layout.draw)if("inv".equals(entry.id)||entry.external){
+            entry.y+=DIRECTIONS_EXTRA_HEIGHT;
         }
     }
+    private void toggleDirections(){if(adjacent()){directionsOpen=!directionsOpen;rebuildWidgets();}}
+    private void openGuide(){
+        OsqGuide.open("molecular_auto_crafter");
+    }
+    private void refresh(){boolean adjacent=adjacent();
+        if(!adjacent&&directionsOpen){directionsOpen=false;rebuildWidgets();return;}
+        directionControl.active=adjacent;
+        var directionHint=tr(adjacent?"output_directions_hint":"directions_network_hint");
+        if(!directionHint.equals(directionTooltip)){directionControl.setTooltip(Tooltip.create(directionHint));directionTooltip=directionHint;}
+        var tooltip=outputModeLabel().copy().append("\n").append(tr("output_mode_hint"));
+        if(!tooltip.equals(outputModeTooltip)){outputModeControl.setTooltip(Tooltip.create(tooltip));outputModeTooltip=tooltip;}
+        for(int i=0;i<sideButtons.size();i++){
+            var b=sideButtons.get(i);b.visible=directionsOpen;
+            if(!directionsOpen)continue;
+            var side=OsqNeighborDirections.OUTPUT_SIDES[i];
+            var hint=OsqNeighborDirections.tooltip(menu.getMachine().getLevel(),menu.getMachine().getBlockPos(),side,outputSide(side),menu.outputSides);
+            if(!hint.equals(sideTooltips[i])){b.setTooltip(Tooltip.create(hint));sideTooltips[i]=hint;}
+        }
+        for(int i=0;i<9;i++){boolean present=menu.getPatternSlots().get(i).hasItem();configs[i].active=runs[i].active=present;
+            configs[i].visible=runs[i].visible=!directionsOpen;}
+        ui.slots(menu.getPatternSlots(),"res");
+        if(directionsOpen)for(var slot:menu.getPatternSlots()){slot.x=-1000;slot.y=-1000;}}
+    @Override public void containerTick(){super.containerTick();refresh();}
+    boolean directionsOpen(){return directionsOpen;}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(wirelessPanelOpen())return super.keyPressed(key,scan,mods);if(key==256&&directionsOpen){directionsOpen=false;rebuildWidgets();return true;}return super.keyPressed(key,scan,mods);}
+    @Override protected void slotClicked(Slot slot,int id,int button,ClickType type){int i=menu.getPatternSlots().indexOf(slot);if(i>=0&&button==1&&type==ClickType.PICKUP){menu.requestConfig(i);return;}super.slotClicked(slot,id,button,type);}
+    @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui!=null)ui.background(g,font,x,y);}
+    @Override public void drawFG(GuiGraphics g,int ox,int oy,int mx,int my){if(ui!=null)ui.foreground(g,font);}
+    private static Component tr(String key,Object... args){return OsqUi.tr("gui.molecularmanipulator.auto_craft_"+key,args);}
 }

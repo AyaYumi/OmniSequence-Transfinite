@@ -31,7 +31,7 @@ public final class GravityController {
     }
 
     public static boolean eligible(Player player) {
-        return player.isAlive() && !player.isSpectator()
+        return player.isAlive() && !player.isSpectator() && !player.getAbilities().flying
                 && !player.isPassenger() && !player.isSleeping() && !player.isFallFlying()
                 && !player.isInWaterOrBubble() && !player.isInLava()
                 && !AntarchyGravityCompat.controlsGravity(player);

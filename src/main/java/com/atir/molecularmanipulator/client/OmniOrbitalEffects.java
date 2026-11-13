@@ -2,11 +2,14 @@ package com.atir.molecularmanipulator.client;
 
 import com.atir.molecularmanipulator.blockentity.OmniCrownGeometry;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure.PartType;
+import com.atir.molecularmanipulator.client.render.ParallelEffectGeometry;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.world.phys.Vec3;
 import java.util.List;
+import java.util.function.Consumer;
 import static com.atir.molecularmanipulator.client.render.OmniRenderGeometry.argb;
+import static org.joml.Math.fma;
 
 /** Amethyst celestial orrery. The outer orbit deliberately has no geometric seal markers. */
 final class OmniOrbitalEffects {
@@ -19,14 +22,48 @@ final class OmniOrbitalEffects {
                     && (part.y() == OmniCrownGeometry.CENTER_Y + 9 || part.y() == OmniCrownGeometry.CENTER_Y - 5))
             .map(part -> new Vec3(part.x(), part.y() - OmniCrownGeometry.CENTER_Y, part.z())).toList();
 
+    static final int PART_COUNT = OmniCrownGeometry.orbits().size() + 1;
+
     private OmniOrbitalEffects() { }
+
+    /** One task per orbit plus the remaining field, for each of the two ordered passes. */
+    @SuppressWarnings("unchecked")
+    static ParallelEffectGeometry.Frame prepare(ParallelEffectGeometry geometry, PoseStack stack,
+            double angle, float activity, float completion, boolean detailed) {
+        if (!detailed || !ParallelEffectGeometry.isAvailable()) return null;
+        var tasks = (Consumer<VertexConsumer>[]) new Consumer<?>[PART_COUNT * 2];
+        float drive = com.atir.molecularmanipulator.util.MathCompat.clamp(activity, 0, 1), pulse = com.atir.molecularmanipulator.util.MathCompat.clamp(completion, 0, 1);
+        for (int pass = 0; pass < 2; pass++) for (int part = 0; part < PART_COUNT; part++) {
+            var pose = com.atir.molecularmanipulator.client.render.ForgeRenderSupport.copyPose(stack.last());
+            int index = part;
+            boolean glow = pass == 1;
+            tasks[pass * PART_COUNT + part] = out -> {
+                if (index < PART_COUNT - 1) {
+                    drawOrbits(pose, out, angle, drive, pulse, detailed, glow, index, index + 1);
+                } else {
+                    drawField(pose, out, angle, drive, pulse, detailed, glow);
+                }
+            };
+        }
+        return geometry.prepare(tasks);
+    }
+
+    static void submit(ParallelEffectGeometry.Frame frame, VertexConsumer out, boolean glow) {
+        int from = glow ? PART_COUNT : 0;
+        for (int part = 0; part < PART_COUNT; part++) frame.submit(from + part, out);
+    }
 
     static void render(PoseStack stack, VertexConsumer out, double angle, float activity,
             float completion, boolean detailed, boolean glow) {
         float drive = com.atir.molecularmanipulator.util.MathCompat.clamp(activity, 0, 1);
         float pulse = com.atir.molecularmanipulator.util.MathCompat.clamp(completion, 0, 1);
         var pose = stack.last();
-        drawOrbits(pose, out, angle, drive, pulse, detailed, glow);
+        drawOrbits(pose, out, angle, drive, pulse, detailed, glow, 0, PART_COUNT - 1);
+        drawField(pose, out, angle, drive, pulse, detailed, glow);
+    }
+
+    private static void drawField(PoseStack.Pose pose, VertexConsumer out, double angle,
+            float drive, float pulse, boolean detailed, boolean glow) {
         drawHypercube(pose, out, angle, drive, glow);
         drawStarMap(pose, out, angle, drive, pulse, detailed, glow);
         drawStations(pose, out, angle, drive, detailed, glow);
@@ -34,9 +71,9 @@ final class OmniOrbitalEffects {
     }
 
     private static void drawOrbits(PoseStack.Pose pose, VertexConsumer out, double angle,
-            float drive, float pulse, boolean detailed, boolean glow) {
-        int index = 0;
-        for (var orbit : OmniCrownGeometry.orbits()) {
+            float drive, float pulse, boolean detailed, boolean glow, int from, int to) {
+        for (int index = from; index < to; index++) {
+            var orbit = OmniCrownGeometry.orbits().get(index);
             int color = index == 2 ? CYAN : VIOLET;
             int segments = detailed ? 192 : 96;
             for (double offset : new double[] {-0.68, 0.68}) {
@@ -95,37 +132,43 @@ final class OmniOrbitalEffects {
                 spark(pose, out, orbitPoint(orbit, direction * head, 0),
                         0.22 + drive * 0.06, glow, PEARL);
             }
-            index++;
         }
     }
 
     static Vec3 railPoint(OmniCrownGeometry.Orbit orbit, double phase) {
         double offset = orbit.ny() > 0.999 ? 0.66 : 1.9;
-        return orbit.point(phase).add(new Vec3(orbit.nx(), orbit.ny(), orbit.nz()).scale(offset));
+        return orbit.point(phase).add(orbit.nx() * offset, orbit.ny() * offset, orbit.nz() * offset);
     }
 
     static Vec3 orbitPoint(OmniCrownGeometry.Orbit orbit, double phase, double radialOffset) {
-        return railPoint(orbit, phase).add(orbit.point(phase).normalize().scale(radialOffset));
+        var point = orbit.point(phase);
+        double offset = orbit.ny() > 0.999 ? 0.66 : 1.9;
+        return point.add(orbit.nx() * offset, orbit.ny() * offset, orbit.nz() * offset)
+                .add(point.normalize().scale(radialOffset));
     }
 
     private static void orbitArc(PoseStack.Pose pose, VertexConsumer out, OmniCrownGeometry.Orbit orbit,
             double start, double sweep, int segments, double offset, float width, int color, int alpha) {
-        for (int step = 0; step < segments; step++) line(pose, out,
-                orbitPoint(orbit, start + sweep * step / segments, offset),
-                orbitPoint(orbit, start + sweep * (step + 1) / segments, offset), width, color, alpha);
+        var previous = orbitPoint(orbit, start, offset);
+        for (int step = 0; step < segments; step++) {
+            var next = orbitPoint(orbit, start + sweep * (step + 1) / segments, offset);
+            line(pose, out, previous, next, width, color, alpha);
+            previous = next;
+        }
     }
 
     /** Rotate a true four-dimensional cube, then project through a bounded 4D perspective. */
     static Vec3[] hypercubeVertices(double angle) {
         var vertices = new Vec3[16];
         double ax = angle * 0.005, ay = angle * 0.0031;
+        double cosX = Math.cos(ax), sinX = Math.sin(ax), cosY = Math.cos(ay), sinY = Math.sin(ay);
         for (int index = 0; index < 16; index++) {
             double x = (index & 1) == 0 ? -1 : 1, y = (index & 2) == 0 ? -1 : 1;
             double z = (index & 4) == 0 ? -1 : 1, w = (index & 8) == 0 ? -1 : 1;
-            double rx = x * Math.cos(ax) - w * Math.sin(ax);
-            double rw = x * Math.sin(ax) + w * Math.cos(ax);
-            double ry = y * Math.cos(ay) - rw * Math.sin(ay);
-            rw = y * Math.sin(ay) + rw * Math.cos(ay);
+            double rx = x * cosX - w * sinX;
+            double rw = x * sinX + w * cosX;
+            double ry = y * cosY - rw * sinY;
+            rw = y * sinY + rw * cosY;
             double scale = 4.7 / (3.5 - rw);
             vertices[index] = new Vec3(rx * scale, ry * scale, z * scale).yRot((float) (angle * 0.002));
         }
@@ -292,11 +335,38 @@ final class OmniOrbitalEffects {
     }
 
     private static void face(PoseStack.Pose pose, VertexConsumer out, Vec3 a, Vec3 b, Vec3 c, Vec3 d, int color) {
-        vertex(pose, out, a, color); vertex(pose, out, b, color); vertex(pose, out, c, color); vertex(pose, out, d, color);
-        vertex(pose, out, d, color); vertex(pose, out, c, color); vertex(pose, out, b, color); vertex(pose, out, a, color);
+        var matrix = pose.pose();
+        float m00 = matrix.m00(), m01 = matrix.m01(), m02 = matrix.m02();
+        float m10 = matrix.m10(), m11 = matrix.m11(), m12 = matrix.m12();
+        float m20 = matrix.m20(), m21 = matrix.m21(), m22 = matrix.m22();
+        float m30 = matrix.m30(), m31 = matrix.m31(), m32 = matrix.m32();
+        float ax = (float) a.x, ay = (float) a.y, az = (float) a.z;
+        float bx = (float) b.x, by = (float) b.y, bz = (float) b.z;
+        float cx = (float) c.x, cy = (float) c.y, cz = (float) c.z;
+        float dx = (float) d.x, dy = (float) d.y, dz = (float) d.z;
+
+        // Match JOML transformPosition rounding, including joml.useMathFma.
+        float tax = fma(m00, ax, fma(m10, ay, fma(m20, az, m30)));
+        float tay = fma(m01, ax, fma(m11, ay, fma(m21, az, m31)));
+        float taz = fma(m02, ax, fma(m12, ay, fma(m22, az, m32)));
+        float tbx = fma(m00, bx, fma(m10, by, fma(m20, bz, m30)));
+        float tby = fma(m01, bx, fma(m11, by, fma(m21, bz, m31)));
+        float tbz = fma(m02, bx, fma(m12, by, fma(m22, bz, m32)));
+        float tcx = fma(m00, cx, fma(m10, cy, fma(m20, cz, m30)));
+        float tcy = fma(m01, cx, fma(m11, cy, fma(m21, cz, m31)));
+        float tcz = fma(m02, cx, fma(m12, cy, fma(m22, cz, m32)));
+        float tdx = fma(m00, dx, fma(m10, dy, fma(m20, dz, m30)));
+        float tdy = fma(m01, dx, fma(m11, dy, fma(m21, dz, m31)));
+        float tdz = fma(m02, dx, fma(m12, dy, fma(m22, dz, m32)));
+
+        // Reuse four transformed corners for both windings; retain all eight vertices.
+        vertex(out, tax, tay, taz, color); vertex(out, tbx, tby, tbz, color);
+        vertex(out, tcx, tcy, tcz, color); vertex(out, tdx, tdy, tdz, color);
+        vertex(out, tdx, tdy, tdz, color); vertex(out, tcx, tcy, tcz, color);
+        vertex(out, tbx, tby, tbz, color); vertex(out, tax, tay, taz, color);
     }
 
-    private static void vertex(PoseStack.Pose pose, VertexConsumer out, Vec3 point, int color) {
-        out.vertex(pose.pose(), (float) point.x, (float) point.y, (float) point.z).color(color).endVertex();
+    private static void vertex(VertexConsumer out, float x, float y, float z, int color) {
+        out.vertex(x, y, z).color(color).endVertex();
     }
 }

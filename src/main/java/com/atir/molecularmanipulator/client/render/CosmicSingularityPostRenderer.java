@@ -27,7 +27,8 @@ import java.util.List;
 /** Lenses the completed scene around the independently placed holes. */
 @EventBusSubscriber(modid = MolecularManipulator.MOD_ID, value = Dist.CLIENT)
 public final class CosmicSingularityPostRenderer {
-    private record Hole(Matrix4f pose, boolean white, float time, double distanceSqr) {}
+    private record Hole(Matrix4f pose, boolean white, float time, double distanceSqr,
+            float coreRadius, float fieldRadius) {}
 
     private static final List<Hole> PENDING = new ArrayList<>();
     private static RenderTarget scene;
@@ -35,7 +36,14 @@ public final class CosmicSingularityPostRenderer {
     private CosmicSingularityPostRenderer() {}
 
     public static void enqueue(PoseStack poses, boolean white, float time, double distanceSqr) {
-        PENDING.add(new Hole(new Matrix4f(poses.last().pose()), white, time, distanceSqr));
+        enqueue(poses, white, time, distanceSqr, 0.30F, 1.25F);
+    }
+
+    /** The laboratory uses the placed holes' shader at its authored aperture sizes. */
+    public static void enqueue(PoseStack poses, boolean white, float time, double distanceSqr,
+            float coreRadius, float fieldRadius) {
+        PENDING.add(new Hole(ForgeRenderSupport.cameraRelativePose(poses.last()), white, time, distanceSqr,
+                coreRadius, fieldRadius));
     }
 
     @SubscribeEvent
@@ -71,8 +79,14 @@ public final class CosmicSingularityPostRenderer {
             RenderSystem.setShader(OmniShaders::cosmicLens);
             PENDING.sort(Comparator.comparingDouble(Hole::distanceSqr).reversed());
             for (var hole : PENDING) {
-                copyScene(target);
-                draw(hole, event.getProjectionMatrix());
+                var center = SingularityLensProjection.centerInViewSpace(hole.pose, 0, ForgeRenderSupport.viewMatrix());
+                var bounds = SingularityLensProjection.screenBounds(center, hole.fieldRadius,
+                        event.getProjectionMatrix(), target.width, target.height);
+                if (bounds.isEmpty()) continue;
+                // Refraction samples up to 12% of the screen height beyond the output pixel.
+                copyScene(target, bounds.expand((int) Math.ceil(target.height * .12D) + 2,
+                        target.width, target.height));
+                draw(hole, ForgeRenderSupport.viewMatrix(), event.getProjectionMatrix(), bounds);
             }
         } finally {
             PENDING.clear();
@@ -101,17 +115,20 @@ public final class CosmicSingularityPostRenderer {
         }
     }
 
-    private static void copyScene(RenderTarget target) {
+    private static void copyScene(RenderTarget target, SingularityLensProjection.ScreenBounds bounds) {
         GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, target.frameBufferId);
         GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, scene.frameBufferId);
-        GlStateManager._glBlitFrameBuffer(0, 0, target.width, target.height, 0, 0, scene.width, scene.height,
+        int right = bounds.x() + bounds.width(), top = bounds.y() + bounds.height();
+        GlStateManager._glBlitFrameBuffer(bounds.x(), bounds.y(), right, top,
+                bounds.x(), bounds.y(), right, top,
                 GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, GL11.GL_NEAREST);
         target.bindWrite(false);
     }
 
-    private static void draw(Hole hole, Matrix4f projection) {
+    private static void draw(Hole hole, Matrix4f view, Matrix4f projection,
+            SingularityLensProjection.ScreenBounds bounds) {
         var shader = OmniShaders.cosmicLens();
-        var center = SingularityLensProjection.centerInViewSpace(hole.pose, 0);
+        var center = SingularityLensProjection.centerInViewSpace(hole.pose, 0, view);
         var inverseProjection = SingularityLensProjection.inverseProjection(projection);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
@@ -121,13 +138,15 @@ public final class CosmicSingularityPostRenderer {
         shader.safeGetUniform("LensProjection").set(projection);
         shader.safeGetUniform("InverseProjection").set(inverseProjection);
         shader.safeGetUniform("LensTime").set(hole.time);
-        shader.safeGetUniform("CoreRadius").set(0.30F);
-        shader.safeGetUniform("FieldRadius").set(1.25F);
+        shader.safeGetUniform("CoreRadius").set(hole.coreRadius);
+        shader.safeGetUniform("FieldRadius").set(hole.fieldRadius);
         shader.safeGetUniform("HoleKind").set(hole.white ? 1.0F : 0.0F);
-        var mesh = Tesselator.getInstance().getBuilder();
-        mesh.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
-        mesh.vertex(-1, -1, 0).endVertex(); mesh.vertex(1, -1, 0).endVertex();
-        mesh.vertex(1, 1, 0).endVertex(); mesh.vertex(-1, 1, 0).endVertex();
+        float left = 2F * bounds.x() / scene.width - 1F, bottom = 2F * bounds.y() / scene.height - 1F;
+        float right = 2F * (bounds.x() + bounds.width()) / scene.width - 1F;
+        float top = 2F * (bounds.y() + bounds.height()) / scene.height - 1F;
+        var mesh = ForgeRenderSupport.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
+        mesh.vertex(left, bottom, 0).endVertex(); mesh.vertex(right, bottom, 0).endVertex();
+        mesh.vertex(right, top, 0).endVertex(); mesh.vertex(left, top, 0).endVertex();
         BufferUploader.drawWithShader(mesh.end());
     }
 

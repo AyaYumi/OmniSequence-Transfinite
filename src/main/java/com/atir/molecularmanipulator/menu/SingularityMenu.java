@@ -1,7 +1,6 @@
 package com.atir.molecularmanipulator.menu;
 
 import appeng.client.gui.Icon;
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
@@ -27,7 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public final class SingularityMenu extends AEBaseMenu {
+public final class SingularityMenu extends BuildingMenu {
     public static final SlotSemantic QUANTUM_INPUT = SlotSemantics.register(
             "molecularmanipulator:SINGULARITY_QUANTUM_INPUT", false);
     public static final SlotSemantic DUPLICATION_SAMPLE = SlotSemantics.register(
@@ -74,6 +73,8 @@ public final class SingularityMenu extends AEBaseMenu {
     @GuiSync(44) public double lastDuplicationAeConsumed;
     @GuiSync(45) public int collectionIntervalTicks = 20;
     @GuiSync(46) public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
+    @GuiSync(47) public boolean packageReclaimRequested;
+    @GuiSync(48) public boolean wirelessBound;
     private final AppEngSlot quantumSlot;
     private final AppEngSlot duplicationSampleSlot;
     private final AppEngSlot blackHoleSlot;
@@ -111,29 +112,45 @@ public final class SingularityMenu extends AEBaseMenu {
         blackHoleSlot.x = BLACK_HOLE_X;
         blackHoleSlot.y = DUPLICATION_Y;
         addSlot(blackHoleSlot, BLACK_HOLE_INPUT);
-        registerClientAction(MachineEffectMenuAccess.ACTION, Integer.class, value -> withPlayer(player -> {
+        registerClientAction(MachineEffectMenuAccess.ACTION, Integer.class, value -> withAvailablePlayer(player -> {
             if (!machine.isSingleBlock()) MachineEffectMenuAccess.apply(this, machine, value);
         }));
         dynamicEffectOverride = machine.getMachineEffects().getOverride();
-        registerClientAction("build", () -> withPlayer(machine::startBuild));
-        registerClientAction("pause", () -> withPlayer(machine::togglePause));
-        registerClientAction("cancel", () -> withPlayer(machine::cancel));
-        registerClientAction("embed", () -> withPlayer(machine::requestEmbedding));
-        registerClientAction("upgrade", () -> withPlayer(machine::requestSuspendedUpgrade));
-        registerClientAction("collection", () -> withPlayer(machine::toggleCollection));
-        registerClientAction("refresh", () -> withPlayer(player -> {
+        registerClientAction("build", () -> withAvailablePlayer(machine::startBuild));
+        registerClientAction("pause", () -> withAvailablePlayer(machine::togglePause));
+        registerClientAction("cancel", () -> withPlayer(player -> {
+            dismantleArmedAt = Long.MIN_VALUE;
+            machine.cancel(player);
+        }));
+        registerClientAction("embed", () -> withAvailablePlayer(machine::requestEmbedding));
+        registerClientAction("upgrade", () -> withAvailablePlayer(machine::requestSuspendedUpgrade));
+        registerClientAction("collection", () -> withAvailablePlayer(machine::toggleCollection));
+        registerClientAction("refresh", () -> withAvailablePlayer(player -> {
             long now = machine.getLevel().getGameTime();
             if (lastRefresh == Long.MIN_VALUE || now - lastRefresh >= 20) { machine.requestInspection(player); lastRefresh = now; }
         }));
-        registerClientAction("dismantle", () -> withPlayer(player -> {
-            long now = machine.getLevel().getGameTime();
-            if (dismantleArmedAt != Long.MIN_VALUE && now - dismantleArmedAt >= 5 && now - dismantleArmedAt <= 60) {
-                machine.startDismantle(player); dismantleArmedAt = Long.MIN_VALUE;
-            } else dismantleArmedAt = now;
-        }));
+        registerClientAction("dismantle", () -> withAvailablePlayer(this::reclaimPackage));
+    }
+    private void reclaimPackage(ServerPlayer player) {
+        if (machine.isSingleBlock() || machine.operation() != SingularityBlockEntity.Operation.IDLE
+                || machine.embedRequested() || machine.collectionActive()) {
+            dismantleArmedAt = Long.MIN_VALUE;
+            return;
+        }
+        long now = machine.getLevel().getGameTime();
+        if (dismantleArmedAt != Long.MIN_VALUE && now - dismantleArmedAt >= 5 && now - dismantleArmedAt <= 60) {
+            dismantleArmedAt = Long.MIN_VALUE;
+            machine.startDismantle(player);
+        } else dismantleArmedAt = now;
     }
     private void withPlayer(java.util.function.Consumer<ServerPlayer> action) {
-        if (isServerSide() && getPlayer() instanceof ServerPlayer player && machine.canManage(player)) action.accept(player);
+        if (isServerSide() && getPlayer() instanceof ServerPlayer player && player.containerMenu == this
+                && isValidMenu() && stillValid(player) && machine.canManage(player)) action.accept(player);
+    }
+    private void withAvailablePlayer(java.util.function.Consumer<ServerPlayer> action) {
+        withPlayer(player -> {
+            if (!machine.packageReclaimRequested()) action.accept(player);
+        });
     }
     public void requestDynamicEffectLevel(int value) {
         if (isClientSide() && MachineEffectSettings.isValidOverride(value)) {
@@ -257,8 +274,10 @@ public final class SingularityMenu extends AEBaseMenu {
             var scan = machine.inspection();
             formed = machine.formed(); networkOnline = machine.networkOnline();
             structureVersion = machine.structureVersion(); embedRequested = machine.embedRequested();
+            packageReclaimRequested = machine.packageReclaimRequested();
             motionMode = machine.motion().mode(); motionMessage = machine.motion().message(); movingBodies = machine.motion().hasBodies();
             quantumFrequency = machine.getQuantumFrequency(); quantumLinkState = machine.getQuantumLinkState();
+            wirelessBound = machine.getWirelessLink().isBound();
             collectionActive = machine.collectionActive(); collectionStarting = machine.collectionStarting();
             collectionBatchSize = machine.collectionBatchSizeForMenu();
             collectionIntervalTicks = machine.collectionIntervalTicksForMenu();

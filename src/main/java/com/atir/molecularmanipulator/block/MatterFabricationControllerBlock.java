@@ -91,11 +91,12 @@ public final class MatterFabricationControllerBlock extends AEBaseEntityBlock<Ma
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
-        return useWithoutItem(state, level, pos, player, hit);
+        return super.use(state, level, pos, player, hand, hit);
     }
 
-    private InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
-            BlockHitResult hit) {
+    @Override
+    public InteractionResult onActivated(Level level, BlockPos pos, Player player, InteractionHand hand,
+            ItemStack stack, BlockHitResult hit) {
         var blockEntity = getBlockEntity(level, pos);
         if (blockEntity == null) {
             return InteractionResult.PASS;

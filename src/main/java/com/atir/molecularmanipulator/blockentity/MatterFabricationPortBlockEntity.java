@@ -58,7 +58,8 @@ public final class MatterFabricationPortBlockEntity extends AEBaseBlockEntity {
     private LazyOptional<IFluidHandler> fluidCapability = LazyOptional.of(() -> externalFluids);
 
     @Override public <T> LazyOptional<T> getCapability(Capability<T> capability, Direction side) {
-        if (!isRemoved()) {
+        if (capability == ForgeCapabilities.ITEM_HANDLER || capability == ForgeCapabilities.FLUID_HANDLER) {
+            if (isRemoved() || com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this)) return LazyOptional.empty();
             if (capability == ForgeCapabilities.ITEM_HANDLER && getPortType().isItem()) return itemCapability.cast();
             if (capability == ForgeCapabilities.FLUID_HANDLER && getPortType().isFluid()) return fluidCapability.cast();
         }

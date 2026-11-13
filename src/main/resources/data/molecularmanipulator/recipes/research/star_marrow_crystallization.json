@@ -1,0 +1,287 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.star_marrow_crystallization",
+  "prerequisites": [
+    "molecularmanipulator:research/star_marrow_materials"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_marrow_crystal_dust"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_chart_processor"
+      },
+      "count": 16
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_signal_storage_component"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 64
+    }
+  ],
+  "duration": 1200,
+  "ae_per_tick": 512,
+  "unlocks": [
+    "molecularmanipulator:fabrication/internal/star_marrow_crystal"
+  ],
+  "required_mods": [],
+  "sort_order": 11,
+  "stage": 2,
+  "depths": [
+    {
+      "material_multiplier": 1,
+      "parallel": 1
+    },
+    {
+      "material_multiplier": 2,
+      "parallel": 256,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 32
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 8
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 128
+        }
+      ]
+    },
+    {
+      "material_multiplier": 4,
+      "parallel": 65536,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 16
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 256
+        }
+      ]
+    },
+    {
+      "material_multiplier": 8,
+      "parallel": 16777216,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 32
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 512
+        }
+      ]
+    },
+    {
+      "material_multiplier": 16,
+      "parallel": 4294967296,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 1024
+        }
+      ]
+    },
+    {
+      "material_multiplier": 32,
+      "parallel": 1099511627776,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 2048
+        }
+      ]
+    },
+    {
+      "material_multiplier": 64,
+      "parallel": 281474976710656,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 4096
+        }
+      ]
+    },
+    {
+      "material_multiplier": 128,
+      "parallel": 72057594037927936,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 8192
+        }
+      ]
+    },
+    {
+      "material_multiplier": 256,
+      "parallel": 9223372036854775807,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_marrow_crystal_dust"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_chart_processor"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:star_signal_storage_component"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 16384
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,302 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.stellar_fabrication",
+  "prerequisites": [
+    "molecularmanipulator:research/event_horizon"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:black_hole"
+      },
+      "count": 16
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:white_hole"
+      },
+      "count": 4
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:event_horizon_lens"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:spacetime_anchor_pillar"
+      },
+      "count": 64
+    }
+  ],
+  "duration": 2400,
+  "ae_per_tick": 8192,
+  "unlocks": [
+    "molecularmanipulator:miniature_supernova",
+    "molecularmanipulator:event_horizon_singularity_hub",
+    "molecularmanipulator:white_hole_resource_core"
+  ],
+  "required_mods": [
+    "expatternprovider",
+    "advanced_ae"
+  ],
+  "sort_order": 50,
+  "stage": 5,
+  "depths": [
+    {
+      "material_multiplier": 1,
+      "parallel": 1
+    },
+    {
+      "material_multiplier": 2,
+      "parallel": 256,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 32
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 8
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 128
+        }
+      ]
+    },
+    {
+      "material_multiplier": 4,
+      "parallel": 65536,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 16
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 256
+        }
+      ]
+    },
+    {
+      "material_multiplier": 8,
+      "parallel": 16777216,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 32
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 512
+        }
+      ]
+    },
+    {
+      "material_multiplier": 16,
+      "parallel": 4294967296,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 64
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 1024
+        }
+      ]
+    },
+    {
+      "material_multiplier": 32,
+      "parallel": 1099511627776,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 2048
+        }
+      ]
+    },
+    {
+      "material_multiplier": 64,
+      "parallel": 281474976710656,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 4096
+        }
+      ]
+    },
+    {
+      "material_multiplier": 128,
+      "parallel": 72057594037927936,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 8192
+        }
+      ]
+    },
+    {
+      "material_multiplier": 256,
+      "parallel": 9223372036854775807,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:black_hole"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:white_hole"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:event_horizon_lens"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:spacetime_anchor_pillar"
+          },
+          "count": 16384
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ]
+}

@@ -1,15 +1,19 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.13-forge**.
-Target: Minecraft **1.20.1** / Forge, Java **17**, AE2 **15.4.10**, and the
-required prerequisite Applied Enhancements **1.1.2-forge+** (build API **1.1.4-forge**). The Mod ID stays
+For modpack and mod authors: add well recipes, choose which research unlocks them,
+or import another machine's supported recipes. For building and operating a well,
+see the [player guide](../README.md) or press G on its controller in game.
+
+Available since OmniSequence: Transfinite 2.0.0; current for 20.3.0.1.
+Target: Minecraft 1.20.1 / Forge, Java 17, AE2 15.4.10, and the
+required Applied Enhancements 1.1.2-forge+ (compile API 1.1.4-forge). The Mod ID stays
 `molecularmanipulator`.
 
 Other languages: [中文版](matter-research-api.zh-CN.md).
 See also the [API index](README.md) and the separate
 [Omni Batch Provider API v1](omni-batch-provider-api.md).
 
-This page covers the three recipe types that make up the well's content:
+The well uses three recipe types:
 
 | Recipe type | Purpose |
 | --- | --- |
@@ -22,9 +26,12 @@ or replaces them with `ServerEvents.recipes` and `event.custom`; no extra plugin
 is required. Research progress belongs to each well controller, not to the player
 and not to a global network.
 
----
-
 ## 1. Quick start: custom well recipes behind research
+
+With KubeJS installed, save this complete script as
+`kubejs/server_scripts/well_research.js`, then run `/reload`. It adds a cobblestone-to-stone
+process and the research that opens it. In a formed, powered well, complete AE Foundation,
+then the new research to use the process. The example uses its own three-round depth table.
 
 ```javascript
 ServerEvents.recipes(event => {
@@ -41,14 +48,13 @@ ServerEvents.recipes(event => {
     unlocks: ['kubejs:stone_processing'],
     depths: [
       {parallel: '4'},
-      {material_multiplier: '3', parallel: '1024', speed_multiplier: '8'},
+      {material_multiplier: '3', parallel: '1024'},
       {
         ingredients: [
           {ingredient: {item: 'ae2:fluix_crystal'}, count: '512'},
           {ingredient: {item: 'minecraft:diamond'}, count: '64'}
         ],
-        parallel: '9223372036854775807',
-        processing_ticks: 1
+        parallel: '9223372036854775807'
       }
     ]
   }).id('kubejs:stone_research');
@@ -65,15 +71,15 @@ ServerEvents.recipes(event => {
 });
 ```
 
-With `requires_research: true` the recipe is locked until **any** research that
-lists it in `unlocks` has at least one completion — here `kubejs:stone_research`.
+With `requires_research: true`, the recipe is locked until any research that
+lists it in `unlocks` has at least one completion (here `kubejs:stone_research`).
 
 ### 1.1 Locking a recipe behind a deeper research level
 
 Recipe permission is binary: one completion opens the recipe, and there is no
-per-recipe level field. To require a specific depth — for example **9/9 on
-Omni-Computation** — put the requirement on a *gate* research and unlock the
-recipe from that gate instead of from the built-in research:
+per-recipe level field. To require a specific depth, such as 9/9 on
+Omni-Computation, add a gate research with that prerequisite level and use it to
+unlock the recipe instead of the built-in research:
 
 ```json
 {
@@ -97,16 +103,12 @@ completes once, and the gate itself cannot start until Omni-Computation has nine
 completions. Use the string `"max"` instead of `9` to require whatever the
 prerequisite's own `depths` length currently is.
 
-Notes:
-
-- Levels count **completions**, not the display-only `stage` number on each research.
+- Levels count completions, not the display-only `stage` number on each research.
 - A numeric level is never lowered automatically. If it exceeds the prerequisite's
   `depths` length, the gate can never be started; keep it within range.
 - `prerequisite_levels` keys are merged into `prerequisites`, so writing only the
   map still establishes the dependency; prerequisites not listed in the map
   default to one completion.
-
----
 
 ## 1.2 Machine imports and field mappings: `molecularmanipulator:matter_machine_import`
 
@@ -136,6 +138,8 @@ ServerEvents.recipes(event => {
 });
 ```
 
+Every machine import, including custom declarations, automatically requires Sequence≥3 AND Computation≥3, with an effective display stage of at least 4. Custom stricter prerequisites are preserved; this minimum cannot be lowered.
+
 The generated research ID is `molecularmanipulator:research/machine/kubejs/furnace_import`.
 Imported recipe IDs start with `molecularmanipulator:fabrication/import/machine/kubejs/furnace_import/`.
 Keep declaration IDs stable: changing the ID creates another research branch and does
@@ -144,10 +148,10 @@ not migrate completion counts stored on existing controllers.
 | Declaration field | Meaning |
 | --- | --- |
 | `machine` | Required machine item ID. An absent item disables the import. KubeJS-registered items are supported. |
-| `serializers` | Required nonempty list of source recipe JSON `type` IDs: recipe **serializer IDs**, not JEI category IDs. |
+| `serializers` | Required nonempty list of source recipe JSON `type` IDs: recipe serializer IDs, not JEI category IDs. |
 | `research` | Required; accepts all existing `matter_research` fields, including costs, prerequisites, `depths`, and `required_mods`. Imported recipe IDs are appended to `unlocks`; explicit additional unlocks are retained. |
 | `inputs` / `outputs` | Optional; each replaces automatic parsing for that direction. Omit it to use existing parsers. When specified, include every resource in that direction. |
-| `processing_time` | Imported recipes' base duration, default 200 ticks. |
+| `processing_time` | Imported recipes' base duration, default 400 ticks (20 seconds). Explicit custom values are preserved. |
 | `ae_per_tick` | Imported recipes' base power, default 256 AE/t. Separate from `research.ae_per_tick`. |
 
 ### Field paths
@@ -163,14 +167,15 @@ not migrate completion counts stored on existing controllers.
 
 Paths follow JSON Pointer: `/inputs/items` selects a nested field, `/inputs/0` selects
 the first array entry, and the empty string selects the whole recipe. Escape `/` in
-field names as `~1` and `~` as `~0`. Paths refer to JSON **re-encoded by the source
-recipe serializer**; serializers may omit defaults, so this can differ from the
+field names as `~1` and `~` as `~0`. Paths refer to JSON re-encoded by the source
+recipe serializer; serializers may omit defaults, so this can differ from the
 original KubeJS JSON. Arrays are read entry by entry. Alternative item ingredients
 belong inside `ingredient`, for example
 `{ingredient: [{item: 'minecraft:iron_ingot'}, {item: 'minecraft:gold_ingot'}], count: 2}`.
 Explicit paths must be readable, arrays nonempty, and amounts positive integers.
-An unreadable entry skips the whole recipe and logs its ID rather than importing
-only part of its inputs or outputs.
+An unreadable entry skips the whole recipe rather than importing only part of its
+inputs or outputs. Import warnings report the total skipped count and at most eight
+example machine/recipe IDs.
 
 ### Lightning and other special AE resources
 
@@ -231,8 +236,6 @@ not disguise a resource as a wrapped item.
 - A recipe supports up to 12 item/AE inputs plus one fluid input, and up to 6 item outputs, 6 AE outputs, plus one fluid output. Extra fluids become AE fluid stacks and count against AE slots. Recipes exceeding these limits are skipped.
 - Fuel, chance outputs, nonconsumed catalysts, temperature, and similar machine behavior are not automatically simulated by field mappings. Import only recipes whose consumed inputs and deterministic outputs can be represented accurately.
 
----
-
 ## 2. Research definition: `molecularmanipulator:matter_research`
 
 Location: `data/<namespace>/recipes/<path>.json`.
@@ -244,11 +247,11 @@ Location: `data/<namespace>/recipes/<path>.json`.
 | `sort_order` | Navigation order, default `0`. Definitions are sorted by `sort_order`, then by ID. |
 | `prerequisites` | List of research IDs; each defaults to one required completion. Self-references and cycles are invalid. |
 | `prerequisite_levels` | Optional map `{research ID: required completions or "max"}` overriding individual thresholds. Keys are added to `prerequisites`. |
-| `ingredients` | Base round cost. Required. Each entry is `{ingredient: {item: ...} or {tag: ...}, count: positive long}`. Item ingredients only — research cannot charge fluids or generic AE keys. |
+| `ingredients` | Base round cost. Required. Each entry is `{ingredient: {item: ...} or {tag: ...}, count: positive long}`. Item ingredients only; research cannot charge fluids or generic AE keys. |
 | `duration` | Ticks per round, at least `1`, default `1200`. |
 | `ae_per_tick` | Power drawn while researching, finite and non-negative, default `256`. |
 | `required_mods` | Mod IDs that must all be loaded for the definition to appear and run. |
-| `unlocks` | Full **recipe IDs** (not item IDs) that this research unlocks and boosts. |
+| `unlocks` | Full recipe IDs (not item IDs) that this research unlocks and boosts. |
 | `depths` | Per-round cost and total benefit after each completion. The array length is the number of rounds; omitting it uses the default nine-round table in §3. |
 
 ### 2.1 Depth entries
@@ -258,65 +261,75 @@ Each `depths` element:
 | Field | Meaning |
 | --- | --- |
 | `material_multiplier` | Round cost = base `ingredients` × this, default `1`. |
-| `ingredients` | Optional. When present it **fully replaces** the round's materials and the multiplier is ignored; `[]` means a free round. |
+| `ingredients` | Optional. When present it fully replaces the round's materials and the multiplier is ignored; `[]` means a free round. |
 | `parallel` | Total parallel limit after this round. Required positive long. |
-| `speed_multiplier` | Base recipe time is divided by this and rounded up, default `1`. |
-| `processing_ticks` | When greater than `0`, a fixed processing time that takes priority over `speed_multiplier`; `0` or omitted uses the multiplier. |
+| `speed_multiplier` | Legacy positive long, default `1`; accepted for compatibility and ignored. |
+| `processing_ticks` | Legacy nonnegative tick count, default `0`; accepted for compatibility and ignored, including `1`. |
 
 ### 2.2 Long values and `2^53 - 1`
 
-Every long field (`count`, `material_multiplier`, `parallel`, `speed_multiplier`)
-accepts a decimal string, and quoting is recommended. Above JavaScript's exact
-integer limit `2^53 - 1` a string is **mandatory** — write
-`'9223372036854775807'`, never a float or `'9.22E18'`. Nothing detects a
-precision loss for you; a wrong JavaScript number is silently wrong. Costs whose
-multiplication exceeds the long range refuse to start instead of going negative
-or becoming free.
-
----
+Every research long field (`count`, `material_multiplier`, `parallel`, `speed_multiplier`)
+accepts a decimal string, and quoting is recommended. This does not apply to fabrication
+item counts, generic-stack `#` amounts or star research's `information_cost`; those have
+their own numeric codecs. Above JavaScript's exact integer limit `2^53 - 1`, a string
+is mandatory. Write `'9223372036854775807'`, never a float or `'9.22E18'`.
+JavaScript precision loss is not detected; an imprecise number is silently accepted
+with the wrong value. Costs whose multiplication exceeds the long range refuse to
+start instead of going negative or becoming free.
 
 ## 3. Default nine-round progression
 
-Used when `depths` is omitted, and by all three built-in researches. Costs are
+Used when `depths` is omitted. Built-in research follows these parallel limits but
+can replace each round's material cost with explicit `ingredients` (§6). Costs are
 charged per round and are not the difference from the previous round. `parallel`
 is how many complete recipe executions a single craft may run.
 
-| Completions | Round cost / base cost | Parallel limit after | Processing time after |
-| --- | --- | --- | --- |
-| 1 | ×1 | 1 | base time |
-| 2 | ×2 | 256 | base time ÷ 2, rounded up |
-| 3 | ×4 | 65,536 | base time ÷ 4, rounded up |
-| 4 | ×8 | 16,777,216 | base time ÷ 8, rounded up |
-| 5 | ×16 | 4,294,967,296 | base time ÷ 16, rounded up |
-| 6 | ×32 | 1,099,511,627,776 | base time ÷ 32, rounded up |
-| 7 | ×64 | 281,474,976,710,656 | base time ÷ 64, rounded up |
-| 8 | ×128 | 72,057,594,037,927,936 | base time ÷ 128, rounded up |
-| 9 | ×256 | 9,223,372,036,854,775,807 (≈9.22E18) | fixed 1 tick |
+| Completions | Round cost / base cost | Parallel limit after |
+| --- | --- | --- |
+| 1 | ×1 | 1 |
+| 2 | ×2 | 256 |
+| 3 | ×4 | 65,536 |
+| 4 | ×8 | 16,777,216 |
+| 5 | ×16 | 4,294,967,296 |
+| 6 | ×32 | 1,099,511,627,776 |
+| 7 | ×64 | 281,474,976,710,656 |
+| 8 | ×128 | 72,057,594,037,927,936 |
+| 9 | ×256 | 9,223,372,036,854,775,807 (≈9.22E18) |
 
-Processing time never drops below one tick. Parallelism and speed apply only to
-the well recipes listed in that research's `unlocks`; they never shorten research
-itself. When several researches unlock the same recipe, the **highest** parallel
-limit and the **shortest** time win — bonuses are combined with max/min, not
-multiplied.
+Deep research increases recipe parallelism only, including round nine. Several
+researches owning the same recipe contribute their highest parallel limit.
+Production speed comes from the Star Computation Engine on the controller's ME
+grid: ordinary levels use `max(1, ceil(baseTicks / effectiveSpeedMultiplier))`,
+where the effective multiplier includes overclocking; level 9 overclocking forces
+one tick. Without an engine the multiplier is one. All built-in fabrication
+recipes and generated bridge defaults use 400 base ticks (20 seconds); explicit
+custom `processing_time` values are preserved. Research's own `duration` is
+independent of production speed and this default.
 
----
+A recipe with no research owner and `requires_research: false` remains usable
+without research, but inherits the completed parallel limit of the tier-1
+foundation research, `molecularmanipulator:research/ae_foundation`. Before that
+progress (or if that definition is absent), its parallel limit stays `1`.
+Explicitly owned recipes use only their own research parallel limits. Production
+speed still comes from the grid's Star Computation Engine in either case; this
+fallback does not unlock research-gated recipes.
 
 ## 4. Well recipe: `molecularmanipulator:matter_fabrication`
 
 | Field | Meaning |
 | --- | --- |
-| `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: ...}` with a positive integer count. Defaults to empty. |
+| `ingredients` | Counted item inputs, each `{ingredient: {item: ...} or {tag: ...}, count: ...}`. `count` is a numeric integer in `1..2147483647`, default `1`; the list defaults to empty. This is not the research long-string format. |
 | `catalysts` | Optional prerequisite stacks, in the same format as `ingredients`. Defaults to empty. All assemblies in one formed well contribute their catalyst inventories; catalysts are never consumed or multiplied by batch count/research parallelism and are excluded from encoded pattern inputs. |
-| `results` | Up to **6** item outputs as strict stacks `{id: ..., count: ...}`. |
-| `fluid_input` | Optional fluid input `{id: ..., amount: ...}` in mB. Does not count toward the twelve-input limit. |
+| `results` | Up to 6 item outputs as strict stacks `{item: ..., count: ..., nbt: ...}`; the custom serializer also accepts `id`. `nbt` is optional SNBT or a JSON compound. |
+| `fluid_input` | Optional fluid input `{fluid: ..., amount: ..., nbt: ...}` in mB; `id` is also accepted, and `nbt` is optional. Does not count toward the twelve-input limit. |
 | `fluid_result` | Optional single fluid output, same format. |
-| `ae_inputs` | Up to **12** generic AEKey inputs; see §4.1. |
-| `ae_outputs` | Up to **6** generic AEKey outputs, using the same stack codec as `ae_inputs`. |
-| `processing_time` | Base ticks, default `200`; values below `1` are raised to `1`. |
+| `ae_inputs` | Up to 12 generic AEKey inputs; see §4.1. |
+| `ae_outputs` | Up to 6 generic AEKey outputs, using the same stack codec as `ae_inputs`. |
+| `processing_time` | Base ticks, default `400` (20 seconds); values below `1` are raised to `1`. |
 | `ae_per_tick` | Base power, default `64.0`; negative values are raised to `0`. |
 | `requires_research` | Default `false`. See §4.2. |
 
-Load-time error conditions: `ingredients` + `catalysts` + `ae_inputs` may not exceed **12**;
+Load-time error conditions: `ingredients` + `catalysts` + `ae_inputs` may not exceed 12;
 at least one of `ingredients`, `fluid_input` or `ae_inputs` must be present; every
 `ae_inputs` / `ae_outputs` amount must be positive; and at least one item, fluid, or AE result is
 required. Unlike research definitions, a malformed well recipe fails to load
@@ -324,17 +337,20 @@ instead of being rejected at craft time.
 
 ### 4.1 Generic inputs (`ae_inputs`)
 
-`ae_inputs` accepts every registered AEKey type, which is how gases, chemicals
-and other addon resources are supplied. Forge uses `ForgeRecipeCodecs.GENERIC_STACK`
-to translate JSON `#t` / `#` into AE2 15's native NBT (type field `#c`), then
-decodes the key with `GenericStack.readTag`.
+`ae_inputs` accepts registered AEKey types, which is how gases, chemicals
+and other addon resources are supplied. This branch uses **`ForgeRecipeCodecs.GENERIC_STACK`**,
+not the 1.21 component codec. `#t` is the registered AEKey type ID and `#` is the raw amount per craft.
+The adapter converts the type discriminator to AE2 15's native **`#c`** and reads the key's NBT.
+Use `key_nbt` with the SNBT produced by **`AEKey.toTag()`** to retain addon-specific numeric widths
+and array types. Ordinary item/fluid stacks accept `nbt`; **`components` is rejected** by those codecs.
+Vanilla crafting `result` uses `item`; this mod's plural `results` also accepts the `id` alias.
 
 | Field | Meaning |
 | --- | --- |
 | `#t` | AEKey type ID. AE2 items use `ae2:i`, AE2 fluids use `ae2:f`; addons register their own. |
-| `#` | Raw amount per craft, from 1 through 9223372036854775807. Item types count items, Forge fluid types count mB. |
-| `id`, `tag`, other fields | Native AEKey NBT fields; item/fluid extra NBT uses `tag`. Addon keys use their own `AEKey.toTag()` layout. |
-| `key_nbt` | Optional SNBT string or compound object replacing inline key fields. Use SNBT to preserve numeric widths and array types; standard serialization emits this field. |
+| `#` | Exact numeric integer per craft, from 1 through 9223372036854775807. Item types count items, Forge fluid types count mB. |
+| `key_nbt` | Optional SNBT or JSON compound containing the selected AEKey's native NBT. Prefer SNBT when tag types matter. |
+| `id`, `tag`, other native NBT fields | Used when `key_nbt` is omitted; decoded by the registered AE2 15 key type, not a 1.21 data-component codec. |
 
 ```json
 {
@@ -351,17 +367,17 @@ decodes the key with `GenericStack.readTag`.
 }
 ```
 
-`#` must be a JSON integer validated as a positive signed long, rather than
-the decimal-string format used by research fields, so a quoted `"3000000000"` is rejected. For values beyond
+`#` uses the Forge adapter's exact numeric long decoder, not the decimal-string codec used by
+research fields: fractions, overflow and a quoted `"3000000000"` are rejected. For values beyond
 JavaScript's exact integer range, write an integer literal in a data-pack JSON
 file or build the stack in Java with `new GenericStack(key, longAmount)`; do not
 pass it through a JavaScript number first.
 
-Generic keys match exactly, including NBT, while ordinary `ingredients`
+Generic keys match exactly, including native NBT, while ordinary `ingredients`
 keep their Ingredient/tag matching. Repeated or overlapping requirements are
-additive — the same stock is never counted for two different requirements.
+additive; the same stock is never counted for two different requirements.
 
-Recipes containing `ae_inputs` or `ae_outputs` require a **pattern assembly**. Manual item
+Recipes containing `ae_inputs` or `ae_outputs` require a pattern assembly. Manual item
 and fluid ports cannot supply generic AE buffers and reject such recipes.
 
 Java constructor for recipes with generic inputs:
@@ -372,47 +388,38 @@ new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
 ```
 
 The older 6-, 7-, and 8-argument constructors remain available; omitted generic
-input/output lists and catalysts default to empty. The output-aware constructor accepts both lists:
+input/output lists default to empty. The 9-argument constructor accepts both lists:
 
 ```java
 new MatterFabricationRecipe(ingredients, results, fluidInput, fluidResult,
         aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
 ```
 
-The catalyst-aware constructor is:
+To provide retained catalysts, use the 10-argument overload:
 
 ```java
 new MatterFabricationRecipe(ingredients, catalysts, results, fluidInput, fluidResult,
-        aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch)
-        .withId(new ResourceLocation("example:retained_catalyst"));
+        aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
 ```
 
-Forge recipe objects carry their own IDs. Constructors without an ID use
-`molecularmanipulator:unregistered`; manually registered recipes must use the
-canonical ID-bearing constructor or `withId`. Ordinary item/fluid stacks use
-`nbt` (SNBT string or compound object); generic AEKeys use `tag` or `key_nbt`.
-Data component fields are unsupported. Item ingredient/catalyst counts and ordinary
-item/fluid result amounts are positive ints (maximum 2,147,483,647); generic AE
-amounts are positive longs. This example preserves additional NBT on an AE item key:
-
-```json
-{"#t": "ae2:i", "#": 1, "key_nbt": "{id:\"minecraft:diamond\",tag:{example_marker:1b}}"}
-```
+The canonical Forge record additionally carries its `ResourceLocation id` first and a final
+nullable `ResourceLocation sourceRecipeId`. Constructors without an explicit ID start as
+`molecularmanipulator:unregistered`; use `withId(recipeId)` when registering Java definitions.
+Runtime machine imports attach `sourceRecipeId` with `withSourceRecipeId(...)` to preserve source
+recipe-lock checks. Neither identity is a custom JSON field; the loader supplies the recipe ID.
 
 ### 4.2 Research permission
 
 A well recipe is locked when a research lists it in `unlocks`, or when
 `requires_research` is `true`. It becomes usable once any owning research has at
-least one completion; several owners mean any one of them is enough.
-`requires_research: true` stays locked when no research grants it, when the
-granting research is removed, or when its required mod is missing. A recipe whose
-granting research is not currently available (for example AdvancedAE is absent)
-is locked rather than silently opened.
+least one completion.
+`requires_research: true` stays locked when no available research grants it,
+including when the granting research was removed or a required mod is missing
+(for example, AdvancedAE).
 
-Recipe permission applies to the Matter Fabrication Well. It does not globally
-block other machines, and already-built multiblocks keep working.
-
----
+This per-well research permission does not globally block other machines, and
+already-built multiblocks keep working. Independent [star-research recipe locks](recipe-permissions.zh-CN.md)
+also apply at covered execution paths, including the well.
 
 ### 4.3 Retained catalyst and encoding contract
 
@@ -434,30 +441,26 @@ amethyst shard held in the formed well's catalyst inventories:
 Each assembly has 36 catalyst slots. Loaded assemblies in the same formed well
 share these prerequisites. Batch/research parallelism multiplies consumed inputs
 and outputs, but not catalyst counts. Catalysts stay in their inventories and
-are checked at admission, start and continued execution. Missing catalysts reject
-new deliveries and pause accepted work. Inputs and progress remain durable; restoring
-the catalysts resumes work without charging again or discarding materials.
+are checked when admitting/starting work. Missing catalysts prevent execution.
 
 JEI encoding uses the server's recipe definition and selected matching item
 alternatives. It combines every consumed item, fluid and generic AE input, and
 every output including byproducts. Catalysts are omitted from the encoded inputs.
-Upload requires an active encoding terminal and space in a loaded, formed well's
-assembly belonging to the player's team. It consumes one blank pattern from the
-terminal, or from the connected ME network when the local slot is empty; one
-extractable network blank is sufficient. Destination identity uses the well and
-team, not the assembly's display name. Forge ExtendedAE Plus 1.6.2 has no newer
-named-provider API, so its automatic selection of renamed assemblies is not promised.
-The server validates the current recipe, selected inputs and target; client
-quantities cannot redefine a recipe. Failed transfers retain or return the blank.
-Upload helpers/payloads are internal and are not public Java API.
+Upload requires an active encoding terminal, one extractable blank pattern and
+an available assembly in a loaded, formed well belonging to the player's team.
+The blank comes from the terminal first, then its connected ME network if the
+local slot is empty; one network blank is sufficient. Assembly names are display
+labels, not destination identity. Additional Forge ExtendedAE Plus automatic-destination/upload
+hooks target **1.6.4**, using machine type and team and recognizing renamed assemblies.
+Native well uploads do not need that addon. The server validates the current recipe, selected inputs
+and target; client quantities cannot redefine a recipe. Upload helpers/payloads
+are internal and are not public Java API.
 
 ## 5. Materials, admission and persistence
 
 - Progress syncs every 5 ticks; selected research stock is sampled every 20 ticks.
-  Preparation and admission share the current stock snapshot within the same tick,
-  then validate and extract the actual whole-round cost. Successful payment updates
-  the shared amounts; failed validation, partial extraction or refunds invalidate
-  the snapshot so subsequent admission reads storage again. Displayed stock is not
+  Preparation and admission share the current stock snapshot within one pass,
+  then validate and extract the actual whole-round cost. Displayed stock is not
   a reservation. Only items in the controller's AE network are research supplies;
   player inventories and port buffers are excluded.
 - Normal orders continuously prepare the next round. Shift orders sum the actual costs of every remaining round, including replacement ingredients, then reach the maximum in one run. Preparation snapshots its definition; maximum tasks use one research duration and its normal power per tick.
@@ -492,67 +495,61 @@ Upload helpers/payloads are internal and are not public Java API.
   Tasks or refunds that cannot be decoded stay stored and recover after a
   compatible reload.
 
----
-
 ## 6. Built-in research and unlock chain
 
-| Research ID (prefix `molecularmanipulator:research/`) | Time per round | Research power | First-completion unlocks |
-| --- | --- | --- | --- |
-| `ae_foundation` | 600 ticks / 30 s | 256 AE/t | 7 AE material recipes, 27 stage-two material and intermediate recipes, pattern assembly |
-| `sequence_array` | 600 ticks / 30 s | 512 AE/t | 6 Sequence Array components, Molecular Sequence Rewrite Array, Assembler Matrix Sequence Rewrite Core |
-| `omni_computation` | 600 ticks / 30 s | 1024 AE/t | 10 Omni-Computation components and the Transfinite Compute Nexus |
-| `event_horizon` | 600 ticks / 30 s | 2048 AE/t | Miniature Black Hole, Miniature White Hole and all 13 Singularity Hub structural blocks |
-| `nomai_materials` | 600 ticks / 30 s | 256 AE/t | Ghost Matter and Gravity Crystal; one round, stage `0`, `sort_order: 35`, requires one `ae_foundation` completion |
-| `machine/<machine_key>` | 600 ticks / 30 s | 512 AE/t | Recipes imported from that addon machine (when the mod and machine are present) |
+The default tree has six tiers and ten main researches, plus Exotic Matter and machine integrations.
+AdvancedAE is optional, but the default Quantum Materials, Computation,
+Event Horizon, Stellar and Transfinite branches require it. Without AdvancedAE,
+these branches are unavailable and have no alternative unlock path.
 
-The 30 seconds applies to the first unlock and to every later deep-research round
-of the built-in researches. Custom `duration` values stay free in ticks and still
-default to 1200; a started round keeps the duration snapshot from its start.
+| ID (prefix `molecularmanipulator:research/`) | Tier | Parents (one completion unless specified) | Time / power | Unlocks |
+| --- | --- | --- | --- | --- |
+| `ae_foundation` | I | None | 600tick / 256AE/t | AE processing, assembly, auto crafter |
+| `star_marrow_materials` | II | Foundation | 900 / 512 | Five materials and both advanced anchors |
+| `star_marrow_crystallization` | II | Star Marrow | 1200 / 512 | Signal/water proliferation with retained rock |
+| `eae_materials` | II | Foundation | 900 / 512 | 14 curated EAE material processes |
+| `quantum_materials` | II | EAE | 1200 / 1024 | 13 curated AAE material processes |
+| `sequence_array` | III | EAE, Star Marrow | 1200 / 1024 | Sequence/rewrite parts, storage/parallel matrices |
+| `omni_computation` | III | Quantum, Star Marrow | 1800 / 2048 | Computation structure, Omniscient matrix |
+| `event_horizon` | IV | Sequence, Computation | 1800 / 4096 | Black/white holes, nine hub structures |
+| `stellar_fabrication` | V | Horizon | 2400 / 8192 | Supernova, hub controller, resource core |
+| `transfinite_fabrication` | VI | Stellar | 3600 / 16384 | Transfinite Compute Nexus |
+| `nomai_materials` | Special 0 | Foundation | 600 / 256 | Ghost Matter, Gravity Crystal |
+| `machine/<key>` | Post-III branch | Sequence≥3 AND Computation≥3 | Default600 / 512 | Imported machine processes |
 
-Tier 3 `event_horizon` requires one completion each of `sequence_array` and `omni_computation`. Its first-round materials equal both complete current blueprints, including controllers: 19 types and 4,634 blocks. It uses the nine-round depth multipliers and consumes stored ME items without dismantling placed structures. The Miniature Black Hole recipe uses 10,000 `ae2:singularity`; the Miniature White Hole uses 10 Miniature Black Holes. Miniature Supernova unlocks in the same branch and consumes 100 Miniature Black Holes and 100 Miniature White Holes. These recipes use numeric long `ae_inputs` and run in the well’s Pattern Assembly. The hub controller and White Hole Resource Core each consume one Miniature Supernova. The 11 fabrication recipes for hub parts no longer use the old Forge-only 10,000× ingredient cost increase; outputs, duration and power are unchanged. Base Stairs and Slabs instead use crafting-table shaped recipes: six Base Casings yield four stairs; three casings in a row yield six slabs. These two recipes are omitted from the research unlock list; their Base Casing ingredient still requires the branch.
+There is no separate `terminal_fabrication` well research. The auto crafter belongs to Foundation.
+Star research is a separate team-permanent permission: the only default node is Single-Block Integration / 单方块集成
+(`molecularmanipulator:material`, legacy bit 1). It requires the core's actual L3,
+`information_cost: 0` and `prerequisites: []`, but still needs a manual unlock at a formed,
+online engine bound to the player's team.
 
-These stage-two branches require **one** `ae_foundation` completion by default.
-Built-in additions use IDs under
-`molecularmanipulator:fabrication/research_materials/<modid>/<item>`. Addon machine
-recipes use `molecularmanipulator:fabrication/import/machine/<machine_key>/<output>`;
-each machine with supported recipes has its own research branch. The importer reads
-the effective recipe manager after reload, including changes made through KubeJS
-`ServerEvents.recipes`. Distinct input branches remain separate recipes. Identical
-inputs and counts for the same output are merged, while the research panel shows one
-output row with the number of branches. Supported AE item, fluid, lightning, and data
-resources keep their native ingredient identity in JEI.
+The sole bundled lock, `molecularmanipulator:recipe_locks/material`, targets only
+`molecularmanipulator:molecular_manipulator` and `molecularmanipulator:transfinite_compute_nexus`.
+Their well research remains required, and the nexus recipe still requires AdvancedAE.
+Matrices, advanced anchors, the auto crafter and the Well, Sequence Array and Omni Computation
+multiblock controllers have no default star-research gate; their well research and other recipe
+conditions remain unchanged. See the [star node guide](star-research-nodes.zh-CN.md) and
+[recipe-permission guide](recipe-permissions.zh-CN.md) (Chinese) for configuration and coverage.
 
-Without AdvancedAE the Omni-Computation branch and its material recipes do not
-load, and the interface lists nothing for them. The Sequence Array branch is
-guarded by `required_mods: ["extendedae"]`.
+All static research has nine rounds. Later rounds use explicit replacement costs in sustainable expansion materials, so original machines are not charged repeatedly. Research grants parallelism only; the engine supplies speed. Custom durations and depth lists remain configurable.
 
-The Molecular Sequence Rewrite Array (`molecular_manipulator`) and the Assembler
-Matrix Sequence Rewrite Core (`assembler_matrix_molecular_core`) moved into the
-stage-two Sequence Array branch: their crafting recipes are now well recipes
-using the same materials and counts, at 400 ticks and 512 AE/t base. The branch's
-first completion unlocks both, and its deep research gives them the same speed
-and parallel bonuses. Already-built machines keep working.
+All built-in and custom machine imports automatically add `sequence_array: 3` and `omni_computation: 3`, preserving stricter numeric or `max` requirements. Three means total completions including the first. Admission, orders, preparation and active tasks read current prerequisites. Imported-recipe use also rechecks this minimum, including legacy completions, administrative completion assignments and alternative research owners.
 
-The Transfinite Compute Nexus recipe, `molecularmanipulator:transfinite_compute_nexus`,
-is unlocked by the Omni-Computation branch at 1200 ticks and 4096 AE/t before
-production bonuses, inherits that branch's well bonuses, and is itself gated on
-AdvancedAE. Once placed, the block's idle draw is configured separately through
-`transfinite_compute_nexus.idle_power`, defaulting to 16384 AE/t; that setting
-covers only the single-block nexus, while the Omni-Computation Core multiblock
-keeps its fixed 8192 AE/t idle draw.
+Tier II curated recipes under `fabrication/research_materials/<modid>/<item>` are startup material processes, not whole-machine imports, so they remain available before tier III. Whole-machine imports retain `fabrication/import/machine/<key>/` IDs and individual research; reload rebuilds their indexes and gates.
 
-The well controller, the five structural blocks and the four item/fluid ports are
-crafted from vanilla AE materials and are not gated by research. Pattern
-assemblies are crafted inside the well and need the first tier-one completion.
+The five Star Marrow materials use native well recipes, preserving dust/processor/alloy/component recipe IDs. Old cradle board conversion and machine/workbench production routes are removed. The crystallization recipe `fabrication/internal/star_marrow_crystal` consumes `ae_inputs: [{"#t":"molecularmanipulator:star_signal_flow","#":1024}]` and 8000mB water, with one retained Flawless rock, to produce 64 crystals at 400tick/512AE/t. It requires a Pattern Assembly and does not generate signal. Survival Star Signal Flow
+is produced separately by the Star Sea Calculation Mainframe; it is not a well-research reward.
 
-Service blocks link to the controller on the **24 positions in front of the well**
-and the **20 central platform positions** (five on each of the four collar
-segments), 44 bays in total. The nine former outer positions are no longer
-accepted. Pattern assemblies and the four item/fluid ports share the same bay set.
-The blocks themselves can be placed anywhere, but only a bay position links to the
-controller; the placement preview highlights the legal bays.
+`star_signal_storage_component` is a researched well process yielding eight
+components; `star_signal_storage_cell` is the finished storage cell. The cell remains
+an ordered `minecraft:crafting_shaped` recipe with rows `GDG / DCD / IPI`:
+`G = ae2:quartz_vibrant_glass`, `D = star_marrow_crystal_dust`,
+`C = star_signal_storage_component`, `I = star_marrow_alloy_ingot`,
+`P = star_chart_processor` (unqualified ingredient IDs use `molecularmanipulator`).
 
----
+Event Horizon's first round costs 64 Sequence crystals, 64 Computation pylons, 32 of each matrix and 1024 AE Singularities. Supernova and hub cores belong to Stellar; the nexus belongs to Transfinite. Black/white hole recipes retain their material costs and 400-tick fabrication times.
+
+Legacy progress maps once: Foundation→Star Marrow/EAE/Quantum, Computation→Transfinite, Horizon→Stellar. It does not grant Sequence completions or crystallization. Paid tasks retain terms and wait for current parents; completing old tasks also migrates their split permissions. Retired board batches return original crystals. Existing inventory and structures remain valid; matrix production uses current owners.
 
 ## 7. Batching, pattern lookup and known limits
 
@@ -574,7 +571,7 @@ accept them they stay in the assembly rather than being pushed to a manual outpu
 port. Blocked outputs or a save/reload never discard accepted materials, and
 removing one block does not collect other assemblies' inventories.
 
-Pattern lookup indexes the **complete output map including amounts**, and reuses
+Pattern lookup indexes the complete output map including amounts, and reuses
 the cached research definitions and recipe-ownership index. Candidates with the
 same output keep RecipeManager order, and every input is validated again per
 attempt. The index rebuilds automatically when the recipe manager's snapshot is
@@ -582,26 +579,26 @@ replaced, which covers data-pack reloads and `replaceRecipes`. Completion counts
 are read live from each controller, so unlocks, revocations and save restores
 never inherit another controller's or a stale state.
 
-Parallel is a limit, not a guarantee: the actual batch still depends on
-materials, power, output acceptance and each AEKey's long capacity. For example,
+Actual batch size is bounded by parallelism, materials, power, output acceptance
+and each AEKey's long capacity. For example,
 when one craft outputs 16 of the same item, a single batch is capped at
 `Long.MAX_VALUE / 16`. Power is charged as the recipe's per-tick draw times the
 batch's craft count.
 
-Native tests cover the numeric side through the public API: the pattern assembly
-accepts and commits a 3,000,000,000-craft generic batch and keeps those amounts
-long-valued across NBT round trips, while the Sequence Rewrite Array and
-Assembler Matrix providers prepare `Long.MAX_VALUE / 4` crafts with exact output
-counts and reject multiplication or buffer overflow without consuming inputs.
-That verifies capacity, not that any pack has free materials or power.
+Batch admission rejects multiplication or per-key buffer overflow without consuming
+inputs. Persistent batch buffers retain long-valued amounts across NBT saves.
 
-Started work keeps its processing snapshot. New or not-yet-started work uses the
-current recipe permissions and bonuses; queued work stores material ownership and
-the recipe ID, so unstarted batches re-check the current recipe, permission and
-profile instead of reusing old figures. Work that can no longer proceed keeps its
-materials inside the assembly and can be returned as pending input.
+Started work keeps its materials, outputs and power snapshot. Its duration is
+recomputed from the current recipe and the controller's grid benefits, including
+engine level and overclocking changes, while completed progress is rescaled to
+keep the same proportion (rounded down to whole ticks). Old batches saved with
+`duration = 1` are recalculated too. Manual work also saves its duration for
+rescaling after reload; legacy manual saves without that field keep their elapsed
+ticks, bounded below completion. Queued work stores material ownership and the
+recipe ID and rechecks the current recipe, permission and profile before starting.
+Work that cannot proceed retains its materials inside the assembly.
 
-### 7.1 Known limitations in 2.0.13-forge
+### 7.1 Known limitations in 20.3.0.1
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.
@@ -610,18 +607,14 @@ materials inside the assembly and can be returned as pending input.
 - A queue without a pattern is refunded when the pattern definition disappears,
   not when the matched recipe changes.
 
-Neither output indexing nor API admission should be treated as a fix for these.
-
----
-
 ## 8. JEI and ports
 
-JEI labels each well recipe at the top with the research tier and name that
-grants it; hovering shows the full research conditions, and a recipe granted by
-several researches lists all of them. Recipes without research show
+In JEI's recipe view, each well recipe shows the research tier and name that
+grants it at the top. Hover to see the full research conditions; a recipe granted
+by several researches lists all of them. Recipes without research show
 "Basic recipe · No research", and recipes whose research is not configured show
 "Research not configured". The time and power shown at the bottom are base
-values; deep-research bonuses are applied by the controller.
+values; research parallelism and engine speed are applied by the controller.
 
 | Port | Behaviour |
 | --- | --- |
@@ -655,8 +648,6 @@ normally only preserves them while it still holds cached materials; breaking an
 empty port drops a plain block and the auto-output and direction settings are
 lost.
 
----
-
 ## 9. Administration commands
 
 Requires cheats or permission level 2. Without coordinates, look at a Matter
@@ -688,12 +679,11 @@ and from `unlock_all`, and naming it directly reports it as unavailable.
 Changing a research's state or count ends that research's active attempt. Already
 spent materials are not refunded, and nothing extra is charged; `unlock_all` ends
 the active attempts of everything it maxes out. Setting one research leaves other
-branches' counts, tasks and invested materials alone. Reverting tier one pauses
-unfinished tier-two research until the prerequisite is met again (one completion
-by default), while tier-two completion records and granted production permissions
-are kept. Results are written to the controller's NBT and pushed to open menus.
-
----
+branches' counts, tasks and invested materials alone. Revoking a prerequisite pauses
+unfinished dependent research until its current requirements are met again; existing
+completion records remain. Ordinary recipes retain their granted well permission,
+but machine-import recipes continuously recheck the minimum of three completions
+in each Tier III branch. Results are written to the controller's NBT and pushed to open menus.
 
 ## 10. Java API
 
@@ -721,16 +711,16 @@ API; the separate batch API stays at v1.
 | --- | --- |
 | `definitions(Level)` | Available definitions sorted by `sort_order`, then ID; definitions whose `required_mods` are missing are filtered out. |
 | `orderMissing(controller, resourceId, toMaximum)`, `stopPreparation(controller, resourceId)` | Server owner-thread operations returning whether the request was accepted. Ordering continuously prepares materials; `true` targets all remaining rounds. Stop accepts preparation only and returns `false` once research starts. |
-| `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; ordinary manual tasks using `setPaused(..., false)` re-check the structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
+| `start(controller, id)`, `setPaused(controller, id, paused)` | Return whether the operation was accepted. `start` resumes an existing task instead of failing, and returns `false` for an unknown, unavailable, maxed-out, refund-blocked or prerequisite-blocked research. Ordered tasks reject `setPaused`; for ordinary manual tasks, `setPaused(..., false)` re-checks structure, grid, refunds and prerequisites and pays any unpaid part, so it can return `false`. |
 | `completionCount`, `isCompleted` | Query completions; `isCompleted` means at least one completion, not maximum depth. |
-| `canUseRecipe`, `isRecipeUnlocked` | Permission checks for other recipe executors, which must call them to enforce their own rules. `canUseRecipe` takes a `MatterFabricationRecipe`. |
-| `productionProfile` | `(parallel, ticks)` for the current completed branches of that recipe: highest parallel, shortest time; an unowned recipe returns parallel `1` and its raw processing time. |
-| `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. None of them checks permissions — the caller must. |
-| `prerequisitesMet`, `requiredPrerequisiteLevel` | Default one completion per prerequisite, and `false` for a prerequisite missing from the `available` list passed in — pass `definitions(level)`. Java map value `0` is the data-pack `"max"`. |
+| `canUseRecipe`, `isRecipeUnlocked` | Check this well's research plus global recipe locks and, for imports, the source recipe ID and dual-Tier-III minimum. Other executors must call the hook to enforce these rules. `canUseRecipe` takes a `MatterFabricationRecipe` directly (`Recipe.getId()` supplies its ID on Forge). |
+| `productionProfile` | `(parallel, ticks)`: highest parallel limit among completed owner branches; unowned, ungated recipes inherit completed `ae_foundation` parallelism, otherwise `1`. Ticks come from the current recipe base duration and `StarComputationNetwork.forGrid(controller.getMainNode().getGrid()).processingTicks(baseTicks)`, independently of research depth. |
+| `setCompletionCount`, `setCompleted`, `unlockAll` | Administrative mutations that clamp to the current maximum depth and end affected active attempts; reserved preparation materials are returned, while started research costs remain spent. Negatives throw; the count is `int` and `unlockAll` returns the number of definitions it processed. These methods do not check permissions; the caller must. |
+| `prerequisitesMet`, `requiredPrerequisiteLevel` | `prerequisitesMet` returns `false` if a prerequisite is missing from the supplied `available` list; pass `definitions(level)`. `requiredPrerequisiteLevel` returns an integer, defaulting to one completion. A Java map value of `0` requests the parent's maximum depth, matching the data-pack `"max"`. |
 
 Mutations throw `IllegalStateException` when called off the owning server thread;
 live queries should also run on the owning server thread unless the caller holds an immutable snapshot. Complete progress can be read on the server thread with
-`controller.getResearch().save()`.
+`controller.getResearch().save()` (no registry argument on Forge 1.20.1).
 
 Java mods can build modified definitions through the copy API:
 
@@ -738,13 +728,13 @@ Java mods can build modified definitions through the copy API:
 var parent = new ResourceLocation("molecularmanipulator:research/ae_foundation");
 var three = existingResearch.withPrerequisiteLevels(Map.of(parent, 3));
 var full = existingResearch.withPrerequisiteLevels(Map.of(parent, 0)); // Java 0 == "max" in data
-int required = MatterResearchApi.requiredPrerequisiteLevel(three, parentResearch);
+int required = MatterResearchApi.requiredPrerequisiteLevel(three, parentResearchRecipe);
 boolean eligible = MatterResearchApi.prerequisitesMet(three,
         MatterResearchApi.definitions(serverLevel), controller.getResearch()::completionCount);
 ```
 
 `withPrerequisiteLevels` returns a new definition and leaves the old one and all
-player progress untouched; it replaces the level map rather than merging it. The
+existing research progress untouched. It replaces the level map without merging it. The
 returned definition must go through the normal recipe registration or replacement
 path. The 9- and 10-argument constructors remain available and default to one
 required completion per prerequisite; the full canonical constructor takes
@@ -753,4 +743,5 @@ Java map accepts positive counts or `0` for maximum, while JSON and KubeJS accep
 a positive integer or the string `"max"` and reject `0` and negatives.
 
 Other recipe executors must call the permission and production-parameter hooks
-themselves.
+themselves. `productionProfile` computes batch and timing limits; it is not a permission
+check, material reservation or guarantee that the network can supply the batch.

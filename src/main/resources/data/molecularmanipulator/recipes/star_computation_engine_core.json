@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CPC",
+    "IEI",
+    "CQC"
+  ],
+  "key": {
+    "C": {
+      "item": "molecularmanipulator:star_computation_engine_casing"
+    },
+    "P": {
+      "item": "molecularmanipulator:star_chart_processor"
+    },
+    "I": {
+      "item": "molecularmanipulator:star_marrow_alloy_ingot"
+    },
+    "E": {
+      "item": "ae2:energy_acceptor"
+    },
+    "Q": {
+      "item": "molecularmanipulator:star_marrow_crystal"
+    }
+  },
+  "result": {
+    "count": 1,
+    "item": "molecularmanipulator:star_computation_engine_core"
+  }
+}

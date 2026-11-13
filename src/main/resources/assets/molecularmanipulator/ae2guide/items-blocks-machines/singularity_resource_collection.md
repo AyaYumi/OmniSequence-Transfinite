@@ -8,7 +8,7 @@ navigation:
 
 # Singularity Resource Collection
 
-The hub produces every item in its resource list simultaneously. Defaults include raw ores and logs; modpacks can configure other resources.
+Resource Collection produces every listed resource together and sends the output directly to ME. Start it once to collect raw ores, logs and other configured materials. It needs no sample or miniature black holes.
 
 <ItemGrid>
 <ItemIcon id="minecraft:raw_iron" />
@@ -21,33 +21,43 @@ The hub produces every item in its resource list simultaneously. Defaults includ
 <ItemIcon id="minecraft:warped_stem" />
 </ItemGrid>
 
-## Starting collection
+These are common examples. Check the in-game Resource Collection list for every available resource and its quantity; the server sets both.
 
-1. Form an [Event Horizon Singularity Hub](event_horizon_singularity_hub.md) or connect a [Compact Hub](compact_singularity_hub.md).
-2. Open **Resource Collection** and review the complete current list.
-3. Provide ME storage for its items and select **Start Collection**.
-4. The multiblock hub begins production after startup. Products enter its connected ME network automatically.
+## Requirements
 
-By default, each resource produces **1000 items every 20 ticks**, about one second at normal TPS. An item matching multiple tags appears only once. There is no need to switch collection targets.
+- A formed [Event Horizon Singularity Hub](event_horizon_singularity_hub.md), or a connected [Compact Hub](compact_singularity_hub.md).
+- A powered ME network with channels and item storage that accepts every listed resource.
+- Loaded required chunks. The multiblock hub also needs its whole motion area intact and clear.
 
-The page uses the server's effective resource list, batch size and interval, including on dedicated-server clients; the client's local config does not determine production. Select **Guide** to open this page from the controller.
+Collection uses no Sequence Matter or fluid storage. For copying a sample or generating matter, use [Matter Duplication](singularity_matter_duplication.md). Those functions have separate controls.
 
-## Resource list
+## Start collection
 
-The server configuration's **Singularity Hub → Resource Collection** group controls resource tags, quantities, intervals and the blacklist.
+1. Right-click the hub, open Resource Collection and check that the network is online.
+2. Review the list and make sure ME accepts every item. A blocked product can stop the whole cycle even if other products have space.
+3. Select Start Collection. The multiblock hub completes startup and begins moving; the compact hub has no moving structure.
+4. Check the listed resource counts in an ME terminal. They should rise together; products go into storage without dropping into the world.
 
-| Setting | Default or example |
+By default, each resource produces 1000 items every 20 ticks, about 1 second at normal speed. If raw iron and oak logs are listed, the cycle produces 1000 of each. Duplicate resources count once, and there is no target selection.
+
+Server settings control resource selection, exclusions, quantities and intervals. Follow the current interface values; client settings cannot replace the server's production list.
+
+## Stop and resume
+
+- Select Stop Collection to stop supply. The multiblock hub docks its moving parts.
+- Matter generation and sample copying continue until you stop them on Matter Duplication.
+- When chunks are temporarily unavailable or ME is reconnecting after a restart, keep the area loaded and wait.
+- Missing blocks, a genuine disconnection or construction can stop collection. After repairs, check the page and start it again if it remains stopped.
+- Full storage does not spill products into the world. Missed production cycles are not replayed after recovery.
+
+## Troubleshooting
+
+| Problem | What to check |
 | --- | --- |
-| Item tags | #forge:raw_materials, #c:raw_ores, #c:raw_materials, #minecraft:raw_ores, #minecraft:logs, #c:logs |
-| Additional tag example | #minecraft:planks to produce planks |
-| Blacklist | Item IDs such as minecraft:raw_iron |
-| Items per resource per cycle (`batch_size`) | 1000 |
-| Ticks between cycles (`interval_ticks`) | 20 |
+| Empty list, or the item you want is absent | The server chooses the list. Check that the pack includes the resource and ask the server owner about selection and exclusions. |
+| Collection appears active, but no products | Wait for startup, then check ME item capacity and storage filters for every product. |
+| Multiblock cannot start or dock | Clear its motion path and load the entire motion area. The chunk-loading switch itself is not motion permission. |
+| No output immediately after a restart | Let ME reconnect. If collection has stopped after recovery, start it manually. |
+| Faster collection did not speed up copying | They are separate functions; see [Matter Duplication](singularity_matter_duplication.md). |
 
-These settings apply to resource collection. [Sample copying](singularity_matter_duplication.md) has a separate limit of one item per tick. Changing the collection interval while running starts a fresh cycle; missed cycles are not replayed.
-
-Only tag members present in the pack enter the list. Blacklisted items are neither displayed nor produced. The page's list shows the current resources; the icons above are common examples.
-
-## Stopping and waiting
-
-Select **Stop Collection** to stop production and dock the multiblock hub. An offline network, incomplete structure or insufficient storage makes the device wait for operating conditions to recover. Products do not spill into the world when storage is full.
+Select Guide on the machine's collection page to return here.

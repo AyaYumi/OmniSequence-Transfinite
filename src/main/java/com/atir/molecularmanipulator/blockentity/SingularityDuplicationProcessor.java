@@ -5,7 +5,9 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.storage.MEStorage;
+import com.atir.molecularmanipulator.config.ModConfig;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 
@@ -20,9 +22,9 @@ public final class SingularityDuplicationProcessor {
         this.saveChanges = saveChanges;
     }
 
-    /** An empty sample only flushes already owned contents; it never starts another copy. */
+    /** Empty or blacklisted samples only flush already owned contents; they never start another copy. */
     public void tick(MEStorage storage, AEFluidKey matter, IActionSource source, ItemStack sample) {
-        if (!flush(storage, matter, source) || sample.isEmpty()) return;
+        if (!flush(storage, matter, source) || sample.isEmpty() || isBlacklisted(sample)) return;
         var output = AEItemKey.of(sample);
         if (storage.insert(output, 1, Actionable.SIMULATE, source) < 1) return;
         if (storage.extract(matter, MATTER_PER_ITEM, Actionable.SIMULATE, source) < MATTER_PER_ITEM) return;
@@ -41,6 +43,16 @@ public final class SingularityDuplicationProcessor {
         pendingOutput = sample.copyWithCount(1);
         saveChanges.run();
         flush(storage, matter, source);
+    }
+
+    private static boolean isBlacklisted(ItemStack sample) {
+        var blacklist = ModConfig.SINGULARITY_DUPLICATION_ITEM_BLACKLIST.get();
+        if (blacklist.isEmpty()) return false;
+        String itemId = BuiltInRegistries.ITEM.getKey(sample.getItem()).toString();
+        for (String entry : blacklist) {
+            if (itemId.equals(entry.trim())) return true;
+        }
+        return false;
     }
 
     private boolean flush(MEStorage storage, AEFluidKey matter, IActionSource source) {

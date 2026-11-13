@@ -19,13 +19,13 @@
     },
     {
       "ingredient": {
-        "tag": "c:gems/fluix"
+        "tag": "forge:gems/fluix"
       },
       "count": 2
     },
     {
       "ingredient": {
-        "tag": "c:ingots/infused_entro"
+        "tag": "forge:ingots/infused_entro"
       },
       "count": 2
     },
@@ -50,7 +50,7 @@
       "count": 2
     }
   ],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 128.0,
   "requires_research": true
 }

@@ -73,16 +73,15 @@ public final class EcoCpuDispatch {
             }
             var providerCache = new IdentityHashMap<ICraftingProvider, ProviderCandidate>();
             for (var pattern : patterns) {
-                if (host.omniDispatch$stopped()) return stoppedResult;
-                // Native AELIS cycles own a separate ordered runtime. The shared
-                // cycle-aware executor enforces its steps/seeds and records accepted
-                // firings; an ECO-only transaction would leave that runtime unfinished.
-                if (execution == null && AelisBatchExecutionContext.acquire(pattern.getDefinition(),
-                        host.omniDispatch$physicalView()).hasCycleProtection()) return -1;
+                if (host.omniDispatch$stopped()) return 0;
                 // Filtering before the phase token and preview keeps unsupported patterns from
                 // touching the CPU inventory or starting phase preparation at all.
                 var candidates = supportedProviders(crafting, pattern, providerCache);
                 if (candidates.isEmpty()) continue;
+                // Native AELIS cycles must retain the shared executor's ordered
+                // progress and seed accounting, not an ECO-only transaction.
+                if (execution == null && AelisBatchExecutionContext.acquire(pattern.getDefinition(),
+                        host.omniDispatch$physicalView()).hasCycleProtection()) return -1;
                 var token = execution == null ? null : execution.begin(pattern);
                 if (execution != null && token == null) continue;
                 BigInteger limit = host.omniDispatch$remaining(pattern);

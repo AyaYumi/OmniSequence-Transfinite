@@ -3,10 +3,13 @@ package com.atir.molecularmanipulator.research;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
 import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
+import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import java.util.List;
 import java.util.function.ToIntFunction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 /** Public server API; recipe definitions are owned by the current RecipeManager, including KubeJS reloads. */
 public final class MatterResearchApi {
@@ -97,30 +100,34 @@ public final class MatterResearchApi {
 
     public static ProductionProfile productionProfile(MatterFabricationBlockEntity machine, MatterFabricationRecipe recipe) {
         var index = MatterRecipeIndex.get(machine.getLevel());
-        var owners = index.researchFor(recipe.id());
-        // Basic recipes are intentionally usable before research. They still use the
-        // completed depth of the first research branch as the shared machine bonus.
-        // A recipe with an explicit owner keeps the normal owner-specific behavior.
-        if (owners.isEmpty() && !recipe.value().requiresResearch()) {
-            var foundation = index.research(FOUNDATION_RESEARCH);
-            if (foundation != null) owners = List.of(foundation);
-        }
-        long parallel = 1; int ticks = recipe.value().processingTime(); boolean hasOwner = false;
-        for (var holder : owners) {
-            int completed = machine.getResearch().completionCount(holder.id());
-            if (completed > 0) {
-                var depth = holder.value().depths().get(Math.min(completed, holder.value().depths().size()) - 1);
-                parallel = Math.max(parallel, depth.parallel());
-                int target = depth.ticks(recipe.value().processingTime());
-                ticks = hasOwner ? Math.min(ticks, target) : target;
-                hasOwner = true;
-            }
-        }
+        long parallel = productionParallel(recipe.value().requiresResearch(), index.researchFor(recipe.id()),
+                index.research(FOUNDATION_RESEARCH), machine.getResearch()::completionCount);
+        int ticks = StarComputationNetwork.forGrid(machine.getMainNode().getGrid())
+                .processingTicks(recipe.value().processingTime());
         return new ProductionProfile(parallel, ticks);
     }
 
+    static long productionParallel(boolean requiresResearch, List<MatterResearchRecipe> owners,
+            @Nullable MatterResearchRecipe foundation, ToIntFunction<ResourceLocation> completions) {
+        // Ownerless basic recipes stay usable before research and inherit only
+        // foundation parallelism. Explicit owners (including unfinished ones) win;
+        // research never substitutes for StarComputation speed or recipe unlocks.
+        if (owners.isEmpty() && !requiresResearch && foundation != null) {
+            owners = List.of(foundation);
+        }
+        long parallel = 1;
+        for (var holder : owners) {
+            int completed = completions.applyAsInt(holder.id());
+            if (completed > 0) {
+                var depth = holder.value().depths().get(Math.min(completed, holder.value().depths().size()) - 1);
+                parallel = Math.max(parallel, depth.parallel());
+            }
+        }
+        return parallel;
+    }
+
     public static boolean canUseRecipe(MatterFabricationBlockEntity machine, MatterFabricationRecipe recipe) {
-        return hasPermission(machine, recipe.id(), recipe.value().requiresResearch());
+        return hasPermission(machine, recipe.id(), recipe.value().requiresResearch(), recipe.value().sourceRecipeId());
     }
 
     /** Query hook for other recipe executors; they must call it themselves to enforce their own permissions. */
@@ -128,15 +135,27 @@ public final class MatterResearchApi {
         var id = ResourceLocation.tryParse(recipeId);
         if (id == null || machine.getLevel() == null) return false;
         var recipe = MatterRecipeIndex.get(machine.getLevel()).fabrication(id);
-        if (recipe != null) return hasPermission(machine, id, recipe.value().requiresResearch());
+        if (recipe != null) return canUseRecipe(machine, recipe);
         var other = machine.getLevel().getRecipeManager().byKey(id).orElse(null);
-        return other != null && hasPermission(machine, id,
-                other instanceof MatterFabricationRecipe fabrication && fabrication.requiresResearch());
+        if (other == null) return false;
+        if (other instanceof MatterFabricationRecipe fabrication) {
+            return hasPermission(machine, id, fabrication.requiresResearch(), fabrication.sourceRecipeId());
+        }
+        return hasPermission(machine, id, false, null);
     }
 
-    private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked) {
+    private static boolean hasPermission(MatterFabricationBlockEntity machine, ResourceLocation id, boolean locked,
+            @Nullable ResourceLocation sourceRecipeId) {
         if (machine.getLevel() == null) return false;
-        for (var definition : MatterRecipeIndex.get(machine.getLevel()).researchFor(id)) {
+        // Global recipe rules are additional to this well's original research.
+        // Always use the live machine context; connecting to a grid never copies its unlocks.
+        if (!RecipeLocks.allowed(machine, id)
+                || sourceRecipeId != null && !RecipeLocks.allowed(machine, sourceRecipeId)) return false;
+        var index = MatterRecipeIndex.get(machine.getLevel());
+        // Recheck the minimum even for old completion records or an alternative research owner.
+        if (index.requiresMachineResearchGate(id)
+                && !MachineResearchGate.met(index.research(), machine.getResearch()::completionCount)) return false;
+        for (var definition : index.researchFor(id)) {
             locked = true;
             if (machine.getResearch().completionCount(definition.id()) > 0) return true;
         }

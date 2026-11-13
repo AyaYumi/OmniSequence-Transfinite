@@ -1,9 +1,20 @@
 {
   "type": "minecraft:block",
-  "pools": [{
-    "rolls": 1.0,
-    "bonus_rolls": 0.0,
-    "entries": [{"type": "minecraft:item", "name": "molecularmanipulator:molecular_auto_crafter"}],
-    "conditions": [{"condition": "minecraft:survives_explosion"}]
-  }]
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "molecularmanipulator:molecular_auto_crafter"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ]
+    }
+  ]
 }

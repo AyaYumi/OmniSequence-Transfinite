@@ -4,6 +4,7 @@ import appeng.api.config.Actionable;
 import appeng.api.config.FuzzyMode;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.crafting.PatternDetailsHelper;
+import appeng.api.inventories.InternalInventory;
 import appeng.api.networking.energy.IEnergyService;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
@@ -17,20 +18,20 @@ import appeng.crafting.inv.ICraftingInventory;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import appeng.util.inv.filter.IAEItemFilter;
-import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
-import com.atir.molecularmanipulator.crafting.PatternRecipeReloads;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.mixin.RecipeManagerAccessor;
+import com.atir.molecularmanipulator.recipelock.RecipeExecutionContext;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -42,21 +43,15 @@ import java.util.function.Supplier;
  * Quantum-crafter style passive crafting shared by the sequence-array controller
  * and its standalone single-block host.
  *
- * <p>Every configured pattern is evaluated independently. Each accepted passive
- * batch is bounded by {@link #MAX_BATCH_CRAFTS} for responsive controls; the implementation
- * delegates actual-key selection, substitution and reusable-input validation to
- * AE2 and the same molecular batch helpers used by crafting CPUs.</p>
+ * <p>Every configured pattern is evaluated independently, but all slots share
+ * the host's per-tick recipe allowance. Actual-key selection, substitution and
+ * reusable-input validation use the same molecular batch helpers as CPU crafting.</p>
  */
 public final class MolecularAutoCrafter implements InternalInventoryHost {
     public static final int PATTERN_SLOTS = MolecularAutoCraftSchema.PATTERN_SLOTS;
     public static final int MAX_INPUTS = 9;
-    /**
-     * A passive slot is checked every server tick. Keep one accepted batch
-     * bounded so that an unlimited or virtual ME input cannot turn one click
-     * into an uninterruptible Long.MAX_VALUE dispatch. The next tick can
-     * continue the same recipe, while disabling a slot remains responsive.
-     */
-    static final long MAX_BATCH_CRAFTS = Integer.MAX_VALUE;
+    /** Aggregate batches remain bounded by materials, power, output capacity and the host budget. */
+    static final long MAX_BATCH_CRAFTS = Long.MAX_VALUE;
     private static final String ROOT_TAG = "molecular_auto_crafter";
     private static final String VERSION_TAG = "version";
     static final int SCHEMA_VERSION = MolecularAutoCraftSchema.VERSION;
@@ -79,12 +74,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     private boolean scheduleDirty = true;
     private int scheduleCursor;
     private boolean suppressInventoryEvents;
-    private long decodedRecipeGeneration;
-    private Level decodedLevel;
-    private RecipeManager decodedRecipeManager;
-    private java.util.Map<?, ?> decodedRecipes;
-    private final java.util.Map<Integer, DecodedPattern> decodedPatterns = new java.util.HashMap<>();
-    private record DecodedPattern(AEItemKey definition, IPatternDetails details) {}
+    private final MolecularAutoCraftPatternCache<AEItemKey, IPatternDetails> decodedPatterns =
+            new MolecularAutoCraftPatternCache<>();
 
     public MolecularAutoCrafter(MolecularAutoCrafterHost host) {
         this.host = host;
@@ -185,8 +176,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
     }
 
     @Override
-    public void onChangeInventory(appeng.api.inventories.InternalInventory inventory, int slot) {
-        if (inventory == patternInventory) decodedPatterns.remove(slot);
+    public void onChangeInventory(InternalInventory inventory, int slot) {
+        if (inventory == patternInventory) decodedPatterns.invalidate(slot);
         if (!suppressInventoryEvents && inventory == patternInventory
                 && isIndependentSlot(slot)) {
             if (configs.remove(slot) != null) {
@@ -245,7 +236,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         }
 
         // Stable slot order and rotation keep every enabled slot progressing fairly.
-        // Each evaluation uses MAX_BATCH_CRAFTS so virtual inputs remain interruptible.
+        // All slots share the host's remaining per-tick recipe allowance.
         int[] slots = scheduledSlots();
         int start = slots.length == 0 ? 0 : Math.floorMod(scheduleCursor, slots.length);
         for (int offset = 0; offset < slots.length; offset++) {
@@ -325,8 +316,14 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
         var grid = host.getMainNode().getGrid();
         Level level = host.getLevel();
-        if (grid == null || level == null) {
+        if (grid == null || level == null || level.isClientSide()) {
             config.state = AutoCraftState.MACHINE_OFFLINE;
+            return;
+        }
+        // Decode/plan caches are not permissions. Check the actual host/grid
+        // before taking even the first material of every passive batch.
+        if (!(host instanceof BlockEntity machine) || !RecipeLocks.allowedPattern(machine, details)) {
+            config.state = AutoCraftState.INVALID_PATTERN;
             return;
         }
         var outputs = details.getOutputs();
@@ -345,8 +342,16 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             outputBlocked(config, gameTime);
             return;
         }
+        // Check before extracting even the first input. Other slots and CPU
+        // dispatches on this host have already spent part of the same allowance.
+        long remainingBudget = host.getAutoCraftingBudget();
+        if (remainingBudget <= 0) {
+            config.state = AutoCraftState.READY;
+            return;
+        }
         var outputAllowance = outputAllowance(details, config);
-        long maxCrafts = Math.min(outputAllowance.maxCrafts(), config.outputBatchLimit);
+        long maxCrafts = Math.min(remainingBudget,
+                Math.min(outputAllowance.maxCrafts(), config.outputBatchLimit));
         if (maxCrafts <= 0) {
             config.state = AutoCraftState.OUTPUT_LIMIT_REACHED;
             return;
@@ -358,7 +363,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         var expectedOutputs = new KeyCounter();
         var expectedRemainders = new KeyCounter();
         KeyCounter[] firstInputs;
-        try {
+        try (var scope = RecipeExecutionContext.open(machine)) {
             firstInputs = CraftingCpuHelper.extractPatternInputs(
                     details, craftingInventory, level, expectedOutputs, expectedRemainders);
         } catch (RuntimeException exception) {
@@ -417,7 +422,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                 return;
             }
 
-            if (!prepareOutputs(details, inputs, firstInputs, craftCount, reusablePlan, level)) {
+            if (!prepareOutputs(details, inputs, firstInputs, craftCount, reusablePlan, machine)) {
                 if (extraction != null) extraction.rollbackAdditional(craftingInventory,
                         expectedOutputs, expectedRemainders);
                 if (host.hasAutoCraftRecovery()) {
@@ -496,7 +501,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
                         slot, host.getBlockPos(), exception);
             }
             config.outputRetry.reset();
-            config.outputBatchLimit = Math.min(MAX_BATCH_CRAFTS, config.outputBatchLimit * 2);
+            config.outputBatchLimit = Math.min(MAX_BATCH_CRAFTS,
+                    MolecularAutoCraftMath.saturatedMultiply(config.outputBatchLimit, 2));
             config.state = AutoCraftState.RUNNING;
             config.lastBatch = craftCount;
             config.totalCrafts = MolecularAutoCraftMath.saturatedAdd(config.totalCrafts, craftCount);
@@ -512,9 +518,9 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
     private boolean prepareOutputs(IPatternDetails details, KeyCounter[] inputs,
             KeyCounter[] firstInputs, long craftCount,
-            @Nullable MolecularReusableBatchPlan reusablePlan, Level level) {
+            @Nullable MolecularReusableBatchPlan reusablePlan, BlockEntity machine) {
         if (reusablePlan != null) {
-            var job = batcher.prepareReusable(details, inputs, level,
+            var job = batcher.prepareReusable(machine, details, inputs,
                     UUID.randomUUID(), reusablePlan);
             if (job == null) {
                 return false;
@@ -526,9 +532,9 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             return batcher.prepareReusableOutputsForAuto(job, primary, remainders);
         }
         return craftCount > 1
-                ? batcher.prepareSelected(details, inputs, level,
+                ? batcher.prepareSelected(machine, details, inputs,
                         Long.MAX_VALUE, firstInputs, craftCount)
-                : batcher.prepare(details, inputs, level, 1);
+                : batcher.prepare(machine, details, inputs, 1);
     }
 
     private OutputAllowance outputAllowance(IPatternDetails details, PatternConfig config) {
@@ -660,28 +666,21 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         if (!isIndependentSlot(slot)) return null;
         ItemStack stack = patternInventory.getStackInSlot(slot);
         Level level = host.getLevel();
-        if (stack.isEmpty() || level == null || !MolecularCenterLogic.isSupportedPattern(stack)) return null;
-        // Decoding already validates the recipe. Keep successes and failures across
-        // ticks, without materializing the entire recipe collection on cache hits.
-        var recipeManager = level.getRecipeManager();
-        var recipes = ((RecipeManagerAccessor) recipeManager).molecularmanipulator$getRecipesByName();
-        long generation = PatternRecipeReloads.generation();
-        if (decodedLevel != level || decodedRecipeManager != recipeManager
-                || decodedRecipes != recipes || decodedRecipeGeneration != generation) {
-            decodedLevel = level;
-            decodedRecipeManager = recipeManager;
-            decodedRecipes = recipes;
-            decodedRecipeGeneration = generation;
-            decodedPatterns.clear();
+        if (stack.isEmpty() || level == null || !MolecularCenterLogic.isSupportedPattern(stack)) {
+            decodedPatterns.invalidate(slot);
+            return null;
         }
-        var definition = AEItemKey.of(stack);
-        var cached = decodedPatterns.get(slot);
-        if (cached != null && cached.definition().equals(definition)) return cached.details();
-        IPatternDetails details;
-        try { details = PatternDetailsHelper.decodePattern(stack, level); }
-        catch (RuntimeException exception) { details = null; }
-        decodedPatterns.put(slot, new DecodedPattern(definition, details));
-        return details;
+        // Forge 1.20.1 rebuilds the full collection in getRecipes(). The byName
+        // map stays stable between reloads and is replaced by replaceRecipes too.
+        var recipes = ((RecipeManagerAccessor) level.getRecipeManager()).molecularmanipulator$getRecipesByName();
+        return decodedPatterns.get(slot, AEItemKey.of(stack), level,
+                recipes, () -> {
+                    try {
+                        return PatternDetailsHelper.decodePattern(stack, level);
+                    } catch (RuntimeException exception) {
+                        return null;
+                    }
+                });
     }
 
     private PatternConfig ensureConfig(int slot, IPatternDetails details) {

@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "online=false": {
+      "model": "molecularmanipulator:block/sequence_wireless_hub"
+    },
+    "online=true": {
+      "model": "molecularmanipulator:block/sequence_wireless_hub_online"
+    }
+  }
+}

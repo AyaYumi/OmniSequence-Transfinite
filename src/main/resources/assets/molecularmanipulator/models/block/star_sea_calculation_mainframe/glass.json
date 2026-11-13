@@ -1,0 +1,11 @@
+{
+  "ambientocclusion": false,
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "atlas": "molecularmanipulator:block/star_sea_calculation_mainframe/array_atlas",
+    "particle": "#atlas"
+  },
+  "elements": [
+    {"name":"小型内嵌检修玻璃","from":[7.44,9.14,6.32],"to":[8.56,10.46,6.4],"faces":{"north":{"uv":[13.515625,11.015625,14.484375,12.234375],"texture":"#atlas"},"south":{"uv":[13.515625,11.015625,14.484375,12.234375],"texture":"#atlas"},"east":{"uv":[13.515625,11.015625,14.484375,12.234375],"texture":"#atlas"},"west":{"uv":[13.515625,11.015625,14.484375,12.234375],"texture":"#atlas"},"up":{"uv":[13.515625,11.015625,14.484375,12.234375],"texture":"#atlas"},"down":{"uv":[13.515625,11.015625,14.484375,12.234375],"texture":"#atlas"}}}
+  ]
+}

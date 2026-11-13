@@ -30,11 +30,11 @@
   ],
   "results": [
     {
-      "item": "molecularmanipulator:gravity_crystal",
+      "id": "molecularmanipulator:gravity_crystal",
       "count": 1
     }
   ],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 256,
   "requires_research": true
 }

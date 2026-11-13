@@ -1,0 +1,32 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_marrow_crystal"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "minecraft:redstone"
+      },
+      "count": 32
+    },
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_chart_processor"
+      },
+      "count": 8
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:star_signal_storage_component",
+      "count": 8
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

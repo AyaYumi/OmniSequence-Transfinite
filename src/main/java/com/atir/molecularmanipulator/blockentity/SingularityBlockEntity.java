@@ -22,7 +22,10 @@ import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuLocators;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.filter.IAEItemFilter;
+import com.atir.molecularmanipulator.building.BuildingTransfer;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
+import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.registry.ModFluids;
@@ -50,7 +53,8 @@ import net.minecraftforge.event.level.BlockEvent;
 import java.util.*;
 
 /** Construction terminal and tag-driven resource collection controller. */
-public final class SingularityBlockEntity extends AENetworkInvBlockEntity implements MachineEffectHost {
+public final class SingularityBlockEntity extends AENetworkInvBlockEntity
+        implements MachineEffectHost, SequenceWirelessHost {
     private final MachineEffectSettings machineEffects = new MachineEffectSettings();
     @Override public MachineEffectSettings getMachineEffects() { return machineEffects; }
     public enum Operation { IDLE, BUILD, DISMANTLE }
@@ -59,8 +63,10 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
     private final AppEngInternalInventory recovery = new AppEngInternalInventory(this, 1);
     private static final String QUANTUM_INVENTORY_TAG = "singularity_quantum_inventory";
     private static final String DUPLICATION_INVENTORY_TAG = "singularity_duplication_inventory";
+    private static final String PACKAGE_RECLAIM_REQUESTER_TAG = "singularityPackageReclaimRequester";
     private static final double QUANTUM_LINK_POWER = 512.0;
     private final AppEngInternalInventory quantumInventory = new AppEngInternalInventory(this, 1);
+    private final SequenceWirelessLink wirelessLink = new SequenceWirelessLink(this, () -> 4);
     private final AppEngInternalInventory duplicationInventory = new AppEngInternalInventory(this, 2);
     private final SingularityDuplicationProcessor duplication = new SingularityDuplicationProcessor(this::saveChanges);
     private final SingularityMotionState motion = new SingularityMotionState(this);
@@ -68,6 +74,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
     private Operation operation = Operation.IDLE;
     private Status status = Status.IDLE;
     private UUID owner;
+    private UUID packageReclaimRequester;
     private Direction operationFacing = Direction.NORTH;
     private boolean paused, formed, scanRequested, collectionActive;
     private long collectionStartTick = Long.MIN_VALUE;
@@ -135,22 +142,31 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
         updateQuantumLink();
     }
     @Override public void onChunkUnloaded() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.onChunkUnloaded();
     }
     @Override public void setRemoved() {
+        wirelessLink.disconnect();
         releaseQuantumFrequency();
         clearQuantumLinkForRemoval();
         super.setRemoved();
     }
     public void openMenu(Player player) {
-        if (player instanceof ServerPlayer server && operation == Operation.IDLE && motion.hasPortable()) setRecoveryOwner(server);
+        if (player instanceof ServerPlayer server && operation == Operation.IDLE && !packageReclaimRequested()
+                && motion.hasPortable()) setRecoveryOwner(server);
         MenuOpener.open(SingularityContent.MENU.get(), player, MenuLocators.forBlockEntity(this));
     }
     public SingularityMotionState motion() { return motion; }
     public int structureVersion() { return structureVersion; }
     public boolean embedRequested() { return embedRequested; }
+    public boolean packageReclaimRequested() { return packageReclaimRequester != null; }
+    /** Native buffers and portable materials are archive contents, not reasons to reject sealing. */
+    public boolean canSealPackage() {
+        return !isSingleBlock() && operation == Operation.IDLE && !collectionActive && !embedRequested
+                && !packageReclaimRequested() && !motion.hasBodies();
+    }
     public List<SingularityStructure.Part> structureParts() { return isSingleBlock() ? List.of() : SingularityStructure.parts(structureVersion); }
     public BlockPos worldPos(BlockPos local) { return SingularityStructure.worldPos(worldPosition, facing(), local, structureVersion); }
     public BlockPos worldPos(SingularityStructure.Part part) { return worldPos(part.pos()); }
@@ -203,6 +219,8 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
                 ? Math.max(0L, (stack.hasTag() ? stack.getTag().getLong(appeng.blockentity.qnb.QuantumBridgeBlockEntity.TAG_FREQUENCY) : 0L)) : 0;
     }
     public QuantumLinkState getQuantumLinkState() { return quantumLinkState; }
+    @Override public SequenceWirelessLink getWirelessLink() { return wirelessLink; }
+    @Override public void refreshRemoteConnection() { updateQuantumLink(); }
     public boolean collectionActive() { return collectionActive; }
     public List<Item> collectionResources() {
         return collectionResources.get(level.registryAccess(), ModConfig.SINGULARITY_COLLECTION_ITEM_TAGS.get(),
@@ -242,6 +260,13 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
 
     private void updateQuantumLink() {
         if (!(level instanceof ServerLevel serverLevel)) return;
+        if (wirelessLink.isBound()) {
+            releaseQuantumFrequency();
+            if (quantumConnection != null) disconnectQuantumLink(QuantumLinkState.EMPTY);
+            quantumLinkState = wirelessLink.update(getQuantumFrequency() != 0, connectedQuantumLinkState());
+            return;
+        }
+        wirelessLink.disconnect();
         long frequency = getQuantumFrequency();
         if (frequency == 0) {
             releaseQuantumFrequency();
@@ -376,7 +401,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
             saveChanges(); markForUpdate();
             return;
         }
-        if (!canManage(player) || operation != Operation.IDLE || embedRequested
+        if (!canManage(player) || operation != Operation.IDLE || embedRequested || packageReclaimRequested()
                 || motion.hasPortable() || !formed || !networkOnline() || motion.mode() == SingularityMotionState.DOCKING) return;
         if (collectionActive) {
             collectionActive = false;
@@ -395,8 +420,9 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
         markForUpdate();
     }
     public boolean canManage(ServerPlayer player) {
-        return player != null && level != null && !isRemoved() && player.level() == level && player.mayBuild()
-                && player.distanceToSqr(worldPosition.getCenter()) <= 64
+        return player != null && level != null && !isRemoved() && player.level() == level && player.mayBuild() && !player.isSpectator()
+                && (player.distanceToSqr(worldPosition.getCenter()) <= 64
+                || com.atir.molecularmanipulator.terminal.BuildingTerminal.canAccess(player, this))
                 && level.mayInteract(player, worldPosition);
     }
     public void requestInspection(ServerPlayer player) {
@@ -405,7 +431,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
     }
     public void startBuild(ServerPlayer player) {
         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || collectionActive || motion.hasBodies()
-                || motion.hasPortable() || embedRequested) return;
+                || motion.hasPortable() || embedRequested || packageReclaimRequested()) return;
         if (!SingularityStructure.fits(level, worldPosition, facing(), structureVersion)) { status = Status.OUT_OF_BOUNDS; return; }
         operation = Operation.BUILD; owner = player.getUUID(); operationFacing = facing();
         cursor = 0; paused = false; problem = null; status = Status.BUILDING; saveChanges();
@@ -420,18 +446,44 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
     }
     public void cancel(ServerPlayer player) {
         if (isSingleBlock()) return;
-        if (!canManage(player) || !player.getUUID().equals(owner) && !player.hasPermissions(2)) return;
+        var requester = packageReclaimRequested() ? packageReclaimRequester : owner;
+        if (!canManage(player) || !player.getUUID().equals(requester) && !player.hasPermissions(2)) return;
         operation = Operation.IDLE; paused = false; dismantle = null; embedRequested = false;
+        packageReclaimRequester = null;
         if (collectionActive && motion.hasBodies()) motion.stopForCollection(player);
         collectionActive = false; collectionStartTick = Long.MIN_VALUE;
         nextCollectionTick = Long.MIN_VALUE; status = Status.IDLE;
-        nextInspection = 0; saveChanges();
+        nextInspection = 0; saveChanges(); markForUpdate();
     }
+    /** New requests archive the whole machine; persisted native dismantles still resume below. */
     public void startDismantle(ServerPlayer player) {
-        if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || collectionActive || embedRequested) return;
-        if (motion.hasBodies()) { motion.dock(player, true); return; }
-        beginDismantle(player);
+        requestPackageReclaim(player);
     }
+    public boolean requestPackageReclaim(ServerPlayer player) {
+        if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || collectionActive
+                || embedRequested || packageReclaimRequested()) return false;
+        if (!motion.hasBodies()) return BuildingTransfer.seal(player, this);
+        // Record the authorized requester before docking can save or change motion ownership.
+        packageReclaimRequester = player.getUUID(); owner = packageReclaimRequester;
+        saveChanges(); markForUpdate();
+        motion.dock(player, false);
+        return true;
+    }
+    private void tickPackageReclaim() {
+        var player = level.getServer().getPlayerList().getPlayer(packageReclaimRequester);
+        if (player == null || !canManage(player)) return;
+        if (motion.hasBodies()) {
+            // A migration/chunk wait may have prevented the initial dock from starting.
+            if (motion.mode() != SingularityMotionState.DOCKING) motion.dock(player, false);
+            return;
+        }
+        // This marker belongs only to the source. A refused seal is retried by the user,
+        // never every tick, and a deployed controller must not reclaim itself again.
+        packageReclaimRequester = null;
+        saveChanges(); markForUpdate();
+        BuildingTransfer.seal(player, this);
+    }
+    /** Compatibility callback for historical motion saves with reclaim-after-dock set. */
     void beginDismantle(ServerPlayer player) {
         if (player.level() != level || !player.mayBuild()) return;
         refreshInspection();
@@ -455,7 +507,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
         paused = false; status = Status.DISMANTLING; problem = null; saveChanges();
     }
     public void serverTick() {
-        if (level == null || level.isClientSide()) return;
+        if (level == null || level.isClientSide() || isRemoved() || BuildingTransfer.restoring(this)) return;
         if (isSingleBlock()) {
             // Compact hubs never inspect, build, move or force-load a multiblock footprint.
             repairMisplacedBlackHoles();
@@ -474,6 +526,12 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
         repairMisplacedBlackHoles();
         if (level.getGameTime() % 20 == 0) updateQuantumLink();
         motion.serverTick();
+        if (isRemoved()) return;
+        if (packageReclaimRequested()) {
+            // Keep recovery/portable buffers and duplication state native until the docked snapshot.
+            tickPackageReclaim();
+            return;
+        }
         if (inspection.unloaded() > 0 && motion.mode() == SingularityMotionState.RUNNING) refreshInspection();
         boolean waitingForMotionChunks = motion.mode() == SingularityMotionState.PAUSED
                 && motion.message().equals("unloaded");
@@ -831,14 +889,17 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
     }
     @Override public void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
+        wirelessLink.save(tag);
         machineEffects.save(tag);
         quantumInventory.writeToNBT(tag, QUANTUM_INVENTORY_TAG);
         duplicationInventory.writeToNBT(tag, DUPLICATION_INVENTORY_TAG);
         tag.put("singularityDuplication", duplication.save());
+        tag.remove(PACKAGE_RECLAIM_REQUESTER_TAG);
         if (isSingleBlock()) {
             tag.putBoolean("singularityCollectionActive", collectionActive);
             return;
         }
+        if (packageReclaimRequester != null) tag.putUUID(PACKAGE_RECLAIM_REQUESTER_TAG, packageReclaimRequester);
         tag.put("singularityMotion", motion.save());
         tag.putInt("singularityMaterialVersion", SingularityStructure.MATERIAL_VERSION);
         tag.putInt("singularityVersion", structureVersion); tag.putInt("singularityLayout", structureVersion);
@@ -851,6 +912,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
     }
     @Override public void loadTag(CompoundTag tag) {
         tag = RetainedBlockContents.unpack(tag);
+        wirelessLink.load(tag);
         super.loadTag(tag);
         machineEffects.load(tag);
         collectionInterval = 0;
@@ -860,6 +922,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
         nextDuplicationGenerationTick = Long.MIN_VALUE;
         duplicationGenerationInterval = 0;
         clearDuplicationEnergyUsage();
+        packageReclaimRequester = null;
         if (isSingleBlock()) {
             // Only production inventories/settings are portable; no construction or motion state.
             formed = true; operation = Operation.IDLE; paused = false; embedRequested = false;
@@ -874,6 +937,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
         structureVersion = storedLayout == SingularityStructure.LEGACY_VERSION || storedLayout == SingularityStructure.EMBEDDED_VERSION
                 ? storedLayout : SingularityStructure.VERSION;
         embedRequested = structureVersion < SingularityStructure.VERSION && tag.getBoolean("singularityEmbedRequested");
+        packageReclaimRequester = tag.hasUUID(PACKAGE_RECLAIM_REQUESTER_TAG) ? tag.getUUID(PACKAGE_RECLAIM_REQUESTER_TAG) : null;
         if (tag.contains("singularityPortableMaterials")) motion.loadPortable(SingularityStructure.readMaterialCounts(tag, "singularityPortableMaterials"));
         else if (tag.contains("singularityMotion")) motion.load(tag.getCompound("singularityMotion"));
         try { operation = Operation.valueOf(tag.getString("operation")); } catch (IllegalArgumentException ignored) { operation = Operation.IDLE; }
@@ -895,20 +959,25 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
         nextInspection = 0;
     }
     public boolean hasRemovalRecovery() {
-        return !recovery.isEmpty() || !quantumInventory.isEmpty() || !duplicationInventory.isEmpty()
+        return wirelessLink.isBound() || !recovery.isEmpty() || !quantumInventory.isEmpty() || !duplicationInventory.isEmpty()
                 || duplication.hasContents() || motion.hasBodies() || motion.hasPortable();
     }
     @Override public void addAdditionalDrops(net.minecraft.world.level.Level level, BlockPos pos, List<ItemStack> drops) {
         if (!hasRemovalRecovery()) return;
         var data = new CompoundTag(); super.saveAdditional(data);
         var portable = new CompoundTag(); portable.put("inv", data.getCompound("inv"));
+        wirelessLink.save(portable);
         quantumInventory.writeToNBT(portable, QUANTUM_INVENTORY_TAG);
         duplicationInventory.writeToNBT(portable, DUPLICATION_INVENTORY_TAG);
         portable.put("singularityDuplication", duplication.save());
         SingularityStructure.writeMaterialCounts(portable, "singularityPortableMaterials", motion.portableCounts());
         drops.add(RetainedBlockContents.createDrop(this, portable));
     }
-    @Override public void clearContent() { super.clearContent(); quantumInventory.clear(); duplicationInventory.clear(); duplication.clear(); motion.clear(); }
+    @Override public void clearContent() {
+        wirelessLink.clear();
+        super.clearContent(); quantumInventory.clear(); duplicationInventory.clear(); duplication.clear(); motion.clear();
+        packageReclaimRequester = null;
+    }
     @Override protected void writeToStream(FriendlyByteBuf data) {
         super.writeToStream(data); data.writeBoolean(formed); data.writeVarInt(motion.mask());
         data.writeVarInt(structureVersion); data.writeBoolean(embedRequested);
@@ -925,7 +994,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
 
     public void requestEmbedding(ServerPlayer player) {
         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.LEGACY_VERSION
-                || embedRequested || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
+                || embedRequested || packageReclaimRequested() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
         refreshInspection();
         if (!formed) { status = Status.CONFLICT; problem = inspection.problem(); return; }
         owner = player.getUUID(); embedRequested = true;
@@ -935,7 +1004,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
 
     public void requestSuspendedUpgrade(ServerPlayer player) {
         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.EMBEDDED_VERSION
-                || embedRequested || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
+                || embedRequested || packageReclaimRequested() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
         refreshInspection();
         if (!formed) { status = Status.CONFLICT; problem = inspection.problem(); return; }
         owner = player.getUUID(); embedRequested = true;

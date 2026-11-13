@@ -8,10 +8,6 @@
     {
       "type": "forge:item_exists",
       "item": "advanced_ae:quantum_infused_dust"
-    },
-    {
-      "type": "forge:item_exists",
-      "item": "advanced_ae:quantum_infusion_source"
     }
   ],
   "ingredients": [
@@ -23,7 +19,7 @@
     }
   ],
   "results": [],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 100.0,
   "requires_research": true,
   "fluid_input": {

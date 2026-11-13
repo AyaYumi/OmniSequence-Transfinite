@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "molecularmanipulator:block/star_orrery/foundation/gilded_plinth_top",
+    "bottom": "molecularmanipulator:block/star_orrery/foundation/bottom",
+    "side": "molecularmanipulator:block/star_orrery/foundation/gilded_plinth_side"
+  }
+}

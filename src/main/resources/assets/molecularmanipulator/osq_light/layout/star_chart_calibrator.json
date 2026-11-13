@@ -1,0 +1,932 @@
+{
+ "screen": "star_chart_calibrator",
+ "machine": "star_chart_calibrator",
+ "family": "sing",
+ "size": [
+  312,
+  346
+ ],
+ "left_room": 0,
+ "units": "GUI px; shared OSQ machine skin and live handheld controls",
+ "draw": [
+  {
+   "type": "sprite",
+   "id": "window",
+   "k": "window",
+   "rect": [
+    0,
+    0,
+    312,
+    346
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "package",
+   "k": "card",
+   "rect": [
+    8,
+    46,
+    296,
+    82
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "placement",
+   "k": "card",
+   "rect": [
+    8,
+    134,
+    296,
+    104
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "survey",
+   "k": "card",
+   "rect": [
+    8,
+    244,
+    296,
+    48
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 12,
+   "baseline": 23,
+   "width": 288,
+   "size": 13,
+   "font_id": "minecraft:default",
+   "color": "#FF2E2C40",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "left",
+   "lang": "item.molecularmanipulator.star_chart_calibrator"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 12,
+   "baseline": 36,
+   "width": 288,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.subtitle"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 18,
+   "baseline": 60,
+   "width": 210,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.package"
+  },
+  {
+   "type": "text",
+   "text": "1 / 1",
+   "x": 244,
+   "baseline": 60,
+   "width": 50,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "right",
+   "id": "package.count",
+   "center_y": 57
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 42,
+   "baseline": 81,
+   "width": 252,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "left",
+   "id": "package.name",
+   "center_y": 79
+  },
+  {
+   "type": "sprite",
+   "id": "next_package",
+   "k": "ctl",
+   "rect": [
+    18,
+    96,
+    166,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 22,
+   "baseline": 107.0,
+   "width": 158,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "lang": "star_chart.molecularmanipulator.next_package",
+   "center_y": 107.0,
+   "owner": "next_package"
+  },
+  {
+   "type": "sprite",
+   "id": "details",
+   "k": "ctl",
+   "rect": [
+    190,
+    96,
+    104,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 194,
+   "baseline": 107.0,
+   "width": 96,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "lang": "star_chart.molecularmanipulator.details",
+   "center_y": 107.0,
+   "owner": "details"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 18,
+   "baseline": 148,
+   "width": 276,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.placement"
+  },
+  {
+   "type": "text",
+   "text": "X 0",
+   "x": 18,
+   "baseline": 168,
+   "width": 84,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "center",
+   "id": "axis.x",
+   "center_y": 165
+  },
+  {
+   "type": "sprite",
+   "id": "x.minus",
+   "k": "ctl",
+   "rect": [
+    18,
+    178,
+    40,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "−",
+   "x": 22,
+   "baseline": 189.0,
+   "width": 32,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 189.0,
+   "owner": "x.minus"
+  },
+  {
+   "type": "sprite",
+   "id": "x.plus",
+   "k": "ctl",
+   "rect": [
+    62,
+    178,
+    40,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "+",
+   "x": 66,
+   "baseline": 189.0,
+   "width": 32,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 189.0,
+   "owner": "x.plus"
+  },
+  {
+   "type": "text",
+   "text": "Y 0",
+   "x": 114,
+   "baseline": 168,
+   "width": 84,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "center",
+   "id": "axis.y",
+   "center_y": 165
+  },
+  {
+   "type": "sprite",
+   "id": "y.minus",
+   "k": "ctl",
+   "rect": [
+    114,
+    178,
+    40,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "−",
+   "x": 118,
+   "baseline": 189.0,
+   "width": 32,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 189.0,
+   "owner": "y.minus"
+  },
+  {
+   "type": "sprite",
+   "id": "y.plus",
+   "k": "ctl",
+   "rect": [
+    158,
+    178,
+    40,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "+",
+   "x": 162,
+   "baseline": 189.0,
+   "width": 32,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 189.0,
+   "owner": "y.plus"
+  },
+  {
+   "type": "text",
+   "text": "Z 0",
+   "x": 210,
+   "baseline": 168,
+   "width": 84,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "center",
+   "id": "axis.z",
+   "center_y": 165
+  },
+  {
+   "type": "sprite",
+   "id": "z.minus",
+   "k": "ctl",
+   "rect": [
+    210,
+    178,
+    40,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "−",
+   "x": 214,
+   "baseline": 189.0,
+   "width": 32,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 189.0,
+   "owner": "z.minus"
+  },
+  {
+   "type": "sprite",
+   "id": "z.plus",
+   "k": "ctl",
+   "rect": [
+    254,
+    178,
+    40,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "+",
+   "x": 258,
+   "baseline": 189.0,
+   "width": 32,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "center_y": 189.0,
+   "owner": "z.plus"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 18,
+   "baseline": 223,
+   "width": 180,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.facing",
+   "id": "facing",
+   "center_y": 220,
+   "lang_args": [
+    "North"
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "rotate",
+   "k": "ctl",
+   "rect": [
+    206,
+    208,
+    88,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 210,
+   "baseline": 219.0,
+   "width": 80,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "lang": "star_chart.molecularmanipulator.rotate",
+   "center_y": 219.0,
+   "owner": "rotate"
+  },
+  {
+   "type": "sprite",
+   "id": "status.dot",
+   "sprite": "molecularmanipulator:osq_light/common/dot_warn",
+   "rect": [
+    18,
+    255,
+    3,
+    3
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 26,
+   "baseline": 260,
+   "width": 268,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": true,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.surveying",
+   "id": "status",
+   "center_y": 257
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 18,
+   "baseline": 274,
+   "width": 276,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF5D637D",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "left",
+   "lang": "star_chart.molecularmanipulator.projection_hint"
+  },
+  {
+   "type": "sprite",
+   "id": "survey.track",
+   "sprite": "molecularmanipulator:osq_light/common/bar_track_dark",
+   "rect": [
+    18,
+    282,
+    276,
+    2
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "survey.progress",
+   "sprite": "molecularmanipulator:osq_light/common/bar_fill_ok",
+   "rect": [
+    18,
+    282,
+    276,
+    2
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "interrupt",
+   "k": "ctl",
+   "rect": [12, 294, 288, 22],
+   "pad": [0, 0, 0, 0],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 16,
+   "baseline": 305,
+   "width": 280,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "lang": "star_chart.molecularmanipulator.interrupt_recover",
+   "center_y": 305,
+   "owner": "interrupt"
+  },
+  {
+   "type": "sprite",
+   "id": "cancel",
+   "k": "ctl",
+   "rect": [
+    12,
+    320,
+    104,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 16,
+   "baseline": 331.0,
+   "width": 96,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "lang": "star_chart.molecularmanipulator.cancel",
+   "center_y": 331.0,
+   "owner": "cancel"
+  },
+  {
+   "type": "sprite",
+   "id": "deploy",
+   "k": "ctl",
+   "rect": [
+    122,
+    320,
+    178,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/button_confirm"
+  },
+  {
+   "type": "text",
+   "text": "",
+   "x": 126,
+   "baseline": 331.0,
+   "width": 170,
+   "size": 7.5,
+   "font_id": "minecraft:default",
+   "color": "#FF4D4D67",
+   "letter_spacing": 0,
+   "opacity": 1,
+   "dynamic": false,
+   "align": "center",
+   "lang": "star_chart.molecularmanipulator.deploy",
+   "center_y": 331.0,
+   "owner": "deploy"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.paper",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCBCCD4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.card",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCBCCD4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2E2C40"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink2",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF5D637D"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.hair",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9A9FB4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.soft",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF2F2F2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_track",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF696D88"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.level",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.disabled",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFADB0C4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.warning",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCE654F"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.error",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9C4048"
+  }
+ ]
+}

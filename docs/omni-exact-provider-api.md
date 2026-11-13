@@ -1,6 +1,15 @@
 # Exact-count provider API / 大数供应器接口
 
-Current source: Minecraft 1.20.1, 2.0.13-forge, Java 17, AE2 15.4.10, Applied Enhancements 1.1.2-forge+ (build API 1.1.4-forge).
+Use this API when your provider needs batch or output counts above `long`. It
+accepts an exact logical batch count and returns exact amounts for each resource.
+For ordinary whole batches within `long`, start with the [atomic batch API](omni-batch-provider-api.md).
+Players can use the machines without implementing either interface; see the [player guide](../README.md).
+
+机器需要处理超出 long 的批次数或产物数量时，可使用本页接口。
+普通整批接单先看[批量接口](omni-batch-provider-api.zh-CN.md)。玩家无需实现这些接口，
+搭建与操作见[玩家指南](../README.zh-CN.md)。
+
+Current for OmniSequence 20.3.0.1, Minecraft 1.20.1 / Forge, Java 17, AE2 15.4.10, AppliedEnhancements 1.1.2-forge+ (compile API 1.1.4-forge).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is
@@ -18,6 +27,10 @@ replace it in `CraftingService.getProviders`.
 | `OmniBigIntegerBatchCallbacks` | Admission, actual output and cancellation callbacks |
 | `OmniBigIntegerOutputReceiver` | Direct same-grid transfer to a live bound CPU with source debit |
 
+Register a capability for your existing provider during integration setup. Replace
+the example provider and adapter names with your own classes. The adapter must
+validate and persist state according to the contracts below.
+
 ```java
 OmniBigIntegerProviderAdapterRegistry.register(
         "example:exact_machine", 100,
@@ -33,13 +46,13 @@ direct interface. Predicates run without factories for capability classification
 ## Admission and ownership
 
 `getMaximumBigIntegerCrafts(pattern, unitPrototype, requested)` must return a
-currently admissible positive count no larger than requested. Zero/null declines.
-The unit prototype is the real extracted one-craft input; a provider must validate
+currently admissible positive count no larger than requested. Return zero or null
+to decline. The unit prototype is the real extracted one-craft input; a provider must validate
 its keys and reserve every additional finite material required by the accepted
 count. An exact logical count does not create physical input ownership.
 
 `pushBigIntegerCraftingPattern` returns false without retaining the prototype.
-True commits the agreed batch and requires durable input/output ownership.
+Returning true commits the agreed batch and requires durable input/output ownership.
 `lastAcceptedBigIntegerCrafts()` may return a smaller exact positive count when
 capacity changed; null guarantees the requested count was accepted. Validate
 additional material, output capacity and durable state before returning success.
@@ -68,24 +81,16 @@ amounts, then calls `debitSource` once with that map. It permits partial accepta
 and does not promise an atomic all-key transaction. Overrides must document their
 stronger semantics; a debit callback must complete without throwing.
 
-The well's persisted counted batches use long amounts per AEKey. The presence of
-an ECO/Thunderbolt/Data Energistics integration does not turn every assembly into
-a native BigInteger provider: exact inputs beyond the durable representation are
-declined, preserving the complete original plan and material ownership. Register
-an exact capability only when the implementation can honor the contracts above.
-
 No general numeric ABI negotiation is exposed by these capability types. Bind to
 the current documented method signatures and isolate optional class loading.
 `OmniBatchCraftingApi.apiVersion()` negotiates the atomic batch SPI only.
 
 ## Complete plans and secondary outputs
 
-With the supported AES Forge runtime (1.1.2-forge or later), read
-`AelisExactCraftingPlanApi.read(plan)` and its `executionRequirement()` before
-building an exact CPU ledger. The default build uses the 1.1.4-forge API.
-Exact pattern counts are
-a complete replacement ledger, not an additive overflow patch; do not merge them
-with the long task map. Keep the returned plan from metadata attachment/copying.
+Read `AelisExactCraftingPlanApi.read(plan)` and its `executionRequirement()`
+before building an exact CPU ledger. Exact pattern counts replace the complete
+ledger; do not add them to the long task map. Use the plan returned when metadata
+is attached or copied.
 
 Preserve native scaled-pattern identity, weighted batch counts and unscaled
 remainders. If an optional rewrite cannot be reconciled, continue with the
@@ -94,6 +99,16 @@ byproducts, and report actual accepted output rather than planned production.
 A saturated long projection alone does not reject a plan or confer exact CPU
 execution support. Cancellation and rollback still follow material ownership.
 
+Optional NeoECOAE supports runtime **20.4.2+**; native batch/exact integration requires
+the **20.5.0+ Forge API**. Older supported runtimes use ordinary AE dispatch. The supplied
+pack uses ECO **20.5.5**.
+Trinity/Thunderbolt private dispatch hooks require matching runtime APIs. Optional CPU ABI
+declarations are compile-only, excluded from runtime classpaths and release JARs, and do
+not provide implementations. Single crafts, full batches, final one-craft remainders and
+blocking fallback retain the original
+crafting-job UUID. Job-directed byproducts and surplus stay in CPU storage;
+only the amount actually awaited advances expected-output progress.
+
 ## 中文
 
 大数能力处理逻辑次数和按 AEKey 区分的精确产物数量。它不替代两阶段 long 批量投料，
@@ -101,7 +116,7 @@ execution support. Cancellation and rollback still follow material ownership.
 单份发配、队列映射与背压仍使用 AE 注册的对象。
 
 容量返回值不得超过请求。提交前核对一份实际原料原型，并持有额外有限材料与产物
-空间。拒绝不得留下原料，接受必须保存长期所有权；如果实际接受量变小，通过
+空间。拒绝不得留下原料，接受必须持久保存原料和产物的所有权；如果实际接受量变小，通过
 `lastAcceptedBigIntegerCrafts()` 返回真实次数。原生一次原子提交才标记
 `usesNativeBigIntegerBatch()`，不能把它当作普通 long 循环不断调用。
 
@@ -111,13 +126,14 @@ execution support. Cancellation and rollback still follow material ownership.
 所有资源同时提交的保证。扣减回调必须可靠完成且不能抛出异常。调用方负责权限、
 线程、数据持久化和具体第三方机器的语义。
 
-在支持的 AES Forge 运行时（1.1.2-forge 或更新版本）中，通过
-`AelisExactCraftingPlanApi.read(plan)` 与结构化能力查询读取完整计划；默认使用
-1.1.4-forge 的 API 编译。精确样板次数替换 long 任务表，不能叠加。
+通过 `AelisExactCraftingPlanApi.read(plan)` 与结构化能力查询读取完整计划。
+精确样板次数替换 long 任务表，不能叠加。
 保留元数据接口返回的计划、原生包装身份、整批与原样板尾数。可选改写无法换算时
 继续原始完整工作量；主产物和副产物逐 AEKey 记账，按真实接收数量报告，不能用
 计划产量代替已经交付的产量。long 投影饱和不等于拒绝，也不保证 CPU 具备精确执行能力。
 
-构筑井计数批次按每个 AEKey 的 long 数量保存；接入可选 CPU 接口不会自动授予
-原生 BigInteger 能力。超出持久表示范围的精确输入必须拒绝并保留完整计划及材料
-所有权，只有能完整兑现上述契约的实现才应注册精确能力。
+可选 NeoECOAE 运行时最低为 **20.4.2**，原生批量／精确数量联动须有 **20.5.0+ Forge API**；
+较旧受支持运行时使用普通 AE 发配。整合包实际使用 **20.5.5**。
+Trinity／Thunderbolt 私有发配钩子须匹配真实运行时接口；仅供编译的 CPU ABI 声明不进入运行时
+类路径或发布 JAR，也不提供模组实现。单份、整批、单份尾单和阻挡回退都保留原合成任务
+UUID。定向返回的副产物和超产余量留在 CPU 中，只有实际等待的数量推进预计产物进度。

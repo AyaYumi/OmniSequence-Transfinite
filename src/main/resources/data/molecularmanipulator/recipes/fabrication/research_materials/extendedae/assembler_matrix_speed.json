@@ -12,10 +12,6 @@
     {
       "type": "forge:item_exists",
       "item": "expatternprovider:assembler_matrix_wall"
-    },
-    {
-      "type": "forge:item_exists",
-      "item": "expatternprovider:concurrent_processor"
     }
   ],
   "ingredients": [
@@ -39,7 +35,7 @@
     },
     {
       "ingredient": {
-        "item": "expatternprovider:concurrent_processor"
+        "item": "ae2:engineering_processor"
       },
       "count": 1
     }
@@ -50,7 +46,7 @@
       "count": 1
     }
   ],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 128.0,
   "requires_research": true
 }

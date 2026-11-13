@@ -30,6 +30,7 @@ bool backgroundFootprint(vec2 uv, float minimumDistance) {
 }
 void main() {
     vec2 uv = gl_FragCoord.xy / SceneSize;
+    // Bobbing translates the projection eye; use that same origin for rays and depths.
     vec3 ray = normalize(viewPoint(uv, 0.5) - ViewOrigin);
     vec3 relativeCenter = CoreCenter - ViewOrigin;
     float centerDistance2 = dot(relativeCenter, relativeCenter);

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+
 /** Accesses ECO fields only after the menu's actual runtime class has been transformed. */
 public final class EcoOmniPlanMenuAccess {
     private static final ClassValue<EcoOmniPlanMenuAccess> CACHE = new ClassValue<>() {

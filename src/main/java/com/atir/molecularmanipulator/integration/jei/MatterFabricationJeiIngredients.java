@@ -1,14 +1,23 @@
 package com.atir.molecularmanipulator.integration.jei;
 
 import appeng.api.client.AEKeyRendering;
+import appeng.api.integrations.jei.IngredientConverter;
+import appeng.api.integrations.jei.IngredientConverters;
+import appeng.api.stacks.AEFluidKey;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import appeng.client.gui.StackWithBounds;
+import com.atir.molecularmanipulator.ae2.StarSignalKey;
 import com.atir.molecularmanipulator.client.AEStackIcon;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import mezz.jei.api.gui.builder.IClickableIngredientFactory;
 import mezz.jei.api.gui.builder.IRecipeSlotBuilder;
+import mezz.jei.api.forge.ForgeTypes;
+import mezz.jei.api.runtime.IClickableIngredient;
 import mezz.jei.api.ingredients.IIngredientRenderer;
-import mezz.jei.api.ingredients.IIngredientType;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.TooltipFlag;
@@ -17,30 +26,61 @@ import net.minecraft.world.item.TooltipFlag;
 final class MatterFabricationJeiIngredients {
     private MatterFabricationJeiIngredients() {}
 
-    static boolean add(IRecipeSlotBuilder slot, GenericStack stack) {
-        try {
-            var converters = Class.forName("tamaized.ae2jeiintegration.api.integrations.jei.IngredientConverters");
-            var registered = (Iterable<?>) converters.getMethod("getConverters").invoke(null);
-            for (var converter : registered) {
-                if (addWithConverter(slot, stack, converter)) return true;
+    static void registerStarSignalConverter() {
+        IngredientConverters.register(new IngredientConverter<StarSignalKey>() {
+            @Override public mezz.jei.api.ingredients.IIngredientType<StarSignalKey> getIngredientType() {
+                return StarSignalJeiIngredient.TYPE;
             }
-        } catch (ReflectiveOperationException | LinkageError ignored) {
-            // The optional integration has no stable Forge API on every supported pack.
+
+            @Override public StarSignalKey getIngredientFromStack(GenericStack stack) {
+                return stack.what() instanceof StarSignalKey signal ? signal : null;
+            }
+
+            @Override public GenericStack getStackFromIngredient(StarSignalKey ingredient) {
+                return new GenericStack(ingredient, 1);
+            }
+        });
+    }
+
+    static boolean add(IRecipeSlotBuilder slot, GenericStack stack) {
+        for (var converter : IngredientConverters.getConverters()) {
+            if (addWithConverter(slot, stack, converter)) return true;
         }
         return false;
     }
 
-    static boolean addWithConverter(IRecipeSlotBuilder slot, GenericStack stack, Object converter)
-            throws ReflectiveOperationException {
-        var type = converter.getClass();
-        Object ingredient = type.getMethod("getIngredientFromStack", GenericStack.class).invoke(converter, stack);
+    static <T> boolean addWithConverter(IRecipeSlotBuilder slot, GenericStack stack,
+            IngredientConverter<T> converter) {
+        T ingredient = converter.getIngredientFromStack(stack);
         if (ingredient == null) return false;
-        @SuppressWarnings("unchecked")
-        var ingredientType = (IIngredientType<Object>) type.getMethod("getIngredientType").invoke(converter);
+        var ingredientType = converter.getIngredientType();
         slot.setSlotName(JeiAeStackAmounts.slotName(stack.amount()));
         slot.addIngredient(ingredientType, ingredient);
         slot.setCustomRenderer(ingredientType, new KeyRenderer<>(stack));
         return true;
+    }
+
+    static Optional<? extends IClickableIngredient<?>> clickable(IClickableIngredientFactory factory, StackWithBounds stack) {
+        var key=stack.stack().what();
+        if(key instanceof AEItemKey item)
+            return factory.createBuilder(item.toStack()).buildWithArea(stack.bounds());
+        if(key instanceof AEFluidKey fluid)
+            return factory.createBuilder(ForgeTypes.FLUID_STACK,fluid.toStack(1000))
+                    .buildWithArea(stack.bounds());
+        if(key instanceof StarSignalKey signal)
+            return factory.createBuilder(StarSignalJeiIngredient.TYPE,signal).buildWithArea(stack.bounds());
+        for (var converter : IngredientConverters.getConverters()) {
+            var ingredient = clickableWithConverter(factory, stack, converter);
+            if (ingredient.isPresent()) return ingredient;
+        }
+        return Optional.empty();
+    }
+
+    private static <T> Optional<? extends IClickableIngredient<?>> clickableWithConverter(
+            IClickableIngredientFactory factory, StackWithBounds stack, IngredientConverter<T> converter) {
+        T ingredient = converter.getIngredientFromStack(stack.stack());
+        return ingredient == null ? Optional.empty() : factory.createBuilder(converter.getIngredientType(), ingredient)
+                .buildWithArea(stack.bounds());
     }
 
     private record KeyRenderer<T>(GenericStack stack) implements IIngredientRenderer<T> {

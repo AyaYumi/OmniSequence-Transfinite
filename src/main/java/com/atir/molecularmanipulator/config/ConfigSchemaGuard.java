@@ -97,15 +97,9 @@ public final class ConfigSchemaGuard {
             }
 
             backUpConfig(file);
-            {
-                var view = config;
-                for (var path : removed) {
-                    view.remove(path);
-                    view.removeComment(path);
-                }
-                removeEmptySection(view, "sequence_array.singularity_collection");
-                removeEmptySection(view, "sequence_array.singularity_duplication");
-                removeEmptySection(view, "sequence_array");
+            for (var path : removed) {
+                config.remove(path);
+                config.removeComment(path);
             }
             writeAtomically(config, file);
             return true;
@@ -131,23 +125,20 @@ public final class ConfigSchemaGuard {
         try {
             var config = readToml(file);
             boolean moved = false;
-            {
-                var view = config;
-                for (var relocation : relocations.entrySet()) {
-                    String oldPath = relocation.getKey();
-                    String newPath = relocation.getValue();
-                    if (!view.contains(oldPath)) {
-                        continue;
-                    }
-                    if (!view.contains(newPath)) {
-                        view.set(newPath, view.getRaw(oldPath));
-                    }
-                    view.remove(oldPath);
-                    view.removeComment(oldPath);
-                    moved = true;
+            for (var relocation : relocations.entrySet()) {
+                String oldPath = relocation.getKey();
+                String newPath = relocation.getValue();
+                if (!config.contains(oldPath)) {
+                    continue;
                 }
-                removeEmptySection(view, "matter_speed_cards");
+                if (!config.contains(newPath)) {
+                    config.set(newPath, config.getRaw(oldPath));
                 }
+                config.remove(oldPath);
+                config.removeComment(oldPath);
+                moved = true;
+            }
+            removeEmptySection(config, "matter_speed_cards");
             if (!moved) {
                 return false;
             }
@@ -174,23 +165,26 @@ public final class ConfigSchemaGuard {
             var existing = oldPaths.stream().filter(config::contains).toList();
             if (existing.isEmpty()) return false;
             var merged = new java.util.LinkedHashMap<String, String>();
-            for (var path : existing) {
-                Object value = config.getRaw(path);
-                if (!(value instanceof List<?> entries)) throw new IllegalArgumentException("Expected tag list at " + path);
-                for (Object entry : entries) {
-                    if (!(entry instanceof String text)) throw new IllegalArgumentException("Expected item tag string");
-                    String normalized = text.trim();
-                    if (normalized.startsWith("#")) normalized = normalized.substring(1);
-                    merged.putIfAbsent(normalized, text.trim());
+            // An explicit current list wins, even if the discarded legacy values are malformed.
+            if (!config.contains(target)) {
+                for (var path : existing) {
+                    Object value = config.getRaw(path);
+                    if (!(value instanceof List<?> entries)) throw new IllegalArgumentException("Expected tag list at " + path);
+                    for (Object entry : entries) {
+                        if (!(entry instanceof String text)) throw new IllegalArgumentException("Expected item tag string");
+                        String normalized = text.trim();
+                        if (normalized.startsWith("#")) normalized = normalized.substring(1);
+                        merged.putIfAbsent(normalized, text.trim());
+                    }
                 }
             }
             backUpConfig(file);
-            synchronized (config) {
-                var view = config;
-                if (!view.contains(target)) view.set(target, new ArrayList<>(merged.values()));
-                for (var path : existing) { view.remove(path); view.removeComment(path); }
-                }
-            new TomlWriter().write(config, file, WritingMode.REPLACE);
+            if (!config.contains(target)) config.set(target, new ArrayList<>(merged.values()));
+            for (var path : existing) {
+                config.remove(path);
+                config.removeComment(path);
+            }
+            writeAtomically(config, file);
             return true;
         } catch (IOException | RuntimeException exception) {
             RateLimitedLog.warn("Could not merge collector tags in {} configuration {}; existing file retained",

@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Older optional EAEP API. Forge EAEP 1.6.2 uses ExtendedAEPlusMatrixUploadMixin instead. */
+/** Routes EAEP's automatic matrix upload to an enabled Sequence Array first. */
 @Pseudo
 @Mixin(targets = "com.extendedae_plus.util.uploadPattern.ExtendedAEPatternUploadUtil",
         remap = false)
@@ -20,6 +20,8 @@ public abstract class ExtendedAEPlusPatternUploadMixin {
     private static void molecularmanipulator$uploadEncodedPatternToSequenceArray(
             ServerPlayer player, PatternEncodingTermMenu menu,
             CallbackInfoReturnable<Boolean> callback) {
+        // Native and EAEP menu paths share validation, physical transfer, duplicate
+        // recycling and notifications instead of consuming the source twice.
         if (SequenceArrayPatternUpload.uploadFromEncodingMenu(player, menu)) {
             callback.setReturnValue(true);
         }
@@ -29,6 +31,7 @@ public abstract class ExtendedAEPlusPatternUploadMixin {
     private static void molecularmanipulator$uploadToSequenceArray(
             ServerPlayer player, ItemStack pattern, IGrid grid,
             CallbackInfoReturnable<Boolean> callback) {
+        if (player == null || player.isSpectator() || !player.serverLevel().getServer().isSameThread()) return;
         if (SequenceArrayPatternUpload.containsPatternOnSequenceArray(pattern, grid)) {
             SequenceArrayPatternUpload.sendDuplicateMessage(player);
             callback.setReturnValue(false);

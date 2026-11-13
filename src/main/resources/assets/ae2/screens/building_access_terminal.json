@@ -1,0 +1,10 @@
+{
+  "$schema": "schema.json",
+  "includes": ["common/common.json"],
+  "generatedBackground": {
+    "width": 400,
+    "height": 356
+  },
+  "slots": {},
+  "text": {}
+}

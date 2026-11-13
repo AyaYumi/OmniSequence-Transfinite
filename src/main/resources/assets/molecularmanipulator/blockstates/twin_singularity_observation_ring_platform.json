@@ -1,0 +1,1572 @@
+{
+  "variants": {
+    "facing=south,lit=false,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0",
+      "y": 0
+    },
+    "facing=south,lit=true,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0",
+      "y": 90
+    },
+    "facing=west,lit=true,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0",
+      "y": 180
+    },
+    "facing=north,lit=true,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0",
+      "y": 270
+    },
+    "facing=east,lit=true,part=0": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_0_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1",
+      "y": 0
+    },
+    "facing=south,lit=true,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1",
+      "y": 90
+    },
+    "facing=west,lit=true,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1",
+      "y": 180
+    },
+    "facing=north,lit=true,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1",
+      "y": 270
+    },
+    "facing=east,lit=true,part=1": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_1_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2",
+      "y": 0
+    },
+    "facing=south,lit=true,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2",
+      "y": 90
+    },
+    "facing=west,lit=true,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2",
+      "y": 180
+    },
+    "facing=north,lit=true,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2",
+      "y": 270
+    },
+    "facing=east,lit=true,part=2": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_2_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3",
+      "y": 0
+    },
+    "facing=south,lit=true,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3",
+      "y": 90
+    },
+    "facing=west,lit=true,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3",
+      "y": 180
+    },
+    "facing=north,lit=true,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3",
+      "y": 270
+    },
+    "facing=east,lit=true,part=3": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_3_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4",
+      "y": 0
+    },
+    "facing=south,lit=true,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4",
+      "y": 90
+    },
+    "facing=west,lit=true,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4",
+      "y": 180
+    },
+    "facing=north,lit=true,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4",
+      "y": 270
+    },
+    "facing=east,lit=true,part=4": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_4_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5",
+      "y": 0
+    },
+    "facing=south,lit=true,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5",
+      "y": 90
+    },
+    "facing=west,lit=true,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5",
+      "y": 180
+    },
+    "facing=north,lit=true,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5",
+      "y": 270
+    },
+    "facing=east,lit=true,part=5": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_5_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6",
+      "y": 0
+    },
+    "facing=south,lit=true,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6",
+      "y": 90
+    },
+    "facing=west,lit=true,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6",
+      "y": 180
+    },
+    "facing=north,lit=true,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6",
+      "y": 270
+    },
+    "facing=east,lit=true,part=6": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_6_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7",
+      "y": 0
+    },
+    "facing=south,lit=true,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7",
+      "y": 90
+    },
+    "facing=west,lit=true,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7",
+      "y": 180
+    },
+    "facing=north,lit=true,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7",
+      "y": 270
+    },
+    "facing=east,lit=true,part=7": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_7_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8",
+      "y": 0
+    },
+    "facing=south,lit=true,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8",
+      "y": 90
+    },
+    "facing=west,lit=true,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8",
+      "y": 180
+    },
+    "facing=north,lit=true,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8",
+      "y": 270
+    },
+    "facing=east,lit=true,part=8": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_8_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9",
+      "y": 0
+    },
+    "facing=south,lit=true,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9",
+      "y": 90
+    },
+    "facing=west,lit=true,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9",
+      "y": 180
+    },
+    "facing=north,lit=true,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9",
+      "y": 270
+    },
+    "facing=east,lit=true,part=9": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_9_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10",
+      "y": 0
+    },
+    "facing=south,lit=true,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10",
+      "y": 90
+    },
+    "facing=west,lit=true,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10",
+      "y": 180
+    },
+    "facing=north,lit=true,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10",
+      "y": 270
+    },
+    "facing=east,lit=true,part=10": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_10_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11",
+      "y": 0
+    },
+    "facing=south,lit=true,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11",
+      "y": 90
+    },
+    "facing=west,lit=true,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11",
+      "y": 180
+    },
+    "facing=north,lit=true,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11",
+      "y": 270
+    },
+    "facing=east,lit=true,part=11": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_11_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12",
+      "y": 0
+    },
+    "facing=south,lit=true,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12",
+      "y": 90
+    },
+    "facing=west,lit=true,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12",
+      "y": 180
+    },
+    "facing=north,lit=true,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12",
+      "y": 270
+    },
+    "facing=east,lit=true,part=12": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_12_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13",
+      "y": 0
+    },
+    "facing=south,lit=true,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13",
+      "y": 90
+    },
+    "facing=west,lit=true,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13",
+      "y": 180
+    },
+    "facing=north,lit=true,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13",
+      "y": 270
+    },
+    "facing=east,lit=true,part=13": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_13_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14",
+      "y": 0
+    },
+    "facing=south,lit=true,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14",
+      "y": 90
+    },
+    "facing=west,lit=true,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14",
+      "y": 180
+    },
+    "facing=north,lit=true,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14",
+      "y": 270
+    },
+    "facing=east,lit=true,part=14": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_14_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15",
+      "y": 0
+    },
+    "facing=south,lit=true,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15",
+      "y": 90
+    },
+    "facing=west,lit=true,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15",
+      "y": 180
+    },
+    "facing=north,lit=true,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15",
+      "y": 270
+    },
+    "facing=east,lit=true,part=15": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_15_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16",
+      "y": 0
+    },
+    "facing=south,lit=true,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16",
+      "y": 90
+    },
+    "facing=west,lit=true,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16",
+      "y": 180
+    },
+    "facing=north,lit=true,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16",
+      "y": 270
+    },
+    "facing=east,lit=true,part=16": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_16_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17",
+      "y": 0
+    },
+    "facing=south,lit=true,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17",
+      "y": 90
+    },
+    "facing=west,lit=true,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17",
+      "y": 180
+    },
+    "facing=north,lit=true,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17",
+      "y": 270
+    },
+    "facing=east,lit=true,part=17": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_17_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18",
+      "y": 0
+    },
+    "facing=south,lit=true,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18",
+      "y": 90
+    },
+    "facing=west,lit=true,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18",
+      "y": 180
+    },
+    "facing=north,lit=true,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18",
+      "y": 270
+    },
+    "facing=east,lit=true,part=18": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_18_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19",
+      "y": 0
+    },
+    "facing=south,lit=true,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19",
+      "y": 90
+    },
+    "facing=west,lit=true,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19",
+      "y": 180
+    },
+    "facing=north,lit=true,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19",
+      "y": 270
+    },
+    "facing=east,lit=true,part=19": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_19_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20",
+      "y": 0
+    },
+    "facing=south,lit=true,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20",
+      "y": 90
+    },
+    "facing=west,lit=true,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20",
+      "y": 180
+    },
+    "facing=north,lit=true,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20",
+      "y": 270
+    },
+    "facing=east,lit=true,part=20": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_20_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21",
+      "y": 0
+    },
+    "facing=south,lit=true,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21",
+      "y": 90
+    },
+    "facing=west,lit=true,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21",
+      "y": 180
+    },
+    "facing=north,lit=true,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21",
+      "y": 270
+    },
+    "facing=east,lit=true,part=21": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_21_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22",
+      "y": 0
+    },
+    "facing=south,lit=true,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22",
+      "y": 90
+    },
+    "facing=west,lit=true,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22",
+      "y": 180
+    },
+    "facing=north,lit=true,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22",
+      "y": 270
+    },
+    "facing=east,lit=true,part=22": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_22_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23",
+      "y": 0
+    },
+    "facing=south,lit=true,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23",
+      "y": 90
+    },
+    "facing=west,lit=true,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23",
+      "y": 180
+    },
+    "facing=north,lit=true,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23",
+      "y": 270
+    },
+    "facing=east,lit=true,part=23": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_23_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24",
+      "y": 0
+    },
+    "facing=south,lit=true,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24",
+      "y": 90
+    },
+    "facing=west,lit=true,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24",
+      "y": 180
+    },
+    "facing=north,lit=true,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24",
+      "y": 270
+    },
+    "facing=east,lit=true,part=24": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_24_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25",
+      "y": 0
+    },
+    "facing=south,lit=true,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25",
+      "y": 90
+    },
+    "facing=west,lit=true,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25",
+      "y": 180
+    },
+    "facing=north,lit=true,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25",
+      "y": 270
+    },
+    "facing=east,lit=true,part=25": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_25_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26",
+      "y": 0
+    },
+    "facing=south,lit=true,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26",
+      "y": 90
+    },
+    "facing=west,lit=true,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26",
+      "y": 180
+    },
+    "facing=north,lit=true,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26",
+      "y": 270
+    },
+    "facing=east,lit=true,part=26": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_26_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27",
+      "y": 0
+    },
+    "facing=south,lit=true,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27",
+      "y": 90
+    },
+    "facing=west,lit=true,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27",
+      "y": 180
+    },
+    "facing=north,lit=true,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27",
+      "y": 270
+    },
+    "facing=east,lit=true,part=27": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_27_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28",
+      "y": 0
+    },
+    "facing=south,lit=true,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28",
+      "y": 90
+    },
+    "facing=west,lit=true,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28",
+      "y": 180
+    },
+    "facing=north,lit=true,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28",
+      "y": 270
+    },
+    "facing=east,lit=true,part=28": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_28_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29",
+      "y": 0
+    },
+    "facing=south,lit=true,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29",
+      "y": 90
+    },
+    "facing=west,lit=true,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29",
+      "y": 180
+    },
+    "facing=north,lit=true,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29",
+      "y": 270
+    },
+    "facing=east,lit=true,part=29": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_29_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30",
+      "y": 0
+    },
+    "facing=south,lit=true,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30",
+      "y": 90
+    },
+    "facing=west,lit=true,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30",
+      "y": 180
+    },
+    "facing=north,lit=true,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30",
+      "y": 270
+    },
+    "facing=east,lit=true,part=30": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_30_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31",
+      "y": 0
+    },
+    "facing=south,lit=true,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31",
+      "y": 90
+    },
+    "facing=west,lit=true,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31",
+      "y": 180
+    },
+    "facing=north,lit=true,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31",
+      "y": 270
+    },
+    "facing=east,lit=true,part=31": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_31_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32",
+      "y": 0
+    },
+    "facing=south,lit=true,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32",
+      "y": 90
+    },
+    "facing=west,lit=true,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32",
+      "y": 180
+    },
+    "facing=north,lit=true,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32",
+      "y": 270
+    },
+    "facing=east,lit=true,part=32": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_32_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33",
+      "y": 0
+    },
+    "facing=south,lit=true,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33",
+      "y": 90
+    },
+    "facing=west,lit=true,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33",
+      "y": 180
+    },
+    "facing=north,lit=true,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33",
+      "y": 270
+    },
+    "facing=east,lit=true,part=33": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_33_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34",
+      "y": 0
+    },
+    "facing=south,lit=true,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34",
+      "y": 90
+    },
+    "facing=west,lit=true,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34",
+      "y": 180
+    },
+    "facing=north,lit=true,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34",
+      "y": 270
+    },
+    "facing=east,lit=true,part=34": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_34_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35",
+      "y": 0
+    },
+    "facing=south,lit=true,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35",
+      "y": 90
+    },
+    "facing=west,lit=true,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35",
+      "y": 180
+    },
+    "facing=north,lit=true,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35",
+      "y": 270
+    },
+    "facing=east,lit=true,part=35": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_35_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36",
+      "y": 0
+    },
+    "facing=south,lit=true,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36",
+      "y": 90
+    },
+    "facing=west,lit=true,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36",
+      "y": 180
+    },
+    "facing=north,lit=true,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36",
+      "y": 270
+    },
+    "facing=east,lit=true,part=36": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_36_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37",
+      "y": 0
+    },
+    "facing=south,lit=true,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37",
+      "y": 90
+    },
+    "facing=west,lit=true,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37",
+      "y": 180
+    },
+    "facing=north,lit=true,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37",
+      "y": 270
+    },
+    "facing=east,lit=true,part=37": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_37_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38",
+      "y": 0
+    },
+    "facing=south,lit=true,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38",
+      "y": 90
+    },
+    "facing=west,lit=true,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38",
+      "y": 180
+    },
+    "facing=north,lit=true,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38",
+      "y": 270
+    },
+    "facing=east,lit=true,part=38": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_38_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39",
+      "y": 0
+    },
+    "facing=south,lit=true,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39",
+      "y": 90
+    },
+    "facing=west,lit=true,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39",
+      "y": 180
+    },
+    "facing=north,lit=true,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39",
+      "y": 270
+    },
+    "facing=east,lit=true,part=39": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_39_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40",
+      "y": 0
+    },
+    "facing=south,lit=true,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40",
+      "y": 90
+    },
+    "facing=west,lit=true,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40",
+      "y": 180
+    },
+    "facing=north,lit=true,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40",
+      "y": 270
+    },
+    "facing=east,lit=true,part=40": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_40_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41",
+      "y": 0
+    },
+    "facing=south,lit=true,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41",
+      "y": 90
+    },
+    "facing=west,lit=true,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41",
+      "y": 180
+    },
+    "facing=north,lit=true,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41",
+      "y": 270
+    },
+    "facing=east,lit=true,part=41": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_41_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42",
+      "y": 0
+    },
+    "facing=south,lit=true,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42",
+      "y": 90
+    },
+    "facing=west,lit=true,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42",
+      "y": 180
+    },
+    "facing=north,lit=true,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42",
+      "y": 270
+    },
+    "facing=east,lit=true,part=42": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_42_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43",
+      "y": 0
+    },
+    "facing=south,lit=true,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43",
+      "y": 90
+    },
+    "facing=west,lit=true,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43",
+      "y": 180
+    },
+    "facing=north,lit=true,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43",
+      "y": 270
+    },
+    "facing=east,lit=true,part=43": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_43_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44",
+      "y": 0
+    },
+    "facing=south,lit=true,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44",
+      "y": 90
+    },
+    "facing=west,lit=true,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44",
+      "y": 180
+    },
+    "facing=north,lit=true,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44",
+      "y": 270
+    },
+    "facing=east,lit=true,part=44": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_44_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45",
+      "y": 0
+    },
+    "facing=south,lit=true,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45",
+      "y": 90
+    },
+    "facing=west,lit=true,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45",
+      "y": 180
+    },
+    "facing=north,lit=true,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45",
+      "y": 270
+    },
+    "facing=east,lit=true,part=45": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_45_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46",
+      "y": 0
+    },
+    "facing=south,lit=true,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46",
+      "y": 90
+    },
+    "facing=west,lit=true,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46",
+      "y": 180
+    },
+    "facing=north,lit=true,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46",
+      "y": 270
+    },
+    "facing=east,lit=true,part=46": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_46_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47",
+      "y": 0
+    },
+    "facing=south,lit=true,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47",
+      "y": 90
+    },
+    "facing=west,lit=true,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47",
+      "y": 180
+    },
+    "facing=north,lit=true,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47",
+      "y": 270
+    },
+    "facing=east,lit=true,part=47": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_47_on",
+      "y": 270
+    },
+    "facing=south,lit=false,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48",
+      "y": 0
+    },
+    "facing=south,lit=true,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48_on",
+      "y": 0
+    },
+    "facing=west,lit=false,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48",
+      "y": 90
+    },
+    "facing=west,lit=true,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48_on",
+      "y": 90
+    },
+    "facing=north,lit=false,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48",
+      "y": 180
+    },
+    "facing=north,lit=true,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48_on",
+      "y": 180
+    },
+    "facing=east,lit=false,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48",
+      "y": 270
+    },
+    "facing=east,lit=true,part=48": {
+      "model": "molecularmanipulator:block/lab_power_platform/part_48_on",
+      "y": 270
+    }
+  }
+}

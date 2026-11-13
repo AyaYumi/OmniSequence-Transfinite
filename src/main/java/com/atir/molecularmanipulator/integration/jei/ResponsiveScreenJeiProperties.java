@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.integration.jei;
 
 import com.atir.molecularmanipulator.client.ResponsiveContainerScreen;
+import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.gui.handlers.IGuiProperties;
 import mezz.jei.api.gui.handlers.IScreenHandler;
 import mezz.jei.api.gui.builder.IClickableIngredientFactory;
@@ -20,13 +21,19 @@ record ResponsiveScreenJeiProperties(Class<? extends Screen> screenClass, Rect2i
         return new ResponsiveScreenJeiProperties(screen.getClass(), screen.responsiveBounds(), screen.width, screen.height);
     }
 
-    static <T extends ResponsiveContainerScreen<?>> IScreenHandler<T> handler() {
-        return new IScreenHandler<>() {
-            @Override public IGuiProperties apply(T screen) { return of(screen); }
+    static <T extends ResponsiveContainerScreen<?>> IScreenHandler<T> screenHandler() {
+        return ResponsiveScreenJeiProperties::of;
+    }
 
+    static <T extends ResponsiveContainerScreen<?>> IGuiContainerHandler<T> containerHandler() {
+        return new IGuiContainerHandler<>() {
             @Override
             public Optional<? extends IClickableIngredient<?>> getClickableIngredientUnderMouse(
                     IClickableIngredientFactory factory, T screen, double mouseX, double mouseY) {
+                if(screen instanceof com.atir.molecularmanipulator.client.MatterFabricationScreen fabrication) {
+                    var ingredient=fabrication.researchIngredientAt(mouseX,mouseY);
+                    if(ingredient!=null)return MatterFabricationJeiIngredients.clickable(factory,ingredient);
+                }
                 var slot = screen.responsiveSlotAt(mouseX, mouseY);
                 if (slot == null || !slot.isActive() || slot.getItem().isEmpty()) return Optional.empty();
                 var area = screen.responsiveSlotBounds(slot);

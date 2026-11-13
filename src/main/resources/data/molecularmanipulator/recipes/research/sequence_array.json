@@ -2,7 +2,8 @@
   "type": "molecularmanipulator:matter_research",
   "title": "research.molecularmanipulator.sequence_array",
   "prerequisites": [
-    "molecularmanipulator:research/ae_foundation"
+    "molecularmanipulator:research/eae_materials",
+    "molecularmanipulator:research/star_marrow_materials"
   ],
   "ingredients": [
     {
@@ -60,8 +61,8 @@
       "count": 1
     }
   ],
-  "duration": 600,
-  "ae_per_tick": 512,
+  "duration": 1200,
+  "ae_per_tick": 1024,
   "unlocks": [
     "molecularmanipulator:molecular_center_casing",
     "molecularmanipulator:molecular_center_coil",
@@ -70,66 +71,265 @@
     "molecularmanipulator:molecular_center_glass",
     "molecularmanipulator:molecular_center_stabilizer",
     "molecularmanipulator:molecular_manipulator",
-    "molecularmanipulator:molecular_auto_crafter",
-    "molecularmanipulator:assembler_matrix_molecular_core"
+    "molecularmanipulator:assembler_matrix_molecular_core",
+    "molecularmanipulator:infinite_crafting_storage",
+    "molecularmanipulator:infinite_parallel_matrix"
   ],
   "required_mods": [
     "expatternprovider"
   ],
-  "sort_order": 10,
+  "sort_order": 30,
+  "stage": 3,
+  "depths": [
+    {
+      "material_multiplier": 1,
+      "parallel": 1
+    },
+    {
+      "material_multiplier": 2,
+      "parallel": 256,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 32
+        }
+      ]
+    },
+    {
+      "material_multiplier": 4,
+      "parallel": 65536,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 64
+        }
+      ]
+    },
+    {
+      "material_multiplier": 8,
+      "parallel": 16777216,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 128
+        }
+      ]
+    },
+    {
+      "material_multiplier": 16,
+      "parallel": 4294967296,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 256
+        }
+      ]
+    },
+    {
+      "material_multiplier": 32,
+      "parallel": 1099511627776,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 512
+        }
+      ]
+    },
+    {
+      "material_multiplier": 64,
+      "parallel": 281474976710656,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 1024
+        }
+      ]
+    },
+    {
+      "material_multiplier": 128,
+      "parallel": 72057594037927936,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 2048
+        }
+      ]
+    },
+    {
+      "material_multiplier": 256,
+      "parallel": 9223372036854775807,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 65536
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_casing"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "molecularmanipulator:molecular_center_coil"
+          },
+          "count": 4096
+        }
+      ]
+    }
+  ],
   "conditions": [
     {
       "type": "forge:mod_loaded",
       "modid": "expatternprovider"
-    }
-  ],
-  "stage": 2,
-  "depths": [
-    {
-      "material_multiplier": "1",
-      "parallel": "1",
-      "speed_multiplier": "1"
-    },
-    {
-      "material_multiplier": "2",
-      "parallel": "256",
-      "speed_multiplier": "2"
-    },
-    {
-      "material_multiplier": "4",
-      "parallel": "65536",
-      "speed_multiplier": "4"
-    },
-    {
-      "material_multiplier": "8",
-      "parallel": "16777216",
-      "speed_multiplier": "8"
-    },
-    {
-      "material_multiplier": "16",
-      "parallel": "4294967296",
-      "speed_multiplier": "16"
-    },
-    {
-      "material_multiplier": "32",
-      "parallel": "1099511627776",
-      "speed_multiplier": "32"
-    },
-    {
-      "material_multiplier": "64",
-      "parallel": "281474976710656",
-      "speed_multiplier": "64"
-    },
-    {
-      "material_multiplier": "128",
-      "parallel": "72057594037927936",
-      "speed_multiplier": "128"
-    },
-    {
-      "material_multiplier": "256",
-      "parallel": "9223372036854775807",
-      "speed_multiplier": "256",
-      "processing_ticks": 1
     }
   ]
 }

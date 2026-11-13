@@ -1,0 +1,308 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.eae_materials",
+  "prerequisites": [
+    "molecularmanipulator:research/ae_foundation"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "expatternprovider:crystal_fixer"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "expatternprovider:circuit_cutter"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "ae2:fluix_crystal"
+      },
+      "count": 128
+    }
+  ],
+  "duration": 900,
+  "ae_per_tick": 512,
+  "unlocks": [
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_crafter",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_frame",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_pattern",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_speed",
+    "molecularmanipulator:fabrication/research_materials/extendedae/assembler_matrix_wall",
+    "molecularmanipulator:fabrication/research_materials/extendedae/concurrent_processor",
+    "molecularmanipulator:fabrication/research_materials/extendedae/entro_crystal",
+    "molecularmanipulator:fabrication/research_materials/extendedae/entro_dust",
+    "molecularmanipulator:fabrication/research_materials/extendedae/entro_ingot",
+    "molecularmanipulator:fabrication/research_materials/extendedae/ex_molecular_assembler",
+    "molecularmanipulator:fabrication/research_materials/extendedae/ex_pattern_provider",
+    "molecularmanipulator:fabrication/research_materials/extendedae/machine_frame",
+    "molecularmanipulator:fabrication/research_materials/extendedae/wireless_connect",
+    "molecularmanipulator:fabrication/research_materials/extendedae/wireless_hub"
+  ],
+  "required_mods": [
+    "expatternprovider"
+  ],
+  "sort_order": 20,
+  "stage": 2,
+  "depths": [
+    {
+      "material_multiplier": 1,
+      "parallel": 1
+    },
+    {
+      "material_multiplier": 2,
+      "parallel": 256,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 256
+        }
+      ]
+    },
+    {
+      "material_multiplier": 4,
+      "parallel": 65536,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 512
+        }
+      ]
+    },
+    {
+      "material_multiplier": 8,
+      "parallel": 16777216,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 1024
+        }
+      ]
+    },
+    {
+      "material_multiplier": 16,
+      "parallel": 4294967296,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 2048
+        }
+      ]
+    },
+    {
+      "material_multiplier": 32,
+      "parallel": 1099511627776,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 4096
+        }
+      ]
+    },
+    {
+      "material_multiplier": 64,
+      "parallel": 281474976710656,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 8192
+        }
+      ]
+    },
+    {
+      "material_multiplier": 128,
+      "parallel": 72057594037927936,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 16384
+        }
+      ]
+    },
+    {
+      "material_multiplier": 256,
+      "parallel": 9223372036854775807,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 65536
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "ae2:fluix_crystal"
+          },
+          "count": 32768
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    }
+  ]
+}

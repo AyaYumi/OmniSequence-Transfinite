@@ -85,11 +85,12 @@ public final class MolecularCenterControllerBlock extends AEBaseEntityBlock<Mole
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
-        return useWithoutItem(state, level, pos, player, hit);
+        return super.use(state, level, pos, player, hand, hit);
     }
 
-    private InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
-            BlockHitResult hitResult) {
+    @Override
+    public InteractionResult onActivated(Level level, BlockPos pos, Player player, InteractionHand hand,
+            ItemStack stack, BlockHitResult hitResult) {
         var blockEntity = getBlockEntity(level, pos);
         if (blockEntity == null) {
             return InteractionResult.PASS;

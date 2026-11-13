@@ -12,7 +12,7 @@
     }
   },
   "result": {
-    "item": "molecularmanipulator:singularity_base_stairs",
-    "count": 4
+    "count": 4,
+    "item": "molecularmanipulator:singularity_base_stairs"
   }
 }

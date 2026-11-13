@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.config;
 
-import net.minecraftforge.fml.ModContainer;
+import com.atir.molecularmanipulator.blockentity.StarSeaCalculationProduction;
 import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraft.resources.ResourceLocation;
@@ -17,6 +17,7 @@ public final class ModConfig {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SINGULARITY_COLLECTION_ITEM_BLACKLIST;
     public static final ForgeConfigSpec.IntValue SINGULARITY_COLLECTION_BATCH_SIZE;
     public static final ForgeConfigSpec.IntValue SINGULARITY_COLLECTION_INTERVAL_TICKS;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SINGULARITY_DUPLICATION_ITEM_BLACKLIST;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SINGULARITY_DUPLICATION_ENERGY_PRIORITY;
     public static final ForgeConfigSpec.IntValue SINGULARITY_DUPLICATION_FE_PER_UNIT;
     public static final ForgeConfigSpec.IntValue SINGULARITY_DUPLICATION_AE_PER_UNIT;
@@ -29,6 +30,9 @@ public final class ModConfig {
     public static final ForgeConfigSpec.BooleanValue OMNI_COALESCE_RETURN_NOTIFICATIONS;
     public static final ForgeConfigSpec.BooleanValue OMNI_DIRECT_NATIVE_OUTPUT_RETURN;
     public static final ForgeConfigSpec.IntValue NEXUS_IDLE_POWER;
+    public static final ForgeConfigSpec.IntValue STAR_SEA_OUTPUT_BITS_PER_TICK;
+    public static final ForgeConfigSpec.DoubleValue STAR_SEA_ENERGY_PER_TICK;
+    public static final ForgeConfigSpec.IntValue STAR_SEA_DETACHED_SIGNAL_OUTPUT_MULTIPLIER;
 
     public static final ForgeConfigSpec CLIENT_SPEC;
     public static final ForgeConfigSpec.IntValue DYNAMIC_EFFECT_LEVEL;
@@ -83,10 +87,16 @@ public final class ModConfig {
                 .defineInRange("interval_ticks", 20, 1, 1200);
         server.pop();
         server.comment(
-                "Singularity sequence-matter duplication and black-hole energy settings.",
-                "奇点序质复制与黑洞能源设置。")
+                "Item duplication blacklist, sequence-matter production and black-hole energy settings.",
+                "物品复制黑名单、奇点序质生产与黑洞能源设置。")
                 .translation("molecularmanipulator.configuration.singularity_duplication")
                 .push("singularity_duplication");
+        SINGULARITY_DUPLICATION_ITEM_BLACKLIST = server.comment(
+                "Exact item IDs that cannot be copied by either Singularity Hub, regardless of item components. An empty list blocks nothing. Does not affect collection or Sequence Matter generation.",
+                "两种奇点天枢共用的复制物品 ID 黑名单，同一物品的所有组件变体均禁止复制；留空 [] 不限制。不影响资源采集或奇点序质生产。",
+                "Default / 默认：item_blacklist = []")
+                .translation("molecularmanipulator.configuration.singularity_duplication_item_blacklist")
+                .defineListAllowEmpty("item_blacklist", List.<String>of(), ModConfig::isValidItemIdEntry);
         SINGULARITY_DUPLICATION_ENERGY_PRIORITY = server.comment(
                 "Use energy sources in list order. fe comes from adjacent blocks; ae comes from the connected ME network.",
                 "按列表顺序使用能源。fe 来自相邻方块，ae 来自已连接的 ME 网络。")
@@ -175,6 +185,25 @@ public final class ModConfig {
                 "超限算枢的基础待机耗电（AE/t）；需要供电和一个频道。")
                 .translation("molecularmanipulator.configuration.nexus_idle_power")
                 .defineInRange("idle_power", 16_384, 1, Integer.MAX_VALUE);
+        server.pop();
+        server.comment("Star Sea Calculation Mainframe production and power settings.", "星海解算主楼的产出与耗能设置。")
+                .translation("molecularmanipulator.configuration.star_sea_calculation")
+                .push("star_sea_calculation");
+        STAR_SEA_OUTPUT_BITS_PER_TICK = server.comment(
+                "Base Star Signal output per operating local tick, in bits. Default: 128.",
+                "每个有效本地工作刻的基础星讯产量（bit），默认 128。")
+                .translation("molecularmanipulator.configuration.star_sea_output_bits_per_tick")
+                .defineInRange("output_bits_per_tick", 128, 1, 1_000_000);
+        STAR_SEA_ENERGY_PER_TICK = server.comment(
+                "AE consumed per operating local tick. The dimension output bonus does not increase this cost. Set 0 for free operation. Default: 1024.",
+                "每个有效本地工作刻的 AE 消耗，维度产出加成不增加此能耗；设为 0 可免耗能运行。默认 1024。")
+                .translation("molecularmanipulator.configuration.star_sea_energy_per_tick")
+                .defineInRange("energy_per_tick", 1024D, 0D, StarSeaCalculationProduction.MAX_ENERGY_PER_TICK);
+        STAR_SEA_DETACHED_SIGNAL_OUTPUT_MULTIPLIER = server.comment(
+                "Output multiplier in the Detached Signal Realm. Its half-speed/double-speed simulation applies separately. Default: 8.",
+                "离讯之境中的产出倍率，默认 8；该维度的半速／双速时间另外影响每秒工作次数。")
+                .translation("molecularmanipulator.configuration.star_sea_detached_signal_output_multiplier")
+                .defineInRange("detached_signal_output_multiplier", 8, 1, 1_000_000);
         server.pop();
         SERVER_SPEC = server.build();
 

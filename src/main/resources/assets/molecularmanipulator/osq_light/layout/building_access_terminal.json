@@ -1,0 +1,566 @@
+{
+ "screen": "building_access_terminal",
+ "machine": "building_access_terminal",
+ "family": "sing",
+ "size": [
+  400,
+  356
+ ],
+ "left_room": 0,
+ "units": "GUI px; shared OSQ machine skin and live handheld controls",
+ "draw": [
+  {
+   "type": "sprite",
+   "id": "window",
+   "k": "window",
+   "rect": [
+    0,
+    0,
+    400,
+    356
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_window",
+   "material": "window",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "panel.3",
+   "k": "card",
+   "rect": [
+    8,
+    34,
+    260,
+    274
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "panel.5",
+   "k": "card",
+   "rect": [
+    276,
+    34,
+    116,
+    88
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_feature_card",
+   "material": "feature",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "panel.7",
+   "k": "card",
+   "rect": [
+    276,
+    128,
+    116,
+    180
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "panel.10",
+   "k": "card",
+   "rect": [
+    8,
+    320,
+    384,
+    28
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice"
+  },
+  {
+   "type": "sprite",
+   "id": "card.0",
+   "k": "card",
+   "rect": [
+    14,
+    55,
+    234,
+    47
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "external": true
+  },
+  {
+   "type": "control",
+   "id": "row.0",
+   "k": "ctl",
+   "rect": [
+    14,
+    55,
+    188,
+    47
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "remove.0",
+   "k": "ctl",
+   "rect": [
+    204,
+    77,
+    42,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_danger"
+  },
+  {
+   "type": "sprite",
+   "id": "card.1",
+   "k": "card",
+   "rect": [
+    14,
+    104,
+    234,
+    47
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "external": true
+  },
+  {
+   "type": "control",
+   "id": "row.1",
+   "k": "ctl",
+   "rect": [
+    14,
+    104,
+    188,
+    47
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "remove.1",
+   "k": "ctl",
+   "rect": [
+    204,
+    126,
+    42,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_danger"
+  },
+  {
+   "type": "sprite",
+   "id": "card.2",
+   "k": "card",
+   "rect": [
+    14,
+    153,
+    234,
+    47
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "external": true
+  },
+  {
+   "type": "control",
+   "id": "row.2",
+   "k": "ctl",
+   "rect": [
+    14,
+    153,
+    188,
+    47
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "remove.2",
+   "k": "ctl",
+   "rect": [
+    204,
+    175,
+    42,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_danger"
+  },
+  {
+   "type": "sprite",
+   "id": "card.3",
+   "k": "card",
+   "rect": [
+    14,
+    202,
+    234,
+    47
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "external": true
+  },
+  {
+   "type": "control",
+   "id": "row.3",
+   "k": "ctl",
+   "rect": [
+    14,
+    202,
+    188,
+    47
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "remove.3",
+   "k": "ctl",
+   "rect": [
+    204,
+    224,
+    42,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_danger"
+  },
+  {
+   "type": "sprite",
+   "id": "card.4",
+   "k": "card",
+   "rect": [
+    14,
+    251,
+    234,
+    47
+   ],
+   "pad": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "sprite": "molecularmanipulator:osq_light/common/glass_card",
+   "material": "card",
+   "slicing": "nine_slice",
+   "external": true
+  },
+  {
+   "type": "control",
+   "id": "row.4",
+   "k": "ctl",
+   "rect": [
+    14,
+    251,
+    188,
+    47
+   ]
+  },
+  {
+   "type": "sprite",
+   "id": "remove.4",
+   "k": "ctl",
+   "rect": [
+    204,
+    273,
+    42,
+    22
+   ],
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "sprite": "molecularmanipulator:osq_light/sing/button_danger"
+  },
+  {
+   "type": "control",
+   "id": "scrollbar",
+   "k": "ctl",
+   "rect": [
+    254,
+    55,
+    8,
+    243
+   ]
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.paper",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCBCCD4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.card",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCBCCD4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF2E2C40"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.ink2",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF5D637D"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.hair",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9A9FB4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.accent",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.soft",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF4D4D67"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_ink",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFF2F2F2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_muted",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFB8BAC8"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.feature_track",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF696D88"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.level",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF7CA0D2"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.disabled",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFADB0C4"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.warning",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FFCE654F"
+  },
+  {
+   "type": "fill",
+   "external": true,
+   "id": "color.error",
+   "rect": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "color": "#FF9C4048"
+  }
+ ]
+}

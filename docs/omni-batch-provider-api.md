@@ -1,9 +1,14 @@
 # Omni Batch Provider API v1
 
+For mod developers: use this interface to let Omni allocate materials and deliver
+several complete crafts to your AE2 pattern provider as one atomic batch.
+Ordinary AE2 providers need no new interface to keep working. For machine setup,
+see the [player guide](../README.md) or the in-game G guide.
+
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 2.0.13-forge on Minecraft 1.20.1 / Java 17, with AE2 15.4.10
-and Applied Enhancements 1.1.2-forge+ (build API 1.1.4-forge). The runtime ABI remains **1**.
+Current for OmniSequence 20.3.0.1 on Minecraft 1.20.1 / Forge / Java 17, with AE2 15.4.10
+and AppliedEnhancements 1.1.2-forge+ (compile API 1.1.4-forge). The runtime ABI remains 1.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
@@ -12,27 +17,33 @@ planning and cycle-execution APIs; importing Omni's internal planner/Mixin class
 is not a supported integration. Compile against the separate mod JARs without
 embedding their classes.
 
-This SPI is for AE2 machines that store encoded patterns and act as
-`ICraftingProvider` implementations. A normal provider already works with AE2
-one craft at a time. Implement this SPI only when the machine wants an
-Omni-Computation Core or Transfinite Compute Nexus to allocate several complete crafts and deliver them as
-one atomic transaction.
+Implement this SPI on an AE2 machine that stores encoded patterns and acts as an
+`ICraftingProvider` when it can accept several complete crafts as one atomic
+transaction from an Omni-Computation Core or Transfinite Compute Nexus.
 
 Ordinary providers also receive adaptive dispatch through their existing
 `pushPattern` contract, including multi-input recipes and custom implementations.
 The first ordinary call contains one original task. Further complete calls grow
-in same-tick rounds of 1, 2, 4, 8, ... until the provider becomes busy or rejects a
-call. Omni retains the actual successful calls per tick as the baseline and, after
-20 ticks, probes that baseline plus 1, 2, 4, 8, ... again. Native doubled tasks
-retain their identity and counts. This requires no additional provider interface;
-the atomic SPI below remains unchanged and available for providers that can accept
-one counted transaction.
+in same-tick rounds of 1, 2, 4, ... until the provider becomes busy or rejects a
+call. Omni retains the successful calls per tick and, after 20 ticks, probes that
+baseline plus 1, 2, 4, ... again. Native doubled tasks retain their identity and
+counts. Providers that can accept one counted transaction can use the atomic SPI
+below.
+
+A single remaining craft uses the original one-craft path without waiting for
+another batch. Reusable-tool handling in built-in machines retains returned tools
+and deterministic durability changes for subsequent crafts, without duplicating
+the tool or charging it as a fresh consumable each time. Cycle execution shares
+its seed inventory and yields when the current phase cannot dispatch, allowing
+other runnable work to proceed. These paths use the CPU's existing storage and
+parallel capacity and remain subject to available materials, power and provider
+backpressure.
 
 Advanced AE quantum CPUs also use this provider contract through the optional
 integration. The single-block nexus adds no new provider ABI or resource format.
 
-The API contains no classes, Mod IDs, or reflection paths for a specific
-integration. Any pattern-provider assembly can opt in.
+The public API contains no target-mod classes, Mod IDs or reflection paths, so any
+pattern-provider assembly can opt in.
 
 ## Public types
 
@@ -54,7 +65,9 @@ runtime negotiation because Java may inline it.
 ## Provider integration
 
 The provider continues to advertise patterns through AE2 and implements one
-additional interface:
+additional interface. The Java excerpt below uses your machine's own validation,
+capacity and persistent-queue methods; implement those helpers alongside its
+normal `ICraftingProvider` methods before compiling an integration:
 
 ```java
 public final class ExamplePatternMachine
@@ -98,12 +111,11 @@ public final class ExamplePatternMachine
 ```
 
 Both input lists preserve the original pattern-input slot, and multiple
-substituted keys in one slot remain separate entries. They intentionally use
-different public types: `OmniBatchProbe.Input` is only the actual selection for
-the first craft and is a capacity hint. `OmniBatchRequest.Input` is the
-authoritative key and total amount delivered at commit time. AE2 substitutions
-may make its keys or ratios differ from `probe * craftCount`; never validate the
-delivery with that multiplication.
+substituted keys in one slot remain separate entries. `OmniBatchProbe.Input`
+describes the actual selection for the first craft and is a capacity hint.
+`OmniBatchRequest.Input` gives the authoritative key and total amount delivered
+at commit time. AE2 substitutions may make its keys or ratios differ from
+`probe * craftCount`; never validate the delivery with that multiplication.
 
 The request also carries a unique dispatch ID, the current AE2 crafting-job ID
 when available, the exact accepted craft count, and the authoritative total
@@ -139,9 +151,10 @@ whole range or reject atomically at commit time.
   pause unrelated patterns or providers.
 - Use `dispatchId` for idempotency if the provider has a durable work queue.
 
-API v1 deliberately batches only purely consumable inputs. Recipes with
+API v1 batches only purely consumable inputs. Recipes with
 returned containers, reusable tools, or durability transitions keep the safe
-one-craft path unless an existing internal Omni machine handles them.
+one-craft path unless an existing internal Omni machine handles them. Such internal
+handling does not extend the public v1 ownership contract.
 
 The public input records carry `AEKey`, including registered addon types; each
 provider decides which types it can actually process. `amount` uses that key's
@@ -154,8 +167,9 @@ The built-in Matter Fabrication Pattern Assembly implements this contract using
 its own persistent input/output buffers and supports all registered AEKey inputs
 declared by a well recipe. Research permission is checked before admission and
 before queued work starts. Production limits and bonuses are evaluated when work
-starts; started work retains its processing snapshot across reloads. Queued work
-retains material ownership and recipe IDs while using current definitions. Its
+starts. Started work retains material, output and power snapshots across reloads;
+duration follows current engine benefits with proportional progress rescaling.
+Queued work retains material ownership and recipe IDs while using current definitions. Its
 UI buffer size is not an unconditional batch limit. See the [well API](matter-research-api.md)
 for `ae_inputs`, output isolation and the remaining same-output overlap limitations.
 
@@ -202,7 +216,7 @@ This registry is additive; the existing API ABI remains version 1.
 ## Post-accounting output flush
 
 An instant provider may finish a large aggregate before AE2 records its expected
-outputs in the crafting job. If it deliberately delays new outputs until the next
+outputs in the crafting job. If it delays new outputs until the next
 tick, the job can pause whenever its `long`-sized `waitingFor` window fills.
 
 Providers that own a durable output queue can implement
@@ -240,8 +254,8 @@ if (OmniBatchCraftingApi.isOmniManagedCpu(this)) {
 return runTheModsOwnCpuBatching(...);
 ```
 
-The provider-side admission above then lets Omni perform extraction, AE power,
-task decrement, expected-output accounting, rollback, and fair CPU scheduling.
+With provider-side admission, Omni handles extraction, AE power, task decrement,
+expected-output accounting, rollback, and fair CPU scheduling.
 This query is read-only and does not submit or migrate a crafting job.
 
 Prefer a chainable Mixin Extras wrapper or an inject-and-cancel hook for CPU
@@ -265,9 +279,9 @@ inputs and refunds. Open `beginDispatch(actualInputs, actualCrafts)` before
 provider delivery; call `accepted()` at durable ownership transfer. Closing a
 rejected dispatch restores cycle accounting, while the CPU refunds still-owned
 physical inputs. A null inventory declines this attempt; `maximumCrafts()` is a
-phase bound and does not promise materials or queue capacity. The supported AES
-Forge runtime is 1.1.2-forge or later; do not reacquire the shared context after the
-first extraction.
+phase bound and does not promise materials or queue capacity. The shared context
+is available in the supported AppliedEnhancements 1.1.2-forge+ runtime and must not be
+reacquired after the first extraction.
 
 Retain every expected output, including item/fluid byproducts. Unsupported
 optimization or an unreadable external batch wrapper must preserve the complete
@@ -275,41 +289,12 @@ original task ledger and permit ordinary planning/dispatch. It must not turn a
 secondary output into a planning exception or truncate work to a long preview.
 Providers still enforce actual material ownership and capacity.
 
-For integrations using the supported AES Forge runtime, query
-`AelisSmartDoublingApi.isExternallyManaged(pattern)` before adding a local scale.
-Preserve native enabled patterns, existing external wrappers, provider splits
-and the original-pattern remainder. An installed addon alone does not enable
-this bypass. The query describes external management, not ownership or exact
-execution support.
-
-## Optional native CPU APIs on Forge
-
-Matter Fabrication Pattern Assemblies also implement optional dispatch contracts
-when the installed Forge addon supplies the matching public API. These integrations
-use the same research, catalyst, capacity and durable-ownership checks as ordinary
-delivery; they do not change Omni's batch ABI 1.
-
-| Addon contract | Admission and accepted-count semantics |
-| --- | --- |
-| ECO `ECOFastPathDispatchProvider` | Fast-path preparation validates complete inputs and outputs. Container remainders and exact input totals outside the durable long representation decline this path. |
-| Thunderbolt `IBatchCraftingProvider` | `pushBatch` receives a reusable one-craft prototype and returns the **unaccepted remainder**, not the accepted count. |
-| Data Energistics `CountedCraftingProviderAdapter` | Registered against the original provider identity; a single-use admission reports its count and marks input ownership transferred only after commit succeeds. Registration is removed when the provider disconnects. |
-
-Native counted dispatch bypasses local smart doubling. External scaled patterns
-still retain their complete input/output ratio; an accepted batch persists the
-entire material vector. Capacity queries do not transfer inputs or authorize an
-additional material multiplier.
-
-The optional ECO runtime minimum is **20.4.2**. Native batch/exact integration is
-compiled against the real Forge **20.5.0** API and enabled only for that version or
-newer; older supported ECO builds retain ordinary AE dispatch and job-scoped
-cancellation. Compile-only declarations under `src/optionalCpuApi`
-supply the other optional Java 17 signatures; they are excluded from runtime
-classpaths and release JARs. Thunderbolt also requires its public batch interface;
-unavailable Data Energistics contracts leave ordinary AE dispatch available.
-The legacy Thunderbolt native executor and Trinity counted-CPU contract are absent
-from these Forge dependencies, so this port provides no corresponding executor hooks.
-Install matching Forge addons separately.
+Query `AelisSmartDoublingApi.isExternallyManaged(pattern)` before adding a local
+scale. Preserve native enabled patterns, existing external wrappers, provider
+splits and the original-pattern remainder. An installed addon alone does not
+enable this bypass. The query describes external management, not ownership or
+exact execution support; keep AppliedEnhancements references in the appropriate
+integration class.
 
 ## Exact-count capabilities
 

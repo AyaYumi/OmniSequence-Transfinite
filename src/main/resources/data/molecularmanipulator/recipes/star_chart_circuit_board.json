@@ -1,0 +1,20 @@
+{
+  "type": "molecularmanipulator:matter_fabrication",
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "molecularmanipulator:star_marrow_crystal"
+      },
+      "count": 16
+    }
+  ],
+  "results": [
+    {
+      "id": "molecularmanipulator:star_chart_circuit_board",
+      "count": 16
+    }
+  ],
+  "processing_time": 400,
+  "ae_per_tick": 256,
+  "requires_research": true
+}

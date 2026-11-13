@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ICI",
+    "QPQ",
+    "ICI"
+  ],
+  "key": {
+    "I": {
+      "item": "molecularmanipulator:star_marrow_alloy_ingot"
+    },
+    "C": {
+      "item": "molecularmanipulator:star_computation_engine_casing"
+    },
+    "Q": {
+      "item": "molecularmanipulator:star_marrow_crystal"
+    },
+    "P": {
+      "item": "molecularmanipulator:star_chart_processor"
+    }
+  },
+  "result": {
+    "count": 9,
+    "item": "molecularmanipulator:reference_star_position_anchor"
+  }
+}

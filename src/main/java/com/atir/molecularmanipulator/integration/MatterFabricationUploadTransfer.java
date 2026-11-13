@@ -74,9 +74,8 @@ final class MatterFabricationUploadTransfer {
     private static boolean insertPattern(InternalInventory destination, int slot, ItemStack pattern) {
         boolean inserted = false;
         try {
-            inserted = destination.getStackInSlot(slot).isEmpty()
-                    && destination.insertItem(slot, pattern.copy(), false).isEmpty()
-                    && ItemStack.matches(destination.getStackInSlot(slot), pattern);
+            inserted = destination.insertItem(slot, pattern.copy(), false).isEmpty()
+                    && ItemStack.matches(pattern, destination.getStackInSlot(slot));
             return inserted;
         } finally {
             if (!inserted && ItemStack.matches(destination.getStackInSlot(slot), pattern)) {

@@ -60,7 +60,7 @@ public final class EcoOmniParentOrderSource {
         IActionHost machine = null;
         if (identity.getBoolean("machine")) {
             if (!identity.contains("dimension")) return null;
-            var dimension = ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(identity.getString("dimension")));
+            var dimension = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(identity.getString("dimension")));
             var level = server.getLevel(dimension);
             var position = BlockPos.of(identity.getLong("position"));
             if (level == null || !level.hasChunkAt(position)) return null;

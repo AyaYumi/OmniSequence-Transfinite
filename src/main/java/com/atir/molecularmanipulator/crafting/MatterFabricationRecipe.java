@@ -5,8 +5,8 @@ import com.atir.molecularmanipulator.registry.ModContent;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
@@ -14,6 +14,7 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fluids.FluidStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,9 +29,26 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
         List<GenericStack> aeOutputs,
         int processingTime,
         double aePerTick,
-        boolean requiresResearch) implements Recipe<MatterFabricationRecipeInput> {
+        boolean requiresResearch,
+        @Nullable ResourceLocation sourceRecipeId) implements Recipe<MatterFabricationRecipeInput> {
+    public static final int DEFAULT_PROCESSING_TIME = 20 * 20;
     public static final int MAX_INPUTS = 12;
     public static final int MAX_OUTPUTS = 6;
+
+    /** Native/decoded recipes have no external identity; only runtime imports attach one. */
+    public MatterFabricationRecipe(ResourceLocation id, List<CountedIngredient> ingredients,
+            List<CountedIngredient> catalysts, List<ItemStack> results, FluidStack fluidInput,
+            FluidStack fluidResult, List<GenericStack> aeInputs, List<GenericStack> aeOutputs,
+            int processingTime, double aePerTick, boolean requiresResearch) {
+        this(id, ingredients, catalysts, results, fluidInput, fluidResult, aeInputs, aeOutputs,
+                processingTime, aePerTick, requiresResearch, null);
+    }
+
+    /** Exact source holder ID, never inferred from the internal ID or the output item. Not a JSON field. */
+    public MatterFabricationRecipe withSourceRecipeId(ResourceLocation sourceRecipeId) {
+        return new MatterFabricationRecipe(id, ingredients, catalysts, results, fluidInput, fluidResult, aeInputs,
+                aeOutputs, processingTime, aePerTick, requiresResearch, java.util.Objects.requireNonNull(sourceRecipeId));
+    }
 
     public MatterFabricationRecipe(List<CountedIngredient> ingredients, List<ItemStack> results,
             FluidStack fluidInput, FluidStack fluidResult, List<GenericStack> aeInputs,
@@ -83,7 +101,8 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
     @Override public net.minecraft.resources.ResourceLocation getId() { return id; }
     public MatterFabricationRecipe value() { return this; }
     public MatterFabricationRecipe withId(net.minecraft.resources.ResourceLocation recipeId) {
-        return new MatterFabricationRecipe(recipeId, ingredients, catalysts, results, fluidInput, fluidResult, aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch);
+        return new MatterFabricationRecipe(recipeId, ingredients, catalysts, results, fluidInput, fluidResult,
+                aeInputs, aeOutputs, processingTime, aePerTick, requiresResearch, sourceRecipeId);
     }
 
     public MatterFabricationRecipe {
@@ -234,7 +253,7 @@ public record MatterFabricationRecipe(net.minecraft.resources.ResourceLocation i
                                 .forGetter(MatterFabricationRecipe::aeInputs),
                         ForgeRecipeCodecs.GENERIC_OUTPUTS
                                 .forGetter(MatterFabricationRecipe::aeOutputs),
-                        Codec.INT.optionalFieldOf("processing_time", 200)
+                        Codec.INT.optionalFieldOf("processing_time", DEFAULT_PROCESSING_TIME)
                                 .forGetter(MatterFabricationRecipe::processingTime),
                         Codec.DOUBLE.optionalFieldOf("ae_per_tick", 64.0)
                                 .forGetter(MatterFabricationRecipe::aePerTick),

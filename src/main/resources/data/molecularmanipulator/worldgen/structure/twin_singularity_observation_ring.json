@@ -1,0 +1,7 @@
+{
+  "type": "molecularmanipulator:twin_singularity_observation_ring",
+  "biomes": "#minecraft:is_end",
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "none"
+}

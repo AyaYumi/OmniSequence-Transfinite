@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "formed=false": {
+      "model": "molecularmanipulator:block/star_orrery_engraved_plinth"
+    },
+    "formed=true": {
+      "model": "molecularmanipulator:block/star_orrery_engraved_plinth"
+    }
+  }
+}

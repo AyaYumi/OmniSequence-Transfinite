@@ -6,12 +6,18 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
+import appeng.api.implementations.items.IMemoryCard;
+import appeng.api.implementations.items.MemoryCardMessages;
 import appeng.block.crafting.AbstractCraftingUnitBlock;
+import appeng.blockentity.AEBaseBlockEntity;
+import appeng.items.tools.MemoryCardItem;
 import appeng.util.InteractionUtil;
+import appeng.util.SettingsFrom;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.world.MultiblockChunkLoading;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -96,7 +102,31 @@ public final class OmniComputationControllerBlock extends AbstractCraftingUnitBl
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
+        var memoryCard = useMemoryCard(level, pos, player, heldItem);
+        if (memoryCard != InteractionResult.PASS) return memoryCard;
         return useWithoutItem(state, level, pos, player, hit);
+    }
+
+    /** Keep AE2's memory-card path without AbstractCraftingUnitBlock.use opening the default CPU menu. */
+    static InteractionResult useMemoryCard(Level level, BlockPos pos, Player player, ItemStack stack) {
+        if (!(stack.getItem() instanceof IMemoryCard card)) return InteractionResult.PASS;
+        if (!(level.getBlockEntity(pos) instanceof AEBaseBlockEntity machine)) return InteractionResult.FAIL;
+        var name = level.getBlockState(pos).getBlock().getDescriptionId();
+        if (InteractionUtil.isInAlternateUseMode(player)) {
+            var settings = new CompoundTag();
+            machine.exportSettings(SettingsFrom.MEMORY_CARD, settings, player);
+            if (!settings.isEmpty()) {
+                card.setMemoryCardContents(stack, name, settings);
+                card.notifyUser(player, MemoryCardMessages.SETTINGS_SAVED);
+            }
+        } else {
+            var settings = card.getData(stack);
+            if (name.equals(card.getSettingsName(stack))) {
+                machine.importSettings(SettingsFrom.MEMORY_CARD, settings, player);
+                card.notifyUser(player, MemoryCardMessages.SETTINGS_LOADED);
+            } else MemoryCardItem.importGenericSettingsAndNotify(machine, settings, player);
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide());
     }
 
     private InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,

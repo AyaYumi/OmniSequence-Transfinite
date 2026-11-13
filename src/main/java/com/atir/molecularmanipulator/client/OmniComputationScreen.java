@@ -2,197 +2,111 @@ package com.atir.molecularmanipulator.client;
 
 import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.blockentity.OmniComputationStructure;
+
+import appeng.menu.SlotSemantics;
+import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.menu.OmniComputationMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Tooltip;
+
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-
-import java.util.List;
 import java.util.Locale;
 
-/** 1.21.1's structure/telemetry/quantum layout, implemented with Forge-native controls. */
+/** Supplied light/dark layout, live AE2 data and server-authoritative actions. */
 public final class OmniComputationScreen extends ResponsiveContainerScreen<OmniComputationMenu> {
-    private final StructureUpdateConfirmation updateConfirmation = new StructureUpdateConfirmation();
-    private OmniButton build, dismantle, projection, refresh, update, keepLegacy, legacyProjection;
-    private boolean confirmingLegacyUpdate;
-
+    private OsqUi ui;
+    private boolean legacyLayout;
+    private Button build, dismantle, update, keep;
+    private final StructureUpdateConfirmation confirmation = new StructureUpdateConfirmation();
+    private long dismantleArmedAt;
     public OmniComputationScreen(OmniComputationMenu menu, Inventory inventory, Component title, ScreenStyle style) {
         super(menu, inventory, title, style);
     }
-
-    @Override
-    protected void init() {
-        super.init();
-        if (!menu.getCore().isSingleBlock()) {
-            addScreenWidget(new MachineEffectButton(leftPos + 220, topPos + 5, 100,
-                    () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
+    @Override protected void init() {
+        legacyLayout=menu.legacyStructure;
+        ui=new OsqUi(legacyLayout ? "omni_core_legacy" : "omni_core");
+        imageWidth=ui.layout.width; imageHeight=ui.layout.height+24;
+        super.init(); ui.inventory(menu); ui.slots(menu.getSlots(SlotSemantics.MACHINE_INPUT),"qes");
+        // Preserve both authored layouts; fit the extra control below them rather than over their headings.
+        addScreenWidget(new MachineEffectButton(ui, ui.buttonBox(imageWidth - 128, ui.layout.height + 3, 120, 18), leftPos, topPos,
+                () -> menu.dynamicEffectOverride, menu::requestDynamicEffectLevel));
+        addScreenWidget(ui.button("projection",leftPos,topPos,
+                () -> tr("projection"), () -> { confirmation.cancel(); OmniComputationGhostPreview.toggle(menu.getCore()); }));
+        addScreenWidget(ui.button("refresh",leftPos,topPos,() -> tr("refresh"),menu::requestRefresh));
+        if(legacyLayout) {
+            update=addScreenWidget(ui.button("update",leftPos,topPos,() -> OsqUi.tr(confirmation.isArmed()
+                    ? "gui.molecularmanipulator.structure_update_second_confirm" : "gui.molecularmanipulator.structure_update_confirm"),
+                    () -> {if(confirmation.click()) menu.requestStructureUpdate();}));
+            keep=addScreenWidget(ui.button("keep",leftPos,topPos,
+                    () -> OsqUi.tr("gui.molecularmanipulator.structure_update_keep_legacy"),
+                    () -> { confirmation.cancel();menu.requestKeepLegacyStructure(); }));
+        } else {
+            build=addScreenWidget(ui.button("build",leftPos,topPos,() -> tr(menu.building?"building":"build"),menu::requestBuild));
+            dismantle=addScreenWidget(ui.button("dismantle",leftPos,topPos,
+                    () -> dismantleArmedAt>0 ? OsqUi.tr("gui.molecularmanipulator.fabrication.dismantle_confirm") : tr("dismantle"), () -> {
+                long now=net.minecraft.Util.getMillis();
+                if(dismantleArmedAt==0){dismantleArmedAt=now;return;}
+                if(now-dismantleArmedAt>=250){menu.requestDismantle();dismantleArmedAt=0;}
+            }));
+            ui.state(dismantle,()->dismantleArmedAt>0?"confirm":"danger");
         }
-        updateConfirmation.cancel();
-        build = button(14, 234, 73, 18, text("omni.build"), text("omni.build_tooltip"), () -> {
-            if (menu.legacyStructure) confirmingLegacyUpdate = true;
-            else menu.requestBuild();
-        });
-        dismantle = button(91, 234, 73, 18, text("omni.dismantle"), text("omni.dismantle_tooltip"), menu::requestDismantle);
-        projection = button(168, 234, 73, 18, projectionLabel(), text("omni.projection_tooltip"), this::toggleProjection);
-        refresh = button(245, 234, 73, 18, text("omni.refresh"), text("omni.refresh_tooltip"), menu::requestRefresh);
-        update = button(14, 234, 98, 18, text("structure_update_confirm"), text("structure_update_confirm_tooltip"), () -> {
-            if (updateConfirmation.click()) {
-                confirmingLegacyUpdate = false;
-                menu.requestStructureUpdate();
-            }
-        });
-        keepLegacy = button(116, 234, 98, 18, text("structure_update_keep_legacy"), text("structure_update_keep_legacy_tooltip"), () -> {
-            updateConfirmation.cancel();
-            confirmingLegacyUpdate = false;
-            menu.requestKeepLegacyStructure();
-        });
-        legacyProjection = button(218, 234, 98, 18, projectionLabel(), text("structure_update_projection_warning"), this::toggleProjection);
-        updateControls();
+        ui.text("gui.molecularmanipulator.omni.formed",()->tr(menu.formed?"formed":"incomplete"));
+        ui.text("gui.molecularmanipulator.omni.online",()->tr(menu.networkOnline?"online":"offline"));
+        ui.text("gui.molecularmanipulator.omni.calculating",()->menu.activeMaterialCalculations>0
+                ?tr("calculating",menu.activeMaterialCalculations):tr("calculation_idle"));
+        ui.text("gui.molecularmanipulator.omni.calculation_stats",()->tr("calculation_stats",menu.completedMaterialCalculations,menu.lastMaterialCalculationMillis));
+        ui.text("gui.molecularmanipulator.quantum_state.connected",()->OsqUi.tr("gui.molecularmanipulator.quantum_state."+menu.quantumLinkState.name().toLowerCase(Locale.ROOT)));
+        ui.text("gui.molecularmanipulator.fab.s025", () -> OsqUi.tr(menu.wirelessBound
+                ? "gui.molecularmanipulator.remote_target" : "gui.molecularmanipulator.fab.s025"));
+        ui.at(302.39f,238.5f,()->menu.wirelessBound
+                ? OsqUi.tr("gui.molecularmanipulator.wireless_hub.short")
+                : Component.literal(menu.quantumFrequency==0?"-":Long.toUnsignedString(menu.quantumFrequency,16).toUpperCase(Locale.ROOT)));
+        ui.at(253,96,()->capacity(menu.storageBytes, true));
+        ui.at(314,96,()->capacity(menu.cpuParallel, false));
+        ui.width(253,96,56);
+        ui.width(314,96,56);
+        ui.number(252,147,()->menu.activeJobs);ui.number(314,147,()->menu.cpuLanes);
+        ui.number(17,57,()->legacyLayout?"31×31×39 · 1.3.9":"65×35×65 · "+menu.missingParts);
+        ui.number(16.5f,97,()->menu.correctParts);
+        if(legacyLayout){ui.number(24.63f,97,()->"/ "+menu.totalParts);ui.number(34.64f,97,()->"");
+            ui.layout.draw.stream().filter(e->"text".equals(e.type)&&Math.abs(e.x-24.63f)<.8f&&Math.abs(e.baseline-97)<.8f)
+                    .findFirst().ifPresent(e->{e.x=76;e.drawX=76f;e.w=54;});}
+        else {ui.number(28.48f,97,()->"");ui.number(60.05f,97,()->"/ "+menu.totalParts);ui.number(70.06f,97,()->"");}
+        ui.width(16.5f,97,legacyLayout?56:41);
+        ui.width(60.05f,97,30);
+        ui.width(283,224.89f,85);
+        ui.sprite(17,43,()->ui.sprite("dot_"+(menu.formed?"ok":"warn")));
+        ui.sprite(296.83f,56,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
+        ui.sprite(276,222.89f,()->ui.sprite("dot_"+(!menu.wirelessBound&&menu.quantumFrequency==0
+                ?"mute":quantumConnected()?"ok":"warn")));
+        ui.color("gui.molecularmanipulator.quantum_state.connected",()->!menu.wirelessBound&&menu.quantumFrequency==0
+                ?ui.palette.ink3:quantumConnected()?ui.palette.ok:ui.palette.warn);
+        refresh();
     }
-
-    private void toggleProjection() {
-        updateConfirmation.cancel();
-        OmniComputationGhostPreview.toggle(menu.getCore());
+    static Component capacity(long value, boolean storage) {
+        if (value == Long.MAX_VALUE) return Component.translatable("gui.molecularmanipulator.omni.infinite");
+        if (!storage) return Component.literal(DisplayNumbers.compact(value));
+        if (value >= 1L << 30) return Component.literal((value >> 30) + " GiB");
+        if (value >= 1L << 20) return Component.literal((value >> 20) + " MiB");
+        return Component.literal(value + " B");
     }
-
-    @Override
-    public void containerTick() {
-        super.containerTick();
-        updateConfirmation.tick(menu.legacyStructure && !menu.building && !menu.dismantling);
-        updateControls();
+    private boolean quantumConnected() {
+        return menu.quantumLinkState == QuantumLinkState.CONNECTED
+                || menu.quantumLinkState == QuantumLinkState.CONNECTED_BUILD_ONLY;
     }
-
-    private void updateControls() {
-        if (!menu.legacyStructure) confirmingLegacyUpdate = false;
-        boolean busy = menu.building || menu.dismantling;
-        boolean choice = menu.legacyStructure && (!menu.legacyStructureUpdateDismissed || confirmingLegacyUpdate);
-        build.visible = dismantle.visible = projection.visible = refresh.visible = !choice;
-        update.visible = keepLegacy.visible = legacyProjection.visible = choice;
-        build.active = !busy && (menu.legacyStructure || !menu.formed && menu.conflictParts == 0);
-        dismantle.active = !busy && menu.dismantlableBlocks > 0;
-        update.active = keepLegacy.active = !busy;
-        build.setProminent(true);
-        update.setDanger(updateConfirmation.isArmed());
-        build.setMessage(text(menu.building ? "omni.building" : menu.legacyStructure ? "structure_update_short" : "omni.build"));
-        build.setTooltip(Tooltip.create(text(menu.legacyStructure ? "structure_update_confirm_tooltip" : "omni.build_tooltip")));
-        dismantle.setMessage(text(menu.dismantling ? "omni.dismantling" : "omni.dismantle"));
-        projection.setMessage(projectionLabel());
-        legacyProjection.setMessage(projectionLabel());
-        update.setMessage(text(updateConfirmation.isArmed() ? "structure_update_second_confirm" : "structure_update_confirm"));
+    private Component tr(String key,Object...args){return OsqUi.tr("gui.molecularmanipulator.omni."+key,args);}
+    private void refresh(){
+        boolean busy=menu.building||menu.dismantling;
+        confirmation.tick(legacyLayout&&!busy);
+        if(update!=null)update.active=!busy;
+        if(keep!=null)keep.active=!busy;
+        if(build!=null)build.active=!busy&&!menu.formed&&menu.conflictParts==0;
+        if(dismantle!=null)dismantle.active=!busy&&menu.dismantlableBlocks>0;
+        if(dismantleArmedAt>0&&net.minecraft.Util.getMillis()-dismantleArmedAt>3000)dismantleArmedAt=0;
     }
-
-    @Override
-    public void removed() {
-        updateConfirmation.cancel();
-        super.removed();
-    }
-
-    @Override
-    public void drawBG(GuiGraphics graphics, int x, int y, int mouseX, int mouseY, float partialTick) {
-        super.drawBG(graphics, x, y, mouseX, mouseY, partialTick);
-        MachineUiLayout.OMNI_COMPUTATION.draw(graphics, x, y);
-        int pulse = (int) ((minecraft.level == null ? 0 : minecraft.level.getGameTime()) % 20);
-        OmniUiTheme.computationCore(graphics, x + 82, y + 82,
-                29 + Math.min(pulse, 20 - pulse) / 5, menu.formed, menu.networkOnline);
-        float ratio = menu.totalParts <= 0 ? 0 : menu.correctParts / (float) menu.totalParts;
-        if (!menu.formed) OmniUiTheme.progress(graphics, x + 18, y + 160, 128, 8, ratio, OmniUiTheme.ACCENT);
-    }
-
-    @Override
-    public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        drawCenteredFittedString(graphics, title.getString().isBlank()
-                ? Component.translatable("block.molecularmanipulator.omni_computation_controller") : title,
-                menu.getCore().isSingleBlock() ? 166 : 110, 9,
-                menu.getCore().isSingleBlock() ? 312 : 200, OmniUiTheme.PRIMARY_TEXT);
-        centered(graphics, text(menu.formed ? "omni.formed" : "omni.incomplete"), 119,
-                menu.formed ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
-        centered(graphics, text("omni.size", menu.legacyStructure ? 31 : OmniComputationStructure.WIDTH,
-                menu.legacyStructure ? 31 : OmniComputationStructure.WIDTH,
-                menu.legacyStructure ? 39 : OmniComputationStructure.HEIGHT), 132, OmniUiTheme.MUTED_TEXT);
-        centered(graphics, text("omni.parts", menu.correctParts, menu.totalParts), 145, OmniUiTheme.PRIMARY_TEXT);
-        centered(graphics, structureDetail(), 174, menu.conflictParts > 0 ? OmniUiTheme.ERROR : OmniUiTheme.MUTED_TEXT);
-
-        row(graphics, "omni.network", text(menu.networkOnline ? "omni.online" : "omni.offline"), 42,
-                menu.networkOnline ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
-        row(graphics, "omni.storage", Component.literal("∞"), 59, OmniUiTheme.ACCENT);
-        row(graphics, "omni.parallel", Component.literal("∞"), 75, OmniUiTheme.CYAN);
-        row(graphics, "omni.active_jobs", Component.literal(Integer.toString(menu.activeJobs)), 95, OmniUiTheme.PRIMARY_TEXT);
-        row(graphics, "omni.virtual_lanes", Component.literal(Integer.toString(menu.cpuLanes)), 110, OmniUiTheme.PRIMARY_TEXT);
-        row(graphics, "omni.material_calculation", menu.activeMaterialCalculations > 0
-                ? text("omni.calculating", menu.activeMaterialCalculations) : text("omni.calculation_idle"), 125, OmniUiTheme.PRIMARY_TEXT);
-        drawFittedString(graphics, text("omni.calculation_stats", menu.completedMaterialCalculations,
-                menu.lastMaterialCalculationMillis), 174, 139, 140, OmniUiTheme.MUTED_TEXT);
-        drawFittedString(graphics, text("omni.tick_budget"), 174, 151, 140, OmniUiTheme.MUTED_TEXT);
-        drawWrappedString(graphics, text(menu.legacyStructure ? "structure_update_projection_warning" : "omni.fixed"),
-                174, 163, 140, 2, 9, menu.legacyStructure ? OmniUiTheme.WARNING : OmniUiTheme.MUTED_TEXT);
-
-        drawKeyValueRow(graphics, text("quantum_title"),
-                text("quantum_state." + menu.quantumLinkState.name().toLowerCase(Locale.ROOT)),
-                18, 286, 202, 8, OmniUiTheme.ACCENT, quantumColor());
-        drawFittedString(graphics, text("quantum_frequency", frequency()), 18, 214, 268, OmniUiTheme.MUTED_TEXT);
-        graphics.drawString(font, playerInventoryTitle, 85, 268, OmniUiTheme.PRIMARY_TEXT, false);
-    }
-
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        double x = logicalMouseX(mouseX) - leftPos, y = logicalMouseY(mouseY) - topPos;
-        if (x >= 10 && x < 154 && y >= 28 && y < 190) {
-            graphics.renderComponentTooltip(font, List.of(structureDetail(),
-                    text(menu.legacyStructure ? "structure_update_projection_warning" : "omni.fixed")), mouseX, mouseY);
-        } else if (x >= 18 && x < 286 && y >= 198 && y < 224) {
-            graphics.renderComponentTooltip(font, List.of(text("quantum_state." + menu.quantumLinkState.name().toLowerCase(Locale.ROOT)),
-                    text("quantum_frequency", frequency())), mouseX, mouseY);
-        } else if (x >= 174 && x < 314 && y >= 139 && y < 182) {
-            graphics.renderComponentTooltip(font, List.of(text("omni.calculation_stats", menu.completedMaterialCalculations,
-                    menu.lastMaterialCalculationMillis), text("omni.tick_budget"),
-                    text(menu.legacyStructure ? "structure_update_projection_warning" : "omni.fixed")), mouseX, mouseY);
-        }
-    }
-
-    private Component structureDetail() {
-        if (menu.legacyStructure) return text(menu.legacyStructureUpdateDismissed && !confirmingLegacyUpdate
-                ? "legacy_structure_retained" : "structure_update_available");
-        if ((menu.building || menu.dismantling) && menu.buildTotal > 0) return text(menu.dismantling
-                ? "omni.dismantle_progress" : "omni.build_progress", menu.buildProgress, menu.buildTotal);
-        return text(menu.conflictParts > 0 ? "omni.conflicts" : "omni.missing",
-                menu.conflictParts > 0 ? menu.conflictParts : menu.missingParts);
-    }
-
-    private int quantumColor() {
-        return switch (menu.quantumLinkState) {
-            case CONNECTED, CONNECTED_BUILD_ONLY -> OmniUiTheme.SUCCESS;
-            case EMPTY, SEARCHING -> OmniUiTheme.PRIMARY_TEXT;
-            case STRUCTURE_INCOMPLETE, REMOTE_MISSING, REMOTE_OFFLINE -> OmniUiTheme.WARNING;
-            case FREQUENCY_OCCUPIED, WIRED_CONFLICT, CONNECTION_ERROR -> OmniUiTheme.ERROR;
-        };
-    }
-
-    private String frequency() {
-        return menu.quantumFrequency == 0 ? "—" : Long.toUnsignedString(menu.quantumFrequency, 16).toUpperCase(Locale.ROOT);
-    }
-
-    private Component projectionLabel() {
-        return text(OmniComputationGhostPreview.isShowing(menu.getCore()) ? "omni.projection_hide" : "omni.projection");
-    }
-
-    private void centered(GuiGraphics graphics, Component label, int y, int color) {
-        drawCenteredFittedString(graphics, label, 82, y, 136, color);
-    }
-
-    private void row(GuiGraphics graphics, String key, Component value, int y, int color) {
-        drawKeyValueRow(graphics, text(key), value, 174, 314, y, 6, OmniUiTheme.PRIMARY_TEXT, color);
-    }
-
-    private OmniButton button(int x, int y, int width, int height, Component label, Component tooltip, Runnable action) {
-        var button = addScreenWidget(OmniUiTheme.button(leftPos + x, topPos + y, width, height, label, pressed -> {
-            action.run();
-            updateControls();
-        }));
-        button.setTooltip(Tooltip.create(tooltip));
-        return button;
-    }
-
-    private static Component text(String key, Object... args) { return Component.translatable("gui.molecularmanipulator." + key, args); }
+    @Override public void containerTick(){super.containerTick();if(legacyLayout!=menu.legacyStructure){rebuildWidgets();return;}refresh();}
+    @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui!=null)ui.background(g,font,x,y);}
+    @Override public void drawFG(GuiGraphics g,int x,int y,int mx,int my){if(ui!=null)ui.foreground(g,font);}
 }

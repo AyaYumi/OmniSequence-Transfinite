@@ -1,6 +1,5 @@
 package com.atir.molecularmanipulator.menu;
 
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantics;
 import appeng.menu.slot.RestrictedInputSlot;
 import appeng.menu.guisync.GuiSync;
@@ -9,6 +8,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationBlockEntity;
 import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationStructure;
+
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchMenuState;
@@ -19,7 +19,7 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 
 /** Status and structure-management terminal; all material I/O lives in service ports. */
-public final class MatterFabricationMenu extends AEBaseMenu {
+public final class MatterFabricationMenu extends BuildingMenu {
     private static final String ACTION_REFRESH = "refresh_structure";
     private static final String ACTION_BUILD = "build_structure";
     private static final String ACTION_DISMANTLE = "dismantle_structure";
@@ -75,6 +75,8 @@ public final class MatterFabricationMenu extends AEBaseMenu {
     public MatterResearchMenuState researchState = new MatterResearchMenuState("{\"completed\":[],\"tasks\":{}}");
     @GuiSync(29)
     public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
+    @GuiSync(30)
+    public boolean wirelessBound;
 
     private long lastResearchSync = Long.MIN_VALUE;
     private ResourceLocation selectedResearch;
@@ -255,6 +257,7 @@ public final class MatterFabricationMenu extends AEBaseMenu {
             updatingStructure = machine.isUpdatingStructure();
             quantumFrequency = machine.getQuantumFrequency();
             quantumLinkState = machine.getQuantumLinkState();
+            wirelessBound = machine.getWirelessLink().isBound();
             dynamicEffectOverride = machine.getMachineEffects().getOverride();
             long now = machine.getLevel().getGameTime();
             if (lastResearchSync == Long.MIN_VALUE || now - lastResearchSync >= 5) {

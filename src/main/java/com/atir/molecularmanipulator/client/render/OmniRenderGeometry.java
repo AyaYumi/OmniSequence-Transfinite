@@ -21,7 +21,7 @@ public final class OmniRenderGeometry {
     private OmniRenderGeometry() {
     }
 
-    /** Pack an RGB color and alpha for {@link VertexConsumer#setColor(int)}. */
+    /** Pack an RGB color and alpha for {@link VertexConsumer#color(int)}. */
     public static int argb(int rgb, int alpha) {
         int clampedAlpha = Math.max(0, Math.min(255, alpha));
         return (clampedAlpha << 24) | (rgb & 0x00FFFFFF);

@@ -273,7 +273,7 @@ public final class EcoOmniPlanExecution {
             remaining.put(id, rest);
         }
         var fuzzy = new LinkedHashSet<ResourceLocation>();
-        for (var value : tag.getList("fuzzy", Tag.TAG_STRING)) fuzzy.add(ResourceLocation.parse(value.getAsString()));
+        for (var value : tag.getList("fuzzy", Tag.TAG_STRING)) fuzzy.add(new ResourceLocation(value.getAsString()));
         var runtime = EcoOmniPlanRuntimeScope.withRemaining(id -> remaining.getOrDefault(id, BigInteger.ZERO),
                 () -> EcoOmniPlanRuntimeInvoker.molecularmanipulator$restore(plan, bindings,
                         tag.getCompound("runtime")));

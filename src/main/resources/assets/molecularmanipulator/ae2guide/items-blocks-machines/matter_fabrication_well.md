@@ -15,7 +15,7 @@ item_ids:
 
 # Matter Fabrication Well
 
-The Matter Fabrication Well is a multiblock machine for material processing and research. Input and output ports handle supplied ingredients, while Pattern Assemblies let it execute ME autocrafting requests.
+The Matter Fabrication Well makes advanced materials from items and fluids. Build it, research the recipes you need, then feed ingredients through ports or request products through a Pattern Assembly.
 
 <ItemGrid>
 <ItemIcon id="molecularmanipulator:matter_fabrication_controller" />
@@ -26,60 +26,59 @@ The Matter Fabrication Well is a multiblock machine for material processing and 
 <ItemIcon id="molecularmanipulator:matter_fabrication_core" />
 </ItemGrid>
 
-## Structure
+## Requirements
 
-The well occupies **41 × 41 blocks** and is **27 blocks tall**. Its controller, basic structure blocks and ports require no research. JEI's structure page lists all required materials.
+- Reserve 41 × 41 blocks, 27 blocks tall for the complete building.
+- Craft the controller below. The controller, basic building parts and input/output ports need no research.
+- Check JEI's Complete Matter Fabrication Well page for the full building-material list.
+- Prepare a powered ME network with storage and an available channel for the controller. It uses 16 AE/t at idle; processing and research need additional power.
 
-1. Place the controller and enable **Projection** to check missing blocks and obstructions.
-2. Gather the listed materials, clear obstructions and select **Build**. Construction uses your inventory before the connected ME storage.
-3. Install the required [ports](matter_fabrication_ports.md) in service positions. Hold a port to see valid positions.
-4. Connect ME and power, then check formation and network status in the controller.
+<RecipeFor id="molecularmanipulator:matter_fabrication_controller" />
 
-There are **44 service positions**: 24 on the front steps and four groups of five around the central platform. [Pattern Assemblies](matter_fabrication_pattern_assembly.md) also use these positions.
+## Build it
 
-## Operation
+1. Place the controller. Open it and select Project to see the building's position. Clear blocks marked as conflicts.
+2. Keep building materials in your inventory or ME storage connected to the controller. Select Build; it uses your inventory first, then ME.
+3. Wait for construction to finish. Reopen the controller and use Scan to find missing or conflicting blocks.
+4. Hold an [input or output port](matter_fabrication_ports.md) to highlight valid positions, then replace the highlighted casing. Install the input and output types your first recipe needs.
+5. Check that the structure count is complete and the controller shows Online before starting research or processing.
 
-| Workflow | How to use it |
+There are 44 places for ports or Pattern Assemblies: 24 along the front steps and four groups of five around the central platform. Replace casing at these positions to connect them.
+
+## Make your first product
+
+1. Follow [Fabrication Research](matter_fabrication_research.md) to complete Tier I: AE Foundation. Put research materials in ME storage; your inventory and input ports cannot supply them.
+2. To make a Pattern Assembly, put 4 Pattern Providers, 4 Blank Patterns and 1 Crafting Unit into an item input port. Leave room in an item output port.
+3. Processing starts automatically. The controller reports Fabricating matter and shows progress. When it finishes, collect 1 Pattern Assembly from the output port.
+4. Install the assembly to begin [ME autocrafting](matter_fabrication_pattern_assembly.md). Assembly jobs return products to ME; recipes supplied through ports deliver to their matching outputs.
+
+Research and material processing can run at the same time if you can power both.
+
+## Troubleshooting
+
+| What you see | What to check |
 | --- | --- |
-| Material processing | Supply items and fluids through input ports; collect products from output ports |
-| [Research](matter_fabrication_research.md) | Store research materials in ME, select a branch and start it |
-| ME autocrafting | Complete tier 1, install a Pattern Assembly and insert matching processing patterns |
+| Construction stops | Read the missing-material message, clear projection conflicts and keep the whole building area loaded. |
+| Structure incomplete | Use Project and Scan; check that ports replaced highlighted casing positions. |
+| AE network offline / insufficient power | Check the selected ME connection, channel and energy supply. A cable or saved wireless binding alone does not guarantee power or an online link. |
+| No processing recipe | Check the recipe's research requirement and every ingredient quantity. Research materials belong in ME, processing materials in inputs. |
+| Output blocked | Empty the appropriate item/fluid output ports, or free ME storage for assembly jobs. |
 
-Research and processing can run together. If work cannot start, check the structure, power, research requirements and output capacity.
+## Connections and controls
 
-## Machine recipe compatibility
+For wireless ME access, use Remote connection in the right sidebar to bind the well to a Sequence Wireless Hub. Ports and Pattern Assemblies manage this same controller binding. Follow the [wireless setup](sequence_array_controller.md) for connection requirements.
 
-The well can also run recipes from these AE machines. A machine appears in research only when it is installed and at least one of its recipes can be imported; each machine gets its own branch.
+You can also use a Quantum Entangled Singularity in the controller with its partner in a powered AE2 quantum bridge. This alternative adds 512 AE/t and needs a channel. It can supply building materials before the well is complete.
 
-| Machine | Supported recipes | Notes |
-| --- | --- | --- |
-| AE2 Inscriber | Inscriber recipes | INSCRIBE mode treats both presses as reusable catalysts; PRESS mode consumes every listed item |
-| AE2 Charger | Charger recipes | — |
-| ExtendedAE Extended Inscriber | The same AE2 inscriber recipes | Shares AE2's recipe type, but has its own research branch |
-| ExtendedAE Extended Charger | The same AE2 charger recipes | Shares AE2's recipe type, but has its own research branch |
-| ExtendedAE Circuit Slicer | Circuit Slicer recipes | Keeps exact item counts and mB fluid amounts |
-| AdvancedAE Reaction Chamber | Reaction Chamber recipes | Item and fluid amounts are kept for inputs and outputs; pack-modified recipes included |
+Choose off, reduced or full Effects for this well. This changes visuals only. Shift-click restores each viewer's global setting.
 
-**How to unlock.** Complete tier 1 AE fabrication first, then start the machine's branch from [Research](matter_fabrication_research.md). Researching a branch spends one of that machine, takes 30 seconds (600 ticks) at 512 AE/t, and unlocks that machine's recipes. Later rounds follow the usual depth progression for more parallelism and speed.
+To move the building, click Reclaim Package, then confirm within three seconds. Finish or cancel external ME crafting jobs first. The package retains the building's contents and wireless binding. See [Folded Buildings and Relocation](folded_buildings.md).
 
-**Inscriber presses.** In INSCRIBE mode the top and bottom presses are reusable catalysts. Put them on the [Pattern Assembly](matter_fabrication_pattern_assembly.md) Catalysts page instead of encoding them in the processing pattern. In PRESS mode every listed item, including presses, is consumed and must be encoded.
+Normal removal retains research, accepted work, port contents, assembly patterns and materials, and the controller's wireless binding. Restore the building, ME connection and power to continue. If the wireless hub was moved or replaced, rebind the well.
 
-**Not imported.** The Crystal Fixer in this Forge version repairs world blocks by randomly consuming charged quartz. It has no fixed recipe, so its repair operation is not imported and random repair is not supported here. The older Crystal Assembler belongs to another game version and is not present.
+## Research and production guides
 
-## Quantum connection
-
-Place one **Quantum Entangled Singularity** in the controller's quantum slot and its partner in a powered AE2 quantum bridge to connect remote ME storage. The link requires an additional **512 AE/t and one channel** and can supply construction materials before the well is formed.
-
-## Dismantling and relocation
-
-**Dismantle** keeps the controller and returns structure materials to ME first, then your inventory. If both destinations are full, clear space to resume recovery.
-
-Normal controller removal retains research progress, accepted work and the quantum slot. Ports retain their caches, and assemblies retain patterns and processing materials. Restore the structure, network and power to continue.
-
-When the server enables multiblock chunk loading, required chunks stay loaded during construction and while formed. Occupied chunks prevent natural mob spawning; spawners, breeding and existing creatures are unaffected.
-
-## Recipes
-
-<RecipeFor id="molecularmanipulator:matter_fabrication_controller" fallbackText="No recipe is available in this pack. Check JEI and research requirements." />
-
-<SubPages icons={true} />
+- [Fabrication Research](matter_fabrication_research.md): unlock your first recipes.
+- [Input and Output Ports](matter_fabrication_ports.md): feed the well and collect products.
+- [Pattern Assembly](matter_fabrication_pattern_assembly.md): request products from an ME terminal.
+- [Star Marrow Crystals](star_marrow_crystals.md): start the crystal and star-material supply line.

@@ -4,7 +4,6 @@ import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.inventories.InternalInventory;
 import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternProviderLogicHost;
-import appeng.menu.AEBaseMenu;
 import appeng.menu.SlotSemantic;
 import appeng.menu.SlotSemantics;
 import appeng.menu.guisync.GuiSync;
@@ -34,7 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-public final class MolecularCenterMenu extends AEBaseMenu implements PatternSearchIndexReceiver {
+public final class MolecularCenterMenu extends BuildingMenu implements PatternSearchIndexReceiver {
     private static final String ACTION_SET_PAGE = "set_page";
     private static final String ACTION_PREVIEW = "preview";
     private static final String ACTION_BUILD = "build";
@@ -155,6 +154,8 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
     public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
     @GuiSync(89)
     public boolean automaticPatternUpload;
+    @GuiSync(90)
+    public boolean wirelessBound;
 
     private final MolecularCenterBlockEntity center;
     private final PagedInventory pageInventory;
@@ -205,6 +206,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         registerClientAction(ACTION_SET_PATTERN_UPLOAD, Boolean.class, this::setPatternUpload);
         registerClientAction(ACTION_MIGRATE_PATTERNS, this::migratePatterns);
         automaticPatternUpload = center.isAutomaticPatternUploadEnabled();
+        if (isServerSide()) patternCapacity = getActivePatternSlots();
         applyPage(0);
     }
 
@@ -227,6 +229,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
                         && super.mayPlace(stack);
             }
         };
+        slot.setIcon(appeng.client.gui.Icon.BACKGROUND_SINGULARITY);
         addSlot(slot, SlotSemantics.CONFIG);
         slot.x = QUANTUM_SLOT_X;
         slot.y = QUANTUM_SLOT_Y;
@@ -245,49 +248,6 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             result.add(slot);
         }
         return result;
-    }
-
-    public void requestSetPatternUpload(boolean enabled) {
-        if (isClientSide()) sendClientAction(ACTION_SET_PATTERN_UPLOAD, enabled);
-    }
-
-    public void requestMigratePatterns() {
-        if (isClientSide()) sendClientAction(ACTION_MIGRATE_PATTERNS);
-    }
-
-    private boolean canManagePatterns() {
-        var player = getPlayer();
-        var level = center.getLevel();
-        var pos = center.getBlockPos();
-        return isServerSide() && player.containerMenu == this && isValidMenu() && stillValid(player)
-                && !player.isSpectator() && player.mayBuild() && level != null && player.level() == level
-                && !center.isRemoved() && level.hasChunkAt(pos) && level.getBlockEntity(pos) == center
-                && player.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos)) <= 64
-                && level.mayInteract(player, pos);
-    }
-
-    private void setPatternUpload(Boolean enabled) {
-        if (enabled == null || !canManagePatterns()) return;
-        center.setAutomaticPatternUploadEnabled(enabled);
-        automaticPatternUpload = center.isAutomaticPatternUploadEnabled();
-        broadcastChanges();
-    }
-
-    private void migratePatterns() {
-        if (!canManagePatterns() || !(getPlayer() instanceof ServerPlayer player)) return;
-        if (!center.canAcceptExternalPatternUpload()) {
-            player.sendSystemMessage(Component.translatable("message.molecularmanipulator.pattern_migration.unavailable"));
-            return;
-        }
-        var result = MolecularCenterPatternMigration.migrate(center, player);
-        player.sendSystemMessage(Component.translatable("message.molecularmanipulator.pattern_migration.result",
-                result.moved(), result.fromProviders(), result.fromStorageCells()));
-        if (result.destinationFull()) player.sendSystemMessage(Component.translatable(
-                "message.molecularmanipulator.pattern_migration.full"));
-        if (result.interrupted()) player.sendSystemMessage(Component.translatable(
-                "message.molecularmanipulator.pattern_migration.interrupted"));
-        broadcastChanges();
-        sendAllDataToRemote();
     }
 
     public MolecularCenterBlockEntity getCenter() {
@@ -329,10 +289,15 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         return page;
     }
 
+    private int getActivePatternSlots() {
+        // COMMON settings are local to each instance; clients use the server's menu snapshot.
+        return isClientSide() ? patternCapacity : Math.min(
+                com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
+                center.getLogic().getFullPatternInventory().size());
+    }
+
     public int getPageCount() {
-        int slots = patternSearchActive
-                ? patternSearchResultCount
-                : com.atir.molecularmanipulator.config.ModConfig.activePatternSlots();
+        int slots = patternSearchActive ? patternSearchResultCount : getActivePatternSlots();
         return Math.max(1, (slots
                 + MolecularCenterBlockEntity.PATTERNS_PER_PAGE - 1) / MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
     }
@@ -451,6 +416,54 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         }
     }
 
+    public void requestSetPatternUpload(boolean enabled) {
+        if (isClientSide()) sendClientAction(ACTION_SET_PATTERN_UPLOAD, enabled);
+    }
+
+    public void requestMigratePatterns() {
+        if (isClientSide()) sendClientAction(ACTION_MIGRATE_PATTERNS);
+    }
+
+    private boolean canManagePatterns() {
+        var player = getPlayer();
+        var level = center.getLevel();
+        var pos = center.getBlockPos();
+        if (!isServerSide() || player.containerMenu != this || !isValidMenu()
+                || player.isSpectator() || !player.mayBuild() || level == null || player.level() != level
+                || center.isRemoved() || !level.hasChunkAt(pos) || level.getBlockEntity(pos) != center
+                || !level.mayInteract(player, pos)) return false;
+        if (getLocator() instanceof com.atir.molecularmanipulator.terminal.BuildingTerminalLocator terminal) {
+            if (!terminal.target().dimension().equals(level.dimension()) || !terminal.target().pos().equals(pos)
+                    || !terminal.isValid(player)) return false;
+        } else if (player.distanceToSqr(pos.getCenter()) > 64) return false;
+        // Validate AE2's menu only after the loaded-block/terminal identity guards.
+        return stillValid(player);
+    }
+
+    private void setPatternUpload(Boolean enabled) {
+        if (enabled == null || !canManagePatterns()) return;
+        center.setAutomaticPatternUploadEnabled(enabled);
+        automaticPatternUpload = center.isAutomaticPatternUploadEnabled();
+        broadcastChanges();
+    }
+
+    private void migratePatterns() {
+        if (!canManagePatterns() || !(getPlayer() instanceof ServerPlayer player)) return;
+        if (!center.canAcceptExternalPatternUpload()) {
+            player.sendSystemMessage(Component.translatable("message.molecularmanipulator.pattern_migration.unavailable"));
+            return;
+        }
+        var result = MolecularCenterPatternMigration.migrate(center, player);
+        player.sendSystemMessage(Component.translatable("message.molecularmanipulator.pattern_migration.result",
+                result.moved(), result.fromProviders(), result.fromStorageCells()));
+        if (result.destinationFull()) player.sendSystemMessage(Component.translatable(
+                "message.molecularmanipulator.pattern_migration.full"));
+        if (result.interrupted()) player.sendSystemMessage(Component.translatable(
+                "message.molecularmanipulator.pattern_migration.interrupted"));
+        broadcastChanges();
+        sendAllDataToRemote();
+    }
+
 
 
 
@@ -534,9 +547,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             return;
         }
 
-        int activeSlots = Math.min(
-                com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
-                center.getLogic().getFullPatternInventory().size());
+        int activeSlots = getActivePatternSlots();
         int resultCount = Math.max(0, Math.min(activeSlots, request.resultCount()));
         int pageCount = Math.max(1, (resultCount + MolecularCenterBlockEntity.PATTERNS_PER_PAGE - 1)
                 / MolecularCenterBlockEntity.PATTERNS_PER_PAGE);
@@ -594,9 +605,7 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
         if (!isClientSide() && getPlayer() instanceof ServerPlayer player
                 && center.getLevel() != null) {
             var inventory = center.getLogic().getFullPatternInventory();
-            int activeSlots = Math.min(
-                    com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
-                    inventory.size());
+            int activeSlots = getActivePatternSlots();
             var entries = PatternSearchIndexBuilder.build(
                     inventory,
                     activeSlots,
@@ -793,14 +802,13 @@ public final class MolecularCenterMenu extends AEBaseMenu implements PatternSear
             latticeColor = center.getLatticeColor();
             quantumLinkState = center.getQuantumLinkState();
             quantumFrequency = center.getQuantumFrequency();
+            wirelessBound = center.getWirelessLink().isBound();
             legacyStructure = center.hasLegacyStructure();
             legacyStructureUpdateDismissed = center.isLegacyStructureUpdateDismissed();
             building = center.isBuilding();
             dismantling = center.isDismantling();
             patternRevision = center.getLogic().getPatternRevision();
-            patternCapacity = Math.min(
-                    com.atir.molecularmanipulator.config.ModConfig.activePatternSlots(),
-                    center.getLogic().getFullPatternInventory().size());
+            patternCapacity = getActivePatternSlots();
             if (patternRevision != countedPatternRevision || patternCapacity != countedPatternCapacity) {
                 int used = 0;
                 var inventory = center.getLogic().getFullPatternInventory();

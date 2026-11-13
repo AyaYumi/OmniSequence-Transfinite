@@ -10,34 +10,48 @@ item_ids:
 
 # Compact Singularity Hub
 
-The Compact Singularity Hub provides resource collection, Sequence Matter generation and item duplication without a multiblock structure. It uses the same production and energy settings as the [Event Horizon Singularity Hub](event_horizon_singularity_hub.md).
+The Compact Singularity Hub collects resources, generates Sequence Matter and copies sample items in one block. It follows the same output and energy rules as the [multiblock hub](event_horizon_singularity_hub.md).
 
 <Row>
 <BlockImage id="molecularmanipulator:compact_singularity_hub" scale="4" />
+
 <ItemImage id="ae2:fluix_glass_cable" scale="4" />
 </Row>
 
-## Obtaining and connecting
+Connect the hub to a powered ME network. No casing, tracks or separate resource core are needed.
 
-This device has no default crafting recipe. Obtain it from the creative inventory or use `/give @s molecularmanipulator:compact_singularity_hub`.
+## Requirements
 
-Connect ME cables to any of its six faces. Supply power and **one channel**, then right-click to open its interface. Collection and duplication need ME item storage; Sequence Matter needs ME fluid storage.
+- Get the device from creative inventory, or use `/give @s molecularmanipulator:compact_singularity_hub` with command permission. There is no default survival recipe.
+- Prepare ME power, at least 1 available channel and item storage that accepts the products.
+- Matter generation and copying also need ME fluid storage, miniature black holes and energy; see [Matter Duplication](singularity_matter_duplication.md).
 
-Overview's quantum slot accepts a **Quantum Entangled Singularity** paired with a powered AE2 quantum bridge. The quantum link requires an additional **512 AE/t**.
+## Start production
 
-## Collection and duplication
+1. Place the hub and keep its chunk loaded. Connect ME cable to any face, or use Remote connection in the right sidebar. Follow [Sequence Wireless Hub setup](sequence_array_controller.md) for wireless requirements.
+2. Right-click it and check that the network is online.
+3. Open Resource Collection, review the list and select Start Collection. By default, each listed resource produces about 1000 items per second.
+4. Check the resource counts in ME. To copy items, switch to Matter Duplication and follow its guide for the black-hole and sample slots.
 
-| Page | Operation |
+| Your goal | Page to use |
 | --- | --- |
-| [Resource Collection](singularity_resource_collection.md) | Review available resources and start or stop collection |
-| [Matter Duplication](singularity_matter_duplication.md) | Insert miniature black holes to generate matter and a sample to begin copying |
+| Produce the listed raw ores, logs and other resources together | [Resource Collection](singularity_resource_collection.md); no sample or black holes needed |
+| Spend energy to generate Sequence Matter fluid | [Matter Duplication](singularity_matter_duplication.md); insert miniature black holes |
+| Spend matter to copy a chosen item | [Matter Duplication](singularity_matter_duplication.md); insert a sample, which is retained |
 
-By default, every listed resource produces **1000 items every 20 ticks**. Collection pauses while offline and resumes when the network returns.
+Collection runs independently of matter generation and copying. Remove the sample to stop copying, or remove the black holes to stop matter generation. The sample stays in its slot while copies appear in ME. With no sample, generated matter accumulates in ME fluid storage.
 
-The miniature black-hole slot holds up to **64**. Each generates **20 mB** every 20 ticks by default, costing **1000 FE or 256 AE per mB**. Each copied item uses **1000 mB** of matter and retains the sample. Matter generation and copying do not require active resource collection.
+## Moving the device
 
-## Relocation
+Stop collection, remove the block normally and keep its dropped item. Stored items, including the sample and black holes, pending deliveries and the wireless binding stay with the block. Place it again and restore its ME connection. Rebind if the wireless hub was moved or replaced. This device does not use the multiblock Reclaim package action.
 
-Normal removal retains quantum contents, the sample, miniature black holes and caches. Place it again and reconnect ME to continue.
+## Troubleshooting
 
-The compact hub does not force-load chunks. Keep its chunk loaded for continuous production.
+| Problem | What to check |
+| --- | --- |
+| Network offline | Check ME power, channels and the selected cable or wireless connection. |
+| No collected items | Start collection and provide item capacity for every listed resource. |
+| Item space is available, but no matter appears | Fluid storage is also required. Check black holes and energy in [Matter Duplication](singularity_matter_duplication.md). |
+| Production stops when you leave | The compact hub does not force-load chunks. Keep its chunk loaded. |
+
+Collection pauses during temporary network loss and continues when the network returns. Missed production is not replayed.

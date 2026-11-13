@@ -2,6 +2,8 @@ package com.atir.molecularmanipulator.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import net.minecraft.world.phys.Vec3;
 
 /** Five volumetric science-fiction concept assemblies, also used by the real layered printing effect. */
@@ -9,22 +11,32 @@ public final class MatterProjectionShapes {
     public static final int COUNT=5;
     private static final Vec3 UP=new Vec3(0,1,0);
     private static final int PEARL=0xECF5ED, GOLD=0xE7D2A4, LIGHT=0xFFF2C5, ICE=0xA9EBD8;
+    // Only the fixed MatterRasterEffects widths are cached, never arbitrary public inputs.
+    private static final float[] CACHED_WIDTHS = {0F,0.024F,0.065F,0.009F,0.025F};
+    private static final AtomicReferenceArray<Geometry> GEOMETRY_CACHE =
+            new AtomicReferenceArray<>(COUNT*CACHED_WIDTHS.length);
+    private static final Bounds[] BOUNDS = {
+            new Bounds(-2.88F,2.88F,2.88F,2.88F),
+            new Bounds(-2.75F,2.75F,2.75F,2.75F),
+            new Bounds(-3.06F,3.06F,2.85F,2.85F),
+            new Bounds(-3.08F,3.08F,2.85F,2.85F),
+            new Bounds(-2.70F,2.70F,2.85F,2.85F)};
     private MatterProjectionShapes() {}
     public record Bounds(float bottom,float top,float radiusX,float radiusZ) {}
     public static Bounds bounds(int item){
-        return switch(item){
-            case 0 -> new Bounds(-2.88F,2.88F,2.88F,2.88F);
-            case 1 -> new Bounds(-2.75F,2.75F,2.75F,2.75F);
-            case 2 -> new Bounds(-3.06F,3.06F,2.85F,2.85F);
-            case 3 -> new Bounds(-3.08F,3.08F,2.85F,2.85F);
-            case 4 -> new Bounds(-2.70F,2.70F,2.85F,2.85F);
-            default -> throw new IllegalArgumentException("Unknown concept projection: "+item);
-        };
+        if(item<0 || item>=COUNT) throw new IllegalArgumentException("Unknown concept projection: "+item);
+        return BOUNDS[item];
     }
     public static String conceptName(int item){return switch(item){
         case 0 -> "quantum_core";case 1 -> "lattice_memory";case 2 -> "zero_point_capacitor";
         case 3 -> "dimensional_prism";case 4 -> "matter_compiler";default -> throw new IllegalArgumentException();};}
     public static void render(PoseStack.Pose pose,VertexConsumer out,int index,int alpha,float width){
+        int widthIndex=cachedWidthIndex(width);
+        if(widthIndex<0 || index<0 || index>=COUNT){renderDirect(pose,out,index,alpha,width);return;}
+        cachedGeometry(index,widthIndex).submit(pose,out,alpha);
+    }
+    /** Uncached procedural reference, also retaining support for arbitrary widths. */
+    static void renderDirect(PoseStack.Pose pose,VertexConsumer out,int index,int alpha,float width){
         switch(index){
             case 0 -> quantumCore(pose,out,alpha,width);
             case 1 -> latticeMemory(pose,out,alpha,width);
@@ -33,6 +45,88 @@ public final class MatterProjectionShapes {
             case 4 -> compiler(pose,out,alpha,width);
             default -> throw new IllegalArgumentException("Unknown concept projection: "+index);
         }
+    }
+    private static int cachedWidthIndex(float width){
+        for(int index=0;index<CACHED_WIDTHS.length;index++)if(width==CACHED_WIDTHS[index])return index;
+        return -1;
+    }
+    private static Geometry cachedGeometry(int item,int widthIndex){
+        int slot=item*CACHED_WIDTHS.length+widthIndex;
+        var geometry=GEOMETRY_CACHE.get(slot);
+        if(geometry!=null)return geometry;
+        // Only initialization is serialized; immutable arrays can be replayed by any worker.
+        synchronized(GEOMETRY_CACHE){
+            geometry=GEOMETRY_CACHE.get(slot);
+            if(geometry==null){
+                var collector=new GeometryCollector();
+                renderDirect(new PoseStack().last(),collector,item,255,CACHED_WIDTHS[widthIndex]);
+                geometry=collector.finish();
+                GEOMETRY_CACHE.set(slot,geometry);
+            }
+        }
+        return geometry;
+    }
+    /** Unexposed local positions and shaded RGB, in the original vertex/winding order. */
+    private static final class Geometry {
+        private final float[] positions;
+        private final int[] rgb;
+        private Geometry(float[] positions,int[] rgb){this.positions=positions;this.rgb=rgb;}
+        private void submit(PoseStack.Pose pose,VertexConsumer out,int alpha){
+            int opacity=OmniRenderGeometry.argb(0,alpha);
+            for(int vertex=0;vertex<rgb.length;vertex++){
+                int position=vertex*3;
+                // MatterLayerClipper expects transformed vertices: apply the caller pose once.
+                out.vertex(pose.pose(),positions[position],positions[position+1],positions[position+2])
+                        .color(opacity|rgb[vertex]).endVertex();
+            }
+        }
+    }
+    private static final class GeometryCollector implements VertexConsumer {
+        private float[] positions=new float[3072];
+        private int[] rgb=new int[1024];
+        private int count;
+        private boolean awaitingColor;
+        private boolean colored;
+        @Override public VertexConsumer vertex(org.joml.Matrix4f identity,float x,float y,float z){
+            // Capture uses identity only. Keep the original local float bits (even signed zero).
+            return vertex(x,y,z);
+        }
+        @Override public VertexConsumer vertex(double x,double y,double z){
+            if(awaitingColor)throw new IllegalStateException("Previous cached vertex has no color");
+            if(count==rgb.length){
+                positions=Arrays.copyOf(positions,positions.length*2);
+                rgb=Arrays.copyOf(rgb,rgb.length*2);
+            }
+            int position=count*3;
+            positions[position]=(float)x;positions[position+1]=(float)y;positions[position+2]=(float)z;
+            awaitingColor=true;
+            colored=false;
+            return this;
+        }
+        @Override public VertexConsumer color(int color){
+            if(!awaitingColor)throw new IllegalStateException("Cached color has no position");
+            rgb[count]=color&0xFFFFFF;
+            colored=true;
+            return this;
+        }
+        @Override public VertexConsumer color(int red,int green,int blue,int alpha){
+            return color((red&255)<<16|(green&255)<<8|blue&255);
+        }
+        @Override public void endVertex(){
+            if(!awaitingColor || !colored)throw new IllegalStateException("Incomplete cached vertex");
+            count++;
+            awaitingColor=false;
+        }
+        @Override public void defaultColor(int r,int g,int b,int a){throw new UnsupportedOperationException("Explicit color required");}
+        @Override public void unsetDefaultColor(){}
+        private Geometry finish(){
+            if(awaitingColor || (count&3)!=0)throw new IllegalStateException("Incomplete cached quad");
+            return new Geometry(Arrays.copyOf(positions,count*3),Arrays.copyOf(rgb,count));
+        }
+        @Override public VertexConsumer uv(float u,float v){throw new UnsupportedOperationException("POSITION_COLOR only");}
+        @Override public VertexConsumer overlayCoords(int u,int v){throw new UnsupportedOperationException("POSITION_COLOR only");}
+        @Override public VertexConsumer uv2(int u,int v){throw new UnsupportedOperationException("POSITION_COLOR only");}
+        @Override public VertexConsumer normal(float x,float y,float z){throw new UnsupportedOperationException("POSITION_COLOR only");}
     }
     private static void quantumCore(PoseStack.Pose pose,VertexConsumer out,int alpha,float width){
         octahedron(pose,out,Vec3.ZERO,0.92,1.15,0.92,ICE,alpha,width);

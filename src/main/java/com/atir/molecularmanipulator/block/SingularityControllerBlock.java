@@ -39,8 +39,13 @@ public final class SingularityControllerBlock extends AEBaseEntityBlock<Singular
                 level.setBlockAndUpdate(pos,rotate(state,Rotation.CLOCKWISE_90));
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
-        if(machine==null)return InteractionResult.PASS;
-        if(!level.isClientSide())machine.openMenu(player);
+        return super.use(state, level, pos, player, hand, hit);
+    }
+    @Override public InteractionResult onActivated(Level level, BlockPos pos, Player player,
+            InteractionHand hand, ItemStack stack, BlockHitResult hit) {
+        var machine = getBlockEntity(level, pos);
+        if (machine == null) return InteractionResult.PASS;
+        if (!level.isClientSide()) machine.openMenu(player);
         return InteractionResult.sidedSuccess(level.isClientSide());
     }
     @Override public void onRemove(BlockState state, Level level, BlockPos pos, BlockState replacement, boolean moved) {

@@ -16,6 +16,7 @@ import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.network.NetworkHooks;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * Forge 1.20.1 equivalent of AE2's newer buildUnregistered menu builder.
@@ -35,6 +36,11 @@ public final class ForgeMenuTypeFactory {
 
     public static <M extends AEBaseMenu, H> MenuType<M> create(
             ResourceLocation id, MenuFactory<M, H> factory, Class<H> hostClass) {
+        return create(id, factory, hostClass, ForgeMenuTypeFactory::getTitle);
+    }
+
+    public static <M extends AEBaseMenu, H> MenuType<M> create(
+            ResourceLocation id, MenuFactory<M, H> factory, Class<H> hostClass, Function<H, Component> title) {
         MenuType<M> menuType = IForgeMenuType.create((containerId, inventory, buffer) -> {
             var locator = MenuLocators.readFromPacket(buffer);
             var host = locator.locate(inventory.player, hostClass);
@@ -50,13 +56,14 @@ public final class ForgeMenuTypeFactory {
 
         MenuOpener.addOpener(menuType,
                 (player, locator, returnedFromSubScreen) -> open(
-                        factory, hostClass, player, locator, returnedFromSubScreen));
+                        factory, hostClass, title, player, locator, returnedFromSubScreen));
         return menuType;
     }
 
     private static <M extends AEBaseMenu, H> boolean open(
             MenuFactory<M, H> factory,
             Class<H> hostClass,
+            Function<H, Component> title,
             Player player,
             MenuLocator locator,
             boolean returnedFromSubScreen) {
@@ -73,7 +80,7 @@ public final class ForgeMenuTypeFactory {
             var menu = factory.create(containerId, inventory, host);
             menu.setLocator(locator);
             return menu;
-        }, getTitle(host));
+        }, host instanceof Nameable nameable && nameable.hasCustomName() ? getTitle(host) : title.apply(host));
 
         NetworkHooks.openScreen(serverPlayer, provider, buffer -> {
             MenuLocators.writeToPacket(buffer, locator);

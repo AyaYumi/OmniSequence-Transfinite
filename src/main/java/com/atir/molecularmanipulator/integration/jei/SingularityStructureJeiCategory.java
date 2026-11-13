@@ -54,7 +54,7 @@ public final class SingularityStructureJeiCategory
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, SingularityStructureJeiRecipe recipe,
             IFocusGroup focuses) {
-        StructureJeiLayout.setRecipe(builder, recipe.materials(), recipe.controller());
+        StructureJeiLayout.setRecipe(builder, recipe.materials(), recipe.output());
     }
 
     @Override
@@ -68,7 +68,8 @@ public final class SingularityStructureJeiCategory
     @Override
     public void draw(SingularityStructureJeiRecipe recipe, IRecipeSlotsView slots, GuiGraphics graphics,
             double mouseX, double mouseY) {
-        StructureJeiLayout.drawMaterials(graphics);
+        StructureJeiLayout.drawMaterials(graphics,
+                Component.translatable("gui.molecularmanipulator.jei_structure_package"));
     }
 
     @Override

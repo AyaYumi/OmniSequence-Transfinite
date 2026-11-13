@@ -40,7 +40,7 @@
       "count": 64
     }
   ],
-  "processing_time": 200,
+  "processing_time": 400,
   "ae_per_tick": 2500.0,
   "requires_research": true,
   "fluid_input": {

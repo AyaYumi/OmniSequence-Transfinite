@@ -1,0 +1,312 @@
+{
+  "type": "molecularmanipulator:matter_research",
+  "title": "research.molecularmanipulator.quantum_materials",
+  "prerequisites": [
+    "molecularmanipulator:research/eae_materials"
+  ],
+  "ingredients": [
+    {
+      "ingredient": {
+        "item": "advanced_ae:reaction_chamber"
+      },
+      "count": 1
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 128
+    },
+    {
+      "ingredient": {
+        "item": "ae2:singularity"
+      },
+      "count": 64
+    },
+    {
+      "ingredient": {
+        "item": "ae2:engineering_processor"
+      },
+      "count": 64
+    }
+  ],
+  "duration": 1200,
+  "ae_per_tick": 1024,
+  "unlocks": [
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/data_entangler",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_accelerator",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_alloy",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_core",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_crafter",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_infused_dust",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_infusion_source",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_processor",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_storage_128",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_storage_256",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_storage_component",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/quantum_unit",
+    "molecularmanipulator:fabrication/research_materials/advanced_ae/shattered_singularity"
+  ],
+  "required_mods": [
+    "expatternprovider",
+    "advanced_ae"
+  ],
+  "sort_order": 21,
+  "stage": 2,
+  "depths": [
+    {
+      "material_multiplier": 1,
+      "parallel": 1
+    },
+    {
+      "material_multiplier": 2,
+      "parallel": 256,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 128
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 128
+        }
+      ]
+    },
+    {
+      "material_multiplier": 4,
+      "parallel": 65536,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 256
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 256
+        }
+      ]
+    },
+    {
+      "material_multiplier": 8,
+      "parallel": 16777216,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 512
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 512
+        }
+      ]
+    },
+    {
+      "material_multiplier": 16,
+      "parallel": 4294967296,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 1024
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 1024
+        }
+      ]
+    },
+    {
+      "material_multiplier": 32,
+      "parallel": 1099511627776,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 2048
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 2048
+        }
+      ]
+    },
+    {
+      "material_multiplier": 64,
+      "parallel": 281474976710656,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 4096
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 4096
+        }
+      ]
+    },
+    {
+      "material_multiplier": 128,
+      "parallel": 72057594037927936,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 8192
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 8192
+        }
+      ]
+    },
+    {
+      "material_multiplier": 256,
+      "parallel": 9223372036854775807,
+      "ingredients": [
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_processor"
+          },
+          "count": 32768
+        },
+        {
+          "ingredient": {
+            "item": "advanced_ae:quantum_alloy"
+          },
+          "count": 65536
+        },
+        {
+          "ingredient": {
+            "item": "ae2:singularity"
+          },
+          "count": 16384
+        },
+        {
+          "ingredient": {
+            "item": "ae2:engineering_processor"
+          },
+          "count": 16384
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "expatternprovider"
+    },
+    {
+      "type": "forge:mod_loaded",
+      "modid": "advanced_ae"
+    }
+  ]
+}

@@ -8,7 +8,9 @@ ROOT = Path(__file__).resolve().parents[2]
 properties = dict(re.findall(r"^([a-z_]+)=(.*)$", (ROOT / "gradle.properties").read_text(encoding="utf-8"), re.M))
 omni = properties["mod_id"] == "molecularmanipulator"
 allowed_docs = ({"README.md", "matter-research-api.md", "matter-research-api.zh-CN.md",
-                 "omni-batch-provider-api.md", "omni-batch-provider-api.zh-CN.md", "omni-exact-provider-api.md"}
+                 "omni-batch-provider-api.md", "omni-batch-provider-api.zh-CN.md", "omni-exact-provider-api.md",
+                 "recipe-permissions.zh-CN.md", "star-research-nodes.zh-CN.md",
+                 "star-orrery-upgrades.md", "star-orrery-upgrades.zh-CN.md"}
                 if omni else {"README.md", "API_INTEGRATION.md", "API_INTEGRATION_ZH.md", "BATCH_EXECUTION_API.md",
                               "EXACT_CRAFTING_API.md", "SMART_DOUBLING_API.md"})
 paths = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
@@ -43,14 +45,16 @@ for relative in filter(None, paths):
             failures.append(f"{relative}: {error}")
     if source.suffix.lower() == ".md":
         content = source.read_text(encoding="utf-8")
+        # GuideME strips the language directory from page IDs before resolving links.
+        link_source = ROOT / re.sub(r"(/ae2guide/)_[a-z]{2,3}_[a-z]{2}/", r"\1", relative)
         for target in re.findall(r"\]\(([^)]+)\)", content):
             target = target.strip("<>").split("#", 1)[0]
-            if target and not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) and not (source.parent / target).exists():
+            if target and not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) and not (link_source.parent / target).exists():
                 failures.append(f"{relative}: missing link {target}")
         if re.search(r"(?:[CD]:[/\\](?:Users|Project)|/home/[^ /]+/)", content):
             failures.append(f"{relative}: machine-specific path")
         for target in re.findall(r'<(?:img|a)\b[^>]*(?:src|href)="([^"]+)"', content):
-            if not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) and not (source.parent / target).exists():
+            if not re.match(r"[a-zA-Z][a-zA-Z0-9+.-]*:", target) and not (link_source.parent / target).exists():
                 failures.append(f"{relative}: missing HTML link {target}")
         if relative.startswith("docs/") or (source.name.startswith("README") and source.parent == ROOT):
             if properties["mod_version"] not in content[:1800]:

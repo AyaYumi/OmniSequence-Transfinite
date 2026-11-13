@@ -4,9 +4,16 @@
     {
       "rolls": 1,
       "entries": [
-        { "type": "minecraft:item", "name": "molecularmanipulator:black_hole" }
+        {
+          "type": "minecraft:item",
+          "name": "molecularmanipulator:black_hole"
+        }
       ],
-      "conditions": [ { "condition": "minecraft:survives_explosion" } ]
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ]
     }
   ]
 }

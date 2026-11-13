@@ -1,12 +1,14 @@
 package com.atir.molecularmanipulator.client;
 
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import appeng.client.gui.StackWithBounds;
 import com.atir.molecularmanipulator.menu.MatterFabricationMenu;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import com.atir.molecularmanipulator.research.MatterResearchRecipe;
-import com.atir.molecularmanipulator.research.ResearchDepth;
 import com.atir.molecularmanipulator.research.ResearchBatch;
 import net.minecraft.client.gui.screens.Screen;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
@@ -15,10 +17,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import com.atir.molecularmanipulator.integration.jei.ResearchJeiBookmarks;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -26,29 +30,41 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import com.atir.molecularmanipulator.crafting.ForgeRecipeCodecs;
 import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
+import com.atir.molecularmanipulator.client.gui.theme.OsqScrollList;
 import org.joml.Vector3f;
 
-/** Paginated research navigation plus an independently scrolling material/unlock list. */
+/** Independently scrolling research navigation and material/unlock/order details. */
 final class MatterResearchPanel {
-    private static final int ROWS = 6;
-    private static final int SCROLL_TOP = 140;
-    private static final int SCROLL_BOTTOM = 237;
+    private static final int ROWS = 5;
+    private static final int PROJECT_TOP = 54, PROJECT_BOTTOM = 179, PROJECT_ROW_HEIGHT = 25;
+    private static final int SCROLL_TOP = 172;
+    private static final int SCROLL_BOTTOM = 248;
     private static final int SCROLL_HEIGHT = SCROLL_BOTTOM - SCROLL_TOP;
+    private static final int ROW_HEIGHT = 24;
     private final MatterFabricationMenu menu;
+    private final OsqUi ui;
     private final Font font;
     private final List<Button> rows = new ArrayList<>();
-    private final Button previous, next, action, order, bookmark, orderDetails;
+    private final Button action, order, bookmark, orderDetails, stop, unlocks;
     private List<MatterResearchRecipe> definitions = List.of();
+    private final Map<ResourceLocation, MatterResearchRecipe> definitionsById = new HashMap<>();
+    private MatterResearchRecipe selectedDefinition;
     private Set<String> completed = Set.of();
     private JsonObject tasks = new JsonObject(), preparations = new JsonObject();
     private JsonObject counts = new JsonObject(), live = new JsonObject();
     private String notice = "";
-    private String orderStatus = "idle";
-    private int orderQueued;
-    private int orderActive;
-    private List<OrderEntry> orderEntries = List.of(), allOrderEntries = List.of();
+    private JsonArray orderItems, decodedOrderItems;
+    private net.minecraft.core.RegistryAccess orderRegistries;
+    private List<MatterResearchOrders.Entry> allOrderEntries = List.of();
+    private final MatterResearchOrders orderCache = new MatterResearchOrders();
+    private MatterResearchOrders.View orders = MatterResearchOrders.EMPTY;
     private boolean showOrderDetails;
+    private boolean showUnlocks;
+    private MatterRecipeIndex unlockIndex;
+    private ResourceLocation unlockSelection;
+    private List<MatterResearchUnlocks.Entry> unlockEntries = List.of();
     private String lastState = "";
     private final Map<ResourceLocation, MatterResearchRecipe> taskTerms = new HashMap<>();
     private final Map<ResourceLocation, String> termSources = new HashMap<>();
@@ -56,53 +72,84 @@ final class MatterResearchPanel {
     private int costFirst, costLast;
     private List<MatterResearchRecipe.Cost> cachedCosts = List.of();
     private ResourceLocation selected;
-    private int page;
+    private int projectScroll;
     private double scroll;
-    private int contentHeight;
+    private int contentRows;
     private boolean visible;
     private final List<QuantityTooltip> quantityTooltips = new ArrayList<>();
+    private Selection renderedSelection;
+    private final Set<com.atir.molecularmanipulator.client.gui.theme.OsqLayout.Entry> materialLayer = new HashSet<>(), detailLayer = new HashSet<>();
 
     MatterResearchPanel(MatterFabricationMenu menu, Font font, int left, int top, Consumer<Button> add) {
-        this.menu = menu; this.font = font;
-        for (int index = 0; index < ROWS; index++) {
-            final int row = index;
-            // AE's sprite includes a five-pixel bottom bevel; its three-pixel slice border repeats the bevel when stretched taller.
-            var button = AeUiTheme.button(left + 18, top + 64 + index * 27, 96, 20, Component.empty(), clicked -> {
-                int position = page * ROWS + row;
-                if (position < definitions.size()) { selected = definitions.get(position).id(); scroll = 0; }
-            });
-            rows.add(button); add.accept(button);
+        this.menu=menu;this.font=font;ui=new OsqUi("fab_research");
+        ui.tabSelection("tab1",()->true);
+        for(var e:ui.layout.draw)if(e.x>=204&&(("text".equals(e.type)&&e.baseline>=140&&e.baseline<219)
+                ||(!"text".equals(e.type)&&e.y>=140&&e.y<219)))materialLayer.add(e);
+        var detail=com.atir.molecularmanipulator.client.gui.theme.OsqLayout.forTheme("fab_research_detail",false);
+        for(var e:detail.draw)if(e.x>=204&&!"tip".equals(e.kind)&&(("text".equals(e.type)&&e.baseline>=140&&e.baseline<219)
+                ||(!"text".equals(e.type)&&e.y>=140&&e.y<219))) {detailLayer.add(e);ui.layout.draw.add(e);}
+        ui.visible=e->!(showOrderDetails?materialLayer:detailLayer).contains(e);
+        // The overview screen owns these live tabs. Neither research layer may repaint them.
+        ui.hide(e -> e.sprite != null && e.sprite.contains("/tab_")
+                || e.ownerId != null && e.ownerId.startsWith("tab")
+                || e.x>=204 && e.y>=156 && e.y<220
+                        && !"text".equals(e.type) && !"card".equals(e.kind));
+        for(int i=0;i<ROWS;i++){final int row=i;
+            var button=ui.button("proj"+i,left,top,null,()->{int position=firstProject()+row;if(position<definitions.size()){selected=definitions.get(position).id();scroll=0;update(true);}});
+            rows.add(button);add.accept(button);
+            ui.state(button,()->firstProject()+row<definitions.size()&&definitions.get(firstProject()+row).id().equals(selected)?"active":"normal");
         }
-        previous = AeUiTheme.button(left + 18, top + 244, 28, 16, Component.literal("<"), clicked -> { page--; update(true); });
-        next = AeUiTheme.button(left + 86, top + 244, 28, 16, Component.literal(">"), clicked -> { page++; update(true); });
-        action = AeUiTheme.button(left + 136, top + 244, 84, 16, Component.empty(), clicked -> {
-            if (selected != null) menu.toggleResearch(selected.toString());
-        });
-        action.setTooltip(Tooltip.create(text("action_hint")));
-        order = AeUiTheme.button(left + 228, top + 244, 84, 16,
-                text("order"), clicked -> {
-                    if (selected != null) {
-                        if (preparations.has(selected.toString())) menu.stopResearchPreparation(selected.toString());
-                        else menu.requestResearchOrder(selected.toString(), Screen.hasShiftDown());
-                        showOrderDetails = false;
-                        scroll = 0;
-                    }
-                });
-        order.setTooltip(Tooltip.create(text("order_hint")));
-        orderDetails = AeUiTheme.button(left + 262, top + 121, 50, 14,
-                text("order_details"), clicked -> { showOrderDetails = !showOrderDetails; scroll = 0; });
+        action=ui.button("pause",left,top,null,()->{if(selected!=null)menu.toggleResearch(selected.toString());});
+        order=ui.button("order",left,top,null,()->{if(selected!=null){if(preparations.has(selected.toString()))menu.stopResearchPreparation(selected.toString());else menu.requestResearchOrder(selected.toString(),Screen.hasShiftDown());showOrderDetails=false;showUnlocks=false;scroll=0;update(visible);}});
+        orderDetails=ui.button("detail",left,top,null,()->{showOrderDetails=!showOrderDetails;showUnlocks=false;scroll=0;update(visible);});
         orderDetails.setTooltip(Tooltip.create(text("order_details_hint")));
-        bookmark = new ResearchBookmarkButton(left + 292, top + 48, clicked -> bookmarkSelected());
+        bookmark=ui.button("jei",left,top,()->text("bookmark_hint"),this::bookmarkSelected);
         bookmark.setTooltip(Tooltip.create(text("bookmark_hint")));
-        add.accept(previous); add.accept(next); add.accept(action); add.accept(order);
-        add.accept(bookmark); add.accept(orderDetails);
+        unlocks=ui.button("unlocks",left,top,()->showUnlocks?text("show_materials")
+                :Component.translatable("gui.molecularmanipulator.research.show_unlocks",unlockEntries.size()),
+                ()->{showUnlocks=!showUnlocks;showOrderDetails=false;scroll=0;update(visible);});
+        ui.state(unlocks,()->showUnlocks?"active":"normal");
+        unlocks.setTooltip(Tooltip.create(text("unlock_on_completion")));
+        add.accept(unlocks);add.accept(action);add.accept(order);add.accept(bookmark);add.accept(orderDetails);
+        stop=ui.button("stop",left,top,()->text("stop_current"),()->{if(selected!=null)menu.stopResearchPreparation(selected.toString());});
+        stop.setTooltip(Tooltip.create(text("stop_current_hint")));
+        add.accept(stop);
+        ui.state(stop,()->selected!=null&&preparations.has(selected.toString())?"danger":"disabled");
+        for(var e:ui.layout.draw)if("text".equals(e.type)&&((e.x>=210&&e.baseline>=157&&e.baseline<219)||(e.x<195&&e.baseline>=49&&e.baseline<144)))ui.at(e.x,e.baseline,Component::empty);
+        ui.text("gui.molecularmanipulator.fab.s050",()->selected()==null?text("empty"):Component.translatable(selected().value().title()));
+        ui.number(42.36f,191,()->"");ui.number(106.81f,191,()->"");ui.at(47.23f,191,Component::empty);
+        ui.text("gui.molecularmanipulator.research.order_state.submitted",()->orderState(orders.status()));
+        ui.color("gui.molecularmanipulator.research.order_state.submitted",()->ui.palette.ink);
+        ui.at(17,191,()->Component.translatable("gui.molecularmanipulator.research.order_summary",orders.queued(),orders.active()));
+        ui.width(17,191,173);
+        ui.number(212.5f,76,()->selected()==null?0:count(selected()));
+        ui.number(223.47f,76,()->selected()==null?"":"/ "+selected().value().depths().size());
+        ui.number(299.5f,76,()->selected()==null?0:Math.round(100*progressRatio()));
+        ui.number(213,110.5f,()->benefit(false));ui.number(300,110.5f,()->benefit(true));
+        ui.number(222,124,()->selected()==null?"":progressTicks()/20+" / "+selected().value().duration()/20+" s");
+        ui.number(265.11f,124,()->selected()==null?"":DisplayNumbers.compact(selected().value().aePerTick())+" AE/t");
+        ui.text("gui.molecularmanipulator.research.materials",()->showUnlocks?Component.translatable("gui.molecularmanipulator.fab.s054")
+                :text(!showOrderDetails && selected()!=null && !selected().value().prerequisites().isEmpty()
+                        ?"prerequisites_materials":"materials"));
+        ui.width(213,151,90);
+        // Keep the missing-count sentence intact instead of binding its sample digits separately.
+        ui.hide(e -> detailLayer.contains(e) && "text".equals(e.type) && e.baseline==151);
+        for(int i=0;i<9;i++){final int index=i;ui.sprite(213+i*19,84,()->"molecularmanipulator:osq_light/fab/depth_seg_"
+                +(selected()!=null&&index<count(selected())?"on":selected()!=null&&index==count(selected())&&task(selected())!=null?"cur":"off"));}
+        ui.width(213,110.5f,80);ui.width(300,110.5f,84);ui.width(265.11f,124,75);
+        ui.sprite(17,212,()->ui.sprite("dot_"+(orders.active()>0?"ok":orders.status().equals("idle")?"mute":"warn")));
+        ui.state(orderDetails,()->showOrderDetails?"active":"normal");
+        ui.visible=e->!(showOrderDetails?materialLayer:detailLayer).contains(e);
+        // The unlock switch replaces its example heading/count in both detail modes.
+        ui.hide(e -> "text".equals(e.type) && e.baseline==151 && e.x>=315);
+        for(var e:detailLayer)if("text".equals(e.type)&&e.baseline>=157)ui.at(e.x,e.baseline,Component::empty);
         update(false);
     }
 
     void update(boolean visible) {
         this.visible = visible;
         var level = Minecraft.getInstance().level;
-        if (level != null) definitions = MatterResearchApi.definitions(level);
+        updateDefinitions(level != null ? MatterResearchApi.definitions(level) : definitions);
         if (!lastState.equals(menu.researchState.json())) {
             lastState = menu.researchState.json();
             var state = JsonParser.parseString(lastState).getAsJsonObject();
@@ -114,29 +161,7 @@ final class MatterResearchPanel {
             counts = state.has("counts") ? state.getAsJsonObject("counts") : new JsonObject();
             live = state.has("live") ? state.getAsJsonObject("live") : new JsonObject();
             notice = state.has("notice") ? state.get("notice").getAsString() : "";
-            if (state.has("orders")) {
-                var orders = state.getAsJsonObject("orders");
-                orderStatus = orders.has("status") ? orders.get("status").getAsString() : "idle";
-                orderQueued = orders.has("queued") ? orders.get("queued").getAsInt() : 0;
-                orderActive = orders.has("active") ? orders.get("active").getAsInt() : 0;
-                var parsed = new ArrayList<OrderEntry>();
-                if (level != null && orders.has("items")) {
-                    var ops = JsonOps.INSTANCE;
-                    for (var element : orders.getAsJsonArray("items")) {
-                        var entry = element.getAsJsonObject();
-                        var target = com.atir.molecularmanipulator.crafting.ForgeRecipeCodecs.GENERIC_STACK.parse(ops, entry.get("target")).result();
-                        if (target.isEmpty()) continue;
-                        var missing = new ArrayList<GenericStack>();
-                        for (var value : entry.getAsJsonArray("missing")) {
-                            com.atir.molecularmanipulator.crafting.ForgeRecipeCodecs.GENERIC_STACK.parse(ops, value).result().ifPresent(missing::add);
-                        }
-                        parsed.add(new OrderEntry(target.get(), entry.get("queued").getAsLong(),
-                                entry.get("active").getAsLong(), entry.get("status").getAsString(),
-                                List.copyOf(missing), entry.has("owner") ? ResourceLocation.tryParse(entry.get("owner").getAsString()) : null));
-                    }
-                }
-                allOrderEntries = List.copyOf(parsed);
-            }
+            orderItems = state.has("orders") ? state.getAsJsonObject("orders").getAsJsonArray("items") : null;
             var allTerms = new JsonObject();
             tasks.entrySet().forEach(entry -> allTerms.add(entry.getKey(), entry.getValue()));
             preparations.entrySet().forEach(entry -> allTerms.add(entry.getKey(), entry.getValue()));
@@ -152,37 +177,47 @@ final class MatterResearchPanel {
             taskTerms.keySet().retainAll(retained);
             termSources.keySet().retainAll(retained);
         }
-        page = Math.max(0, Math.min(page, Math.max(0, (definitions.size() - 1) / ROWS)));
-        if (definitions.stream().noneMatch(holder -> holder.id().equals(selected))) {
-            selected = definitions.isEmpty() ? null : definitions.get(0).id();
-            scroll = 0;
-        }
-        orderEntries = allOrderEntries.stream().filter(entry -> entry.owner() == null || entry.owner().equals(selected)).toList();
-        orderQueued = (int) orderEntries.stream().filter(entry -> entry.queued() > 0).count();
-        orderActive = (int) orderEntries.stream().filter(entry -> entry.active() > 0).count();
-        orderStatus = orderEntries.isEmpty() ? "idle" : orderEntries.get(0).status();
+        updateOrderEntries(level != null ? level.registryAccess() : null);
+        projectScroll = OsqScrollList.clamp(projectScroll,definitions.size(),PROJECT_BOTTOM-PROJECT_TOP,PROJECT_ROW_HEIGHT);
+        if (level != null) {
+            var index=MatterRecipeIndex.get(level);
+            if (index!=unlockIndex || !Objects.equals(selected,unlockSelection)) {
+                unlockEntries=MatterResearchUnlocks.entries(level,index,selected());
+                unlockIndex=index;unlockSelection=selected;
+            }
+        } else {unlockEntries=List.of();unlockIndex=null;unlockSelection=null;}
+        orders = orderCache.forSelection(allOrderEntries, selected);
         if (visible && selected != null) menu.selectResearch(selected.toString());
         for (int row = 0; row < ROWS; row++) {
-            int position = page * ROWS + row;
+            int position = firstProject() + row;
             var button = rows.get(row);
             button.visible = visible && position < definitions.size();
             if (position < definitions.size()) {
                 var holder = definitions.get(position);
                 var label = Component.translatable(holder.value().title());
-                button.setMessage(shortLabel(label, 86));
-                button.setTooltip(Tooltip.create(label.copy().append("\n").append(status(holder))));
-                button.active = !holder.id().equals(selected);
+                button.setMessage(label.copy().append(" · "+count(holder)+"/"+holder.value().depths().size()));
+                var tooltip=label.copy().append("\n").append(status(holder));
+                for(var prerequisite:prerequisites(holder.value())) {
+                    tooltip.append("\n").append(Component.translatable("gui.molecularmanipulator.research.prerequisite_name",prerequisite.name()))
+                            .append("\n").append(prerequisite.progress());
+                    if(!prerequisite.available())tooltip.append("\n").append(text("unavailable"));
+                }
+                button.setTooltip(Tooltip.create(tooltip));
+                button.active = true;
             }
         }
-        previous.visible = next.visible = visible;
-        previous.active = page > 0;
-        next.active = (page + 1) * ROWS < definitions.size();
         var holder = selected();
+        if(showUnlocks)contentRows=unlockEntries.size();
+        else if(showOrderDetails)contentRows=orders.rows().size();
+        unlocks.visible=visible && holder!=null;
+        unlocks.active=holder!=null;
         action.visible = visible && holder != null;
         order.visible = visible && holder != null;
         orderDetails.visible = visible && holder != null
-                && (showOrderDetails || !orderEntries.isEmpty() || !orderStatus.equals("idle"));
+                && (showOrderDetails || !orders.entries().isEmpty() || !orders.status().equals("idle"));
         orderDetails.setMessage(text(showOrderDetails ? "order_materials" : "order_details"));
+        stop.visible = visible && holder != null;
+        stop.active = selected != null && preparations.has(selected.toString());
         bookmark.visible = visible && holder != null;
         if (holder != null) {
             var task=task(holder);
@@ -203,243 +238,212 @@ final class MatterResearchPanel {
     }
 
     void drawBackground(GuiGraphics graphics, int x, int y) {
-        AeUiTheme.panel(graphics, x + 12, y + 44, x + 120, y + 264);
-        AeUiTheme.panel(graphics, x + 128, y + 44, x + 320, y + 264);
+        if(visible)ui.background(graphics,font,x,y);
     }
 
     void drawForeground(GuiGraphics graphics) {
-        quantityTooltips.clear();
-        int stage = definitions.stream().filter(holder -> completed.contains(holder.id().toString()))
-                .mapToInt(holder -> holder.value().stage()).max().orElse(0);
-        fitted(graphics, Component.translatable("gui.molecularmanipulator.research.projects", stage), 20, 48, 92, AeUiTheme.PRIMARY_TEXT);
-        var pageLabel = Component.literal((page + 1) + "/" + Math.max(1, (definitions.size() + ROWS - 1) / ROWS));
-        int labelWidth = font.width(pageLabel);
-        float labelScale = Math.min(1, 32.0F / Math.max(1, labelWidth));
-        graphics.pose().pushPose();
-        graphics.pose().translate(66 - labelWidth * labelScale / 2.0F,
-                252 - font.lineHeight * labelScale / 2.0F, 0);
-        graphics.pose().scale(labelScale, labelScale, 1);
-        graphics.drawString(font, pageLabel, 0, 0, AeUiTheme.MUTED_TEXT, false);
-        graphics.pose().popPose();
-        var holder = selected();
-        if (holder == null) { fitted(graphics, text("empty"), 136, 50, 176, AeUiTheme.MUTED_TEXT); return; }
-        fitted(graphics, shortLabel(Component.translatable(holder.value().title()), 176), 136, 48, 176, AeUiTheme.PRIMARY_TEXT);
-        fitted(graphics, status(holder).copy().append(" · ").append(Component.translatable("gui.molecularmanipulator.research.depth_count", count(holder), holder.value().depths().size())), 136, 63, 176,
-                completed.contains(holder.id().toString()) ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-        var task = task(holder);
-        var preparation=preparation(holder);
-        var definition = terms(holder,task!=null?task:preparation);
-        int count = count(holder), max = definition.depths().size();
-        boolean maxed = task == null && count >= max;
-        boolean batch=task!=null && task.has("ordered") && task.get("ordered").getAsBoolean()
-                || preparation!=null || task==null && Screen.hasShiftDown();
-        int firstRound=task!=null && task.has("first_round")?task.get("first_round").getAsInt()
-                : preparation!=null?preparation.get("first_round").getAsInt():Math.min(count+1,max);
-        int round = task != null ? task.get("round").getAsInt() : preparation!=null?preparation.get("round").getAsInt()
-                : batch?max:Math.min(count+1,max);
-        int progress = task == null ? count >= max ? definition.duration() : 0 : task.get("progress").getAsInt();
-        var current = holder.value().depths().get(Math.max(0, Math.min(count - 1, holder.value().depths().size() - 1)));
-        fitted(graphics, count == 0 ? text("no_benefit") : Component.translatable("gui.molecularmanipulator.research.current_benefit",
-                number(current.parallel()), current.processingTicks() > 0 ? current.processingTicks() + " tick" : "×" + number(current.speedMultiplier())),
-                136, 76, 176, AeUiTheme.PRIMARY_TEXT);
-        if (count > 0) quantityTooltips.add(new QuantityTooltip(136, 76, 176, 11, benefitTooltip("current_quantity_title", current)));
-        var benefit = definition.depths().get(Math.max(0, Math.min(round - 1, max - 1)));
-        String speed = benefit.processingTicks() > 0 ? benefit.processingTicks() + " tick"
-                : "×" + number(benefit.speedMultiplier());
-        fitted(graphics, maxed ? text("max_hint") : Component.translatable("gui.molecularmanipulator.research.benefit", number(benefit.parallel()), speed),
-                136, 88, 176, AeUiTheme.MUTED_TEXT);
-        if (!maxed) quantityTooltips.add(new QuantityTooltip(136, 88, 176, 11, benefitTooltip("next_quantity_title", benefit)));
-        AeUiTheme.progress(graphics, 136, 101, 176, 6, Math.min(1, progress / (float) definition.duration()), AeUiTheme.CYAN);
-        fitted(graphics, Component.translatable("gui.molecularmanipulator.research.timing", progress / 20,
-                definition.duration() / 20, DisplayNumbers.compact(definition.aePerTick())),
-                136, 111, 176, AeUiTheme.MUTED_TEXT);
-        if (!orderStatus.equals("idle")) {
-            fitted(graphics, orderState(orderStatus), 136, 123, 120,
-                    orderStatus.equals("submitted") ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-            quantityTooltips.add(new QuantityTooltip(136, 121, 120, 15, List.of(
-                    orderState(orderStatus), Component.translatable("gui.molecularmanipulator.research.order_counts",
-                            orderQueued, orderActive))));
-        }
-        quantityTooltips.add(new QuantityTooltip(136, 111, 176, 11, List.of(Component.translatable(
-                "gui.molecularmanipulator.research.timing", progress / 20, definition.duration() / 20,
-                DisplayNumbers.exact(definition.aePerTick())))));
-        if (showOrderDetails) {
-            drawOrderDetails(graphics);
-            return;
-        }
-        List<MatterResearchRecipe.Cost> costs;
-        try { costs = maxed ? List.of() : batch ? batchCosts(definition, firstRound, round) : definition.costsFor(round); } catch (ArithmeticException error) { costs = List.of(); }
-        var level = Minecraft.getInstance().level;
-        var recipeIndex = MatterRecipeIndex.get(level);
-        var unlocks = recipeIndex.unlocksForResearch(holder).stream()
-                .filter(id -> recipeIndex.fabrication(id) != null || level.getRecipeManager().byKey(id).isPresent()).toList();
-        int prerequisiteHeight = holder.value().prerequisites().isEmpty() ? 0 : 15 + 16 * holder.value().prerequisites().size();
-        contentHeight = prerequisiteHeight + 17 + costs.size() * 27 + 20 + unlocks.size() * 20;
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - SCROLL_HEIGHT)));
-        // Minecraft 1.21's scissor coordinates are screen-space and do not inherit the pose stack.
-        var matrix = graphics.pose().last().pose();
-        var clipStart = matrix.transformPosition(new Vector3f(132, SCROLL_TOP, 0));
-        var clipEnd = matrix.transformPosition(new Vector3f(317, SCROLL_BOTTOM, 0));
-        graphics.enableScissor((int) Math.floor(clipStart.x), (int) Math.floor(clipStart.y),
-                (int) Math.ceil(clipEnd.x), (int) Math.ceil(clipEnd.y));
-        try {
-            int y = SCROLL_TOP + 3 - (int) scroll;
-            if (prerequisiteHeight > 0) {
-                fitted(graphics, text("prerequisites"), 136, y, 176, AeUiTheme.PRIMARY_TEXT); y += 15;
-                for (var id : holder.value().prerequisites()) {
-                    var parent = definitions.stream().filter(value -> value.id().equals(id)).findFirst();
-                    int required = parent.map(value -> MatterResearchApi.requiredPrerequisiteLevel(holder.value(), value)).orElse(1);
-                    Component label = parent.map(value -> Component.translatable(value.value().title())
-                            .append(" · " + Math.min(count(value), required) + "/" + required))
-                            .orElse(Component.literal(id.toString()));
-                    fitted(graphics, label, 140, y, 168,
-                            parent.map(value -> count(value) >= required).orElse(false) ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-                    y += 16;
-                }
+        if(!visible)return;quantityTooltips.clear();ui.foreground(graphics,font);
+        drawProjectScrollbar(graphics);
+        var holder=selected();if(holder==null)return;
+        if(showOrderDetails){drawOrderDetails(graphics);return;}
+        if(showUnlocks){drawUnlocks(graphics);return;}
+        var task=task(holder);var prep=preparation(holder);var definition=terms(holder,task!=null?task:prep);
+        int count=count(holder),max=definition.depths().size();
+        int first=task!=null&&task.has("first_round")?task.get("first_round").getAsInt():prep!=null?prep.get("first_round").getAsInt():Math.min(count+1,max);
+        int round=task!=null?task.get("round").getAsInt():prep!=null?prep.get("round").getAsInt():Math.min(count+1,max);
+        boolean batch=prep!=null||task!=null&&task.has("ordered")&&task.get("ordered").getAsBoolean()||task==null&&Screen.hasShiftDown();
+        if(batch&&task==null&&prep==null)round=max;
+        List<MatterResearchRecipe.Cost> costs;boolean costOverflow=false;
+        try{costs=count>=max&&task==null?List.of():batch?batchCosts(definition,first,round):definition.costsFor(round);}
+        catch(ArithmeticException error){costs=List.of();costOverflow=true;}
+        // Requirements follow the current definition, not a paid task's retained material terms.
+        var prerequisites=prerequisites(holder.value());
+        contentRows=prerequisites.size()+(costs.isEmpty()?1:costs.size());
+        scroll=OsqScrollList.clamp(scroll,contentRows,SCROLL_HEIGHT,ROW_HEIGHT);
+        beginList(graphics);
+        try{for(int i=(int)scroll/ROW_HEIGHT;i<Math.min(contentRows,(int)scroll/ROW_HEIGHT+OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT));i++){
+            int y=173+i*ROW_HEIGHT-(int)scroll;
+            if(i<prerequisites.size()) {
+                var prerequisite=prerequisites.get(i);
+                int color=prerequisite.met()?ui.palette.ok:ui.palette.warn;
+                ui.centeredText(graphics,Component.translatable("gui.molecularmanipulator.research.prerequisite_name",prerequisite.name()),213,y+9,165,ui.palette.ink);
+                ui.centeredText(graphics,prerequisite.progress(),213,y+21,165,color);
+                quantityTooltips.add(new QuantityTooltip(212,y,166,ROW_HEIGHT,null,prerequisite.tooltip()));
+                continue;
             }
-            fitted(graphics, text(maxed ? "max_hint" : batch ? "materials_max" : task == null ? "materials" : "materials_committed"), 136, y, 176, AeUiTheme.PRIMARY_TEXT); y += 17;
-            for (int index = 0; index < costs.size(); index++) {
-                var cost = costs.get(index);
-                var examples = cost.ingredient().getItems();
-                var stack = examples.length == 0 ? ItemStack.EMPTY : examples[0];
-                long paid = task == null ? 0 : task.getAsJsonArray("paid").get(index).getAsLong();
-                long required = cost.count() - paid;
-                String availableField=batch && preparation==null && task==null ? "batch_available" : "available";
-                long available=liveForSelected() && live.has(availableField) && index<live.getAsJsonArray(availableField).size()
-                        ?live.getAsJsonArray(availableField).get(index).getAsLong():0;
-                long reserved=preparation!=null && liveForSelected() && live.has("reserved") && index<live.getAsJsonArray("reserved").size()
-                        ?live.getAsJsonArray("reserved").get(index).getAsLong():0;
-                long supplied=available>Long.MAX_VALUE-reserved?Long.MAX_VALUE:available+reserved;
-                if (y > 104 && y < 237) {
-                    graphics.renderItem(stack, 136, y);
-                    fitted(graphics, stack.getHoverName(), 156, y, 152, AeUiTheme.PRIMARY_TEXT);
-                    fitted(graphics, Component.literal(number(supplied) + " / " + number(required)), 156, y + 11, 152,
-                            supplied >= required ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
-                    var details = new ArrayList<Component>();
-                    details.add(stack.getHoverName());
-                    details.add(quantity("available", available));
-                    details.add(quantity("required", cost.count()));
-                    if(preparation!=null)details.add(quantity("reserved",reserved));
-                    if (task != null) {
-                        details.add(quantity("committed", paid));
-                        details.add(quantity("remaining", required));
-                    }
-                    int top = Math.max(SCROLL_TOP, y), bottom = Math.min(SCROLL_BOTTOM, y + 24);
-                    if (bottom > top) quantityTooltips.add(new QuantityTooltip(136, top, 176, bottom - top, List.copyOf(details)));
-                }
-                y += 27;
+            if(costs.isEmpty()) {
+                ui.centeredText(graphics,text(costOverflow?"cost_overflow":count>=max?"max_hint":"no_materials"),
+                        213,prerequisites.isEmpty()?210:y+12,165,costOverflow?ui.palette.warn:ui.palette.ink3);
+                continue;
             }
-            fitted(graphics, text("unlocks"), 136, y, 176, AeUiTheme.PRIMARY_TEXT); y += 20;
-            for (var id : unlocks) {
-                var recipe = level.getRecipeManager().byKey(id);
-                var imported = recipeIndex.fabrication(id);
-                var stack = recipe.map(value -> value.getResultItem(level.registryAccess())).orElse(ItemStack.EMPTY);
-                if (stack.isEmpty() && imported != null) stack = imported.value().getResultItem(level.registryAccess());
-                var fabrication = imported == null ? null : imported.value();
-                if (fabrication == null && recipe.isPresent()
-                        && recipe.get() instanceof com.atir.molecularmanipulator.crafting.MatterFabricationRecipe value) {
-                    fabrication = value;
-                }
-                appeng.api.stacks.GenericStack resource = null;
-                if (stack.isEmpty() && fabrication != null) {
-                    if (!fabrication.fluidResult().isEmpty()) {
-                        resource = new appeng.api.stacks.GenericStack(
-                                appeng.api.stacks.AEFluidKey.of(fabrication.fluidResult()),
-                                fabrication.fluidResult().getAmount());
-                    } else if (!fabrication.aeOutputs().isEmpty()) {
-                        resource = fabrication.aeOutputs().get(0);
-                    }
-                }
-                Component name = resource != null ? resource.what().getDisplayName()
-                        : stack.isEmpty() ? Component.literal(id.toString()) : stack.getHoverName();
-                if (imported != null) {
-                    int branches = recipeIndex.branchCountForResearch(holder.id(), imported.value());
-                    if (branches > 1) name = name.copy().append(" ").append(Component.translatable(
-                            "gui.molecularmanipulator.research.branch_recipes", branches));
-                }
-                if (y > 104 && y < 237) {
-                    if (resource == null) graphics.renderItem(stack, 136, y);
-                    else AEStackIcon.draw(graphics, resource, 136, y);
-                    fitted(graphics, name, 156, y + 3, 152, AeUiTheme.MUTED_TEXT);
-                }
-                y += 20;
-            }
-        } finally { graphics.disableScissor(); }
-        if (contentHeight > SCROLL_HEIGHT) {
-            int thumb = Math.max(12, SCROLL_HEIGHT * SCROLL_HEIGHT / contentHeight);
-            int y = SCROLL_TOP + (int) ((SCROLL_HEIGHT - thumb) * scroll / (contentHeight - SCROLL_HEIGHT));
-            graphics.fill(315, y, 317, y + thumb, AeUiTheme.ACCENT);
-        }
+            // The visual prefix must never shift indices into server-synced material quantities.
+            int costIndex=i-prerequisites.size();
+            var cost=costs.get(costIndex);var items=cost.ingredient().getItems();if(items.length==0)continue;
+            var stack=items[0];ui.slotBackground(graphics,212,y);graphics.renderItem(stack,213,y+1);ui.centeredText(graphics,stack.getHoverName(),235,y+9,143,ui.palette.ink);
+            long paid=task!=null&&task.has("paid")&&costIndex<task.getAsJsonArray("paid").size()?task.getAsJsonArray("paid").get(costIndex).getAsLong():0;
+            String availableField=batch&&live.has("batch_available")?"batch_available":"available";
+            long available=liveForSelected()&&live.has(availableField)&&costIndex<live.getAsJsonArray(availableField).size()?live.getAsJsonArray(availableField).get(costIndex).getAsLong():0;
+            long covered=Math.min(cost.count(),Math.max(0,available));
+            covered+=Math.min(cost.count()-covered,Math.max(0,paid));
+            ui.centeredText(graphics,Component.literal(DisplayNumbers.compact(covered)+" / "+DisplayNumbers.compact(cost.count())),235,y+21,143,ui.palette.ink);
+            quantityTooltips.add(new QuantityTooltip(212,y,166,ROW_HEIGHT,new GenericStack(AEItemKey.of(stack),cost.count()),
+                    List.of(stack.getHoverName(),quantity("required",cost.count()),quantity("available",available))));
+        }}finally{endList(graphics);}
+        drawScrollbar(graphics);
     }
 
     private void drawOrderDetails(GuiGraphics graphics) {
-        contentHeight = orderEntries.isEmpty() ? SCROLL_HEIGHT : 18;
-        for (var entry : orderEntries) contentHeight += 31 + entry.missing().size() * 22;
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - SCROLL_HEIGHT)));
-        var matrix = graphics.pose().last().pose();
-        var clipStart = matrix.transformPosition(new Vector3f(132, SCROLL_TOP, 0));
-        var clipEnd = matrix.transformPosition(new Vector3f(317, SCROLL_BOTTOM, 0));
-        graphics.enableScissor((int) Math.floor(clipStart.x), (int) Math.floor(clipStart.y),
-                (int) Math.ceil(clipEnd.x), (int) Math.ceil(clipEnd.y));
+        int missingCount=orders.missingCount();
+        ui.smallText(graphics,Component.translatable("gui.molecularmanipulator.research.order_missing_count",missingCount),213,151,98,
+                missingCount>0?ui.palette.warn:ui.palette.ink3);
+        var orderRows=orders.rows();
+        contentRows=orderRows.size();
+        scroll=OsqScrollList.clamp(scroll,contentRows,SCROLL_HEIGHT,ROW_HEIGHT);
+        int first=(int)scroll/ROW_HEIGHT;
+        int end=Math.min(contentRows,first+OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT));
+        beginList(graphics);
+        try{for(int i=first;i<end;i++){
+            var row=orderRows.get(i);var stack=row.stack();
+            Component amount=row.missing()?quantity("remaining",stack.amount())
+                    :Component.literal(DisplayNumbers.compact(stack.amount())+" · ").append(orderState(row.status()));
+            drawOrderRow(graphics,stack,amount,i-first,row.missing());
+        }}finally{endList(graphics);}
+        drawScrollbar(graphics);
+        if(orders.entries().isEmpty())ui.centeredText(graphics,text("order_empty"),213,210,170,ui.palette.ink3);
+    }
+
+    private void drawUnlocks(GuiGraphics graphics) {
+        contentRows=unlockEntries.size();
+        scroll=OsqScrollList.clamp(scroll,contentRows,SCROLL_HEIGHT,ROW_HEIGHT);
+        int first=(int)scroll/ROW_HEIGHT;
+        beginList(graphics);
         try {
-            int y = SCROLL_TOP + 3 - (int) scroll;
-            if (orderEntries.isEmpty()) {
-                fitted(graphics, text("order_empty"), 136, y, 176, AeUiTheme.MUTED_TEXT);
-            } else {
-                int missingTypes = orderEntries.stream().mapToInt(entry -> entry.missing().size()).sum();
-                fitted(graphics, Component.translatable("gui.molecularmanipulator.research.order_missing_count",
-                        missingTypes), 136, y, 176, AeUiTheme.WARNING);
-                y += 18;
-                for (var entry : orderEntries) {
-                    if (y + 27 > SCROLL_TOP && y < SCROLL_BOTTOM) {
-                        AEStackIcon.draw(graphics, entry.target(), 136, y);
-                        fitted(graphics, entry.target().what().getDisplayName(), 156, y, 156,
-                                AeUiTheme.PRIMARY_TEXT);
-                        fitted(graphics, Component.translatable("gui.molecularmanipulator.research.order_target_status",
-                                DisplayNumbers.exact(entry.target().amount()), orderState(entry.status())),
-                                156, y + 11, 156, entry.missing().isEmpty()
-                                        && entry.status().equals("submitted") ? AeUiTheme.SUCCESS : AeUiTheme.WARNING);
-                        int top = Math.max(SCROLL_TOP, y), bottom = Math.min(SCROLL_BOTTOM, y + 27);
-                        if (bottom > top) quantityTooltips.add(new QuantityTooltip(136, top, 176, bottom - top,
-                                List.of(entry.target().what().getDisplayName(),
-                                        quantity("required", entry.target().amount()), orderState(entry.status()),
-                                        Component.translatable("gui.molecularmanipulator.research.order_counts",
-                                                entry.queued(), entry.active()))));
-                    }
-                    y += 31;
-                    for (var missing : entry.missing()) {
-                        if (y + 20 > SCROLL_TOP && y < SCROLL_BOTTOM) {
-                            AEStackIcon.draw(graphics, missing, 144, y);
-                            fitted(graphics, missing.what().getDisplayName(), 164, y, 148,
-                                    AeUiTheme.WARNING);
-                            fitted(graphics, Component.translatable(
-                                    "gui.molecularmanipulator.research.order_missing_amount",
-                                    DisplayNumbers.exact(missing.amount())), 164, y + 11, 148,
-                                    AeUiTheme.MUTED_TEXT);
-                            int top = Math.max(SCROLL_TOP, y), bottom = Math.min(SCROLL_BOTTOM, y + 20);
-                            if (bottom > top) quantityTooltips.add(new QuantityTooltip(144, top, 168, bottom - top,
-                                    List.of(missing.what().getDisplayName(), quantity("remaining", missing.amount()))));
-                        }
-                        y += 22;
-                    }
+            for(int i=first;i<Math.min(contentRows,first+OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT));i++) {
+                var entry=unlockEntries.get(i);int y=173+(i-first)*ROW_HEIGHT;
+                if(!entry.outputs().isEmpty()) {
+                    ui.slotBackground(graphics,212,y);
+                    appeng.api.client.AEKeyRendering.drawInGui(Minecraft.getInstance(),graphics,213,y+1,entry.outputs().get(0).what());
                 }
+                ui.centeredText(graphics,entry.title(),235,y+9,143,ui.palette.ink);
+                ui.centeredText(graphics,entry.summary(),235,y+21,143,ui.palette.ink);
+                quantityTooltips.add(new QuantityTooltip(212,y,166,ROW_HEIGHT,
+                        entry.outputs().isEmpty()?null:entry.outputs().get(0),entry.tooltip()));
             }
-        } finally { graphics.disableScissor(); }
-        if (contentHeight > SCROLL_HEIGHT) {
-            int thumb = Math.max(12, SCROLL_HEIGHT * SCROLL_HEIGHT / contentHeight);
-            int y = SCROLL_TOP + (int) ((SCROLL_HEIGHT - thumb) * scroll / (contentHeight - SCROLL_HEIGHT));
-            graphics.fill(315, y, 317, y + thumb, AeUiTheme.ACCENT);
-        }
+        } finally {endList(graphics);}
+        drawScrollbar(graphics);
+        if(unlockEntries.isEmpty())ui.centeredText(graphics,text("no_unlocks"),213,210,170,ui.palette.ink3);
+    }
+
+    private int firstProject() {return projectScroll/PROJECT_ROW_HEIGHT;}
+
+    private void drawProjectScrollbar(GuiGraphics graphics) {
+        int height=PROJECT_BOTTOM-PROJECT_TOP;
+        int max=OsqScrollList.maxScroll(definitions.size(),height,PROJECT_ROW_HEIGHT);
+        if(max<=0)return;
+        int thumb=Math.max(8,height*ROWS/definitions.size());
+        int y=PROJECT_TOP+Math.round((height-thumb)*(float)projectScroll/max);
+        graphics.fill(187,PROJECT_TOP,189,PROJECT_BOTTOM,ui.palette.hair);
+        graphics.fill(187,y,189,y+thumb,ui.palette.acc);
+    }
+
+    private void drawOrderRow(GuiGraphics graphics, GenericStack stack, Component amount, int visibleRow, boolean missing) {
+        int x=missing?221:213,y=173+visibleRow*ROW_HEIGHT;
+        ui.slotBackground(graphics,x-1,y);
+        appeng.api.client.AEKeyRendering.drawInGui(Minecraft.getInstance(),graphics,x,y+1,stack.what());
+        ui.centeredText(graphics,stack.what().getDisplayName(),x+22,y+9,378-x-22,ui.palette.ink);
+        ui.centeredText(graphics,amount,x+22,y+21,378-x-22,ui.palette.ink);
+        quantityTooltips.add(new QuantityTooltip(x-1,y,379-x,ROW_HEIGHT,stack,
+                List.of(stack.what().getDisplayName(),quantity(missing?"remaining":"required",stack.amount()),amount)));
+    }
+
+    private void beginList(GuiGraphics graphics) {
+        // Capture the actual rendered position after this view clamps a shortened list.
+        renderedSelection=selection();
+        // GuiGraphics scissors are screen-space; flush before/after so batched text keeps this clip.
+        graphics.flush();
+        var matrix=graphics.pose().last().pose();
+        var a=matrix.transformPosition(new Vector3f(211,SCROLL_TOP,0));
+        var b=matrix.transformPosition(new Vector3f(379,SCROLL_BOTTOM,0));
+        graphics.enableScissor((int)Math.floor(a.x),(int)Math.floor(a.y),(int)Math.ceil(b.x),(int)Math.ceil(b.y));
+    }
+
+    private static void endList(GuiGraphics graphics) { graphics.flush();graphics.disableScissor(); }
+
+    private void drawScrollbar(GuiGraphics graphics) {
+        int max=OsqScrollList.maxScroll(contentRows,SCROLL_HEIGHT,ROW_HEIGHT);
+        if(max<=0)return;
+        int height=Math.max(8,SCROLL_HEIGHT*OsqScrollList.visibleRows(SCROLL_HEIGHT,ROW_HEIGHT)/contentRows);
+        int y=SCROLL_TOP+Math.round((SCROLL_HEIGHT-height)*(float)scroll/max);
+        graphics.fill(383,SCROLL_TOP,385,SCROLL_BOTTOM,ui.palette.hair);
+        graphics.fill(383,y,385,y+height,ui.palette.acc);
     }
 
     boolean scroll(double x, double y, double amount) {
-        if (!visible || x < 128 || x >= 320 || y < SCROLL_TOP || y >= SCROLL_BOTTOM) return false;
-        scroll = Math.max(0, Math.min(scroll - amount * 27, Math.max(0, contentHeight - SCROLL_HEIGHT)));
+        if (!visible || amount==0) return false;
+        if(x>=8&&x<198&&y>=32&&y<182) {
+            projectScroll=OsqScrollList.scroll(projectScroll,amount,definitions.size(),PROJECT_BOTTOM-PROJECT_TOP,PROJECT_ROW_HEIGHT);
+            update(visible);return true;
+        }
+        if (x < 204 || x >= 392 || y < SCROLL_TOP || y >= SCROLL_BOTTOM) return false;
+        scroll = OsqScrollList.scroll(scroll,amount,contentRows,SCROLL_HEIGHT,ROW_HEIGHT);
         return true;
     }
 
-    private MatterResearchRecipe selected() {
-        return definitions.stream().filter(holder -> holder.id().equals(selected)).findFirst().orElse(null);
+    private int progressTicks(){var holder=selected();if(holder==null)return 0;var task=task(holder);return task==null?0:task.get("progress").getAsInt();}
+    private float progressRatio(){var holder=selected();return holder==null?0:Math.min(1,progressTicks()/(float)Math.max(1,holder.value().duration()));}
+    private String benefit(boolean next) {
+        var holder = selected();
+        if (holder == null) return "";
+        int completedCount = count(holder);
+        if (!next && completedCount == 0) return text("no_benefit").getString();
+        var depths = holder.value().depths();
+        int target = next && Screen.hasShiftDown() ? depths.size() - 1 : next ? completedCount : completedCount - 1;
+        var depth = depths.get(com.atir.molecularmanipulator.util.MathCompat.clamp(target, 0, depths.size() - 1));
+        return Component.translatable("gui.molecularmanipulator.research.quantity_parallel",
+                DisplayNumbers.compact(depth.parallel())).getString();
+    }
+
+    private void updateDefinitions(List<MatterResearchRecipe> source) {
+        if (definitions != source) {
+            definitions = source;
+            definitionsById.clear();
+            for (var holder : definitions) definitionsById.putIfAbsent(holder.id(), holder);
+        }
+        selectedDefinition = definitionsById.get(selected);
+        if (selectedDefinition == null) {
+            selectedDefinition = definitions.isEmpty() ? null : definitions.get(0);
+            selected = selectedDefinition == null ? null : selectedDefinition.id();
+            scroll = 0;
+        }
+    }
+
+    private MatterResearchRecipe selected() { return selectedDefinition; }
+
+    private void updateOrderEntries(net.minecraft.core.RegistryAccess registries) {
+        // Progress/stock updates can replace the outer JSON without changing the order source.
+        if (orderRegistries == registries && Objects.equals(decodedOrderItems, orderItems)) {
+            decodedOrderItems = orderItems;
+            return;
+        }
+        var parsed = new ArrayList<MatterResearchOrders.Entry>();
+        if (registries != null && orderItems != null) {
+            var ops = JsonOps.INSTANCE;
+            for (var element : orderItems) {
+                var entry = element.getAsJsonObject();
+                var target = ForgeRecipeCodecs.GENERIC_STACK.parse(ops, entry.get("target")).result();
+                if (target.isEmpty()) continue;
+                var missing = new ArrayList<GenericStack>();
+                for (var value : entry.getAsJsonArray("missing")) {
+                    ForgeRecipeCodecs.GENERIC_STACK.parse(ops, value).result().ifPresent(missing::add);
+                }
+                parsed.add(new MatterResearchOrders.Entry(target.get(), entry.get("queued").getAsLong(),
+                        entry.get("active").getAsLong(), entry.get("status").getAsString(), missing,
+                        entry.has("owner") ? ResourceLocation.tryParse(entry.get("owner").getAsString()) : null));
+            }
+        }
+        allOrderEntries = List.copyOf(parsed);
+        decodedOrderItems = orderItems;
+        orderRegistries = registries;
     }
 
     private void bookmarkSelected() {
@@ -470,11 +474,15 @@ final class MatterResearchPanel {
         return taskTerms.getOrDefault(holder.id(), holder.value());
     }
 
-    record Selection(ResourceLocation id, int page, double scroll) {}
-    Selection selection() { return new Selection(selected, page, scroll); }
-    void restoreSelection(Selection selection) {
-        if (selection != null) { selected = selection.id(); page = selection.page(); scroll = selection.scroll(); }
+    record Selection(ResourceLocation id, int projectScroll, double scroll, boolean unlocks, boolean orders) {
+        Selection(ResourceLocation id,int projectScroll,double scroll) {this(id,projectScroll,scroll,false,false);}
     }
+    Selection selection() { return new Selection(selected, projectScroll, scroll, showUnlocks, showOrderDetails); }
+    void restoreSelection(Selection selection) {
+        if (selection != null) { selected = selection.id(); projectScroll = selection.projectScroll(); scroll = selection.scroll();
+            showOrderDetails=selection.orders();showUnlocks=selection.unlocks()&&!showOrderDetails;update(visible); }
+    }
+    void showDetails(boolean value) {showOrderDetails=value;showUnlocks=false;scroll=0;update(visible);}
     private Component status(MatterResearchRecipe holder) {
         var task = task(holder);
         if (task != null) return text(task.get("status").getAsString());
@@ -488,34 +496,55 @@ final class MatterResearchPanel {
         }
         return text(count(holder) > 0 ? "ready_depth" : "not_started");
     }
-    private int count(MatterResearchRecipe holder) {
-        return counts.has(holder.id().toString()) ? counts.get(holder.id().toString()).getAsInt()
-                : completed.contains(holder.id().toString()) ? 1 : 0;
+    private int count(MatterResearchRecipe holder) { return count(holder.id()); }
+    private int count(ResourceLocation id) {
+        return counts.has(id.toString()) ? counts.get(id.toString()).getAsInt()
+                : completed.contains(id.toString()) ? 1 : 0;
+    }
+    private List<Prerequisite> prerequisites(MatterResearchRecipe research) {
+        var result=new ArrayList<Prerequisite>();
+        for(var id:research.prerequisites()) {
+            var parent=definitionsById.get(id);
+            int required=parent==null?research.prerequisiteLevels().getOrDefault(id,1)
+                    :MatterResearchApi.requiredPrerequisiteLevel(research,parent);
+            result.add(new Prerequisite(id,parent==null?id.toString():parent.value().title(),count(id),required,parent!=null));
+        }
+        return result;
+    }
+    record Prerequisite(ResourceLocation id,String title,int completed,int required,boolean available) {
+        boolean met() { return available && completed>=required; }
+        Component name() { return available?Component.translatable(title):Component.literal(id.toString()); }
+        Component progress() {
+            return required==0?Component.translatable("gui.molecularmanipulator.research.prerequisite_max_progress",completed)
+                    :Component.translatable("gui.molecularmanipulator.research.prerequisite_progress",completed,required);
+        }
+        List<Component> tooltip() {
+            return List.of(name(),Component.literal(id.toString()),progress(),text(!available?"unavailable":met()?"prerequisite_satisfied":"prerequisite"));
+        }
     }
     private boolean prerequisitesMet(MatterResearchRecipe research) {
-        return MatterResearchApi.prerequisitesMet(research, definitions, id -> counts.has(id.toString())
-                ? counts.get(id.toString()).getAsInt() : completed.contains(id.toString()) ? 1 : 0);
+        return MatterResearchApi.prerequisitesMet(research, definitions, this::count);
     }
     private boolean liveForSelected() { return selected != null && live.has("id") && selected.toString().equals(live.get("id").getAsString()); }
-    private static String number(long amount) {
-        return DisplayNumbers.compact(amount);
-    }
     private static Component quantity(String key, long amount) {
         return Component.translatable("gui.molecularmanipulator.research.quantity_" + key, DisplayNumbers.exact(amount));
     }
-    private static List<Component> benefitTooltip(String title, ResearchDepth depth) {
-        return List.of(text(title), quantity("parallel", depth.parallel()), depth.processingTicks() > 0
-                ? quantity("ticks", depth.processingTicks()) : quantity("speed", depth.speedMultiplier()));
-    }
     List<Component> tooltipAt(double x, double y) {
-        if (!visible) return List.of();
+        var row=rowAt(x,y);
+        return row==null?List.of():row.lines();
+    }
+    StackWithBounds ingredientAt(double x,double y) {
+        var row=rowAt(x,y);
+        if(row==null||row.stack()==null)return null;
+        int top=Math.max(SCROLL_TOP,row.y()),bottom=Math.min(SCROLL_BOTTOM,row.y()+row.height());
+        return new StackWithBounds(row.stack(),new Rect2i(row.x(),top,row.width(),bottom-top));
+    }
+    private QuantityTooltip rowAt(double x,double y) {
+        if(!visible||!selection().equals(renderedSelection)||y<SCROLL_TOP||y>=SCROLL_BOTTOM)return null;
         return quantityTooltips.stream().filter(tip -> x >= tip.x() && x < tip.x() + tip.width()
-                && y >= tip.y() && y < tip.y() + tip.height()).findFirst().map(QuantityTooltip::lines).orElse(List.of());
+                && y >= tip.y() && y < tip.y() + tip.height()).findFirst().orElse(null);
     }
-    private record QuantityTooltip(int x, int y, int width, int height, List<Component> lines) {}
-    private Component shortLabel(Component label, int width) {
-        return font.width(label) <= width ? label : Component.literal(font.plainSubstrByWidth(label.getString(), width - font.width("…")) + "…");
-    }
+    private record QuantityTooltip(int x, int y, int width, int height, GenericStack stack, List<Component> lines) {}
     private static Component text(String key) { return Component.translatable("gui.molecularmanipulator.research." + key); }
     private static Component orderState(String key) {
         return Component.translatable("gui.molecularmanipulator.research.order_state." + key);
@@ -526,17 +555,6 @@ final class MatterResearchPanel {
             costDefinition = definition; costFirst = first; costLast = last;
         }
         return cachedCosts;
-    }
-
-    private record OrderEntry(GenericStack target, long queued, long active, String status,
-                              List<GenericStack> missing, ResourceLocation owner) { }
-    private void fitted(GuiGraphics graphics, Component text, int x, int y, int width, int color) {
-        float scale = Math.min(1, width / (float) Math.max(1, font.width(text)));
-        graphics.pose().pushPose();
-        graphics.pose().translate(x, y, 0);
-        graphics.pose().scale(scale, scale, 1);
-        graphics.drawString(font, text, 0, 0, color, false);
-        graphics.pose().popPose();
     }
 
 }

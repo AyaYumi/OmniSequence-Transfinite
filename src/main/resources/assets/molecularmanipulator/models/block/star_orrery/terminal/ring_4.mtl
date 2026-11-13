@@ -1,0 +1,5 @@
+newmtl fil
+map_Kd molecularmanipulator:block/star_orrery/terminal/filigree
+
+newmtl metal
+map_Kd molecularmanipulator:block/star_orrery/terminal/metal

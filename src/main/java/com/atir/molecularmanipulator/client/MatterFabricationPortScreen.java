@@ -1,204 +1,135 @@
 package com.atir.molecularmanipulator.client;
 
-import appeng.api.client.AEKeyRendering;
+import appeng.api.orientation.RelativeSide;
 import appeng.api.stacks.AEFluidKey;
+import appeng.menu.SlotSemantics;
 import appeng.client.gui.style.ScreenStyle;
 import net.minecraft.client.gui.components.Button;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPortBlockEntity;
+
 import com.atir.molecularmanipulator.menu.MatterFabricationPortMenu;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import com.atir.molecularmanipulator.blockentity.MatterFabricationPortBlockEntity;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 
-/** Material cache at left, network return / adjacent-output controls at right. */
+import java.util.*;
+
 public final class MatterFabricationPortScreen extends ResponsiveContainerScreen<MatterFabricationPortMenu> {
-    private static final Direction[] SIDES = {Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST};
-    private final List<OutputSideButton> sideButtons = new ArrayList<>();
-    private Button returnButton, autoButton;
-
-    public MatterFabricationPortScreen(MatterFabricationPortMenu menu, Inventory inventory, Component title, ScreenStyle style) {
-        super(menu, inventory, title, style);
-    }
-    @Override protected void init() {
-        super.init(); sideButtons.clear();
-        if (menu.getPort().getPortType().isInput()) {
-            returnButton = addScreenWidget(OmniUiTheme.button(leftPos + 130, topPos + 74, 98, 20,
-                    text("return_ae"), button -> menu.returnInputs()));
-            returnButton.setTooltip(Tooltip.create(text("return_hint")));
-        } else {
-            autoButton = addScreenWidget(OmniUiTheme.button(leftPos + 130, topPos + 50, 98, 20,
-                    text("auto_off"), button -> menu.toggleAutoOutput()));
-            autoButton.setTooltip(Tooltip.create(text("auto_hint")));
-            for (int i = 0; i < SIDES.length; i++) {
-                var side = SIDES[i];
-                var button = addScreenWidget(new OutputSideButton(leftPos + 130 + i % 2 * 52,
-                        topPos + 94 + i / 2 * 24, side));
-                sideButtons.add(button);
+    private OsqUi ui;
+    private boolean directionsOpen;
+    private final List<Button> sides=new ArrayList<>();
+    private Button refund,auto;
+    private final Component[] sideTooltips=new Component[6];
+    public MatterFabricationPortScreen(MatterFabricationPortMenu menu,Inventory inventory,Component title,ScreenStyle style){super(menu,inventory,title,style);}
+    @Override protected void init(){
+        boolean fluid=menu.getPort().getPortType().isFluid();
+        ui=new OsqUi(fluid?"fab_port_fluid":"fab_port_item");
+        imageWidth=ui.layout.width;imageHeight=ui.layout.height;super.init();sides.clear();refund=auto=null;
+        Arrays.fill(sideTooltips,null);
+        var help=addScreenWidget(ui.button("tool0",leftPos,topPos,()->OsqUi.tr("gui.molecularmanipulator.auto_craft_help"),()->OsqGuide.open("matter_fabrication_ports")));
+        help.setTooltip(Tooltip.create(OsqUi.tr("gui.molecularmanipulator.auto_craft_help")));
+        ui.inventory(menu);ui.slots(menu.getSlots(SlotSemantics.MACHINE_INPUT),"cache");
+        ui.slots(menu.getSlots(SlotSemantics.MACHINE_OUTPUT),"cache");
+        ui.text(fluid?"block.molecularmanipulator.matter_fabrication_fluid_output":"block.molecularmanipulator.matter_fabrication_item_input",
+                ()->menu.getPort().getBlockState().getBlock().getName());
+        ui.text("gui.molecularmanipulator.fabrication.port.network_online",()->text(menu.networkOnline?"network_online":"network_offline"));
+        if(menu.getPort().getPortType().isInput()) {
+            ui.hide(e->e.x<0&&e.y>=56&&e.y<78);
+            refund=addScreenWidget(fluid?ui.button("auto",leftPos,topPos,()->text("return_ae"),menu::returnInputs)
+                    :ui.button("return",leftPos,topPos,()->text("return_ae"),menu::returnInputs));
+            refund.setTooltip(Tooltip.create(text("return_ae")));
+        }else{
+            auto=addScreenWidget(fluid?ui.button("auto",leftPos,topPos,()->text(menu.autoOutput?"auto_on":"auto_off"),menu::toggleAutoOutput)
+                    :ui.button("return",leftPos,topPos,()->text(menu.autoOutput?"auto_on":"auto_off"),menu::toggleAutoOutput));
+            ui.state(auto,()->menu.autoOutput?"active":"normal");
+            auto.setTooltip(Tooltip.create(text("auto_hint")));
+            var direction=addScreenWidget(ui.button("tool1",leftPos,topPos,()->text("directions"),this::toggleDirections));
+            direction.setTooltip(Tooltip.create(OsqUi.tr("gui.molecularmanipulator.auto_craft_output_directions_hint")));
+            ui.state(direction,()->directionsOpen?"active":"normal");
+            for(int i=0;i<6;i++){
+                var side=OsqNeighborDirections.OUTPUT_SIDES[i];
+                Button b=ui.button(OsqNeighborDirections.IDS[i],leftPos,topPos,()->OsqNeighborDirections.label(side),()->menu.toggleOutputSide(outputSide(side).get3DDataValue()));
+                ui.state(b,()->(menu.outputSides&(1<<outputSide(side).get3DDataValue()))!=0?"active":"normal");
+                ui.itemIcon(b,()->OsqNeighborDirections.icon(menu.getPort().getLevel(),menu.getPort().getBlockPos(),outputSide(side)));
+                sides.add(addScreenWidget(b));
             }
         }
-        updateControls();
+        ui.visible=e->{
+            if("tip".equals(e.kind))return false;
+            if(Arrays.asList(OsqNeighborDirections.IDS).contains(e.id))return directionsOpen;
+            if("dirs".equals(e.id)
+                    ||"gui.molecularmanipulator.auto_craft_output_directions".equals(e.lang))return directionsOpen;
+            float y="text".equals(e.type)?e.baseline:e.y;
+            return !directionsOpen||y<40||y>=140;
+        };
+        ui.color("gui.molecularmanipulator.fabrication.port.network_online",()->menu.networkOnline?ui.palette.ok:ui.palette.ink3);
+        ui.sprite(12,30,()->ui.sprite("dot_"+(menu.networkOnline?"ok":"mute")));
+        ui.number(fluid?96:92,69,()->menu.occupied);
+        ui.number(fluid?106.52f:102.77f,69,()->fluid?"/ 4":"/ 16");
+        ui.number(142,66,()->OsqUi.compact(menu.totalAmount));
+        ui.number(96,89,()->String.format(Locale.ROOT,"%,d mB",MatterFabricationPortBlockEntity.FLUID_CAPACITY));
+        ui.hide(e->"text".equals(e.type)&&"mB".equals(e.text));
+        ui.omit("gui.molecularmanipulator.fab.s031");
+        refresh();
     }
-    @Override public void containerTick() { super.containerTick(); updateControls(); }
-    private void updateControls() {
-        if (returnButton != null) returnButton.active = menu.networkOnline && menu.totalAmount > 0;
-        if (autoButton != null) autoButton.setMessage(text(menu.autoOutput ? "auto_on" : "auto_off"));
-        for (int i = 0; i < sideButtons.size(); i++) {
-            var side = SIDES[i]; boolean enabled = (menu.outputSides & 1 << side.get3DDataValue()) != 0;
-            sideButtons.get(i).refreshNeighbor(enabled);
+    private Direction outputSide(RelativeSide side){return OsqNeighborDirections.worldSide(menu.getPort().getBlockState(),side);}
+    private void toggleDirections(){directionsOpen=!directionsOpen;refresh();}
+    private void refresh(){
+        if(menu.getPort().getPortType().isInput())directionsOpen=false;
+        if(refund!=null){refund.active=menu.networkOnline&&menu.totalAmount>0;refund.visible=!directionsOpen;}
+        if(auto!=null)auto.visible=!directionsOpen;
+        ui.slots(menu.getSlots(SlotSemantics.MACHINE_INPUT),"cache");
+        ui.slots(menu.getSlots(SlotSemantics.MACHINE_OUTPUT),"cache");
+        if(directionsOpen)for(var slot:menu.getSlots(SlotSemantics.MACHINE_OUTPUT)){slot.x=-1000;slot.y=-1000;}
+        for(int i=0;i<sides.size();i++){
+            var b=sides.get(i);b.visible=directionsOpen;if(!directionsOpen)continue;
+            var side=OsqNeighborDirections.OUTPUT_SIDES[i];
+            var hint=OsqNeighborDirections.tooltip(menu.getPort().getLevel(),menu.getPort().getBlockPos(),side,outputSide(side),menu.outputSides);
+            if(!hint.equals(sideTooltips[i])){b.setTooltip(Tooltip.create(hint));sideTooltips[i]=hint;}
         }
     }
-
-    /** Keep AE's native face and height; reserve the left half for the adjacent block icon. */
-    private final class OutputSideButton extends OmniButton {
-        private final Direction side;
-        private ItemStack icon = ItemStack.EMPTY;
-        private AEFluidKey fluidIcon;
-        private boolean occupied;
-        private boolean outputEnabled;
-        private BlockState neighborState;
-        private boolean neighborInitialized;
-
-        OutputSideButton(int x, int y, Direction side) {
-            super(x, y, 46, 20, Component.empty(), button -> menu.toggleOutputSide(side.get3DDataValue()));
-            this.side = side;
-        }
-
-        void refreshNeighbor(boolean enabled) {
-            var level = menu.getPort().getLevel();
-            var pos = menu.getPort().getBlockPos().relative(side);
-            var state = level != null && level.hasChunkAt(pos) ? level.getBlockState(pos) : null;
-            if (neighborInitialized && neighborState == state && outputEnabled == enabled) return;
-            neighborInitialized = true;
-            neighborState = state;
-            outputEnabled = enabled;
-            var label = text("side_short." + side.getName());
-            setMessage(enabled ? Component.literal("[").append(label).append("]") : label);
-            icon = ItemStack.EMPTY; fluidIcon = null; occupied = false;
-            Component name = text("neighbor_unloaded");
-            if (state != null) {
-                occupied = !state.isAir();
-                name = occupied ? Component.translatable(state.getBlock().getDescriptionId()) : text("neighbor_empty");
-                if (occupied) {
-                    icon = new ItemStack(state.getBlock());
-                    if (icon.isEmpty() && !state.getFluidState().isEmpty()) {
-                        fluidIcon = AEFluidKey.of(state.getFluidState().getType());
-                        name = fluidIcon.getDisplayName();
-                    }
-                }
-            }
-            setTooltip(Tooltip.create(text("side_hint", text("side." + side.getName()), text(enabled ? "enabled" : "disabled"))
-                    .copy().append("\n").append(text("neighbor", name))));
-        }
-
-        @Override protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            boolean hovered = isHoveredOrFocused();
-            OmniUiTheme.buttonSurface(graphics, getX(), getY(), getX() + getWidth(), getY() + getHeight(),
-                    hovered, active, outputEnabled, false);
-            renderButtonText(graphics, net.minecraft.client.Minecraft.getInstance().font, 2,
-                    OmniUiTheme.buttonText(active, outputEnabled, false), 0);
-            drawNeighborIcon(graphics, net.minecraft.client.Minecraft.getInstance().font,
-                    icon, fluidIcon, occupied, getX(), getY());
-        }
-
-        @Override protected void renderButtonText(GuiGraphics graphics, Font font, int padding, int color, int yOffset) {
-            OmniButton.renderButtonText(graphics, font, getMessage(), getX() + 22, getY(),
-                    getX() + getWidth() - 3, getY() + getHeight(), yOffset, color);
+    @Override public void containerTick(){super.containerTick();refresh();}
+    boolean directionsOpen(){return directionsOpen;}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(wirelessPanelOpen())return super.keyPressed(key,scan,mods);if(key==256&&directionsOpen){directionsOpen=false;refresh();return true;}return super.keyPressed(key,scan,mods);}
+    @Override public void drawBG(GuiGraphics g,int x,int y,int mx,int my,float pt){if(ui!=null)ui.background(g,font,x,y);}
+    @Override public void drawFG(GuiGraphics g,int ox,int oy,int mx,int my){
+        if(ui==null)return;ui.foreground(g,font);
+        if(directionsOpen)return;
+        if(menu.getPort().getPortType().isFluid())for(int i=0;i<4;i++){
+            int x=tankX(i),y=tankY(i);var stack=menu.getTankStack(i);
+            var fluid=stack!=null&&stack.what() instanceof AEFluidKey key?key:null;
+            long amount=stack==null?0:stack.amount();
+            OsqFluidGauge.draw(g,fluid,amount,MatterFabricationPortBlockEntity.FLUID_CAPACITY,x,y,34,34,ui.palette);
+            if(amount>0){
+                var readout=Component.literal(OsqFluidGauge.readout(amount));
+                boolean overFluid=fluid!=null&&OsqFluidGauge.fillHeight(amount,MatterFabricationPortBlockEntity.FLUID_CAPACITY,30)>20;
+                // Text only: a small glyph shadow, never a rectangle over the tank.
+                if(overFluid)ui.centeredText(g,readout,x+4.5f,y+8.5f,26,ui.palette.dark?ui.palette.paper:ui.palette.ink);
+                int color=overFluid?(ui.palette.dark?ui.palette.ink:ui.palette.invT):ui.palette.ink;
+                ui.centeredText(g,readout,x+4,y+8,26,color);
+            }else ui.centeredText(g,Component.literal("0"),x+3,y+17,28,ui.palette.ink3);
         }
     }
-
-    /** 16px block thumbnail, separated from the direction label beginning at x + 22. */
-    static void drawNeighborIcon(GuiGraphics graphics, Font font, ItemStack icon, AEFluidKey fluidIcon,
-            boolean occupied, int x, int y) {
-        if (!icon.isEmpty()) graphics.renderItem(icon, x + 3, y + 1);
-        else if (fluidIcon != null) AEKeyRendering.drawInGui(net.minecraft.client.Minecraft.getInstance(), graphics,
-                x + 3, y + 1, fluidIcon);
-        else ConsoleTextRenderer.centered(graphics, font, occupied ? "?" : "–", x + 11, y + 5, OmniUiTheme.MUTED_TEXT);
+    @Override public boolean mouseClicked(double x,double y,int button){
+        if(wirelessPanelOpen())return super.mouseClicked(x,y,button);
+        if(!directionsOpen&&menu.getPort().getPortType().isFluid()&&(button==0||button==1)){
+            int tank=tankAt(logicalMouseX(x)-leftPos,logicalMouseY(y)-topPos);
+            if(tank>=0){if(button==1)menu.interactFluid(tank);else menu.requestFluidTransfer(tank);return true;}
+        }return super.mouseClicked(x,y,button);
     }
-    @Override public void drawBG(GuiGraphics graphics, int x, int y, int mouseX, int mouseY, float partialTick) {
-        super.drawBG(graphics, x, y, mouseX, mouseY, partialTick);
-        graphics.fill(x + 12, y + 38, x + 236, y + 39, OmniUiTheme.SHADOW);
-        MachineUiLayout.FABRICATION_PORT.draw(graphics, x, y);
-        if (menu.getPort().getPortType().isItem()) OmniUiTheme.slotGrid(graphics, x + 26, y + 69, 4, 4);
-        else for (int tank = 0; tank < 4; tank++) renderTank(graphics, tank, x + tankX(tank), y + tankY(tank));
+    @Override public void render(GuiGraphics g,int mx,int my,float pt){super.render(g,mx,my,pt);
+        if(wirelessPanelOpen()||directionsOpen||!menu.getPort().getPortType().isFluid())return;int i=tankAt(logicalMouseX(mx)-leftPos,logicalMouseY(my)-topPos);if(i<0)return;
+        var s=menu.getTankStack(i);g.renderComponentTooltip(font,List.of(s==null?text("empty_tank"):s.what().getDisplayName(),
+                Component.literal(DisplayNumbers.exact(s==null?0:s.amount())+" / "+DisplayNumbers.exact(MatterFabricationPortBlockEntity.FLUID_CAPACITY)+" mB"),text("fluid_click")),mx,my);
     }
-    @Override public void drawFG(GuiGraphics graphics, int offsetX, int offsetY, int mouseX, int mouseY) {
-        var displayTitle = title.getString().isBlank()
-                ? Component.translatable(menu.getPort().getBlockState().getBlock().getDescriptionId()) : title;
-        label(graphics, displayTitle, 14, 10, 220, OmniUiTheme.PRIMARY_TEXT);
-        graphics.fill(14, 26, 18, 30, menu.networkOnline ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
-        label(graphics, text(menu.networkOnline ? "network_online" : "network_offline"), 23, 24, 211, OmniUiTheme.PRIMARY_TEXT);
-        label(graphics, text("cache"), 20, 51, 84, OmniUiTheme.PRIMARY_TEXT);
-        label(graphics, text("occupied", menu.occupied, menu.getPort().getPortType().isItem() ? 16 : 4), 20, 150, 84, OmniUiTheme.MUTED_TEXT);
-        label(graphics, text("amount", number(menu.totalAmount), unit()), 20, 163, 84, OmniUiTheme.PRIMARY_TEXT);
-        if (menu.getPort().getPortType().isInput()) {
-            label(graphics, text("recovery"), 130, 51, 98, OmniUiTheme.PRIMARY_TEXT);
-            int y = 105;
-            for (var line : font.split(text("return_description"), 98)) {
-                graphics.drawString(font, line, 130, y, OmniUiTheme.MUTED_TEXT, false); y += 10;
-            }
-            if (menu.lastReturned >= 0) {
-                label(graphics, text("returned", number(menu.lastReturned), unit()), 130, 149, 98, menu.lastReturned > 0 ? OmniUiTheme.SUCCESS : OmniUiTheme.WARNING);
-                label(graphics, text(menu.totalAmount > 0 ? "remainder" : "cache_empty"), 130, 163, 98, OmniUiTheme.MUTED_TEXT);
-            }
-        } else label(graphics, text("directions"), 130, 79, 98, OmniUiTheme.PRIMARY_TEXT);
-        label(graphics, Component.translatable("container.inventory"), 44, 184, 162, OmniUiTheme.PRIMARY_TEXT);
-    }
-    private void renderTank(GuiGraphics graphics, int index, int x, int y) {
-        OmniUiTheme.insetPanel(graphics, x, y, x + 40, y + 36);
-        var stack = menu.getTankStack(index);
-        if (stack != null) AEKeyRendering.drawInGui(net.minecraft.client.Minecraft.getInstance(), graphics, x + 12, y + 3, stack.what());
-        else ConsoleTextRenderer.centered(graphics, font, "–", x + 20, y + 7, OmniUiTheme.MUTED_TEXT);
-        var amount = Component.literal(stack == null ? "0" : number(stack.amount()));
-        int width = Math.min(36, font.width(amount));
-        label(graphics, amount, x + (40 - width) / 2, y + 23, 36, OmniUiTheme.PRIMARY_TEXT);
-        if (stack != null) {
-            int fill = Math.max(2, (int) (36 * stack.amount() / (double) MatterFabricationPortBlockEntity.FLUID_CAPACITY));
-            graphics.fill(x + 2, y + 33, x + 2 + fill, y + 35, OmniUiTheme.CYAN);
-        }
-    }
-    @Override public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (menu.getPort().getPortType().isFluid() && (button == 0 || button == 1)) {
-            int tank = tankAt(logicalMouseX(mouseX) - leftPos, logicalMouseY(mouseY) - topPos);
-            if (tank >= 0) {
-                if (button == 1) menu.interactFluid(tank); else menu.requestFluidTransfer(tank);
-                return true;
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-    @Override public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        if (!menu.getPort().getPortType().isFluid()) return;
-        int tank = tankAt(logicalMouseX(mouseX) - leftPos, logicalMouseY(mouseY) - topPos);
-        if (tank < 0) return;
-        var stack = menu.getTankStack(tank);
-        graphics.renderTooltip(font, List.of(stack == null ? text("empty_tank") : stack.what().getDisplayName(),
-                Component.literal(String.format(Locale.ROOT, "%,d / %,d mB", stack == null ? 0 : stack.amount(), MatterFabricationPortBlockEntity.FLUID_CAPACITY)),
-                text("fluid_click")), java.util.Optional.empty(), mouseX, mouseY);
-    }
-    private Component unit() { return menu.getPort().getPortType().isItem() ? text("items_unit") : Component.literal("mB"); }
-    private void label(GuiGraphics graphics, Component value, int x, int y, int width, int color) { OmniUiTheme.label(graphics, font, value, x, y, width, color); }
-    private static Component text(String key, Object... args) { return Component.translatable("gui.molecularmanipulator.fabrication.port." + key, args); }
-    private static int tankX(int index) { return 20 + index % 2 * 46; }
-    private static int tankY(int index) { return 68 + index / 2 * 40; }
-    private static int tankAt(double x, double y) {
-        for (int i = 0; i < 4; i++) if (x >= tankX(i) && x < tankX(i) + 40 && y >= tankY(i) && y < tankY(i) + 36) return i;
-        return -1;
-    }
-    private static String number(long value) {
-        if (value < 1000) return Long.toString(value);
-        double unit = value >= 1_000_000_000 ? 1e9 : value >= 1_000_000 ? 1e6 : 1e3;
-        return String.format(Locale.ROOT, "%.2f", value / unit).replaceAll("0+$", "").replaceAll("\\.$", "") + (unit == 1e9 ? "G" : unit == 1e6 ? "M" : "k");
-    }
+    private static int tankX(int i){return 14+i%2*38;} private static int tankY(int i){return 46+i/2*38;}
+    private static int tankAt(double x,double y){for(int i=0;i<4;i++)if(x>=tankX(i)&&x<tankX(i)+34&&y>=tankY(i)&&y<tankY(i)+34)return i;return -1;}
+    private static Component text(String key,Object...args){return OsqUi.tr("gui.molecularmanipulator.fabrication.port."+key,args);}
 }

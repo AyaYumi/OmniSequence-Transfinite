@@ -20,7 +20,9 @@ import java.util.function.LongSupplier;
  * input, output and task accounting.</p>
  *
  * <p>Input availability and dispatch budgets only limit the caller's current
- * work; they do not establish machine capacity or discard a learned rate.</p>
+ * work; they do not establish machine capacity or discard a learned rate.
+ * Provider/pattern learning and same-tick usage survive job changes; only
+ * accounting fallbacks are reset for a new job.</p>
  */
 public final class MolecularAdaptiveBatchController {
     static final long RECOVERY_PROBE_INTERVAL_TICKS = 20L;
@@ -38,10 +40,12 @@ public final class MolecularAdaptiveBatchController {
         this.tickSupplier = Objects.requireNonNull(tickSupplier, "tickSupplier");
     }
 
+    /** Provider/pattern learning survives jobs; accounting fallbacks belong to one job. */
     public void setActiveJob(Object job) {
         if (activeJob != job) {
-            states.clear();
-            attemptSequence = 0;
+            for (var providerStates : states.values()) {
+                for (var state : providerStates.values()) state.singleOnly = false;
+            }
             activeJob = job;
         }
     }
@@ -50,8 +54,9 @@ public final class MolecularAdaptiveBatchController {
     public long getAvailableCrafts(ICraftingProvider provider, IPatternDetails patternDetails, long maxWindow) {
         if (provider == null || patternDetails == null || maxWindow <= 0) return 0;
         var state = getState(provider, patternDetails);
-        state.beginTick(currentTick());
-        if (state.isBlocked(currentTick())) return 0;
+        var tick = currentTick();
+        state.beginTick(tick);
+        if (state.isBlocked(tick)) return 0;
         long target = state.singleOnly ? 1 : state.target;
         return Math.min(maxWindow, Math.max(0, target - state.acceptedThisTick));
     }

@@ -1,0 +1,7 @@
+{
+  "type": "molecularmanipulator:end_warp_ruin",
+  "biomes": "#minecraft:is_end",
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "none"
+}

@@ -167,16 +167,16 @@ public final class MolecularCenterPatternMigration {
             }
         }
 
-        private boolean sourceWritable(PatternContainer source) {
+        private boolean readable(PatternContainer source) {
             return source.getGrid() == grid && (!(source instanceof MolecularCenterBlockEntity center)
                     || center.canMutateExternalPatterns());
         }
 
         private void moveContainer(PatternContainer source) {
             try {
-                // An Array's terminal inventory mirrors crystal-owned items. A just-removed
-                // crystal still owns its saved patterns; its stale mirror is not a source.
-                if (!sourceWritable(source)) return;
+                // Another Array's terminal inventory can be a crystal mirror too. Never
+                // extract a stale copy after its owning crystal changed in this tick.
+                if (!readable(source)) return;
                 var patterns = source.getTerminalPatternInventory();
                 if (patterns == inventory || !visitedInventories.add(patterns)) return;
                 for (int slot = 0; slot < patterns.size(); slot++) {
@@ -187,7 +187,8 @@ public final class MolecularCenterPatternMigration {
                         int targetSlot = nextSlot();
                         if (targetSlot < 0) return;
                         if (!MolecularCenterPatternTransfer.fromInventory(patterns, slot, inventory, targetSlot,
-                                () -> writable() && sourceWritable(source))) {
+                                () -> writable() && readable(source))) {
+                            // Repair the owning shard too if a target callback failed after writing.
                             destination.onPatternInventoryChanged(targetSlot);
                             interrupted = true;
                             break;

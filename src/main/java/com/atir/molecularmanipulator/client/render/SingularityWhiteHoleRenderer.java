@@ -35,7 +35,7 @@ public final class SingularityWhiteHoleRenderer {
     private SingularityWhiteHoleRenderer() {}
 
     public static void enqueue(PoseStack poses, SingularityStructureEffects.Frame frame, Vec3 eye) {
-        PENDING.add(new Lens(new Matrix4f(poses.last().pose()), frame, eye));
+        PENDING.add(new Lens(ForgeRenderSupport.cameraRelativePose(poses.last()), frame, eye));
     }
 
     @SubscribeEvent
@@ -74,8 +74,14 @@ public final class SingularityWhiteHoleRenderer {
             RenderSystem.setShader(OmniShaders::singularityLens);
             PENDING.sort(Comparator.comparingDouble((Lens lens) -> lens.eye.subtract(0, 12.5, 0).lengthSqr()).reversed());
             for (var lens : PENDING) {
-                copyScene(target);
-                draw(lens, event.getProjectionMatrix());
+                var center = SingularityLensProjection.centerInViewSpace(lens.pose, 12.5F, ForgeRenderSupport.viewMatrix());
+                var bounds = SingularityLensProjection.screenBounds(center, SingularityWhiteHoleProfile.FIELD_RADIUS,
+                        event.getProjectionMatrix(), target.width, target.height);
+                if (bounds.isEmpty()) continue;
+                // Include refraction offsets and the four depth taps around each color sample.
+                copyScene(target, bounds.expand((int) Math.ceil(target.height * .12D) + 2,
+                        target.width, target.height));
+                draw(lens, ForgeRenderSupport.viewMatrix(), event.getProjectionMatrix(), bounds);
             }
         } finally {
             PENDING.clear();
@@ -104,17 +110,20 @@ public final class SingularityWhiteHoleRenderer {
         }
     }
 
-    private static void copyScene(RenderTarget target) {
+    private static void copyScene(RenderTarget target, SingularityLensProjection.ScreenBounds bounds) {
         GlStateManager._glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, target.frameBufferId);
         GlStateManager._glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, scene.frameBufferId);
-        GlStateManager._glBlitFrameBuffer(0, 0, target.width, target.height, 0, 0, scene.width, scene.height,
+        int right = bounds.x() + bounds.width(), top = bounds.y() + bounds.height();
+        GlStateManager._glBlitFrameBuffer(bounds.x(), bounds.y(), right, top,
+                bounds.x(), bounds.y(), right, top,
                 GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT, GL11.GL_NEAREST);
         target.bindWrite(false);
     }
 
-    private static void draw(Lens lens, Matrix4f projection) {
+    private static void draw(Lens lens, Matrix4f view, Matrix4f projection,
+            SingularityLensProjection.ScreenBounds bounds) {
         var shader = OmniShaders.singularityLens();
-        var center = SingularityLensProjection.centerInViewSpace(lens.pose, 12.5F);
+        var center = SingularityLensProjection.centerInViewSpace(lens.pose, 12.5F, view);
         var inverseProjection = SingularityLensProjection.inverseProjection(projection);
         shader.setSampler("SceneColor", scene.getColorTextureId());
         shader.setSampler("SceneDepth", scene.getDepthTextureId());
@@ -126,10 +135,12 @@ public final class SingularityWhiteHoleRenderer {
         shader.safeGetUniform("LensTime").set(lens.frame.time() % 24000);
         shader.safeGetUniform("CoreRadius").set(SingularityWhiteHoleProfile.radius(lens.frame));
         shader.safeGetUniform("FieldRadius").set(SingularityWhiteHoleProfile.FIELD_RADIUS);
-        var mesh = Tesselator.getInstance().getBuilder();
-        mesh.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
-        mesh.vertex(-1, -1, 0).endVertex(); mesh.vertex(1, -1, 0).endVertex();
-        mesh.vertex(1, 1, 0).endVertex(); mesh.vertex(-1, 1, 0).endVertex();
+        float left = 2F * bounds.x() / scene.width - 1F, bottom = 2F * bounds.y() / scene.height - 1F;
+        float right = 2F * (bounds.x() + bounds.width()) / scene.width - 1F;
+        float top = 2F * (bounds.y() + bounds.height()) / scene.height - 1F;
+        var mesh = ForgeRenderSupport.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
+        mesh.vertex(left, bottom, 0).endVertex(); mesh.vertex(right, bottom, 0).endVertex();
+        mesh.vertex(right, top, 0).endVertex(); mesh.vertex(left, top, 0).endVertex();
         BufferUploader.drawWithShader(mesh.end());
     }
 

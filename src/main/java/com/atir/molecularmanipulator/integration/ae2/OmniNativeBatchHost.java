@@ -23,6 +23,7 @@ public interface OmniNativeBatchHost {
     void omniNative$accepted(IPatternDetails pattern, long copies);
     void omniNative$expect(AEKey key, long amount);
     void omniNative$fail(String reason, Throwable cause);
+    void omniNative$error(IPatternDetails pattern, RuntimeException cause);
     void omniNative$markDirty();
     long omniNative$workAvailable();
     void omniNative$attempted(long work);

@@ -8,7 +8,7 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.13-forge, branch `1.20.1-forge` |
+| OmniSequence | 2.0.15-forge, branch `1.20.1-forge-legacy` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 or later |
 | AppliedEnhancements | 1.1.2-forge or later, client and server; build API 1.1.4-forge |
@@ -79,7 +79,7 @@ Use Java 17, place `appliedenhancements-1.1.4-forge.jar` in `libs/`, then run:
 ./gradlew build apiJavadoc
 ```
 
-The runtime JAR is `build/libs/omnisequence-transfinite-2.0.13-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.15-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
 
 ## Runtime tests
 

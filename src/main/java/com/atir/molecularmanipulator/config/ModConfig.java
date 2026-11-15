@@ -17,6 +17,7 @@ public final class ModConfig {
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SINGULARITY_COLLECTION_ITEM_BLACKLIST;
     public static final ForgeConfigSpec.IntValue SINGULARITY_COLLECTION_BATCH_SIZE;
     public static final ForgeConfigSpec.IntValue SINGULARITY_COLLECTION_INTERVAL_TICKS;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SINGULARITY_DUPLICATION_ITEM_BLACKLIST;
     public static final ForgeConfigSpec.ConfigValue<List<? extends String>> SINGULARITY_DUPLICATION_ENERGY_PRIORITY;
     public static final ForgeConfigSpec.IntValue SINGULARITY_DUPLICATION_FE_PER_UNIT;
     public static final ForgeConfigSpec.IntValue SINGULARITY_DUPLICATION_AE_PER_UNIT;
@@ -83,10 +84,16 @@ public final class ModConfig {
                 .defineInRange("interval_ticks", 20, 1, 1200);
         server.pop();
         server.comment(
-                "Singularity sequence-matter duplication and black-hole energy settings.",
-                "奇点序质复制与黑洞能源设置。")
+                "Item duplication blacklist, sequence-matter production and black-hole energy settings.",
+                "物品复制黑名单、奇点序质生产与黑洞能源设置。")
                 .translation("molecularmanipulator.configuration.singularity_duplication")
                 .push("singularity_duplication");
+        SINGULARITY_DUPLICATION_ITEM_BLACKLIST = server.comment(
+                "Exact item IDs that cannot be copied by either Singularity Hub, regardless of item NBT. An empty list blocks nothing. Does not affect collection or Sequence Matter generation.",
+                "两种奇点天枢共用的复制物品 ID 黑名单，同一物品的所有 NBT 变体均禁止复制；留空 [] 不限制。不影响资源采集或奇点序质生产。",
+                "Default / 默认：item_blacklist = []")
+                .translation("molecularmanipulator.configuration.singularity_duplication_item_blacklist")
+                .defineListAllowEmpty("item_blacklist", List.<String>of(), ModConfig::isValidItemIdEntry);
         SINGULARITY_DUPLICATION_ENERGY_PRIORITY = server.comment(
                 "Use energy sources in list order. fe comes from adjacent blocks; ae comes from the connected ME network.",
                 "按列表顺序使用能源。fe 来自相邻方块，ae 来自已连接的 ME 网络。")

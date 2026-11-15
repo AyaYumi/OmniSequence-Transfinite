@@ -1,6 +1,6 @@
 # Local Forge dependencies
 
-Minecraft 1.20.1 / Java 17, OmniSequence 2.0.13-forge requires AppliedEnhancements
+Minecraft 1.20.1 / Java 17, OmniSequence 2.0.15-forge requires AppliedEnhancements
 1.1.2-forge or later on the client and server. The default build uses the independently
 installed `appliedenhancements-1.1.4-forge.jar`; place it in this directory before building.
 To compile against another compatible API build, set `-Papplied_enhancements_api_build=<version>`
@@ -23,8 +23,10 @@ and runs that version independently of the production compile-only API.
 
 Thunderbolt and Data Energistics adapters compile against Java 17 ABI declarations
 under `src/optionalCpuApi/java`. Those declarations are excluded from runtime classpaths
-and release JARs. Compatible Forge implementations must be installed separately;
-older builds without the referenced provider API use their ordinary dispatch path.
+and release JARs. Install compatible Forge implementations separately. Thunderbolt
+native dispatch requires the batch executor ABI exposed by Thunderbolt 2.0.5 for
+Forge; builds missing that ABI stay on the existing dispatch path. Lightning Tech
+batch probe acceleration targets the Forge 2.1.4 build.
 Never install NeoForge JARs on Forge.
 
 Optional ExtendedAE Plus integration targets the real Forge **1.6.2** JAR

@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.14, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
+Current source: 2.0.15, Minecraft 1.21.1 / NeoForge. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 
@@ -23,6 +23,7 @@ AppliedEnhancements configuration.
 | `singularity_hub.singularity_collection.item_blacklist` | `[]` | Exact namespaced item IDs; overrides every tag |
 | `singularity_hub.singularity_collection.batch_size` | 1000 | 1–1,000,000 items for each eligible type per cycle |
 | `singularity_hub.singularity_collection.interval_ticks` | 20 | 1–1200 ticks |
+| `singularity_hub.singularity_duplication.item_blacklist` | `[]` | Exact item IDs that neither Singularity Hub can copy |
 | `singularity_hub.singularity_duplication.energy_priority` | `["fe", "ae"]` | Attempt sources in order; FE uses adjacent energy capabilities, AE uses the connected grid |
 | `singularity_hub.singularity_duplication.fe_per_unit` | 1000 | 1–2,147,483,647 FE/mB |
 | `singularity_hub.singularity_duplication.ae_per_unit` | 256 | 1–2,147,483,647 AE/mB |
@@ -101,6 +102,7 @@ batch_size = 1000
 interval_ticks = 20
 
 [singularity_hub.singularity_duplication]
+item_blacklist = ["minecraft:dragon_egg", "minecraft:nether_star"]
 energy_priority = ["fe", "ae"]
 fe_per_unit = 1000
 ae_per_unit = 256
@@ -115,8 +117,13 @@ is produced simultaneously and shown in the collection page.
 The collection page shows the server's effective batch size and interval. A live
 interval change starts a fresh cycle instead of waiting for the previous deadline.
 Collection settings do not control sample copying, which is limited to one item
-per tick with sufficient stored matter and item space. The duplication group's
-`interval_ticks` controls Sequence Matter generation.
+per tick with sufficient stored matter and item space. Set the duplication
+group's `item_blacklist` in the server instance's config (or the single-player
+instance's config). Use complete `namespace:item` IDs, not tags or wildcards.
+`[]` allows all samples. All variants of a listed item are blocked. The sample
+can still be retrieved and no Sequence Matter is spent on it. Pending outputs
+and refunds are still returned. Resource collection and Sequence Matter
+generation (controlled by the duplication group's `interval_ticks`) are unchanged.
 
 Sequence Matter output per cycle = hole count × `matter_per_black_hole` mB.
 FE/AE theoretical cost = produced mB × the chosen per-unit cost. With 64 holes,

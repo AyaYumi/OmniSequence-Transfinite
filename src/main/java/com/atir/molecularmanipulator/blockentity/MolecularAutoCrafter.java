@@ -14,6 +14,7 @@ import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.crafting.CraftingEvent;
 import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
+import appeng.crafting.pattern.AECraftingPattern;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.InternalInventoryHost;
 import appeng.util.inv.filter.IAEItemFilter;
@@ -35,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -359,8 +361,8 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         var expectedRemainders = new KeyCounter();
         KeyCounter[] firstInputs;
         try {
-            firstInputs = CraftingCpuHelper.extractPatternInputs(
-                    details, craftingInventory, level, expectedOutputs, expectedRemainders);
+            firstInputs = craftingInventory.extractPatternInputs(
+                    details, expectedOutputs, expectedRemainders);
         } catch (RuntimeException exception) {
             config.state = AutoCraftState.WAITING_MATERIALS;
             return;
@@ -903,6 +905,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         private final long[] protections;
         private final Level level;
         private final RefundSink refundSink;
+        private boolean exactInputsOnly;
 
         ProtectedNetworkCraftingInventory(MEStorage storage,
                 Supplier<KeyCounter> availableKeys, IActionSource source,
@@ -915,6 +918,44 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
             this.protections = protections;
             this.level = level;
             this.refundSink = refundSink;
+        }
+
+        @Nullable
+        private KeyCounter[] extractPatternInputs(IPatternDetails details,
+                KeyCounter expectedOutputs, KeyCounter expectedRemainders) {
+            boolean allowSubstitutes = !(details instanceof AECraftingPattern craftingPattern)
+                    || craftingPattern.canSubstitute;
+            exactInputsOnly = !allowSubstitutes || canExtractExactInputs();
+            try {
+                return CraftingCpuHelper.extractPatternInputs(
+                        details, this, level, expectedOutputs, expectedRemainders);
+            } finally {
+                exactInputsOnly = !allowSubstitutes;
+            }
+        }
+
+        private boolean canExtractExactInputs() {
+            var requiredInputs = new KeyCounter();
+            try {
+                for (var input : inputs) {
+                    var stack = input.getPossibleInputs()[0];
+                    if (!input.isValid(stack.what(), level)) {
+                        return false;
+                    }
+                    long amount = Math.multiplyExact(stack.amount(), input.getMultiplier());
+                    requiredInputs.set(stack.what(),
+                            Math.addExact(requiredInputs.get(stack.what()), amount));
+                }
+            } catch (ArithmeticException exception) {
+                return false;
+            }
+            for (var entry : requiredInputs) {
+                long amount = entry.getLongValue();
+                if (amount <= 0 || extract(entry.getKey(), amount, Actionable.SIMULATE) != amount) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @Override
@@ -952,6 +993,9 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
 
         @Override
         public Iterable<AEKey> findFuzzyTemplates(AEKey input) {
+            if (exactInputsOnly) {
+                return List.of(input);
+            }
             // AE2 maintains the network-wide fuzzy index. Never enumerate every
             // mounted inventory again for each passive pattern. Counts in that
             // index may lag this tick, so use it ONLY for candidate membership;

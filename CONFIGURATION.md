@@ -1,6 +1,6 @@
 # Configuration / 配置参考
 
-Current source: 2.0.15-forge, Minecraft 1.20.1 / Forge, Java 17. Names and help text are available in English and Chinese.
+Current source: 2.0.16-forge, Minecraft 1.20.1 / Forge, Java 17. Names and help text are available in English and Chinese.
 
 Global files live under the active instance's `config/` directory:
 

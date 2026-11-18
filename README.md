@@ -38,6 +38,12 @@ The [author reference](docs/README.md) describes the version-specific integratio
 
 </details>
 
+## Changes in 21.3.0.2
+
+An Omni-Computation Core or Transfinite Compute Nexus can now run several orders before reaching L7. Jobs on the same CPU share its storage and per-tick dispatch allowance. When a Molecular Auto Crafter has enough of the exact ingredients for one craft, it no longer searches the ME network for substitutes.
+
+Read the three inscriptions in the End ruin in order to dial the laboratory. Step off the pad while the destination is loading to cancel the trip.
+
 ## From a new network to your first automated well
 
 ![Three first steps: connect the well, complete Tier I, install a Pattern Assembly](src/main/resources/assets/molecularmanipulator/ae2guide/assets/diagrams/first-steps-en_us.png)

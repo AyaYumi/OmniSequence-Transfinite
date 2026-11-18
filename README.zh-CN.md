@@ -38,6 +38,12 @@
 
 </details>
 
+## 21.3.0.2 更新
+
+万物演算核心和超限算枢不再需要达到 L7 才能同时接多张订单。同一台 CPU 上的订单共用存储和每 tick 的投料额度。分子自动合成器补货时，只要样板指定的原料够做一份，就不再查询 ME 网络里的替代原料。
+
+前往高能实验室时，按顺序读取末地遗迹里的三枚坐标铭文。目的地加载期间，走下跃迁台即可取消。
+
 ## 从零接网，到第一座自动加工井
 
 ![入门三步：接通构筑井、完成Ⅰ阶研究、安装样板总成](src/main/resources/assets/molecularmanipulator/ae2guide/assets/diagrams/first-steps-zh_cn.png)

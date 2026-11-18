@@ -95,7 +95,6 @@ final class RecipeLockIndex {
             if (!valid) {
                 invalid++;
                 if (invalidExamples.size() < 3) invalidExamples.add(holder.id());
-                LOGGER.trace("Recipe lock {} requires research nodes {}", holder.id(), rule.requires());
             }
             var requirement = new Requirement(new HashSet<>(rule.requires()), "any".equals(rule.mode()), valid);
             var selector = rule.match();
@@ -113,7 +112,6 @@ final class RecipeLockIndex {
             if (matched == 0) {
                 unmatched++;
                 if (unmatchedExamples.size() < 3) unmatchedExamples.add(holder.id());
-                LOGGER.trace("Recipe lock {} matches no loaded recipes", holder.id());
             }
         }
         if (invalid > 0) LOGGER.warn("{} recipe locks reference missing or invalid research nodes; matching recipes stay locked. Examples: {}", invalid, invalidExamples);

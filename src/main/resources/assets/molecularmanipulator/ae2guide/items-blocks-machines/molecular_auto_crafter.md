@@ -21,6 +21,8 @@ Insert a pattern made in a Pattern Encoding Terminal and set how many products t
 
 Left: the machine. Right: supported crafting, smithing and stonecutting patterns. Processing patterns for external machines do not belong here.
 
+For AE2 crafting patterns, the machine first checks whether it can make one craft with the ingredients on the pattern, leaving your reserves in ME. If it can, it skips the search for substitutes. If it cannot, substitutes are considered only when the pattern allows them.
+
 Restocking runs inside the machine without a crafting CPU. Stock the ingredients in ME first; the machine does not order missing ingredients. Each of its nine pattern slots has its own settings and switch, while sharing the machine's crafting capacity.
 
 ## Prepare

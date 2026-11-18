@@ -76,7 +76,10 @@ class MachineEffectWiringTest {
 
     @Test void everyExistingVisualEntryUsesTheMachineResolver() throws IOException {
         for (var renderer : List.of("MolecularCenter", "OmniComputation", "MatterFabrication", "Singularity")) {
-            assertCall(method(read(ROOT + "client/" + renderer + "Renderer"), "render"), LEVELS, "forMachine");
+            var type = read(ROOT + "client/" + renderer + "Renderer");
+            boolean earlyFrame = type.interfaces.contains(ROOT + "client/render/EarlyFrameGeometry$Source");
+            if (earlyFrame) assertCall(method(type, "render"), type.name, "capture");
+            assertCall(method(type, earlyFrame ? "capture" : "render"), LEVELS, "forMachine");
         }
         assertCall(method(read(ROOT + "client/SingularityCoreRenderer"), "render"), LEVELS, "forSingularityPart");
         assertCall(method(read(ROOT + "block/SingularityPartBlock"), "animateTick"), LEVELS, "forSingularityPart");
@@ -116,20 +119,21 @@ class MachineEffectWiringTest {
 
     @Test void smallAe2ButtonsRemainKeyboardActivatableAndReadServerConfirmedState() throws IOException {
         var button = read(ROOT + "client/MachineEffectButton");
-        assertEquals(ROOT + "client/OmniButton", button.superName);
+        assertEquals(ROOT + "client/OsqUi$SkinButton", button.superName);
+        assertEquals("net/minecraft/client/gui/components/Button", read(button.superName).superName);
         assertCall(method(button, "onPress"), "net/minecraft/client/gui/screens/Screen", "hasShiftDown");
         assertCall(method(button, "onPress"), SETTINGS, "nextLevel");
         assertCall(method(button, "refresh"), "java/util/function/IntSupplier", "getAsInt");
         assertCall(method(button, "refresh"), button.name, "setMessage");
         assertCall(method(button, "refresh"), button.name, "setTooltip");
         assertTrue(calls(method(button, "onPress")).stream().noneMatch(c -> c.name.equals("setOverride")));
-        for (var prefix : List.of("MatterFabrication", "OmniComputation", "Singularity")) {
-            assertCall(method(read(ROOT + "client/" + prefix + "Screen"), "init"), button.name, "<init>");
+        for (var prefix : MACHINES) {
+            var screen = read(ROOT + "client/" + prefix + "Screen");
+            var builder = switch (prefix) { case "MolecularCenter" -> "initColorControls";
+                case "Singularity" -> "initEffectControl"; default -> "init"; };
+            if (!builder.equals("init")) assertCall(method(screen, "init"), screen.name, builder);
+            assertCall(method(screen, builder), button.name, "<init>");
         }
-        var controls = read(ROOT + "client/MolecularCenterControls");
-        assertCall(method(controls, "<init>"), button.name, "<init>");
-        assertCall(method(controls, "<init>"), ROOT + "client/MolecularCenterScreen", "addScreenWidget");
-        assertCall(method(read(ROOT + "client/MolecularCenterScreen"), "init"), controls.name, "<init>");
     }
 
     @Test void singleBlockNexusAndHubRejectEffectActionsAndDoNotShowIneffectiveControls() throws IOException {
@@ -140,8 +144,10 @@ class MachineEffectWiringTest {
             var actionCalls = calls(action);
             assertTrue(index(actionCalls, "isSingleBlock") < index(actionCalls, "apply"));
         }
-        assertCall(method(read(ROOT + "client/OmniComputationScreen"), "init"),
-                ROOT + "blockentity/OmniComputationCoreBlockEntity", "isSingleBlock");
+        var nexus = method(read(ROOT + "block/TransfiniteComputeNexusBlock"), "use");
+        assertCall(nexus, ROOT + "block/OmniComputationControllerBlock", "useMemoryCard");
+        assertFalse(calls(nexus).stream().anyMatch(call -> call.name.equals("openMenu") || call.name.equals("openScreen")
+                || call.name.equals("use")));
         assertCall(method(read(ROOT + "client/SingularityScreen"), "updateWidgets"),
                 ROOT + "blockentity/SingularityBlockEntity", "isSingleBlock");
     }

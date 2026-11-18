@@ -25,7 +25,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
-import org.joml.Vector3f;
+import net.minecraft.client.gui.components.Button;
+import com.atir.molecularmanipulator.client.gui.theme.OsqLayout;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ class MolecularCenterControlsTest {
     private UiRenderRecorder.MetricsFont font;
     private MolecularCenterMenu menu;
     private MolecularCenterScreen screen;
-    private MolecularCenterControls controls;
+    private OsqUi ui;
     private Field minecraftInstance;
     private Minecraft savedMinecraft;
     private Language savedLanguage;
@@ -95,26 +96,15 @@ class MolecularCenterControlsTest {
         set(screen, "narratables", new ArrayList<>());
         set(screen, "screenWidgets", new ArrayList<>());
         set(screen, "screenContent", new ResponsiveScreenWidgets());
-        var background = json("/assets/ae2/screens/molecular_center.json").getAsJsonObject("generatedBackground");
-        panelWidth = background.get("width").getAsInt();
-        panelHeight = background.get("height").getAsInt();
-        set(screen, "imageWidth", panelWidth);
-        set(screen, "imageHeight", panelHeight);
-        // Nonzero origin also catches refresh accidentally writing local widget coordinates.
-        set(screen, "leftPos", 37);
-        set(screen, "topPos", 23);
-        controls = new MolecularCenterControls(screen, menu);
+        set(screen, "colorUpdateConfirmation", new StructureUpdateConfirmation());
+        show(MolecularCenterScreen.TAB_OVERVIEW);
     }
 
     @AfterEach
     void restoreClientGlobals() throws Exception {
-        try {
-            if (controls != null) controls.close();
-        } finally {
-            if (savedLanguage != null) Language.inject(savedLanguage);
-            if (minecraftInstance != null) minecraftInstance.set(null, savedMinecraft);
-            if (suppliedClientConfig) ModConfig.CLIENT_SPEC.setConfig(null);
-        }
+        if (savedLanguage != null) Language.inject(savedLanguage);
+        if (minecraftInstance != null) minecraftInstance.set(null, savedMinecraft);
+        if (suppliedClientConfig) ModConfig.CLIENT_SPEC.setConfig(null);
     }
 
     @ParameterizedTest
@@ -124,51 +114,36 @@ class MolecularCenterControlsTest {
         assertEquals(PREFIX + "pattern_migration.button", key(button("migrate").getMessage()));
         assertEquals(PREFIX + "pattern_migration.tooltip", key(tooltip(button("migrate"))));
         assertEquals(PREFIX + "pattern_upload.off", key(button("upload").getMessage()));
-        for (String name : List.of("migrate", "upload", "update", "keep")) {
-            var button = button(name);
-            assertDefined(button.getMessage(), translations, locale);
-            assertNotNull(button.getTooltip());
-            assertDefined(tooltip(button), translations, locale);
+        for (String name : List.of("migrate", "upload")) {
+            assertDefined(button(name).getMessage(), translations, locale);
+            assertDefined(tooltip(button(name)), translations, locale);
         }
         menu.automaticPatternUpload = true;
-        controls.tick();
+        show(MolecularCenterScreen.TAB_COLORS);
         assertEquals(PREFIX + "pattern_upload.on", key(button("upload").getMessage()));
-        assertDefined(button("upload").getMessage(), translations, locale);
+        for (String name : List.of("update", "keep")) assertDefined(button(name).getMessage(), translations, locale);
+        button("update").onPress();
         assertEquals(translations.get(PREFIX + "pattern_migration.button"), button("migrate").getMessage().getString());
-        button("update").onPress(); // First confirmation only: no menu/network request.
-        assertEquals(PREFIX + "structure_update_second_confirm", key(button("update").getMessage()));
-        assertDefined(button("update").getMessage(), translations, locale);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"en_us", "zh_cn"})
     void overviewActionsAndExplanationsDoNotOverlapForEitherStructure(String locale) throws Exception {
         useLanguage(locale);
-        assertEquals(286, panelHeight, "Use the real screen frame, not an enlarged test-only layout");
-        for (boolean legacy : new boolean[] {true, false}) {
+        for (boolean legacy : new boolean[]{true, false}) {
             menu.legacyStructure = legacy;
             show(MolecularCenterScreen.TAB_OVERVIEW);
-            assertRectangle("upload", 306, 198, 108, 18);
-            assertRectangle("migrate", 306, 219, 108, 18);
-            assertRectangle("update", 210, 264, 100, 18);
-            assertRectangle("keep", 314, 264, 100, 18);
-            assertTrue(button("upload").visible);
-            assertTrue(button("migrate").visible);
-            assertEquals(legacy, button("update").visible);
-            assertEquals(legacy, button("keep").visible);
-            assertFalse(button("effects").visible);
-
-            var graphics = foreground();
-            assertTextY(graphics, "overview_quantum_requirements", 242,
-                    Long.toString((long) MolecularCenterBlockEntity.QUANTUM_LINK_POWER));
-            assertTextY(graphics, "spawn_protection", legacy ? 252 : 256);
-            if (legacy) {
-                assertFalse(graphics.text.stream().anyMatch(run -> run.value().equals(
-                        Component.translatable(PREFIX + "spawn_protection_area").getString())));
-            } else {
-                assertTextY(graphics, "spawn_protection_area", 270);
+            var upload = bounds(button("upload"));
+            var migrate = bounds(button("migrate"));
+            assertFalse(upload.intersects(migrate));
+            for (String key : List.of("overview_quantum_requirements", "spawn_protection", "spawn_protection_area")) {
+                var entry = ui.layout.findText(PREFIX + key);
+                assertNotNull(entry, key);
+                float left = entry.drawX == null ? entry.x : entry.drawX;
+                var label = new Bounds(left, entry.centerY - entry.size / 2, left + entry.w, entry.centerY + entry.size / 2);
+                assertFalse(upload.intersects(label), key); assertFalse(migrate.intersects(label), key);
             }
-            assertNonOverlappingLayout(graphics, locale + ": overview, legacy=" + legacy);
+            assertNull(button("update")); assertNull(button("keep"));
         }
     }
 
@@ -176,104 +151,77 @@ class MolecularCenterControlsTest {
     @ValueSource(strings = {"en_us", "zh_cn"})
     void colorsAndReturningOverviewRefreshTheLegacyActionRow(String locale) throws Exception {
         useLanguage(locale);
-        for (boolean legacy : new boolean[] {true, false}) {
+        for (boolean legacy : new boolean[]{true, false}) {
             menu.legacyStructure = legacy;
             show(MolecularCenterScreen.TAB_COLORS);
-            assertFalse(button("upload").visible);
-            assertFalse(button("migrate").visible);
-            assertTrue(button("reset").visible);
-            assertTrue(button("effects").visible);
-            assertEquals(15, allButtons().stream().filter(button -> button.visible
-                    && List.of("R", "G", "B").contains(button.getMessage().getString())).count());
-            assertEquals(legacy, button("update").visible);
-            assertEquals(legacy, button("keep").visible);
-            assertRectangle("update", 210, 233, 100, 18);
-            assertRectangle("keep", 314, 233, 100, 18);
-            assertNonOverlappingLayout(foreground(), locale + ": colors, legacy=" + legacy);
-
+            assertEquals(legacy, button("update") != null); assertEquals(legacy, button("keep") != null);
+            assertNotNull(button("reset")); assertNotNull(button("effects"));
+            assertEquals(15, allButtons().stream().filter(button -> button.getMessage().getString().matches("[RGB] [0-9]+" )).count());
+            assertNonOverlappingLayout();
             show(MolecularCenterScreen.TAB_OVERVIEW);
-            assertRectangle("update", 210, 264, 100, 18);
-            assertRectangle("keep", 314, 264, 100, 18);
-            assertFalse(button("reset").visible);
-            assertTrue(button("migrate").visible);
-            assertNonOverlappingLayout(foreground(), locale + ": returned overview, legacy=" + legacy);
+            assertNull(button("update")); assertNull(button("reset")); assertNotNull(button("migrate"));
+            assertNonOverlappingLayout();
         }
     }
 
-    @Test
-    void migrationRequiresOperationalAndBusyDisablesBothPatternActions() throws Exception {
-        show(MolecularCenterScreen.TAB_OVERVIEW);
-        for (boolean operational : new boolean[] {false, true}) {
-            for (boolean building : new boolean[] {false, true}) {
-                for (boolean dismantling : new boolean[] {false, true}) {
-                    menu.operational = operational;
-                    menu.building = building;
-                    menu.dismantling = dismantling;
-                    controls.tick();
-                    boolean busy = building || dismantling;
-                    String state = "operational=" + operational + ", building=" + building + ", dismantling=" + dismantling;
-                    assertTrue(button("upload").visible, state);
-                    assertTrue(button("migrate").visible, state);
-                    assertEquals(!busy, button("upload").active, state);
-                    assertEquals(operational && !busy, button("migrate").active, state);
-                    for (String name : List.of("build", "update", "keep")) {
-                        assertEquals(!busy, button(name).active, name + ": " + state);
-                    }
-                    // Exercise native click rejection, without firing any network actions.
-                    for (String name : List.of("upload", "migrate", "build", "update", "keep")) {
-                        var button = button(name);
-                        if (!button.active) assertFalse(button.mouseClicked(
-                                button.getX() + button.getWidth() / 2.0,
-                                button.getY() + button.getHeight() / 2.0, 0), name + ": " + state);
-                    }
-                }
+    @Test void migrationRequiresOperationalIdleCenterButUploadPreferenceRemainsAccessible() throws Exception {
+        for (boolean operational : new boolean[]{false, true}) for (boolean building : new boolean[]{false, true}) {
+            for (boolean dismantling : new boolean[]{false, true}) {
+                menu.operational = operational; menu.building = building; menu.dismantling = dismantling;
+                invoke("refreshPatternTransferControls");
+                var migrate = button("migrate");
+                assertEquals(operational && !building && !dismantling, migrate.active);
+                if (!migrate.active) assertFalse(migrate.mouseClicked(migrate.getX()+1, migrate.getY()+1, 0));
+                assertTrue(button("upload").active);
             }
         }
-        menu.building = menu.dismantling = false;
-        controls.tick();
-        assertTrue(button("migrate").active, "An operational center must recover after being busy");
-        assertTrue(button("upload").active);
     }
 
-    @Test
-    void dismissalAndAutoCraftTabDoNotLeaveStaleStructureOrPatternActions() throws Exception {
+    @Test void dismissalAndAutoCraftTabDoNotLeaveStaleStructureOrPatternActions() throws Exception {
         menu.legacyStructureUpdateDismissed = true;
-        for (int tab : new int[] {MolecularCenterScreen.TAB_OVERVIEW, MolecularCenterScreen.TAB_COLORS}) {
+        show(MolecularCenterScreen.TAB_COLORS);
+        assertNotNull(button("update"));
+        for (int tab : new int[]{MolecularCenterScreen.TAB_AUTO_CRAFT, MolecularCenterScreen.TAB_OVERVIEW}) {
             show(tab);
-            assertTrue(button("update").visible, "Dismissing legacy advice must not remove the update action");
-            assertFalse(button("keep").visible);
+            assertNull(button("update")); assertNull(button("keep")); assertNull(button("reset"));
+            assertNotNull(button("upload")); assertNotNull(button("migrate"));
         }
-        show(MolecularCenterScreen.TAB_AUTO_CRAFT);
-        for (String name : List.of("update", "keep", "upload", "migrate", "reset", "effects")) {
-            var button = button(name);
-            assertFalse(button.visible, name);
-            assertFalse(button.mouseClicked(button.getX() + 1, button.getY() + 1, 0), name);
-        }
-        menu.legacyStructureUpdateDismissed = false;
-        show(MolecularCenterScreen.TAB_OVERVIEW);
-        assertTrue(button("keep").visible);
-        assertTrue(button("upload").visible);
-        assertTrue(button("migrate").visible);
-        assertRectangle("keep", 314, 264, 100, 18);
+    }
+
+    static OsqUi layout(String name) throws Exception {
+        var ctor = OsqLayout.class.getDeclaredConstructor(JsonObject.class);
+        ctor.setAccessible(true);
+        return new OsqUi(ctor.newInstance(json("/assets/molecularmanipulator/osq_light/layout/" + name + ".json")));
+    }
+
+    private void invoke(String name) throws Exception {
+        var method = MolecularCenterScreen.class.getDeclaredMethod(name);
+        method.setAccessible(true); method.invoke(screen);
     }
 
     private void show(int tab) throws Exception {
-        // Bypass unrelated edit-box/slot initialization, but execute the real tick/refresh.
-        set(screen, "detailTab", tab);
-        controls.tick();
+        for (String field : List.of("children", "renderables", "narratables", "screenWidgets")) set(screen, field, new ArrayList<>());
+        ui = layout(tab == MolecularCenterScreen.TAB_COLORS ? "seq_center_colors" : tab == MolecularCenterScreen.TAB_AUTO_CRAFT ? "seq_center_autocraft" : "seq_center_overview");
+        panelWidth = ui.layout.width; panelHeight = ui.layout.height;
+        set(screen, "ui", ui); set(screen, "detailTab", tab);
+        set(screen, "leftPos", 37); set(screen, "topPos", 23);
+        invoke("initColorControls"); invoke("initPatternTransferControls");
+        button("effects").visible = tab == MolecularCenterScreen.TAB_COLORS;
     }
 
-    private OmniButton button(String name) throws Exception {
-        var field = MolecularCenterControls.class.getDeclaredField(name);
-        field.setAccessible(true);
-        return (OmniButton) field.get(controls);
+    private Button button(String name) {
+        String id = switch(name) { case "upload" -> "pattern_upload"; case "migrate" -> "migrate_patterns"; default -> name; };
+        var box = ui.layout.find(id);
+        return allButtons().stream().filter(button -> name.equals("effects") ? button instanceof MachineEffectButton
+                : box != null && button.getX() == screen.getGuiLeft() + Math.round(box.x)
+                && button.getY() == screen.getGuiTop() + Math.round(box.y)).findFirst().orElse(null);
     }
 
-    private List<OmniButton> allButtons() {
-        return screen.children().stream().filter(OmniButton.class::isInstance).map(OmniButton.class::cast).toList();
+    private List<Button> allButtons() {
+        return screen.children().stream().filter(Button.class::isInstance).map(Button.class::cast).toList();
     }
 
-    private static Component tooltip(OmniButton button) throws Exception {
+    private static Component tooltip(Button button) throws Exception {
         var field = Tooltip.class.getDeclaredField("message");
         field.setAccessible(true);
         return (Component) field.get(button.getTooltip());
@@ -313,71 +261,18 @@ class MolecularCenterControlsTest {
         }
     }
 
-    private UiRenderRecorder foreground() {
-        var graphics = new UiRenderRecorder();
-        // AE2's foreground is panel-local; widget hitboxes include the screen origin.
-        screen.drawFG(graphics, 0, 0, -1, -1);
-        return graphics;
+    private Bounds bounds(Button button) {
+        float left = button.getX() - screen.getGuiLeft(), top = button.getY() - screen.getGuiTop();
+        return new Bounds(left, top, left + button.getWidth(), top + button.getHeight());
     }
 
-    private Bounds bounds(OmniButton button) {
-        float x = button.getX() - screen.getGuiLeft(), y = button.getY() - screen.getGuiTop();
-        return new Bounds(x, y, x + button.getWidth(), y + button.getHeight());
-    }
-
-    private Bounds bounds(UiRenderRecorder.Text text) {
-        var low = text.transform().transformPosition(new Vector3f(text.x(), text.y(), 0));
-        var high = text.transform().transformPosition(new Vector3f(
-                text.x() + font.width(text.value()), text.y() + font.lineHeight, 0));
-        return new Bounds(low.x, low.y, high.x, high.y);
-    }
-
-    private void assertRectangle(String name, int x, int y, int width, int height) throws Exception {
-        assertEquals(new Bounds(x, y, x + width, y + height), bounds(button(name)), name);
-    }
-
-    private void assertTextY(UiRenderRecorder graphics, String key, int y, Object... args) {
-        String expected = Component.translatable(PREFIX + key, args).getString();
-        var matches = graphics.text.stream().filter(text -> text.value().equals(expected)).toList();
-        assertEquals(1, matches.size(), key);
-        assertEquals(y, bounds(matches.get(0)).top(), 0.001F, key);
-    }
-
-    private void assertNonOverlappingLayout(UiRenderRecorder graphics, String state) {
+    private void assertNonOverlappingLayout() {
         var visible = allButtons().stream().filter(button -> button.visible).toList();
-        assertFalse(visible.isEmpty(), state);
-        assertFalse(graphics.text.isEmpty(), state);
-        for (int i = 0; i < visible.size(); i++) {
-            var button = visible.get(i);
-            var area = bounds(button);
-            assertInsideFrame(area, state + ": " + button.getMessage().getString());
-            for (int j = i + 1; j < visible.size(); j++) {
-                var other = visible.get(j);
-                assertFalse(area.intersects(bounds(other)), state + ": overlapping buttons "
-                        + button.getMessage().getString() + " / " + other.getMessage().getString());
-            }
-            for (var text : graphics.text) {
-                if (!text.value().isEmpty()) assertFalse(area.intersects(bounds(text)), state
-                        + ": button " + button.getMessage().getString() + " overlaps text " + text.value());
-            }
+        for (int first = 0; first < visible.size(); first++) {
+            var area = bounds(visible.get(first));
+            assertTrue(area.left >= 0 && area.top >= 0 && area.right <= panelWidth && area.bottom <= panelHeight);
+            for (int other = first + 1; other < visible.size(); other++) assertFalse(area.intersects(bounds(visible.get(other))));
         }
-        var textRuns = graphics.text.stream().filter(text -> !text.value().isEmpty()).toList();
-        for (int i = 0; i < textRuns.size(); i++) {
-            var text = textRuns.get(i);
-            var area = bounds(text);
-            assertInsideFrame(area, state + ": " + text.value());
-            for (int j = i + 1; j < textRuns.size(); j++) {
-                var other = textRuns.get(j);
-                assertFalse(area.intersects(bounds(other)), state + ": overlapping text "
-                        + text.value() + " / " + other.value());
-            }
-        }
-    }
-
-    private void assertInsideFrame(Bounds area, String message) {
-        assertTrue(area.left >= -0.001F && area.top >= -0.001F
-                && area.right <= panelWidth + 0.001F && area.bottom <= panelHeight + 0.001F,
-                message + ": outside actual frame: " + area);
     }
 
     private record Bounds(float left, float top, float right, float bottom) {

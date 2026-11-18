@@ -20,7 +20,7 @@ class SingularityLensProjectionTest {
         var renderedProjection = perspective(70, 16F / 9F).mul(walkBob(.7F));
         var savedProjection = new Matrix4f(renderedProjection);
 
-        var center = SingularityLensProjection.centerInViewSpace(renderedPose, 12.5F);
+        var center = SingularityLensProjection.centerInViewSpace(renderedPose, 12.5F, new Matrix4f());
         var expectedCenter = view.transformPosition(localPose.transformPosition(0, 12.5F, 0, new Vector3f()), new Vector3f());
         var clipCenter = renderedProjection.transform(new Vector4f(center, 1));
         var restoredCenter = SingularityLensProjection.inverseProjection(renderedProjection).transform(clipCenter);
@@ -45,7 +45,7 @@ class SingularityLensProjectionTest {
                 var renderedProjection = new Matrix4f(projection).mul(walkBob(phase * (float) Math.PI / 16));
                 var inverse = SingularityLensProjection.inverseProjection(renderedProjection);
                 var origin = SingularityLensProjection.viewOrigin(inverse);
-                var center = SingularityLensProjection.centerInViewSpace(pose, localY);
+                var center = SingularityLensProjection.centerInViewSpace(pose, localY, new Matrix4f());
                 var clip = renderedProjection.transform(new Vector4f(center, 1));
                 var ray = unproject(inverse, clip.x / clip.w, clip.y / clip.w, .5F).sub(origin).normalize();
                 float missDistance = new Vector3f(center).sub(origin).cross(ray).length();
@@ -122,7 +122,7 @@ class SingularityLensProjectionTest {
     @Test
     void disabledBobbingAndPureHurtRotationRetainTheZeroEye() {
         var pose = new Matrix4f().translation(-2, 0, -20);
-        var center = SingularityLensProjection.centerInViewSpace(pose, 12.5F);
+        var center = SingularityLensProjection.centerInViewSpace(pose, 12.5F, new Matrix4f());
         assertEquals(-2, center.x, 1.0E-6F);
         assertEquals(12.5F, center.y, 1.0E-6F);
         assertEquals(-20, center.z, 1.0E-6F);

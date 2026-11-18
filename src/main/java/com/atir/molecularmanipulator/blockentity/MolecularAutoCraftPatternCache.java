@@ -14,16 +14,18 @@ final class MolecularAutoCraftPatternCache<D, P> {
     private final Map<Integer, Entry<D, P>> entries = new HashMap<>();
     private Object level;
     private Object recipeSource;
+    private long recipeGeneration;
 
     @Nullable
-    P get(int slot, D definition, Object level, Object recipeSource,
+    P get(int slot, D definition, Object level, Object recipeSource, long recipeGeneration,
             Supplier<P> decoder) {
         // Identity, not equals: a reload can replace recipes without changing
         // their IDs, number or equality. Advancing game time is NOT a reload.
-        if (this.level != level || this.recipeSource != recipeSource) {
+        if (this.level != level || this.recipeSource != recipeSource || this.recipeGeneration != recipeGeneration) {
             clear();
             this.level = level;
             this.recipeSource = recipeSource;
+            this.recipeGeneration = recipeGeneration;
         }
         var cached = entries.get(slot);
         if (cached == null || !cached.definition().equals(definition)) {

@@ -21,7 +21,7 @@ class ResponsiveScreenJeiPropertiesTest {
     @Test
     void openingBeforeInitializationDoesNotPublishInvalidDimensions() throws Exception {
         var screen = ResponsiveScreenTestFixture.create(0, 0, 332, 368);
-        var handler = ResponsiveScreenJeiProperties.<ResponsiveContainerScreen<?>>handler();
+        var handler = ResponsiveScreenJeiProperties.<ResponsiveContainerScreen<?>>screenHandler();
         assertNull(handler.apply(screen));
         screen.viewport(854, 300, 332, 368);
         var properties = handler.apply(screen);
@@ -50,7 +50,7 @@ class ResponsiveScreenJeiPropertiesTest {
                     assertSame(stack, args[0]);
                     return builder;
                 });
-        var handler = ResponsiveScreenJeiProperties.<ResponsiveContainerScreen<?>>handler();
+        var handler = ResponsiveScreenJeiProperties.<ResponsiveContainerScreen<?>>containerHandler();
         handler.getClickableIngredientUnderMouse(factory, screen, area.getX() + 4, area.getY() + 4);
         assertNotNull(captured[0]);
         assertEquals(area.getX(), captured[0].getX());

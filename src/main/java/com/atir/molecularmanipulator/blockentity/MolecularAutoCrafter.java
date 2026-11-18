@@ -21,6 +21,7 @@ import appeng.util.inv.InternalInventoryHost;
 import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.crafting.PatternRecipeReloads;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.mixin.RecipeManagerAccessor;
 import com.atir.molecularmanipulator.recipelock.RecipeExecutionContext;
@@ -679,7 +680,7 @@ public final class MolecularAutoCrafter implements InternalInventoryHost {
         // map stays stable between reloads and is replaced by replaceRecipes too.
         var recipes = ((RecipeManagerAccessor) level.getRecipeManager()).molecularmanipulator$getRecipesByName();
         return decodedPatterns.get(slot, AEItemKey.of(stack), level,
-                recipes, () -> {
+                recipes, PatternRecipeReloads.generation(), () -> {
                     try {
                         return PatternDetailsHelper.decodePattern(stack, level);
                     } catch (RuntimeException exception) {

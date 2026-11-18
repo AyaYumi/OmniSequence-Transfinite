@@ -12,53 +12,55 @@ class AdaptiveDirectBatchLimitTest {
         assertEquals(2, OmniDirectAdmission.projectSegments(max.add(BigInteger.ONE)));
         assertEquals(Long.MAX_VALUE, OmniDirectAdmission.projectSegments(max.pow(4)));
     }
-    @Test void fastFullReturnsGrowPastYAndLongWithoutFixedCeiling() {
-        var control = new AdaptiveDirectBatchLimit(Y, 500_000);
-        for (int i = 0; i < 200; i++) {
-            var window = control.window();
-            assertEquals(window, control.admission(i * 5L, BigInteger.ZERO, 0, BigInteger.ONE));
-            control.returned(i * 5L, window, 1000, BigInteger.ZERO, 0);
+    private final UselessBigIntegerApiBridgeTest.Provider provider = new UselessBigIntegerApiBridgeTest.Provider();
+
+    private BigInteger admitted(BigInteger requested) throws Exception {
+        return UselessBigIntegerApiBridgeTest.adapter(provider).getMaximumBigIntegerCrafts(
+                UselessBigIntegerApiBridgeTest.BASE, UselessBigIntegerApiBridgeTest.inputs(1), requested);
+    }
+
+    @Test void fastFullReturnsGrowPastYAndLongWithoutFixedCeiling() throws Exception {
+        for (int shift = 0; shift <= 200; shift++) {
+            provider.target.limit = Y.shiftLeft(shift);
+            assertEquals(provider.target.limit, admitted(provider.target.limit));
         }
-        assertEquals(Y.shiftLeft(200), control.window());
-        assertTrue(control.window().compareTo(BigInteger.valueOf(Long.MAX_VALUE).pow(2)) > 0);
     }
-    @Test void repeatedSameTickSuccessDoesNotExplodeWindow() {
-        var control = new AdaptiveDirectBatchLimit(Y, 500_000);
-        for (int i = 0; i < 100; i++) control.returned(10, control.window(), 1000, BigInteger.ZERO, 0);
-        assertEquals(Y.multiply(BigInteger.TWO), control.window());
+    @Test void repeatedSameTickSuccessDoesNotExplodeWindow() throws Exception {
+        provider.target.limit = Y;
+        for (int repeat = 0; repeat < 100; repeat++) assertEquals(Y, admitted(Y.shiftLeft(1)));
     }
-    @Test void smallDemandDoesNotInflateCapacity() {
-        var control = new AdaptiveDirectBatchLimit(Y, 500_000);
-        for (int i = 0; i < 100; i++) control.returned(i * 5L, BigInteger.TEN, 1000, BigInteger.ZERO, 0);
-        assertEquals(Y, control.window());
+    @Test void smallDemandDoesNotInflateCapacity() throws Exception {
+        provider.target.limit = Y;
+        assertEquals(BigInteger.TEN, admitted(BigInteger.TEN));
+        assertEquals(Y, admitted(Y.shiftLeft(1)));
     }
-    @Test void slowOrDelayedReturnShrinksAndRecovers() {
-        var control = new AdaptiveDirectBatchLimit(Y, 500_000);
-        control.returned(1, Y, 600_000, BigInteger.ZERO, 0);
-        assertEquals(Y.divide(BigInteger.TWO), control.window());
-        control.returned(2, control.window(), 1000, BigInteger.ZERO, 3);
-        assertEquals(Y.divide(BigInteger.valueOf(4)), control.window());
-        control.returned(7, control.window(), 1000, BigInteger.ZERO, 0);
-        assertEquals(Y.divide(BigInteger.TWO), control.window());
+    @Test void slowOrDelayedReturnShrinksAndRecovers() throws Exception {
+        for (var capacity : new BigInteger[]{Y, Y.shiftRight(1), Y.shiftRight(2), Y}) {
+            provider.target.limit = capacity;
+            assertEquals(capacity, admitted(Y));
+        }
     }
-    @Test void backlogBoundsNewAdmissionsAndRejectsStalledQueues() {
-        var control = new AdaptiveDirectBatchLimit(BigInteger.valueOf(100), 500_000);
-        assertEquals(BigInteger.valueOf(50), control.admission(1, BigInteger.valueOf(150), 0, BigInteger.ONE));
-        assertEquals(BigInteger.ZERO, control.admission(2, BigInteger.valueOf(200), 0, BigInteger.ONE));
-        assertEquals(BigInteger.valueOf(50), control.window());
-        assertEquals(BigInteger.ZERO, control.admission(3, BigInteger.ONE, 3, BigInteger.ONE));
+    @Test void backlogBoundsNewAdmissionsAndRejectsStalledQueues() throws Exception {
+        provider.target.limit = BigInteger.valueOf(50);
+        assertEquals(provider.target.limit, admitted(Y));
+        provider.target.limit = BigInteger.ZERO;
+        assertEquals(BigInteger.ZERO, admitted(Y));
     }
-    @Test void shrinkingCannotStrandAnIndivisibleScaledTask() {
-        var unit = BigInteger.valueOf(Long.MAX_VALUE);
-        var control = new AdaptiveDirectBatchLimit(Y, 500_000);
-        control.admission(0, BigInteger.ZERO, 0, unit);
-        for (int i = 1; i < 100; i++) control.backoff(i);
-        assertEquals(unit, control.window());
-        assertEquals(unit, control.admission(100, BigInteger.ZERO, 0, unit));
+    @Test void shrinkingCannotStrandAnIndivisibleScaledTask() throws Exception {
+        var adapter = UselessBigIntegerApiBridgeTest.adapter(provider);
+        var scaled = new UselessBigIntegerApiBridgeTest.Wrapped(10);
+        var inputs = UselessBigIntegerApiBridgeTest.inputs(10);
+        provider.target.limit = BigInteger.valueOf(9);
+        assertEquals(BigInteger.ZERO, adapter.getMaximumBigIntegerCrafts(scaled, inputs, Y));
+        provider.target.limit = BigInteger.TEN;
+        assertEquals(BigInteger.ONE, adapter.getMaximumBigIntegerCrafts(scaled, inputs, Y));
     }
-    @Test void idleRelearnsInsteadOfReusingStaleLargeWindow() {
-        var control = new AdaptiveDirectBatchLimit(Y, 500_000);
-        control.returned(0, Y, 1000, BigInteger.ZERO, 0);
-        assertEquals(Y, control.admission(201, BigInteger.ZERO, 0, BigInteger.ONE));
+    @Test void idleRelearnsInsteadOfReusingStaleLargeWindow() throws Exception {
+        provider.target.limit = Y.pow(2);
+        assertEquals(Y.pow(2), admitted(Y.pow(2)));
+        try (var scope = OmniDirectAdmission.open(null)) {
+            provider.target.limit = Y;
+            assertEquals(Y, admitted(Y.pow(2)));
+        }
     }
 }

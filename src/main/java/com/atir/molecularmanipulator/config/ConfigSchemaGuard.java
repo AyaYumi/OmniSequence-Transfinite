@@ -136,6 +136,10 @@ public final class ConfigSchemaGuard {
                 }
                 config.remove(oldPath);
                 config.removeComment(oldPath);
+                int separator = oldPath.lastIndexOf('.');
+                if (separator >= 0) {
+                    removeEmptySection(config, oldPath.substring(0, separator));
+                }
                 moved = true;
             }
             removeEmptySection(config, "matter_speed_cards");

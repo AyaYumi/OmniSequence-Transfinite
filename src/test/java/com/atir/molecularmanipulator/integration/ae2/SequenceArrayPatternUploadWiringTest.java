@@ -42,19 +42,23 @@ class SequenceArrayPatternUploadWiringTest {
     @Test void menuUploadTransfersARealSourceAndEveryAdmissionUsesAutomaticControllerGate() throws IOException {
         var service = read(UPLOAD);
         var menuCalls = calls(method(service, "uploadFromEncodingMenu"));
-        assertTrue(menuCalls.stream().anyMatch(call -> call.owner.equals(ROOT + "blockentity/MolecularCenterPatternTransfer")
+        var transfer = service.methods.stream().filter(method -> method.name.equals("uploadToSequenceArray")
+                && method.desc.contains("Ljava/util/function/BooleanSupplier;")).findFirst().orElseThrow();
+        assertTrue(menuCalls.stream().anyMatch(call -> call.owner.equals(UPLOAD) && call.name.equals(transfer.name)
+                && call.desc.equals(transfer.desc)));
+        var transfers = calls(transfer);
+        assertTrue(transfers.stream().anyMatch(call -> call.owner.equals(ROOT + "blockentity/MolecularCenterPatternTransfer")
                 && call.name.equals("fromInventory")));
-        for (String name : List.of("getPlayer", "isValidMenu", "stillValid", "isSpectator", "getNetworkNode")) {
+        for (String name : List.of("getPlayer", "isValidMenu", "stillValid", "isSpectator", "getActionableNode", "getGrid", "getEncodedPatternInv")) {
             assertTrue(menuCalls.stream().anyMatch(call -> call.name.equals(name)), name);
         }
-        var gate = calls(method(service, "accepts"));
-        for (String name : List.of("isAutomaticPatternUploadEnabled", "canAcceptExternalPatternUpload", "getGrid")) {
-            assertTrue(gate.stream().anyMatch(call -> call.name.equals(name)), name);
+        var duplicates = calls(method(service, "containsPatternOnSequenceArray"));
+        for (String name : List.of("isAutomaticPatternUploadEnabled", "canAcceptExternalPatternUpload")) {
+            assertTrue(transfers.stream().anyMatch(call -> call.name.equals(name)), name);
+            assertTrue(duplicates.stream().anyMatch(call -> call.name.equals(name)), name);
         }
-        assertTrue(calls(method(service, "containsPatternOnSequenceArray")).stream().anyMatch(call ->
-                call.owner.equals(LOGIC) && call.name.equals("containsUploadPattern")));
-        assertTrue(calls(method(service, "uploadToSequenceArray")).stream().anyMatch(call ->
-                call.owner.equals(LOGIC) && call.name.equals("firstUploadSlot")));
+        assertTrue(duplicates.stream().anyMatch(call -> call.owner.equals(LOGIC) && call.name.equals("containsUploadPattern")));
+        assertTrue(transfers.stream().anyMatch(call -> call.owner.equals(LOGIC) && call.name.equals("firstUploadSlot")));
         assertTrue(service.methods.stream().flatMap(method -> calls(method).stream())
                 .noneMatch(call -> List.of("hasMatrixUploadCore", "isLoaded", "getDefinition").contains(call.name)));
     }

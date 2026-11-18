@@ -164,7 +164,9 @@ class OmniCpuDispatchLedgerTest {
         assertTrue(restored.paused()); assertEquals(saved, restored.write());
         restored.flushFinal((key, amount, mode) -> fail("Uncertain delivery replayed"),
                 (key, amount) -> fail(), () -> {});
-        assertThrows(IllegalStateException.class, () -> restored.refundFinal((key, amount) -> fail()));
+        restored.refundFinal((key, amount) -> fail("Uncertain delivery must not be refunded"));
+        assertFalse(restored.paused());
+        assertFalse(restored.hasFinalStock());
     }
     @Test void failedFinalProgressRetainsTheKnownAcceptedIntentWithoutReplaying() {
         var ledger = new OmniCpuDispatchLedger(); ledger.ownFinal(OUTPUT, BigInteger.TEN);

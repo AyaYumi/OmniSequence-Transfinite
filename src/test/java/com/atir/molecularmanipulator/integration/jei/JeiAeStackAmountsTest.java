@@ -69,7 +69,7 @@ class JeiAeStackAmountsTest {
         assertNull(JeiAeStackAmounts.restore(slot(JeiAeStackAmounts.slotName(128)), null));
     }
 
-    public record TestConverter(IIngredientType<AEKey> type) {
+    public record TestConverter(IIngredientType<AEKey> type) implements appeng.api.integrations.jei.IngredientConverter<AEKey> {
         public IIngredientType<AEKey> getIngredientType() { return type; }
         public AEKey getIngredientFromStack(GenericStack stack) { return stack.what(); }
         public GenericStack getStackFromIngredient(AEKey key) { return new GenericStack(key, 1); }

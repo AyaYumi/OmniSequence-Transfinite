@@ -66,6 +66,6 @@ final class OsqMaterialSurface {
         float originY = (entry.drawY == null ? entry.y : entry.drawY) - entry.pad[1];
         OsqReflectionLayer.draw(graphics, REFLECTION, x, y, width, height,
                 Math.round(originX + left), Math.round(originY + top),
-                "feature".equals(entry.material) ? .30f : 1);
+                "feature".equals(entry.material) ? .60f : 1);
     }
 }

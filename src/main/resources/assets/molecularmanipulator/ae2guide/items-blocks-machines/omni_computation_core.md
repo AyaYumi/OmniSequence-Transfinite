@@ -19,7 +19,7 @@ item_ids:
 
 # Omni Computation Core
 
-The Omni Computation Core is a large crafting CPU. After you confirm a terminal order, it arranges the crafting steps, waits for ingredients and collects results. With a high-level Star Computation Engine, one core can handle multiple independent orders at once.
+The Omni Computation Core is a large crafting CPU. Place an order at a terminal and the core sends ingredients to your machines and waits for their products. One core can take several orders even without a Star Computation Engine.
 
 <Row>
 <ItemImage id="ae2:crafting_terminal" scale="4" />
@@ -78,12 +78,11 @@ Check JEI's structure page for the full quantities of these parts, then build at
 
 | Star Computation Engine on the same network | Order and work limits |
 | --- | --- |
-| No active, valid engine | **1 MiB crafting storage and recipe parallelism 16**; one independent order per core. |
-| L1 to L6, normal operation | Crafting storage and recipe parallelism grow with level; still one independent order. |
-| L7 to L9, normal operation | Multiple independent orders share the core's crafting storage and work allowance. Normal L9 still has finite limits. |
-| L9, overclock enabled and continuously paid | Unlimited crafting-storage and recipe-parallelism limits. Actual production still needs ingredients, power, machines and output space. |
+| No active, valid engine | All orders share **1 MiB of crafting storage and 16 recipe copies per tick**. |
+| L1 to L9, normal | Up to 512 recipe copies per tick at L1. Each level doubles that limit, up to 131,072 at L9. |
+| L9, overclocked | While the engine has enough Star Signal Flow, the core has no fixed limit on crafting storage or copies per tick. Each machine still controls how much it accepts and when it finishes. |
 
-L1 to L8 overclocking continuously consumes star signal flow from the same network and doubles crafting storage and recipe parallelism. Multiple independent orders still require L7. If signal flow runs short, overclocking ends and the engine returns to its level's finite normal capabilities. When several engines share a network, only the strongest currently valid engine supplies benefits.
+Overclocking at L1 to L8 doubles crafting storage and copies per tick. When Star Signal Flow runs out, both return to normal. Orders on one core share these limits. If several engines are online, only the strongest one counts.
 
 ## Troubleshooting
 
@@ -92,12 +91,13 @@ L1 to L8 overclocking continuously consumes star signal flow from the same netwo
 | The terminal cannot find this CPU | Check formation, same-network connection, power and channel. First make sure you can sustain its base idle consumption. |
 | A CPU is available, but the recipe is not | Put its encoded pattern in a Sequence Array, rewrite machine or Pattern Provider. The core does not store recipes. |
 | Not enough crafting storage | Split the order, wait for current orders to finish, or raise the connected engine's level. More ordinary storage cells do not enlarge CPU crafting storage. |
-| No second order below L7 | This is the single-order stage. Upgrade the effective engine to L7, or add another CPU to the network. |
 | An order stalls at an external machine | Check missing ingredients, Pattern Providers and machine input/output. Cyclic recipes also need an initial supply of the ingredient that starts the cycle. |
 | Products are made, but the order is waiting | Free space in ME and machine outputs. Check that output returns to the same network, with room for tools and returned containers too. |
 | L9 suddenly has finite limits again | Check the overclock switch and star signal flow balance. Reaching L9 does not automatically grant unlimited capabilities. |
 
-External machines work at the rate they can accept. The core adapts to that capacity, and an order's final single craft can run without filling a batch. Supported reusable tools continue into later crafts with normal durability changes.
+Point a standard AE2 Pattern Provider at the machine’s input face. A processing pattern with one ingredient and no returned container can send several copies at once. If the machine reports more room than it actually has, the excess stays in the provider until space opens up.
+
+When batching is unavailable, the provider sends one complete craft at a time. It does the same for patterns with several ingredients, so one ingredient cannot take every slot before the others arrive. The last craft does not have to wait for a full batch. Supported reusable tools keep their normal durability costs.
 
 ### When using machines from other mods
 

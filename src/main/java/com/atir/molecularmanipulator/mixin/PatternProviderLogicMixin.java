@@ -1,6 +1,8 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.config.Actionable;
+import appeng.api.config.LockCraftingMode;
+import appeng.api.config.Settings;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.implementations.blockentities.ICraftingMachine;
 import appeng.api.networking.IManagedGridNode;
@@ -125,41 +127,35 @@ public abstract class PatternProviderLogicMixin
     }
 
     @Override
-    public boolean molecularmanipulator$supportsScaledBatch(IPatternDetails patternDetails) {
-        if (((Object) this).getClass() != PatternProviderLogic.class
-                || patternDetails == null
-                || !patternDetails.supportsPushInputsToExternalInventory()
-                || !sendList.isEmpty()
-                || !molecularmanipulator$legacyBatchRefund.isEmpty()
-                || molecularmanipulator$smartQueueOwned
-                || !mainNode.isActive()) {
-            return false;
-        }
+    public long molecularmanipulator$getScaledBatchLimit(IPatternDetails patternDetails, AEKey key,
+            long amountPerCraft, long requestedCopies) {
+        var provider = (PatternProviderLogic) (Object) this;
+        if (provider.getClass() != PatternProviderLogic.class || provider.isBlocking()
+                || provider.getConfigManager().getSetting(Settings.LOCK_CRAFTING_MODE) != LockCraftingMode.NONE
+                || patternDetails == null || !patternDetails.supportsPushInputsToExternalInventory()
+                || key == null || amountPerCraft <= 0 || requestedCopies < 2
+                || !sendList.isEmpty() || !molecularmanipulator$legacyBatchRefund.isEmpty()
+                || molecularmanipulator$smartQueueOwned || !mainNode.isActive()) return 0;
 
         var blockEntity = host.getBlockEntity();
         var level = blockEntity.getLevel();
-        if (level == null) {
-            return false;
-        }
-
-        boolean foundExternalTarget = false;
+        if (level == null) return 0;
+        long requested = Math.min(requestedCopies, Long.MAX_VALUE / amountPerCraft) * amountPerCraft;
+        long capacity = 0;
         for (var direction : getActiveSides()) {
-            var targetPosition = blockEntity.getBlockPos().relative(direction);
-            var targetSide = direction.getOpposite();
-            var craftingMachine = ICraftingMachine.of(level, targetPosition, targetSide);
-            if (craftingMachine != null && craftingMachine.acceptsPlans()) {
-                // The base provider prioritizes this path. Its boolean result cannot prove
-                // that an N-fold pattern was accepted atomically, so retain vanilla dispatch.
-                return false;
+            var craftingMachine = ICraftingMachine.of(level, blockEntity.getBlockPos().relative(direction), direction.getOpposite());
+            if (craftingMachine != null && craftingMachine.acceptsPlans()) continue;
+            var target = findAdapter(direction);
+            if (target != null) {
+                capacity = Math.max(capacity, Math.min(requested, target.insert(key, requested, Actionable.SIMULATE)));
+                if (capacity == requested) break;
             }
-            foundExternalTarget |= findAdapter(direction) != null;
         }
-        return foundExternalTarget;
+        return capacity / amountPerCraft;
     }
 
     @Override
-    public void molecularmanipulator$beginScaledBatch(
-            KeyCounter[] completeInputs, KeyCounter[] firstInputs) {
+    public void molecularmanipulator$beginScaledBatch(KeyCounter[] completeInputs) {
         if (molecularmanipulator$scaledBatchArmed) {
             throw new IllegalStateException("A scaled pattern-provider batch is already active");
         }
@@ -167,10 +163,7 @@ public abstract class PatternProviderLogicMixin
         molecularmanipulator$scaledExpectedAmounts.clear();
         molecularmanipulator$scaledPushedAmounts.clear();
         molecularmanipulator$scaledExternalPath = false;
-        molecularmanipulator$beginAdaptiveBatch(firstInputs);
-        if (!molecularmanipulator$balancingBatch) {
-            return;
-        }
+        molecularmanipulator$requireFullBatchAcceptance = true;
 
         try {
             for (var input : completeInputs) {
@@ -196,6 +189,8 @@ public abstract class PatternProviderLogicMixin
 
     @Override
     public PushResult molecularmanipulator$endScaledBatch(boolean accepted) {
+        boolean ownsRemainder = accepted && molecularmanipulator$scaledExternalPath && !sendList.isEmpty();
+        if (ownsRemainder) molecularmanipulator$smartQueueOwned = true;
         PushResult result;
         if (!accepted) {
             result = PushResult.REJECTED;
@@ -203,13 +198,12 @@ public abstract class PatternProviderLogicMixin
                 || !molecularmanipulator$scaledExternalPath
                 || !molecularmanipulator$scaledAmountsMatch()) {
             result = PushResult.ACCEPTED_UNVERIFIED;
-        } else if (sendList.isEmpty()) {
-            result = PushResult.ACCEPTED_FULL;
         } else {
-            molecularmanipulator$smartQueueOwned = true;
-            result = PushResult.ACCEPTED_QUEUED;
+            result = ownsRemainder ? PushResult.ACCEPTED_QUEUED : PushResult.ACCEPTED_FULL;
         }
         molecularmanipulator$finishScaledBatchContext();
+        // AE2's sendList insertion wakes the device but does not mark its host dirty.
+        if (ownsRemainder) saveChanges();
         return result;
     }
 
@@ -323,7 +317,7 @@ public abstract class PatternProviderLogicMixin
     private boolean molecularmanipulator$excludeDedicatedMachineFromScaledBatch(
             ICraftingMachine craftingMachine, IPatternDetails patternDetails,
             KeyCounter[] inputs, Direction side, Operation<Boolean> original) {
-        if (molecularmanipulator$scaledBatchArmed) {
+        if (molecularmanipulator$scaledBatchArmed && patternDetails == molecularmanipulator$temporaryScaledPattern) {
             return false;
         }
         return original.call(craftingMachine, patternDetails, inputs, side);

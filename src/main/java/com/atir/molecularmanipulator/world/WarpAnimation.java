@@ -5,6 +5,7 @@ public final class WarpAnimation {
     public static final int IDLE = 0;
     public static final int CHARGING = 1;
     public static final int ARRIVING = 2;
+    public static final int PREPARING = 3;
     public static final int CHARGE_TICKS = 28;
     public static final int ARRIVAL_TICKS = 16;
     public static final int FADE_TICKS = 6;
@@ -21,7 +22,7 @@ public final class WarpAnimation {
     }
 
     public static boolean active(int phase, float age) {
-        return age >= 0 && (phase == CHARGING && age < CHARGE_TICKS
+        return age >= 0 && (phase == PREPARING || phase == CHARGING && age < CHARGE_TICKS
                 || phase == ARRIVING && age < ARRIVAL_TICKS);
     }
 

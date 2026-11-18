@@ -119,7 +119,7 @@ The unlock is **permanent team progress** and survives dismantling or restarting
 ## What do the benefits mean?
 
 - Assembler parallelism is the number of recipe copies a supported sequence machine can make together.
-- CPU parallelism is the number of crafting steps an Omni CPU can advance together.
+- CPU parallelism is the number of recipe copies one core can dispatch per tick, shared across all its orders. Each processing machine still runs at its own speed.
 - CPU crafting storage is workspace for orders and intermediate ingredients. ME item storage is separate.
 - Well speed reduces production time. Research time stays the same, and nine-round deep research increases batch size separately.
 
@@ -137,7 +137,7 @@ These values apply without overclocking. Check Overview and Upgrade for live cap
 | L8 | 67,108,864 | 65,536 | 16 TiB | ×48 |
 | L9 | 268,435,456 | 131,072 | 64 TiB | ×64 |
 
-A network uses **one best active engine**; engines do not stack. Power, channels, ingredients and output space still limit real production. From L7, computation machines can use virtual CPUs for multiple orders; see the [Omni Computation Core](omni_computation_core.md).
+A network uses **one best active engine**; engines do not stack. Power, channels, ingredients and output space still limit real production. At every level, computation machines can create additional CPUs for independent orders; see the [Omni Computation Core](omni_computation_core.md).
 
 ### Optional: overclocking
 

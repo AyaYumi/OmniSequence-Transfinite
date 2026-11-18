@@ -11,7 +11,7 @@ import net.minecraft.world.level.Level;
 
 /** CPU-owned accounting boundary for optional, leftover-returning batch executors. */
 public interface OmniNativeBatchHost {
-    boolean omniNative$virtualCpu();
+    boolean omniNative$adaptiveDispatch();
     void omniNative$prefer(IPatternDetails pattern);
     UUID omniNative$jobId();
     Map<IPatternDetails, ?> omniNative$tasks();

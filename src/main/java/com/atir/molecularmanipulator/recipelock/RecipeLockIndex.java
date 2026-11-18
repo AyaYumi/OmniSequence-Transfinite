@@ -84,13 +84,19 @@ final class RecipeLockIndex {
                                  List<RecipeHolder<RecipeLockRecipe>> declarations,
                                  Set<ResourceLocation> validNodes) {
         var result = new LinkedHashMap<ResourceLocation, List<Requirement>>();
+        int invalid = 0, unmatched = 0;
+        var invalidExamples = new ArrayList<ResourceLocation>();
+        var unmatchedExamples = new ArrayList<ResourceLocation>();
         for (var holder : declarations) {
             var rule = holder.value();
             String error = rule.error();
             if (error != null) throw new IllegalArgumentException("Invalid recipe lock " + holder.id() + ": " + error);
             boolean valid = validNodes.containsAll(rule.requires());
-            if (!valid) LOGGER.warn("Recipe lock {} references undefined/invalid research nodes; matching recipes stay locked: {}",
-                    holder.id(), rule.requires());
+            if (!valid) {
+                invalid++;
+                if (invalidExamples.size() < 3) invalidExamples.add(holder.id());
+                LOGGER.trace("Recipe lock {} requires research nodes {}", holder.id(), rule.requires());
+            }
             var requirement = new Requirement(new HashSet<>(rule.requires()), "any".equals(rule.mode()), valid);
             var selector = rule.match();
             var patterns = selector.recipeIdRegex().stream().map(Pattern::compile).toList();
@@ -104,8 +110,14 @@ final class RecipeLockIndex {
                     matched++;
                 }
             }
-            if (matched == 0) LOGGER.warn("Recipe lock {} matches no loaded recipes", holder.id());
+            if (matched == 0) {
+                unmatched++;
+                if (unmatchedExamples.size() < 3) unmatchedExamples.add(holder.id());
+                LOGGER.trace("Recipe lock {} matches no loaded recipes", holder.id());
+            }
         }
+        if (invalid > 0) LOGGER.warn("{} recipe locks reference missing or invalid research nodes; matching recipes stay locked. Examples: {}", invalid, invalidExamples);
+        if (unmatched > 0) LOGGER.warn("{} recipe locks match no loaded recipes. Examples: {}", unmatched, unmatchedExamples);
         return new RecipeLockIndex(result, Map.of());
     }
 

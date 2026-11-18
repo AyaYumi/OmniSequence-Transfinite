@@ -72,7 +72,12 @@ public final class StarResearchNodes {
             if (holder.value() instanceof StarResearchNodeRecipe recipe) overrides.put(holder.id(), recipe);
         }
         var catalog = build(overrides);
-        catalog.errors().forEach((id, error) -> LOGGER.warn("Cannot purchase star research node {}: {}", id, error));
+        var errors = catalog.errors();
+        if (!errors.isEmpty()) {
+            LOGGER.warn("{} star research nodes cannot be purchased. Examples: {}", errors.size(),
+                    errors.entrySet().stream().limit(3).toList());
+            if (LOGGER.isTraceEnabled()) errors.forEach((id, error) -> LOGGER.trace("Cannot purchase star research node {}: {}", id, error));
+        }
         CACHE.put(manager, new Cached(generation, source, catalog));
         return catalog;
     }

@@ -129,6 +129,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
     private long nextVirtualCpuLaneId = 1L;
     private long nextStructureCheck;
     private long dispatchBudgetTick = Long.MIN_VALUE;
+    private long dispatchParallelism;
+    private boolean dispatchAdaptive;
     private long dispatchAdaptiveWorkUnits;
     private int dispatchLaneRotation;
     private int dispatchUnscaledTotalAttempts;
@@ -250,7 +252,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
 
     public boolean canAcceptNewJob(CraftingCPUCluster cpu) {
         return structureFormed && !hasUnrestoredCpuStates() && !cpu.isDestroyed()
-                && OmniCpuResources.acceptsNewJob(entropyBenefits(), cpu == getCluster());
+                && (cpu == getCluster() || CPU_OWNERS.get(cpu) == this);
     }
 
     private Map<CraftingCPUCluster, BigInteger> occupiedCpuStorage() {
@@ -778,7 +780,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
     }
 
     private CraftingCPUCluster createVirtualCpu() {
-        if (hasUnrestoredCpuStates() || !entropyBenefits().virtualCpu()) return null;
+        if (hasUnrestoredCpuStates()) return null;
         return createVirtualCpu(allocateVirtualCpuLaneId());
     }
 
@@ -829,9 +831,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
                 idleCount++;
             }
         }
-        if (idleCount == 0 && entropyBenefits().virtualCpu()) {
+        if (idleCount == 0) {
             createVirtualCpu();
-            idleCount = 1;
+            return;
         }
 
         if (idleCount > 1) {
@@ -940,32 +942,34 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
 
     public synchronized DispatchAllowance claimDispatchAllowance(CraftingCPUCluster cpu, long tick) {
         if (!(level instanceof ServerLevel serverLevel)) {
-            return new DispatchAllowance(0, 0, 0, false);
+            return new DispatchAllowance(0, 0, 0, 0, false, false);
         }
 
+        var benefits = entropyBenefits();
+        long parallelism = structureFormed ? benefits.cpuParallel() : 0;
         if (dispatchBudgetTick != tick) {
             dispatchBudgetTick = tick;
+            dispatchParallelism = parallelism;
+            dispatchAdaptive = benefits.infinite();
             dispatchAdaptiveWorkUnits = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
             prepareDispatchAllowances(tick);
         }
 
-        // A level/OC drop can occur between two lanes in the same AE tick. The old
-        // shares include work already spent; do not lend them out under a smaller cap.
-        if (OmniCpuResources.singleDispatchLimit(getParallelismLimit(),
-                ModConfig.OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK.get()) < dispatchUnscaledTotalAttempts) {
-            return new DispatchAllowance(0, 0, 0, false);
+        // Earlier lanes have already used this tick's allowance. A live downgrade
+        // cannot renew it or admit another lane under the old, higher cap.
+        if (parallelism < dispatchParallelism) {
+            return new DispatchAllowance(0, 0, 0, 0, false, false);
         }
         // Reject a re-entrant claim without consuming work returned by earlier lanes.
         if (dispatchBudget.hasClaimed(cpu)) {
-            return new DispatchAllowance(0, 0, 0, false);
+            return new DispatchAllowance(0, 0, 0, 0, false, false);
         }
 
-        var compatWindow = claimSharedCompatDispatchWindow(
-                serverLevel.getServer(), cpu, tick);
         var claim = dispatchBudget.claim(cpu);
+        var compatWindow = claimSharedCompatDispatchWindow(serverLevel.getServer(), cpu, tick);
         return new DispatchAllowance(
-                claim.workUnits(), claim.unscaledAttempts(),
-                compatWindow.deadlineNanos(), compatWindow.progressLane());
+                claim.workUnits(), claim.unscaledAttempts(), claim.recipeCopies(),
+                compatWindow.deadlineNanos(), compatWindow.progressLane(), dispatchAdaptive);
     }
 
     private void prepareDispatchAllowances(long tick) {
@@ -975,11 +979,11 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
                     dispatchUnscaledDemandThisTick);
             dispatchUnscaledDemandThisTick.clear();
         }
+        long recipeCopies = dispatchAdaptive ? 0L : dispatchParallelism;
         dispatchUnscaledTotalAttempts = OmniCpuResources.singleDispatchLimit(
-                getParallelismLimit(), ModConfig.OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK.get());
-        var activeCpus = allCpus().stream().filter(CraftingCPUCluster::isBusy).toList();
-        dispatchBudget.beginTick(
-                tick, dispatchAdaptiveWorkUnits, dispatchUnscaledTotalAttempts);
+                dispatchParallelism, ModConfig.OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK.get());
+        var activeCpus = activeDispatchCpus();
+        dispatchBudget.beginTick(tick, dispatchAdaptiveWorkUnits, dispatchUnscaledTotalAttempts, recipeCopies);
         dispatchProgressLanes.clear();
         int activeLanes = activeCpus.size();
         if (activeLanes == 0) return;
@@ -992,7 +996,9 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
             var share = OmniCpuResources.dispatchLaneShare(dispatchAdaptiveWorkUnits,
                     dispatchUnscaledTotalAttempts, activeLanes, index,
                     dispatchLaneRotation, dispatchUnscaledLaneRotation);
-            dispatchBudget.reserve(cpu, share.workUnits(), share.attempts());
+            int offset = Math.floorMod(index - attemptStart, activeLanes);
+            long copies = recipeCopies / activeLanes + (offset < recipeCopies % activeLanes ? 1L : 0L);
+            dispatchBudget.reserve(cpu, share.workUnits(), share.attempts(), copies);
             if (share.canProgress()) dispatchProgressLanes.add(cpu);
         }
         dispatchLaneRotation = OmniCpuResources.nextDispatchWorkRotation(
@@ -1001,11 +1007,15 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
                 + Math.max(1L, dispatchUnscaledTotalAttempts % activeLanes)) % activeLanes);
     }
 
+    private List<CraftingCPUCluster> activeDispatchCpus() {
+        return allCpus().stream().filter(cpu -> cpu.isBusy() && !cpu.craftingLogic.isJobSuspended()).toList();
+    }
+
     private Set<CraftingCPUCluster> compatProgressLanes(long tick) {
         if (dispatchBudgetTick == tick) return dispatchProgressLanes;
         // The first core selects the server-wide progress lane before other
         // cores have claimed. Predict their next shares without renewing budgets.
-        var active = allCpus().stream().filter(CraftingCPUCluster::isBusy).toList();
+        var active = activeDispatchCpus();
         var eligible = Collections.newSetFromMap(new IdentityHashMap<CraftingCPUCluster, Boolean>());
         long work = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
         int attempts = OmniCpuResources.singleDispatchLimit(getParallelismLimit(),
@@ -1021,7 +1031,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
 
     public synchronized void recordDispatchWork(
             CraftingCPUCluster cpu, long tick, long allowance, long used,
-            int unscaledAllowance, int unscaledUsed,
+            int unscaledAllowance, int unscaledUsed, long copyAllowance, long copiesUsed,
             boolean unscaledNeedsMore) {
         if (cpu == null || tick != dispatchBudgetTick) {
             return;
@@ -1030,7 +1040,7 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
         // allowance does not match it cannot create budget, and a duplicate
         // record cannot refund the same unused work twice.
         if (!dispatchBudget.record(
-                cpu, allowance, unscaledAllowance, used, unscaledUsed)) {
+                cpu, allowance, unscaledAllowance, copyAllowance, used, unscaledUsed, copiesUsed)) {
             return;
         }
         if (unscaledNeedsMore && cpu.isBusy()) {
@@ -1131,8 +1141,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
     }
 
     public record DispatchAllowance(
-            long workUnits, int unscaledAttempts,
-            long compatDeadlineNanos, boolean compatProgressLane) {
+            long workUnits, int unscaledAttempts, long recipeCopies,
+            long compatDeadlineNanos, boolean compatProgressLane, boolean infinite) {
     }
 
     private record CompatDispatchWindow(

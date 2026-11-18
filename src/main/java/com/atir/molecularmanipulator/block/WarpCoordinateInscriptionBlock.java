@@ -14,10 +14,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 
-/** Fixed, carved coordinate symbols in the ruin masonry. No text or ticking entity. */
+/** Carved coordinate symbols in the ruin masonry. No text or ticking entity. */
 public final class WarpCoordinateInscriptionBlock extends HorizontalDirectionalBlock {
     public static final MapCodec<WarpCoordinateInscriptionBlock> CODEC = simpleCodec(WarpCoordinateInscriptionBlock::new);
-    public static final IntegerProperty GLYPH = IntegerProperty.create("glyph", 0, 2);
+    public static final IntegerProperty GLYPH = IntegerProperty.create("glyph", 0, 5);
 
     public WarpCoordinateInscriptionBlock(Properties properties) {
         super(properties);

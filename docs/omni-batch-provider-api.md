@@ -7,7 +7,7 @@ see the [player guide](../README.md) or the in-game G guide.
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 21.3.0.1 on Minecraft 1.21.1 / Java 21, with AE2 19.2.18
+Current for OmniSequence 21.3.0.2 on Minecraft 1.21.1 / Java 21, with AE2 19.2.18
 and AppliedEnhancements 1.1.2+ (compile API 1.1.4). The runtime ABI remains 1.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
@@ -21,14 +21,20 @@ Implement this SPI on an AE2 machine that stores encoded patterns and acts as an
 `ICraftingProvider` when it can accept several complete crafts as one atomic
 transaction from an Omni-Computation Core or Transfinite Compute Nexus.
 
-Ordinary providers also receive adaptive dispatch through their existing
-`pushPattern` contract, including multi-input recipes and custom implementations.
-The first ordinary call contains one original task. Further complete calls grow
-in same-tick rounds of 1, 2, 4, ... until the provider becomes busy or rejects a
-call. Omni retains the successful calls per tick and, after 20 ticks, probes that
-baseline plus 1, 2, 4, ... again. Native doubled tasks retain their identity and
-counts. Providers that can accept one counted transaction can use the atomic SPI
-below.
+A stock AE2 Pattern Provider needs no SPI for an AE2 processing pattern with one
+actual input key and no returned containers. When the provider is online, its send
+queue is empty, and blocking and crafting locks are off, Omni simulates insertion
+into adjacent inventories. It takes the largest number of whole crafts that fits
+through a single face, not the sum across faces. If the machine takes less than it
+reported, the rest waits in the provider's send queue. Byproducts do not count as inputs.
+
+Different inputs can compete for the same empty slot, so Omni does not combine
+separate estimates for them. When capacity-based batching does not apply, providers
+can still receive complete crafts through `pushPattern`. Finite tiers share one
+per-core allowance per tick. L9 overclock has no fixed craft count; ordinary dispatch
+adjusts its attempts to how many calls the provider accepts. Native doubled tasks
+retain their identity and counts. Third-party providers that can commit to a whole
+batch should use the two-stage SPI below.
 
 A single remaining craft uses the original one-craft path rather than waiting for
 another batch. Reusable-tool handling in built-in machines retains returned tools

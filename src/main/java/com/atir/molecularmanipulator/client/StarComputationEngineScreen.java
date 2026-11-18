@@ -750,10 +750,10 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
                 318, 132, 65, "accent", "right");
         var base = new StarComputationBenefits(benefit.level(), false);
         benefitRow(g, 0, "assembler_parallel", amount(benefit.assemblerParallel()),
-                tr("assembler_detail", tr(benefit.virtualCpu() ? "virtual_parallel" : "physical_parallel"),
+                tr("assembler_detail", tr(benefit.level() >= 7 ? "virtual_parallel" : "physical_parallel"),
                         OsqUi.compact(base.assemblerParallel())));
         benefitRow(g, 1, "cpu_parallel", amount(benefit.cpuParallel()),
-                tr("cpu_detail", tr(benefit.virtualCpu() ? "virtual_parallel" : "physical_parallel"),
+                tr("cpu_detail", tr(benefit.infinite() ? "probe_dispatch" : "batch_dispatch"),
                         OsqUi.compact(base.cpuParallel())));
         benefitRow(g, 2, "cpu_storage", storage(benefit.storageBytes()), tr("storage_detail", storage(base.storageBytes())));
         benefitRow(g, 3, "fabrication_speed", benefit.infinite() ? tr("one_tick")

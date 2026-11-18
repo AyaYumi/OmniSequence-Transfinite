@@ -47,6 +47,54 @@
     "facing=west,glyph=2": {
       "model": "molecularmanipulator:block/warp_coordinate_inscription_2",
       "y": 270
+    },
+    "facing=north,glyph=3": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_3",
+      "y": 0
+    },
+    "facing=east,glyph=3": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_3",
+      "y": 90
+    },
+    "facing=south,glyph=3": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_3",
+      "y": 180
+    },
+    "facing=west,glyph=3": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_3",
+      "y": 270
+    },
+    "facing=north,glyph=4": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_4",
+      "y": 0
+    },
+    "facing=east,glyph=4": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_4",
+      "y": 90
+    },
+    "facing=south,glyph=4": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_4",
+      "y": 180
+    },
+    "facing=west,glyph=4": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_4",
+      "y": 270
+    },
+    "facing=north,glyph=5": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_5",
+      "y": 0
+    },
+    "facing=east,glyph=5": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_5",
+      "y": 90
+    },
+    "facing=south,glyph=5": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_5",
+      "y": 180
+    },
+    "facing=west,glyph=5": {
+      "model": "molecularmanipulator:block/warp_coordinate_inscription_5",
+      "y": 270
     }
   }
 }

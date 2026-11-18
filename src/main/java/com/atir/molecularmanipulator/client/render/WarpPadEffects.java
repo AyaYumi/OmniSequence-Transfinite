@@ -17,6 +17,14 @@ public final class WarpPadEffects {
         if (!WarpAnimation.active(phase, age)) return;
         var pose = poses.last();
         var center = WarpPadGeometry.STANDING_OFFSET.add(0, .035, 0);
+        if (phase == WarpAnimation.PREPARING) {
+            float pulse = .5F + .5F * (float) Math.sin(age * .15F);
+            OmniRenderGeometry.torus(pose, out, center, .85F + .08F * pulse, .018F, 40, 4,
+                    OmniRenderGeometry.argb(GOLD, 100 + Math.round(70 * pulse)));
+            OmniRenderGeometry.torus(pose, out, center.add(0, .025, 0), .55F - .05F * pulse, .012F, 32, 4,
+                    OmniRenderGeometry.argb(LIGHT, 90 + Math.round(60 * pulse)));
+            return;
+        }
         boolean charging = phase == WarpAnimation.CHARGING;
         float progress = WarpAnimation.ease(age / (charging ? WarpAnimation.CHARGE_TICKS : WarpAnimation.ARRIVAL_TICKS));
         float radius = charging ? 1.12F - .92F * progress : .2F + .94F * progress;

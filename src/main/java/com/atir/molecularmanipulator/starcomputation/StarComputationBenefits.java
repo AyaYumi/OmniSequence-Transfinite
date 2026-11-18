@@ -27,7 +27,8 @@ public record StarComputationBenefits(int level, boolean overclocked) {
     }
 
     public boolean infinite() { return level == 9 && overclocked; }
-    public boolean virtualCpu() { return level >= 7; }
+    /** All Omni cores can split into independent order lanes, even without an engine. */
+    public boolean virtualCpu() { return true; }
     private int multiplier() { return overclocked ? 2 : 1; }
     public long assemblerParallel() { return infinite() ? Long.MAX_VALUE : level == 0 ? 1 : (4096L << (2 * (level - 1))) * multiplier(); }
     public long cpuParallel() { return infinite() ? Long.MAX_VALUE : level == 0 ? 16 : (512L << (level - 1)) * multiplier(); }

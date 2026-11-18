@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.client.gui.theme;
 
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,7 +45,7 @@ public final class OsqIconInk {
                 }
                 return measure(image);
             } catch (java.io.IOException exception) {
-                com.mojang.logging.LogUtils.getLogger().warn("OSQ cannot measure icon {}", key, exception);
+                RateLimitedLog.warn("OSQ cannot measure icon {} from {}", key, file, exception);
                 return new Center(.5f, .5f);
             }
         });

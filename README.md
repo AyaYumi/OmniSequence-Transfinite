@@ -39,6 +39,14 @@ Install the optional mods you need. The [author reference](docs/README.md) lists
 
 </details>
 
+## Changes in 20.3.0.2
+
+An Omni-Computation Core or Transfinite Compute Nexus can now run several orders before reaching L7. Jobs on the same CPU share its storage and per-tick dispatch allowance. When a Molecular Auto Crafter has enough of the exact ingredients for one craft, it no longer searches the ME network for substitutes.
+
+Read the three inscriptions in the End ruin in order to dial the laboratory. Step off the pad while the destination is loading to cancel the trip.
+
+If a Thunderbolt batch stops on an execution error, you can cancel the job. Stock AE2 and AE2 UELM still use the same OmniSequence JAR.
+
 ## Build your first automated well
 
 ![Three first steps: connect the well, complete Tier I, install a Pattern Assembly](src/main/resources/assets/molecularmanipulator/ae2guide/assets/diagrams/first-steps-en_us.png)

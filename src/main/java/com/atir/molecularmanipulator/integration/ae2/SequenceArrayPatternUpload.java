@@ -107,28 +107,6 @@ public final class SequenceArrayPatternUpload {
                 && center.isAutomaticPatternUploadEnabled() && center.canAcceptExternalPatternUpload();
     }
 
-    private static boolean removeEncodedPattern(InternalInventory patterns, ItemStack pattern) {
-        if (!ItemStack.matches(pattern, patterns.extractItem(0, 1, true))) return false;
-        boolean removed = false;
-        try {
-            removed = ItemStack.matches(pattern, patterns.extractItem(0, 1, false))
-                    && patterns.getStackInSlot(0).isEmpty();
-            return removed;
-        } catch (RuntimeException failure) {
-            return false;
-        } finally {
-            if (!removed) restoreSlot(patterns, 0, pattern);
-        }
-    }
-
-    private static void restoreSlot(InternalInventory inventory, int slot, ItemStack snapshot) {
-        try {
-            inventory.setItemDirect(slot, snapshot.copy());
-        } catch (RuntimeException failure) {
-            if (!ItemStack.matches(snapshot, inventory.getStackInSlot(slot))) throw failure;
-        }
-    }
-
     public static void sendDuplicateMessage(ServerPlayer player) {
         if (player != null) {
             player.sendSystemMessage(Component.translatable("message.molecularmanipulator.pattern_upload.duplicate"));

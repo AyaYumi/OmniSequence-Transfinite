@@ -21,6 +21,8 @@ The Molecular Auto Crafter keeps products stocked using ingredients already in M
 
 Left: the machine. Right: supported crafting, smithing and stonecutting patterns. Processing patterns for external machines do not belong here.
 
+For AE2 crafting patterns, the machine first checks whether it can make one craft with the ingredients on the pattern, leaving your reserves in ME. If it can, it skips the search for substitutes. If it cannot, substitutes are considered only when the pattern allows them.
+
 Stock the ingredients in ME first; the machine cannot order missing ingredients. Its nine pattern slots have separate settings and switches, but share the machine's crafting capacity.
 
 ## Requirements

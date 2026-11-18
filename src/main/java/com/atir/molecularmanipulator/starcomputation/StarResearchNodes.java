@@ -77,7 +77,6 @@ public final class StarResearchNodes {
         if (!errors.isEmpty()) {
             LOGGER.warn("{} star research nodes cannot be purchased. Examples: {}", errors.size(),
                     errors.entrySet().stream().limit(3).toList());
-            if (LOGGER.isTraceEnabled()) errors.forEach((id, error) -> LOGGER.trace("Cannot purchase star research node {}: {}", id, error));
         }
         CACHE.put(manager, new Cached(generation, source, catalog));
         return catalog;

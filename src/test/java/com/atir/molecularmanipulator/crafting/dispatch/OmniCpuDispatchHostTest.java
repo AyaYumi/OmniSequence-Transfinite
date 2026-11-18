@@ -64,7 +64,19 @@ class OmniCpuDispatchHostTest {
     private Task task;
     private appeng.api.networking.IGrid grid;
 
+    private java.lang.reflect.Field batchConfig;
+    private Object savedBatchConfig;
+
+    @org.junit.jupiter.api.AfterEach void restoreBatchConfig() throws Exception {
+        batchConfig.set(com.atir.molecularmanipulator.config.ModConfig.OMNI_BATCH_DISPATCH_ENABLED, savedBatchConfig);
+    }
+
     @BeforeEach void setup() throws Exception {
+        batchConfig = net.neoforged.neoforge.common.ModConfigSpec.ConfigValue.class.getDeclaredField("cachedValue");
+        batchConfig.setAccessible(true);
+        var setting = com.atir.molecularmanipulator.config.ModConfig.OMNI_BATCH_DISPATCH_ENABLED;
+        savedBatchConfig = batchConfig.get(setting);
+        batchConfig.set(setting, true);
         Class.forName("com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchTest");
         cpu = new Cpu(); job = allocate(EcoCpuDispatchJob.class);
         job.tasks = new LinkedHashMap<>(); task = new Task(); task.value = 10; job.tasks.put(pattern, task);
@@ -92,6 +104,8 @@ class OmniCpuDispatchHostTest {
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$reflectionAvailable", true);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$dispatchOwner", allocate(OmniComputationCoreBlockEntity.class));
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$dispatchAllowance", 100L);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$recipeAllowance", 100L);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$adaptiveDispatch", true);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$unscaledDispatchAllowance", 100);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$compatDispatchDeadlineNanos", System.nanoTime() + 30_000_000_000L);
         // Accounting tests must not race the production sub-millisecond per-pattern time slice.
@@ -102,8 +116,8 @@ class OmniCpuDispatchHostTest {
     }
     @ParameterizedTest
     @org.junit.jupiter.params.provider.CsvSource({"false,false", "false,true", "true,false", "true,true"})
-    void acceptedOrdinaryInputsStayAcceptedWhenThePostPushBusyQueryFails(boolean physical, boolean linkage) throws Exception {
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$virtualDispatch", !physical);
+    void acceptedOrdinaryInputsStayAcceptedWhenThePostPushBusyQueryFails(boolean finite, boolean linkage) throws Exception {
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$adaptiveDispatch", !finite);
         var provider = (appeng.api.networking.crafting.ICraftingProvider) Proxy.newProxyInstance(
                 getClass().getClassLoader(), new Class<?>[]{appeng.api.networking.crafting.ICraftingProvider.class},
                 (proxy, method, args) -> switch (method.getName()) {
@@ -131,14 +145,14 @@ class OmniCpuDispatchHostTest {
         assertEquals(0, inputs[0].get(MATERIAL));
         var adaptive = (com.atir.molecularmanipulator.crafting.MolecularAdaptiveBatchController)
                 get("molecularmanipulator$adaptiveBatchController");
-        assertEquals(0, adaptive.getAvailableCrafts(provider, pattern, 100),
+        assertEquals(finite ? 1 : 0, adaptive.getAvailableCrafts(provider, pattern, 100),
                 "An unavailable busy signal must end probing for this tick");
     }
     @ParameterizedTest
     @org.junit.jupiter.params.provider.CsvSource({"false,3", "true,3", "false,7", "true,7"})
     void ordinaryPhysicalAndVirtualCallsProbeWithinTheSameTickWithoutScaling(
-            boolean physical, int allowance) throws Exception {
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$virtualDispatch", !physical);
+            boolean finite, int allowance) throws Exception {
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$adaptiveDispatch", !finite);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$unscaledDispatchAllowance", allowance);
         var provider = (appeng.api.networking.crafting.ICraftingProvider) Proxy.newProxyInstance(
                 getClass().getClassLoader(), new Class<?>[]{appeng.api.networking.crafting.ICraftingProvider.class},
@@ -170,7 +184,7 @@ class OmniCpuDispatchHostTest {
         }
         var adaptive = (com.atir.molecularmanipulator.crafting.MolecularAdaptiveBatchController)
                 get("molecularmanipulator$adaptiveBatchController");
-        assertEquals(allowance + 1, adaptive.getAvailableCrafts(provider, pattern, 100));
+        assertEquals(finite ? 1 : allowance + 1, adaptive.getAvailableCrafts(provider, pattern, 100));
         assertEquals(allowance, calls.get());
         assertEquals(allowance, get("molecularmanipulator$unscaledDispatchUsed"), "Both modes spend shared real-call attempts");
         var blocked = new appeng.api.stacks.KeyCounter[]{new appeng.api.stacks.KeyCounter()};
@@ -178,7 +192,7 @@ class OmniCpuDispatchHostTest {
         assertEquals(false, push.invoke(cpu, provider, pattern, blocked, original));
         assertEquals(allowance, calls.get(), "A learned probe window cannot bypass the shared attempt budget");
         assertEquals(1, blocked[0].get(MATERIAL), "A budget-blocked call must not transfer ownership");
-        assertEquals(allowance + 1, adaptive.getAvailableCrafts(provider, pattern, 100),
+        assertEquals(finite ? 1 : allowance + 1, adaptive.getAvailableCrafts(provider, pattern, 100),
                 "Budget exhaustion must not be recorded as a provider rejection");
     }
     @Test void compatPatternSlicesSurviveTheSameJobAndTickAndClearDispatch() throws Exception {
@@ -246,7 +260,7 @@ class OmniCpuDispatchHostTest {
         assertFalse(calls(node, "molecularmanipulator$clearDispatch",
                 "molecularmanipulator$clearCompatPatternSlices"),
                 "clearDispatch belongs to the tick boundary, not the job/tick slice boundary");
-        assertTrue(calls(node, "molecularmanipulator$beginOmniDispatch",
+        assertFalse(calls(node, "molecularmanipulator$beginOmniDispatch",
                 "molecularmanipulator$prepareCompatPatternSlices"));
         assertTrue(calls(node, "molecularmanipulator$beginBatchContext",
                 "molecularmanipulator$prepareCompatPatternSlices"));
@@ -275,12 +289,17 @@ class OmniCpuDispatchHostTest {
     @Test void allHostHooksAreConcreteInTheSharedCpu() {
         long hooks = java.util.Arrays.stream(CraftingCpuLogicMixin.class.getDeclaredMethods())
                 .filter(method -> method.getName().startsWith("omniDispatch$")).count();
-        assertEquals(14, hooks);
+        var required = java.util.Arrays.stream(OmniCpuDispatchHost.class.getDeclaredMethods())
+                .filter(method -> method.getName().startsWith("omniDispatch$")).toList();
+        assertEquals(required.size() - 1, hooks);
+        for (var method : required) assertDoesNotThrow(() -> (method.getName().equals("omniDispatch$reservedInput")
+                ? com.atir.molecularmanipulator.mixin.EcoOmniCpuPlanMixin.class : CraftingCpuLogicMixin.class)
+                .getDeclaredMethod(method.getName(), method.getParameterTypes()));
     }
     @Test void physicalQuotaRejectsAggregateReceiptsAndStillReceivesInFlightProducts() throws Exception {
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$virtualDispatch", false);
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$unscaledDispatchAllowance", 2);
-        assertNull(cpu.omniDispatch$stage(receipt(BigInteger.TWO)));
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$adaptiveDispatch", false);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$recipeAllowance", 2L);
+        assertNull(cpu.omniDispatch$stage(receipt(BigInteger.valueOf(3))));
         var first = cpu.omniDispatch$stage(receipt(BigInteger.ONE));
         assertNotNull(first);
         first.commit();
@@ -294,18 +313,18 @@ class OmniCpuDispatchHostTest {
                 BigInteger.TWO, Actionable.MODULATE), "An exhausted dispatch quota cannot block in-flight ownership reception");
     }
     @Test void virtualAggregateAlsoConsumesTheSharedPhysicalDispatchQuota() throws Exception {
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$unscaledDispatchAllowance", 1);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$dispatchAllowance", 1L);
         var batch = cpu.omniDispatch$stage(receipt(BigInteger.valueOf(3)));
         assertNotNull(batch);
         batch.commit();
         assertEquals(7, task.value);
-        assertEquals(1, get("molecularmanipulator$unscaledDispatchUsed"));
+        assertEquals(1L, get("molecularmanipulator$dispatchUsed"));
         assertTrue(cpu.omniDispatch$stopped());
         assertNull(cpu.omniDispatch$stage(receipt(BigInteger.ONE)));
     }
 
     @Test void physicalExtractionKeepsInputsUntilOneRecipeFitsTheWaitingWindow() throws Exception {
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$virtualDispatch", false);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$adaptiveDispatch", false);
         cpu.inventory.list.add(CONTAINER, 1);
         cpu.inventory.list.add(MATERIAL, 1);
         cpu.waiting.set(OUTPUT, Long.MAX_VALUE - 3);
@@ -343,7 +362,7 @@ class OmniCpuDispatchHostTest {
         job.tasks.clear();
         job.tasks.put(scaled, task);
         cpu.managed = true;
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizedPhysicalCpu", true);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizeRecipeCopies", true);
         var normalize = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$normalizeExternalScaledTasks",
                 appeng.crafting.execution.ExecutingCraftingJob.class);
         normalize.setAccessible(true);
@@ -357,7 +376,7 @@ class OmniCpuDispatchHostTest {
         job.tasks.clear();
         job.tasks.put(scaled, task);
         task.value = Long.MAX_VALUE;
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizedPhysicalCpu", true);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizeRecipeCopies", true);
         var normalize = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$normalizeExternalScaledTasks",
                 appeng.crafting.execution.ExecutingCraftingJob.class);
         normalize.setAccessible(true);
@@ -376,7 +395,7 @@ class OmniCpuDispatchHostTest {
         var state = OmniExactCraftingState.create(Map.of(scaled, BigInteger.TEN), Map.of());
         state.setOutputRemaining(HUGE);
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$exactState", state);
-        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizedPhysicalCpu", true);
+        set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$normalizeRecipeCopies", true);
         var callback = nativeCallback();
         var normalize = CraftingCpuLogicMixin.class.getDeclaredMethod("molecularmanipulator$normalizeExternalScaledTasks",
                 appeng.crafting.execution.ExecutingCraftingJob.class);

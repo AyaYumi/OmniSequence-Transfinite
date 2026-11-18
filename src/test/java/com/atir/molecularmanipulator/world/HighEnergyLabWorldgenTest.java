@@ -41,7 +41,7 @@ class HighEnergyLabWorldgenTest {
             assertEquals("surface_structures", structure.get("step").getAsString());
             assertEquals("none", structure.get("terrain_adaptation").getAsString());
         }
-        assertEquals(new BlockPos(8109, 128, 8105), HighEnergyLabStructure.ORIGIN);
+        assertEquals(new BlockPos(8109, 152, 8105), HighEnergyLabStructure.ORIGIN);
         assertTrue(HighEnergyLabStructure.ORIGIN.getY() > 80);
         assertTrue(HighEnergyLabStructure.ORIGIN.getY() + HighEnergyLabStructure.SIZE.getY() <= 256);
     }
@@ -99,7 +99,7 @@ class HighEnergyLabWorldgenTest {
         var lab = new HighEnergyLabStructure(settings);
         var ruin = new EndWarpRuinStructure(settings);
         for (long seed : new long[] {0L, 42L, Long.MAX_VALUE}) {
-            assertEquals(new BlockPos(8192, 162, 8192), lab.findGenerationPoint(context(HighEnergyLabStructure.START_CHUNK, seed))
+            assertEquals(new BlockPos(8192, 186, 8192), lab.findGenerationPoint(context(HighEnergyLabStructure.START_CHUNK, seed))
                     .orElseThrow().position());
             assertEquals(EndWarpTravel.sourcePad(), ruin.findGenerationPoint(context(EndWarpRuinStructure.START_CHUNK, seed))
                     .orElseThrow().position());
@@ -118,8 +118,8 @@ class HighEnergyLabWorldgenTest {
         assertEquals(new BlockPos(-20, 68, 204), EndWarpRuinStructure.ORIGIN);
         assertEquals(new BlockPos(0, 90, 224), EndWarpTravel.sourcePad());
         assertEquals(88, EndWarpRuinStructure.ORIGIN.getY() + 20);
-        assertEquals(new BlockPos(8189, 163, 8245), HighEnergyLabStructure.LANDING_ORIGIN);
-        assertEquals(new BlockPos(8192, 165, 8252), EndWarpTravel.labPad());
+        assertEquals(new BlockPos(8189, 187, 8245), HighEnergyLabStructure.LANDING_ORIGIN);
+        assertEquals(new BlockPos(8192, 189, 8252), EndWarpTravel.labPad());
         for (int x : new int[] {0, HighEnergyLabStructure.LANDING_SIZE.getX() - 1}) {
             for (int z : new int[] {0, HighEnergyLabStructure.LANDING_SIZE.getZ() - 1}) {
                 var local = HighEnergyLabStructure.LANDING_ORIGIN.offset(x, 0, z).subtract(HighEnergyLabStructure.ORIGIN);

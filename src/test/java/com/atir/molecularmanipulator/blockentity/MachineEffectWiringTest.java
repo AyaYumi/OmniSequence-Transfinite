@@ -296,10 +296,11 @@ class MachineEffectWiringTest {
         assertCall(method(type, "getStorageBytes"), ROOT + "starcomputation/StarComputationBenefits", "storageBytes");
         assertCall(method(type, "getParallelismLimit"), ROOT + "starcomputation/StarComputationBenefits", "cpuParallel");
         assertCall(method(type, "entropyBenefits"), ROOT + "starcomputation/StarComputationNetwork", "forGrid");
-        assertCall(method(type, "canAcceptNewJob"), ROOT + "crafting/OmniCpuResources", "acceptsNewJob");
+        assertCall(method(type, "canAcceptNewJob"), type.name, "hasUnrestoredCpuStates");
+        assertCall(method(type, "canAcceptNewJob"), "appeng/me/cluster/implementations/CraftingCPUCluster", "isDestroyed");
         var create = type.methods.stream().filter(m -> m.name.equals("createVirtualCpu") && m.desc.startsWith("()"))
                 .findFirst().orElseThrow();
-        assertCall(create, ROOT + "starcomputation/StarComputationBenefits", "virtualCpu");
+        assertCall(create, type.name, "allocateVirtualCpuLaneId");
         assertCall(create, type.name, "hasUnrestoredCpuStates");
         assertCall(method(type, "reserveCpuStorage"), ROOT + "crafting/OmniCpuResources$StorageBudget", "reserve");
         assertCall(method(type, "claimDispatchAllowance"), ROOT + "crafting/OmniDispatchBudgetLedger", "claim");

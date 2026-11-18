@@ -12,13 +12,13 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class OmniCpuResourcesTest {
-    @Test void levelSixUsesThePhysicalCpuAndLevelSevenCanAddVirtualLanes() {
+    @Test void allLevelsCanAddVirtualLanesWithTieredResources() {
         for (int level = 0; level <= 9; level++) {
             for (boolean overclocked : new boolean[] {false, true}) {
                 var benefits = new StarComputationBenefits(level, overclocked);
                 assertTrue(OmniCpuResources.acceptsNewJob(benefits, true));
-                assertEquals(level >= 7, OmniCpuResources.acceptsNewJob(benefits, false));
-                assertEquals(level >= 7, benefits.virtualCpu());
+                assertTrue(OmniCpuResources.acceptsNewJob(benefits, false));
+                assertTrue(benefits.virtualCpu());
             }
         }
         assertEquals(16, StarComputationBenefits.NONE.cpuParallel());

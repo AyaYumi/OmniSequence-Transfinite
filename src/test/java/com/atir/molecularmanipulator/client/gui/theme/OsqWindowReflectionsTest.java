@@ -72,13 +72,13 @@ class OsqWindowReflectionsTest {
             assertEquals(4, bands); assertTrue(narrow >= 1 && broad >= 1, "Keep both broad and narrow diagonal bands");
         }
         var layer = source("client/gui/theme/OsqReflectionLayer");
-        assertTrue(layer.contains("TILE_WIDTH=256,TILE_HEIGHT=512"));
-        assertTrue(layer.contains("Math.floorMod(layoutX+dx,TILE_WIDTH)"));
-        assertTrue(layer.contains("Math.floorMod(layoutY+dy,TILE_HEIGHT)"));
+        assertTrue(layer.contains("FIELD_WIDTH=512,FIELD_HEIGHT=640"));
+        assertTrue(layer.contains("OsqSpriteRenderer.drawReflection(graphics,sprite,FIELD_WIDTH,FIELD_HEIGHT,layoutX,layoutY,x,y,width,height)"));
+        assertTrue(layer.contains("RenderSystem.setShaderColor(1,1,1,opacity*LIGHT_STRENGTH)"));
         var surface = source("client/gui/theme/OsqMaterialSurface");
         assertTrue(surface.contains("if(\"card\".equals(entry.material))return;"), "Ordinary cards transmit the window field");
         assertTrue(surface.contains("Math.round(originX+left),Math.round(originY+top)"));
-        assertTrue(surface.contains("\"feature\".equals(entry.material)?.30f:1"));
+        assertTrue(surface.contains("\"feature\".equals(entry.material)?.60f:1"));
     }
 
     @Test void expandedAutoCrafterDirectionsResizeTheSharedWindowAndMoveInventory() throws Exception {

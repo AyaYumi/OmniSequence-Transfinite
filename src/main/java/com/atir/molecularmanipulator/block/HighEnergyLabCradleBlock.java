@@ -47,8 +47,7 @@ public final class HighEnergyLabCradleBlock extends HighEnergyLabDecorationBlock
         if (level.isClientSide) return InteractionResult.SUCCESS;
         if (level.getBlockEntity(pos) instanceof HighEnergyLabCradleBlockEntity cradle) {
             if (!input || player.isShiftKeyDown()) cradle.take(player);
-            else if (!cradle.start() && cradle.working().isEmpty()) player.displayClientMessage(
-                    net.minecraft.network.chat.Component.translatable("message.molecularmanipulator.lab.ready_required"), true);
+            else cradle.start(player);
         }
         return InteractionResult.CONSUME;
     }

@@ -7,8 +7,11 @@ import com.atir.molecularmanipulator.registry.HighEnergyLabContent;
 import com.atir.molecularmanipulator.world.LabCrystallization;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -73,8 +76,19 @@ public final class HighEnergyLabCradleBlockEntity extends BlockEntity {
         working = stored;
         stored = ItemStack.EMPTY;
         progress = 0;
+        advancing = true;
         sync();
+        level.playSound(null, inletPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, .65F, 1.35F);
         return true;
+    }
+
+    public void start(Player player) {
+        if (start()) return;
+        String message;
+        if (running()) message = advancing ? "message.molecularmanipulator.lab.running"
+                : "message.molecularmanipulator.lab.paused";
+        else message = "message.molecularmanipulator.lab.ready_required";
+        player.displayClientMessage(Component.translatable(message), true);
     }
 
     public BlockPos inletPosition() {

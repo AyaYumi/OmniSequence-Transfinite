@@ -15,7 +15,7 @@ import net.minecraft.world.level.levelgen.structure.StructureType;
 /** A single floating laboratory at fixed coordinates in the outer End. */
 public final class HighEnergyLabStructure extends Structure {
     public static final Codec<HighEnergyLabStructure> CODEC = simpleCodec(HighEnergyLabStructure::new);
-    public static final BlockPos ORIGIN = new BlockPos(8109, 128, 8105);
+    public static final BlockPos ORIGIN = new BlockPos(8109, 152, 8105);
     public static final Vec3i SIZE = new Vec3i(163, 73, 169);
     public static final ChunkPos START_CHUNK = new ChunkPos(512, 512);
     public static final ResourceLocation LANDING_TEMPLATE = MolecularManipulator.id("end_lab_warp_landing");

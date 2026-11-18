@@ -48,15 +48,19 @@ Left to right: Primordial Crystal Core, Star Marrow Seed, Flawed parent rock and
 
 ## Turn cores into seeds
 
-Reach the ring through the coordinate warp pad in the small End ruin south of the main island, near X 0, Z 224. Insert an Ender Pearl in the pad's socket. Empty-hand right-click its three coordinate keys to cycle their symbols until they match the ruin's inscriptions. Stand on the pad and empty-hand right-click its center to travel.
+Find the small ruin south of the main End island, near **X 0, Z 224**. Read its three inscriptions in order. The symbols depend on the world seed and stay the same on later visits. Insert an Ender Pearl in the warp pad's socket, then right-click each key with an empty hand until it matches its inscription.
+
+Stand in the center of the pad and right-click it with an empty hand to travel. On your first trip, the pad pulses while the destination loads. Step off during this wait to cancel.
+
+New laboratories generate 24 blocks higher than before. Existing laboratories and their return pads stay where they are.
 
 At the ring, find the Power Console, Input Cradle and Output Cradle.
 
 1. Supply the power console with AE or FE and keep the ring intact.
-2. Hold Primordial Crystal Cores and right-click the input cradle to load 1 to 64 cores.
-3. Empty-hand right-click the input cradle to start the whole loaded stack. The output cradle needs room for all resulting seeds at once.
-4. Wait 8 seconds at default power settings. Each core becomes one seed, and a full stack takes the same time as a single core.
-5. Empty-hand right-click the output cradle to collect the seeds. Start each new batch yourself; completion does not start another.
+2. Hold Primordial Crystal Cores and right-click the input cradle to load **1–64 cores**.
+3. Empty-hand right-click the input cradle or **central power console** to start the **whole loaded stack**. The output cradle must have room for every resulting seed at once.
+4. On startup, a sound plays and charging rings appear over the input cradle and power console before the cores are drawn in. The full process takes **8 seconds** at default power settings. One core becomes one seed; a full stack takes the same time as one core.
+5. Empty-hand right-click the output cradle to collect the seeds. **Start each batch yourself**; completion does not automatically start another.
 
 Shift + empty-hand right-click takes unstarted cores back from the input. Power loss or insufficient output room pauses an active batch without losing it. The cradles use direct right-click controls and cannot be operated through a GUI, hopper or ME item connection.
 

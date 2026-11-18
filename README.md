@@ -8,12 +8,12 @@ The in-game guide explains how to build and use each device. Hover an item in yo
 
 ## Install
 
-The **1.20.1-forge** branch is **20.3.0.1** for **Minecraft 1.20.1 / Forge**, using **Java 17**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
+The **1.20.1-forge** branch is **20.3.0.2** for **Minecraft 1.20.1 / Forge**, using **Java 17**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
 
 | Required component | Version for this branch |
 | --- | --- |
 | Forge | 47.4.20 reference build; loader minimum 47.4.10 |
-| AE2 | 15.4.10 reference version; 15.x API |
+| AE2 | Install either AE2 15.4.10 or AE2 UELM 15.5.4-uelm. Both use the same OmniSequence JAR. |
 | ExtendedAE | 1.20-1.4.20-forge (`expatternprovider`) |
 | GuideME | 20.1.15 reference version |
 | AppliedEnhancements | 1.1.2-forge or later; installed separately |
@@ -82,7 +82,7 @@ Make Primordial Crystal Cores, then process them into Star Marrow Seeds at the T
 | Batch crafting, smithing or stonecutting in one block | **Molecular Sequence Rewrite Array**: 360 pattern slots; requires Single-Block Integration as well as well research |
 | Add batch execution to an ExtendedAE Assembler Matrix | **Assembler Matrix Sequence Rewrite Core** |
 | Maintain a product target while reserving ingredients | **Molecular Auto Crafter** |
-| Run large ME crafting jobs | **Omni Computation Core**; high star levels enable concurrent requests |
+| Run several ME crafting orders at once | **Omni Computation Core**: works without a Star Computation Engine. Orders on one core share its crafting storage and ingredient dispatch limit. |
 | Fit a crafting CPU into one block | **Transfinite Compute Nexus**: one channel, substantial ME power and both research requirements |
 | Speed up the same ME network | **Star Computation Engine**, built as the **Nine-Ring Star Orrery** |
 | Produce Star Signal Flow | **Star Sea Calculation Mainframe**, with a Star Signal Storage Cell |
@@ -92,6 +92,8 @@ Make Primordial Crystal Cores, then process them into Star Marrow Seeds at the T
 | Carry green light and obtain flawless parent rock in a personal simulation | **Simulation Lantern** |
 
 On a Sequence Array, **Auto upload** receives newly encoded crafting, smithing and stonecutting patterns from native AE2 terminals on the same network. It starts **off**. **Migrate patterns** is a one-click move of existing physical patterns from public slots and online storage cells. Processing patterns stay at their source; full-library leftovers stay there too. Existing pattern items and their NBT are preserved.
+
+To feed a smelting factory in batches, point a standard AE2 Pattern Provider at the side that accepts ore. A processing pattern with one ingredient can send several crafts together. A pattern with different ingredients still sends complete recipes one at a time. If the machine fills up, check the provider for ingredients waiting to go in.
 
 ## Sequence Wireless Hub
 
@@ -185,6 +187,6 @@ Use Java 17 and prepare the local dependencies described in [libs/README.md](lib
 ./gradlew build apiJavadoc
 ```
 
-On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-20.3.0.1.jar`; Java API documentation is generated under `build/docs/api/`.
+On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-20.3.0.2.jar`; Java API documentation is generated under `build/docs/api/`.
 
 The GUI uses the active Minecraft font; no font files are bundled. Code uses the [MIT License](LICENSE). Adapted AE2 and ExtendedAE textures retain their CC BY-NC-SA 3.0 and LGPL-3.0 licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).

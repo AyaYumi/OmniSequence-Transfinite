@@ -9,6 +9,7 @@ import appeng.crafting.inv.ListCraftingInventory;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.api.crafting.OmniBatchProviderAdapterRegistry;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerProviderAdapterRegistry;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.ae2.OmniNativeBatchHost;
 import com.atir.molecularmanipulator.integration.ae2.OmniNativeDispatchScope;
 import com.moakiee.thunderbolt.api.crafting.batch.BatchJobView;
@@ -42,7 +43,7 @@ public final class OmniThunderboltDispatch {
     public int run(OmniNativeBatchHost host, int maximum, CraftingService crafting,
             IEnergyService energy, Level level) {
         long copies = host.omniNative$maximumCopies();
-        if (!host.omniNative$virtualCpu()) copies = Math.min(maximum, copies);
+        if (!host.omniNative$adaptiveDispatch()) copies = Math.min(maximum, copies);
         if (maximum <= 0 || copies <= 1 || host.omniNative$stopped()) return -1;
         if (!Objects.equals(jobId, host.omniNative$jobId())) {
             jobId = host.omniNative$jobId();
@@ -68,25 +69,34 @@ public final class OmniThunderboltDispatch {
                 || host.omniNative$taskWindow(preferred) <= 1) return -1;
         final var pattern = preferred;
         long providerCount = 0;
+        long workAvailable = host.omniNative$workAvailable();
         var nativeProviders = new ArrayList<ICraftingProvider>();
         boolean batchCapacity = false;
+        schedule.beginTick(now);
+        batched.clear();
         for (var provider : crafting.getProviders(pattern)) {
-            if (!(provider instanceof IBatchCraftingProvider batch)
+            if (++providerCount + 1 > workAvailable) return -1;
+            if (MolecularBatchCraftingProvider.requiresSerialDispatch(provider)
                     || OmniBatchProviderAdapterRegistry.supports(provider, pattern)
-                    || OmniBigIntegerProviderAdapterRegistry.supports(provider, pattern)) return -1;
-            if (++providerCount + 1 > host.omniNative$workAvailable()) return -1;
+                    || OmniBigIntegerProviderAdapterRegistry.supports(provider, pattern)) {
+                // Leave only this provider for the shared CPU path, not the entire pattern.
+                batched.computeIfAbsent(pattern, ignored -> new IdentityHashMap<>()).put(provider, true);
+                continue;
+            }
+            if (!(provider instanceof IBatchCraftingProvider batch)) continue;
             nativeProviders.add(provider);
-            try {
-                batchCapacity |= batch.getBatchCapacity(pattern) > 1;
-            } catch (RuntimeException | LinkageError unavailable) {
-                // No input has been reserved; the existing fallback can retry it.
+            if (!batchCapacity) {
+                try {
+                    batchCapacity = batch.getBatchCapacity(pattern) > 1;
+                } catch (RuntimeException | LinkageError unavailable) {
+                    // No input has been reserved; the existing fallback can retry it.
+                }
             }
         }
         // A capacity-one provider needs its single-recipe path, without spending
         // the entire work allowance on an executor that deliberately skips it.
         if (!batchCapacity) return -1;
         final long work = providerCount + 1;
-        schedule.beginTick(now);
         var tasks = taskIterator(host, pattern, work);
         var job = new BatchJobView() {
             @Override public Level level() { return level; }
@@ -99,11 +109,10 @@ public final class OmniThunderboltDispatch {
             }
             @Override public void failDispatch(String reason, Throwable cause) { host.omniNative$fail(reason, cause); }
         };
-        // This suppression map belongs to one executor call. Successful slices
-        // may be retried within the tick under the CPU's remaining shared budget.
-        batched.clear();
-        try (var dispatchScope = OmniNativeDispatchScope.open(pattern, nativeProviders)) {
-            var mode = host.omniNative$virtualCpu()
+        // The suppression map belongs to this call. Successful slices may be
+        // retried within the tick under the CPU's remaining shared budget.
+        try (var dispatchScope = OmniNativeDispatchScope.open(pattern, nativeProviders, host.omniNative$adaptiveDispatch())) {
+            var mode = host.omniNative$adaptiveDispatch()
                     ? BatchCpuAccounting.Mode.SUCCESSFUL_DISPATCH : BatchCpuAccounting.Mode.LINEAR;
             var result = BatchExecutor.runBatchOnly(maximum, mode, crafting, energy, job,
                     host.omniNative$inventory(), batched, host::omniNative$markDirty,

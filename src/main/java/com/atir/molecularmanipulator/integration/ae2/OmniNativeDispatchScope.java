@@ -10,7 +10,7 @@ public final class OmniNativeDispatchScope implements AutoCloseable {
     private static final ThreadLocal<Context> CURRENT = new ThreadLocal<>();
     private final Context previous;
 
-    private record Context(Object pattern, Set<Object> providers, boolean delivering) { }
+    private record Context(Object pattern, Set<Object> providers, boolean delivering, boolean adaptive) { }
 
     private OmniNativeDispatchScope(Context context) {
         previous = CURRENT.get();
@@ -19,9 +19,13 @@ public final class OmniNativeDispatchScope implements AutoCloseable {
     }
 
     public static OmniNativeDispatchScope open(Object pattern, Collection<?> providers) {
+        return open(pattern, providers, true);
+    }
+
+    public static OmniNativeDispatchScope open(Object pattern, Collection<?> providers, boolean adaptive) {
         Set<Object> identities = Collections.newSetFromMap(new IdentityHashMap<>());
         identities.addAll(providers);
-        return new OmniNativeDispatchScope(new Context(pattern, identities, false));
+        return new OmniNativeDispatchScope(new Context(pattern, identities, false, adaptive));
     }
 
     public static OmniNativeDispatchScope enterProvider(Object provider, Object pattern) {
@@ -30,12 +34,17 @@ public final class OmniNativeDispatchScope implements AutoCloseable {
         boolean allowed = request != null && !request.delivering
                 && request.pattern == pattern && request.providers.contains(provider);
         return new OmniNativeDispatchScope(allowed
-                ? new Context(pattern, request.providers, true) : null);
+                ? new Context(pattern, request.providers, true, request.adaptive) : null);
     }
 
     public static boolean active() {
         Context context = CURRENT.get();
         return context != null && context.delivering;
+    }
+
+    public static boolean adaptive() {
+        Context context = CURRENT.get();
+        return context != null && context.delivering && context.adaptive;
     }
 
     @Override public void close() {

@@ -1,6 +1,6 @@
 # Author reference / 作者参考
 
-OmniSequence **20.3.0.1** for Minecraft **1.20.1 / Forge**, Java **17**.
+OmniSequence **20.3.0.2** for Minecraft **1.20.1 / Forge**, Java **17**.
 
 Use these references to add recipes and research, change server settings, or connect another mod's machines to OmniSequence. For installation and gameplay, start with the [English README](../README.md), [中文 README](../README.zh-CN.md) or the in-game guide, opened with **G**.
 
@@ -23,7 +23,7 @@ Well research belongs to each well and unlocks its processes. Star research is a
 
 ## Versions and Java contracts / 版本与 Java 契约
 
-Current branch: **1.20.1-forge**, OmniSequence **20.3.0.1**, Minecraft **1.20.1**,
+Current branch: **1.20.1-forge**, OmniSequence **20.3.0.2**, Minecraft **1.20.1**,
 Forge reference **47.4.20** (metadata minimum **47.4.10**), Java **17**, AE2 **15.4.10**,
 ExtendedAE **1.20-1.4.20-forge** (`expatternprovider`), GuideME **20.1.15**,
 AppliedEnhancements **1.1.2-forge+** (compile API **1.1.4-forge**). Mod ID: `molecularmanipulator`.

@@ -81,7 +81,7 @@ tasks.withType(Jar).configureEach {
 jarJar.enable()
 
 tasks.named('jarJar', Jar).configure {
-    archiveClassifier = project.hasProperty('ae2_uelm_version') ? 'uelm' : ''
+    archiveClassifier = ''
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
     from('licenses') { into 'licenses' }
@@ -151,11 +151,12 @@ configurations {
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
-    // Use exactly one AE2 implementation on both compile and runtime classpaths.
-    // A module coordinate lets ForgeGradle remap the production UELM jar.
-    implementation fg.deobf(project.hasProperty('ae2_uelm_version')
-            ? "appeng:appliedenergistics2-forge:${project.property('ae2_uelm_version')}"
-            : "maven.modrinth:ae2:${ae2_version}")
+    def ae2Api = fg.deobf("maven.modrinth:ae2:${ae2_version}")
+    compileOnly ae2Api
+    testCompileOnly ae2Api
+    runtimeOnly(project.hasProperty('ae2_uelm_version')
+            ? fg.deobf("appeng:appliedenergistics2-forge:${project.property('ae2_uelm_version')}")
+            : ae2Api)
     implementation fg.deobf("maven.modrinth:glodium:${glodium_version}")
     // The pinned Forge 1.4.20 release is published on CurseForge, not Modrinth Maven.
     implementation fg.deobf("curse.maven:extendedae-892005:${extendedae_curse_file}")
@@ -207,6 +208,7 @@ tasks.named('processResources', ProcessResources).configure {
 
 tasks.named('jar', Jar).configure {
     archiveClassifier = 'slim'
+    destinationDirectory = layout.buildDirectory.dir('intermediates/slim')
     manifest {
         attributes([
                 'Specification-Title'    : mod_id,
@@ -238,7 +240,7 @@ tasks.named('jar', Jar).configure {
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
-            artifact jar
+            artifact(tasks.named('jarJar')) { builtBy 'reobfJarJar' }
         }
     }
     repositories {

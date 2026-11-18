@@ -15,8 +15,11 @@ public interface OmniCpuDispatchHost {
     default boolean omniDispatch$enabled() { return false; }
     default UUID omniDispatch$jobId() { return null; }
     default boolean omniDispatch$exactOrder() { return false; }
-    /** Physical CPUs use one real recipe per provider call; virtual CPUs may aggregate. */
+    /** Whether this CPU permits aggregate provider calls. */
     default boolean omniDispatch$virtualCpu() { return true; }
+    default long omniDispatch$maximumCopies() { return Long.MAX_VALUE; }
+    /** Spend a compatibility attempt only for a provider's ordinary single-copy path. */
+    default boolean omniDispatch$trySingle(IPatternDetails pattern) { return true; }
     default boolean omniDispatch$stopped() { return false; }
     default boolean omniDispatch$paused() { return false; }
     /** Ordinary task selected by the CPU's shared native/fallback rotation. */

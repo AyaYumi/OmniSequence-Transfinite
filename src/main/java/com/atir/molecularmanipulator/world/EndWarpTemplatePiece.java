@@ -6,6 +6,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.TemplateStructurePiece;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
@@ -23,6 +27,13 @@ public final class EndWarpTemplatePiece extends TemplateStructurePiece {
 
     public static StructurePlaceSettings settings() {
         return new StructurePlaceSettings().setIgnoreEntities(false);
+    }
+
+    @Override
+    public void postProcess(WorldGenLevel level, StructureManager structures, ChunkGenerator generator,
+            RandomSource random, BoundingBox box, ChunkPos chunk, BlockPos pos) {
+        super.postProcess(level, structures, generator, random, box, chunk, pos);
+        WarpCoordinates.applyInscriptions(level, level.getSeed(), box);
     }
 
     @Override

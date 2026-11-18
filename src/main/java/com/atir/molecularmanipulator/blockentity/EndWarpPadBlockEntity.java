@@ -5,6 +5,7 @@ import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.registry.WarpContent;
 import com.atir.molecularmanipulator.network.WarpScreenPayload;
 import com.atir.molecularmanipulator.world.WarpAnimation;
+import com.atir.molecularmanipulator.world.WarpCoordinates;
 import com.atir.molecularmanipulator.world.EndWarpTravel;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
@@ -28,8 +29,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** Server-owned symbols and the reusable ender-pearl catalyst in one pad core. */
 public final class EndWarpPadBlockEntity extends BlockEntity {
-    public static final int GLYPH_COUNT = 6;
-    private static final int[] LAB_GLYPHS = {0, 1, 2};
+    public static final int GLYPH_COUNT = WarpCoordinates.GLYPH_COUNT;
     private static final String RETURN_TAG = "Return";
     private static final String PEARL_TAG = "Pearl";
     private static final String[] GLYPH_TAGS = {"Glyph0", "Glyph1", "Glyph2"};
@@ -40,6 +40,7 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
     private int animationPhase;
     private long animationStartedAt;
     private long chargeStartedAt;
+    private boolean coordinatesInitialized;
 
     public EndWarpPadBlockEntity(BlockPos pos, BlockState state) {
         super(WarpContent.WARP_PAD_BE.get(), pos, state);
@@ -67,8 +68,29 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
     }
 
     public boolean glyphsMatchDestination() {
-        for (int i = 0; i < LAB_GLYPHS.length; i++) if (glyphs[i] != LAB_GLYPHS[i]) return false;
+        if (!(level instanceof ServerLevel server)) return false;
+        for (int index = 0; index < glyphs.length; index++) {
+            if (glyphs[index] != WarpCoordinates.glyph(server.getSeed(), index)) return false;
+        }
         return true;
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (!(level instanceof ServerLevel server)) return;
+        if (!coordinatesInitialized) {
+            if (returning) {
+                for (int index = 0; index < glyphs.length; index++) {
+                    glyphs[index] = WarpCoordinates.glyph(server.getSeed(), index);
+                }
+            }
+            coordinatesInitialized = true;
+            sync();
+        }
+        if (worldPosition.equals(EndWarpTravel.sourcePad())) {
+            WarpCoordinates.applyInscriptions(server, server.getSeed(), null);
+        }
     }
 
     public InteractionResult useEmptyHand(Player player, Vec3 worldHit) {
@@ -138,17 +160,11 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
         if (chargingPlayer != null) return;
         var problem = activationProblem(traveller, server);
         if (problem != null) { message(player, problem); return; }
-        try {
-            // Prepare the remote structure before starting the visible countdown.
-            if (resolveArrival(server, traveller) == null) return;
-            chargingPlayer = traveller.getUUID();
-            animate(WarpAnimation.CHARGING);
-            chargeStartedAt = animationStartedAt;
-            WarpScreenPayload.sendToPlayer(traveller, new WarpScreenPayload(animationPhase, animationStartedAt));
-            message(player, "charging");
-        } catch (RuntimeException error) {
-            failed(traveller, error);
-        }
+        chargingPlayer = traveller.getUUID();
+        animate(WarpAnimation.PREPARING);
+        WarpScreenPayload.sendToPlayer(traveller, new WarpScreenPayload(animationPhase, animationStartedAt));
+        server.playSound(null, worldPosition, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, .55F, 1.3F);
+        message(player, "preparing");
     }
 
     private String activationProblem(ServerPlayer player, ServerLevel server) {
@@ -166,6 +182,7 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
 
     private Arrival resolveArrival(ServerLevel server, ServerPlayer player) {
         var target = EndWarpTravel.destination(server, returning);
+        if (target == null) return null;
         if (!(server.getBlockEntity(target) instanceof EndWarpPadBlockEntity destination)
                 || destination == this || destination.returning() == returning) {
             message(player, "destination_missing");
@@ -191,6 +208,19 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
         var player = server.getServer().getPlayerList().getPlayer(pad.chargingPlayer);
         if (player == null || player.serverLevel() != server || pad.activationProblem(player, server) != null) {
             pad.cancelCharge(player, true);
+            return;
+        }
+        if (pad.animationPhase == WarpAnimation.PREPARING) {
+            try {
+                if (!EndWarpTravel.prepare(server, pad.returning)) return;
+                if (pad.resolveArrival(server, player) == null) { pad.cancelCharge(player, false); return; }
+                pad.animate(WarpAnimation.CHARGING);
+                pad.chargeStartedAt = pad.animationStartedAt;
+                WarpScreenPayload.sendToPlayer(player, new WarpScreenPayload(pad.animationPhase, pad.animationStartedAt));
+                message(player, "charging");
+            } catch (RuntimeException error) {
+                pad.failed(player, error);
+            }
             return;
         }
         int age = (int)(server.getGameTime() - pad.chargeStartedAt);
@@ -287,6 +317,7 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
         super.saveAdditional(tag);
         tag.putBoolean(RETURN_TAG, returning);
         tag.putBoolean(PEARL_TAG, pearl);
+        tag.putBoolean("CoordinatesInitialized", coordinatesInitialized);
         for (int i = 0; i < glyphs.length; i++) tag.putInt(GLYPH_TAGS[i], glyphs[i]);
     }
 
@@ -297,10 +328,11 @@ public final class EndWarpPadBlockEntity extends BlockEntity {
         super.load(tag);
         returning = tag.getBoolean(RETURN_TAG);
         pearl = tag.getBoolean(PEARL_TAG);
+        coordinatesInitialized = tag.getBoolean("CoordinatesInitialized");
         for (int i = 0; i < glyphs.length; i++) glyphs[i] = Math.floorMod(tag.getInt(GLYPH_TAGS[i]), GLYPH_COUNT);
         chargingPlayer = null;
         animationPhase = tag.getInt("AnimationPhase");
-        animationStartedAt = tag.getLong("AnimationStartedAt");
+        animationStartedAt = level != null && level.isClientSide() ? level.getGameTime() : tag.getLong("AnimationStartedAt");
     }
 
     @Override

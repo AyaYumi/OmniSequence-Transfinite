@@ -6,7 +6,8 @@ import net.minecraft.resources.ResourceLocation;
 
 /** One transparent material sampled in layout space, never stretched to a panel's aspect ratio. */
 final class OsqReflectionLayer {
-    private static final int TILE_WIDTH = 256, TILE_HEIGHT = 512;
+    private static final int FIELD_WIDTH = 512, FIELD_HEIGHT = 640;
+    private static final float LIGHT_STRENGTH = 1.25F;
 
     private OsqReflectionLayer() {}
 
@@ -15,20 +16,10 @@ final class OsqReflectionLayer {
         OsqSpriteRenderer.flush();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(1, 1, 1, opacity);
+        RenderSystem.setShaderColor(1, 1, 1, opacity * LIGHT_STRENGTH);
         try {
-            for (int dy = 0; dy < height;) {
-                int v = Math.floorMod(layoutY + dy, TILE_HEIGHT);
-                int h = Math.min(height - dy, TILE_HEIGHT - v);
-                for (int dx = 0; dx < width;) {
-                    int u = Math.floorMod(layoutX + dx, TILE_WIDTH);
-                    int w = Math.min(width - dx, TILE_WIDTH - u);
-                    OsqSpriteRenderer.drawReflection(graphics, sprite, TILE_WIDTH, TILE_HEIGHT,
-                            u, v, x + dx, y + dy, w, h);
-                    dx += w;
-                }
-                dy += h;
-            }
+            OsqSpriteRenderer.drawReflection(graphics, sprite, FIELD_WIDTH, FIELD_HEIGHT,
+                    layoutX, layoutY, x, y, width, height);
         } finally {
             RenderSystem.setShaderColor(1, 1, 1, 1);
         }

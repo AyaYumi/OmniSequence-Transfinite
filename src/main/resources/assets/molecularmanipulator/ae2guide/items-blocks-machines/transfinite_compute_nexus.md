@@ -46,12 +46,11 @@ The nexus has the Omni Computation Core's limits. Crafting storage provides work
 
 | Star Computation Engine state | Nexus capabilities |
 | --- | --- |
-| No active, valid engine | 1 MiB crafting storage, recipe parallelism 16, one independent order at a time. |
-| L1 to L6, normal operation | Increased crafting storage and recipe parallelism; still one independent order at a time. |
-| L7 to L9, normal operation | Multiple independent orders share this machine's allowance. Normal L9 still has finite limits. |
+| No active, valid engine | All orders share **1 MiB of crafting storage and 16 recipe copies per tick**. |
+| L1 to L9, normal | Orders share a limit of 512 copies per tick at L1, doubling each level to 131,072 at L9. |
 | L9, overclock enabled and continuously paid | Unlimited crafting-storage and recipe-parallelism limits. Ingredients, power, machine speed and output space still determine actual production. |
 
-L1 to L8 overclocking continuously consumes star signal flow from the same network and doubles crafting storage and recipe parallelism. Multiple orders begin at L7, independently of overclocking. Insufficient signal flow ends overclocking and restores finite normal capabilities. See the [Omni Computation Core](omni_computation_core.md) for details and supported machine integrations.
+The nexus can take several orders at any level. Overclocking at L1 to L8 doubles crafting storage and dispatch limits until Star Signal Flow runs short. Items waiting in a Pattern Provider have not reached the machine yet. See the [Omni Computation Core](omni_computation_core.md) for single- and multi-ingredient patterns.
 
 ## Troubleshooting
 
@@ -60,8 +59,8 @@ L1 to L8 overclocking continuously consumes star signal flow from the same netwo
 | No usable CPU after placing the nexus | Check external ME connection, power and channel. Adjacent nexuses alone do not provide a network connection. |
 | The network repeatedly loses power | Cover the nexus's base idle consumption first, then the other devices and crafting. |
 | A CPU is available, but the product is missing | Put the pattern in an actual crafting machine or provider. The nexus has no pattern library. |
-| A second order cannot start | Check whether the effective engine has reached L7. Base parallelism 16 does not mean 16 independent orders. |
-| A large order lacks storage or keeps waiting | Split the order into smaller quantities. Check Crafting Status for ingredients, machine issues and output space. More item cells do not enlarge crafting storage. |
+| A second order cannot start | Check this nexus's remaining crafting storage; active orders also use the shared capacity. |
+| A large order lacks storage or keeps waiting | Test a smaller order. Check Crafting Status for ingredients, machine issues and output space. More item cells do not enlarge crafting storage. |
 | The nexus recipe is missing or locked | Check that AdvancedAE is installed, Transfinite Integration is completed in the well and Single-Block Integration permission is available. Keep an engine supplying borrowed network permission online. |
 | Crafting stops when you leave the base | The nexus does not force-load chunks. Keep its chunk loaded for continuous operation. |
 

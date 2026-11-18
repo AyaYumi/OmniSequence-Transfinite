@@ -118,7 +118,7 @@ The unlock is permanent team progress and survives dismantling or restarting. An
 
 ## Network bonuses
 
-Assembler parallelism is the number of recipe copies a supported sequence machine can make together. CPU parallelism controls how many crafting steps an Omni CPU can advance together. CPU crafting storage provides workspace for orders and intermediate ingredients, separate from ME item storage.
+Assembler parallelism is the number of recipe copies a supported sequence machine can make together. CPU parallelism is the number of complete recipes one core can send per tick, shared by all its orders. Machines still run at their own speed. CPU crafting storage provides workspace for orders and intermediate ingredients, separate from ME item storage.
 
 Well speed shortens production time. Research timers stay the same; nine-round deep research raises the well's batch size separately.
 
@@ -136,7 +136,7 @@ The following values apply without overclocking. Overview and Upgrade show curre
 | L8 | 67,108,864 | 65,536 | 16 TiB | ×48 |
 | L9 | 268,435,456 | 131,072 | 64 TiB | ×64 |
 
-Each network uses its strongest active engine. Bonuses do not stack, and production still needs power, channels, ingredients and output space. From L7, computation machines can use virtual CPUs for multiple orders; see the [Omni Computation Core](omni_computation_core.md).
+Each network uses its strongest active engine. Bonuses do not stack, and production still needs power, channels, ingredients and output space. Computation machines can take multiple orders at every level; see the [Omni Computation Core](omni_computation_core.md).
 
 ### Overclocking
 

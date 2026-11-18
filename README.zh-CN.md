@@ -8,12 +8,12 @@
 
 ## 安装
 
-**1.20.1-forge** 分支版本为 **20.3.0.1**，适用于 **Minecraft 1.20.1 / Forge**，使用 **Java 17**。从[项目发布页](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)选择对应的模组 JAR；源码 ZIP 不能直接当模组安装。
+**1.20.1-forge** 分支版本为 **20.3.0.2**，适用于 **Minecraft 1.20.1 / Forge**，使用 **Java 17**。从[项目发布页](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)选择对应的模组 JAR；源码 ZIP 不能直接当模组安装。
 
 | 必需组件 | 本分支对应版本 |
 | --- | --- |
 | Forge | 参考 47.4.20；加载下限 47.4.10 |
-| AE2 | 参考 15.4.10，使用 15.x API |
+| AE2 | 普通 AE2 15.4.10 和 AE2 UELM 15.5.4-uelm 任选其一，两者使用同一个万象构序 JAR。 |
 | ExtendedAE | 1.20-1.4.20-forge（模组 ID `expatternprovider`） |
 | GuideME | 参考 20.1.15 |
 | AppliedEnhancements | 1.1.2-forge 或更高，单独安装 |
@@ -82,7 +82,7 @@
 | 用一格机器批量合成、锻造、切石 | **分子构序重写阵列**：360 个样板槽；除井内研究外还需单方块集成许可 |
 | 让 ExtendedAE 装配矩阵批量执行配方 | **装配矩阵构序重写核心** |
 | 保留一部分原料，并持续补齐指定成品 | **分子自动合成器** |
-| 承接大型 ME 合成订单 | **万物演算核心**；高阶星算增益可开启并发请求 |
+| 同时下几张 ME 合成单 | **万物演算核心**：不接星算引擎也能接多单；所有订单共用这一座核心的合成存储和投料额度 |
 | 把合成 CPU 缩成一格 | **超限算枢**：需要一个频道、充足 ME 供电，以及两套研究条件 |
 | 加速同一 ME 网络中的设备 | **星算引擎**，使用**九环天体仪**结构 |
 | 生产星讯流 | **星海解算主楼**，配合星讯存储元件 |
@@ -92,6 +92,8 @@
 | 手提绿火照明，在个人模拟中取得无瑕母岩 | **模拟灯笼** |
 
 构序阵列的**自动上传**会接收同网络原生 AE2 终端中新编码的合成、锻造和切石样板，默认**关闭**。**一键迁移样板**只在点击时搬入公开槽位和在线存储盘中的已有实体样板；处理样板不搬，满库时剩余样板留在来源，物品及 NBT 原样保留。
+
+想让熔炼厂一次多收些矿石？把普通 AE2 样板供应器朝向机器能接收矿石的那一面。只有一种原料的处理样板可以合批投料；铜锭和红石粉这样的多原料样板仍按整份配方投。机器装不下时先看供应器里有没有待发送的材料。
 
 ## 构序无线枢纽
 
@@ -185,6 +187,6 @@
 ./gradlew build apiJavadoc
 ```
 
-Windows 使用 `gradlew.bat build apiJavadoc`。运行产物为 `build/libs/omnisequence-transfinite-20.3.0.1.jar`，Java API 文档位于 `build/docs/api/`。
+Windows 使用 `gradlew.bat build apiJavadoc`。运行产物为 `build/libs/omnisequence-transfinite-20.3.0.2.jar`，Java API 文档位于 `build/docs/api/`。
 
 界面使用当前 Minecraft 字体，不随附字体文件。代码使用 [MIT 许可证](LICENSE)；改编的 AE2、ExtendedAE 贴图分别保留 CC BY-NC-SA 3.0 和 LGPL-3.0，详见[第三方声明](THIRD_PARTY_NOTICES.md)。

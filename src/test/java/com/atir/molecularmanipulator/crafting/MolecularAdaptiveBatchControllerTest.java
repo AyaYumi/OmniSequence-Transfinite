@@ -177,6 +177,7 @@ class MolecularAdaptiveBatchControllerTest {
         assertEquals(0, available());
         assertTrue(controller.isSingleOnly(provider, pattern));
         controller.setActiveJob(new Object());
+        tick += MolecularAdaptiveBatchController.RECOVERY_PROBE_INTERVAL_TICKS;
         accept(7);
         controller.onStatusVerification(provider, pattern, false);
         assertEquals(0, available());
@@ -197,10 +198,10 @@ class MolecularAdaptiveBatchControllerTest {
         tick++;
         assertEquals(1, available());
         controller.setActiveJob(new Object());
-        assertEquals(1, available());
+        assertEquals(15, available());
         assertFalse(controller.isSingleOnly(provider, pattern));
         accept(1);
-        assertEquals(2, available());
+        assertEquals(14, available());
     }
 
     @Test void providerAndPatternIdentityKeepIndependentCapacity() {

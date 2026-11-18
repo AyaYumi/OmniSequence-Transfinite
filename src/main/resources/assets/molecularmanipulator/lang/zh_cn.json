@@ -337,7 +337,7 @@
   "molecularmanipulator.configuration.force_load_chunks": "强制加载机器区块",
   "molecularmanipulator.configuration.force_load_chunks.tooltip": "多方块成型或施工时保持所占区块加载。关闭后需自行加载机器及运动范围所在区块。微型白洞始终保持加载。默认开启。",
   "molecularmanipulator.configuration.singularity_duplication_item_blacklist": "物品复制黑名单",
-  "molecularmanipulator.configuration.singularity_duplication_item_blacklist.tooltip": "填写完整物品 ID，例如 minecraft:dragon_egg。两种奇点天枢均禁止复制名单内物品的所有组件变体，不扣除已存储的奇点序质，样品仍可取出。不影响资源采集或序质生产。默认 []，不限制复制。",
+  "molecularmanipulator.configuration.singularity_duplication_item_blacklist.tooltip": "填写完整物品 ID，例如 minecraft:dragon_egg。两种奇点天枢均禁止复制名单内物品的所有 NBT 变体，不扣除已存储的奇点序质，样品仍可取出。不影响资源采集或序质生产。默认 []，不限制复制。",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority": "奇点序质能源优先级",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority.tooltip": "按列表顺序使用能源。fe 来自相邻方块，ae 来自已连接的 ME 网络。",
   "molecularmanipulator.configuration.singularity_duplication_fe_per_unit": "每 mB 奇点序质 FE 消耗",

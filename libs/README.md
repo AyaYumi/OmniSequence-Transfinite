@@ -21,8 +21,10 @@ and runs that version independently of the production compile-only API.
 
 Thunderbolt and Data Energistics adapters compile against Java 17 ABI declarations
 under `src/optionalCpuApi/java`. Those declarations are excluded from runtime classpaths
-and release JARs. Compatible Forge implementations must be installed separately;
-older builds without the referenced provider API use their ordinary dispatch path.
+and release JARs. Install compatible Forge implementations separately. Thunderbolt
+native dispatch requires the batch executor ABI exposed by Thunderbolt 2.0.5 for
+Forge; builds missing that ABI stay on the existing dispatch path. Lightning Tech
+batch probe acceleration targets the Forge 2.1.4 build.
 Never install NeoForge JARs on Forge.
 
 Optional ExtendedAE Plus automatic destination-selection and well-upload integration

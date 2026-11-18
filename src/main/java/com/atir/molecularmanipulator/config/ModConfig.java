@@ -92,8 +92,8 @@ public final class ModConfig {
                 .translation("molecularmanipulator.configuration.singularity_duplication")
                 .push("singularity_duplication");
         SINGULARITY_DUPLICATION_ITEM_BLACKLIST = server.comment(
-                "Exact item IDs that cannot be copied by either Singularity Hub, regardless of item components. An empty list blocks nothing. Does not affect collection or Sequence Matter generation.",
-                "两种奇点天枢共用的复制物品 ID 黑名单，同一物品的所有组件变体均禁止复制；留空 [] 不限制。不影响资源采集或奇点序质生产。",
+                "Exact item IDs that cannot be copied by either Singularity Hub, regardless of item NBT. An empty list blocks nothing. Does not affect collection or Sequence Matter generation.",
+                "两种奇点天枢共用的复制物品 ID 黑名单，同一物品的所有 NBT 变体均禁止复制；留空 [] 不限制。不影响资源采集或奇点序质生产。",
                 "Default / 默认：item_blacklist = []")
                 .translation("molecularmanipulator.configuration.singularity_duplication_item_blacklist")
                 .defineListAllowEmpty("item_blacklist", List.<String>of(), ModConfig::isValidItemIdEntry);

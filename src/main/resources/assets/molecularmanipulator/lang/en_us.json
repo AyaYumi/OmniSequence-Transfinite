@@ -337,7 +337,7 @@
   "molecularmanipulator.configuration.force_load_chunks": "Force-Load Machine Chunks",
   "molecularmanipulator.configuration.force_load_chunks.tooltip": "Keep multiblock chunks loaded while formed or under construction. When disabled, keep the machine and its motion area loaded yourself. Miniature white holes always keep their chunks loaded. Enabled by default.",
   "molecularmanipulator.configuration.singularity_duplication_item_blacklist": "Item Duplication Blacklist",
-  "molecularmanipulator.configuration.singularity_duplication_item_blacklist.tooltip": "Exact item IDs, such as minecraft:dragon_egg, cannot be copied by either Singularity Hub, regardless of item components. Blocked samples consume no stored Sequence Matter and remain retrievable. Does not affect collection or matter generation. Default: [] (no restrictions).",
+  "molecularmanipulator.configuration.singularity_duplication_item_blacklist.tooltip": "Exact item IDs, such as minecraft:dragon_egg, cannot be copied by either Singularity Hub, regardless of item NBT. Blocked samples consume no stored Sequence Matter and remain retrievable. Does not affect collection or matter generation. Default: [] (no restrictions).",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority": "Sequence Matter Energy Priority",
   "molecularmanipulator.configuration.singularity_duplication_energy_priority.tooltip": "Use energy sources in list order. fe comes from adjacent blocks; ae comes from the connected ME network.",
   "molecularmanipulator.configuration.singularity_duplication_fe_per_unit": "FE per mB of Singularity Sequence Matter",

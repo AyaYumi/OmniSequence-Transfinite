@@ -425,9 +425,27 @@ index 82d2244..71ae41b 100644
    "gui.molecularmanipulator.singularity.motion.docking": "部件正在归位，请稍候",
    "gui.molecularmanipulator.singularity.motion.blocked": "归位位置被占用，请清理后等待重试",
 diff --git a/src/main/resources/assets/molecularmanipulator/osq_light/layout/sing_overview.json b/src/main/resources/assets/molecularmanipulator/osq_light/layout/sing_overview.json
-index 440a611..2c05254 100644
+index 440a611..826f4b3 100644
 --- a/src/main/resources/assets/molecularmanipulator/osq_light/layout/sing_overview.json
 +++ b/src/main/resources/assets/molecularmanipulator/osq_light/layout/sing_overview.json
+@@ -5,7 +5,7 @@
+  "title": "视界奇点主控中枢 · 天枢总览",
+  "size": [
+   350,
+-  320
++  336
+  ],
+  "left_room": 0,
+  "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
+@@ -27,7 +27,7 @@
+     -1,
+     -1,
+     352,
+-    322
++    338
+    ],
+    "k": "window",
+    "id": "window"
 @@ -2083,6 +2083,26 @@
     "center_y": 299.5,
     "owner": "dismantle",
@@ -448,7 +466,7 @@ index 440a611..2c05254 100644
 +    164,
 +    306,
 +    178,
-+    13
++    22
 +   ],
 +   "k": "ctl",
 +   "id": "motion"
@@ -467,7 +485,7 @@ index 440a611..2c05254 100644
 +    "x": 164,
 +    "y": 306,
 +    "w": 178,
-+    "h": 13
++    "h": 22
 +   },
 +   "par": -1,
 +   "item": null,

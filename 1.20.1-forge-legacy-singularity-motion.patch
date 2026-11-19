@@ -1,0 +1,472 @@
+diff --git a/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java b/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java
+index c5af1ccf09a1dc287c47a76b429d2e63e8715aec..ce0dffb28c28a22d202c221978c42dc75941d7d9 100644
+--- a/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java
++++ b/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java
+@@ -151,6 +151,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+     public SingularityMotionState motion() { return motion; }
+     public int structureVersion() { return structureVersion; }
+     public boolean embedRequested() { return embedRequested; }
++    public boolean reclaimPending() { return motion.reclaimAfterDock(); }
+     public List<SingularityStructure.Part> structureParts() { return isSingleBlock() ? List.of() : SingularityStructure.parts(structureVersion); }
+     public BlockPos worldPos(BlockPos local) { return SingularityStructure.worldPos(worldPosition, facing(), local, structureVersion); }
+     public BlockPos worldPos(SingularityStructure.Part part) { return worldPos(part.pos()); }
+@@ -376,16 +377,14 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+             saveChanges(); markForUpdate();
+             return;
+         }
+-        if (!canManage(player) || operation != Operation.IDLE || embedRequested
+-                || motion.hasPortable() || !formed || !networkOnline() || motion.mode() == SingularityMotionState.DOCKING) return;
++        if (!canManage(player) || operation != Operation.IDLE || embedRequested || reclaimPending()
++                || !collectionActive && (!formed || !networkOnline())) return;
+         if (collectionActive) {
+             collectionActive = false;
+             collectionStartTick = Long.MIN_VALUE;
+             nextCollectionTick = Long.MIN_VALUE;
+             status = Status.IDLE;
+-            motion.stopForCollection(player);
+         } else {
+-            if (!motion.startForCollection(player)) return;
+             collectionActive = true;
+             collectionStartTick = level.getGameTime();
+             nextCollectionTick = Long.MIN_VALUE;
+@@ -405,7 +404,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+     }
+     public void startBuild(ServerPlayer player) {
+         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || collectionActive || motion.hasBodies()
+-                || motion.hasPortable() || embedRequested) return;
++                || motion.hasPortable() || embedRequested || reclaimPending()) return;
+         if (!SingularityStructure.fits(level, worldPosition, facing(), structureVersion)) { status = Status.OUT_OF_BOUNDS; return; }
+         operation = Operation.BUILD; owner = player.getUUID(); operationFacing = facing();
+         cursor = 0; paused = false; problem = null; status = Status.BUILDING; saveChanges();
+@@ -419,21 +418,20 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+         saveChanges();
+     }
+     public void cancel(ServerPlayer player) {
+-        if (isSingleBlock()) return;
++        if (isSingleBlock() || operation == Operation.IDLE && !embedRequested && !reclaimPending()) return;
+         if (!canManage(player) || !player.getUUID().equals(owner) && !player.hasPermissions(2)) return;
+         operation = Operation.IDLE; paused = false; dismantle = null; embedRequested = false;
+-        if (collectionActive && motion.hasBodies()) motion.stopForCollection(player);
+-        collectionActive = false; collectionStartTick = Long.MIN_VALUE;
+-        nextCollectionTick = Long.MIN_VALUE; status = Status.IDLE;
+-        nextInspection = 0; saveChanges();
++        motion.cancelReclaimAfterDock();
++        status = Status.IDLE;
++        nextInspection = 0; saveChanges(); markForUpdate();
+     }
+     public void startDismantle(ServerPlayer player) {
+-        if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || collectionActive || embedRequested) return;
++        if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || collectionActive || embedRequested || reclaimPending()) return;
+         if (motion.hasBodies()) { motion.dock(player, true); return; }
+         beginDismantle(player);
+     }
+     void beginDismantle(ServerPlayer player) {
+-        if (player.level() != level || !player.mayBuild()) return;
++        if (collectionActive || player.level() != level || !player.mayBuild()) return;
+         refreshInspection();
+         if (inspection.unloaded() > 0) { scanRequested = true; status = Status.UNLOADED; return; }
+         var entries = new ArrayList<DismantlePlan.Entry>();
+@@ -474,26 +472,25 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+         repairMisplacedBlackHoles();
+         if (level.getGameTime() % 20 == 0) updateQuantumLink();
+         motion.serverTick();
+-        if (inspection.unloaded() > 0 && motion.mode() == SingularityMotionState.RUNNING) refreshInspection();
+-        boolean waitingForMotionChunks = motion.mode() == SingularityMotionState.PAUSED
+-                && motion.message().equals("unloaded");
++        if (reclaimPending()) {
++            if (motion.mode() != SingularityMotionState.DOCKING && owner != null) {
++                var reclaimPlayer = level.getServer().getPlayerList().getPlayer(owner);
++                if (canManage(reclaimPlayer)) motion.dock(reclaimPlayer, true);
++            }
++            return;
++        }
+         boolean waitingForStructureChunks = inspection.unloaded() > 0
+                 && inspection.missing() == 0 && inspection.conflicts() == 0;
+         boolean waitingForNetworkBoot = !networkOnline() && !getMainNode().hasGridBooted();
+         if (collectionActive) {
+             if ((!formed && !waitingForStructureChunks) || (!networkOnline() && !waitingForNetworkBoot)
+-                    || operation != Operation.IDLE || embedRequested
+-                    || motion.mode() != SingularityMotionState.RUNNING && !waitingForMotionChunks) {
++                    || operation != Operation.IDLE || embedRequested) {
+                 collectionActive = false;
+                 collectionStartTick = Long.MIN_VALUE;
+                 nextCollectionTick = Long.MIN_VALUE;
+                 status = Status.IDLE;
+-                var player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
+-                if (player != null && canManage(player)) motion.stopForCollection(player);
+                 saveChanges();
+-            } else if (waitingForMotionChunks || waitingForStructureChunks) {
+-                // A missing swept chunk pauses the carriage, not the collection
+-                // session. The motion state can resume when the footprint returns.
++            } else if (waitingForStructureChunks) {
+                 status = Status.UNLOADED;
+             } else if (waitingForNetworkBoot) {
+                 // Restored nodes need their normal AE2 initialization/pathing
+@@ -507,27 +504,25 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+                 saveChanges();
+             }
+         }
+-        if (collectionActive && formed && networkOnline() && motion.mode() == SingularityMotionState.RUNNING && !collectionStarting()) collectResource();
++        if (collectionActive && formed && networkOnline() && !collectionStarting()) collectResource();
+         tickDuplication();
+         if (collectionActive && (status == Status.UNLOADED || status == Status.STARTING) && formed
+-                && networkOnline() && !collectionStarting() && motion.mode() == SingularityMotionState.RUNNING) {
++                && networkOnline() && !collectionStarting()) {
+             status = Status.COLLECTING;
+             saveChanges();
+         }
+-        // Motion is owned by the collection device. Old saves or a failed
+-        // restart cannot leave a standalone running carriage behind.
+-        if (!collectionActive && operation == Operation.IDLE && motion.hasBodies() && motion.mode() != SingularityMotionState.DOCKING) {
+-            var player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
+-            if (player != null && canManage(player)) motion.stopForCollection(player);
+-        }
+-        if (embedRequested && !motion.hasBodies()) {
++        if (embedRequested) {
+             var relocatingPlayer = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
+             if (relocatingPlayer != null && canManage(relocatingPlayer)) {
+-                embedRequested = false;
+-                if (structureVersion == SingularityStructure.LEGACY_VERSION) SingularityControllerEmbedding.move(this, relocatingPlayer);
+-                else SingularitySuspendedUpgrade.begin(this, relocatingPlayer);
+-                if (isRemoved()) return;
+-                saveChanges(); markForUpdate();
++                if (motion.hasBodies()) {
++                    if (motion.mode() != SingularityMotionState.DOCKING) motion.dock(relocatingPlayer, false);
++                } else {
++                    embedRequested = false;
++                    if (structureVersion == SingularityStructure.LEGACY_VERSION) SingularityControllerEmbedding.move(this, relocatingPlayer);
++                    else SingularitySuspendedUpgrade.begin(this, relocatingPlayer);
++                    if (isRemoved()) return;
++                    saveChanges(); markForUpdate();
++                }
+             }
+         }
+         if (operation == Operation.IDLE && recovery.isEmpty() && !motion.hasPortable()) return;
+@@ -925,7 +920,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+ 
+     public void requestEmbedding(ServerPlayer player) {
+         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.LEGACY_VERSION
+-                || embedRequested || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
++                || collectionActive || embedRequested || reclaimPending() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
+         refreshInspection();
+         if (!formed) { status = Status.CONFLICT; problem = inspection.problem(); return; }
+         owner = player.getUUID(); embedRequested = true;
+@@ -935,7 +930,7 @@ public final class SingularityBlockEntity extends AENetworkInvBlockEntity implem
+ 
+     public void requestSuspendedUpgrade(ServerPlayer player) {
+         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.EMBEDDED_VERSION
+-                || embedRequested || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
++                || collectionActive || embedRequested || reclaimPending() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
+         refreshInspection();
+         if (!formed) { status = Status.CONFLICT; problem = inspection.problem(); return; }
+         owner = player.getUUID(); embedRequested = true;
+diff --git a/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityMotionState.java b/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityMotionState.java
+index 569882399323a4e3aacf8ffacc2229538ecd0a3a..d5945b0db747e4903e2eec9b5a8828d88fa91a4d 100644
+--- a/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityMotionState.java
++++ b/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityMotionState.java
+@@ -31,6 +31,8 @@ public final class SingularityMotionState {
+     public int mode() { return mode; }
+     public String message() { return message; }
+     public boolean hasBodies() { return mask != 0; }
++    boolean reclaimAfterDock() { return reclaimAfterDock; }
++    void cancelReclaimAfterDock() { reclaimAfterDock = false; }
+     public boolean hasPortable() { return Arrays.stream(portable).anyMatch(n -> n > 0); }
+     public boolean owns(SingularityStructure.Part part) { int group = SingularityMotionGeometry.groupOf(part, machine.structureVersion(), geometryVersion); return group >= 0 && (mask & 1 << group) != 0; }
+     public boolean owns(int group, UUID token) { return this.token.equals(token) && (mask & 1 << group) != 0; }
+@@ -44,49 +46,29 @@ public final class SingularityMotionState {
+         for (var chunk : machine.getMotionChunks()) if (!machine.getLevel().hasChunk(chunk.x, chunk.z)) return false;
+         return true;
+     }
+-    /** Starts motion as part of the resource-collection device lifecycle. */
+-    public boolean startForCollection(ServerPlayer player) {
+-        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
+-                || mode == DOCKING || machine.embedRequested()) return false;
+-        if (mode != RUNNING) toggleInternal(player);
+-        return mode == RUNNING;
+-    }
+-
+-    /** Stops motion as part of the resource-collection device lifecycle. */
+-    public void stopForCollection(ServerPlayer player) {
+-        if (hasBodies() && mode != DOCKING) dock(player, false);
++    public String startBlockReason() {
++        if (!allLoaded()) return "unloaded";
++        return !machine.formed() || hasPortable() ? "incomplete" : "";
+     }
+ 
+-    /** Compatibility entry point for old callers; motion now belongs to collection. */
+     public void toggle(ServerPlayer player) {
+-        if (!machine.collectionActive()) return;
+-        toggleInternal(player);
+-    }
+-
+-    private void toggleInternal(ServerPlayer player) {
+-        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE || mode == DOCKING || machine.embedRequested()) return;
+-        operator = player.getUUID(); machine.setRecoveryOwner(player);
+-        // Stopping an already-running carriage must never be blocked by a
+-        // later layout migration. Freeze it first; migration can then finish
+-        // while the bodies are stationary.
++        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
++                || mode == DOCKING || machine.embedRequested() || machine.reclaimPending()) return;
+         if (mode == RUNNING) {
+-            phase = clock(); epoch = now(); mode = PAUSED; message = "paused";
+-            configureBodies(); changed();
++            dock(player, false);
+             return;
+         }
++        var blocked = startBlockReason();
++        if (!blocked.isEmpty()) { fail(blocked); return; }
++        operator = player.getUUID(); machine.setRecoveryOwner(player);
+         if (!migrateFixedJoints()) return;
+         if (!hasBodies()) { activate(player); return; }
+-        if (!allLoaded()) { fail("unloaded"); return; }
+         epoch = now(); mode = RUNNING;
+         if (blockedAhead()) { mode = PAUSED; fail("obstacle"); return; }
+         message = "running";
+         configureBodies(); changed();
+     }
+     private void activate(ServerPlayer player) {
+-        // Tickets are optional; the entire swept footprint must already be loaded
+-        // before any physical blocks are converted into moving bodies.
+-        if (!allLoaded()) { fail("unloaded"); return; }
+-        if (!machine.formed() || hasPortable()) { fail("incomplete"); return; }
+         var level = machine.getLevel(); var parts = movingParts();
+         for (int x : new int[]{-50, 50}) for (int z : new int[]{-50, 50}) {
+             if (!level.getWorldBorder().isWithinBounds(machine.worldPos(new BlockPos(x, 64, z)))) {
+@@ -112,10 +94,12 @@ public final class SingularityMotionState {
+         configureBodies(); machine.scheduleInspection(); changed();
+     }
+     public void dock(ServerPlayer player, boolean reclaim) {
+-        if (!machine.canManage(player) || !hasBodies() || mode == DOCKING) return;
++        if (!machine.canManage(player) || !hasBodies()) return;
+         operator = player.getUUID(); machine.setRecoveryOwner(player); reclaimAfterDock = reclaim;
+-        if (!migrateFixedJoints()) return;
++        if (mode == DOCKING) { changed(); return; }
+         phase = clock(); epoch = now(); mode = DOCKING; message = "docking"; dockingFrozen = false;
++        restoredDockingElapsed = 0;
++        if (!migrateFixedJoints()) { freezeDocking(message); return; }
+         if (blockedAhead()) freezeDocking("dock_obstacle");
+         configureBodies(); changed();
+     }
+@@ -256,9 +240,11 @@ public final class SingularityMotionState {
+                 fail("protected"); return;
+             }
+         }
++        boolean reclaim = reclaimAfterDock;
++        reclaimAfterDock = false;
+         mask = 0; mode = OFF; phase = 0; message = "off"; discardBodies();
+         machine.scheduleInspection(); changed();
+-        if (reclaimAfterDock) { reclaimAfterDock = false; machine.beginDismantle(player); }
++        if (reclaim) machine.beginDismantle(player);
+     }
+     private BlockPos home(SingularityStructure.Part part) { return machine.worldPos(part); }
+     private List<SingularityStructure.Part> movingParts() {
+diff --git a/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java b/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java
+index ad005fe0551890a2d99ea4689742530ae9e0b023..dfd88a1b53b34f309fa0fc45009194282afe9e76 100644
+--- a/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java
++++ b/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java
+@@ -5,6 +5,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
+ import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
+ import com.atir.molecularmanipulator.blockentity.SingularityBlockEntity;
+ import com.atir.molecularmanipulator.blockentity.SingularityDuplicationProcessor;
++import com.atir.molecularmanipulator.blockentity.SingularityMotionState;
+ import com.atir.molecularmanipulator.blockentity.SingularityStructure;
+ import com.atir.molecularmanipulator.menu.SingularityMenu;
+ import guideme.PageAnchor;
+@@ -23,6 +24,7 @@ import java.util.Locale;
+ 
+ public final class SingularityScreen extends ResponsiveContainerScreen<SingularityMenu> {
+     private Button build, preview, refresh, dismantle, cancel, overview, collectionTab, duplicationTab, embed, collectionToggle;
++    private Button motionToggle;
+     private MachineEffectButton effects;
+     private boolean collectionPage, duplicationPage;
+     private long armedAt;
+@@ -44,8 +46,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+         duplicationTab = button(178, 22, 82, "duplication", b -> showDuplication());
+         var guide = button(264, 22, 56, "guide", b -> openGuide());
+         guide.setTooltip(Tooltip.create(tr("guide_hint")));
+-        // This is only a construction cancel action now. Motion is controlled by
+-        // the resource-collection device state and has no standalone button.
++        motionToggle = menu.getMachine().isSingleBlock() ? null
++                : button(196, 86, 116, "motion_start", b -> menu.request("motion"));
+         cancel = button(140, 217, 74, "cancel", b -> menu.request("cancel"));
+         build = button(12, 246, 70, "build", b -> menu.request(menu.operation == SingularityBlockEntity.Operation.IDLE ? "build" : "pause"));
+         preview = button(90, 246, 70, "preview", b -> {
+@@ -106,25 +108,26 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+         effects.visible = !secondaryPage && !menu.getMachine().isSingleBlock();
+         preview.visible = refresh.visible = !secondaryPage;
+         build.setMessage(tr(operationActive ? menu.paused ? "resume" : "pause" : "build"));
+-        build.active = !secondaryPage && !menu.embedRequested
+-                && (operationActive || !menu.formed && !menu.movingBodies);
++        preview.active = refresh.active = effects.active = !menu.reclaimPending;
++        build.active = !secondaryPage && !menu.embedRequested && !menu.reclaimPending
++                && (operationActive || !menu.collectionActive && !menu.formed && !menu.movingBodies);
+ 
+-        cancel.visible = menu.embedRequested || operationActive;
++        cancel.visible = menu.embedRequested || operationActive || menu.reclaimPending;
+         cancel.active = cancel.visible;
+         cancel.setMessage(tr("cancel"));
+ 
+         dismantle.visible = !secondaryPage;
+-        dismantle.active = !secondaryPage && !menu.embedRequested && !operationActive
+-                && !menu.collectionActive && menu.correct > 1 && menu.motionMode != 3;
++        dismantle.active = !secondaryPage && !menu.embedRequested && !operationActive && !menu.reclaimPending
++                && !menu.collectionActive && menu.correct > 1;
+         embed.visible = !secondaryPage && menu.structureVersion < SingularityStructure.VERSION;
+-        embed.active = menu.formed && !operationActive && !menu.embedRequested && menu.motionMode != 3
+-                && !menu.collectionActive;
++        embed.active = menu.formed && !operationActive && !menu.embedRequested && !menu.reclaimPending
++                && menu.motionMode != SingularityMotionState.DOCKING && !menu.collectionActive;
+         String migration = menu.structureVersion == SingularityStructure.EMBEDDED_VERSION ? "upgrade" : "embed";
+         embed.setMessage(tr(migration + (menu.embedRequested ? "_waiting" : "")));
+         embed.setTooltip(Tooltip.create(tr(migration + "_hint")));
+ 
+         if (armedAt != 0 && Util.getMillis() - armedAt > 3000) armedAt = 0;
+-        dismantle.setMessage(tr(armedAt == 0 ? "dismantle" : "confirm"));
++        dismantle.setMessage(tr(menu.reclaimPending ? "reclaim_waiting" : armedAt == 0 ? "dismantle" : "confirm"));
+         overview.active = collectionPage || duplicationPage;
+         collectionTab.active = !collectionPage;
+         duplicationTab.active = !duplicationPage;
+@@ -132,8 +135,20 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+         collectionToggle.visible = collectionPage;
+         collectionToggle.setMessage(tr(menu.collectionStarting ? "collection_starting"
+                 : menu.collectionActive ? "collection_stop" : "collection_start"));
+-        collectionToggle.active = collectionPage && menu.formed && !operationActive && !menu.embedRequested
+-                && menu.motionMode != 3 && (menu.collectionActive || menu.networkOnline);
++        collectionToggle.active = collectionPage && !operationActive && !menu.embedRequested && !menu.reclaimPending
++                && (menu.collectionActive || menu.formed && menu.networkOnline);
++        if (motionToggle != null) {
++            boolean running = menu.motionMode == SingularityMotionState.RUNNING;
++            boolean docking = menu.motionMode == SingularityMotionState.DOCKING;
++            motionToggle.visible = !secondaryPage;
++            motionToggle.active = !docking && !operationActive && !menu.embedRequested && !menu.reclaimPending
++                    && (running || menu.motionStartBlockReason.isEmpty());
++            motionToggle.setMessage(tr(docking ? "motion_docking" : running ? "motion_stop"
++                    : menu.motionMode == SingularityMotionState.PAUSED ? "motion_resume" : "motion_start"));
++            String reason = running || docking || menu.motionStartBlockReason.isEmpty()
++                    ? menu.motionMessage : menu.motionStartBlockReason;
++            motionToggle.setTooltip(Tooltip.create(tr("motion." + reason)));
++        }
+         if (menu.getMachine().isSingleBlock()) {
+             build.visible = preview.visible = refresh.visible = dismantle.visible = cancel.visible = embed.visible = false;
+         }
+@@ -191,8 +206,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+         text(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 172, 55, 140,
+                 menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
+         text(g, tr("running_status", overviewStatus()), 20, 72, 292,
+-                menu.collectionActive && menu.motionMode == 1 ? AeUiTheme.SUCCESS : AeUiTheme.PRIMARY_TEXT);
+-        text(g, tr("structure_count", menu.correct, SingularityStructure.parts(menu.structureVersion).size()), 20, 90, 292, AeUiTheme.PRIMARY_TEXT);
++                menu.status == SingularityBlockEntity.Status.COLLECTING ? AeUiTheme.SUCCESS : AeUiTheme.PRIMARY_TEXT);
++        text(g, tr("structure_count", menu.correct, SingularityStructure.parts(menu.structureVersion).size()), 20, 90, 168, AeUiTheme.PRIMARY_TEXT);
+         AeUiTheme.progress(g, 20, 104, 292, 6,
+                 (float) menu.correct / Math.max(1, SingularityStructure.parts(menu.structureVersion).size()), AeUiTheme.CYAN);
+         text(g, tr("inspection", menu.missing, menu.conflicts, menu.unloaded), 20, 117, 292,
+@@ -230,8 +245,6 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+             if (menu.collectionActive) return tr("status.running");
+         }
+         if (menu.collectionStarting) return tr("collection_starting_status");
+-        if (menu.collectionActive && menu.motionMode == 1) return tr("status.running");
+-        if (menu.collectionActive) return tr("status.collection_paused");
+         return tr("status." + menu.status.name().toLowerCase(Locale.ROOT));
+     }
+ 
+diff --git a/src/main/java/com/atir/molecularmanipulator/menu/SingularityMenu.java b/src/main/java/com/atir/molecularmanipulator/menu/SingularityMenu.java
+index 6ebe69db8b48821dee903a6c1234b4c39d422381..5b96721f9efc750fa8fb5cbf96733123916e2bf3 100644
+--- a/src/main/java/com/atir/molecularmanipulator/menu/SingularityMenu.java
++++ b/src/main/java/com/atir/molecularmanipulator/menu/SingularityMenu.java
+@@ -10,6 +10,7 @@ import appeng.menu.slot.AppEngSlot;
+ import com.atir.molecularmanipulator.MolecularManipulator;
+ import com.atir.molecularmanipulator.registry.ModContent;
+ import com.atir.molecularmanipulator.blockentity.SingularityBlockEntity;
++import com.atir.molecularmanipulator.blockentity.SingularityMotionState;
+ import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
+ import com.atir.molecularmanipulator.network.SingularityCollectionPayload;
+ import com.atir.molecularmanipulator.network.SingularityCollectionState;
+@@ -74,6 +75,8 @@ public final class SingularityMenu extends AEBaseMenu {
+     @GuiSync(44) public double lastDuplicationAeConsumed;
+     @GuiSync(45) public int collectionIntervalTicks = 20;
+     @GuiSync(46) public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
++    @GuiSync(47) public boolean reclaimPending;
++    @GuiSync(48) public String motionStartBlockReason = "incomplete";
+     private final AppEngSlot quantumSlot;
+     private final AppEngSlot duplicationSampleSlot;
+     private final AppEngSlot blackHoleSlot;
+@@ -121,6 +124,7 @@ public final class SingularityMenu extends AEBaseMenu {
+         registerClientAction("embed", () -> withPlayer(machine::requestEmbedding));
+         registerClientAction("upgrade", () -> withPlayer(machine::requestSuspendedUpgrade));
+         registerClientAction("collection", () -> withPlayer(machine::toggleCollection));
++        registerClientAction("motion", () -> withPlayer(machine.motion()::toggle));
+         registerClientAction("refresh", () -> withPlayer(player -> {
+             long now = machine.getLevel().getGameTime();
+             if (lastRefresh == Long.MIN_VALUE || now - lastRefresh >= 20) { machine.requestInspection(player); lastRefresh = now; }
+@@ -258,6 +262,10 @@ public final class SingularityMenu extends AEBaseMenu {
+             formed = machine.formed(); networkOnline = machine.networkOnline();
+             structureVersion = machine.structureVersion(); embedRequested = machine.embedRequested();
+             motionMode = machine.motion().mode(); motionMessage = machine.motion().message(); movingBodies = machine.motion().hasBodies();
++            reclaimPending = machine.reclaimPending();
++            if (!machine.isSingleBlock() && (motionMode == SingularityMotionState.OFF || motionMode == SingularityMotionState.PAUSED)) {
++                motionStartBlockReason = machine.motion().startBlockReason();
++            }
+             quantumFrequency = machine.getQuantumFrequency(); quantumLinkState = machine.getQuantumLinkState();
+             collectionActive = machine.collectionActive(); collectionStarting = machine.collectionStarting();
+             collectionBatchSize = machine.collectionBatchSizeForMenu();
+diff --git a/src/main/resources/assets/molecularmanipulator/lang/en_us.json b/src/main/resources/assets/molecularmanipulator/lang/en_us.json
+index a6eb910b229a7105bb9cdc955a29a9e2b91bb753..eba1f8bfb03eb29f16ffee97ee23a80a7c72cdfe 100644
+--- a/src/main/resources/assets/molecularmanipulator/lang/en_us.json
++++ b/src/main/resources/assets/molecularmanipulator/lang/en_us.json
+@@ -652,9 +652,10 @@
+   "gui.molecularmanipulator.singularity.status.starting": "The nexus is starting",
+   "gui.molecularmanipulator.singularity.status.collecting": "Collecting resources",
+   "gui.molecularmanipulator.singularity.status.not_formed": "Structure is not formed",
+-  "gui.molecularmanipulator.singularity.status.running": "Resource collection and motion are running",
+-  "gui.molecularmanipulator.singularity.status.collection_paused": "Collection is enabled and waiting for motion",
++  "gui.molecularmanipulator.singularity.status.running": "Resource collection running",
++  "gui.molecularmanipulator.singularity.status.collection_paused": "Collection is enabled and waiting for the ME network",
+   "gui.molecularmanipulator.singularity.cancel": "Cancel task",
++  "gui.molecularmanipulator.singularity.reclaim_waiting": "Docking…",
+   "gui.molecularmanipulator.singularity.build": "Build",
+   "gui.molecularmanipulator.singularity.embed": "Embed Controller",
+   "gui.molecularmanipulator.singularity.embed_hint": "Move the controller and four sockets into the central dais and recover the outer platform. Moving parts dock first. Reconnect ME cables at the new position.",
+@@ -712,7 +713,12 @@
+   "gui.molecularmanipulator.singularity.status.out_of_bounds": "Structure exceeds world height or border",
+   "gui.molecularmanipulator.singularity.status.complete": "Task completed",
+   "gui.molecularmanipulator.singularity.status.version_changed": "Blueprint changed; restart construction",
++  "gui.molecularmanipulator.singularity.motion_start": "Start motion",
++  "gui.molecularmanipulator.singularity.motion_resume": "Resume motion",
++  "gui.molecularmanipulator.singularity.motion_stop": "Dock and stop",
++  "gui.molecularmanipulator.singularity.motion_docking": "Docking…",
+   "gui.molecularmanipulator.singularity.motion.off": "Components are ordinary blocks",
++  "gui.molecularmanipulator.singularity.motion.running": "Components are moving",
+   "gui.molecularmanipulator.singularity.motion.paused": "Motion paused · platforms still support entities",
+   "gui.molecularmanipulator.singularity.motion.docking": "Components returning to their home positions",
+   "gui.molecularmanipulator.singularity.motion.blocked": "Home positions occupied; clear them to restore blocks",
+diff --git a/src/main/resources/assets/molecularmanipulator/lang/zh_cn.json b/src/main/resources/assets/molecularmanipulator/lang/zh_cn.json
+index 0c7b0156479b9ccd47e62fd1d9d3f93e4d62d23c..4c514e78e5931c05ffc71fe7703babe1de12d175 100644
+--- a/src/main/resources/assets/molecularmanipulator/lang/zh_cn.json
++++ b/src/main/resources/assets/molecularmanipulator/lang/zh_cn.json
+@@ -652,9 +652,10 @@
+   "gui.molecularmanipulator.singularity.status.starting": "天枢正在启动",
+   "gui.molecularmanipulator.singularity.status.collecting": "资源采集中",
+   "gui.molecularmanipulator.singularity.status.not_formed": "结构未成型",
+-  "gui.molecularmanipulator.singularity.status.running": "资源采集与运动运行中",
+-  "gui.molecularmanipulator.singularity.status.collection_paused": "资源采集已开启，等待运动恢复",
+-  "gui.molecularmanipulator.singularity.cancel": "终止施工",
++  "gui.molecularmanipulator.singularity.status.running": "资源采集中",
++  "gui.molecularmanipulator.singularity.status.collection_paused": "资源采集已开启，等待 ME 网络恢复",
++  "gui.molecularmanipulator.singularity.cancel": "取消任务",
++  "gui.molecularmanipulator.singularity.reclaim_waiting": "归位中…",
+   "gui.molecularmanipulator.singularity.build": "自动搭建",
+   "gui.molecularmanipulator.singularity.embed": "内嵌控制器",
+   "gui.molecularmanipulator.singularity.embed_hint": "将控制器和四个接口移至中央圆台，回收外侧平台。运动部件会先归位；ME 线缆需在新位置重新连接。",
+@@ -712,7 +713,12 @@
+   "gui.molecularmanipulator.singularity.status.out_of_bounds": "结构超出世界高度或边界，请重新选址",
+   "gui.molecularmanipulator.singularity.status.complete": "本次施工已完成",
+   "gui.molecularmanipulator.singularity.status.version_changed": "蓝图版本已变化，请重新开始施工",
++  "gui.molecularmanipulator.singularity.motion_start": "启动运动",
++  "gui.molecularmanipulator.singularity.motion_resume": "继续运动",
++  "gui.molecularmanipulator.singularity.motion_stop": "归位并停止",
++  "gui.molecularmanipulator.singularity.motion_docking": "归位中…",
+   "gui.molecularmanipulator.singularity.motion.off": "部件处于普通方块状态",
++  "gui.molecularmanipulator.singularity.motion.running": "部件正在运动",
+   "gui.molecularmanipulator.singularity.motion.paused": "运动已暂停 · 部件仍可承载玩家",
+   "gui.molecularmanipulator.singularity.motion.docking": "部件正在归位，请稍候",
+   "gui.molecularmanipulator.singularity.motion.blocked": "归位位置被占用，请清理后等待重试",

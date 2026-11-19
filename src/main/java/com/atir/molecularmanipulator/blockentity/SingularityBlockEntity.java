@@ -404,15 +404,13 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
             return;
         }
         if (!canManage(player) || operation != Operation.IDLE || embedRequested || packageReclaimRequested()
-                || motion.hasPortable() || !formed || !networkOnline() || motion.mode() == SingularityMotionState.DOCKING) return;
+                || !collectionActive && (!formed || !networkOnline())) return;
         if (collectionActive) {
             collectionActive = false;
             collectionStartTick = Long.MIN_VALUE;
             nextCollectionTick = Long.MIN_VALUE;
             status = Status.IDLE;
-            motion.stopForCollection(player);
         } else {
-            if (!motion.startForCollection(player)) return;
             collectionActive = true;
             collectionStartTick = level.getGameTime();
             nextCollectionTick = Long.MIN_VALUE;
@@ -447,14 +445,12 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
         saveChanges();
     }
     public void cancel(ServerPlayer player) {
-        if (isSingleBlock()) return;
+        if (isSingleBlock() || operation == Operation.IDLE && !embedRequested && !packageReclaimRequested()) return;
         var requester = packageReclaimRequested() ? packageReclaimRequester : owner;
         if (!canManage(player) || !player.getUUID().equals(requester) && !player.hasPermissions(2)) return;
         operation = Operation.IDLE; paused = false; dismantle = null; embedRequested = false;
         packageReclaimRequester = null;
-        if (collectionActive && motion.hasBodies()) motion.stopForCollection(player);
-        collectionActive = false; collectionStartTick = Long.MIN_VALUE;
-        nextCollectionTick = Long.MIN_VALUE; status = Status.IDLE;
+        status = Status.IDLE;
         nextInspection = 0; saveChanges(); markForClientUpdate();
     }
     /** New requests archive the whole machine; persisted native dismantles still resume below. */
@@ -534,26 +530,18 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
             tickPackageReclaim();
             return;
         }
-        if (inspection.unloaded() > 0 && motion.mode() == SingularityMotionState.RUNNING) refreshInspection();
-        boolean waitingForMotionChunks = motion.mode() == SingularityMotionState.PAUSED
-                && motion.message().equals("unloaded");
         boolean waitingForStructureChunks = inspection.unloaded() > 0
                 && inspection.missing() == 0 && inspection.conflicts() == 0;
         boolean waitingForNetworkBoot = !networkOnline() && !getMainNode().hasGridBooted();
         if (collectionActive) {
             if ((!formed && !waitingForStructureChunks) || (!networkOnline() && !waitingForNetworkBoot)
-                    || operation != Operation.IDLE || embedRequested
-                    || motion.mode() != SingularityMotionState.RUNNING && !waitingForMotionChunks) {
+                    || operation != Operation.IDLE || embedRequested) {
                 collectionActive = false;
                 collectionStartTick = Long.MIN_VALUE;
                 nextCollectionTick = Long.MIN_VALUE;
                 status = Status.IDLE;
-                var player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
-                if (player != null && canManage(player)) motion.stopForCollection(player);
                 saveChanges();
-            } else if (waitingForMotionChunks || waitingForStructureChunks) {
-                // A missing swept chunk pauses the carriage, not the collection
-                // session. The motion state can resume when the footprint returns.
+            } else if (waitingForStructureChunks) {
                 status = Status.UNLOADED;
             } else if (waitingForNetworkBoot) {
                 // Restored nodes need their normal AE2 initialization/pathing
@@ -567,27 +555,25 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
                 saveChanges();
             }
         }
-        if (collectionActive && formed && networkOnline() && motion.mode() == SingularityMotionState.RUNNING && !collectionStarting()) collectResource();
+        if (collectionActive && formed && networkOnline() && !collectionStarting()) collectResource();
         tickDuplication();
         if (collectionActive && (status == Status.UNLOADED || status == Status.STARTING) && formed
-                && networkOnline() && !collectionStarting() && motion.mode() == SingularityMotionState.RUNNING) {
+                && networkOnline() && !collectionStarting()) {
             status = Status.COLLECTING;
             saveChanges();
         }
-        // Motion is owned by the collection device. Old saves or a failed
-        // restart cannot leave a standalone running carriage behind.
-        if (!collectionActive && operation == Operation.IDLE && motion.hasBodies() && motion.mode() != SingularityMotionState.DOCKING) {
-            var player = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
-            if (player != null && canManage(player)) motion.stopForCollection(player);
-        }
-        if (embedRequested && !motion.hasBodies()) {
+        if (embedRequested) {
             var relocatingPlayer = owner == null ? null : level.getServer().getPlayerList().getPlayer(owner);
             if (relocatingPlayer != null && canManage(relocatingPlayer)) {
-                embedRequested = false;
-                if (structureVersion == SingularityStructure.LEGACY_VERSION) SingularityControllerEmbedding.move(this, relocatingPlayer);
-                else SingularitySuspendedUpgrade.begin(this, relocatingPlayer);
-                if (isRemoved()) return;
-                saveChanges(); markForClientUpdate();
+                if (motion.hasBodies()) {
+                    if (motion.mode() != SingularityMotionState.DOCKING) motion.dock(relocatingPlayer, false);
+                } else {
+                    embedRequested = false;
+                    if (structureVersion == SingularityStructure.LEGACY_VERSION) SingularityControllerEmbedding.move(this, relocatingPlayer);
+                    else SingularitySuspendedUpgrade.begin(this, relocatingPlayer);
+                    if (isRemoved()) return;
+                    saveChanges(); markForClientUpdate();
+                }
             }
         }
         if (operation == Operation.IDLE && recovery.isEmpty() && !motion.hasPortable()) return;
@@ -992,7 +978,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
 
     public void requestEmbedding(ServerPlayer player) {
         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.LEGACY_VERSION
-                || embedRequested || packageReclaimRequested() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
+                || collectionActive || embedRequested || packageReclaimRequested() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
         refreshInspection();
         if (!formed) { status = Status.CONFLICT; problem = inspection.problem(); return; }
         owner = player.getUUID(); embedRequested = true;
@@ -1002,7 +988,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
 
     public void requestSuspendedUpgrade(ServerPlayer player) {
         if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.EMBEDDED_VERSION
-                || embedRequested || packageReclaimRequested() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
+                || collectionActive || embedRequested || packageReclaimRequested() || motion.mode() == SingularityMotionState.DOCKING || motion.hasPortable()) return;
         refreshInspection();
         if (!formed) { status = Status.CONFLICT; problem = inspection.problem(); return; }
         owner = player.getUUID(); embedRequested = true;

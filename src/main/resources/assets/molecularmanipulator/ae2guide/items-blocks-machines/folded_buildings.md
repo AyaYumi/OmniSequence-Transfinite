@@ -80,7 +80,7 @@ Sealing retains items, fluids, patterns, catalysts, invested materials, processi
 
 For a wireless receiver, keep external ME cables removed and the quantum slot empty after deployment. The saved binding can reconnect to the same hub when both ends are loaded and ownership and access still match. Wireless does not load chunks. If you break, move or replace the Sequence Wireless Hub itself, its new identity requires each receiver to be rebound. See [Sequence Wireless Hub setup](sequence_array_controller.md).
 
-An orrery's reclaimed package is graded L0 to L9 by its consecutive complete rings starting at ring 1. The original purchase grade does not determine the reclaimed grade. A hub docks its moving parts before sealing; keep the whole motion area loaded and clear. Its reclaim request survives restarts and can continue when the requester returns. Cancelling reclaim withdraws sealing while safe docking continues. Start hub collection manually after deployment.
+An orrery's reclaimed package is graded L0 to L9 by its consecutive complete rings starting at ring 1. The original purchase grade does not determine the reclaimed grade. After stopping collection, request hub reclaim; reclaim docks the moving parts before sealing; keep the whole motion area loaded and clear. Its reclaim request survives restarts and can continue when the requester returns. Cancelling reclaim withdraws sealing while safe docking continues. Start hub collection manually after deployment.
 
 ## How to tell it worked
 
@@ -96,7 +96,7 @@ An orrery's reclaimed package is graded L0 to L9 by its consecutive complete rin
 | Cannot confirm deployment | Wait for surveying, clear red conflicts and check height, world border and build permission. |
 | Right-click keeps opening the old site | Select Cancel point before choosing a new site. Esc only closes the panel. |
 | Construction continues after Cancel point | Reopen the panel and use Interrupt and reclaim building. |
-| Machine is busy and will not seal | Finish construction or research/calculation jobs and settle external ME CPU jobs. A hub must also stop collection and dock. |
+| Machine is busy and will not seal | Finish construction or research/calculation jobs and settle external ME CPU jobs. Stop hub collection before requesting reclaim; reclaim handles docking. |
 | Sealed package reports an unavailable archive | Keep the item. Check that you are in the original save and recover the archive from a complete-world backup. |
 
 An interrupted relocation continues after the server restarts. To change sites, use the panel's interrupt-and-reclaim action. Keep a package while its construction is in progress.

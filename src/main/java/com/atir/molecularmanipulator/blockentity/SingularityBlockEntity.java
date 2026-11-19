@@ -162,7 +162,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
     public SingularityMotionState motion() { return motion; }
     public int structureVersion() { return structureVersion; }
     public boolean embedRequested() { return embedRequested; }
-    public boolean packageReclaimRequested() { return packageReclaimRequester != null; }
+    public boolean packageReclaimRequested() { return packageReclaimRequester != null || motion.reclaimAfterDock(); }
     /** Native buffers and portable materials are archive contents, not reasons to reject sealing. */
     public boolean canSealPackage() {
         return !isSingleBlock() && operation == Operation.IDLE && !collectionActive && !embedRequested
@@ -446,10 +446,11 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
     }
     public void cancel(ServerPlayer player) {
         if (isSingleBlock() || operation == Operation.IDLE && !embedRequested && !packageReclaimRequested()) return;
-        var requester = packageReclaimRequested() ? packageReclaimRequester : owner;
+        var requester = packageReclaimRequester != null ? packageReclaimRequester : owner;
         if (!canManage(player) || !player.getUUID().equals(requester) && !player.hasPermissions(2)) return;
         operation = Operation.IDLE; paused = false; dismantle = null; embedRequested = false;
         packageReclaimRequester = null;
+        motion.cancelReclaimAfterDock();
         status = Status.IDLE;
         nextInspection = 0; saveChanges(); markForClientUpdate();
     }
@@ -483,7 +484,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
     }
     /** Compatibility callback for historical motion saves with reclaim-after-dock set. */
     void beginDismantle(ServerPlayer player) {
-        if (player.level() != level || !player.mayBuild()) return;
+        if (collectionActive || player.level() != level || !player.mayBuild()) return;
         refreshInspection();
         if (inspection.unloaded() > 0) { scanRequested = true; status = Status.UNLOADED; return; }
         var entries = new ArrayList<DismantlePlan.Entry>();
@@ -527,7 +528,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity
         if (isRemoved()) return;
         if (packageReclaimRequested()) {
             // Keep recovery/portable buffers and duplication state native until the docked snapshot.
-            tickPackageReclaim();
+            if (packageReclaimRequester != null) tickPackageReclaim();
             return;
         }
         boolean waitingForStructureChunks = inspection.unloaded() > 0

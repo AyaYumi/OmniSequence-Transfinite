@@ -829,7 +829,7 @@
   "gui.molecularmanipulator.singularity.status.not_formed": "结构未成型",
   "gui.molecularmanipulator.singularity.status.running": "资源采集运行中",
   "gui.molecularmanipulator.singularity.cancel": "取消操作",
-  "gui.molecularmanipulator.singularity.reclaim_waiting": "部件归位后封存整机",
+  "gui.molecularmanipulator.singularity.reclaim_waiting": "等待部件归位后回收",
   "gui.molecularmanipulator.singularity.build": "自动搭建",
   "gui.molecularmanipulator.singularity.embed": "内嵌控制器",
   "gui.molecularmanipulator.singularity.embed_hint": "将控制器和四个接口移至中央圆台，回收外侧平台。运动部件会先归位；ME 线缆需在新位置重新连接。",

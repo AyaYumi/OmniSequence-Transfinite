@@ -829,7 +829,7 @@
   "gui.molecularmanipulator.singularity.status.not_formed": "Structure is not formed",
   "gui.molecularmanipulator.singularity.status.running": "Resource collection running",
   "gui.molecularmanipulator.singularity.cancel": "Cancel task",
-  "gui.molecularmanipulator.singularity.reclaim_waiting": "Docking before sealing",
+  "gui.molecularmanipulator.singularity.reclaim_waiting": "Docking before reclaim",
   "gui.molecularmanipulator.singularity.build": "Build",
   "gui.molecularmanipulator.singularity.embed": "Embed Controller",
   "gui.molecularmanipulator.singularity.embed_hint": "Move the controller and four sockets into the central dais and recover the outer platform. Moving parts dock first. Reconnect ME cables at the new position.",

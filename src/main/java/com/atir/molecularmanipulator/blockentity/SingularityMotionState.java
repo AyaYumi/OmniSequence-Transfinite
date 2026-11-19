@@ -31,6 +31,8 @@ public final class SingularityMotionState {
     public int mode() { return mode; }
     public String message() { return message; }
     public boolean hasBodies() { return mask != 0; }
+    boolean reclaimAfterDock() { return reclaimAfterDock && mode == DOCKING && hasBodies(); }
+    void cancelReclaimAfterDock() { reclaimAfterDock = false; }
     public boolean hasPortable() { return Arrays.stream(portable).anyMatch(n -> n > 0); }
     public boolean owns(SingularityStructure.Part part) { int group = SingularityMotionGeometry.groupOf(part, machine.structureVersion(), geometryVersion); return group >= 0 && (mask & 1 << group) != 0; }
     public boolean owns(int group, UUID token) { return this.token.equals(token) && (mask & 1 << group) != 0; }
@@ -250,9 +252,11 @@ public final class SingularityMotionState {
                 fail("protected"); return;
             }
         }
+        boolean reclaim = reclaimAfterDock;
+        reclaimAfterDock = false;
         mask = 0; mode = OFF; phase = 0; message = "off"; discardBodies();
         machine.scheduleInspection(); changed();
-        if (reclaimAfterDock) { reclaimAfterDock = false; machine.beginDismantle(player); }
+        if (reclaim) machine.beginDismantle(player);
     }
     private BlockPos home(SingularityStructure.Part part) { return machine.worldPos(part); }
     private List<SingularityStructure.Part> movingParts() {

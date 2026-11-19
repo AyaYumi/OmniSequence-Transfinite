@@ -179,7 +179,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         preview.active = refresh.active = effects.active = !reclaimPending;
         build.setMessage(tr(operationActive ? menu.paused ? "resume" : "pause" : "build"));
         build.active = !secondaryPage && !menu.embedRequested && !reclaimPending
-                && (operationActive || !menu.formed && !menu.movingBodies);
+                && (operationActive || !menu.collectionActive && !menu.formed && !menu.movingBodies);
 
         cancel.visible = menu.embedRequested || operationActive || reclaimPending;
         cancel.active = cancel.visible;

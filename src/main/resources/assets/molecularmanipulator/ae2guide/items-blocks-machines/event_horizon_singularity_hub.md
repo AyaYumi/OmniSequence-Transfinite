@@ -51,7 +51,9 @@ Base Stairs and Slabs are crafted at a crafting table: six Base Casings in the s
 | [Resource Collection](singularity_resource_collection.md) | Resource list; start and stop collection |
 | [Matter Duplication](singularity_matter_duplication.md) | Sample and miniature black-hole slots; matter stock and energy use |
 
-Start collection and wait for startup, then products enter ME. Stopping collection docks the structure. Black-hole matter generation and sample duplication do not require active resource collection.
+Multiblock collection starts after 40 ticks and does not depend on motion: it works with motion stopped, paused or docking. Black-hole matter generation and sample duplication do not require collection.
+
+On **Overview**, use **Start motion** or **Resume motion** when stopped or paused, or **Dock and stop** while running. The button is unavailable during docking. Starting or resuming requires a formed structure, all motion-area chunks loaded, and no construction, rebuild or dismantling in progress.
 
 ## Quantum connection
 
@@ -59,7 +61,7 @@ Overview's quantum slot accepts only a **Quantum Entangled Singularity**. Put it
 
 ## Dismantling and relocation
 
-Stop collection and wait for docking before selecting **Dismantle**. The controller stays in place. Materials return to ME before your inventory, pausing if there is no room.
+Stop collection, then select **Dismantle**. The dismantling process docks the moving parts first. The controller stays in place. Materials return to ME before your inventory, pausing if there is no room.
 
 Normal controller removal retains the quantum slot, sample, miniature black holes and pending recovery contents. Continuous production needs loaded chunks; the server's multiblock chunk-loading setting can keep the structure's required chunks loaded.
 

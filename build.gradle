@@ -249,13 +249,15 @@ tasks.named('compileTestJava', JavaCompile).configure {
 def minecraftAssets = tasks.named('downloadAssets', net.neoforged.nfrtgradle.DownloadAssets)
 tasks.named('test', Test).configure {
     dependsOn minecraftAssets
+    def assetProperties = minecraftAssets.get().assetPropertiesFile.get().asFile
+    inputs.file(assetProperties)
     useJUnitPlatform()
     systemProperty 'starOrrery.gpuTests', providers.gradleProperty('starOrreryGpuTests').orElse('false').get()
     // Use the resource cache prepared by ModDev instead of assuming a pre-populated local cache.
-    doFirst {
+    doFirst { Test testTask ->
         def assets = new Properties()
-        minecraftAssets.get().assetPropertiesFile.get().asFile.withInputStream { assets.load(it) }
-        systemProperty 'osq.test.minecraftAssets', assets.getProperty('assets_root')
+        assetProperties.withInputStream { assets.load(it) }
+        testTask.systemProperty 'osq.test.minecraftAssets', assets.getProperty('assets_root')
     }
     // Structure tests need compile-only contracts; shader tests also need Minecraft's real GLSL resources.
     classpath += sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath

@@ -41,7 +41,7 @@ Use the AE2 guide hotkey (default **G**) on an item, JEI entry or associated blo
 | Molecular Auto Crafter | Maintain stock using product targets and ingredient reserves |
 | Omni Computation Core | Manage multiple ME crafting requests concurrently |
 | Transfinite Compute Nexus | Single-block crafting CPU requiring one channel and sufficient ME power |
-| Event Horizon Singularity Hub | Collect resources simultaneously and copy samples using Sequence Matter |
+| Event Horizon Singularity Hub | Collect resources simultaneously and copy samples using Sequence Matter; control motion independently from Overview |
 | Compact Singularity Hub | Hub functions in one block; available from creative inventory or commands |
 | Miniature Black Hole / White Hole | Transfer dropped items and non-player entities to the nearest same-team exit |
 | Gravity Crystal | Walk on walls and ceilings or build repulsion lifts |

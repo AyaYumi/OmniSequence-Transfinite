@@ -26,7 +26,7 @@ The hub produces every item in its resource list simultaneously. Defaults includ
 1. Form an [Event Horizon Singularity Hub](event_horizon_singularity_hub.md) or connect a [Compact Hub](compact_singularity_hub.md).
 2. Open **Resource Collection** and review the complete current list.
 3. Provide ME storage for its items and select **Start Collection**.
-4. The multiblock hub begins production after startup. Products enter its connected ME network automatically.
+4. Multiblock collection starts after 40 ticks and does not depend on motion: it works with motion stopped, paused or docking. Products enter the connected ME network automatically.
 
 By default, each resource produces **1000 items every 20 ticks**, about one second at normal TPS. An item matching multiple tags appears only once. There is no need to switch collection targets.
 
@@ -50,4 +50,4 @@ Only tag members present in the pack enter the list. Blacklisted items are neith
 
 ## Stopping and waiting
 
-Select **Stop Collection** to stop production and dock the multiblock hub. An offline network, incomplete structure or insufficient storage makes the device wait for operating conditions to recover. Products do not spill into the world when storage is full.
+Select **Stop Collection** to stop collection output without changing motion. An offline network, incomplete structure or insufficient storage makes the device wait for operating conditions to recover. Products do not spill into the world when storage is full.

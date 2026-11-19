@@ -1,5 +1,5 @@
 diff --git a/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java b/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java
-index c260a6b79dcacf660fb93ef89951f6d8768c71d4..8a0b6da1c6dba12827db9e20df30bd7f452224a4 100644
+index c260a6b79dcacf660fb93ef89951f6d8768c71d4..7c2686666f237043c279d8bb599aba2c0d5f3313 100644
 --- a/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java
 +++ b/src/main/java/com/atir/molecularmanipulator/blockentity/SingularityBlockEntity.java
 @@ -152,6 +152,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
@@ -66,7 +66,7 @@ index c260a6b79dcacf660fb93ef89951f6d8768c71d4..8a0b6da1c6dba12827db9e20df30bd7f
          refreshInspection();
          if (inspection.unloaded() > 0) { scanRequested = true; status = Status.UNLOADED; return; }
          var entries = new ArrayList<DismantlePlan.Entry>();
-@@ -476,26 +474,25 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
+@@ -476,26 +474,26 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
          repairMisplacedBlackHoles();
          if (level.getGameTime() % 20 == 0) updateQuantumLink();
          motion.serverTick();
@@ -78,6 +78,7 @@ index c260a6b79dcacf660fb93ef89951f6d8768c71d4..8a0b6da1c6dba12827db9e20df30bd7f
 +                var reclaimPlayer = level.getServer().getPlayerList().getPlayer(owner);
 +                if (canManage(reclaimPlayer)) motion.dock(reclaimPlayer, true);
 +            }
++            tickDuplication();
 +            return;
 +        }
          boolean waitingForStructureChunks = inspection.unloaded() > 0
@@ -102,7 +103,7 @@ index c260a6b79dcacf660fb93ef89951f6d8768c71d4..8a0b6da1c6dba12827db9e20df30bd7f
                  status = Status.UNLOADED;
              } else if (waitingForNetworkBoot) {
                  // Restored nodes need their normal AE2 initialization/pathing
-@@ -509,27 +506,25 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
+@@ -509,27 +507,25 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
                  saveChanges();
              }
          }
@@ -142,7 +143,7 @@ index c260a6b79dcacf660fb93ef89951f6d8768c71d4..8a0b6da1c6dba12827db9e20df30bd7f
              }
          }
          if (operation == Operation.IDLE && recovery.isEmpty() && !motion.hasPortable()) return;
-@@ -923,7 +918,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
+@@ -923,7 +919,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
  
      public void requestEmbedding(ServerPlayer player) {
          if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.LEGACY_VERSION
@@ -151,7 +152,7 @@ index c260a6b79dcacf660fb93ef89951f6d8768c71d4..8a0b6da1c6dba12827db9e20df30bd7f
          refreshInspection();
          if (!formed) { status = Status.CONFLICT; problem = inspection.problem(); return; }
          owner = player.getUUID(); embedRequested = true;
-@@ -933,7 +928,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
+@@ -933,7 +929,7 @@ public final class SingularityBlockEntity extends AENetworkedInvBlockEntity impl
  
      public void requestSuspendedUpgrade(ServerPlayer player) {
          if (isSingleBlock() || !canManage(player) || operation != Operation.IDLE || structureVersion != SingularityStructure.EMBEDDED_VERSION
@@ -261,7 +262,7 @@ index 3bd7e9711498666b68d1a13352dfc76bfeed56ce..516dd59b82f0e2115cd41fae6a217608
      private BlockPos home(SingularityStructure.Part part) { return machine.worldPos(part); }
      private List<SingularityStructure.Part> movingParts() {
 diff --git a/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java b/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java
-index 500c56d4fdccebf18de5df0bd97ac01c1fc30b1d..c9f78bb4cda9244dc70122311d7b467235acc051 100644
+index 500c56d4fdccebf18de5df0bd97ac01c1fc30b1d..b3552a1d3dc886f5404bb0416bd2be8fc55848ae 100644
 --- a/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java
 +++ b/src/main/java/com/atir/molecularmanipulator/client/SingularityScreen.java
 @@ -5,6 +5,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
@@ -291,13 +292,12 @@ index 500c56d4fdccebf18de5df0bd97ac01c1fc30b1d..c9f78bb4cda9244dc70122311d7b4672
          cancel = button(140, 217, 74, "cancel", b -> menu.request("cancel"));
          build = button(12, 246, 70, "build", b -> menu.request(menu.operation == SingularityBlockEntity.Operation.IDLE ? "build" : "pause"));
          preview = button(90, 246, 70, "preview", b -> {
-@@ -106,25 +108,26 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+@@ -106,25 +108,25 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
          effects.visible = !secondaryPage && !menu.getMachine().isSingleBlock();
          preview.visible = refresh.visible = !secondaryPage;
          build.setMessage(tr(operationActive ? menu.paused ? "resume" : "pause" : "build"));
 -        build.active = !secondaryPage && !menu.embedRequested
 -                && (operationActive || !menu.formed && !menu.movingBodies);
-+        preview.active = refresh.active = effects.active = !menu.reclaimPending;
 +        build.active = !secondaryPage && !menu.embedRequested && !menu.reclaimPending
 +                && (operationActive || !menu.collectionActive && !menu.formed && !menu.movingBodies);
  
@@ -326,7 +326,7 @@ index 500c56d4fdccebf18de5df0bd97ac01c1fc30b1d..c9f78bb4cda9244dc70122311d7b4672
          overview.active = collectionPage || duplicationPage;
          collectionTab.active = !collectionPage;
          duplicationTab.active = !duplicationPage;
-@@ -132,8 +135,20 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+@@ -132,8 +134,20 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
          collectionToggle.visible = collectionPage;
          collectionToggle.setMessage(tr(menu.collectionStarting ? "collection_starting"
                  : menu.collectionActive ? "collection_stop" : "collection_start"));
@@ -349,7 +349,7 @@ index 500c56d4fdccebf18de5df0bd97ac01c1fc30b1d..c9f78bb4cda9244dc70122311d7b4672
          if (menu.getMachine().isSingleBlock()) {
              build.visible = preview.visible = refresh.visible = dismantle.visible = cancel.visible = embed.visible = false;
          }
-@@ -191,8 +206,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+@@ -191,8 +205,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
          text(g, tr(menu.networkOnline ? "network_online" : "network_offline"), 172, 55, 140,
                  menu.networkOnline ? AeUiTheme.SUCCESS : AeUiTheme.MUTED_TEXT);
          text(g, tr("running_status", overviewStatus()), 20, 72, 292,
@@ -360,7 +360,7 @@ index 500c56d4fdccebf18de5df0bd97ac01c1fc30b1d..c9f78bb4cda9244dc70122311d7b4672
          AeUiTheme.progress(g, 20, 104, 292, 6,
                  (float) menu.correct / Math.max(1, SingularityStructure.parts(menu.structureVersion).size()), AeUiTheme.CYAN);
          text(g, tr("inspection", menu.missing, menu.conflicts, menu.unloaded), 20, 117, 292,
-@@ -230,8 +245,6 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
+@@ -230,8 +244,6 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
              if (menu.collectionActive) return tr("status.running");
          }
          if (menu.collectionStarting) return tr("collection_starting_status");

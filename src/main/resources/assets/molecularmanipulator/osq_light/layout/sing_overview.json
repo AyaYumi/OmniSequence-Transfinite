@@ -5,7 +5,7 @@
  "title": "视界奇点主控中枢 · 天枢总览",
  "size": [
   350,
-  320
+  336
  ],
  "left_room": 0,
  "units": "GUI px，原点 = 窗口左上角 (leftPos, topPos)",
@@ -27,7 +27,7 @@
     -1,
     -1,
     352,
-    322
+    338
    ],
    "k": "window",
    "id": "window"
@@ -2083,6 +2083,26 @@
    "center_y": 299.5,
    "owner": "dismantle",
    "draw_x": 26
+  },
+  {
+   "z": 119,
+   "type": "sprite",
+   "sprite": "molecularmanipulator:osq_light/sing/button_normal",
+   "slicing": "nine",
+   "pad": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "rect": [
+    164,
+    306,
+    178,
+    22
+   ],
+   "k": "ctl",
+   "id": "motion"
   }
  ],
  "boxes": [
@@ -2744,6 +2764,19 @@
     "y": 284,
     "w": 150,
     "h": 20
+   },
+   "par": -1,
+   "item": null,
+   "n": ""
+  },
+  {
+   "k": "ctl",
+   "id": "motion",
+   "r": {
+    "x": 164,
+    "y": 306,
+    "w": 178,
+    "h": 22
    },
    "par": -1,
    "item": null,

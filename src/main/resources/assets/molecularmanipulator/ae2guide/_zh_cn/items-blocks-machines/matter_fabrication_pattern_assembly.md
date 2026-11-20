@@ -12,6 +12,8 @@ item_ids:
 
 装上样板总成后，可以在 ME 终端请求构筑井产物，由网络为订单供料。
 
+样板总成不占用 AE2 频道，只有井控制器占用 1 个频道。
+
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
 

@@ -12,6 +12,8 @@ item_ids:
 
 A Pattern Assembly lets you request Fabrication Well products from an ME terminal. The network supplies ingredients for each order.
 
+The assembly does not use an AE2 channel; only the well controller uses one.
+
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
 

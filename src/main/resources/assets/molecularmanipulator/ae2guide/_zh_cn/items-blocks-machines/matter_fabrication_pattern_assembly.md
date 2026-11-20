@@ -12,6 +12,8 @@ item_ids:
 
 样板总成为[物质构筑井](matter_fabrication_well.md)提供 ME 自动合成功能。每个总成有 **36 个样板槽**，使用所属构筑井的研究解锁、并行和速度加成。
 
+样板总成不占用 AE2 频道，只有井控制器占用 1 个频道。
+
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
 

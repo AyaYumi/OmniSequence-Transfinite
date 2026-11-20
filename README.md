@@ -22,7 +22,7 @@ Install the mod and required dependencies separately in client and server `mods/
 ## Getting started
 
 1. Build a **Matter Fabrication Well** with basic AE2 materials, connect ME and complete tier 1 research.
-2. Install a **Pattern Assembly** to automate fabrication recipes through ME.
+2. Install a **Pattern Assembly** to automate fabrication recipes through ME. The assembly does not use an AE2 channel; only the well controller uses one.
 3. Research **Tier 2: Sequence Array** and **Tier 2: Omni Computation** to fabricate pattern storage, crafting devices and CPUs.
 4. Complete both tier 2 branches once, then research **Tier 3: Event Horizon** and build a hub for collection and duplication.
 

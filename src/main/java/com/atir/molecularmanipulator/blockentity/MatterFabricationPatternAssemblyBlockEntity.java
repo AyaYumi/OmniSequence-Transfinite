@@ -37,6 +37,7 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
 
     public MatterFabricationPatternAssemblyBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY_BE.get(), pos, state);
+        getMainNode().setFlags();
     }
 
     @Override
@@ -139,7 +140,8 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     }
 
     public boolean isOperational() {
-        return getController() != null && getMainNode().isActive();
+        var controller = getController();
+        return controller != null && controller.getMainNode().isActive() && getMainNode().isActive();
     }
 
     public boolean acceptPattern(IPatternDetails details, KeyCounter[] inputs) {

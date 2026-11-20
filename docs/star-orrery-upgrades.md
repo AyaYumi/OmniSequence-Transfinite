@@ -5,7 +5,7 @@ authors can change upgrade costs and requirements with data packs or KubeJS usin
 the schema and examples below. For the structure and controls, press G in game;
 installation and the first well are in the [player guide](../README.md).
 
-Current for OmniSequence 20.3.0.2, Minecraft 1.20.1 / Forge, Java 17.
+Current for OmniSequence 20.3.0.3, Minecraft 1.20.1 / Forge, Java 17.
 The mod ID is `molecularmanipulator`.
 简体中文：[天体仪升级规则](star-orrery-upgrades.zh-CN.md).
 See also the [Matter Fabrication research API](matter-research-api.md).

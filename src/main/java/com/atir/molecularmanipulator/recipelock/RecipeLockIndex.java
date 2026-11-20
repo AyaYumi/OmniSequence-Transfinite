@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.recipelock;
 
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.starcomputation.StarResearchNodeRecipe;
 import com.atir.molecularmanipulator.starcomputation.StarResearchNodes;
 import java.util.ArrayList;
@@ -17,12 +18,9 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Immutable recipe-ID index. Selectors run at reload, not at every machine tick. No team authorization cache. */
 final class RecipeLockIndex {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RecipeLockIndex.class);
     private final Map<ResourceLocation, List<Requirement>> requirements;
     private final Map<Recipe<?>, ResourceLocation> identities;
 
@@ -113,8 +111,8 @@ final class RecipeLockIndex {
                 if (unmatchedExamples.size() < 3) unmatchedExamples.add(holder.id());
             }
         }
-        if (invalid > 0) LOGGER.warn("{} recipe locks reference missing or invalid research nodes; matching recipes stay locked. Examples: {}", invalid, invalidExamples);
-        if (unmatched > 0) LOGGER.warn("{} recipe locks match no loaded recipes. Examples: {}", unmatched, unmatchedExamples);
+        if (invalid > 0) RateLimitedLog.warn("{} recipe locks reference missing or invalid research nodes; matching recipes stay locked. Examples: {}", invalid, invalidExamples);
+        if (unmatched > 0) RateLimitedLog.warn("{} recipe locks match no loaded recipes. Examples: {}", unmatched, unmatchedExamples);
         return new RecipeLockIndex(result, Map.of());
     }
 

@@ -3,7 +3,7 @@
 模组开发者可实现此接口，让 AE2 样板供应器一次接收多份完整配方，由 Omni 分配并交付整批材料。
 普通 AE2 供应器无需实现它也能正常接单。玩家搭建与操作见[玩家指南](../README.zh-CN.md)或游戏内 G 指南。
 
-对应 20.3.0.2，Minecraft 1.20.1 / Forge / Java 17 / AE2 15.4.10 / AppliedEnhancements 1.1.2-forge+（编译 API 1.1.4-forge）。
+对应 20.3.0.3，Minecraft 1.20.1 / Forge / Java 17 / AE2 15.4.10 / AppliedEnhancements 1.1.2-forge+（编译 API 1.1.4-forge）。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 

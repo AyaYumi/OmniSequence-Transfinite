@@ -1,5 +1,6 @@
 package com.atir.molecularmanipulator.starcomputation;
 
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.crafting.PatternRecipeReloads;
 import com.atir.molecularmanipulator.mixin.RecipeManagerAccessor;
 import java.util.ArrayDeque;
@@ -16,12 +17,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Reload-aware node directory, shared by purchases and recipe-lock rule validation. Never contains team progress. */
 public final class StarResearchNodes {
-    private static final Logger LOGGER = LoggerFactory.getLogger(StarResearchNodes.class);
     private static final Map<ResourceLocation, StarResearchNodeRecipe> FALLBACKS = fallbacks();
     private static final Map<RecipeManager, Cached> CACHE = new WeakHashMap<>();
 
@@ -75,7 +73,7 @@ public final class StarResearchNodes {
         var catalog = build(overrides);
         var errors = catalog.errors();
         if (!errors.isEmpty()) {
-            LOGGER.warn("{} star research nodes cannot be purchased. Examples: {}", errors.size(),
+            RateLimitedLog.warn("{} star research nodes cannot be purchased. Examples: {}", errors.size(),
                     errors.entrySet().stream().limit(3).toList());
         }
         CACHE.put(manager, new Cached(generation, source, catalog));

@@ -7,7 +7,7 @@ see the [player guide](../README.md) or the in-game G guide.
 
 Available since OmniSequence: Transfinite 1.3.9.
 
-Current for OmniSequence 20.3.0.2 on Minecraft 1.20.1 / Forge / Java 17, with AE2 15.4.10
+Current for OmniSequence 20.3.0.3 on Minecraft 1.20.1 / Forge / Java 17, with AE2 15.4.10
 and AppliedEnhancements 1.1.2-forge+ (compile API 1.1.4-forge). The runtime ABI remains 1.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.

@@ -8,7 +8,7 @@ The in-game guide explains how to build and use each device. Hover an item in yo
 
 ## Install
 
-The **1.20.1-forge** branch is **20.3.0.2** for **Minecraft 1.20.1 / Forge**, using **Java 17**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
+The **1.20.1-forge** branch is **20.3.0.3** for **Minecraft 1.20.1 / Forge**, using **Java 17**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
 
 | Required component | Version for this branch |
 | --- | --- |
@@ -38,14 +38,6 @@ Recipes and costs below describe the defaults. Your modpack's JEI pages, researc
 Install the optional mods you need. The [author reference](docs/README.md) lists their integration requirements.
 
 </details>
-
-## Changes in 20.3.0.2
-
-An Omni-Computation Core or Transfinite Compute Nexus can now run several orders before reaching L7. Jobs on the same CPU share its storage and per-tick dispatch allowance. When a Molecular Auto Crafter has enough of the exact ingredients for one craft, it no longer searches the ME network for substitutes.
-
-Read the three inscriptions in the End ruin in order to dial the laboratory. Step off the pad while the destination is loading to cancel the trip.
-
-If a Thunderbolt batch stops on an execution error, you can cancel the job. Stock AE2 and AE2 UELM still use the same OmniSequence JAR.
 
 ## Build your first automated well
 
@@ -195,6 +187,6 @@ Use Java 17 and prepare the local dependencies described in [libs/README.md](lib
 ./gradlew build apiJavadoc
 ```
 
-On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-20.3.0.2.jar`; Java API documentation is generated under `build/docs/api/`.
+On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-20.3.0.3.jar`; Java API documentation is generated under `build/docs/api/`.
 
 The GUI uses the active Minecraft font; no font files are bundled. Code uses the [MIT License](LICENSE). Adapted AE2 and ExtendedAE textures retain their CC BY-NC-SA 3.0 and LGPL-3.0 licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).

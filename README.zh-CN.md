@@ -8,7 +8,7 @@
 
 ## 安装
 
-**1.20.1-forge** 分支版本为 **20.3.0.2**，适用于 **Minecraft 1.20.1 / Forge**，使用 **Java 17**。从[项目发布页](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)选择对应的模组 JAR；源码 ZIP 不能直接当模组安装。
+**1.20.1-forge** 分支版本为 **20.3.0.3**，适用于 **Minecraft 1.20.1 / Forge**，使用 **Java 17**。从[项目发布页](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)选择对应的模组 JAR；源码 ZIP 不能直接当模组安装。
 
 | 必需组件 | 本分支对应版本 |
 | --- | --- |
@@ -38,14 +38,6 @@
 按需要选择可选模组，各项联动要求见[作者文档](docs/README.md)。
 
 </details>
-
-## 20.3.0.2 更新
-
-万物演算核心和超限算枢不再需要达到 L7 才能同时接多张订单。同一台 CPU 上的订单共用存储和每 tick 的投料额度。分子自动合成器补货时，只要样板指定的原料够做一份，就不再查询 ME 网络里的替代原料。
-
-前往高能实验室时，按顺序读取末地遗迹里的三枚坐标铭文。目的地加载期间，走下跃迁台即可取消。
-
-使用 Thunderbolt 时，批量任务遇到执行错误后可以取消。普通 AE2 和 AE2 UELM 继续共用同一个万象构序 JAR。
 
 ## 搭建第一座自动加工井
 
@@ -195,6 +187,6 @@
 ./gradlew build apiJavadoc
 ```
 
-Windows 使用 `gradlew.bat build apiJavadoc`。运行产物为 `build/libs/omnisequence-transfinite-20.3.0.2.jar`，Java API 文档位于 `build/docs/api/`。
+Windows 使用 `gradlew.bat build apiJavadoc`。运行产物为 `build/libs/omnisequence-transfinite-20.3.0.3.jar`，Java API 文档位于 `build/docs/api/`。
 
 界面使用当前 Minecraft 字体，不随附字体文件。代码使用 [MIT 许可证](LICENSE)；改编的 AE2、ExtendedAE 贴图分别保留 CC BY-NC-SA 3.0 和 LGPL-3.0，详见[第三方声明](THIRD_PARTY_NOTICES.md)。

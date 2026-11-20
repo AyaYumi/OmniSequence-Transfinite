@@ -24,12 +24,6 @@ public final class RateLimitedLog {
         }
     }
 
-    public static void debug(String message, Object... arguments) {
-        if (MolecularManipulator.LOGGER.isDebugEnabled() && GATE.allow(message)) {
-            MolecularManipulator.LOGGER.debug(message, arguments);
-        }
-    }
-
     static final class Gate {
         private final Map<String, Long> lastEmission = new HashMap<>();
         private final long intervalNanos;

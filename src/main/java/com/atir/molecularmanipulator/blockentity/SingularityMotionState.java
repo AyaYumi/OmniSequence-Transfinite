@@ -31,6 +31,8 @@ public final class SingularityMotionState {
     public int mode() { return mode; }
     public String message() { return message; }
     public boolean hasBodies() { return mask != 0; }
+    boolean reclaimAfterDock() { return reclaimAfterDock; }
+    void cancelReclaimAfterDock() { reclaimAfterDock = false; }
     public boolean hasPortable() { return Arrays.stream(portable).anyMatch(n -> n > 0); }
     public boolean owns(SingularityStructure.Part part) { int group = SingularityMotionGeometry.groupOf(part, machine.structureVersion(), geometryVersion); return group >= 0 && (mask & 1 << group) != 0; }
     public boolean owns(int group, UUID token) { return this.token.equals(token) && (mask & 1 << group) != 0; }
@@ -44,49 +46,29 @@ public final class SingularityMotionState {
         for (var chunk : machine.getMotionChunks()) if (!machine.getLevel().hasChunk(chunk.x, chunk.z)) return false;
         return true;
     }
-    /** Starts motion as part of the resource-collection device lifecycle. */
-    public boolean startForCollection(ServerPlayer player) {
-        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
-                || mode == DOCKING || machine.embedRequested()) return false;
-        if (mode != RUNNING) toggleInternal(player);
-        return mode == RUNNING;
+    public String startBlockReason() {
+        if (!allLoaded()) return "unloaded";
+        return !machine.formed() || hasPortable() ? "incomplete" : "";
     }
 
-    /** Stops motion as part of the resource-collection device lifecycle. */
-    public void stopForCollection(ServerPlayer player) {
-        if (hasBodies() && mode != DOCKING) dock(player, false);
-    }
-
-    /** Compatibility entry point for old callers; motion now belongs to collection. */
     public void toggle(ServerPlayer player) {
-        if (!machine.collectionActive()) return;
-        toggleInternal(player);
-    }
-
-    private void toggleInternal(ServerPlayer player) {
-        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE || mode == DOCKING || machine.embedRequested()) return;
-        operator = player.getUUID(); machine.setRecoveryOwner(player);
-        // Stopping an already-running carriage must never be blocked by a
-        // later layout migration. Freeze it first; migration can then finish
-        // while the bodies are stationary.
+        if (machine.isSingleBlock() || !machine.canManage(player) || machine.operation() != SingularityBlockEntity.Operation.IDLE
+                || mode == DOCKING || machine.embedRequested() || machine.reclaimPending()) return;
         if (mode == RUNNING) {
-            phase = clock(); epoch = now(); mode = PAUSED; message = "paused";
-            configureBodies(); changed();
+            dock(player, false);
             return;
         }
+        var blocked = startBlockReason();
+        if (!blocked.isEmpty()) { fail(blocked); return; }
+        operator = player.getUUID(); machine.setRecoveryOwner(player);
         if (!migrateFixedJoints()) return;
         if (!hasBodies()) { activate(player); return; }
-        if (!allLoaded()) { fail("unloaded"); return; }
         epoch = now(); mode = RUNNING;
         if (blockedAhead()) { mode = PAUSED; fail("obstacle"); return; }
         message = "running";
         configureBodies(); changed();
     }
     private void activate(ServerPlayer player) {
-        // Tickets are optional; the entire swept footprint must already be loaded
-        // before any physical blocks are converted into moving bodies.
-        if (!allLoaded()) { fail("unloaded"); return; }
-        if (!machine.formed() || hasPortable()) { fail("incomplete"); return; }
         var level = machine.getLevel(); var parts = movingParts();
         for (int x : new int[]{-50, 50}) for (int z : new int[]{-50, 50}) {
             if (!level.getWorldBorder().isWithinBounds(machine.worldPos(new BlockPos(x, 64, z)))) {
@@ -112,10 +94,12 @@ public final class SingularityMotionState {
         configureBodies(); machine.scheduleInspection(); changed();
     }
     public void dock(ServerPlayer player, boolean reclaim) {
-        if (!machine.canManage(player) || !hasBodies() || mode == DOCKING) return;
+        if (!machine.canManage(player) || !hasBodies()) return;
         operator = player.getUUID(); machine.setRecoveryOwner(player); reclaimAfterDock = reclaim;
-        if (!migrateFixedJoints()) return;
+        if (mode == DOCKING) { changed(); return; }
         phase = clock(); epoch = now(); mode = DOCKING; message = "docking"; dockingFrozen = false;
+        restoredDockingElapsed = 0;
+        if (!migrateFixedJoints()) { freezeDocking(message); return; }
         if (blockedAhead()) freezeDocking("dock_obstacle");
         configureBodies(); changed();
     }
@@ -256,9 +240,11 @@ public final class SingularityMotionState {
                 fail("protected"); return;
             }
         }
+        boolean reclaim = reclaimAfterDock;
+        reclaimAfterDock = false;
         mask = 0; mode = OFF; phase = 0; message = "off"; discardBodies();
         machine.scheduleInspection(); changed();
-        if (reclaimAfterDock) { reclaimAfterDock = false; machine.beginDismantle(player); }
+        if (reclaim) machine.beginDismantle(player);
     }
     private BlockPos home(SingularityStructure.Part part) { return machine.worldPos(part); }
     private List<SingularityStructure.Part> movingParts() {

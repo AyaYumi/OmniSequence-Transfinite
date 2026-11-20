@@ -4,6 +4,7 @@ import appeng.client.gui.style.ScreenStyle;
 import com.atir.molecularmanipulator.blockentity.MolecularCenterBlockEntity.QuantumLinkState;
 import com.atir.molecularmanipulator.blockentity.SingularityBlockEntity;
 import com.atir.molecularmanipulator.blockentity.SingularityDuplicationProcessor;
+import com.atir.molecularmanipulator.blockentity.SingularityMotionState;
 import com.atir.molecularmanipulator.blockentity.SingularityStructure;
 import com.atir.molecularmanipulator.menu.SingularityMenu;
 import net.minecraft.Util;
@@ -19,6 +20,7 @@ import java.util.Locale;
 
 public final class SingularityScreen extends ResponsiveContainerScreen<SingularityMenu> {
     private Button build, preview, refresh, dismantle, cancel, overview, collectionTab, duplicationTab, embed, collectionToggle;
+    private Button motionToggle;
     private MachineEffectButton effects;
     private boolean collectionPage, duplicationPage;
     private long armedAt;
@@ -60,6 +62,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("preview"),()->{}));
         refresh=addScreenWidget(!secondary&&!menu.getMachine().isSingleBlock()?ui.button("refresh",leftPos,topPos,()->tr("refresh"),()->menu.request("refresh"))
                 :ui.rect(-1000,-1000,40,17,leftPos,topPos,()->tr("refresh"),()->menu.request("refresh")));
+        motionToggle = !secondary && !compact
+                ? addScreenWidget(ui.button("motion", leftPos, topPos, null, () -> menu.request("motion"))) : null;
         initReclaimControls(secondary);
         // Transient actions use the free top row of the status card, not the diagnostics headings.
         embed=addScreenWidget(ui.rect(246,40,87,17,leftPos,topPos,null,()->menu.request(menu.structureVersion==SingularityStructure.EMBEDDED_VERSION?"upgrade":"embed")));
@@ -175,7 +179,7 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         preview.active = refresh.active = effects.active = !reclaimPending;
         build.setMessage(tr(operationActive ? menu.paused ? "resume" : "pause" : "build"));
         build.active = !secondaryPage && !menu.embedRequested && !reclaimPending
-                && (operationActive || !menu.formed && !menu.movingBodies);
+                && (operationActive || !menu.collectionActive && !menu.formed && !menu.movingBodies);
 
         cancel.visible = menu.embedRequested || operationActive || reclaimPending;
         cancel.active = cancel.visible;
@@ -185,7 +189,8 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         dismantle.active = !secondaryPage && !menu.embedRequested && !operationActive && !reclaimPending
                 && !menu.collectionActive && menu.correct > 1;
         embed.visible = !secondaryPage && menu.structureVersion < SingularityStructure.VERSION;
-        embed.active = menu.formed && !operationActive && !menu.embedRequested && !reclaimPending && menu.motionMode != 3
+        embed.active = menu.formed && !operationActive && !menu.embedRequested && !reclaimPending
+                && menu.motionMode != SingularityMotionState.DOCKING
                 && !menu.collectionActive;
         String migration = menu.structureVersion == SingularityStructure.EMBEDDED_VERSION ? "upgrade" : "embed";
         embed.setMessage(tr(migration + (menu.embedRequested ? "_waiting" : "")));
@@ -199,8 +204,19 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
         collectionToggle.visible = collectionPage && !cancel.visible;
         collectionToggle.setMessage(tr(menu.collectionStarting ? "collection_starting"
                 : menu.collectionActive ? "collection_stop" : "collection_start"));
-        collectionToggle.active = collectionPage && menu.formed && !operationActive && !menu.embedRequested && !reclaimPending
-                && menu.motionMode != 3 && (menu.collectionActive || menu.networkOnline);
+        collectionToggle.active = collectionPage && !operationActive && !menu.embedRequested && !reclaimPending
+                && (menu.collectionActive || menu.formed && menu.networkOnline);
+        if (motionToggle != null) {
+            boolean running = menu.motionMode == SingularityMotionState.RUNNING;
+            boolean docking = menu.motionMode == SingularityMotionState.DOCKING;
+            motionToggle.active = !docking && !operationActive && !menu.embedRequested && !reclaimPending
+                    && (running || menu.motionStartBlockReason.isEmpty());
+            motionToggle.setMessage(tr(docking ? "motion_docking" : running ? "motion_stop"
+                    : menu.motionMode == SingularityMotionState.PAUSED ? "motion_resume" : "motion_start"));
+            String reason = running || docking || menu.motionStartBlockReason.isEmpty()
+                    ? menu.motionMessage : menu.motionStartBlockReason;
+            motionToggle.setTooltip(Tooltip.create(tr("motion." + reason)));
+        }
         if (menu.getMachine().isSingleBlock()) {
             build.visible = preview.visible = refresh.visible = dismantle.visible = cancel.visible = embed.visible = false;
         }
@@ -236,8 +252,6 @@ public final class SingularityScreen extends ResponsiveContainerScreen<Singulari
             if (menu.collectionActive) return tr("status.running");
         }
         if (menu.collectionStarting) return tr("collection_starting_status");
-        if (menu.collectionActive && menu.motionMode == 1) return tr("status.running");
-        if (menu.collectionActive) return tr("status.collection_paused");
         return tr("status." + menu.status.name().toLowerCase(Locale.ROOT));
     }
 

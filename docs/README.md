@@ -116,13 +116,13 @@ Sequence Matter per cycle is the hole count multiplied by `matter_per_black_hole
 
 ### Chunk loading and connections / 区块加载与连接
 
-`multiblocks.force_load_chunks` controls registered multiblock chunk tickets. With it disabled, a Singularity Hub can still move and dock when its entire motion footprint is already loaded. Missing chunks prevent startup or docking and pause active motion until loading resumes. Obstacle and permission checks still apply. Miniature White Holes keep their own chunks loaded regardless of this setting.
+`multiblocks.force_load_chunks` controls registered multiblock chunk tickets. With it disabled, a Singularity Hub can still move and dock when its entire motion footprint is already loaded. Missing motion-area chunks prevent motion startup or docking and pause active motion until loading resumes. Obstacle and permission checks still apply to motion. Collection does not depend on motion. Miniature White Holes keep their own chunks loaded regardless of this setting.
 
 Sequence Wireless Hubs add no chunkloading. Both ends must be loaded. Machines retain their existing multiblock loading behavior. Wireless receivers must remove external ME cables and any quantum-slot singularity; both the hub and receiver must belong to the same team. The selector shows only that team's loaded hubs. Moving or replacing a hub requires rebinding.
 
 Loaded Singularity quantum endpoints reconnect through normal AE2 initialization after world or chunk reloads. Destroyed, unloaded or retuned rings do not count as live endpoints because of stale registry entries. An occupied pair still reports a conflict. Paired singularities, a loaded remote ring, power and channels remain required.
 
-关闭多方块加载票据后，只要整个运动范围已经加载，天枢仍可运动；缺少区块时暂停，等待恢复。微型白洞继续加载自身区块。无线连接本身不加载区块，也不会代替队伍、供电或频道检查。
+资源采集不依赖实体运动。关闭多方块加载票据后，只要整个运动范围已经加载，天枢仍可启动运动和归位；缺少区块时暂停，等待恢复。微型白洞继续加载自身区块。无线连接本身不加载区块，也不会代替队伍、供电或频道检查。
 
 ### Client effects / 客户端特效
 

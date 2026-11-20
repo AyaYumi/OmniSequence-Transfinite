@@ -74,7 +74,9 @@ Once Overview shows **formed** and **network online**, choose the page for your 
 | Generate Sequence Matter fluid | [Matter Duplication](singularity_matter_duplication.md) → insert miniature black holes and supply energy. With no sample, watch ME fluid stock rise. |
 | Copy a chosen item | [Matter Duplication](singularity_matter_duplication.md) → insert a sample and provide matter. Copies appear in ME; the sample stays. |
 
-**Stop Collection** docks the moving parts, but does not stop matter generation or copying. Remove black holes or the sample to stop those operations. Lowering **Effects** in Overview changes visuals, not output.
+Stopping collection does not change motion or stop matter generation or copying. Remove the black holes to stop matter generation or the sample to stop copying. Lowering **Effects** in Overview changes only the visuals.
+
+On **Overview**, use **Start motion** or **Resume motion** when stopped or paused, or **Dock and stop** while running. The button is unavailable during docking. Starting or resuming requires a formed structure, all motion-area chunks loaded, and no construction, rebuild or reclaim in progress.
 
 ### Remote ME connections
 
@@ -104,7 +106,7 @@ While waiting for docking, keep the motion area loaded and clear, and have the r
 | Motion or docking stops | Clear obstacles and load chunks across the **whole motion area**, not just the controller. |
 | Reclaim keeps waiting | Stop collection, settle jobs, have the requester present and let the moving parts dock. |
 
-The server's multiblock chunk-loading switch controls whether this mod keeps chunks loaded. With it off, starting, motion and docking still work when all required chunks are loaded by other means. Missing chunks make the machine wait.
+The server's multiblock chunk-loading switch controls whether this mod keeps chunks loaded. With it off, motion can start or dock when the whole motion area is loaded by other means. Missing chunks make motion wait.
 
 ## Recipe lookup
 

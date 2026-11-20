@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.config;
 
-import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
@@ -144,7 +144,7 @@ public final class ConfigFileMigration {
         } catch (FileAlreadyExistsException ignored) {
             // Another startup path completed the same non-overwriting migration.
         } catch (IOException exception) {
-            MolecularManipulator.LOGGER.warn("Could not migrate config file {} to {}",
+            RateLimitedLog.warn("Could not migrate config file {} to {}",
                     legacyFile, file, exception);
         }
     }

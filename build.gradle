@@ -248,7 +248,7 @@ tasks.named('compileTestJava', JavaCompile).configure {
 
 def downloadAssetsTask = tasks.named('downloadAssets', net.neoforged.nfrtgradle.DownloadAssets)
 tasks.named('test', Test).configure {
-    dependsOn downloadAssetsTask
+    dependsOn(downloadAssetsTask)
     File minecraftAssetPropertiesFile = downloadAssetsTask.get().assetPropertiesFile.get().asFile
     inputs.file(minecraftAssetPropertiesFile)
     useJUnitPlatform()

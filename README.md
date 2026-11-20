@@ -8,7 +8,7 @@ Install the dependencies below, build your first well, then follow the in-game g
 
 ## Install
 
-This branch is **21.3.0.2** for **Minecraft 1.21.1 / NeoForge**, using **Java 21**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
+This branch is **21.3.0.3** for **Minecraft 1.21.1 / NeoForge**, using **Java 21**. Get the matching mod JAR from the [project page](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite); a source ZIP is not an installable mod.
 
 | Required component | Version for this branch |
 | --- | --- |
@@ -37,12 +37,6 @@ Recipes and costs below describe the defaults. Your modpack's JEI pages, researc
 The [author reference](docs/README.md) describes the version-specific integration contracts. These optional mods are not all required to play.
 
 </details>
-
-## Changes in 21.3.0.2
-
-An Omni-Computation Core or Transfinite Compute Nexus can now run several orders before reaching L7. Jobs on the same CPU share its storage and per-tick dispatch allowance. When a Molecular Auto Crafter has enough of the exact ingredients for one craft, it no longer searches the ME network for substitutes.
-
-Read the three inscriptions in the End ruin in order to dial the laboratory. Step off the pad while the destination is loading to cancel the trip.
 
 ## From a new network to your first automated well
 
@@ -190,6 +184,6 @@ Use Java 21 and prepare the local dependencies described in [libs/README.md](lib
 ./gradlew build apiJavadoc
 ```
 
-On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-21.3.0.2.jar`; Java API documentation is generated under `build/docs/api/`.
+On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-21.3.0.3.jar`; Java API documentation is generated under `build/docs/api/`.
 
 The GUI uses the active Minecraft font; no font files are bundled. Code uses the [MIT License](LICENSE). Adapted AE2 and ExtendedAE textures retain their CC BY-NC-SA 3.0 and LGPL-3.0 licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).

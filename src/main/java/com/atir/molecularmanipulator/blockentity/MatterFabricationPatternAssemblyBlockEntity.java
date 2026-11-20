@@ -35,6 +35,7 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
 
     public MatterFabricationPatternAssemblyBlockEntity(BlockPos pos, BlockState state) {
         super(ModContent.MATTER_FABRICATION_PATTERN_ASSEMBLY_BE.get(), pos, state);
+        getMainNode().setFlags();
     }
 
     @Override

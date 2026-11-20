@@ -140,7 +140,8 @@ public final class MatterFabricationPatternAssemblyBlockEntity extends PatternPr
     }
 
     public boolean isOperational() {
-        return getController() != null && getMainNode().isActive()
+        var controller = getController();
+        return controller != null && controller.getMainNode().isActive() && getMainNode().isActive()
                 && !com.atir.molecularmanipulator.building.BuildingTransfer.restoring(this);
     }
 

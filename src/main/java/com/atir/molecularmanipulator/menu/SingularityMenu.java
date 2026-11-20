@@ -10,6 +10,7 @@ import appeng.menu.slot.AppEngSlot;
 import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.blockentity.SingularityBlockEntity;
+import com.atir.molecularmanipulator.blockentity.SingularityMotionState;
 import com.atir.molecularmanipulator.blockentity.MachineEffectSettings;
 import com.atir.molecularmanipulator.network.SingularityCollectionPayload;
 import com.atir.molecularmanipulator.network.SingularityCollectionState;
@@ -74,6 +75,8 @@ public final class SingularityMenu extends AEBaseMenu {
     @GuiSync(44) public double lastDuplicationAeConsumed;
     @GuiSync(45) public int collectionIntervalTicks = 20;
     @GuiSync(46) public int dynamicEffectOverride = MachineEffectSettings.INHERIT;
+    @GuiSync(47) public boolean reclaimPending;
+    @GuiSync(48) public String motionStartBlockReason = "incomplete";
     private final AppEngSlot quantumSlot;
     private final AppEngSlot duplicationSampleSlot;
     private final AppEngSlot blackHoleSlot;
@@ -121,6 +124,7 @@ public final class SingularityMenu extends AEBaseMenu {
         registerClientAction("embed", () -> withPlayer(machine::requestEmbedding));
         registerClientAction("upgrade", () -> withPlayer(machine::requestSuspendedUpgrade));
         registerClientAction("collection", () -> withPlayer(machine::toggleCollection));
+        registerClientAction("motion", () -> withPlayer(machine.motion()::toggle));
         registerClientAction("refresh", () -> withPlayer(player -> {
             long now = machine.getLevel().getGameTime();
             if (lastRefresh == Long.MIN_VALUE || now - lastRefresh >= 20) { machine.requestInspection(player); lastRefresh = now; }
@@ -258,6 +262,10 @@ public final class SingularityMenu extends AEBaseMenu {
             formed = machine.formed(); networkOnline = machine.networkOnline();
             structureVersion = machine.structureVersion(); embedRequested = machine.embedRequested();
             motionMode = machine.motion().mode(); motionMessage = machine.motion().message(); movingBodies = machine.motion().hasBodies();
+            reclaimPending = machine.reclaimPending();
+            if (!machine.isSingleBlock() && (motionMode == SingularityMotionState.OFF || motionMode == SingularityMotionState.PAUSED)) {
+                motionStartBlockReason = machine.motion().startBlockReason();
+            }
             quantumFrequency = machine.getQuantumFrequency(); quantumLinkState = machine.getQuantumLinkState();
             collectionActive = machine.collectionActive(); collectionStarting = machine.collectionStarting();
             collectionBatchSize = machine.collectionBatchSizeForMenu();

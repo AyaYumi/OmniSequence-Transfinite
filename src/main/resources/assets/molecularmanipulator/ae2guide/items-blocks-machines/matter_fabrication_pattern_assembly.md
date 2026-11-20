@@ -12,6 +12,8 @@ item_ids:
 
 The Pattern Assembly adds ME autocrafting to the [Fabrication Well](matter_fabrication_well.md). Each assembly holds **36 patterns** and uses its well's research unlocks, parallelism and speed bonuses.
 
+The assembly does not use an AE2 channel; only the well controller uses one.
+
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_pattern_assembly" scale="4" />
 

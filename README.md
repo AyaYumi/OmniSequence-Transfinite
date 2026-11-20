@@ -8,7 +8,7 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 | Component | Current requirement |
 | --- | --- |
-| OmniSequence | 2.0.16-forge, branch `1.20.1-forge-legacy` |
+| OmniSequence | 2.0.17-forge, branch `1.20.1-forge-legacy` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 or later |
 | AppliedEnhancements | 1.1.2-forge or later, client and server; build API 1.1.4-forge |
@@ -23,7 +23,7 @@ Install the mod and required dependencies separately in client and server `mods/
 ## Getting started
 
 1. Build a **Matter Fabrication Well** with basic AE2 materials, connect ME and complete tier 1 research.
-2. Install a **Pattern Assembly** to automate fabrication recipes through ME.
+2. Install a **Pattern Assembly** to automate fabrication recipes through ME. The assembly does not use an AE2 channel; only the well controller uses one.
 3. Research **Tier 2: Sequence Array** and **Tier 2: Omni Computation** to fabricate pattern storage, crafting devices and CPUs.
 4. Complete both tier 2 branches once, then research **Tier 3: Event Horizon** and build a hub for collection and duplication.
 
@@ -79,7 +79,7 @@ Use Java 17, place `appliedenhancements-1.1.4-forge.jar` in `libs/`, then run:
 ./gradlew build apiJavadoc
 ```
 
-The runtime JAR is `build/libs/omnisequence-transfinite-2.0.16-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
+The runtime JAR is `build/libs/omnisequence-transfinite-2.0.17-forge.jar`. Public Java API documentation is generated under `build/docs/api/`. See [libs/README.md](libs/README.md) for local dependency setup.
 
 ## Runtime tests
 

@@ -1,6 +1,6 @@
 # Matter Fabrication Well: Recipes and Research API
 
-Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.16-forge**.
+Available since OmniSequence: Transfinite **2.0.0**; current for **2.0.17-forge**.
 Target: Minecraft **1.20.1** / Forge, Java **17**, AE2 **15.4.10**, and the
 required prerequisite Applied Enhancements **1.1.2-forge+** (build API **1.1.4-forge**). The Mod ID stays
 `molecularmanipulator`.
@@ -601,7 +601,7 @@ the recipe ID, so unstarted batches re-check the current recipe, permission and
 profile instead of reusing old figures. Work that can no longer proceed keeps its
 materials inside the assembly and can be returned as pending input.
 
-### 7.1 Known limitations in 2.0.16-forge
+### 7.1 Known limitations in 2.0.17-forge
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.

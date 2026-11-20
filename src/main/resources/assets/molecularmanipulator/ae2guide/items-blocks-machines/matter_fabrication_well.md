@@ -33,7 +33,7 @@ The well occupies **41 × 41 blocks** and is **27 blocks tall**. Its controller,
 1. Place the controller and enable **Projection** to check missing blocks and obstructions.
 2. Gather the listed materials, clear obstructions and select **Build**. Construction uses your inventory before the connected ME storage.
 3. Install the required [ports](matter_fabrication_ports.md) in service positions. Hold a port to see valid positions.
-4. Connect ME and power, then check formation and network status in the controller.
+4. Connect ME and power, then check formation and network status in the controller. Reserve one AE2 channel for the controller; Pattern Assemblies do not use any channels.
 
 There are **44 service positions**: 24 on the front steps and four groups of five around the central platform. [Pattern Assemblies](matter_fabrication_pattern_assembly.md) also use these positions.
 

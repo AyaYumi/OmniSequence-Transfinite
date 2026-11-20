@@ -8,7 +8,7 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.16-forge，源码分支 `1.20.1-forge-legacy` |
+| 本模组 | 2.0.17-forge，源码分支 `1.20.1-forge-legacy` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 或更高 |
 | AppliedEnhancements | 1.1.2-forge 或更高，客户端和服务端都需要；编译 API 为 1.1.4-forge |
@@ -23,7 +23,7 @@
 ## 开始使用
 
 1. 用基础 AE2 材料搭建**物质构筑井**，接入 ME 网络并完成一阶研究。
-2. 安装**样板总成**，将构筑井配方接入 ME 自动合成。
+2. 安装**样板总成**，将构筑井配方接入 ME 自动合成。样板总成不占用 AE2 频道，只有井控制器占用 1 个频道。
 3. 分别研究**二阶：构序阵列**与**二阶：万物演算**，制作样板存储、合成设备与 CPU。
 4. 两条二阶分支各完成一次后，研究**三阶：视界奇点**，搭建天枢进行采集与复制。
 
@@ -79,7 +79,7 @@
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.16-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.17-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 ## 运行回归
 

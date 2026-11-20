@@ -31,7 +31,7 @@ The Matter Fabrication Well makes advanced materials from items and fluids. Buil
 - Reserve 41 × 41 blocks, 27 blocks tall for the complete building.
 - Craft the controller below. The controller, basic building parts and input/output ports need no research.
 - Check JEI's Complete Matter Fabrication Well page for the full building-material list.
-- Prepare a powered ME network with storage and an available channel for the controller. It uses 16 AE/t at idle; processing and research need additional power.
+- Prepare a powered ME network with storage and one available AE2 channel for the controller. It uses 16 AE/t at idle; processing and research need additional power. Pattern Assemblies do not use any channels.
 
 <RecipeFor id="molecularmanipulator:matter_fabrication_controller" />
 

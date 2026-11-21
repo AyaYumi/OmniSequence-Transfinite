@@ -109,8 +109,14 @@ public final class MolecularScaledPattern implements IPatternDetails,
      */
     @Override
     public void pushInputsToExternalInventory(KeyCounter[] inputHolder, PatternInputSink inputSink) {
-        Objects.requireNonNull(inputHolder, "inputHolder");
         Objects.requireNonNull(inputSink, "inputSink");
+        for (var entry : prepareExternalInputs(inputHolder)) {
+            inputSink.pushInput(entry.what(), entry.amount());
+        }
+    }
+
+    public List<GenericStack> prepareExternalInputs(KeyCounter[] inputHolder) {
+        Objects.requireNonNull(inputHolder, "inputHolder");
 
         // Validate the complete holder before sending anything so malformed input cannot result
         // in a partially transferred recipe.
@@ -158,7 +164,7 @@ public final class MolecularScaledPattern implements IPatternDetails,
         actual.forEach((key, amount) -> {
             if (!delivered.containsKey(key)) ordered.add(new GenericStack(key, amount));
         });
-        for (var entry : ordered) inputSink.pushInput(entry.what(), entry.amount());
+        return ordered;
     }
 
     @Override

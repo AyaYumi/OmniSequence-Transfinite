@@ -30,8 +30,9 @@ AppliedEnhancements configuration.
 | `singularity_hub.singularity_duplication.matter_per_black_hole` | 20 | 1–1,000,000 mB per hole per cycle |
 | `singularity_hub.singularity_duplication.interval_ticks` | 20 | 1–1200 ticks; missed cycles are not caught up |
 | `omni_computation.dispatch.omni_batch_dispatch_enabled` | true | Batch material transfers to compatible providers; false uses single-craft transfers |
+| `omni_computation.dispatch.omni_dispatch_limits_enabled` | true | Enforce the work-unit, single-craft call and shared single-craft time budgets below. |
 | `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 256–2,147,483,647 complete single-craft calls per controller/tick |
-| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 50000 | 250–50000 microseconds/tick shared by all active Omni cores; shrinks as average MSPT approaches 45 |
+| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 50000 | Server-wide single-craft dispatch time per tick (250–50,000 µs). The budget shrinks as average MSPT approaches 45. |
 | `omni_computation.dispatch.omni_dispatch_max_work_units` | 2147483647 | 64–9,223,372,036,854,775,807 per controller/tick; each input extraction and provider attempt costs one unit, regardless of batch size |
 | `omni_computation.dispatch.omni_coalesce_return_notifications` | true | Combine per-resource return notifications after exact ledger settlement |
 | `omni_computation.dispatch.omni_direct_native_output_return` | true | Return UselessMod intermediate outputs to the live bound CPU on the same grid; unsupported queues use normal return |

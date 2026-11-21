@@ -244,12 +244,16 @@ public final class MolecularAdaptiveBatchController {
 
         private void reachCapacity(long currentTick) {
             if (isBlocked(currentTick)) return;
-            if (acceptedThisTick > 0) baseline = acceptedThisTick;
+            long observedCapacity = acceptedThisTick > 0 ? acceptedThisTick : baseline;
+            // Repeated feedback at the learned rate must not postpone the next probe.
+            if (!capacityKnown || growing || observedCapacity != baseline) {
+                nextProbeTick = saturatingAdd(currentTick, RECOVERY_PROBE_INTERVAL_TICKS);
+            }
+            baseline = observedCapacity;
             capacityKnown = true;
             growing = false;
             recovering = false;
             target = baseline;
-            nextProbeTick = saturatingAdd(currentTick, RECOVERY_PROBE_INTERVAL_TICKS);
             blockedTick = currentTick;
         }
 

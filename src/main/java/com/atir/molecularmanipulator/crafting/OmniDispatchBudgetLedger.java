@@ -19,6 +19,7 @@ import java.util.Objects;
  */
 public final class OmniDispatchBudgetLedger<L> {
     public static final Claim EMPTY_CLAIM = new Claim(0L, 0);
+    private static final Claim UNLIMITED_CLAIM = new Claim(Long.MAX_VALUE, Integer.MAX_VALUE);
 
     public record Claim(long workUnits, int unscaledAttempts) {
         public Claim {
@@ -40,6 +41,7 @@ public final class OmniDispatchBudgetLedger<L> {
     private final Map<L, LaneClaim> claims = new IdentityHashMap<>();
     private long tick = Long.MIN_VALUE;
     private boolean claiming;
+    private boolean unlimited;
     private long totalWorkUnits;
     private long workUnitsRemaining;
     private long reservedWorkUnitTotal;
@@ -54,6 +56,7 @@ public final class OmniDispatchBudgetLedger<L> {
     public void beginTick(long tick, long totalWorkUnits, int totalUnscaledAttempts) {
         this.tick = tick;
         claiming = false;
+        unlimited = false;
         this.totalWorkUnits = Math.max(0L, totalWorkUnits);
         this.workUnitsRemaining = this.totalWorkUnits;
         this.reservedWorkUnitTotal = 0L;
@@ -65,13 +68,19 @@ public final class OmniDispatchBudgetLedger<L> {
         claims.clear();
     }
 
-    /** Reserves one lane's fair share. Returns false for a duplicate reservation. */
+    /** Gives each lane one claim without dividing either quota. */
+    public void beginUnlimitedTick(long tick) {
+        beginTick(tick, Long.MAX_VALUE, Integer.MAX_VALUE);
+        unlimited = true;
+    }
+
+    /** Reserves one lane's fair share in a limited tick. */
     public boolean reserve(L lane, long workUnits, int unscaledAttempts) {
         Objects.requireNonNull(lane, "lane");
         if (workUnits < 0L || unscaledAttempts < 0) {
             throw new IllegalArgumentException("Negative dispatch reservation");
         }
-        if (claiming || claims.containsKey(lane)
+        if (unlimited || claiming || claims.containsKey(lane)
                 || reservedWorkUnits.containsKey(lane)
                 || reservedUnscaledAttempts.containsKey(lane)) {
             return false;
@@ -95,6 +104,10 @@ public final class OmniDispatchBudgetLedger<L> {
         claiming = true;
         if (claims.containsKey(lane)) {
             return EMPTY_CLAIM;
+        }
+        if (unlimited) {
+            claims.put(lane, new LaneClaim(UNLIMITED_CLAIM, false));
+            return UNLIMITED_CLAIM;
         }
 
         long reservedWork = reservedWorkUnits.getOrDefault(lane, 0L);

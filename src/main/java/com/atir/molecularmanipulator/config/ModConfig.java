@@ -24,6 +24,7 @@ public final class ModConfig {
     public static final ForgeConfigSpec.IntValue SINGULARITY_DUPLICATION_MATTER_PER_BLACK_HOLE;
     public static final ForgeConfigSpec.IntValue SINGULARITY_DUPLICATION_INTERVAL_TICKS;
     public static final ForgeConfigSpec.BooleanValue OMNI_BATCH_DISPATCH_ENABLED;
+    public static final ForgeConfigSpec.BooleanValue OMNI_DISPATCH_LIMITS_ENABLED;
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK;
     public static final ForgeConfigSpec.IntValue OMNI_COMPAT_DISPATCH_MAX_TIME_US;
     public static final ForgeConfigSpec.LongValue OMNI_DISPATCH_MAX_WORK_UNITS;
@@ -144,6 +145,11 @@ public final class ModConfig {
                 "允许向兼容供应器批量推送合成材料。关闭后每次只推送一份。")
                 .translation("molecularmanipulator.configuration.omni_batch_dispatch_enabled")
                 .define("omni_batch_dispatch_enabled", true);
+        OMNI_DISPATCH_LIMITS_ENABLED = server.comment(
+                "Enforce per-controller work and call limits and the server-wide single-craft time budget.",
+                "启用每个核心的工作单元和单份推送次数上限，以及全服共享的单份派发时间预算。")
+                .translation("molecularmanipulator.configuration.omni_dispatch_limits_enabled")
+                .define("omni_dispatch_limits_enabled", true);
         OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK = server.comment(
                 "Maximum single-craft dispatch calls per Omni-Computation Core per tick.",
                 "每个万物演算核心每 tick 的单份配方推送次数上限。")
@@ -153,11 +159,9 @@ public final class ModConfig {
                         Integer.MAX_VALUE, 256, Integer.MAX_VALUE);
         OMNI_COMPAT_DISPATCH_MAX_TIME_US = server.comment(
                 "Maximum single-craft dispatch time per tick in microseconds, shared by all active Omni-Computation Cores. The budget shrinks as average server MSPT approaches 45.",
-                "所有活跃万物演算核心共享的每 tick 单份配方派发时间预算（微秒）；平均 MSPT 接近 45 时自动收缩。")
+                "所有活跃万物演算核心共享的每 tick 单份配方派发时间预算（微秒），平均 MSPT 接近 45 时自动收缩。")
                 .translation("molecularmanipulator.configuration.omni_compat_dispatch_max_time_us")
-                .defineInRange(
-                        "omni_compat_dispatch_max_time_us",
-                        50_000, 250, 50_000);
+                .defineInRange("omni_compat_dispatch_max_time_us", 50_000, 250, 50_000);
         OMNI_DISPATCH_MAX_WORK_UNITS = server.comment(
                 "Maximum dispatch work units per Omni controller and tick. Input extraction and each provider attempt cost one unit, regardless of logical batch size.",
                 "单个万物演算核心每 tick 的派发工作预算；一次输入抽取和一次供应器尝试各计一个单元，与批次数量无关。")

@@ -131,7 +131,8 @@ public final class ConfigFileMigration {
         ConfigSchemaGuard.removeObsoleteOptions(
                 directory.resolve(SERVER_FILE),
                 java.util.List.of(RETIRED_UNSCALED_DISPATCH_LIMIT,
-                        RETIRED_BATCH_SUBSTITUTION_OPTION, "ae2_crafting",
+                        RETIRED_BATCH_SUBSTITUTION_OPTION,
+                        "ae2_crafting",
                         "omni_computation.optimizer", "omni_computation.cache",
                         "omni_computation.execution",
                         // Retire only these two profiling keys before the exact-schema

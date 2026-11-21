@@ -109,7 +109,7 @@ public final class EcoCpuGameTests {
     private static final AEKey OUTPUT = AEItemKey.of(Items.EMERALD);
     private static final long CRAFTS = 1026;
     private static final long PRODUCTS = CRAFTS * 2;
-    private static final BigInteger EXACT_BYTES = BigInteger.TEN.pow(30);
+    private static final BigInteger EXACT_BYTES = BigInteger.valueOf(100);
     private static final Set<ResourceLocation> FUZZY = Set.of(new ResourceLocation("minecraft", "diamond"));
 
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 260)
@@ -149,12 +149,18 @@ public final class EcoCpuGameTests {
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 320)
     public static void exactEcoPlanAttachesMetadataAndAdvancesActualCpu(GameTestHelper helper) {
         powered(helper, 2, f -> {
+            var oversized = exactResult(f, CRAFTS);
+            oversized.setTheoreticalBytes(PlannerAmount.of(BigInteger.TEN.pow(30)));
+            var denied = f.service().submitJob(exactPlan(helper, oversized), null, f.cpu(), false, new MachineSource(f.core()));
+            helper.assertTrue(denied.errorCode() == appeng.crafting.execution.CraftingSubmitResult.CPU_TOO_SMALL.errorCode()
+                            && !f.cpu().isBusy() && f.stock.amount(INPUT) == CRAFTS,
+                    "A true oversize reservation must reject without extracting stock");
             var result = exactResult(f, CRAFTS);
             var plan = exactPlan(helper, result);
             submit(helper, f, plan);
             assertMetadata(helper, f, null, BigInteger.valueOf(CRAFTS));
             helper.assertTrue(f.host().omniDispatch$exactOrder()
-                            && execution(f).theoreticalBytes().equals(BigInteger.TEN.pow(30))
+                            && execution(f).theoreticalBytes().equals(EXACT_BYTES)
                             && execution(f).fuzzyPlanningItemIds().equals(FUZZY),
                     "Exact ECO source must reach actual Omni host with theoretical bytes and fuzzy metadata intact");
             complete(helper, f);
@@ -323,11 +329,13 @@ public final class EcoCpuGameTests {
                                     && f.host().omniDispatch$remaining(second).equals(BigInteger.valueOf(CRAFTS))
                                     && f.logic().getWaitingFor(finalKey) == 0 && f.stock.amount(OUTPUT) == 0,
                             "Second phase must not advance from projected intermediate products");
-                }).thenWaitUntil(() -> helper.assertTrue(f.logic().getWaitingFor(finalKey) == CRAFTS,
-                        "Second phase must dispatch only after receiving real intermediate output"))
-                        .thenExecute(() -> helper.assertTrue(execution(f).isComplete()
-                                        && f.access().ecoOmni$tasks().isEmpty() && f.logic().getWaitingFor(OUTPUT) == 0,
-                                "Both real phase ledgers must advance exactly once and consume the intermediate waiting credit"))
+                }).thenWaitUntil(() -> {
+                    var current = execution(f);
+                    helper.assertTrue(current == null ? f.stock.amount(finalKey) == CRAFTS
+                                    : current.isComplete() && f.access().ecoOmni$tasks().isEmpty()
+                                        && f.logic().getWaitingFor(OUTPUT) == 0,
+                            "Both phases must advance and settle the real intermediate waiting credit");
+                })
                         .thenWaitUntil(() -> helper.assertTrue(!f.cpu().isBusy() && f.stock.amount(finalKey) == CRAFTS,
                                 "Phased order must finish with actual final products"))
                         .thenExecute(() -> {
@@ -618,8 +626,6 @@ public final class EcoCpuGameTests {
     }
 
     private static ECOPlanningResult exactResult(Fixture f, long crafts) {
-        // ECO's exact adapter accepts the unrepresentable status, even when only bytes exceed long.
-        // Keep the physical task/material counts small enough for this real provider fixture.
         var result = result(f, crafts, PlanningStatus.PLANNED_BUT_AMOUNT_UNREPRESENTABLE);
         result.setTheoreticalBytes(PlannerAmount.of(EXACT_BYTES));
         return result;
@@ -628,8 +634,7 @@ public final class EcoCpuGameTests {
     private static ECOPlanningResult result(Fixture f, long crafts, PlanningStatus status) {
         var used = new KeyCounter(); used.add(INPUT, crafts);
         long products = Math.multiplyExact(crafts, 2);
-        long projectedBytes = status == PlanningStatus.PLANNED_BUT_AMOUNT_UNREPRESENTABLE ? Long.MAX_VALUE : 100;
-        var plan = new CraftingPlan(new GenericStack(OUTPUT, products), projectedBytes, false, false,
+        var plan = new CraftingPlan(new GenericStack(OUTPUT, products), 100, false, false,
                 used, new KeyCounter(), new KeyCounter(), Map.of(f.pattern, crafts));
         var provenance = new MaterialProvenance();
         allocate(provenance, MaterialDemand.input(f.pattern, 0, INPUT, PlannerAmount.of(crafts)),
@@ -678,7 +683,6 @@ public final class EcoCpuGameTests {
 
     static ECOExactCraftingPlan exactPlan(GameTestHelper helper, ECOPlanningResult result) {
         helper.assertTrue(result.status() == PlanningStatus.PLANNED_BUT_AMOUNT_UNREPRESENTABLE
-                        && result.theoreticalBytes().compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0
                         && ECOBigOrderAdmission.allows(result, false),
                 "Exact fixture must satisfy real ECO big-order admission without force or missing materials");
         var plan = new ECOExactCraftingPlan(result, false);

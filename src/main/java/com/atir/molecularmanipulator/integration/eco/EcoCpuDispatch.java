@@ -14,7 +14,6 @@ import cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProviders;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
-import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import com.appliedenhancements.api.AelisBatchExecutionContext;
 import com.atir.molecularmanipulator.blockentity.MatterFabricationPatternLogic;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
@@ -59,7 +58,7 @@ public final class EcoCpuDispatch {
 
     public boolean defersSingle(IPatternDetails pattern, ICraftingProvider provider) {
         return deferredSingle != null && deferredSingle.equals(pattern)
-                && (provider instanceof ECOJobAwareCraftingProvider || ECOParallelCraftingProviders.find(provider) != null);
+                && (ECOFastPathFacade.supportsJobAwarePush(provider) || ECOParallelCraftingProviders.find(provider) != null);
     }
 
     public int executeDeferredSingle(EcoOmniPlanCpuAccess host, int maxPatterns, CraftingService crafting,
@@ -276,7 +275,7 @@ public final class EcoCpuDispatch {
             var seeds = phase.protectedSeeds();
             for (var entry : receipt.inputs().entrySet()) {
                 var free = host.ecoOmni$physicalAmount(entry.getKey())
-                        .subtract(BigInteger.valueOf(seeds.getOrDefault(entry.getKey(), 0L)));
+                        .subtract(seeds.getOrDefault(entry.getKey(), BigInteger.ZERO));
                 if (free.compareTo(entry.getValue()) < 0) return Outcome.REJECTED;
             }
         }
@@ -388,7 +387,7 @@ public final class EcoCpuDispatch {
             boolean fastPath, boolean jobAware) {
         static ProviderCandidate of(ICraftingProvider provider) {
             return new ProviderCandidate(provider, ECOParallelCraftingProviders.find(provider),
-                    ECOFastPathFacade.supports(provider), provider instanceof ECOJobAwareCraftingProvider);
+                    ECOFastPathFacade.supports(provider), ECOFastPathFacade.supportsJobAwarePush(provider));
         }
         boolean batch() { return fastPath || parallel != null; }
         boolean supported() { return batch() || jobAware; }

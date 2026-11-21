@@ -250,7 +250,7 @@ public final class EcoOutputGameTests {
 
     private static ECOPlanningResult oversupplyResult(GameTestHelper helper, Fixture f) {
         var used = new KeyCounter(); used.add(INPUT, 2);
-        var plan = new CraftingPlan(new GenericStack(OUTPUT, 3), Long.MAX_VALUE, false, false,
+        var plan = new CraftingPlan(new GenericStack(OUTPUT, 3), 100, false, false,
                 used, new KeyCounter(), new KeyCounter(), Map.of(f.pattern, 2L));
         var component = new ComponentPlanningResult(0, ComponentPlanningResult.Type.ACYCLIC,
                 ComponentPlanningResult.Status.PLANNED, Map.of(OUTPUT, 3L), Set.of(f.pattern), Set.of(f.pattern), null,
@@ -259,9 +259,7 @@ public final class EcoOutputGameTests {
         var provenance = new MaterialProvenance();
         allocate(provenance, MaterialDemand.input(f.pattern, 0, INPUT, PlannerAmount.of(2)), MaterialSource.Stock.INSTANCE);
         allocate(provenance, MaterialDemand.goal(OUTPUT, PlannerAmount.of(3)), new MaterialSource.PatternOutput(f.pattern, true));
-        var result = planningResult(helper, PlanningStatus.PLANNED_BUT_AMOUNT_UNREPRESENTABLE, plan, List.of(component), provenance);
-        result.setTheoreticalBytes(PlannerAmount.of(BigInteger.TEN.pow(30)));
-        return result;
+        return planningResult(helper, PlanningStatus.PLANNED_BUT_AMOUNT_UNREPRESENTABLE, plan, List.of(component), provenance);
     }
 
     private static ECOPlanningResult growthResult(GameTestHelper helper, Fixture f, boolean exact) {
@@ -279,15 +277,13 @@ public final class EcoOutputGameTests {
                 CyclePlanningStatus.SOLVED, CycleExternalDemandStatus.SOLVED, Map.of(), "Real final-key growth fixture",
                 solved, CycleExecutionDisposition.ORDERED_EXECUTION, Map.of());
         var used = new KeyCounter(); used.add(INPUT, 1);
-        var plan = new CraftingPlan(new GenericStack(INPUT, 3), exact ? Long.MAX_VALUE : 100, false, false,
+        var plan = new CraftingPlan(new GenericStack(INPUT, 3), 100, false, false,
                 used, new KeyCounter(), new KeyCounter(), times);
         var provenance = new MaterialProvenance();
         allocate(provenance, MaterialDemand.boundary(0, INPUT, PlannerAmount.of(1)), MaterialSource.Stock.INSTANCE);
         allocate(provenance, MaterialDemand.goal(INPUT, PlannerAmount.of(3)), new MaterialSource.CycleOutput(0));
-        var result = planningResult(helper, exact ? PlanningStatus.PLANNED_BUT_AMOUNT_UNREPRESENTABLE : PlanningStatus.SUCCESS,
+        return planningResult(helper, exact ? PlanningStatus.PLANNED_BUT_AMOUNT_UNREPRESENTABLE : PlanningStatus.SUCCESS,
                 plan, List.of(component), provenance);
-        if (exact) result.setTheoreticalBytes(PlannerAmount.of(BigInteger.TEN.pow(30)));
-        return result;
     }
 
     private static BigInteger retained(Fixture f, AEKey key) {

@@ -21,7 +21,7 @@ import cn.dancingsnow.neoecoae.api.me.planning.ECOPlannerOptions;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlanningStatus;
 import cn.dancingsnow.neoecoae.crafting.planner.trace.ECOPlanTrace;
-import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanMenuAccess;
+import cn.dancingsnow.neoecoae.api.me.ECOExternalCrafting;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniParentOrderCpu;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.verification.RegressionConfigFixture;
@@ -49,7 +49,7 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class EcoOmniMenuGameTests {
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 200)
-    public static void ecoAndOmniMenuMixinsMergeAgainstInstalledApi(GameTestHelper helper) throws ReflectiveOperationException {
+    public static void omniCpuRegistersWithEcoMenuApi(GameTestHelper helper) throws ReflectiveOperationException {
         RegressionConfigFixture.isolate();
         var menu = CraftConfirmMenu.class;
         helper.assertTrue(ECOCraftConfirmMenuMode.class.isAssignableFrom(menu), "ECO menu API must be present");
@@ -59,14 +59,9 @@ public final class EcoOmniMenuGameTests {
                         && field("neoecoae$originalOptions").getType() == ECOPlannerOptions.class,
                 "Original AE2 fields and ECO fields must be accessible on the actual transformed class");
         helper.assertTrue(field("neoecoae$bigOrderCpu").getAnnotation(GuiSync.class).value() == 12007,
-                "Omni availability must use ECO 20.5.0's real synchronized field");
+                "Omni availability must use ECO's real synchronized field");
         helper.assertTrue(menu.getDeclaredMethod("neoecoae$startBigOrder", boolean.class).getReturnType() == void.class,
-                "Omni must inject into ECO's public menu interface method");
-        for (var handler : new String[] { "molecularmanipulator$syncOmniBigOrderCpu",
-                "molecularmanipulator$includeOmniBigOrderCpu", "molecularmanipulator$startOmniBigOrder" }) {
-            helper.assertTrue(Arrays.stream(menu.getDeclaredMethods()).anyMatch(method -> method.getName().endsWith(handler)),
-                    "Missing transformed Omni menu injection: " + handler);
-        }
+                "ECO must expose its public big order action");
 
         var level = helper.getLevel();
         var pos = new BlockPos(985_192, 100, 960);
@@ -99,7 +94,8 @@ public final class EcoOmniMenuGameTests {
         player.getInventory().setItem(0, new ItemStack(Items.PAPER));
         var host = new MenuHost(player, core.getActionableNode());
         var menu = new CraftConfirmMenu(91, player.getInventory(), host);
-        EcoOmniPlanMenuAccess.of(menu).requireReady();
+        helper.assertTrue(ECOExternalCrafting.bigOrderAdapter(cpu) != null,
+                "The verified Omni CPU must be registered through ECO's public API");
         var mode = (ECOCraftConfirmMenuMode) menu;
         menu.broadcastChanges();
         menu.cycleSelectedCPU(true);
@@ -110,7 +106,7 @@ public final class EcoOmniMenuGameTests {
         menu.setAutoStart(true);
         mode.neoecoae$startBigOrder(true);
         helper.assertTrue(!menu.isAutoStart() && !menu.submitError.result().successful() && !cpu.isBusy()
-                        && mode.neoecoae$getPlanningDiagnostic().equals("Omni: NO_PLAN") && !host.returned,
+                        && mode.neoecoae$getPlanningDiagnostic().equals("NO_PLAN") && !host.returned,
                 "Missing-plan rejection must update AE2's public error and ECO's diagnostic without a private ECO call");
 
         ICraftingPlan preview = new CraftingPlan(new GenericStack(AEItemKey.of(Items.DIAMOND), 123), 0,
@@ -123,14 +119,14 @@ public final class EcoOmniMenuGameTests {
         menu.setAutoStart(true);
         mode.neoecoae$startBigOrder(true);
         helper.assertTrue(!menu.isAutoStart() && !cpu.isBusy()
-                        && mode.neoecoae$getPlanningDiagnostic().equals("Omni: NO_PLANNER_OPTIONS"),
-                "Omni must read the actual ECO original-options field and reject missing options");
+                        && mode.neoecoae$getPlanningDiagnostic().equals("NO_PLANNER_OPTIONS"),
+                "ECO must reject a missing planner context before calling the registered adapter");
 
         field("neoecoae$originalOptions").set(menu, new ECOPlannerOptions(true, true, Set.of()));
         field("neoecoae$confirmedPlanningResult").set(menu, new ECOPlanningResult(PlanningStatus.MISSING_ITEMS,
                 (CraftingPlan) preview, new ECOPlanTrace(), List.of(), List.of(), List.of(), 0));
         mode.neoecoae$startBigOrder(true);
-        helper.assertTrue(!cpu.isBusy() && mode.neoecoae$getPlanningDiagnostic().equals("Omni: CONFIRMED_RESULT_CHANGED")
+        helper.assertTrue(!cpu.isBusy() && mode.neoecoae$getPlanningDiagnostic().equals("CONFIRMED_RESULT_CHANGED")
                         && field("result").get(menu) == preview,
                 "Public ownership resolution must reject a replaced confirmation while preserving the preview");
 
@@ -162,7 +158,13 @@ public final class EcoOmniMenuGameTests {
             case "neoecoae$planningDiagnostic" -> String.class;
             default -> null;
         };
-        if (expected != null) return EcoOmniPlanMenuAccess.resolveField(CraftConfirmMenu.class, name, expected);
+        if (expected != null) {
+            var field = Arrays.stream(CraftConfirmMenu.class.getDeclaredFields())
+                    .filter(candidate -> candidate.getType() == expected && candidate.getName().endsWith(name))
+                    .findFirst().orElseThrow(() -> new NoSuchFieldException(name));
+            field.setAccessible(true);
+            return field;
+        }
         var field = CraftConfirmMenu.class.getDeclaredField(name);
         field.setAccessible(true);
         return field;

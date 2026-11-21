@@ -93,7 +93,7 @@ When batching is unavailable, the provider sends one complete craft at a time. I
 
 ### Compatibility with other mods
 
-- NeoECOAE is optional. Version 20.4.2+ supports ordinary AE crafting. For native batch crafting, use a Forge release with 20.5.0+ batch support.
+- NeoECOAE is optional. Native batch and exact-count integration uses the 20.5.10+ Forge API.
 - Storage-depot support targets compatible Data Energistics 3.3.0 / 3.3.5 releases. Depots still need free storage space.
 - AdvancedAE Quantum Crafter and Reaction Chamber research requirements are supported for Forge 1.3.6-1.20.1. The core's default research also requires AdvancedAE materials.
 

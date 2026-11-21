@@ -82,12 +82,17 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
 
     @Override
     public boolean pushPattern(IPatternDetails patternDetails, KeyCounter[] inputHolder) {
+        return pushPatternForJob(patternDetails, inputHolder,
+                com.atir.molecularmanipulator.crafting.MatterCraftingJobContext.currentJobId());
+    }
+
+    public boolean pushPatternForJob(IPatternDetails patternDetails, KeyCounter[] inputHolder, java.util.UUID jobId) {
         var normalized = normalizeSmartPattern(patternDetails);
         var basePattern = normalized.pattern();
         var registered = registeredPattern(basePattern);
         if (isBlocking() && assembly.getBuffer().hasContents()) return false;
         if (!assembly.isOperational() || registered == null) return false;
-        return acceptSmartPattern(registered, inputHolder, normalized.crafts());
+        return acceptSmartPattern(registered, inputHolder, normalized.crafts(), jobId);
     }
 
     @Override
@@ -140,7 +145,7 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
      * accepted.
      */
     private boolean acceptSmartPattern(IPatternDetails pattern, KeyCounter[] inputHolder,
-            long wrapperCrafts) {
+            long wrapperCrafts, java.util.UUID jobId) {
         var supplied = new java.util.LinkedHashMap<AEKey, Long>();
         try {
             for (var counter : inputHolder) for (var entry : counter) {
@@ -166,7 +171,7 @@ public final class MatterFabricationPatternLogic extends PatternProviderLogic
         } catch (ArithmeticException error) { return false; }
         if (candidates.isEmpty()) candidates.add(1L);
         for (long crafts : candidates) {
-            if (assembly.getBuffer().enqueue(pattern, supplied, crafts)) {
+            if (assembly.getBuffer().enqueue(pattern, supplied, crafts, jobId)) {
                 for (var counter : inputHolder) counter.clear();
                 return true;
             }

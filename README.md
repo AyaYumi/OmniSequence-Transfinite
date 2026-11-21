@@ -28,7 +28,7 @@ Recipes and costs below describe the defaults. Your modpack's JEI pages, researc
 <details>
 <summary>Optional-mod compatibility</summary>
 
-- NeoECOAE: **20.4.2+** for ordinary crafting; native batch and exact-count support needs the **20.5.0+ Forge API**.
+- NeoECOAE is optional. Batch and exact-count integration uses the **20.5.10+ Forge API**.
 - AdvancedAE: **1.3.6-1.20.1** supplies research materials. Reaction Chamber and Quantum Crafter research permissions require this exact build.
 - ExtendedAE Plus: **1.6.4** adds automatic destination selection and well-upload integration, including renamed assemblies. Sequence Array upload, pattern migration and native well uploads work without it.
 - Data Energistics: depot-capacity support targets **3.3.0 / 3.3.5** with the required runtime methods. It uses the depot's real available capacity.

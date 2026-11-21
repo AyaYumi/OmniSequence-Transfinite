@@ -85,10 +85,10 @@ public final class EcoOmniPlanCodec {
         var signatureTag = tag.getCompound("signature");
         var output = GenericStack.readTag(signatureTag.getCompound("output"));
         if (output == null || output.amount() <= 0) throw new IllegalArgumentException("Invalid ECO signature output");
-        ECOExecutionPlan decoded;
-        try (var scope = EcoOmniPlanDecodeScope.open(level, available)) {
-            decoded = ECOExecutionPlanNbtCodec.decode(tag.getCompound("eco"), null, output);
-        }
+        var decoded = ECOExecutionPlanNbtCodec.decode(tag.getCompound("eco"), output, definition -> {
+            var bound = available.get(definition);
+            return bound != null ? bound : PatternDetailsHelper.decodePattern(definition, level);
+        });
         var identities = tag.getList("identities", Tag.TAG_COMPOUND);
         if (identities.size() != decoded.tasks().size()) throw new IllegalArgumentException("ECO identity vector changed");
         for (var task : decoded.tasks()) {

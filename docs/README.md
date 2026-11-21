@@ -47,7 +47,7 @@ Optional integrations have these version limits:
 
 | Integration | Supported target |
 | --- | --- |
-| NeoECOAE | Runtime 20.4.2+; native batch/exact APIs require 20.5.0+ Forge API; older supported builds use ordinary AE dispatch |
+| NeoECOAE | Optional; native batch and exact-count integration uses the 20.5.10+ Forge API |
 | ExtendedAE Plus provider-selection and well-upload hooks | Forge 1.6.4, including renamed assemblies; native Array upload/migration and well uploads do not require it |
 | Data Energistics depot capacity simulation | 3.3.0 / 3.3.5 and the required runtime methods; never enlarges real storage |
 | Trinity / Thunderbolt private dispatch hooks | Matching runtime APIs; compile-only CPU ABI declarations provide no implementation |
@@ -55,7 +55,7 @@ Optional integrations have these version limits:
 | JEI | Forge reference 15.49.0.188 |
 | FTB quest reflection | v2001.4.9 / Forge 1.20.1 |
 
-The supplied pack uses **ECO 20.5.5**, **ExtendedAE Plus 1.6.4** and **AppliedEnhancements 1.1.6**; supported runtime versions are listed above. Optional CPU ABI declarations are excluded from runtime classpaths and release JARs, so install the actual Forge implementations separately. These integrations are optional, and their internal hooks add no public APIs. Do not install NeoForge JARs to satisfy them. See the individual references for execution and ownership rules.
+The supplied pack uses **ExtendedAE Plus 1.6.4** and **AppliedEnhancements 1.1.6**. Update its NeoECOAE installation to **20.5.10 or later** before using this build. Optional CPU ABI declarations are excluded from runtime classpaths and release JARs, so install the actual Forge implementations separately. Do not install NeoForge JARs to satisfy them. See the individual references for execution and ownership rules.
 
 ### Forge resource/API differences
 

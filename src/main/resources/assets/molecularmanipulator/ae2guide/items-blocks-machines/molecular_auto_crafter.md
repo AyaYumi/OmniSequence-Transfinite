@@ -1,14 +1,14 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: "Molecular Auto Crafter"
+  title: "Sequence Auto Crafter"
   icon: molecularmanipulator:molecular_auto_crafter
   position: 1040
 item_ids:
 - molecularmanipulator:molecular_auto_crafter
 ---
 
-# Molecular Auto Crafter
+# Sequence Auto Crafter
 
 Insert a pattern made in a Pattern Encoding Terminal and set how many products to keep. The machine takes ingredients from ME, performs the recipe and delivers the output. Use it to keep everyday supplies stocked without placing terminal orders.
 

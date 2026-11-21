@@ -439,18 +439,17 @@ share these prerequisites. Batch/research parallelism multiplies consumed inputs
 and outputs, but not catalyst counts. Catalysts stay in their inventories and
 are checked when admitting/starting work. Missing catalysts prevent execution.
 
-JEI encoding uses the server's recipe definition and selected matching item
-alternatives. It combines every consumed item, fluid and generic AE input, and
-every output including byproducts. Catalysts are omitted from the encoded inputs.
-Upload requires an active encoding terminal, one extractable blank pattern and
-an available assembly in a loaded, formed well belonging to the player's team.
-The blank comes from the terminal first, then its connected ME network if the
-local slot is empty; one network blank is sufficient. Assembly names are display
-labels, not destination identity. Additional ExtendedAE Plus automatic-provider
-selection/upload hooks target 1.6.4.1 only and recognize renamed assemblies by
-machine type and team. The server validates the current recipe, selected inputs
-and target; client quantities cannot redefine a recipe. Upload helpers/payloads
-are internal and are not public Java API.
+JEI encodes the server's recipe with the selected matching item alternatives. It
+includes all consumed item, fluid and generic AE inputs and all outputs,
+including byproducts. Catalysts stay out of the pattern.
+
+Upload requires an active encoding terminal and an available assembly in a loaded,
+formed well on the player's team. It takes one extractable blank pattern from the
+terminal first, then from its connected ME network if the slot is empty.
+ExtendedAE Plus 1.6.4.1 is the only target for the automatic selection and upload
+hooks. They find assemblies by machine type and team, including renamed ones.
+The server validates the current recipe, selected inputs and target and uses its
+own quantities. Upload helpers and payloads are internal.
 
 ## 5. Materials, admission and persistence
 
@@ -533,17 +532,26 @@ All built-in and custom machine imports automatically add `sequence_array: 3` an
 
 Tier II curated recipes under `fabrication/research_materials/<modid>/<item>` are startup material processes, not whole-machine imports, so they remain available before tier III. Whole-machine imports retain `fabrication/import/machine/<key>/` IDs and individual research; reload rebuilds their indexes and gates.
 
-The five Star Marrow materials use native well recipes, preserving dust/processor/alloy/component recipe IDs. Old cradle board conversion and machine/workbench production routes are removed. The crystallization recipe `fabrication/internal/star_marrow_crystal` consumes `ae_inputs: [{"#t":"molecularmanipulator:star_signal_flow","#":1024}]` and 8000mB water, with one retained Flawless rock, to produce 64 crystals at 400tick/512AE/t. It requires a Pattern Assembly and does not generate signal. Survival Star Signal Flow
-is produced separately by the Star Sea Calculation Mainframe; it is not a well-research reward.
+The well makes five Star Marrow materials. Use the existing recipe IDs for crystal
+dust, the processor, the alloy and the Star Signal Storage Component.
 
-`star_signal_storage_component` is a researched well process yielding eight
-components; `star_signal_storage_cell` is the finished storage cell. The cell remains
-an ordered `minecraft:crafting_shaped` recipe with rows `GDG / DCD / IPI`:
+Use a Pattern Assembly to run `fabrication/internal/star_marrow_crystal`. Each craft
+produces 64 Star Marrow Crystals with a base time of 400 ticks at 512 AE/t. It uses
+8,000 mB of water and 1,024 units of Star Signal Flow
+(`ae_inputs: [{"#t":"molecularmanipulator:star_signal_flow","#":1024}]`). Keep one
+Flawless Star Marrow Parent Rock as a catalyst. In survival, get Star Signal Flow
+from the Star Sea Calculation Mainframe.
+
+The researched well recipe `star_signal_storage_component` yields eight
+components. The finished cell `star_signal_storage_cell` uses
+`minecraft:crafting_shaped` with rows `GDG / DCD / IPI`.
 `G = ae2:quartz_vibrant_glass`, `D = star_marrow_crystal_dust`,
 `C = star_signal_storage_component`, `I = star_marrow_alloy_ingot`,
 `P = star_chart_processor` (unqualified ingredient IDs use `molecularmanipulator`).
 
-Event Horizon's first round costs 64 Sequence crystals, 64 Computation pylons, 32 of each matrix and 1024 AE Singularities. Supernova and hub cores belong to Stellar; the nexus belongs to Transfinite. Black/white hole recipes retain their material costs and 400-tick fabrication times.
+Event Horizon's first round costs 64 Sequence Array Quantum Crystals, 64
+Computation Crystal Pylons, 32 of each matrix and 1,024 AE2 Singularities. Black
+and white hole fabrication takes 400 ticks at base speed.
 
 Legacy progress maps once: Foundation→Star Marrow/EAE/Quantum, Computation→Transfinite, Horizon→Stellar. It does not grant Sequence completions or crystallization. Paid tasks retain terms and wait for current parents; completing old tasks also migrates their split permissions. Retired board batches return original crystals. Existing inventory and structures remain valid; matrix production uses current owners.
 
@@ -560,6 +568,10 @@ Inputs and outputs are stored persistently as AE keys with long amounts, and the
 work is proportional to the number of distinct materials, not to the craft count.
 Ordinary single-craft AE delivery uses the same persistent batch and can merge
 same-recipe delivery before processing starts.
+
+With ECO installed, the well tries its persistent queue for the full `long` batch
+before ECO's generic processing-pattern scaling. ECO checks materials, power,
+exact counts and blocking.
 
 Assemblies own their input, output and refund buffers. Products and pending
 refunds are written back to the assembly's ME network; when the network cannot
@@ -602,8 +614,6 @@ Work that cannot proceed retains its materials inside the assembly.
   waiting even though its original recipe still exists.
 - A queue without a pattern is refunded when the pattern definition disappears,
   not when the matched recipe changes.
-
-Output indexing and API admission leave these limitations unresolved.
 
 ## 8. JEI and ports
 
@@ -700,10 +710,9 @@ int ticks = profile.ticks();
 var definitions = MatterResearchApi.definitions(serverLevel);
 ```
 
-The class is `com.atir.molecularmanipulator.research.MatterResearchApi`. Use
-`compileOnly` against the mod JAR, install the mod separately at runtime, and do
-not embed these classes. There is no numeric ABI negotiation for the research
-API; the separate batch API stays at v1.
+Compile against `com.atir.molecularmanipulator.research.MatterResearchApi` from
+the OmniSequence JAR with `compileOnly`. Install the mod separately at runtime.
+The research API has no numeric ABI check. The batch API is v1.
 
 | Entry point | Contract |
 | --- | --- |

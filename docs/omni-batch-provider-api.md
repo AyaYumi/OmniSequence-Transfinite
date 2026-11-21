@@ -12,10 +12,7 @@ and AppliedEnhancements 1.1.2+ (compile API 1.1.4). The runtime ABI remains 1.
 Other languages: [中文版](omni-batch-provider-api.zh-CN.md).
 See the [API index](README.md) for the separate research and planner contracts.
 
-This SPI controls provider material delivery. AppliedEnhancements owns the AELIS
-planning and cycle-execution APIs; importing Omni's internal planner/Mixin classes
-is not a supported integration. Compile against the separate mod JARs without
-embedding their classes.
+Use the public APIs in AppliedEnhancements for AELIS planning and cycle execution.
 
 Implement this SPI on an AE2 machine that stores encoded patterns and acts as an
 `ICraftingProvider` when it can accept several complete crafts as one atomic
@@ -181,10 +178,10 @@ for `ae_inputs`, output isolation and the remaining same-output overlap limitati
 
 ## Optional provider adapters
 
-An optional integration can register a batch capability without adding an Omni
-interface to the target mod's provider class. Load the compatibility registration
-class only when `molecularmanipulator` is present; use a `compileOnly` dependency.
-The target provider itself continues to register with AE2 as usual.
+Register an adapter when you need to add batch support to an existing AE2
+provider. Declare OmniSequence as `compileOnly`. Load compatibility classes or
+conditional Mixins that use this API only when `molecularmanipulator` is present.
+The provider continues to register with AE2 as usual.
 
 ```java
 OmniBatchProviderAdapterRegistry.register(
@@ -270,12 +267,6 @@ call can conflict with other mods before either marker check executes. If an
 existing redirect must be retained, conditionally disable that redirect when
 Omni is loaded and move the Omni-managed check to a compatible hook.
 
-For an optional dependency, keep references to this API in a compatibility
-class or conditional Mixin that is loaded only when Mod ID
-`molecularmanipulator` is present. Compile against OmniSequence as
-`compileOnly`; do not embed its API classes.
-
-
 ## Cycle transactions, byproducts and native doubling
 
 An independent CPU acquires one
@@ -285,9 +276,8 @@ inputs and refunds. Open `beginDispatch(actualInputs, actualCrafts)` before
 provider delivery; call `accepted()` at durable ownership transfer. Closing a
 rejected dispatch restores cycle accounting, while the CPU refunds still-owned
 physical inputs. A null inventory declines this attempt; `maximumCrafts()` is a
-phase bound and does not promise materials or queue capacity. The shared context
-is available in the supported AppliedEnhancements 1.1.2+ runtime and must not be
-reacquired after the first extraction.
+phase bound and does not promise materials or queue capacity. Keep using the
+first context after extraction.
 
 Retain every expected output, including item/fluid byproducts. Unsupported
 optimization or an unreadable external batch wrapper must preserve the complete

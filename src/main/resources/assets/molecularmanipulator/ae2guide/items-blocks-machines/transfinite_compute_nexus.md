@@ -73,7 +73,7 @@ The nexus can take several orders at any level. Overclocking at L1 to L8 doubles
 ## Next steps
 
 - Need recipes or a machine to make them: set up a [Molecular Sequence Rewrite Array](molecular_sequence_rewrite_array.md) or [Sequence Array](sequence_array_controller.md).
-- Want everyday products replenished automatically: use a [Molecular Auto Crafter](molecular_auto_crafter.md), without repeatedly placing CPU orders.
+- Want everyday products replenished automatically: use a [Sequence Auto Crafter](molecular_auto_crafter.md), without repeatedly placing CPU orders.
 - Need more simultaneous or larger orders: improve the [Star Computation Engine](star_computation_engine.md) on the same network, along with item storage, energy and crafting machines.
 
 Settle orders before relocating. Normal removal retains recoverable tasks and contents. Place the nexus again and restore its external ME connection to continue.

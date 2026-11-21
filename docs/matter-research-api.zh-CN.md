@@ -397,13 +397,13 @@ new MatterFabricationRecipe(ingredients, catalysts, results, fluidInput, fluidRe
 批量和研究并行会放大消耗原料及产物，不放大催化剂需求；催化剂保留在库存中。
 接收/开始任务时检查条件，缺少催化剂不能执行。
 
-JEI 编码以服务端配方定义和玩家选择的合法物品替代项为准，包含所有消耗物品、
-流体、通用 AE 输入及全部副产物；催化剂不写入样板输入。上传需要有效的编码
-终端、一张可提取的空白样板，以及玩家所属队伍已加载、已成型构筑井中有空位的总成。
-先用终端空白槽，槽为空时再从相连 ME 网络提取；网络中只有一张也可使用。总成名称仅用于
-显示，不作为目标身份。ExtendedAE Plus 自动选取供应器与上传兼容仅针对 1.6.4.1，
-按机器类型和队伍识别，支持重命名总成。服务端重新检查当前配方、输入选择和目标，客户端
-数量不能改写配方。上传辅助类和载荷属于内部实现，不是公开 Java API。
+JEI 按服务端配方和玩家选中的合法替代项编码。样板记录每项消耗的物品、流体和通用 AE 资源，
+以及包括副产物在内的全部产物。催化剂不写入样板。
+
+上传需要有效的编码终端和本队已加载、已成型构筑井中的可用总成。先从终端取一张可提取的
+空白样板，槽为空时从相连的 ME 网络取。自动选择供应器和上传钩子仅适配 ExtendedAE Plus 1.6.4.1，
+按机器类型和队伍识别总成，支持重命名。服务器复核当前配方、所选原料和上传目标，以服务端数量为准。
+上传辅助类和载荷属于内部实现。
 
 ## 5. 材料、扣料与保存
 
@@ -470,15 +470,19 @@ AdvancedAE 虽非启动必需，但默认量子材料、演算架构、视界、
 
 Ⅱ阶 `fabrication/research_materials/<modid>/<item>` 是固定启动材料工艺，不是整机导入，因此可在Ⅲ阶前生产。实际整机配方继续位于 `fabrication/import/machine/<key>/`，按机器独立研究；重载后重新建立索引与条件。
 
-五种星髓材料使用原生井配方，晶粉、处理器、合金、星讯组件保留原配方ID；观测环水晶转板与旧机器/工作台来源移除。增殖配方 `fabrication/internal/star_marrow_crystal`：`ae_inputs: [{"#t":"molecularmanipulator:star_signal_flow","#":1024}]`、水8000mB、保留母岩1，产晶体64，400tick/512AE/t。需样板总成，本配方不生产星讯。生存星讯流由独立的星海解算主楼生产，不是井研究奖励。
+五种星髓材料都在构筑井生产。晶粉、处理器、合金和星讯存储组件使用原有配方 ID。
 
-`star_signal_storage_component` 是研究后的井内加工配方，每份产出 8 个星讯存储组件；
-`star_signal_storage_cell` 是完成的星讯存储元件，仍为有序工作台配方，三行为
-`GDG / DCD / IPI`。其中 `G = ae2:quartz_vibrant_glass`、`D = star_marrow_crystal_dust`、
-`C = star_signal_storage_component`、`I = star_marrow_alloy_ingot`、`P = star_chart_processor`
-（未写命名空间的材料 ID 均属于 `molecularmanipulator`），不要把元件和组件的配方互换。
+在样板总成运行 `fabrication/internal/star_marrow_crystal`，每份产出 64 个星髓晶体，基础耗时 400 tick，功耗 512 AE/t。
+每份消耗 8,000 mB 水和 1,024 单位星讯流（`ae_inputs: [{"#t":"molecularmanipulator:star_signal_flow","#":1024}]`）。
+保留 1 块无瑕星髓母岩作为催化剂。生存模式下用星海解算主楼生产星讯流。
 
-视界首轮消耗构序水晶64、演算尖塔64、三种矩阵各32、AE奇点1024。超新星及天枢核心归恒星，超限算枢归超限；黑白洞配方保留其物料成本和20秒生产耗时。
+完成研究后，构筑井配方 `star_signal_storage_component` 每份产出 8 个星讯存储组件。
+星讯存储元件 `star_signal_storage_cell` 在工作台按 `GDG / DCD / IPI` 三行合成。
+其中 `G = ae2:quartz_vibrant_glass`、`D = star_marrow_crystal_dust`、
+`C = star_signal_storage_component`、`I = star_marrow_alloy_ingot`、`P = star_chart_processor`。
+未写命名空间的材料 ID 均属于 `molecularmanipulator`。
+
+视界研究首轮消耗 64 个构序阵列量子水晶、64 个演算晶体尖塔、三种矩阵各 32 个，以及 1,024 个 AE2 奇点。黑白洞的构筑基础耗时为 400 tick。
 
 旧进度一次性映射：AE→星髓/EAE/量子，演算→超限，视界→恒星；不会赠送构序次数或新增结晶。旧任务保留费用时间快照、按当前前置等待，完成时迁移原权限。旧水晶转板任务退还原晶体。已有物品与已建建筑继续有效，矩阵新生产按当前研究归属。
 
@@ -491,6 +495,8 @@ AdvancedAE 虽非启动必需，但默认量子材料、演算架构、视界、
 支持所有已注册的 AEKey 类型，额外资源通过 `ae_inputs` 声明。输入与输出以 AE Key + long
 持久保存，处理工作量取决于材料种类数，不随份数逐份循环。AE 普通单份投料也使用同一持久
 批次，可在开始加工前合并同配方投料。
+
+安装 ECO 后，构筑井先尝试用持久队列接收整批，再尝试 ECO 的通用加工样板倍率。ECO 负责检查材料、供电、精确数量和阻挡。
 
 样板总成自行持有输入、输出与退款缓存。产物与待退回原料自动写回其 ME 网络；网络不接收时
 保留在总成内，不转存到手动输出口。输出堵塞或保存重载不会丢弃已接收材料，单独拆除一块
@@ -519,8 +525,6 @@ tick 功耗乘本批份数计收。
 - 产物相同、可替代原料范围重叠时，拆分出的原料可能重新匹配另一条配方并改用其耗时和能耗。
 - 重载时新增更靠前的匹配配方，可能导致已有队列等待，即使原配方仍存在。
 - 无样板队列只在样板定义消失时退款，匹配到的配方变化不会触发退款。
-
-产物索引与 API 准入都未解决这些限制。
 
 ## 8. JEI 与接口
 
@@ -598,9 +602,8 @@ int ticks = profile.ticks();
 var definitions = MatterResearchApi.definitions(serverLevel);
 ```
 
-类名为 `com.atir.molecularmanipulator.research.MatterResearchApi`。开发时对该模组 JAR 使用
-`compileOnly`，运行时单独安装前置，不复制或嵌入这些类。研究 API 没有数值 ABI 协商方法；
-独立的批量 API 保持 v1。
+编译时用 `compileOnly` 引用 OmniSequence JAR 中的 `com.atir.molecularmanipulator.research.MatterResearchApi`，
+运行时单独安装模组。研究 API 没有数值 ABI 协商接口，批量 API 的版本为 v1。
 
 | 入口 | 契约 |
 | --- | --- |

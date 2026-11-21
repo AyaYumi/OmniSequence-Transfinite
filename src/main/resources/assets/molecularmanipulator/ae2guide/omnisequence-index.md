@@ -31,7 +31,7 @@ One research round is enough to start; you do not need all nine rounds first. Ad
 
 The diagram shows how crafting works. Use each machine's page for its layout and connections. The Sequence Array stores patterns and performs recipes in the same building.
 
-## Choose a machine by the problem you want to solve
+## Choose a machine
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_controller" scale="4" />
@@ -43,24 +43,26 @@ The diagram shows how crafting works. Use each machine's page for its layout and
 <BlockImage id="molecularmanipulator:event_horizon_singularity_hub" scale="4" />
 </Row>
 
-Left to right: well, Sequence Array, computation core and Singularity Hub controllers. Choose them for the work you need; there is no required replacement order.
+Build the machines you need in any order their research allows.
 
 | I want to… | Read this |
 | --- | --- |
 | Research and process new materials | [Fabrication Well](items-blocks-machines/matter_fabrication_well.md), [Research route](items-blocks-machines/matter_fabrication_research.md) |
 | Pipe items/fluids or encode a well recipe from JEI | [Input and Output Ports](items-blocks-machines/matter_fabrication_ports.md), [Pattern Assembly](items-blocks-machines/matter_fabrication_pattern_assembly.md) |
-| Store many patterns and keep products stocked | [Sequence Array](items-blocks-machines/sequence_array_controller.md), [Molecular Auto Crafter](items-blocks-machines/molecular_auto_crafter.md) |
+| Store many patterns and keep products stocked | [Sequence Array](items-blocks-machines/sequence_array_controller.md), [Sequence Auto Crafter](items-blocks-machines/molecular_auto_crafter.md) |
 | Craft, smith and stonecut in batches from one block | [Molecular Sequence Rewrite Array](items-blocks-machines/molecular_sequence_rewrite_array.md) |
 | Add batch crafting to an ExtendedAE Assembler Matrix | [Matrix Rewrite Core](items-blocks-machines/assembler_matrix_sequence_rewrite_core.md) |
 | Accept larger orders, and multiple orders later | [Omni Computation Core](items-blocks-machines/omni_computation_core.md), [Transfinite Compute Nexus](items-blocks-machines/transfinite_compute_nexus.md) |
 | Boost machines on the same network | [Star Computation Engine: Nine-Ring Orrery](items-blocks-machines/star_computation_engine.md) |
-| Grow crystals, produce and store Star Signal Flow | [Star Marrow Crystals](items-blocks-machines/star_marrow_crystals.md), [Star Sea Calculation Mainframe](items-blocks-machines/star_sea_calculation_mainframe.md), [Signal Storage](items-blocks-machines/star_signal_flow.md) |
+| Grow and harvest Star Marrow Crystals | [Star Marrow Crystals](items-blocks-machines/star_marrow_crystals.md) |
+| Produce and store Star Signal Flow | [Star Sea Calculation Mainframe](items-blocks-machines/star_sea_calculation_mainframe.md), [Signal Storage](items-blocks-machines/star_signal_flow.md) |
 | Generate raw materials or copy a sample item | [Singularity Hub](items-blocks-machines/event_horizon_singularity_hub.md), [Resource Collection](items-blocks-machines/singularity_resource_collection.md), [Matter Duplication](items-blocks-machines/singularity_matter_duplication.md) |
 | Try the hub in a small creative-mode machine | [Compact Singularity Hub](items-blocks-machines/compact_singularity_hub.md) |
 | Connect supported machines to a distant ME network | [Sequence Wireless Hub](items-blocks-machines/sequence_array_controller.md) |
 | Transfer dropped items and non-player creatures | [Black and White Holes](items-blocks-machines/black_and_white_holes.md) |
 | Deploy a whole building or move a working machine | [Folded Buildings and Relocation](items-blocks-machines/folded_buildings.md), [Building Access Terminal](items-blocks-machines/building_access_terminal.md) |
-| Walk on walls, make lifts or explore a personal simulation | [Gravity Crystals and Ghost Matter](items-blocks-machines/nomai_materials.md), [Simulation Lantern](items-blocks-machines/simulation_lantern.md) |
+| Walk on walls or build lifts | [Gravity Crystals and Ghost Matter](items-blocks-machines/nomai_materials.md) |
+| Obtain a Flawless Star Marrow Parent Rock or enter the Detached Signal Realm | [Simulation Lantern](items-blocks-machines/simulation_lantern.md) |
 
 ## Two different kinds of research
 

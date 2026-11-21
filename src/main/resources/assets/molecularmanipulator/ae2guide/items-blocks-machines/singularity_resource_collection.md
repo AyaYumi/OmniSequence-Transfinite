@@ -21,8 +21,6 @@ navigation:
 <ItemIcon id="minecraft:warped_stem" />
 </ItemGrid>
 
-These are common examples. **The in-game Resource Collection list is the complete current list.** The server decides which resources and quantities are available.
-
 ## What you need
 
 - A formed [Event Horizon Singularity Hub](event_horizon_singularity_hub.md), or a connected [Compact Hub](compact_singularity_hub.md).
@@ -35,24 +33,16 @@ Collection does not spend Sequence Matter or need fluid storage. For copying a c
 
 1. Right-click the hub, open **Resource Collection** and check that the network is online.
 2. Review its resource list and make sure ME accepts every item. Reserving space for raw iron while blocking another product can stop the whole cycle.
-3. Select **Start Collection**. Multiblock collection starts after 40 ticks and does not depend on motion: it works with motion stopped, paused or docking.
-4. Open an ME terminal and check that listed resource counts increase.
+3. Select **Start Collection**. The multiblock hub starts after **40 ticks**, whether its motion is stopped, paused or docking.
+4. Open an ME terminal and check that the listed resources increase together. The outputs go straight into storage.
 
-By default, every **20 ticks**—about **1 second** at normal speed—**each resource produces 1000 items**. That is 1000 of each, not 1000 shared across the list. Duplicate resources count once; you do not need to switch targets.
-
-## How to tell it worked
-
-The page shows collection running and several resource counts rise together in ME. For example, if raw iron and oak logs are listed, both increase by their own cycle amount. Products do not drop out of the core into the world.
-
-If the server changes resource selection, exclusions, batch quantities or intervals, follow the current interface values. Client-local settings do not replace the server's production list.
+By default, the hub produces **1000 of each listed resource every 20 ticks**, about **1 second** at normal speed. Each resource counts once. Use the in-game list and rates for your server's current selection, exclusions, quantities and intervals.
 
 ## Stop and resume
 
 - Select **Stop Collection** to stop supply without changing motion.
-- Stopping collection **does not** stop black-hole matter generation or sample copying. Those run independently on Matter Duplication.
-- When chunks are temporarily unavailable or ME is reconnecting after a restart, keep the area loaded and wait.
-- Missing blocks, a genuine disconnection or construction can stop collection. After repairs, check the page and start it again if it remains stopped.
-- Full storage does not spill products into the world. Missed production cycles are not replayed after recovery.
+- Use the Matter Duplication page to stop matter generation or sample copying separately.
+- If storage fills, free space to resume future cycles.
 
 ## Quick fixes
 
@@ -60,8 +50,7 @@ If the server changes resource selection, exclusions, batch quantities or interv
 | --- | --- |
 | Empty list, or the item you want is absent | The server chooses the list. Check that the pack includes the resource and ask the server owner about selection and exclusions. |
 | Collection appears active, but no products | Wait for startup, then check ME item capacity and storage filters for every product. |
-| Multiblock motion cannot start or dock | Clear its motion path and load the entire motion area. The chunk-loading switch itself is not motion permission. |
-| No output immediately after a restart | Let ME reconnect. If collection has stopped after recovery, start it manually. |
-| Faster collection did not speed up copying | They are separate functions; see [Matter Duplication](singularity_matter_duplication.md). |
+| Multiblock motion cannot start or dock | Clear its motion path and load the entire motion area. |
+| Collection stopped after a restart, damage or construction | Keep the area loaded and let ME reconnect. Repair any damage and finish construction. Select **Start Collection** if it remains stopped. |
 
 Select **Guide** on the machine's collection page to return here.

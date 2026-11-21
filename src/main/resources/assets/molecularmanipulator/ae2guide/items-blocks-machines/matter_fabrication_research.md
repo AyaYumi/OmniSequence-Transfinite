@@ -45,7 +45,7 @@ Unless a count is stated, one completion of each prerequisite is enough. Times a
 
 | Research | Complete first | What it opens | Time / AE per tick |
 | --- | --- | --- | --- |
-| I · AE Foundation | Nothing | AE processing, Pattern Assembly, Molecular Auto Crafter | 30 s / 256 |
+| I · AE Foundation | Nothing | AE processing, Pattern Assembly, Sequence Auto Crafter | 30 s / 256 |
 | II · Star Marrow Materials | AE Foundation | Boards, processors, dust, alloy, signal components and later star anchors | 45 s / 512 |
 | II · Extended Materials | AE Foundation | ExtendedAE materials and parts needed for progression | 45 s / 512 |
 | II · Quantum Materials | Extended Materials | AdvancedAE materials and parts needed for progression | 60 s / 1024 |
@@ -69,7 +69,7 @@ This applies to all default machine integrations and pack-added machine imports,
 
 The [Star Computation Engine](star_computation_engine.md) is a **nine-ring Star Orrery**, not a separate small cube. Its default research menu contains only **Single-Block Integration**: reach **L3**, then **actively unlock it for 0 bit**.
 
-That unlock is an additional requirement for the **Molecular Sequence Rewrite Array** and **Transfinite Compute Nexus** only; their well-research requirements still apply. The three matrices, star anchors and Molecular Auto Crafter have no extra star-research unlock in the defaults.
+That unlock is an additional requirement for the **Molecular Sequence Rewrite Array** and **Transfinite Compute Nexus** only; their well-research requirements still apply. The three matrices, star anchors and Sequence Auto Crafter have no extra star-research unlock in the defaults.
 
 ## Let ME prepare the materials
 

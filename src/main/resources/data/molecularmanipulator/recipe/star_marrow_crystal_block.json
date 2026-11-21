@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "CCC",
+    "CCC",
+    "CCC"
+  ],
+  "key": {
+    "C": {
+      "item": "molecularmanipulator:star_marrow_crystal"
+    }
+  },
+  "result": {
+    "id": "molecularmanipulator:star_marrow_crystal_block",
+    "count": 1
+  }
+}

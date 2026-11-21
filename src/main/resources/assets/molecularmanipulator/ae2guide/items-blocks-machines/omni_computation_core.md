@@ -113,4 +113,4 @@ A paired Quantum Entangled Singularity is another remote option while the wirele
 
 Before relocating, finish or cancel and settle orders, then use Reclaim Package. The package retains machine contents and the wireless binding; see [Folded Buildings and Relocation](folded_buildings.md). If the wireless hub was moved or replaced, rebind the core. Structure damage or chunk unloading retains tasks and materials; restore operating conditions to continue. When enabled by the server, multiblock chunk loading keeps the required operation and construction chunks loaded.
 
-For the same CPU functions in one block, continue to the [Transfinite Compute Nexus](transfinite_compute_nexus.md). To keep supplies stocked without terminal orders, use a [Molecular Auto Crafter](molecular_auto_crafter.md).
+For the same CPU functions in one block, continue to the [Transfinite Compute Nexus](transfinite_compute_nexus.md). To keep supplies stocked without terminal orders, use a [Sequence Auto Crafter](molecular_auto_crafter.md).

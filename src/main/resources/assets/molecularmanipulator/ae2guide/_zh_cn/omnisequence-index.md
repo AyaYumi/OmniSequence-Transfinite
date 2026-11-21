@@ -31,7 +31,7 @@ navigation:
 
 上图表示自动合成的分工。摆放尺寸和接线方法见各设备页面。构序阵列能在同一座建筑中保存样板并执行配方。
 
-## 接下来，按你想解决的问题选设备
+## 按用途选择设备
 
 <Row>
 <BlockImage id="molecularmanipulator:matter_fabrication_controller" scale="4" />
@@ -43,24 +43,26 @@ navigation:
 <BlockImage id="molecularmanipulator:event_horizon_singularity_hub" scale="4" />
 </Row>
 
-从左到右是构筑井、构序阵列、演算核心和视界奇点天枢的控制器。按用途选择即可，没有必须依次替换的顺序。
+凑齐材料并完成对应研究后，就可以搭建所需的机器。
 
 | 我想…… | 应该看哪页 |
 | --- | --- |
 | 研究、加工新材料 | [构筑井](items-blocks-machines/matter_fabrication_well.md)、[研究路线](items-blocks-machines/matter_fabrication_research.md) |
 | 用管道送物品和流体，或从 JEI 编码井配方 | [输入输出口](items-blocks-machines/matter_fabrication_ports.md)、[样板总成](items-blocks-machines/matter_fabrication_pattern_assembly.md) |
-| 保存大量样板，并自动维持成品数量 | [构序阵列](items-blocks-machines/sequence_array_controller.md)、[分子自动合成器](items-blocks-machines/molecular_auto_crafter.md) |
+| 保存大量样板，并自动维持成品数量 | [构序阵列](items-blocks-machines/sequence_array_controller.md)、[构序自动合成器](items-blocks-machines/molecular_auto_crafter.md) |
 | 用一格机器批量合成、锻造、切石 | [分子构序重写阵列](items-blocks-machines/molecular_sequence_rewrite_array.md) |
 | 升级 ExtendedAE 装配矩阵的批量制作能力 | [装配矩阵构序重写核心](items-blocks-machines/assembler_matrix_sequence_rewrite_core.md) |
 | 接更大的合成订单，后期同时接多单 | [万物演算核心](items-blocks-machines/omni_computation_core.md)、[超限算枢](items-blocks-machines/transfinite_compute_nexus.md) |
 | 给同网设备加速 | [星算引擎：九环天体仪](items-blocks-machines/star_computation_engine.md) |
-| 种水晶、生产和存储星讯流 | [星髓晶体](items-blocks-machines/star_marrow_crystals.md)、[星海解算主楼](items-blocks-machines/star_sea_calculation_mainframe.md)、[星讯存储](items-blocks-machines/star_signal_flow.md) |
+| 种植和采收星髓晶体 | [星髓晶体](items-blocks-machines/star_marrow_crystals.md) |
+| 生产和存储星讯流 | [星海解算主楼](items-blocks-machines/star_sea_calculation_mainframe.md)、[星讯存储](items-blocks-machines/star_signal_flow.md) |
 | 自动产出原材料，或用样品复制物品 | [视界奇点天枢](items-blocks-machines/event_horizon_singularity_hub.md)、[资源采集](items-blocks-machines/singularity_resource_collection.md)、[物质复制](items-blocks-machines/singularity_matter_duplication.md) |
 | 用创造模式的小机器体验天枢 | [单方块奇点天枢](items-blocks-machines/compact_singularity_hub.md) |
 | 让支持的机器接入远端 ME | [构序无线枢纽](items-blocks-machines/sequence_array_controller.md) |
 | 传送掉落物和非玩家生物 | [微型黑洞与白洞](items-blocks-machines/black_and_white_holes.md) |
 | 一次部署整座建筑，或带着机器搬家 | [折叠建筑与整机搬迁](items-blocks-machines/folded_buildings.md)、[建筑访问终端](items-blocks-machines/building_access_terminal.md) |
-| 沿墙行走、做升降通道，或探索个人模拟 | [引力水晶与幽灵物质](items-blocks-machines/nomai_materials.md)、[模拟灯笼](items-blocks-machines/simulation_lantern.md) |
+| 沿墙行走或搭升降通道 | [引力水晶与幽灵物质](items-blocks-machines/nomai_materials.md) |
+| 取得无瑕星髓母岩或进入离讯之境 | [模拟灯笼](items-blocks-machines/simulation_lantern.md) |
 
 ## 两种研究
 

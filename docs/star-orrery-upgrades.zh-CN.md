@@ -8,10 +8,7 @@
 English: [Star Orrery upgrades](star-orrery-upgrades.md)。
 研究定义另见[物质构筑井研究 API](matter-research-api.zh-CN.md)。
 
-默认升级只需要对应数量的星位锚。搭好中央本体和基座后，打开升级页，
-按列表准备材料，再点击自动搭建 L… 星环（L1–L3）或升级到 L…（L4–L9）。
-服务端会在实际建筑中补齐缺少的星位锚。默认没有额外升级能量、任务、研究、机器或节点门槛。
-点击等级按钮只是预览，不消耗材料。
+默认升级只需要对应数量的星位锚。点击等级按钮可预览要求，预览不消耗材料。
 
 ## 怎么升级
 
@@ -22,8 +19,8 @@ English: [Star Orrery upgrades](star-orrery-upgrades.md)。
    背包够用就不要求联网。
 3. 列表只显示简短标题；悬停可查看具体数量、已有和可用材料、完成方法。
    鼠标直接滚动列表或拖动滚动条可查看全部条件，不必先点中某一行。
-4. 点击升级。正确位置已有的星位锚计入要求，不会重复消耗；只取缺少的材料，
-   优先背包，再从 ME 补齐，自动摆放到所选星环及其内环缺少的位置。
+4. 在升级页点击自动搭建 L… 星环（L1 至 L3）或升级到 L…（L4 至 L9）。正确位置已有的星位锚计入要求。
+   服务器优先从背包取缺少的星位锚，再从 ME 补齐，放到所选星环及其内环缺少的位置。
 5. 保持目标区块已加载、星位锚位置无阻挡并允许放置方块。空间、区块或权限不满足时，
    根据提示排除问题后重试。升级不会代建中央本体与基座；完成一级后不会自动开始下一级。
 
@@ -55,10 +52,9 @@ L1–L3 使用固定内置条目提供同样的材料搭建界面，不受自定
 | L8 | 80 个终末星位锚 | 96 | 168 | 152 | 无 |
 | L9 | 88 个终末星位锚 | 96 | 168 | 240 | 无 |
 
-累计数量包含正确位置已有的星位锚，每次只需补齐缺少的材料。
-若内环被破坏，也须准备其缺少的星位锚。档位 ID 为 `reference`、`quantum`、`terminal`，
-对应实际方块 / 物品 `molecularmanipulator:reference_star_position_anchor`、
-`quantum_star_position_anchor`、`terminal_star_position_anchor`，不会生成虚拟星环或无材料方块。
+累计数量是该等级及其内环所需星位锚的总数。档位 ID 为 `reference`、`quantum`、`terminal`，
+对应方块和物品 `molecularmanipulator:reference_star_position_anchor`、
+`quantum_star_position_anchor`、`terminal_star_position_anchor`。
 
 仅 L4–L9 的声明条件、能量、抽取上限与 `auto_build` 可配置。虽然 codec 接受 `level: 1..9`，
 L1–L3 始终使用固定自动条目；自定义规则也不能跳过认证等级。
@@ -181,10 +177,8 @@ schema 接受可选 `0x` / `0X` 前缀及 1–16 位十六进制字符；运行�
   不兼容时，返回不可用且未完成，不忽略要求。若配置 `any` / `at_least`，其他真实通过的
   分支仍可按配置满足阈值；不可用的 FTB 分支本身绝不会算通过。
 
-反射桥的目标为 Minecraft 1.21.1 / NeoForge 上的
-[FTB Quests v2101.1.38 API](https://github.com/FTBTeam/FTB-Quests/tree/v2101.1.38/common/src/main/java/dev/ftb/mods/ftbquests/quest)。
-发行文件标注支持 Minecraft 1.21.1，不代表其 API 必然兼容；不保证所有 2100 / 2101 版本、
-其他加载器或未来版本均兼容。
+FTB Quests v2101.1.38 是 Minecraft 1.21.1 / NeoForge 的参考版本。换用其他版本时，先核对下列字段和方法。
+源码见 [FTB Quests v2101.1.38 API](https://github.com/FTBTeam/FTB-Quests/tree/v2101.1.38/common/src/main/java/dev/ftb/mods/ftbquests/quest)。
 
 桥反射校验 `ServerQuestFile.INSTANCE` / `server` / `isLoading()`、`getBase(long)`、
 `getNullableTeamData(UUID)`、`getTeamId()`、`isCompleted(QuestObject)`、

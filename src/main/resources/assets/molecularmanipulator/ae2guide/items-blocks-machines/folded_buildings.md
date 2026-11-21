@@ -22,8 +22,6 @@ A building package carries an entire machine as one item. Order new buildings th
 <ItemImage id="molecularmanipulator:star_chart_calibrator" scale="4" />
 </Row>
 
-Left to right: Spatial Folding Assembler, building package and Star Chart Calibrator. Use the assembler to order packages and the reusable calibrator to choose a site and unfold them.
-
 ## What you need
 
 - For a new building: an assembler, an ME network with autocrafting, and the building's controller and full materials. The assembler uses ordinary AE2 ingredients and is available before your first well. Building ingredients still follow their own recipes and research requirements.
@@ -35,9 +33,9 @@ Left to right: Spatial Folding Assembler, building package and Star Chart Calibr
 | Package | What it contains |
 | --- | --- |
 | A new package ordered through ME | A standard building, including its controller and full construction materials. Install optional well ports and Pattern Assemblies separately. |
-| A sealed package reclaimed from a machine | Your installed machine, including ports, assemblies, inventories, fluids, settings, research, processing progress and wireless binding. |
+| A sealed package reclaimed from a machine | Your installed machine, including ports, assemblies, inventories, fluids, patterns, catalysts, invested materials, settings, research, work in progress, pending products, refunds and its wireless binding. |
 
-Keep both the package item and its building archive in the world save. Back up or transfer the complete world folder. Copying only the item to another save does not move the building.
+Keep the package with its building archive. Back up or transfer the complete world folder to keep both together.
 
 ## Step 1: order a new building through ME
 
@@ -76,9 +74,7 @@ During unfolding, the package temporarily stays in its original inventory slot a
 
 Whole-machine reclaim supports the **Matter Fabrication Well, Sequence Array, multiblock Omni Computation Core, Event Horizon Singularity Hub and formed Star Orrery**. The Transfinite Compute Nexus and Compact Singularity Hub do not use it. Right-clicking the calibrator opens surveying; it does not directly dismantle a machine.
 
-Sealing retains items, fluids, patterns, catalysts, invested materials, processing progress, pending products, refunds and wireless bindings. Settle external ME CPU crafting jobs first, as those jobs do not travel with the package.
-
-For a wireless receiver, keep external ME cables removed and the quantum slot empty after deployment. The saved binding can reconnect to the same hub when both ends are loaded and ownership and access still match. Wireless does not load chunks. If you break, move or replace the Sequence Wireless Hub itself, its new identity requires each receiver to be rebound. See [Sequence Wireless Hub setup](sequence_array_controller.md).
+For a machine using the Sequence Wireless Hub, leave its external ME cables disconnected and its quantum slot empty after unfolding. Keep both ends loaded. The saved binding can reconnect to the same hub when ownership and access still match. If you break, move or replace the hub itself, rebind each machine. See [Sequence Wireless Hub setup](sequence_array_controller.md).
 
 An orrery's reclaimed package is graded L0 to L9 by its consecutive complete rings starting at ring 1. The original purchase grade does not determine the reclaimed grade. After stopping collection, request hub reclaim; reclaim docks the moving parts before sealing; keep the whole motion area loaded and clear. Its reclaim request survives restarts and can continue when the requester returns. Cancelling reclaim withdraws sealing while safe docking continues. Start hub collection manually after deployment.
 

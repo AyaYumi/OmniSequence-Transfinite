@@ -65,7 +65,7 @@ Canceling an order stops unexecuted work and returns unused ingredients. Already
 ## Next steps
 
 - More recipes to organize: build a [Sequence Array](sequence_array_controller.md), with a larger library and built-in crafting.
-- Keep everyday items stocked: use a [Molecular Auto Crafter](molecular_auto_crafter.md).
+- Keep everyday items stocked: use a [Sequence Auto Crafter](molecular_auto_crafter.md).
 - Orders exceed your CPU's capacity: see the [Omni Computation Core](omni_computation_core.md).
 
 Settle orders before relocating. Normal removal retains patterns, unfinished contents and the wireless binding. Place the array again and restore its ME connection and power. If the wireless hub was moved or replaced, rebind the array.

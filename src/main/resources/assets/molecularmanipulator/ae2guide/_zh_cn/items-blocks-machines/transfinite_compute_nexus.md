@@ -73,7 +73,7 @@ item_ids:
 ## 下一步
 
 - 缺配方或实际制作设备：先配置[分子构序重写阵列](molecular_sequence_rewrite_array.md)或[构序阵列](sequence_array_controller.md)。
-- 想让常用成品自己补满：使用[分子自动合成器](molecular_auto_crafter.md)，不必反复给 CPU 下单。
+- 想让常用成品自己补满：使用[构序自动合成器](molecular_auto_crafter.md)，不必反复给 CPU 下单。
 - 想提高多订单和大单能力：提升同网络[星算引擎](star_computation_engine.md)，同时补足物品存储、能源和制作设备。
 
 搬迁前先结清订单。正常拆下算枢会保留可恢复的任务和内容，重新放置并恢复外部 ME 连接后可继续。

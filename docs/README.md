@@ -23,31 +23,27 @@ Well research belongs to each well and unlocks its processes. Star research is a
 
 ## Versions and Java contracts / 版本与 Java 契约
 
-This branch uses NeoForge **21.1.220+**, AE2 **19.2.18** as its reference, and AppliedEnhancements **1.1.4** for compilation. The runtime minimum for AppliedEnhancements is **1.1.2**. The loader accepts AE2 **19.2.17+**, while version-specific internal hooks target **19.2.18**. Mod ID: `molecularmanipulator`.
+Use NeoForge **21.1.220 or later**. The loader accepts AE2 **19.2.17 or later**. Version-specific hooks target AE2 **19.2.18**. Compile against AppliedEnhancements **1.1.4** and install **1.1.2 or later** at runtime. The mod ID is `molecularmanipulator`.
 
-AELIS planning and shared cycle transactions belong to the separately installed AppliedEnhancements mod. Use its [API integration guide](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/docs/API_INTEGRATION.md) for the version you install. OmniSequence's internal planner and Mixin classes are not public integration APIs.
+AppliedEnhancements provides the public APIs for AELIS planning and shared cycle transactions. For your installed build, consult the [AppliedEnhancements API integration guide](https://github.com/AyaYumi/AppliedEnhancements/blob/1.21.1-neoforge/docs/API_INTEGRATION.md).
 
-- Use the two-stage batch provider SPI, or its adapter registry, for atomic `long`-count delivery. Runtime ABI: **1**.
+- Use the two-stage batch provider SPI or its adapter registry for atomic batches with `long` counts. The runtime ABI is **1**.
 - Use the BigInteger capability and exact-output contracts for larger logical counts.
 - Use `MatterResearchApi` for per-well progress and recipe permissions. Global star-research locks remain an additional check.
 - Use AppliedEnhancements' `AelisBatchExecutionContext` for cycle seeds, extra material extraction and refunds in the same inventory view.
 
-Use `compileOnly` for separate mods' APIs and install those mods at runtime. Keep optional compatibility classes from loading when their mod is absent. Preserve the original AE provider object when registering its capability. Do not bundle dependency classes or copy their API packages. Dependency setup is in [libs/README.md](../libs/README.md).
+Use `compileOnly` with each mod's own JAR. Keep dependency classes in those JARs and install the mods you use separately at runtime. Load optional compatibility classes only when their mod is present. Register capabilities on the original AE provider. To build OmniSequence from source, see the [local build dependencies](../libs/README.md).
 
 Research mutations belong on the owning server thread. Live queries also belong there unless the caller has an immutable snapshot. Integrations must check their own permissions. Internal `blockentity`, `mixin` and renderer classes do not promise binary compatibility.
 
-使用独立 JAR 的公开接口集成，不把前置打包进本模组。研究许可、材料归属和 AELIS 计划是不同契约；调用方仍须检查权限，并在所属服务端线程操作实时状态。
+开发集成时用 `compileOnly` 引用前置模组的 JAR，运行时单独安装所需模组。研究许可、材料归属和 AELIS 计划各有接口。调用方须检查权限，并在所属服务端线程修改研究或查询实时数据。跨线程读取时使用不可变快照。
 
-Optional integrations have these version limits:
-
-| Integration | Supported target |
+| Optional integration / 可选集成 | Supported target / 适配版本 |
 | --- | --- |
-| Neo ECO AE Extension | 21.2.10 or later |
-| ExtendedAE Plus provider-selection and well-upload hooks | 1.6.4.1 only |
-| Data Energistics depot capacity simulation | 3.3.0 and 3.3.5 only |
+| Neo ECO AE Extension | 21.2.10 or later. ECO 21.2.10 requires LDLib2 2.2.40 or later. |
+| ExtendedAE Plus provider-selection and well-upload hooks | 1.6.4.1 only, including renamed assemblies |
+| Data Energistics Digital Storage Depot simulation | 3.3.0 and 3.3.5 only. Counts free space once per slot in a read-only check using actual slot limits. |
 | AdvancedAE Reaction Chamber and Quantum Crafter recipe locks | 1.6.12-1.21.1 only |
-
-These hooks do not make the optional mods required or add new public APIs. See the individual references for their execution and ownership rules.
 
 ## Configuration / 配置
 
@@ -118,11 +114,13 @@ Sequence Matter per cycle is the hole count multiplied by `matter_per_black_hole
 
 `multiblocks.force_load_chunks` controls registered multiblock chunk tickets. With it disabled, a Singularity Hub can still move and dock when its entire motion footprint is already loaded. Missing motion-area chunks prevent motion startup or docking and pause active motion until loading resumes. Obstacle and permission checks still apply to motion. Collection does not depend on motion. Miniature White Holes keep their own chunks loaded regardless of this setting.
 
-Sequence Wireless Hubs add no chunkloading. Both ends must be loaded. Machines retain their existing multiblock loading behavior. Wireless receivers must remove external ME cables and any quantum-slot singularity; both the hub and receiver must belong to the same team. The selector shows only that team's loaded hubs. Moving or replacing a hub requires rebinding.
+Connect a Sequence Wireless Hub to the main ME network with a cable. Remove the receiver's external ME cables and any singularity in its quantum slot. Open **Remote connection** and choose from the loaded hubs on the receiver's team. Both ends need loaded chunks, and the receiver uses the network's power and channels. Wireless links add no chunk loading. Rebind the receiver after moving or replacing the hub.
 
 Loaded Singularity quantum endpoints reconnect through normal AE2 initialization after world or chunk reloads. Destroyed, unloaded or retuned rings do not count as live endpoints because of stale registry entries. An occupied pair still reports a conflict. Paired singularities, a loaded remote ring, power and channels remain required.
 
-资源采集不依赖实体运动。关闭多方块加载票据后，只要整个运动范围已经加载，天枢仍可启动运动和归位；缺少区块时暂停，等待恢复。微型白洞继续加载自身区块。无线连接本身不加载区块，也不会代替队伍、供电或频道检查。
+资源采集不依赖实体运动。关闭多方块加载票据后，只要整个运动范围已经加载，天枢仍可启动运动和归位；缺少区块时暂停，等待恢复。微型白洞继续加载自身区块。
+
+用线缆将构序无线枢纽接入主 ME 网络。移除接收设备的外接 ME 线缆和量子槽内的奇点。打开**远程连接**，从列表选择设备所属队伍已加载的枢纽。两端都须保持区块加载，接收设备使用该 ME 网络的电力和频道。无线连接不加载区块。移动或更换枢纽后重新绑定。
 
 ### Client effects / 客户端特效
 
@@ -136,7 +134,7 @@ This setting controls large multiblock effects. Item and fluid animations remain
 
 ### Pattern handling / 样板处理
 
-Well uploads consume one blank pattern from the encoding terminal, or its connected ME storage if the local slot is empty. Wells and assemblies are identified by loaded machine type, formation and team, not custom names. The ExtendedAE Plus 1.6.4.1 automatic-provider hook supports renamed assemblies.
+Well uploads take one blank pattern from the encoding terminal or, if its slot is empty, from the connected ME storage. Uploads find loaded, formed wells and their assemblies by machine type and team.
 
 Array **Auto upload** receives newly encoded crafting, smithing and stonecutting patterns from native AE2 terminals on the same network. New Arrays start with it off. Processing patterns remain in the terminal. If the Array is full or unavailable, the encoded item stays there; duplicate recipes return a blank. An old core in a removed slot enables upload and returns through the existing output buffer unless an explicit saved setting takes precedence.
 

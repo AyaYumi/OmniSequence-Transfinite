@@ -65,7 +65,7 @@ item_ids:
 ## 下一步
 
 - 样板越来越多：使用[构序阵列](sequence_array_controller.md)集中管理大样板库，它也内置制作功能。
-- 让常用物品自动补满：使用[分子自动合成器](molecular_auto_crafter.md)。
+- 让常用物品自动补满：使用[构序自动合成器](molecular_auto_crafter.md)。
 - 大单超出 CPU 的接单能力：了解[万物演算核心](omni_computation_core.md)。
 
 搬迁前先结清订单。正常拆下设备会保留样板、未完成内容和无线绑定。重新放置后恢复 ME 连接和供电；如果无线枢纽被移动或替换，需要重新绑定阵列。

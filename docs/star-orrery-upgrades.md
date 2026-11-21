@@ -10,11 +10,8 @@ The mod ID is `molecularmanipulator`.
 简体中文：[天体仪升级规则](star-orrery-upgrades.zh-CN.md).
 See also the [Matter Fabrication research API](matter-research-api.md).
 
-The default upgrade path needs only the corresponding Star Position Anchors. Build the central
-body and foundation, open Upgrade, prepare the anchors shown in the requirements, then click
-Auto-build L… rings (L1–L3) or Upgrade to L… (L4–L9). The server places missing anchors in the
-real structure. Defaults require no extra upgrade energy, quests, research, machines or nodes.
-Selecting a level only previews it and spends nothing.
+By default, upgrades require only the corresponding Star Position Anchors.
+Selecting a level previews it without spending materials.
 
 ## How to upgrade
 
@@ -26,9 +23,9 @@ Selecting a level only previews it and spends nothing.
    same powered, channel-active ME grid; a grid is not required when inventory materials suffice.
 3. Hover a requirement for quantities, available supply and instructions. The list keeps short
    titles; scroll or drag its scrollbar to see every condition without clicking a row first.
-4. Click the upgrade button. Correct anchors already at their required positions count toward
-   the requirement and are not consumed again. Only missing anchors are taken, inventory first,
-   then ME, and placed through the selected ring, including any damaged inner rings.
+4. On the Upgrade page, click Auto-build L… rings for L1 to L3 or Upgrade to L… for L4 to L9.
+   Correctly placed anchors count toward the requirement. The server takes only the missing anchors,
+   from inventory first and then ME, to fill gaps in the selected ring and its inner rings.
 5. Keep the affected chunks loaded and placement positions clear. Occupied positions, unavailable
    chunks or denied placement permission block construction; clear the indicated problem and retry.
    The core and foundation are not built by this action. Completing one level never starts the next.
@@ -62,11 +59,10 @@ L1–L3 have the same anchor-building UI through fixed built-in entries, not con
 | L8 | 80 Terminal | 96 | 168 | 152 | None |
 | L9 | 88 Terminal | 96 | 168 | 240 | None |
 
-The cumulative columns include correctly placed anchors, so each upgrade charges only for missing
-anchors. Supply any missing anchors in damaged inner rings as well.
-Anchor target IDs are `reference`, `quantum` and `terminal`, corresponding to the real
+The cumulative columns give the total through each level, including its inner rings.
+Anchor target IDs are `reference`, `quantum` and `terminal`, corresponding to
 `molecularmanipulator:reference_star_position_anchor`, `quantum_star_position_anchor` and
-`terminal_star_position_anchor` blocks/items. No fake anchors or virtual ring counts are granted.
+`terminal_star_position_anchor` blocks/items.
 
 Only L4–L9 declaration conditions, energy, draw limits and `auto_build` are configurable. The codec
 accepts `level: 1..9`, but L1–L3 always use the fixed automatic entries. A custom rule cannot skip
@@ -211,11 +207,9 @@ unavailable IDs. Unprefixed `"10"` still means hexadecimal `0x10`. Do not includ
   Under `any` / `at_least`, other genuinely passing branches may still meet the configured threshold;
   the unavailable FTB branch itself never counts as passing.
 
-The reflection bridge targets the
-[FTB Quests v2101.1.38 API](https://github.com/FTBTeam/FTB-Quests/tree/v2101.1.38/common/src/main/java/dev/ftb/mods/ftbquests/quest)
-on Minecraft 1.21.1 / NeoForge. A release being listed for Minecraft 1.21.1 does not establish
-compatibility with that API. Compatibility across all 2100 / 2101 releases, other loaders or
-future versions is not guaranteed.
+FTB Quests v2101.1.38 is the reference build for Minecraft 1.21.1 / NeoForge.
+If you use a different build, check for the fields and methods below. See the
+[FTB Quests v2101.1.38 API](https://github.com/FTBTeam/FTB-Quests/tree/v2101.1.38/common/src/main/java/dev/ftb/mods/ftbquests/quest).
 
 Reflection validates `ServerQuestFile.INSTANCE` / `server` / `isLoading()`, `getBase(long)`,
 `getNullableTeamData(UUID)`, `getTeamId()`, `isCompleted(QuestObject)`, the long-returning

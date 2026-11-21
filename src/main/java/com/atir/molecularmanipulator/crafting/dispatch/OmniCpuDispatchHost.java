@@ -18,6 +18,8 @@ public interface OmniCpuDispatchHost {
     /** Physical CPUs use one real recipe per provider call; virtual CPUs may aggregate. */
     default boolean omniDispatch$virtualCpu() { return true; }
     default boolean omniDispatch$stopped() { return false; }
+    /** Charge one real compatibility single-push attempt before delivery. */
+    default boolean omniDispatch$trySingle(IPatternDetails pattern) { return true; }
     /** Ordinary task selected by the CPU's shared native/fallback rotation. */
     default IPatternDetails omniDispatch$preferredPattern() { return null; }
     default ListCraftingInventory omniDispatch$inventory() { throw new UnsupportedOperationException(); }

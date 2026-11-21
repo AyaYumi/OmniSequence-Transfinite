@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.integration.ae2;
 
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 
 /**
@@ -16,19 +17,17 @@ public interface MolecularScaledBatchProvider {
     }
 
     /**
-     * Returns whether this provider will use AE2's generic external-inventory
-     * path for this pattern. Implementations must return {@code false} when the
-     * push could be routed through an unknown dedicated crafting machine.
+     * Returns the whole-recipe capacity of an AE2 external inventory. The
+     * ingredients represent one recipe across independent storage types.
      */
-    boolean molecularmanipulator$supportsScaledBatch(IPatternDetails patternDetails);
+    long molecularmanipulator$getScaledBatchLimit(IPatternDetails patternDetails,
+            GenericStack[] ingredients, long requestedCopies);
 
     /**
-     * Begins one atomic scaled push. {@code completeInputs} contains the entire
-     * scaled recipe, while {@code firstInputs} contains one complete craft and
-     * is used to preserve fair multi-ingredient seeding.
+     * Begins one scaled push. {@code completeInputs} contains the full admitted
+     * amount for every ingredient.
      */
-    void molecularmanipulator$beginScaledBatch(
-            KeyCounter[] completeInputs, KeyCounter[] firstInputs);
+    void molecularmanipulator$beginScaledBatch(KeyCounter[] completeInputs);
 
     /**
      * Finishes the push and classifies the provider's ownership of the inputs.

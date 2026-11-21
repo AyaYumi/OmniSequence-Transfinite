@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.crafting;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.hooks.ticking.TickHandler;
+import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider.PushResult;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -14,10 +15,10 @@ import java.util.function.LongSupplier;
  *
  * <p>Initial probe rounds allow 1, 2, 4, ... additional calls in the same tick.
  * A busy or rejected delivery ends the round and retains the actual successful
- * call count as the rate for subsequent ticks. After 20 ticks, probes test that
- * baseline plus 1, 2, 4, ... until capacity is reached again. Neither a provider
- * interface nor a scaled pattern is required: every call retains AE2's ordinary
- * input, output and task accounting.</p>
+ * call count as the rate for subsequent ticks. After the configured cooldown,
+ * probes test that baseline plus 1, 2, 4, ... until capacity is reached again.
+ * Neither a provider interface nor a scaled pattern is required. Every call
+ * retains AE2's ordinary input, output and task accounting.</p>
  *
  * <p>Input availability and dispatch budgets only limit the caller's current
  * work; they do not establish machine capacity or discard a learned rate.
@@ -25,8 +26,6 @@ import java.util.function.LongSupplier;
  * accounting fallbacks are reset for a new job.</p>
  */
 public final class MolecularAdaptiveBatchController {
-    static final long RECOVERY_PROBE_INTERVAL_TICKS = 20L;
-
     private final Map<ICraftingProvider, Map<IPatternDetails, State>> states = new IdentityHashMap<>();
     private final LongSupplier tickSupplier;
     private Object activeJob;
@@ -244,12 +243,18 @@ public final class MolecularAdaptiveBatchController {
 
         private void reachCapacity(long currentTick) {
             if (isBlocked(currentTick)) return;
-            if (acceptedThisTick > 0) baseline = acceptedThisTick;
+            long observedCapacity = acceptedThisTick > 0 ? acceptedThisTick : baseline;
+            // Update the learned rate on backpressure without restarting an active cooldown.
+            if (!capacityKnown || growing) {
+                var interval = ModConfig.OMNI_DISPATCH_REPROBE_INTERVAL_TICKS;
+                int intervalTicks = ModConfig.SERVER_SPEC.isLoaded() ? interval.get() : interval.getDefault();
+                nextProbeTick = saturatingAdd(currentTick, intervalTicks);
+            }
+            baseline = observedCapacity;
             capacityKnown = true;
             growing = false;
             recovering = false;
             target = baseline;
-            nextProbeTick = saturatingAdd(currentTick, RECOVERY_PROBE_INTERVAL_TICKS);
             blockedTick = currentTick;
         }
 

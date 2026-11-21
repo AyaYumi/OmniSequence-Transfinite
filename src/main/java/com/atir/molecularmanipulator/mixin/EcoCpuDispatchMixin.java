@@ -1,6 +1,8 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.config.Actionable;
+import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.energy.IEnergyService;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingPlan;
@@ -55,6 +57,14 @@ public abstract class EcoCpuDispatchMixin implements EcoCpuDispatchAccess, OmniC
     @Override public int omniDispatch$execute(int maxPatterns, CraftingService crafting,
             IEnergyService energy, Level level) {
         return omniDispatch$dispatcher().execute((EcoOmniPlanCpuAccess) this, maxPatterns, crafting, energy, level);
+    }
+    @Override public boolean omniDispatch$defersSingle(IPatternDetails pattern, ICraftingProvider provider) {
+        return omniDispatch$dispatcher().defersSingle(pattern, provider);
+    }
+    @Override public int omniDispatch$executeDeferredSingle(int maxPatterns, CraftingService crafting,
+            IEnergyService energy, Level level) {
+        return omniDispatch$dispatcher().executeDeferredSingle((EcoOmniPlanCpuAccess) this,
+                maxPatterns, crafting, energy, level);
     }
     @Override public boolean omniDispatch$isExactPlan(ICraftingPlan plan) {
         return plan instanceof ECOExactCraftingPlan;

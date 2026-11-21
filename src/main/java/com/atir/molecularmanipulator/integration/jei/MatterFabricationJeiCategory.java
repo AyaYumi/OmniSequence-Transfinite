@@ -117,11 +117,11 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
         } else if (stack.what() instanceof AEFluidKey fluid) {
             slot.addIngredient(NeoForgeTypes.FLUID_STACK, fluid.toStack(visibleAmount))
                     .setFluidRenderer(visibleAmount, false, 16, 16);
-        } else if (!ModList.get().isLoaded("ae2jeiintegration")
-                || !MatterFabricationJeiIngredients.add(slot, stack)) {
-            if (MISSING_CONVERTERS.add(stack.what().getType())) {
-                com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn("No native JEI ingredient converter for AE key {}", stack.what());
-            }
+        } else if (ModList.get().isLoaded("ae2jeiintegration")
+                && !MatterFabricationJeiIngredients.add(slot, stack)
+                && MISSING_CONVERTERS.add(stack.what().getType())) {
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
+                    "No native JEI ingredient converter for AE key {}", stack.what());
         }
     }
     /** Keep ordinary counted ingredients readable after large recipe-cost increases. */

@@ -20,39 +20,35 @@ The Star Sea Calculation Mainframe produces Star Signal Flow at night and sends 
 <ItemImage id="ae2:fluix_glass_cable" scale="4" />
 </Row>
 
-Left to right: the mainframe building item, a signal storage cell and ME cable. The mainframe produces signal; the separate [nine-ring Star Orrery](star_computation_engine.md) supplies network bonuses.
+For machine bonuses, see the [nine-ring Star Orrery](star_computation_engine.md).
 
 ## Requirements
 
 - Make a Star Chart Processor through the [Star Marrow Materials](star_marrow_crystals.md) research and well recipes, then craft the mainframe below.
 - Prepare a level, sturdy 5 × 5 foundation with 9 clear blocks above it.
 - Prepare a powered ME network with one free channel, 1024 AE per operating tick and a [Star Signal Storage Cell](star_signal_flow.md) with space.
-- For your first setup, use the Overworld and wait for night. The mainframe takes ME energy and cannot accept direct FE input.
+- Use the Overworld for your first setup. The mainframe draws its power through ME.
 
 <RecipeFor id="molecularmanipulator:star_sea_calculation_mainframe" />
 
 ## Place and connect it
 
-1. Hold the building item and aim at the foundation. A teal preview means it fits; red means placement is blocked.
-2. Right-click once to place the whole tower. The target is its front-center base position. It faces you and extends behind that point.
-3. Connect ME cable to the white square with a teal center at the bottom front center. Only its outward-facing front accepts cable. The two maze panels above it are decoration.
-4. Put the signal cell in an ME Drive or ME Chest on the same network. Check the mainframe's channel and power supply.
-5. Wait for night and check roof light as described below. Operation consumes no crystals or processors.
-6. Empty-hand right-click the building to read its status and current output and energy rates. Calculating means it is producing signal; check the amount in your ME terminal.
+1. Hold the building item and aim at the foundation's front-center position. The tower faces you and extends behind that point. Right-click when the preview turns teal.
+2. Connect ME cable to the outward face of the white socket at the bottom front center.
+3. Put the signal cell in an ME Drive or ME Chest on the same network. Check the night and roof conditions below. The mainframe makes signal from ME power.
+4. Right-click the building with an empty hand to see its status and current rates. When it says **Calculating**, check that the Star Signal Flow count rises in your ME terminal.
 
-If the preview stays red, clear the full building volume, check every foundation block and stay within world borders and height limits. Placement protection can also prevent deployment.
+If the preview stays red, clear the full building volume and check all foundation blocks, world borders, height limits and build permission.
 
 ## Night and roof lighting
 
-In ordinary dimensions, production runs during day ticks 13000 to 22999. The dimension must have a normal day/night cycle and skylight. Daytime thunderstorms do not count, and the Nether and End do not qualify.
+In ordinary dimensions, the mainframe runs during **day ticks 13000–22999** in a dimension with skylight and a normal day/night cycle.
 
-Every position in the 5 × 5 layer immediately above the roof must have light 7 or lower. This includes block light and nighttime skylight. A single position at 8 pauses the mainframe. Move nearby lamps away if needed. A clear view of the sky is not required.
+The full **5 × 5 layer just above the roof** needs light **7 or lower**, counting block light and nighttime skylight. One position at 8 pauses production. Move nearby lamps away or shade the roof as needed.
 
 ### Detached Signal Realm
 
-The eternal-night Detached Signal Realm bypasses the ordinary dimension and night requirements. It still needs a dark roof, ME power, a channel and storage space.
-
-By default, it produces 8× as much signal for the same energy per operating tick. Time there alternates between half and double speed, changing output and energy use per real second.
+In the **Detached Signal Realm**, the mainframe can run at any time if the roof is dark enough and ME supplies power, a channel and storage space. By default it makes **8× as much signal** for the same power each operating tick. Half and double speed in this realm change output and power use per real second.
 
 ## Output and energy
 
@@ -61,23 +57,16 @@ By default, it produces 8× as much signal for the same energy per operating tic
 | Ordinary supported nighttime dimension | 128 bit | 1024 AE |
 | Detached Signal Realm | 1024 bit | 1024 AE |
 
-An operating tick is a simulation step in that dimension, normally 20 per second. Check right-click status for your server's current rates. There is no idle draw when conditions prevent production or output is blocked.
-
-With dynamic effects enabled, teal character streams appear during production. The maze texture animates even while stopped, so check status or stored signal to confirm output. The tower's glow and character effects emit no block light and cannot interfere with roof lighting.
+A dimension normally runs 20 ticks per second. Use the rates shown in the building's status if your pack changes them. The mainframe has no idle power draw.
 
 ## Troubleshooting
 
-Read the empty-hand right-click message first.
-
-| Status / problem | What to do |
+| Status or problem | What to do |
 | --- | --- |
-| Waiting for night | Wait for actual night in a supported dimension; darkening the daytime sky is not enough. |
-| Roof too bright | Check the full 25-position layer above the roof, not just its center. Remove nearby light sources until every position is ≤7. |
-| ME offline or missing channel | Connect cable to the bottom-front white socket and check power and channel availability. |
-| Star Signal storage unavailable or full | Install or empty a signal cell on this network; ordinary item/fluid cells do not store signal. |
+| Star Signal storage unavailable or full | Install a Star Signal Storage Cell on this network or make room in one already installed. |
 | Insufficient energy | Increase the ME energy supply to cover the displayed operating rate. |
 | Incomplete building or unloaded chunks | Keep the entire building loaded and check that no part is missing. |
-| Signal count is hidden | Enable Star Signal Flow under the terminal's Configure visible types. |
+| Signal count is hidden | Enable **Star Signal Flow** under the terminal's **Configure visible types**. |
 
 ## Moving the tower
 

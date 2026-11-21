@@ -23,39 +23,34 @@ Well research belongs to each well and unlocks its processes. Star research is a
 
 ## Versions and Java contracts / 版本与 Java 契约
 
-Current branch: **1.20.1-forge**, OmniSequence **20.3.0.3**, Minecraft **1.20.1**,
-Forge reference **47.4.20** (metadata minimum **47.4.10**), Java **17**, AE2 **15.4.10**,
-ExtendedAE **1.20-1.4.20-forge** (`expatternprovider`), GuideME **20.1.15**,
-AppliedEnhancements **1.1.2-forge+** (compile API **1.1.4-forge**). Mod ID: `molecularmanipulator`.
-The AE2 metadata range is **[15.4.10, 16)**; this is not a promise of compatibility with
-all future 15.x internal implementations.
+The `1.20.1-forge` branch builds against Forge **47.4.20**, AE2 **15.4.10**,
+ExtendedAE **1.20-1.4.20-forge** (`expatternprovider`), GuideME **20.1.15** and
+AppliedEnhancements **1.1.4-forge**. The loader accepts Forge **47.4.10 or later**,
+AE2 `[15.4.10,16)` and AppliedEnhancements `[1.1.2-forge,1.2)`. The internal
+hooks target the reference AE2 build. The mod ID is `molecularmanipulator`.
 
-AELIS planning and shared cycle transactions belong to the separately installed AppliedEnhancements mod. Use its [API integration guide](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/API_INTEGRATION.md) for the version you install. OmniSequence's internal planner and Mixin classes are not public integration APIs.
+AppliedEnhancements provides the public APIs for AELIS planning and shared cycle transactions. For your installed build, consult the [AppliedEnhancements API integration guide](https://github.com/AyaYumi/AppliedEnhancements/blob/1.20.1-forge/docs/API_INTEGRATION.md).
 
-- Use the two-stage batch provider SPI, or its adapter registry, for atomic `long`-count delivery. Runtime ABI: **1**.
+- Use the two-stage batch provider SPI or its adapter registry for atomic batches with `long` counts. The runtime ABI is **1**.
 - Use the BigInteger capability and exact-output contracts for larger logical counts.
 - Use `MatterResearchApi` for per-well progress and recipe permissions. Global star-research locks remain an additional check.
 - Use AppliedEnhancements' `AelisBatchExecutionContext` for cycle seeds, extra material extraction and refunds in the same inventory view.
 
-Use `compileOnly` for separate mods' APIs and install those mods at runtime. Keep optional compatibility classes from loading when their mod is absent. Preserve the original AE provider object when registering its capability. Do not bundle dependency classes or copy their API packages. Dependency setup is in [libs/README.md](../libs/README.md).
+Use `compileOnly` with each mod's own JAR. Keep dependency classes in those JARs and install the Forge mods you use separately at runtime. Load optional compatibility classes only when their mod is present. Register capabilities on the original AE provider. To build OmniSequence from source, see the [local build dependencies](../libs/README.md).
 
 Research mutations belong on the owning server thread. Live queries also belong there unless the caller has an immutable snapshot. Integrations must check their own permissions. Internal `blockentity`, `mixin` and renderer classes do not promise binary compatibility.
 
-使用 AppliedEnhancements 1.1.4-forge 编译，运行时最低要求 1.1.2-forge；前置单独安装，不嵌入本模组。研究许可、材料归属和 AELIS 计划是不同契约；调用方仍须检查权限，并在所属服务端线程操作实时状态。
+开发集成时用 `compileOnly` 引用前置模组的 JAR，运行时单独安装所需 Forge 模组。AppliedEnhancements 的编译版本是 1.1.4-forge，运行范围为 `[1.1.2-forge,1.2)`。调用方须检查权限，并在所属服务端线程修改研究或查询实时数据。跨线程读取时使用不可变快照。
 
-Optional integrations have these version limits:
-
-| Integration | Supported target |
+| Optional integration / 可选集成 | Supported target / 适配版本 |
 | --- | --- |
-| NeoECOAE | Optional; native batch and exact-count integration uses the 20.5.10+ Forge API |
-| ExtendedAE Plus provider-selection and well-upload hooks | Forge 1.6.4, including renamed assemblies; native Array upload/migration and well uploads do not require it |
-| Data Energistics depot capacity simulation | 3.3.0 / 3.3.5 and the required runtime methods; never enlarges real storage |
-| Trinity / Thunderbolt private dispatch hooks | Matching runtime APIs; compile-only CPU ABI declarations provide no implementation |
+| NeoECOAE batch and exact-count integration | NeoECOAE 20.5.10 or later with Forge LDLib. The 20.5.10 build requires LDLib `[1.0.33.b,1.1)`. |
+| ExtendedAE Plus provider-selection and well-upload hooks | Forge 1.6.4, including renamed assemblies. Native Array upload, migration and well uploads work without it. |
+| Data Energistics Digital Storage Depot simulation | 3.3.0 or 3.3.5 with the required runtime methods. Counts free space once per slot in a read-only check using actual slot limits. |
+| Trinity / Thunderbolt private dispatch hooks | Matching Forge runtime APIs |
 | AdvancedAE Reaction Chamber and Quantum Crafter recipe locks | Exact Forge 1.3.6-1.20.1 build |
 | JEI | Forge reference 15.49.0.188 |
 | FTB quest reflection | v2001.4.9 / Forge 1.20.1 |
-
-The supplied pack uses **ExtendedAE Plus 1.6.4** and **AppliedEnhancements 1.1.6**. Update its NeoECOAE installation to **20.5.10 or later** before using this build. Optional CPU ABI declarations are excluded from runtime classpaths and release JARs, so install the actual Forge implementations separately. Do not install NeoForge JARs to satisfy them. See the individual references for execution and ownership rules.
 
 ### Forge resource/API differences
 
@@ -66,11 +61,7 @@ follow the actual Forge serializers and accept the aliases described in the well
 Forge Java recipes expose `Recipe.getId()` directly, not 1.21 `RecipeHolder`.
 
 Star upgrades use `requirements` for the gameplay condition tree. Forge reserves root
-`conditions` for a load-time array and reads it before the custom serializer. Do not copy
-the source branch's `conditions` object into Forge declarations. The bundled L4 to L9 declarations
-and the examples use `requirements` throughout.
-
-Permission, node, upgrade, crafting and research references are also packaged in the release JAR.
+`conditions` for a load-time array and reads it before the custom serializer.
 
 ## Configuration / 配置
 
@@ -143,11 +134,13 @@ Sequence Matter per cycle is the hole count multiplied by `matter_per_black_hole
 
 `multiblocks.force_load_chunks` controls registered multiblock chunk tickets. With it disabled, a Singularity Hub can still start, move and dock when its entire motion footprint is already loaded by players or another loader. Missing motion-area chunks prevent motion startup or docking and pause active motion until loading resumes. These checks do not synchronously load missing chunks. Obstacle and permission checks still apply to motion. Collection does not depend on motion. Miniature White Holes keep their own chunks loaded regardless of this setting.
 
-Sequence Wireless Hubs add no chunkloading. Both ends must be loaded. Machines retain their existing multiblock loading behavior. Wireless receivers must remove external ME cables and any quantum-slot singularity; both the hub and receiver must belong to the same team. The selector shows only that team's loaded hubs. Moving or replacing a hub requires rebinding.
+Connect a Sequence Wireless Hub to the main ME network with a cable. Remove the receiver's external ME cables and any singularity in its quantum slot. Open **Remote connection** and choose from the loaded hubs on the receiver's team. Both ends need loaded chunks, and the receiver uses the network's power and channels. Wireless links add no chunk loading. Rebind the receiver after moving or replacing the hub.
 
 Loaded Singularity quantum endpoints reconnect through normal AE2 initialization after world or chunk reloads. Destroyed, unloaded or retuned rings do not count as live endpoints because of stale registry entries. An occupied pair still reports a conflict. Paired singularities, a loaded remote ring, power and channels remain required.
 
-资源采集不依赖实体运动。关闭多方块加载票据后，只要整个运动范围已经加载，天枢仍可启动运动和归位；缺少区块时禁止启动／停靠，并暂停运动，等待恢复，不同步加载缺失区块。障碍与权限检查仍适用。微型白洞继续加载自身区块。无线连接本身不加载区块，也不会代替队伍、供电或频道检查。天枢量子端点在世界／区块重载后按 AE2 正常初始化重连；已销毁、未加载或换频的环不会因旧索引误报占频，真实冲突仍拒绝连接。
+资源采集不依赖实体运动。关闭多方块加载票据后，只要整个运动范围已经加载，天枢仍可启动运动和归位；缺少区块时禁止启动／停靠，并暂停运动，等待恢复，不同步加载缺失区块。障碍与权限检查仍适用。微型白洞继续加载自身区块。天枢量子端点在世界／区块重载后按 AE2 正常初始化重连；已销毁、未加载或换频的环不会因旧索引误报占频，真实冲突仍拒绝连接。
+
+用线缆将构序无线枢纽接入主 ME 网络。移除接收设备的外接 ME 线缆和量子槽内的奇点。打开**远程连接**，从列表选择设备所属队伍已加载的枢纽。两端都须保持区块加载，接收设备使用该 ME 网络的电力和频道。无线连接不加载区块。移动或更换枢纽后重新绑定。
 
 ### Client effects / 客户端特效
 
@@ -161,13 +154,13 @@ This setting controls large multiblock effects. Item and fluid texture-atlas ani
 
 ### Pattern handling / 样板处理
 
-Well uploads consume one blank pattern from the encoding terminal, or one extractable blank from its connected ME storage if the local slot is empty. One network blank is sufficient. Wells and assemblies are identified by loaded machine type, formation and team, not custom names. Additional Forge ExtendedAE Plus **1.6.4** automatic-selection/upload hooks recognize renamed assemblies by machine type and team. Native well uploads do not require the addon.
+Well uploads take one blank pattern from the encoding terminal or, if its slot is empty, from the connected ME storage. Uploads find loaded, formed wells and their assemblies by machine type and team.
 
 Array **Auto upload** is native and needs no EAEP core. It receives newly encoded crafting, smithing and stonecutting patterns from native AE2 terminals on the same network. New Arrays start with it off. Processing patterns remain in the terminal. If the Array is full or unavailable, the encoded item stays there; duplicate recipes return a blank. A decodable old core in a removed slot enables upload and returns through the existing ME output buffer unless an explicit saved setting takes precedence. There is no new global upload config key.
 
 **Migrate patterns** runs once per click, synchronously on the server thread. It reads same-network public physical slots through `PatternContainer` and online mounted cells through `IChestOrDrive` / `StorageCell`. It preserves NBT and duplicate physical patterns; no re-encoding or blank is needed. Processing patterns, private slots, read-only recipe rows and storage-bus proxies stay at their source, as do patterns that do not fit. Counts report committed transfers and partial completion; interrupted runs keep completed transfers. Large migrations can take server time.
 
-上传由编码触发，迁移由点击触发。两者都不会在满库或设备未就绪时丢弃样板。构序阵列原生上传无需 EAEP，新阵列默认关闭；旧槽可识别核心经输出缓存退回并保留开启行为，玩家已保存开关优先，没有新的全局上传参数。迁移保留实体样板、NBT 与重复实体，不重编码、不消耗空白样板；只读行、处理样板、私有槽和存储总线代理不参与。满库留在来源，中断保留已完成转移，大型迁移会占用服务端时间。井上传可用终端或相连网络中的一张空白样板，不依赖总成名称；Forge EAEP 自动选择／上传钩子针对 1.6.4，按机器类型和队伍识别。
+上传由编码触发，迁移由点击触发。两者都不会在满库或设备未就绪时丢弃样板。新构序阵列默认关闭自动上传。旧槽中可识别的核心经输出缓存退回，并启用自动上传，玩家已保存的设置优先。迁移保留实体样板、NBT 和重复样板，不重编码或消耗空白样板。只读行、处理样板、私有槽和存储总线代理不参与。中断时保留已完成的转移，大型迁移会占用服务端时间。井上传从终端取一张空白样板，槽为空时从相连 ME 网络取。按机器类型和所属队伍查找已加载且成型的井及其总成。
 
 ### Configuration migration / 配置迁移
 

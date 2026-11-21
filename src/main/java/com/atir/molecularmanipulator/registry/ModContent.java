@@ -287,6 +287,12 @@ public final class ModContent {
             "star_marrow_alloy_ingot", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> STAR_MARROW_CRYSTAL = ITEMS.register(
             "star_marrow_crystal", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Block> STAR_MARROW_CRYSTAL_BLOCK =
+            BLOCKS.register("star_marrow_crystal_block", () -> new Block(
+                    net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                            .strength(1.5F).requiresCorrectToolForDrops().sound(SoundType.AMETHYST)));
+    public static final RegistryObject<BlockItem> STAR_MARROW_CRYSTAL_BLOCK_ITEM =
+            registerBlockItem("star_marrow_crystal_block", STAR_MARROW_CRYSTAL_BLOCK);
     public static final RegistryObject<Item> STAR_MARROW_CRYSTAL_DUST = ITEMS.register(
             "star_marrow_crystal_dust", () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> STAR_CHART_PROCESSOR = ITEMS.register(
@@ -325,7 +331,7 @@ public final class ModContent {
             registerBlockItem("star_marrow_crystal_cluster", STAR_MARROW_CRYSTAL_CLUSTER);
     public static final RegistryObject<StarMarrowParentRockBlock> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK =
             BLOCKS.register("heavily_damaged_star_marrow_parent_rock", () -> new StarMarrowParentRockBlock(
-                    parentRockProperties(1), null, 0));
+                    parentRockProperties(1), () -> STAR_MARROW_CRYSTAL_BLOCK.get(), 12));
     public static final RegistryObject<BlockItem> HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK_ITEM =
             registerBlockItem("heavily_damaged_star_marrow_parent_rock", HEAVILY_DAMAGED_STAR_MARROW_PARENT_ROCK);
     public static final RegistryObject<StarMarrowParentRockBlock> DAMAGED_STAR_MARROW_PARENT_ROCK =
@@ -588,6 +594,7 @@ public final class ModContent {
                         output.accept(TERMINAL_STAR_POSITION_ANCHOR_ITEM.get());
                         output.accept(STAR_MARROW_ALLOY_INGOT.get());
                         output.accept(STAR_MARROW_CRYSTAL.get());
+                        output.accept(STAR_MARROW_CRYSTAL_BLOCK_ITEM.get());
                         output.accept(STAR_MARROW_CRYSTAL_DUST.get());
                         output.accept(STAR_CHART_PROCESSOR.get());
                         output.accept(STAR_CHART_CIRCUIT_BOARD.get());

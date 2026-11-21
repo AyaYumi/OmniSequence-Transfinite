@@ -1,16 +1,16 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: "分子自动合成器"
+  title: "构序自动合成器"
   icon: molecularmanipulator:molecular_auto_crafter
   position: 1040
 item_ids:
 - molecularmanipulator:molecular_auto_crafter
 ---
 
-# 分子自动合成器
+# 构序自动合成器
 
-分子自动合成器能让 ME 常备指定数量的成品。放入已编码样板、设好目标数量后，它会从 ME 库存取料制作，适合补充木板、处理器等常用物品。
+构序自动合成器能让 ME 常备指定数量的成品。放入已编码样板、设好目标数量后，它会从 ME 库存取料制作，适合补充木板、处理器等常用物品。
 
 <Row>
 <BlockImage id="molecularmanipulator:molecular_auto_crafter" scale="4" />

@@ -3,13 +3,13 @@
 模组开发者可实现此接口，让 AE2 样板供应器一次接收多份完整配方，由 Omni 分配并交付整批材料。
 普通 AE2 供应器无需实现它也能正常接单。玩家搭建与操作见[玩家指南](../README.zh-CN.md)或游戏内 G 指南。
 
-对应 20.3.0.3，Minecraft 1.20.1 / Forge / Java 17 / AE2 15.4.10 / AppliedEnhancements 1.1.2-forge+（编译 API 1.1.4-forge）。
+对应 20.3.0.3，Minecraft 1.20.1 / Forge、Java 17 和 AE2 15.4.10。
+AppliedEnhancements 的编译版本为 1.1.4-forge，运行范围为 `[1.1.2-forge,1.2)`。
 
 [English](omni-batch-provider-api.md) · [API 索引](README.md)
 
-自 OmniSequence: Transfinite 1.3.9 起提供，运行时 ABI 仍为 1。
-本 SPI 负责供应器材料交付；AELIS 规划及循环执行接口由 AppliedEnhancements 提供。
-不要引用本模组已移除的规划器或内部 Mixin，也不要把两个模组的 API 类嵌入自己的 JAR。
+自 OmniSequence: Transfinite 1.3.9 起提供，运行时 ABI 为 1。
+AELIS 规划和循环执行使用 AppliedEnhancements 的公开接口。
 
 此 SPI 面向自身保存编码样板、作为 AE2 `ICraftingProvider` 接单的设备。
 希望由万物演算核心或超限算枢一次分配多份完整材料时，实现 `OmniBatchCraftingProvider`。
@@ -76,9 +76,9 @@ Advanced AE 量子 CPU 也通过可选兼容接入该协议。单方块超限算
 
 ## 可选供应器适配
 
-可选兼容模组可通过 `OmniBatchProviderAdapterRegistry.register` 为第三方供应器注册整批能力，
-无需修改供应器类或让其直接实现 Omni 接口。兼容类应仅在
-`molecularmanipulator` 已加载时启用，依赖使用 `compileOnly`。示例：
+通过 `OmniBatchProviderAdapterRegistry.register` 为现有 AE2 供应器注册整批能力，
+无需修改供应器类。把 OmniSequence 声明为 `compileOnly`，只在 `molecularmanipulator` 已加载时
+启用引用此接口的兼容类或条件 Mixin。
 
 ```java
 OmniBatchProviderAdapterRegistry.register(
@@ -136,9 +136,6 @@ CPU 兼容 Hook 建议使用可链式的 Mixin Extras 包装，或 inject-and-ca
 对同一个 `ICraftingProvider.pushPattern` 调用使用硬 `@Redirect`，可能在执行上述判断
 前就发生注入冲突；已有 Redirect 应在 Omni 加载时条件禁用，并把判断移到兼容 Hook。
 
-API 中没有针对特定模组的类名或硬编码适配。第三方应把 OmniSequence 声明为
-`compileOnly`，并仅在 Mod ID `molecularmanipulator` 已加载时启用兼容类或条件 Mixin。
-
 ## 循环事务、副产物与原生倍增
 
 独立 CPU 在首次抽料前调用
@@ -147,7 +144,7 @@ API 中没有针对特定模组的类名或硬编码适配。第三方应把 Omn
 `beginDispatch(actualInputs, actualCrafts)`，持久所有权移交时确认 `accepted()`。
 拒绝后关闭事务会恢复循环记账；CPU 仍负责退回自己持有的实物。库存为 null 时
 本次不可发配，`maximumCrafts()` 只表示当前阶段上限，不保证材料或队列容量。
-该共享接口在支持的 AppliedEnhancements 1.1.2-forge+ 运行环境中可用，不要在首次抽料后重新获取上下文。
+首次抽料后继续使用先前获取的上下文。
 
 完整记录主产物与所有物品、流体副产物。优化或外部批量包装不可识别时，保留
 原始完整任务账本并回退普通规划/发配，不能因副产物直接中断规划，也不能将

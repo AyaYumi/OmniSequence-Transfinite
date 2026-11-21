@@ -121,7 +121,9 @@ public final class StarMarrowParentRockBlock extends Block {
         grownState = grownState
                 .setValue(AmethystClusterBlock.FACING, direction)
                 .setValue(AmethystClusterBlock.WATERLOGGED, waterlogged);
-        level.setBlockAndUpdate(targetPos, grownState);
+        if (!level.setBlockAndUpdate(targetPos, grownState)) {
+            return;
+        }
 
         // A successful growth can cost a degradable parent rock one quality step.
         // Flawless parent rock has no next stage and never decays.

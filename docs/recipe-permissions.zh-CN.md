@@ -16,7 +16,7 @@
 
 购买后仍可查看研究要求；当前团队或在线 ME 网络是否有制作许可，由服务端检查。
 
-Forge JEI 参考为 **15.49.0.188**（Minecraft 1.20.1）。提示钩子覆盖该版本的 `RecipeSlot.getTooltip(ITooltipBuilder, ITypedIngredient)`，也为 JEI 15.74 改用的 `addTooltip(ITooltipBuilder)` 入口提供适配，均在输出槽原生提示回调结束后追加研究要求。其他版本仍需核对实际入口；源分支 JEI 19.x 的兼容结论不适用于本分支，提示存在也不代表目标机器已有执行适配。
+Forge 版 JEI **15.49.0.188**（Minecraft 1.20.1）使用 `RecipeSlot.getTooltip(ITooltipBuilder, ITypedIngredient)`，JEI 15.74 使用 `addTooltip(ITooltipBuilder)`。钩子在输出槽原生提示回调结束后追加研究要求。换用其他版本前先核对提示入口。
 
 ## 1. 先跑通一个 KubeJS 示例
 
@@ -236,6 +236,4 @@ ServerEvents.recipes(event => {
 
 ## 6. 兼容边界
 
-覆盖仅限第 5 节列出的执行入口，不是能自动锁住一切机器的通用 Mixin。新模组、自行缓存产物的机器、没有可信配方身份的流程或依赖版本变更，都需要核对真实执行入口，必要时新增适配后再承诺覆盖。
-
-可选 AdvancedAE 权限钩子仅适配 Forge **1.3.6-1.20.1**，其他版本须单独适配。JEI 提示与目标机器的执行检查分别适配，处理样板仍须由实际目标机检查。
+第 5 节列出了有制作检查的入口。遇到其他模组、版本或自行缓存产物的机器，先核对实际执行入口和配方 ID，再补齐所需的适配。JEI 提示和机器的制作检查分别适配。

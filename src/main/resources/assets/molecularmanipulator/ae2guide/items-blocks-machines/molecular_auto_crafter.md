@@ -1,16 +1,16 @@
 ---
 navigation:
   parent: omnisequence-index.md
-  title: "Molecular Auto Crafter"
+  title: "Sequence Auto Crafter"
   icon: molecularmanipulator:molecular_auto_crafter
   position: 1040
 item_ids:
 - molecularmanipulator:molecular_auto_crafter
 ---
 
-# Molecular Auto Crafter
+# Sequence Auto Crafter
 
-The Molecular Auto Crafter keeps products stocked using ingredients already in ME. Insert a pattern from a Pattern Encoding Terminal, set a stock target and start the slot. It performs the recipe and delivers the products without a terminal order or crafting CPU.
+The Sequence Auto Crafter keeps products stocked using ingredients already in ME. Insert a pattern from a Pattern Encoding Terminal, set a stock target and start the slot. It performs the recipe and delivers the products without a terminal order or crafting CPU.
 
 <Row>
 <BlockImage id="molecularmanipulator:molecular_auto_crafter" scale="4" />

@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.client.gui.theme;
 
 import appeng.client.gui.Icon;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -57,7 +58,7 @@ public final class OsqSlotGhosts {
             }
             return List.copyOf(runs);
         } catch(Exception ex) {
-            com.mojang.logging.LogUtils.getLogger().warn("Cannot read native AE2 slot outline",ex);
+            RateLimitedLog.warn("Cannot read native AE2 slot outline from {} at texture row {}", resource, sourceY, ex);
             return List.of();
         }
     }

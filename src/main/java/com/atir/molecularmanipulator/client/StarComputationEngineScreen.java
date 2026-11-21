@@ -417,15 +417,19 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public void drawBG(GuiGraphics g, int x, int y, int mx, int my, float pt) {
         if (ui == null) return;
         ui.background(g, font, x, y);
         g.pose().pushPose();
         g.pose().translate(x, y, 0);
         if (!recipesPage && !upgradePage) {
-            drawRings(g);
-            drawLevel(g);
-            drawBenefitIcons(g);
+            // Keep the overview rectangles in one batch instead of flushing after each fill.
+            g.drawManaged(() -> {
+                drawRings(g);
+                drawLevel(g);
+                drawBenefitIcons(g);
+            });
         }
         g.pose().popPose();
     }
@@ -1002,9 +1006,12 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     };
 
     private void drawBenefitIcons(GuiGraphics g) {
+        int main = color("accent");
+        int detail = color("holo_line");
+        int backing = color("soft");
         for (int row = 0; row < BENEFIT_ICONS.length; row++) {
-            int y = BENEFIT_TOP + row * BENEFIT_PITCH, main = color("accent"), detail = color("holo_line");
-            fill(g, 213, y, 13, 13, color("soft"));
+            int y = BENEFIT_TOP + row * BENEFIT_PITCH;
+            fill(g, 213, y, 13, 13, backing);
             String[] icon = BENEFIT_ICONS[row];
             int left=9, top=9, right=0, bottom=0;
             for(int iy=0;iy<icon.length;iy++)for(int ix=0;ix<icon[iy].length();ix++)if(icon[iy].charAt(ix)!='.'){
@@ -1025,16 +1032,30 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
     /** Supplied nine-ring artwork: completed rings, a pale current track, then locked dots. */
     private void drawRings(GuiGraphics g) {
         int lit = litRings();
+        int filled = currentRingFill();
+        int completedColor = color("ring_full");
+        int trackColor = color("hair");
+        int progressColor = color("accent");
+        int lockedColor = color("ring_locked");
         for (int ring = 0; ring < StarOrreryLayout.RINGS; ring++) {
-            int radius = 10 + 5 * ring, slots = StarOrreryLayout.slotCount(ring);
+            int radius = 10 + 5 * ring;
+            int slots = StarOrreryLayout.slotCount(ring);
             int steps = (int) (2 * Math.PI * radius);
             if (ring < lit) {
-                for (int step = 0; step < steps; step++) ringDot(g, step, steps, radius, color("ring_full"));
+                for (int step = 0; step < steps; step++) {
+                    ringDot(g, step, steps, radius, completedColor);
+                }
             } else if (ring == lit) {
-                for (int step = 0; step < steps; step++) ringDot(g, step, steps, radius, color("hair"));
-                for (int slot = 0; slot < currentRingFill(); slot++) ringDot(g, slot, slots, radius, color("accent"));
+                for (int step = 0; step < steps; step++) {
+                    ringDot(g, step, steps, radius, trackColor);
+                }
+                for (int slot = 0; slot < filled; slot++) {
+                    ringDot(g, slot, slots, radius, progressColor);
+                }
             } else {
-                for (int slot = 0; slot < slots; slot += 2) ringDot(g, slot, slots, radius, color("ring_locked"));
+                for (int slot = 0; slot < slots; slot += 2) {
+                    ringDot(g, slot, slots, radius, lockedColor);
+                }
             }
         }
         fill(g, 66, RING_CENTER_Y - 1, 3, 3, color("accent_fill"));

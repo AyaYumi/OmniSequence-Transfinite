@@ -10,7 +10,7 @@ item_ids:
 
 # Simulation Lantern
 
-The Simulation Lantern provides light and lets you enter a personal, temporary simulation. While it is active, mine a Flawed Star Marrow Parent Rock yourself to obtain a permanent Flawless rock.
+Hold or place the Simulation Lantern for light. Use its personal, temporary simulation to collect a permanent Flawless Star Marrow Parent Rock.
 
 <Row>
 <ItemImage id="molecularmanipulator:simulation_lantern" scale="6" />
@@ -18,13 +18,13 @@ The Simulation Lantern provides light and lets you enter a personal, temporary s
 <BlockImage id="molecularmanipulator:simulation_lantern" scale="4" />
 </Row>
 
-Both held and placed lanterns provide light in the simulation. The controls below use default keys, which you can change in control settings.
+The steps use default keys. You can change them in Controls.
 
-## Requirements
+## What you need
 
-- Craft a lantern with 4 Star Marrow Alloy Ingots, 1 Star Marrow Crystal, 1 Stick and 2 Iron Nuggets.
-- Bring a Flawed Star Marrow Parent Rock and a pickaxe. Lower-quality rocks cannot become Flawless this way.
-- Stand outside water to enter the simulation. It needs no fuel or AE.
+- Craft the lantern with **4 Star Marrow Alloy Ingots, 1 Star Marrow Crystal, 1 Stick and 2 Iron Nuggets**.
+- Bring a **Flawed Star Marrow Parent Rock** and a pickaxe. Use seeds to repair lower grades to Flawed first.
+- Stand out of water. The simulation uses no fuel or AE.
 
 ## Obtain a Flawless parent rock
 
@@ -36,54 +36,39 @@ Both held and placed lanterns provide light in the simulation. The controls belo
 <ItemImage id="molecularmanipulator:flawless_star_marrow_parent_rock" scale="4" />
 </Row>
 
-1. Hold the lantern in either hand. If it is unlit, press B to light it.
-2. Hold G for about one second, then release to enter the simulation. You remain in the same world and dimension.
-3. Press F to move the lantern to your offhand and use a pickaxe in your main hand. You can also press V to place the lantern and free your hand.
-4. Mine the Flawed rock yourself. It looks Flawless to you during the simulation and drops a Flawless Star Marrow Parent Rock. Creative pick-block also works while the simulation is active.
-5. Leave the simulation and place the rock. It stays Flawless and never decays.
+1. Hold the lantern in either hand. Press **B** if it needs lighting.
+2. Hold **G** for about one second, then release to enter the simulation. You stay in the same dimension. If the key does nothing, check for a key conflict.
+3. If the lantern is in your main hand, press **F** to swap it to your offhand. Equip your pickaxe.
+4. **Mine the Flawed rock yourself** to get a Flawless Star Marrow Parent Rock. Creative pick-block also works. You can mine beyond the lantern's light while the simulation is active. The rock stays Flawless after you leave and never decays.
 
-The target can be outside lantern light as long as your simulation remains active. Right-clicking the rock with the lantern does not convert it. Until harvested, the original block still grows buds and can decay. If it falls below Flawed, you receive its real lower tier. A player outside the simulation or an automatic miner cannot perform the conversion for you.
+In the simulation, a Flawed rock looks Flawless. The original block keeps growing buds and can decay until you harvest it. If it has already dropped below Flawed, you get its actual grade. Automatic miners also harvest the actual grade.
 
 ## Place, retrieve and leave
 
 | Action | Default control and result |
 | --- | --- |
-| Light or extinguish | B operates a held lantern first. Without one in hand, it operates the placed lantern you aim at. |
-| Place on the ground | V places it on the target block's top face, with support beneath. Dry placement keeps its lit state. |
-| Retrieve | Leave a hand empty and right-click the placed lantern. With both hands full, it stays in place. |
-| Leave the simulation | Use B to extinguish a lit lantern. Only the player pressing B leaves; extinguishing a placed lantern also removes that lamp's light for others. |
+| Light or extinguish | Press **B** to use a lantern in your hand. With no lantern in hand, aim at a placed one. |
+| Place on the ground | Aim at a supported top face with room for the lantern and press **V**. You need permission to build there. Dry placement keeps the lantern's lit state. |
+| Retrieve | Right-click the placed lantern with at least one hand empty. |
+| Leave the simulation | Press **B** to extinguish a lit lantern. This ends your simulation. If the lantern is on the ground, it goes dark for everyone. |
 
-During the simulation, a held lantern cannot be dropped, stored or moved to another hotbar slot. Use F to move it to your offhand or V to place it so you can use other tools.
+The simulation keeps a held lantern in your hand. Press **V** to put it down and free that hand. Dropping, storing or moving it to another hotbar slot only works after you leave.
 
-Entering water with a lit held lantern extinguishes it and ends the simulation. Water flowing into a placed lantern only extinguishes that lamp. Remove the water before relighting it. Logout, death or a dimension change also ends the simulation. Placed lanterns and dropped items remain, but logging back in does not restart it.
+Entering water with a lit lantern in hand extinguishes it and ends your simulation. Water flowing into a placed lantern only extinguishes that lamp. Clear the water before relighting it. Logging out, dying or changing dimensions also ends the simulation. Placed lanterns and dropped items stay in the world.
 
-## Darkness and the green grid
+## Lantern light and the green grid
 
-Lantern light reaches 10 blocks and fades near the edge. Both held and placed lanterns count.
-
-While you stand inside any lantern's lit area, illuminated surfaces look normal and unlit areas are black. Place your lantern and leave every lit area to see green grid lines and outlines on dark surfaces. Surfaces lit by distant lanterns still look normal. Walking back into light hides the grid again.
-
-The view depends on where you stand. Carrying a lit lantern keeps you inside its light, and torches or daylight do not change this boundary.
+In the simulation, a lit lantern reaches **10 blocks** whether you hold it or place it. While you stand inside any lantern's light, unlit surfaces look black. Outside every lantern's light, those surfaces show a green grid and outlines. Walking back into lantern light hides the grid. Only Simulation Lanterns count toward this boundary.
 
 ## Enter the Detached Signal Realm
 
-The Detached Signal Realm is a persistent void dimension where you can build. On your first arrival, there is only one bedrock block beneath you. Bring building blocks and a way to return across dimensions; the lantern cannot automatically take you home.
+The Detached Signal Realm is a void dimension that saves what you build. On your first arrival, you have **one bedrock block** underfoot. **Bring building blocks and arrange a separate way back across dimensions before you leave.**
 
-1. In any dimension, hold a lit lantern, hold G for about one second and release to enter the simulation.
-2. Press V to place the lantern. Move beyond the 10-block range of every lit lantern, including those held by other players. Keep the simulation active; using B to extinguish a lamp ends it for you.
-3. Jump into that dimension's bottom void. With the simulation active and every lantern's light behind you, you reach the realm before vanilla void damage. Ordinary void damage remains a danger if either condition is missing.
+1. Enter the simulation in the dimension you are leaving.
+2. Press **V** to place your lantern and walk beyond the light of every lantern, including those other players are holding. Keep the simulation active.
+3. Jump into the void at the bottom of the dimension. When both conditions are met, you arrive before taking void damage. **Outside the simulation or inside lantern light, the void can still hurt you.**
 
-Arrival ends the simulation and frees the held lantern. The realm is always night, has no natural terrain, and contains drifting colored code streams. Time alternates between 0.5× and 2× speed every random 5 to 15 seconds. Players, creatures and machines in the realm follow that rate; other dimensions are unaffected. Your buildings remain when you leave and return.
-
-## Troubleshooting
-
-| Problem | What to check |
-| --- | --- |
-| G does nothing | Hold a lit lantern outside water. Hold for about a second, then release, and check key conflicts. |
-| Cannot change tools or drop the lantern | The simulation locks the held lamp. Press F for offhand use, or V to place it. |
-| Cannot place the lantern | Aim at a supported block's top face and check space and build permission. |
-| No green grid | Place the lamp, then leave every lantern's 10-block light range. |
-| Mining did not give Flawless | Stay in the simulation, mine it yourself and check that the target has not decayed below Flawed. |
+The simulation ends on arrival. The realm has no natural terrain and is always night. It alternates between **0.5× and 2× speed** at random intervals of **5–15 seconds**. The change affects players, creatures and machines in that dimension.
 
 ## Crafting recipe
 

@@ -21,8 +21,6 @@ Resource Collection produces every listed resource together and sends the output
 <ItemIcon id="minecraft:warped_stem" />
 </ItemGrid>
 
-These are common examples. Check the in-game Resource Collection list for every available resource and its quantity; the server sets both.
-
 ## Requirements
 
 - A formed [Event Horizon Singularity Hub](event_horizon_singularity_hub.md), or a connected [Compact Hub](compact_singularity_hub.md).
@@ -35,20 +33,16 @@ Collection uses no Sequence Matter or fluid storage. For copying a sample or gen
 
 1. Right-click the hub, open Resource Collection and check that the network is online.
 2. Review the list and make sure ME accepts every item. A blocked product can stop the whole cycle even if other products have space.
-3. Select **Start Collection**. Multiblock collection starts after 40 ticks and does not depend on motion: it works with motion stopped, paused or docking.
-4. Check the listed resource counts in an ME terminal. They should rise together; products go into storage without dropping into the world.
+3. Select **Start Collection**. The multiblock hub starts after **40 ticks**, whether its motion is stopped, paused or docking.
+4. Open an ME terminal and check that the listed resources increase together. The outputs go straight into storage.
 
-By default, each resource produces 1000 items every 20 ticks, about 1 second at normal speed. If raw iron and oak logs are listed, the cycle produces 1000 of each. Duplicate resources count once, and there is no target selection.
-
-Server settings control resource selection, exclusions, quantities and intervals. Follow the current interface values; client settings cannot replace the server's production list.
+By default, the hub produces **1000 of each listed resource every 20 ticks**, about **1 second** at normal speed. Each resource counts once. Use the in-game list and rates for your server's current selection, exclusions, quantities and intervals.
 
 ## Stop and resume
 
 - Select **Stop Collection** to stop supply without changing motion.
-- Matter generation and sample copying continue until you stop them on Matter Duplication.
-- When chunks are temporarily unavailable or ME is reconnecting after a restart, keep the area loaded and wait.
-- Missing blocks, a genuine disconnection or construction can stop collection. After repairs, check the page and start it again if it remains stopped.
-- Full storage does not spill products into the world. Missed production cycles are not replayed after recovery.
+- Use the Matter Duplication page to stop matter generation or sample copying separately.
+- If storage fills, free space to resume future cycles.
 
 ## Troubleshooting
 
@@ -56,8 +50,7 @@ Server settings control resource selection, exclusions, quantities and intervals
 | --- | --- |
 | Empty list, or the item you want is absent | The server chooses the list. Check that the pack includes the resource and ask the server owner about selection and exclusions. |
 | Collection appears active, but no products | Wait for startup, then check ME item capacity and storage filters for every product. |
-| Multiblock motion cannot start or dock | Clear its motion path and load the entire motion area. The chunk-loading switch itself is not motion permission. |
-| No output immediately after a restart | Let ME reconnect. If collection has stopped after recovery, start it manually. |
-| Faster collection did not speed up copying | They are separate functions; see [Matter Duplication](singularity_matter_duplication.md). |
+| Multiblock motion cannot start or dock | Clear its motion path and load the entire motion area. |
+| Collection stopped after a restart, damage or construction | Keep the area loaded and let ME reconnect. Repair any damage and finish construction. Select **Start Collection** if it remains stopped. |
 
 Select Guide on the machine's collection page to return here.

@@ -60,6 +60,6 @@ Canceling an order stops unexecuted work and returns unused ingredients. Already
 
 ## Related machines
 
-A [Sequence Array](sequence_array_controller.md) has a larger pattern library and built-in crafting. Use a [Molecular Auto Crafter](molecular_auto_crafter.md) to keep products stocked automatically. For orders that exceed your CPU's capacity, see the [Omni Computation Core](omni_computation_core.md).
+A [Sequence Array](sequence_array_controller.md) has a larger pattern library and built-in crafting. Use a [Sequence Auto Crafter](molecular_auto_crafter.md) to keep products stocked automatically. For orders that exceed your CPU's capacity, see the [Omni Computation Core](omni_computation_core.md).
 
 Settle orders before relocating. Normal removal retains patterns, unfinished contents and the wireless binding. Place the array again and restore its ME connection and power. If the wireless hub was moved or replaced, rebind the array.

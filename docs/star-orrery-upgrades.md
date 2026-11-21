@@ -69,9 +69,8 @@ L1 to L3 have the same anchor-building UI through fixed built-in entries, not co
 | L8 | 80 Terminal | 96 | 168 | 152 | None |
 | L9 | 88 Terminal | 96 | 168 | 240 | None |
 
-The cumulative columns include correctly placed anchors, so each upgrade charges only for missing
-anchors. Supply any missing anchors in damaged inner rings as well.
-Anchor target IDs are `reference`, `quantum` and `terminal`, corresponding to the real
+The cumulative columns give the total through each level, including its inner rings.
+Anchor target IDs are `reference`, `quantum` and `terminal`, corresponding to
 `molecularmanipulator:reference_star_position_anchor`, `quantum_star_position_anchor` and
 `terminal_star_position_anchor` blocks/items.
 
@@ -217,11 +216,9 @@ unavailable IDs. Unprefixed `"10"` still means hexadecimal `0x10`. Do not includ
   Under `any` / `at_least`, other genuinely passing branches may still meet the configured threshold;
   the unavailable FTB branch itself never counts as passing.
 
-The reflection bridge targets the
-[FTB Quests v2001.4.9 API](https://github.com/FTBTeam/FTB-Quests/tree/v2001.4.9/common/src/main/java/dev/ftb/mods/ftbquests/quest)
-on Minecraft 1.20.1 / Forge, as recorded in `FtbQuestsProgress`. A matching Minecraft
-version alone does not establish API compatibility; other 2001 releases, other loaders and
-future versions are not automatically covered.
+FTB Quests v2001.4.9 is the reference build for Minecraft 1.20.1 / Forge.
+If you use a different build, check for the fields and methods below. See the
+[FTB Quests v2001.4.9 API](https://github.com/FTBTeam/FTB-Quests/tree/v2001.4.9/common/src/main/java/dev/ftb/mods/ftbquests/quest).
 
 Reflection validates `ServerQuestFile.INSTANCE` / `server` / `isLoading()`, `getBase(long)`,
 `getNullableTeamData(UUID)`, `getTeamId()`, `isCompleted(QuestObject)`, the long-returning

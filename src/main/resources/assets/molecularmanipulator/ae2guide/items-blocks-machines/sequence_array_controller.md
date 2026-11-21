@@ -77,7 +77,7 @@ Click Migrate patterns to collect existing patterns from accessible pattern slot
 
 Open Stocking, insert a pattern in one of the nine dedicated slots and select it. Set the product target and ingredient reserves, click Set, then start the slot. For example, set a target of 64 planks and a reserve of 8 logs. The slot crafts below the target, pauses when it is reached and resumes as you use the products.
 
-A product target of 0 allows unlimited production. Restocking delivers to ME. See [Molecular Auto Crafter](molecular_auto_crafter.md) for the full workflow.
+A product target of 0 allows unlimited production. Restocking delivers to ME. See [Sequence Auto Crafter](molecular_auto_crafter.md) for the full workflow.
 
 ## Troubleshooting
 
@@ -92,46 +92,40 @@ A product target of 0 allows unlimited production. Restocking delivers to ME. Se
 
 ## Sequence Wireless Hub
 
-Connect a Sequence Wireless Hub to your main ME network by cable, then bind remote machines through their right sidebar. The hub provides AE2 connections across dimensions without a distance limit. No card or machine slot is required.
+Cable a Sequence Wireless Hub to your main ME network to connect several remote machines. Those machines can be any distance away, even in other dimensions.
 
 <BlockImage id="molecularmanipulator:sequence_wireless_hub" scale="4" />
 
-Craft one hub at a crafting table with 1 AE2 Quantum Link Chamber in the center and 8 Quantum Rings around it. It needs no research unlock and is available before the Star Orrery.
+Craft one hub with **1 AE2 Quantum Link Chamber** in the center of a crafting table and **8 Quantum Rings** around it. You can make it before the Star Orrery without research.
 
 <RecipeFor id="molecularmanipulator:sequence_wireless_hub" fallbackText="Crafting table: put 1 AE2 Quantum Link Chamber in the center and 8 Quantum Rings around it. Available before the Star Orrery, with no research unlock." />
 
 ### Supported machines
 
-You can bind the Matter Fabrication Well, Sequence Array, Molecular Sequence Rewrite Array, Molecular Auto Crafter, Star Computation Engine, multiblock Omni Computation Core, Event Horizon Singularity Hub and Compact Singularity Hub. The Transfinite Compute Nexus does not support this connection.
-
-Remote connection is available on machine tabs and autocrafting configuration pages. On fabrication ports and Pattern Assemblies, it manages the well controller's binding. Construction, formation, research and channel requirements still apply.
+The hub supports the Matter Fabrication Well, Sequence Array, Molecular Sequence Rewrite Array, Sequence Auto Crafter, Star Computation Engine, multiblock Omni Computation Core, Event Horizon Singularity Hub and Compact Singularity Hub. Use a cable or another external ME device for the Transfinite Compute Nexus. The well's ports and Pattern Assemblies share its controller's binding. Each machine still has its own building, research and channel requirements.
 
 ### Bind a receiver
 
-1. Remove the receiver's external ME cables. If it has a quantum slot, remove its singularity too. These connection methods cannot operate together.
-2. Click Remote connection in the right sidebar.
-3. Select a loaded hub owned by the same team as the receiver. Check its name, dimension, coordinates and online text, then click Connect selected hub. Selecting the row alone does not bind it.
+1. Disconnect external ME cables from the receiver and empty its quantum slot if it has one.
+2. Open **Remote connection** in the right sidebar of a machine tab or its autocrafting settings.
+3. Select a hub. Check its name, dimension, coordinates and online status, then click **Connect selected hub** to bind it.
 
-With FTB Teams, ownership comes from the team that placed the receiver. Its team members and administrators can manage the connection. The list shows only loaded hubs owned by that team, and cross-team bindings cannot connect. Without FTB Teams, ownership is per player. Opening a panel leaves ownership unchanged, and normal receiver access restrictions still apply.
+With FTB Teams, the list shows loaded hubs owned by the team that placed the receiver. That team's members and administrators can manage the binding. Without FTB Teams, the hub and receiver must belong to the same player. Opening the panel leaves ownership as it was, and the machine's access rules still apply.
 
-The panel's upper section shows the current binding and actual link status. Use the online text to check the connection; purple active 3D thumbnails are decorative. Click Disconnect to unbind. Each page lists three hubs. Browse with the page buttons or mouse wheel. Tab and arrow keys focus controls, Enter activates them and Esc closes the panel.
+Use the text at the top of the panel to check the current binding and link status. Click **Disconnect** to clear the binding. The list shows three hubs per page. Use the page buttons or scroll to browse. Use Tab and the arrow keys to focus controls, Enter to activate them and Esc to close the panel.
 
-An AE2 Memory Card is an optional way to bind. Sneak-right-click the hub with the card, then right-click the machine. To unbind, sneak-right-click the machine with a selected card. You can put the card away afterward. It follows the same team checks.
+The sidebar leaves machine slots free and needs no card. To use an optional AE2 Memory Card, sneak-right-click the hub with it, then right-click the machine. To unbind, sneak-right-click the machine with the card after selecting a hub. You can put the card away afterward. The same ownership and access rules apply.
 
 ### Power, channels and loaded chunks
 
-The hub is an AE2 dense node with 32 channels by default, subject to AE2 configuration. A machine may use channels for more than one internal device, so 32 channels do not guarantee 32 receivers.
+The hub can carry **32 channels** with default AE2 settings. Some machines use more than one. Supply **64 AE/t** for the hub at idle and **512 AE/t** for each established wireless link, on top of the machines' own power costs. Keep both ends loaded using your usual chunk-loading setup, including the machine's multiblock option where available.
 
-Supply 64 AE/t for the hub, plus 512 AE/t per established wireless link and the machines' own power costs. Keep both hub and receiver chunks loaded. Wireless does not load chunks; existing multiblock chunk-loading settings still apply.
-
-Receiver bindings survive normal saves, removal recovery and building packaging. The hub keeps its identity across world restarts. Breaking, replacing or moving it gives it a new identity, requiring each receiver to be rebound.
-
-Empty-hand right-click the hub to see status, link count and usage. Its markings are black offline and purple when powered, wired and online. It emits 0 world light.
+Bindings survive saves, normal machine recovery and building packaging. If you break, move or replace the hub itself, select it again and rebind each machine. Right-click the hub with an empty hand to see its status, connection count and usage. The hub emits **0 block light**.
 
 ## Quantum connection and relocation
 
-You can also use paired Quantum Entangled Singularities while the wireless hub is disconnected. Put one in the controller's quantum slot and its partner in a powered AE2 quantum bridge. This link needs an additional 512 AE/t and one channel, and can supply construction materials before formation.
+You can also use paired Quantum Entangled Singularities while the wireless hub is disconnected. Put one in the controller's quantum slot and its partner in a powered AE2 quantum bridge. This link needs an additional **512 AE/t and one channel**. It can supply construction materials before formation.
 
-Before relocating, settle external crafting orders, then use Reclaim Package to pack the whole machine. Click once, then confirm within three seconds. The package retains the pattern library, internal contents and wireless binding. See [Folded Buildings and Relocation](folded_buildings.md) for placement. If you also move or replace the wireless hub, rebind the array afterward.
+Before relocating, settle external crafting orders. Click Reclaim Package and confirm within **three seconds**. The package keeps the pattern library, internal contents and wireless binding. Follow [Folded Buildings and Relocation](folded_buildings.md) to place it.
 
-Colors and local effects settings affect only visuals. For more order-handling capacity, see the [Omni Computation Core](omni_computation_core.md). For restocking in one block, use a [Molecular Auto Crafter](molecular_auto_crafter.md).
+For more order-handling capacity, see the [Omni Computation Core](omni_computation_core.md). For restocking in one block, use a [Sequence Auto Crafter](molecular_auto_crafter.md).

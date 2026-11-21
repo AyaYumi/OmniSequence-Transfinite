@@ -9,7 +9,8 @@ Players can use the machines without implementing either interface; see the [pla
 普通整批接单先看[批量接口](omni-batch-provider-api.zh-CN.md)。玩家无需实现这些接口，
 搭建与操作见[玩家指南](../README.zh-CN.md)。
 
-Current for OmniSequence 20.3.0.3, Minecraft 1.20.1 / Forge, Java 17, AE2 15.4.10, AppliedEnhancements 1.1.2-forge+ (compile API 1.1.4-forge).
+Current for OmniSequence 20.3.0.3 on Minecraft 1.20.1 / Forge with Java 17 and AE2 15.4.10.
+Compile against AppliedEnhancements 1.1.4-forge and install a version in `[1.1.2-forge,1.2)`.
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is
@@ -99,13 +100,12 @@ byproducts, and report actual accepted output rather than planned production.
 A saturated long projection alone does not reject a plan or confer exact CPU
 execution support. Cancellation and rollback still follow material ownership.
 
-NeoECOAE is optional. Native batch and exact-count integration uses the **20.5.10+ Forge API**.
-Trinity/Thunderbolt private dispatch hooks require matching runtime APIs. Optional CPU ABI
-declarations are compile-only, excluded from runtime classpaths and release JARs, and do
-not provide implementations. Single crafts, full batches, final one-craft remainders and
-blocking fallback retain the original
-crafting-job UUID. Job-directed byproducts and surplus stay in CPU storage;
-only the amount actually awaited advances expected-output progress.
+NeoECOAE is optional. For native batch and exact-count integration on Forge,
+use NeoECOAE **20.5.10 or later**. Trinity and Thunderbolt private dispatch hooks require matching
+runtime APIs. Single crafts, full batches, final one-craft remainders and
+blocking fallback retain the original crafting-job UUID. Job-directed byproducts
+and surplus stay in CPU storage. Only the amount actually awaited advances
+expected-output progress.
 
 ## 中文
 
@@ -130,7 +130,6 @@ only the amount actually awaited advances expected-output progress.
 继续原始完整工作量；主产物和副产物逐 AEKey 记账，按真实接收数量报告，不能用
 计划产量代替已经交付的产量。long 投影饱和不等于拒绝，也不保证 CPU 具备精确执行能力。
 
-NeoECOAE 为可选依赖，原生批量和精确数量联动使用 **20.5.10+ Forge API**。
-Trinity／Thunderbolt 私有发配钩子须匹配真实运行时接口；仅供编译的 CPU ABI 声明不进入运行时
-类路径或发布 JAR，也不提供模组实现。单份、整批、单份尾单和阻挡回退都保留原合成任务
-UUID。定向返回的副产物和超产余量留在 CPU 中，只有实际等待的数量推进预计产物进度。
+NeoECOAE 为可选依赖。原生批量和精确数量联动需要 Forge 版 NeoECOAE **20.5.10 或更高版本**。
+Trinity 和 Thunderbolt 私有发配钩子须匹配运行时接口。单份、整批、单份尾单和阻挡回退都保留原合成任务 UUID。
+定向返回的副产物和超产余量留在 CPU 中，只有实际等待的数量推进预计产物进度。

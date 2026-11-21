@@ -333,89 +333,6 @@ public final class OmniRenderGeometry {
                 scaleAlpha(startColor, 0.76F), scaleAlpha(endColor, 0.76F));
     }
 
-    /**
-     * Draw a continuous round tube along a sampled curve. A parallel-transport
-     * frame carries the cross-section along the path, avoiding the visible
-     * twisting and square joints produced by independent beam segments.
-     */
-    public static void smoothTubePath(PoseStack.Pose pose,
-            VertexConsumer consumer, Vec3[] points,
-            float startRadius, float endRadius, int radialSegments,
-            int startColor, int endColor) {
-        if (points == null || points.length < 2) {
-            return;
-        }
-        int sides = Math.max(5, Math.min(12, radialSegments));
-        Vec3[] tangents = new Vec3[points.length];
-        Vec3[] rights = new Vec3[points.length];
-        Vec3[] depths = new Vec3[points.length];
-        for (int index = 0; index < points.length; index++) {
-            tangents[index] = pathTangent(points, index);
-            if (index == 0) {
-                Vec3 reference = Math.abs(tangents[index].y) < 0.92D
-                        ? new Vec3(0.0D, 1.0D, 0.0D)
-                        : new Vec3(1.0D, 0.0D, 0.0D);
-                rights[index] = tangents[index].cross(reference).normalize();
-            } else {
-                Vec3 transported = rights[index - 1].subtract(tangents[index]
-                        .scale(rights[index - 1].dot(tangents[index])));
-                if (transported.lengthSqr() < 1.0E-8D) {
-                    Vec3 reference = Math.abs(tangents[index].y) < 0.92D
-                            ? new Vec3(0.0D, 1.0D, 0.0D)
-                            : new Vec3(1.0D, 0.0D, 0.0D);
-                    transported = tangents[index].cross(reference);
-                }
-                rights[index] = transported.normalize();
-            }
-            depths[index] = tangents[index].cross(rights[index]).normalize();
-        }
-
-        for (int index = 0; index < points.length - 1; index++) {
-            float t0 = index / (float) (points.length - 1);
-            float t1 = (index + 1) / (float) (points.length - 1);
-            float radius0 = startRadius + (endRadius - startRadius) * t0;
-            float radius1 = startRadius + (endRadius - startRadius) * t1;
-            int color0 = lerpColor(startColor, endColor, t0);
-            int color1 = lerpColor(startColor, endColor, t1);
-            for (int side = 0; side < sides; side++) {
-                double a0 = Math.PI * 2.0D * side / sides;
-                double a1 = Math.PI * 2.0D * (side + 1) / sides;
-                Vec3 start0 = tubePoint(points[index], rights[index], depths[index],
-                        radius0, a0);
-                Vec3 start1 = tubePoint(points[index], rights[index], depths[index],
-                        radius0, a1);
-                Vec3 end0 = tubePoint(points[index + 1], rights[index + 1],
-                        depths[index + 1], radius1, a0);
-                Vec3 end1 = tubePoint(points[index + 1], rights[index + 1],
-                        depths[index + 1], radius1, a1);
-                gradientFace(pose, consumer,
-                        start0, color0, end0, color1,
-                        end1, color1, start1, color0);
-            }
-        }
-    }
-
-    /** Draw a tube with three additive falloff shells for a soft halo. */
-    public static void smoothTubePath(PoseStack.Pose pose,
-            VertexConsumer consumer, Vec3[] points,
-            float startRadius, float endRadius, int radialSegments,
-            int startColor, int endColor, boolean softGlow) {
-        if (!softGlow) {
-            smoothTubePath(pose, consumer, points, startRadius, endRadius,
-                    radialSegments, startColor, endColor);
-            return;
-        }
-        smoothTubePath(pose, consumer, points,
-                startRadius * 2.05F, endRadius * 2.05F, radialSegments,
-                scaleAlpha(startColor, 0.12F), scaleAlpha(endColor, 0.12F));
-        smoothTubePath(pose, consumer, points,
-                startRadius * 1.42F, endRadius * 1.42F, radialSegments,
-                scaleAlpha(startColor, 0.28F), scaleAlpha(endColor, 0.28F));
-        smoothTubePath(pose, consumer, points,
-                startRadius * 0.90F, endRadius * 0.90F, radialSegments,
-                scaleAlpha(startColor, 0.78F), scaleAlpha(endColor, 0.78F));
-    }
-
     /** Draw the twelve edges of an arbitrarily oriented box. */
     public static void wireframeBox(PoseStack.Pose pose, VertexConsumer consumer,
             Vec3 center, Vec3 firstAxis, Vec3 secondAxis, Vec3 thirdAxis,
@@ -570,12 +487,6 @@ public final class OmniRenderGeometry {
             return new Vec3(0.0D, 1.0D, 0.0D);
         }
         return tangent.normalize();
-    }
-
-    private static Vec3 tubePoint(Vec3 center, Vec3 right, Vec3 depth,
-            float radius, double angle) {
-        return center.add(right.scale(Math.cos(angle) * radius))
-                .add(depth.scale(Math.sin(angle) * radius));
     }
 
     /** Interpolate packed ARGB colors, including alpha. */

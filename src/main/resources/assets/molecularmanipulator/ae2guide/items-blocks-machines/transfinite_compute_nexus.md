@@ -66,7 +66,7 @@ The nexus can take several orders at any level. Overclocking at L1 to L8 doubles
 
 ## Related machines
 
-Use a [Molecular Sequence Rewrite Array](molecular_sequence_rewrite_array.md) or [Sequence Array](sequence_array_controller.md) to store patterns and perform recipes. A [Molecular Auto Crafter](molecular_auto_crafter.md) keeps everyday products stocked without terminal orders.
+Use a [Molecular Sequence Rewrite Array](molecular_sequence_rewrite_array.md) or [Sequence Array](sequence_array_controller.md) to store patterns and perform recipes. A [Sequence Auto Crafter](molecular_auto_crafter.md) keeps everyday products stocked without terminal orders.
 
 For more simultaneous or larger orders, upgrade the [Star Computation Engine](star_computation_engine.md) on the same network. Keep enough item storage, energy and crafting capacity for those orders.
 

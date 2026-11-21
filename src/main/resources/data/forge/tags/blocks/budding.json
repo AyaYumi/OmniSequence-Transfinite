@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "molecularmanipulator:flawless_star_marrow_parent_rock",
+    "molecularmanipulator:flawed_star_marrow_parent_rock",
+    "molecularmanipulator:damaged_star_marrow_parent_rock",
+    "molecularmanipulator:heavily_damaged_star_marrow_parent_rock"
+  ]
+}

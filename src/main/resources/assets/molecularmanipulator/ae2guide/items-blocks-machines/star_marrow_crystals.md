@@ -8,6 +8,7 @@ item_ids:
 - molecularmanipulator:primordial_crystal_core
 - molecularmanipulator:star_marrow_seed
 - molecularmanipulator:star_marrow_crystal
+- molecularmanipulator:star_marrow_crystal_block
 - molecularmanipulator:star_marrow_crystal_dust
 - molecularmanipulator:star_marrow_alloy_ingot
 - molecularmanipulator:star_chart_circuit_board
@@ -24,7 +25,7 @@ item_ids:
 
 # Star Marrow Crystals
 
-Grow Star Marrow Crystals on parent rocks, then process them in the Fabrication Well into boards, processors and alloys for star machinery. Start by crafting Primordial Crystal Cores and converting them into seeds at the Twin Singularity Observation Ring.
+Grow Star Marrow Crystals on parent rocks. Process them in the Fabrication Well to make Star Chart Processors, Star Marrow Alloy Ingots and other machine parts.
 
 <Row>
 <ItemImage id="molecularmanipulator:primordial_crystal_core" scale="5" />
@@ -36,12 +37,10 @@ Grow Star Marrow Crystals on parent rocks, then process them in the Fabrication 
 <ItemImage id="molecularmanipulator:star_marrow_crystal" scale="5" />
 </Row>
 
-Left to right: Primordial Crystal Core, Star Marrow Seed, Flawed parent rock and Star Marrow Crystal.
+## Before you start
 
-## Requirements
-
-- For 2 Primordial Crystal Cores, gather one each of Charged Certus Quartz Crystal, Sky Stone Dust, Amethyst Shard, Snowball and Ender Pearl Dust.
-- Find AE2 Budding Certus Quartz. Any of its four quality stages can become a Heavily Damaged Star Marrow Parent Rock with one seed.
+- Gather one Charged Certus Quartz Crystal, one Sky Stone Dust, one Amethyst Shard, one Snowball and one Ender Pearl Dust to craft **2 Primordial Crystal Cores**.
+- Find any of the four grades of AE2 Budding Certus Quartz.
 - Bring a pickaxe and a way to supply 16 AE/t, or equivalent FE, to the Twin Singularity Observation Ring in the End. Its power console needs no channel.
 
 <RecipeFor id="molecularmanipulator:primordial_crystal_core" />
@@ -50,23 +49,20 @@ Left to right: Primordial Crystal Core, Star Marrow Seed, Flawed parent rock and
 
 Find the small ruin south of the main End island, near **X 0, Z 224**. Read its three inscriptions in order. The symbols depend on the world seed and stay the same on later visits. Insert an Ender Pearl in the warp pad's socket, then right-click each key with an empty hand until it matches its inscription.
 
-Stand in the center of the pad and right-click it with an empty hand to travel. On your first trip, the pad pulses while the destination loads. Step off during this wait to cancel.
+Stand on the pad and right-click its center with an empty hand. On your first trip, wait for the destination to load. Step off the pad to cancel.
 
-New laboratories generate 24 blocks higher than before. Existing laboratories and their return pads stay where they are.
+The new laboratory pad is at Y 189, 24 blocks above the old pad. Existing laboratories and their return pads stay in place.
 
-At the ring, find the Power Console, Input Cradle and Output Cradle.
+1. Supply the ring's **Power Console** with AE or FE. The ring must be intact.
+2. Hold Primordial Crystal Cores and right-click the **Input Cradle** to load **1–64 cores**.
+3. Empty-hand right-click the input cradle or central power console to start the whole stack. The **Output Cradle** needs room for every seed in the batch.
+4. After **160 powered ticks**, or **8 seconds** at normal speed, right-click the output cradle with an empty hand to collect the seeds. You get one seed per core. A full stack takes the same time as one core, and you start each batch by hand.
 
-1. Supply the power console with AE or FE and keep the ring intact.
-2. Hold Primordial Crystal Cores and right-click the input cradle to load **1–64 cores**.
-3. Empty-hand right-click the input cradle or **central power console** to start the **whole loaded stack**. The output cradle must have room for every resulting seed at once.
-4. On startup, a sound plays and charging rings appear over the input cradle and power console before the cores are drawn in. The full process takes **8 seconds** at default power settings. One core becomes one seed; a full stack takes the same time as one core.
-5. Empty-hand right-click the output cradle to collect the seeds. **Start each batch yourself**; completion does not automatically start another.
-
-Shift + empty-hand right-click takes unstarted cores back from the input. Power loss or insufficient output room pauses an active batch without losing it. The cradles use direct right-click controls and cannot be operated through a GUI, hopper or ME item connection.
+To retrieve unstarted cores, hold Shift and right-click the input cradle with an empty hand. The batch pauses if power runs out or the output cradle cannot fit the result. Use the cradles by hand. They have no GUI or connection for hoppers or ME items.
 
 ## Convert a parent rock
 
-Right-click a supported rock with a Star Marrow Seed. Each use consumes one seed:
+Right-click the rock with a **Star Marrow Seed**. Each use spends one seed and moves the rock one step.
 
 | Rock before use | Rock after use |
 | --- | --- |
@@ -74,13 +70,11 @@ Right-click a supported rock with a Star Marrow Seed. Each use consumes one seed
 | Heavily Damaged Star Marrow Parent Rock | Damaged Star Marrow Parent Rock |
 | Damaged Star Marrow Parent Rock | Flawed Star Marrow Parent Rock |
 
-Starting from any AE2 budding stage, three seeds in total reach Flawed. You can grow crystals at any Star Marrow parent-rock tier. Seeds stop at Flawed; obtaining Flawless requires the lantern simulation described below.
+The first seed gives you a parent rock that can grow crystals. Three seeds in total take it from Budding Certus Quartz to Flawed, the highest grade seeds can reach.
 
 ## Grow and harvest crystals
 
-1. Leave space around the parent rock's faces. Buds can grow on all six sides.
-2. Keep the area loaded and let buds grow through Small Bud, Medium Bud and Large Bud into a mature Cluster.
-3. Mine the mature cluster with a pickaxe, leaving the parent rock in place to grow more.
+Keep the area loaded and leave at least one face open. Buds can grow on any of the six faces. Small buds grow into medium buds, large buds and then clusters.
 
 <Row>
 <BlockImage id="molecularmanipulator:star_marrow_crystal_bud_small" scale="4" />
@@ -92,19 +86,23 @@ Starting from any AE2 budding stage, three seeds in total reach Flawed. You can 
 <BlockImage id="molecularmanipulator:star_marrow_crystal_cluster" scale="4" />
 </Row>
 
-A mature cluster drops 3 crystals, increased by Fortune. Silk Touch gives the cluster block instead. Moving a cluster does not replace the parent rock needed for further growth.
+Mine mature clusters with a pickaxe and leave the parent rock in place. A cluster drops **3 crystals** and Fortune can increase the yield. Silk Touch drops the cluster itself.
 
-Damaged and Flawed rocks can lose a quality tier as crystals grow. Heavily Damaged rocks cannot degrade further, and Flawless rocks never degrade.
+Whenever a bud appears or advances a stage, a Flawed, Damaged or Heavily Damaged parent rock has a **1 in 12** chance to lose one grade. Flawed becomes Damaged, Damaged becomes Heavily Damaged, and Heavily Damaged becomes a **Star Marrow Crystal Block** that no longer grows crystals. Flawless parent rocks never decay.
+
+You can also craft one Star Marrow Crystal Block by filling a crafting table's 3×3 grid with **9 Star Marrow Crystals**.
+
+<RecipeFor id="molecularmanipulator:star_marrow_crystal_block" />
 
 ## Make star materials in the well
 
-Use naturally grown crystals to complete Tier II: Star Marrow Materials in [Fabrication Research](matter_fabrication_research.md). It needs 16 crystals plus the other materials listed in the research panel. Store research materials in ME.
+Store **16 Star Marrow Crystals** and the other materials shown on the well's research page in ME. Then complete **Tier II: Star Marrow Materials** in [Fabrication Research](matter_fabrication_research.md).
 
-The five products below are made in the Fabrication Well using [ports](matter_fabrication_ports.md) or [processing patterns](matter_fabrication_pattern_assembly.md). Their base processing time is 20 seconds before star-engine bonuses. They need no signal, Flawless parent rock or star-research unlock.
+The five well recipes below take **20 seconds** each before bonuses from the Star Computation Engine. They need no signal, Flawless parent rock or star research. Feed them through [ports](matter_fabrication_ports.md) or with [processing patterns](matter_fabrication_pattern_assembly.md).
 
-- Make Circuit Boards, then combine them with redstone and Printed Silicon for Star Chart Processors. Loose Silicon cannot replace Printed Silicon. Boards need no catalyst.
-- Make Crystal Dust, then Alloy Ingots. Include the fluid input for the alloy recipe.
-- Make Star Signal Storage Components for [signal storage cells](star_signal_flow.md).
+- Make Star Chart Circuit Boards without a catalyst. Combine them with redstone and Printed Silicon to make Star Chart Processors.
+- Make Star Marrow Crystal Dust. Use it with water to make Star Marrow Alloy Ingots.
+- Use Star Signal Storage Components to craft [signal storage cells](star_signal_flow.md).
 
 <RecipeFor id="molecularmanipulator:star_chart_circuit_board" />
 
@@ -116,26 +114,14 @@ The five products below are made in the Fabrication Well using [ports](matter_fa
 
 <RecipeFor id="molecularmanipulator:star_signal_storage_component" />
 
-## Optional: make crystals from signal and water
+## Optional crystal production from signal and water
 
-Natural growth supplies all crystals needed to get started. For automated production, first make a [Star Sea Calculation Mainframe](star_sea_calculation_mainframe.md), [signal storage](star_signal_flow.md) and a [Simulation Lantern](simulation_lantern.md).
+Use your first Star Chart Processor to make a [Star Sea Calculation Mainframe](star_sea_calculation_mainframe.md), then install [Star Signal Storage](star_signal_flow.md). Use a [Simulation Lantern](simulation_lantern.md) to enter the simulation and mine a Flawed Star Marrow Parent Rock yourself. The Flawless rock you get is the catalyst.
 
-### Obtain a Flawless parent rock
-
-1. Repair a parent rock to Flawed with seeds.
-2. Hold a lit Simulation Lantern, preferably in your offhand so you can use a pickaxe. Follow the [lantern controls](simulation_lantern.md) to enter its simulation.
-3. Mine the Flawed rock yourself while the simulation is active. You receive a permanent Flawless parent rock. Place it for growth or keep it as a catalyst.
-
-This costs no lantern fuel, AE or extra seed. Until harvested, the world block remains Flawed and can decay as buds grow. If it falls below Flawed, you receive its real lower tier. Automatic mining cannot give the simulation reward.
-
-### Set up Signal-Induced Crystallization
-
-1. Complete Tier II: Signal-Induced Crystallization after Star Marrow Materials.
-2. Put one Flawless Star Marrow Parent Rock in the Catalyst page of any assembly in this well. It is retained without downgrading, and one is enough for larger batches.
-3. Encode the recipe below as a processing pattern, including 1024 bit Star Signal Flow and 8000 mB water. Leave the rock out of the consumed inputs.
-4. Request crystals in ME. Each execution produces 64 crystals at a base 20 seconds and 512 AE/t, without consuming existing crystals.
-
-The Pattern Assembly supplies signal; item and fluid ports alone cannot do so. Signal, water and power requirements scale with the number of executions.
+1. Complete **Tier II: Signal-Induced Crystallization** after Star Marrow Materials.
+2. Put **one Flawless Star Marrow Parent Rock** in the **Catalyst** page of any Pattern Assembly in this well. You can reuse it in larger batches too.
+3. Encode a processing pattern with **1,024 bit of Star Signal Flow** and **8,000 mB of water**. Keep the rock in the catalyst slot and put the pattern in a Pattern Assembly in this well.
+4. Request crystals in ME. One run makes **64 crystals** in **20 seconds at 512 AE/t** before bonuses. Signal, water and power scale with the number of recipe copies.
 
 <RecipeFor id="molecularmanipulator:star_marrow_crystal" />
 
@@ -143,12 +129,5 @@ The Pattern Assembly supplies signal; item and fluid ports alone cannot do so. S
 
 | Problem | Fix |
 | --- | --- |
-| A core does nothing to a rock | Convert it into a seed at the ring first. |
-| The cradle refuses an item or waits | It accepts cores only. Check ring power and space for the entire seed batch. Boards are made in the well. |
-| A seed stops working | Check that the target is AE2 Budding Certus Quartz or a Heavily Damaged/Damaged Star Marrow rock. Seeds stop at Flawed; use the lantern route for Flawless. |
-| No crystals grow | Clear the parent rock's faces and keep the area loaded. Wait for mature clusters before harvesting. |
-| Signal recipe waits | Check its research, ME signal/water supply and a Flawless rock in this well's catalyst slots. |
-
-## Signal production
-
-Use your first processor to make a [Star Sea Calculation Mainframe](star_sea_calculation_mainframe.md), then install [Star Signal Storage](star_signal_flow.md). See [Simulation Lantern](simulation_lantern.md) for its controls.
+| The cradle rejects the input | Use a Primordial Crystal Core. Make Star Chart Circuit Boards in the well. |
+| The signal recipe waits | Check the well's research, ME supplies of signal and water, and the Flawless parent rock in the Catalyst page. |

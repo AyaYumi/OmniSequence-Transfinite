@@ -48,7 +48,7 @@ Remove deletes only this terminal's record. It does not dismantle the machine, c
 <ItemIcon id="molecularmanipulator:compact_singularity_hub" />
 </ItemGrid>
 
-- Molecular Sequence Rewrite Array, Sequence Array and Molecular Auto Crafter.
+- Molecular Sequence Rewrite Array, Sequence Array and Sequence Auto Crafter.
 - Matter Fabrication Well, with its four item/fluid service ports and Pattern Assembly also bindable separately.
 - Star Computation Engine / Star Orrery: a formed central casing, observation port or valid Star Anchor can bind its core.
 - Multiblock Omni Computation Core, and both multiblock and compact Singularity Hubs.

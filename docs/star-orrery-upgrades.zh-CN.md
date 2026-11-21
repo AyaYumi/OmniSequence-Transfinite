@@ -60,10 +60,9 @@ L1 至 L3 使用固定内置条目提供同样的材料搭建界面，不受自�
 | L8 | 80 个终末星位锚 | 96 | 168 | 152 | 无 |
 | L9 | 88 个终末星位锚 | 96 | 168 | 240 | 无 |
 
-累计数量包含正确位置已有的星位锚，每次只需补齐缺少的材料。
-若内环被破坏，也须准备其缺少的星位锚。档位 ID 为 `reference`、`quantum`、`terminal`，
-对应实际方块 / 物品 `molecularmanipulator:reference_star_position_anchor`、
-`quantum_star_position_anchor`、`terminal_star_position_anchor`，不会生成虚拟星环或无材料方块。
+累计数量是该等级及其内环所需星位锚的总数。档位 ID 为 `reference`、`quantum`、`terminal`，
+对应方块和物品 `molecularmanipulator:reference_star_position_anchor`、
+`quantum_star_position_anchor`、`terminal_star_position_anchor`。
 
 仅 L4 至 L9 的声明条件、能量、抽取上限与 `auto_build` 可配置。虽然 codec 接受 `level: 1..9`，
 L1 至 L3 始终使用固定自动条目；自定义规则也不能跳过认证等级。
@@ -185,9 +184,8 @@ long 字符串；小数不接受。不要把 FTB ID 当数字，也不要把这�
   不兼容时，返回不可用且未完成，不忽略要求。若配置 `any` / `at_least`，其他真实通过的
   分支仍可按配置满足阈值；不可用的 FTB 分支本身绝不会算通过。
 
-目标 `FtbQuestsProgress` 注明反射接口基准为 Minecraft 1.20.1 / Forge 上的
-[FTB Quests v2001.4.9 API](https://github.com/FTBTeam/FTB-Quests/tree/v2001.4.9/common/src/main/java/dev/ftb/mods/ftbquests/quest)。
-仅 Minecraft 版本相同不能证明接口兼容；不自动覆盖其他 2001 版本、其他加载器或未来版本。
+FTB Quests v2001.4.9 是 Minecraft 1.20.1 / Forge 的参考版本。换用其他版本时，先核对下列字段和方法。
+源码见 [FTB Quests v2001.4.9 API](https://github.com/FTBTeam/FTB-Quests/tree/v2001.4.9/common/src/main/java/dev/ftb/mods/ftbquests/quest)。
 
 桥反射校验 `ServerQuestFile.INSTANCE` / `server` / `isLoading()`、`getBase(long)`、
 `getNullableTeamData(UUID)`、`getTeamId()`、`isCompleted(QuestObject)`、

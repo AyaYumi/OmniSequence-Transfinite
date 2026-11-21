@@ -40,7 +40,7 @@ Unless a count is stated, one completion of each prerequisite is enough. The tab
 
 | Research | Complete first | What it opens | Time / AE per tick |
 | --- | --- | --- | --- |
-| I · AE Foundation | Nothing | AE processing, Pattern Assembly, Molecular Auto Crafter | 30 s / 256 |
+| I · AE Foundation | Nothing | AE processing, Pattern Assembly, Sequence Auto Crafter | 30 s / 256 |
 | II · Star Marrow Materials | AE Foundation | Boards, processors, dust, alloy, signal components and later star anchors | 45 s / 512 |
 | II · Extended Materials | AE Foundation | ExtendedAE materials and parts needed for progression | 45 s / 512 |
 | II · Quantum Materials | Extended Materials | AdvancedAE materials and parts needed for progression | 60 s / 1024 |
@@ -64,7 +64,7 @@ This requirement applies to all default machine integrations and pack-added mach
 
 The [Star Computation Engine](star_computation_engine.md) is a nine-ring Star Orrery. Its research is separate from well research. The default Recipe Tree contains one team unlock, Single-Block Integration. Reach L3 and click Unlock to obtain it for 0 bit.
 
-The Molecular Sequence Rewrite Array and Transfinite Compute Nexus need this permission as well as their well research. By default, the three matrices, star anchors and Molecular Auto Crafter need no extra star-research unlock.
+The Molecular Sequence Rewrite Array and Transfinite Compute Nexus need this permission as well as their well research. By default, the three matrices, star anchors and Sequence Auto Crafter need no extra star-research unlock.
 
 ## Order research materials through ME
 

@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.*;
 import java.lang.reflect.*;
 import java.util.*;
@@ -14,16 +15,16 @@ final class MatterNativeCpuChecks {
         try {
             var logic = assembly.getLogic();
             if (ModList.get().isLoaded("neoecoae")) {
-                var api = optional("cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider");
-                if (api == null) {
-                    helper.assertTrue(!hasInterface(logic, "ECOFastPathDispatchProvider"), "Older Forge ECO must retain ordinary AE dispatch");
-                } else {
-                    helper.assertTrue(api.isInstance(logic), "Available ECO contract must be injected");
+                var api = Class.forName("cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider");
+                var facade = Class.forName("cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade");
+                var adapted = facade.getMethod("resolveProvider", ICraftingProvider.class).invoke(null, logic);
+                helper.assertTrue(api.isInstance(adapted), "ECO must resolve the registered provider");
+                if (adapted != null) {
                     var contextType = Class.forName("cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext");
                     var context = construct(contextType, pattern,
                             MatterCpuBatchGameTests.stacks(unit).stream().map(List::of).toList(),
                             Arrays.asList(pattern.getOutputs()), List.of(), helper.getLevel(), UUID.randomUUID());
-                    var prepared = api.getMethod("eco$prepareFastPath", contextType).invoke(logic, context);
+                    var prepared = api.getMethod("eco$prepareFastPath", contextType).invoke(adapted, context);
                     helper.assertTrue(prepared != null, "Actual ECO contract must prepare the native provider");
                     var batchType = Class.forName("cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider$Batch");
                     var batch = construct(batchType, 1026L, MatterCpuBatchGameTests.stacks(MatterPatternBuffer.scaled(unit, 1026)),

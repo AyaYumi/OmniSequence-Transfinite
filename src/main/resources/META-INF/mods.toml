@@ -58,8 +58,8 @@ description='''${mod_description}
 [[dependencies.${mod_id}]]
     modId="neoecoae"
     mandatory=false
-    versionRange="[${neoeco_version},)"
-    ordering="NONE"
+    versionRange="[${neoeco_api_build},)"
+    ordering="AFTER"
     side="BOTH"
 
 [[dependencies.${mod_id}]]

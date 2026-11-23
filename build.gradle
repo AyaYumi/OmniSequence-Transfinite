@@ -182,7 +182,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_license            : mod_license,
             mod_version            : mod_version,
             ldlib2_version         : ldlib2_version,
-            neoeco_version         : neoeco_version,
+            neoeco_version         : neoeco_api_build,
             applied_enhancements_version: applied_enhancements_version,
     ]
     inputs.properties replaceProperties

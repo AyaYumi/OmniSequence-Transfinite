@@ -41,9 +41,6 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
             if (targetClassName.startsWith("net.pedroksl.advanced_ae.")) {
                 return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
             }
-            if (targetClassName.startsWith("cn.dancingsnow.neoecoae.")) {
-                return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
-            }
             return true;
         }
         if (mixinClassName.endsWith(".TrinityMatterCpuJobContextMixin")) {
@@ -54,10 +51,9 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
             return applied != null && applied.getMods().stream().anyMatch(mod ->
                     mod.getModId().equals("appliedenhancements") && mod.getVersion().toString().equals("1.1.0"));
         }
-        if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("Eco")) {
-            var eco = loadingModList == null ? null : loadingModList.getModFileById("neoecoae");
-            return eco != null && eco.getMods().stream().anyMatch(mod -> mod.getModId().equals("neoecoae")
-                    && mod.getVersion().compareTo(new org.apache.maven.artifact.versioning.DefaultArtifactVersion("21.2.10")) >= 0);
+        if (mixinClassName.endsWith(".EcoCpuDispatchMixin") || mixinClassName.endsWith(".EcoOmniCpuPlanMixin")
+                || mixinClassName.endsWith(".EcoOmniParentOrderMixin")) {
+            return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
         }
         if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("LightningWireless")) {
             // Private batch and scheduler hooks are verified only against these implementations.

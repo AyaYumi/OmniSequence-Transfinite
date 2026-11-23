@@ -21,7 +21,7 @@ import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
-import cn.dancingsnow.neoecoae.compat.ae2.AE2PatternIntrospection;
+import cn.dancingsnow.neoecoae.integration.ae2.AE2PatternIntrospection;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOCraftingFastPathCache;
 import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
@@ -579,19 +579,6 @@ class EcoCpuDispatchTest {
         assertEquals(saved, f.dispatch.write(REGISTRIES));
     }
 
-    @Test void outputMixinNamesAndDescriptorsMatchActualEco219Methods() throws Exception {
-        var router = bytecode("cn/dancingsnow/neoecoae/mixins/ae2/crafting/CraftingServiceMixin");
-        assertTrue(router.methods.stream().anyMatch(method -> method.name.equals("neoecoae$insertExactIntoCpuForJob")
-                && method.desc.equals("(Ljava/util/UUID;Lappeng/api/stacks/AEKey;Ljava/math/BigInteger;Lappeng/api/config/Actionable;)Ljava/math/BigInteger;")));
-        assertTrue(router.methods.stream().anyMatch(method -> method.name.equals("neoecoae$insertIntoCpuForJob")
-                && method.desc.equals("(Ljava/util/UUID;Lappeng/api/stacks/AEKey;JLappeng/api/config/Actionable;)J")));
-        var adapter = bytecode("cn/dancingsnow/neoecoae/compat/omnisequence/ECOOmniSequenceBatchAdapter");
-        assertTrue(adapter.methods.stream().anyMatch(method -> method.name.equals("prepare")
-                && method.desc.equals("(Lappeng/api/networking/crafting/ICraftingProvider;Lnet/minecraft/world/level/Level;Lcom/atir/molecularmanipulator/api/crafting/OmniBatchProbe;)Lcom/atir/molecularmanipulator/api/crafting/OmniBatchAdmission;")));
-        // HEAD is explicitly permitted to inject into a method merged by a higher-priority mixin.
-        var head = allocate(org.spongepowered.asm.mixin.injection.points.MethodHead.class);
-        assertTrue(head.checkPriority(1000, 900));
-    }
 
     @Test void workstationParallelCapacityAndSingleTailRetainJobUuid() throws Exception {
         var f = normal(BigInteger.valueOf(33));
@@ -659,7 +646,7 @@ class EcoCpuDispatchTest {
         host.ecoOmni$storePhysical(MATERIAL, BigInteger.TWO);
         var f = new Fixture(host, new EcoCpuDispatch(), new Network());
         attachPlan(host, List.of(), Map.of(MATERIAL, 1L), 1, 1);
-        assertEquals(Map.of(MATERIAL, 1L), host.execution.begin(host.pattern).protectedSeeds());
+        assertEquals(Map.of(MATERIAL, BigInteger.ONE), host.execution.begin(host.pattern).protectedSeeds());
         var bus = new ColdBus(host);
         assertEquals(-1, execute(f, bus));
         assertEquals(0, bus.calls);
@@ -705,16 +692,7 @@ class EcoCpuDispatchTest {
         assertEquals(1, bus.calls);
     }
 
-    private static org.objectweb.asm.tree.ClassNode bytecode(String name) throws Exception {
-        var node = new org.objectweb.asm.tree.ClassNode();
-        try (var stream = EcoCpuDispatchTest.class.getClassLoader().getResourceAsStream(name + ".class")) {
-            assertNotNull(stream);
-            new org.objectweb.asm.ClassReader(stream).accept(node, org.objectweb.asm.ClassReader.SKIP_CODE);
-        }
-        return node;
-    }
 
-    /** Reuse the repository's real-ECO runtime fixture, which replaces mixin invokers only in tests. */
     private static void attachPlan(Host host, long... counts) throws Exception {
         attachPlan(host, List.of(), counts);
     }

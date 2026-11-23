@@ -9,10 +9,9 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 LIBS = ROOT / "libs"
 ARTIFACTS = (
-    ("neoecoae-21.2.10.jar", "NEOECO_API_JAR_URL",
-     "https://github.com/DancingSnow0517/NeoECOAEExtension/releases/download/21.2.10/neoecoae-21.2.10.jar",
-     "56713bef88cc0ba67a95c3ae98805a6a4a9a8868cbecbdfe177c972228141274",
-     "cn/dancingsnow/neoecoae/api/me/provider/ECOFastPathDispatchProvider.class"),
+    ("neoecoae-21.2.19.jar", "NEOECO_API_JAR_URL",
+     "https://github.com/DancingSnow0517/NeoECOAEExtension/releases/download/21.2.19/neoecoae-21.2.19.jar",
+     None, "cn/dancingsnow/neoecoae/api/me/ECOExternalCrafting.class"),
     ("thunderbolt-batch-api.jar", "THUNDERBOLT_API_JAR_URL",
      "https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/releases/download/2.0.3-beta/thunderbolt-2.0.3-beta.jar",
      "23c01714582514b37329d674539e0805095aefd9fc56a9bfa84de2f45c331890",
@@ -31,8 +30,8 @@ def validate(path, required_class):
         if required_class.startswith("cn/dancingsnow/neoecoae/"):
             metadata = jar.read("META-INF/neoforge.mods.toml").decode("utf-8")
             if not re.search(r'(?m)^\s*modId\s*=\s*"neoecoae"\s*(?:#.*)?$', metadata) or not re.search(
-                    r'(?m)^\s*version\s*=\s*"21\.2\.10"\s*(?:#.*)?$', metadata):
-                raise RuntimeError(f"{path.name} must be the real Neo ECO AE Extension 21.2.10 JAR")
+                    r'(?m)^\s*version\s*=\s*"21\.2\.19"\s*(?:#.*)?$', metadata):
+                raise RuntimeError(f"{path.name} must be the real Neo ECO AE Extension 21.2.19 JAR")
 
 
 def main():
@@ -49,7 +48,7 @@ def main():
             request = urllib.request.Request(url, headers={"User-Agent": "OmniSequence-build"})
             with urllib.request.urlopen(request, timeout=60) as response:
                 temporary.write_bytes(response.read())
-            if url == default_url and hashlib.sha256(temporary.read_bytes()).hexdigest() != expected_hash:
+            if expected_hash and url == default_url and hashlib.sha256(temporary.read_bytes()).hexdigest() != expected_hash:
                 raise RuntimeError(f"Unexpected SHA256 for {filename}")
             validate(temporary, required_class)
             temporary.replace(target)

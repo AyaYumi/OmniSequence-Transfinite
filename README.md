@@ -27,7 +27,7 @@ Check JEI and the well's Research tab for your modpack's recipes and costs. The 
 <details>
 <summary>Optional-mod compatibility</summary>
 
-- Install Neo ECO AE Extension **21.2.10 or later** with **LDLib2 2.2.40 or later** on both client and server.
+- Install Neo ECO AE Extension **21.2.19 or later** with **LDLib2 2.2.40 or later** on both client and server.
 - AdvancedAE starts at **1.6.11**. Reaction Chamber and Quantum Crafter recipe permissions target **1.6.12-1.21.1** specifically.
 - ExtendedAE Plus **1.6.4.1** adds automatic provider selection and well uploads.
 - The Digital Storage Depot capacity fix targets Data Energistics **3.3.0** and **3.3.5**.

@@ -79,7 +79,7 @@ class EcoOmniParentOrderWiringTest {
         assertEquals(3, injections);
         assertTrue(Files.readString(Path.of("src/main/resources/molecularmanipulator.mixins.json")).contains("\"EcoOmniParentOrderMixin\""));
         assertTrue(Files.readString(Path.of("src/main/java/com/atir/molecularmanipulator/mixin/MolecularManipulatorMixinPlugin.java"))
-                .contains("startsWith(\"Eco\")"));
+                .contains("endsWith(\".EcoOmniParentOrderMixin\")"));
     }
 
     @Test void intermediateChildCannotCompleteOriginalRequesterNexusButLastChildCan() throws Exception {

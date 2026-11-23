@@ -98,6 +98,9 @@ public final class MolecularManipulator {
         event.enqueueWork(() -> {
             com.atir.molecularmanipulator.terminal.BuildingTerminalLocator.register();
             UselessBigIntegerApiBridge.register();
+            if (net.neoforged.fml.ModList.get().isLoaded("neoecoae")) {
+                com.atir.molecularmanipulator.integration.eco.OmniEcoIntegration.register();
+            }
             validateMixins();
             ModContent.bindBlockEntity();
         });

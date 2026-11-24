@@ -23,6 +23,9 @@ import java.util.function.LongSupplier;
  * work; they do not establish machine capacity or discard a learned rate.
  * Provider/pattern learning and same-tick usage survive job changes; only
  * accounting fallbacks are reset for a new job.</p>
+
+ * <p>Providers with a counted queue also learn the size of a single delivery.
+ * A successful full probe grows that size independently of ordinary call counts.</p>
  */
 public final class MolecularAdaptiveBatchController {
     private final Map<ICraftingProvider, Map<IPatternDetails, State>> states = new IdentityHashMap<>();
@@ -69,6 +72,29 @@ public final class MolecularAdaptiveBatchController {
 
     public void forceSingle(ICraftingProvider provider, IPatternDetails patternDetails) {
         if (provider != null && patternDetails != null) getState(provider, patternDetails).singleOnly = true;
+    }
+
+    /** Next size to try on an ordinary external inventory. */
+    public long getBatchProbeSize(ICraftingProvider provider, IPatternDetails pattern) {
+        var state = getState(provider, pattern);
+        return state.singleOnly ? 1 : state.batchTarget;
+    }
+
+    /** Only complete recipes count toward advancing the probe. */
+    public void onProcessingProbe(ICraftingProvider provider, IPatternDetails pattern, long attempted, long complete) {
+        var state = getState(provider, pattern);
+        state.lastAttemptOrder = nextAttemptOrder();
+        if (complete < attempted) {
+            state.batchTarget = Math.max(1, complete);
+            state.blockedTick = currentTick();
+        } else if (!state.singleOnly && complete == state.batchTarget) {
+            state.batchTarget = saturatingDouble(state.batchTarget);
+        }
+    }
+
+    private static int reprobeInterval() {
+        var interval = ModConfig.OMNI_DISPATCH_REPROBE_INTERVAL_TICKS;
+        return ModConfig.SERVER_SPEC.isLoaded() ? interval.get() : interval.getDefault();
     }
 
     /** Counts successful calls, regardless of how much work a native batch API accepts per call. */
@@ -213,6 +239,7 @@ public final class MolecularAdaptiveBatchController {
         private boolean recovering;
         private boolean singleOnly;
         private long reusableWindowCap = Long.MAX_VALUE;
+        private long batchTarget = 1;
         private long lastReusableRejectionTick = Long.MIN_VALUE;
         private int reusableRejections;
 
@@ -237,9 +264,7 @@ public final class MolecularAdaptiveBatchController {
             long observedCapacity = acceptedThisTick > 0 ? acceptedThisTick : baseline;
             // Update the learned rate on backpressure without restarting an active cooldown.
             if (!capacityKnown || growing) {
-                var interval = ModConfig.OMNI_DISPATCH_REPROBE_INTERVAL_TICKS;
-                int intervalTicks = ModConfig.SERVER_SPEC.isLoaded() ? interval.get() : interval.getDefault();
-                nextProbeTick = saturatingAdd(currentTick, intervalTicks);
+                nextProbeTick = saturatingAdd(currentTick, reprobeInterval());
             }
             baseline = observedCapacity;
             capacityKnown = true;

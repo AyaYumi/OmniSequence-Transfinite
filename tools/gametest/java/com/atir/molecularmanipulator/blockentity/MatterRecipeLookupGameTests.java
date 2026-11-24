@@ -38,7 +38,7 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder("molecularmanipulator")
 @PrefixGameTestTemplate(false)
 public final class MatterRecipeLookupGameTests {
-    private static final int RECIPES = 128, RESEARCHES = 32, LOOKUPS = 2000;
+    private static final int RECIPES = 128, RESEARCHES = 32, LOOKUPS = 6000;
 
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 400)
     public static void repeatedPatternLookup(GameTestHelper helper) {
@@ -63,15 +63,10 @@ public final class MatterRecipeLookupGameTests {
                     List.of(new GenericStack(AEItemKey.of(Items.STONE), RECIPES)));
             var pattern = PatternDetailsHelper.decodePattern(encoded, level);
             Map<AEKey, Long> inputs = Map.of(AEItemKey.of(Items.DIAMOND), 1L);
-            for (int i = 0; i < LOOKUPS; i++) MatterFabricationBatch.match(controller, pattern, inputs, 1);
-            for (int round = 0; round < 3; round++) {
-                long start = System.nanoTime();
-                for (int i = 0; i < LOOKUPS; i++) {
-                    var match = MatterFabricationBatch.match(controller, pattern, inputs, 1);
-                    helper.assertTrue(match != null && match.id().equals(id("recipe_" + RECIPES)), "Repeated lookup must select the matching output");
-                }
-                System.out.println("MATTER_LOOKUP_BENCH: recipes=" + RECIPES + " research=" + RESEARCHES + " lookups=" + LOOKUPS
-                        + " round=" + round + " elapsedMs=" + (System.nanoTime() - start) / 1_000_000.0);
+            var expected = id("recipe_" + RECIPES);
+            for (int i = 0; i < LOOKUPS; i++) {
+                var match = MatterFabricationBatch.match(controller, pattern, inputs, 1);
+                helper.assertTrue(match != null && match.id().equals(expected), "Repeated lookup must select the matching output");
             }
             helper.succeed();
         } finally { manager.replaceRecipes(original); }

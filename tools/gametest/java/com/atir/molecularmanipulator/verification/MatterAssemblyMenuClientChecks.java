@@ -107,7 +107,6 @@ public final class MatterAssemblyMenuClientChecks {
             if (++viewTicks < 12) return;
             check(menu.containerId == containerId, "All page switches must use the original open menu");
             checkSlots(menu);
-            LogUtils.getLogger().info("MATTER_ASSEMBLY_MENU_CLIENT_PAGE_PASS page={} iteration={} occupied={}", menu.view, viewIndex, menu.occupied);
             if (viewIndex == 5) {
                 var output = mc.gameDirectory.toPath().resolve("screenshots");
                 java.nio.file.Files.createDirectories(output);

@@ -65,7 +65,6 @@ public final class GravityWalkingClientChecks {
             }
             if (!(mc.screen instanceof TitleScreen)) return;
             mc.options.pauseOnLostFocus = false;
-            LogUtils.getLogger().info("GRAVITY_CLIENT_STAGE creating disposable flat world");
             stage = 1;
             mc.createWorldOpenFlows().createFreshLevel("gravity-walk-" + System.currentTimeMillis(),
                     new LevelSettings("Gravity Check", GameType.SURVIVAL, false, Difficulty.PEACEFUL, true,
@@ -77,7 +76,6 @@ public final class GravityWalkingClientChecks {
         }
         if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null) return;
         if (stage == 1) {
-            LogUtils.getLogger().info("GRAVITY_CLIENT_STAGE preparing wall and live server player");
             mc.setScreen(null);
             mc.options.setCameraType(CameraType.FIRST_PERSON);
             var id = mc.player.getUUID();
@@ -114,10 +112,7 @@ public final class GravityWalkingClientChecks {
         }
         if (stage == 2) {
             if (GravityController.direction(player) != Direction.WEST || !player.onGround()) return;
-            LogUtils.getLogger().info("GRAVITY_CLIENT_STAGE standing on wall; verifying camera and walking");
             var overlay = blockingOverlay(player);
-            LogUtils.getLogger().info("GRAVITY_FIRST_PERSON_OVERLAY eyes={} feet={} blocking={}",
-                    player.getEyePosition(), player.position(), overlay);
             screenshot(mc, "first-person-client.png");
             check(overlay == null, "Wall beneath rotated feet must not cover the first-person view");
             checkObstructionDirections(mc);

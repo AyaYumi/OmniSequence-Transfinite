@@ -102,7 +102,6 @@ public final class AntarchyGravityClientChecks {
         if (stage == 2) {
             if (GravityController.direction(player) != Direction.WEST || !player.onGround()) return;
             check(up(warmCamera(mc)).x > .999F, "Gravity crystal must retain its wall camera with Antarchy loaded");
-            LogUtils.getLogger().info("ANTARCHY_GRAVITY_STAGE crystal wall gravity active; applying overlapping Antarchy inversion");
             operation = server(mc, p -> AntarchyGravityApi.setForcedGravityDirection(p, AntarchyGravityDirection.UP));
             stage = 3; ticks = 0; return;
         }
@@ -123,8 +122,6 @@ public final class AntarchyGravityClientChecks {
             stage = 4; ticks = 0; return;
         }
         if (stage == 4) {
-            if (ticks == 0) LogUtils.getLogger().info("ANTARCHY_GRAVITY_STAGE ceiling walking position={} bounds={}",
-                    player.position(), player.getBoundingBox());
             if (ticks > 100) throw new IllegalStateException("Inverted player did not land on ceiling: "
                     + player.position() + " / " + player.getBoundingBox() + " / velocity=" + AntarchyGravityApi.getWorldVelocity(player));
             if (++ticks < 20 || !player.onGround()) return;

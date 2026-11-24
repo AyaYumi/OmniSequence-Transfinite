@@ -84,9 +84,7 @@ public final class AdvancedAEBatchGameTests {
         var service = (CraftingService) grid.getCraftingService();
         service.refreshNodeCraftingProvider(assembly.getMainNode().getNode());
         var cpu = createCpu(controller, pattern, 65_536, key, output);
-        long start = System.nanoTime();
         int operations = cpu.craftingLogic.executeCrafting(Integer.MAX_VALUE, service, grid.getEnergyService(), level);
-        double elapsed = (System.nanoTime() - start) / 1_000_000.0;
         check(helper, operations == 1 && remaining(cpu, pattern) == 0, "65,536 crafts use one actual AAE operation");
         check(helper, cpu.craftingLogic.getWaitingFor(output) == 1_048_576 && cpu.getInventory().list.isEmpty(), "Exact AAE waiting and input counts");
         check(helper, assembly.getBuffer().contents(false).getFirst().amount() == 1_048_576, "Matter queue owns all inputs");
@@ -97,7 +95,7 @@ public final class AdvancedAEBatchGameTests {
         check(helper, link.isCanceled() && !cpu.craftingLogic.hasJob(), "AAE cancellation clears the task");
         check(helper, assembly.getBuffer().contents(false).getFirst().amount() == 1_048_576, "Cancellation does not duplicate machine-owned inputs");
         assembly.getBuffer().clear();
-        System.out.println("AAE_BATCH_REAL_PASS: crafts=65536 operations=" + operations + " executeMs=" + elapsed);
+        System.out.println("AAE_BATCH_REAL_PASS: crafts=65536 operations=" + operations);
 
         OmniBatchProviderAdapterRegistry.register("test:optional_batch", 100,
                 endpoint -> {

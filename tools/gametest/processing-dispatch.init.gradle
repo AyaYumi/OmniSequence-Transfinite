@@ -29,7 +29,7 @@ allprojects {
         }
         tasks.named('runGameTestServer').configure {
             doLast {
-                def expected = ordinaryOnly ? 1 : 13
+                def expected = ordinaryOnly ? 2 : 14
                 if (!new File(runDirectory, 'logs/latest.log').text.contains("All ${expected} required tests passed"))
                     throw new GradleException('Processing dispatch regression did not pass')
             }

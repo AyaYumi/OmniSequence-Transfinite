@@ -57,25 +57,6 @@ public interface MolecularBatchCraftingProvider extends OmniPostAccountingOutput
         return false;
     }
 
-    static boolean supportsOmniDispatch(ICraftingProvider provider, IPatternDetails patternDetails) {
-        if (requiresSerialDispatch(provider)) {
-            return false;
-        }
-        if (supports(provider, patternDetails)) {
-            return true;
-        }
-
-        // AE2 and ExtendedAE both instantiate this exact logic class for their
-        // normal pattern providers. Processing inputs that could not be inserted
-        // immediately remain owned by its persistent sendList, so a bounded
-        // aggregate is still a truthful accepted dispatch. Subclasses are not
-        // opted in implicitly because they may override the queue semantics.
-        return provider != null
-                && provider.getClass() == PatternProviderLogic.class
-                && patternDetails != null
-                && patternDetails.supportsPushInputsToExternalInventory();
-    }
-
     static boolean supportsReusable(ICraftingProvider provider,
             IPatternDetails patternDetails) {
         return !requiresSerialDispatch(provider)

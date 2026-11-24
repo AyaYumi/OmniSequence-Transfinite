@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.mixin;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.pattern.AEProcessingPattern;
-import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Cancellable;
@@ -46,10 +45,7 @@ public abstract class AdvancedAEPatternProviderLogicMixin {
             }
             var key = input.what();
             long amount = input.amount();
-            long available = remaining.get(key);
-            if (available < amount) {
-                RateLimitedLog.warn("AdvancedAE provider declined pattern {}: sparse input {} needs {}, only {} available",
-                        pattern.getPrimaryOutput(), key, amount, available);
+            if (remaining.get(key) < amount) {
                 pushResult.setReturnValue(false);
                 return;
             }

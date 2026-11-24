@@ -99,8 +99,6 @@ public final class GhostMatterClientChecks {
             if (++ticks < 80) return;
             check(OmniShaders.ghostExposure() != null, "Exposure shader must compile on the actual GPU");
             check(GhostMatterExposureRenderer.intensity() > .99F, "Exposure must reach full intensity inside real matter");
-            LogUtils.getLogger().info("GHOST_CLIENT_EXPOSURE health={} maxHealth={} position={} intensity={} hurtTime={} hurtSounds={}",
-                    mc.player.getHealth(), mc.player.getMaxHealth(), mc.player.position(), GhostMatterExposureRenderer.intensity(), mc.player.hurtTime, hurtSounds);
             check(mc.player.getHealth() < 200 && mc.player.getHealth() > 0, "Real server packets must reduce health continuously: health=" + mc.player.getHealth());
             check(mc.player.hurtTime == 0 && hurtSounds == 0, "Exposure packets must produce neither flinch nor hurt sounds");
             check(Math.abs(mc.player.getDeltaMovement().x) < .001 && Math.abs(mc.player.getDeltaMovement().z) < .001,

@@ -293,9 +293,6 @@ public final class EcoMatterGameTests {
                     "Rejected native scheduling must retain every CPU material");
             // Verified native batches remain eligible after the ordinary push budget is exhausted.
             int pushed = logic.executeNormalCrafting(0, service, grid.getEnergyService(), helper.getLevel());
-            com.mojang.logging.LogUtils.getLogger().info(
-                    "MATTER_ECO_NATIVE_SCHEDULER requested={} pushed={} waiting={} owned={}",
-                    count, pushed, logic.getWaitingFor(OUTPUT), inputs(fixture));
             helper.assertTrue(pushed == count && logic.getInventory().list.isEmpty()
                             && logic.getWaitingFor(OUTPUT) == 2 * count
                             && inputs(fixture).equals(allInputs),

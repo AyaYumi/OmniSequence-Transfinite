@@ -29,8 +29,8 @@ AppliedEnhancements configuration.
 | `singularity_hub.singularity_duplication.ae_per_unit` | 256 | 1–2,147,483,647 AE/mB |
 | `singularity_hub.singularity_duplication.matter_per_black_hole` | 20 | 1–1,000,000 mB per hole per cycle |
 | `singularity_hub.singularity_duplication.interval_ticks` | 20 | 1–1200 ticks; missed cycles are not caught up |
-| `omni_computation.dispatch.omni_batch_dispatch_enabled` | true | Enable batch transfers through dedicated provider interfaces. Ordinary providers always use adaptive single-craft pushes. |
-| `omni_computation.dispatch.omni_dispatch_reprobe_interval_ticks` | 20 | 1–1200 ticks before adaptive dispatch tries a higher rate after provider backpressure |
+| `omni_computation.dispatch.omni_batch_dispatch_enabled` | true | Enable counted delivery to compatible external inventories and atomic batches for dedicated provider interfaces. |
+| `omni_computation.dispatch.omni_dispatch_reprobe_interval_ticks` | 20 | 1–1200 ticks before probing above the learned single-craft rate again |
 | `omni_computation.dispatch.omni_dispatch_limits_enabled` | true | Enforce the work-unit, single-craft call and shared single-craft time budgets below. |
 | `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 256–2,147,483,647; complete fallback calls per controller/tick safety ceiling |
 | `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 50000 | 250–50000 microseconds; shared compatibility deadline |

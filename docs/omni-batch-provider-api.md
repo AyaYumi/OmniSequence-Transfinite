@@ -18,15 +18,14 @@ one craft at a time. Implement this SPI only when the machine wants an
 Omni-Computation Core or Transfinite Compute Nexus to allocate several complete crafts and deliver them as
 one atomic transaction.
 
-Ordinary providers also receive adaptive dispatch through their existing
-`pushPattern` contract, including multi-input recipes and custom implementations.
-The first ordinary call contains one original task. Further complete calls grow
-in same-tick rounds of 1, 2, 4, 8, ... until the provider becomes busy or rejects a
-call. Omni retains the actual successful calls per tick as the baseline and, after
-20 ticks, probes that baseline plus 1, 2, 4, 8, ... again. Native doubled tasks
-retain their identity and counts. This requires no additional provider interface;
-the atomic SPI below remains unchanged and available for providers that can accept
-one counted transaction.
+Omni can batch to compatible AE2 and ExtendedAE external inventories without a
+provider API. Available providers for the same pattern take turns. Each provider
+starts with one recipe and doubles its next probe after a complete delivery
+(1, 2, 4, 8, 16, …). Ingredients for recipes that never started stay in the CPU.
+The provider keeps only the missing materials from the last recipe if delivery
+started but could not finish. Blocking and crafting locks use normal AE2 checks.
+Other providers can use the atomic SPI below or accept full single recipes through
+`pushPattern`. Native doubled tasks keep their identity and counts.
 
 Advanced AE quantum CPUs also use this provider contract through the optional
 integration. The single-block nexus adds no new provider ABI or resource format.

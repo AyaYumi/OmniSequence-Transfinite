@@ -22,6 +22,9 @@ import java.util.function.LongSupplier;
  * work; they do not establish machine capacity or discard a learned rate.
  * Provider/pattern learning and same-tick usage survive job changes; only
  * accounting fallbacks are reset for a new job.</p>
+
+ * <p>Providers with a counted queue also learn the size of a single delivery.
+ * A successful full probe grows that size independently of ordinary call counts.</p>
  */
 public final class MolecularAdaptiveBatchController {
     static final long RECOVERY_PROBE_INTERVAL_TICKS = 20L;
@@ -70,6 +73,24 @@ public final class MolecularAdaptiveBatchController {
 
     public void forceSingle(ICraftingProvider provider, IPatternDetails patternDetails) {
         if (provider != null && patternDetails != null) getState(provider, patternDetails).singleOnly = true;
+    }
+
+    /** Next size to try on an ordinary external inventory. */
+    public long getBatchProbeSize(ICraftingProvider provider, IPatternDetails pattern) {
+        var state = getState(provider, pattern);
+        return state.singleOnly ? 1 : state.batchTarget;
+    }
+
+    /** Only complete recipes count toward advancing the probe. */
+    public void onProcessingProbe(ICraftingProvider provider, IPatternDetails pattern, long attempted, long complete) {
+        var state = getState(provider, pattern);
+        state.lastAttemptOrder = nextAttemptOrder();
+        if (complete < attempted) {
+            state.batchTarget = Math.max(1, complete);
+            state.blockedTick = currentTick();
+        } else if (!state.singleOnly && complete == state.batchTarget) {
+            state.batchTarget = saturatingDouble(state.batchTarget);
+        }
     }
 
     /** acceptedCalls counts successful pushes, not recipe copies in a native batch. */
@@ -214,6 +235,7 @@ public final class MolecularAdaptiveBatchController {
         private boolean recovering;
         private boolean singleOnly;
         private long reusableWindowCap = Long.MAX_VALUE;
+        private long batchTarget = 1;
         private long lastReusableRejectionTick = Long.MIN_VALUE;
         private int reusableRejections;
 

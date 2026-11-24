@@ -10,14 +10,12 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ListCraftingInventory;
 import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime.DispatchCandidate;
 import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -26,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.IntFunction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -276,12 +273,14 @@ class EcoOmniPlanExecutionTest {
         assertFalse(envelope.getCompound("signature").getList("used", Tag.TAG_COMPOUND).isEmpty());
         assertEquals("DEFINITION", envelope.getList("identities", Tag.TAG_COMPOUND).getCompound(0).getString("kind"));
         var bindings = Map.of(0, a, 1, b);
-        var restoredRuntime = ReflectiveRuntime.restore(plan, bindings, fixture.execution.remainingByTask(), tag.getCompound("runtime"));
-        var candidates = restoredRuntime.runtime.candidates(Map.of(a, 4L, b, 6L));
+        var remaining = fixture.execution.remainingByTask();
+        var restoredRuntime = ECOExecutionRuntime.restoreExternalCpu(plan, bindings,
+                id -> EcoOmniPlanExecution.boundedRemaining(remaining, id), tag.getCompound("runtime"), REGISTRIES);
+        var candidates = restoredRuntime.candidates(Map.of());
         assertEquals(b, candidates.getFirst().pattern());
         assertEquals(1, candidates.getFirst().orderedStepIndex());
         assertEquals(6, candidates.getFirst().maxDispatchCount(), "ECO preserves its repeat-group batch allowance");
-        assertTrue(restoredRuntime.ecoOmni$protectedSeed(candidates.getFirst()).isEmpty());
+        assertTrue(restoredRuntime.exactProtectedStartupSeed(candidates.getFirst()).isEmpty());
     }
 
     @Test void exactTaskDistributionRetainsAllOwnersAndHugeFixedInputTail() {
@@ -446,16 +445,15 @@ class EcoOmniPlanExecutionTest {
         assertEquals(tag, saved);
     }
 
-    @Test void taskProgressConstructionScopeRestoresNestedAndExceptionalCallers() {
-        assertNull(EcoOmniPlanRuntimeScope.remaining());
-        EcoOmniPlanRuntimeScope.withRemaining(id -> BigInteger.TWO, () -> {
-            assertEquals(BigInteger.TWO, EcoOmniPlanRuntimeScope.remaining().apply(7));
-            assertThrows(IllegalArgumentException.class, () -> EcoOmniPlanRuntimeScope.withRemaining(id -> BigInteger.TEN,
-                    () -> { throw new IllegalArgumentException(); }));
-            assertEquals(BigInteger.TWO, EcoOmniPlanRuntimeScope.remaining().apply(7));
-            return null;
-        });
-        assertNull(EcoOmniPlanRuntimeScope.remaining());
+    @Test void externalTaskProgressIsScopedToItsRuntime() {
+        var pattern = pattern(Items.STICK, IRON, 1, 1);
+        var plan = plan(List.of(task(0, pattern, 2, 0)),
+                List.of(phase(0, Type.DAG, List.of(0), List.of(), List.of(), Map.of(), Map.of())),
+                ExecutionMode.PHASED_DAG);
+        var active = ECOExecutionRuntime.forExternalCpu(plan, Map.of(0, pattern), id -> 2);
+        var finished = ECOExecutionRuntime.forExternalCpu(plan, Map.of(0, pattern), id -> 0);
+        assertEquals(2, active.candidates(Map.of()).getFirst().maxDispatchCount());
+        assertTrue(finished.candidates(Map.of()).isEmpty());
     }
 
     private static Method cpuHandler(String name, Class<?>... types) throws ReflectiveOperationException {
@@ -482,15 +480,17 @@ class EcoOmniPlanExecutionTest {
         }
     }
 
-    private record Fixture(EcoOmniPlanExecution execution, ReflectiveRuntime runtime) {}
+    private record Fixture(EcoOmniPlanExecution execution) {}
     private static Fixture fixture(ECOExecutionPlan plan, Map<Integer, BigInteger> totals,
             Map<AEKey, BigInteger> stock, Map<AEKey, BigInteger> emitted) {
         var bindings = new LinkedHashMap<Integer, IPatternDetails>();
         plan.tasks().forEach(task -> bindings.put(task.id(), task.pattern()));
-        var runtime = new ReflectiveRuntime(plan, bindings, totals);
-        var execution = new EcoOmniPlanExecution(plan, bindings, totals, totals, stock, emitted,
-                Set.of(ResourceLocation.parse("test:fuzzy")), BigInteger.TEN.pow(25), UUID.randomUUID(), runtime.runtime, runtime);
-        return new Fixture(execution, runtime);
+        var remaining = new LinkedHashMap<>(totals);
+        var runtime = ECOExecutionRuntime.forExternalCpu(plan, bindings,
+                id -> EcoOmniPlanExecution.boundedRemaining(remaining, id));
+        var execution = new EcoOmniPlanExecution(plan, bindings, totals, remaining, stock, emitted,
+                Set.of(ResourceLocation.parse("test:fuzzy")), BigInteger.TEN.pow(25), UUID.randomUUID(), runtime);
+        return new Fixture(execution);
     }
 
     private static ECOExecutionPlan.TaskSpec task(int id, IPatternDetails pattern, long count, int phase) {
@@ -530,79 +530,4 @@ class EcoOmniPlanExecutionTest {
         var slot = new KeyCounter(); slot.add(key, count); return new KeyCounter[]{slot};
     }
 
-    /** Uses ECO's own live TaskProgress binding in place of our taskRemaining injection. */
-    private static final class ReflectiveRuntime implements EcoOmniPlanRuntimeAccess {
-        private final ECOExecutionRuntime runtime;
-        private final Object progress;
-        private final Map<Integer, BigInteger> totals;
-        private IntFunction<BigInteger> remaining;
-        private static final Class<?> PROGRESS;
-        static {
-            try { PROGRESS = Class.forName("cn.dancingsnow.neoecoae.crafting.execution.ExecutingCraftingJob$TaskProgress"); }
-            catch (ReflectiveOperationException exception) { throw new AssertionError(exception); }
-        }
-        ReflectiveRuntime(ECOExecutionPlan plan, Map<Integer, IPatternDetails> bindings, Map<Integer, BigInteger> totals) {
-            this.totals = totals;
-            progress = Array.newInstance(PROGRESS, plan.tasks().size());
-            try {
-                var constructor = PROGRESS.getDeclaredConstructor(); constructor.setAccessible(true);
-                for (int id = 0; id < plan.tasks().size(); id++) {
-                    var value = constructor.newInstance();
-                    Array.set(progress, id, value);
-                    method(PROGRESS, "setExact", BigInteger.class, BigInteger.class).invoke(value, totals.get(id), totals.get(id));
-                }
-                var runtimeConstructor = ECOExecutionRuntime.class.getDeclaredConstructor(ECOExecutionPlan.class, Map.class, progress.getClass());
-                runtimeConstructor.setAccessible(true);
-                runtime = runtimeConstructor.newInstance(plan, bindings, progress);
-            } catch (ReflectiveOperationException exception) { throw new AssertionError(exception); }
-        }
-        private ReflectiveRuntime(ECOExecutionRuntime runtime, Object progress, Map<Integer, BigInteger> totals) {
-            this.runtime = runtime; this.progress = progress; this.totals = totals;
-        }
-        static ReflectiveRuntime restore(ECOExecutionPlan plan, Map<Integer, IPatternDetails> bindings,
-                Map<Integer, BigInteger> remaining, CompoundTag tag) {
-            var totals = new LinkedHashMap<Integer, BigInteger>();
-            plan.tasks().forEach(task -> totals.put(task.id(), BigInteger.valueOf(task.totalCount())));
-            var base = new ReflectiveRuntime(plan, bindings, totals);
-            base.ecoOmni$bindRemaining(id -> remaining.getOrDefault(id, BigInteger.ZERO));
-            try {
-                var runtime = (ECOExecutionRuntime) method(ECOExecutionRuntime.class, "fromNBT", ECOExecutionPlan.class,
-                        Map.class, base.progress.getClass(), CompoundTag.class, HolderLookup.Provider.class)
-                        .invoke(null, plan, bindings, base.progress, tag, REGISTRIES);
-                // Production binds the same task-ID progress during construction through RuntimeScope.
-                return new ReflectiveRuntime(runtime, base.progress, remaining);
-            } catch (ReflectiveOperationException exception) { throw new AssertionError(exception); }
-        }
-        private static Method method(Class<?> type, String name, Class<?>... types) {
-            try { var method = type.getDeclaredMethod(name, types); method.setAccessible(true); return method; }
-            catch (ReflectiveOperationException exception) { throw new AssertionError(exception); }
-        }
-        private Object invoke(String name, Class<?>[] types, Object... args) {
-            try { return method(ECOExecutionRuntime.class, name, types).invoke(runtime, args); }
-            catch (ReflectiveOperationException exception) { throw new AssertionError(exception); }
-        }
-        private void synchronizeProgress() {
-            try {
-                for (int id = 0; id < totals.size(); id++) method(PROGRESS, "setExact", BigInteger.class, BigInteger.class)
-                        .invoke(Array.get(progress, id), totals.get(id), remaining.apply(id));
-            } catch (ReflectiveOperationException exception) { throw new AssertionError(exception); }
-        }
-        @Override public void ecoOmni$bindRemaining(IntFunction<BigInteger> remaining) { this.remaining = remaining; synchronizeProgress(); }
-        @Override public BigInteger ecoOmni$exactAllowance(DispatchCandidate candidate, BigInteger remaining) {
-            return (BigInteger) invoke("exactAllowance", new Class<?>[]{DispatchCandidate.class, BigInteger.class}, candidate, remaining);
-        }
-        @Override public void ecoOmni$acceptedExact(DispatchCandidate candidate, BigInteger count, KeyCounter[] inputs) {
-            synchronizeProgress();
-            invoke("onAcceptedExact", new Class<?>[]{DispatchCandidate.class, BigInteger.class, KeyCounter[].class}, candidate, count, inputs);
-        }
-        @SuppressWarnings("unchecked") @Override public Map<AEKey, Long> ecoOmni$protectedSeed(DispatchCandidate candidate) {
-            return (Map<AEKey, Long>) invoke("protectedStartupSeed", new Class<?>[]{DispatchCandidate.class}, candidate);
-        }
-        @Override public long ecoOmni$limitCycleBatch(DispatchCandidate candidate, KeyCounter[] inputs, ListCraftingInventory inventory, long upper) {
-            return (long) invoke("limitCycleBatch", new Class<?>[]{DispatchCandidate.class, KeyCounter[].class, ListCraftingInventory.class, long.class}, candidate, inputs, inventory, upper);
-        }
-        @Override public void ecoOmni$write(CompoundTag tag, HolderLookup.Provider registries) {
-            invoke("writeToNBT", new Class<?>[]{CompoundTag.class, HolderLookup.Provider.class}, tag, registries);
-        }
-    }
 }

@@ -99,7 +99,7 @@ byproducts, and report actual accepted output rather than planned production.
 A saturated long projection alone does not reject a plan or confer exact CPU
 execution support. Cancellation and rollback still follow material ownership.
 
-The optional ECO integration requires 21.2.10 or later. Single crafts, full
+The optional ECO integration requires 21.2.19 or later. Single crafts, full
 batches, final one-craft remainders and blocking fallback retain the original
 crafting-job UUID. Job-directed byproducts and surplus stay in CPU storage;
 only the amount actually awaited advances expected-output progress.
@@ -127,5 +127,5 @@ only the amount actually awaited advances expected-output progress.
 继续原始完整工作量；主产物和副产物逐 AEKey 记账，按真实接收数量报告，不能用
 计划产量代替已经交付的产量。long 投影饱和不等于拒绝，也不保证 CPU 具备精确执行能力。
 
-可选 ECO 兼容要求 21.2.10 或更高。单份、整批、单份尾单和阻挡回退都保留原合成任务
+可选 ECO 兼容要求 21.2.19 或更高。单份、整批、单份尾单和阻挡回退都保留原合成任务
 UUID。定向返回的副产物和超产余量留在 CPU 中，只有实际等待的数量推进预计产物进度。

@@ -11,7 +11,7 @@ import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvi
 import java.util.HashSet;
 import java.util.Set;
 
-final class MolecularManipulatorLogic extends PatternProviderLogic implements MolecularBatchCraftingProvider {
+public final class MolecularManipulatorLogic extends PatternProviderLogic implements MolecularBatchCraftingProvider {
     private final MolecularManipulatorBlockEntity machine;
     private final Set<IPatternDetails> availablePatterns = new HashSet<>();
     private boolean patternRebuildScheduled;

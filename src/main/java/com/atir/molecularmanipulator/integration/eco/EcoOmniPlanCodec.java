@@ -87,10 +87,10 @@ public final class EcoOmniPlanCodec {
         var signatureTag = tag.getCompound("signature");
         var output = GenericStack.readTag(registries, signatureTag.getCompound("output"));
         if (output == null || output.amount() <= 0) throw new IllegalArgumentException("Invalid ECO signature output");
-        ECOExecutionPlan decoded;
-        try (var scope = EcoOmniPlanDecodeScope.open(level, available)) {
-            decoded = ECOExecutionPlanNbtCodec.decode(tag.getCompound("eco"), registries, null, output);
-        }
+        var decoded = ECOExecutionPlanNbtCodec.decode(tag.getCompound("eco"), registries, output, definition -> {
+            var bound = available.get(definition);
+            return bound == null ? appeng.api.crafting.PatternDetailsHelper.decodePattern(definition, level) : bound;
+        });
         var identities = tag.getList("identities", Tag.TAG_COMPOUND);
         if (identities.size() != decoded.tasks().size()) throw new IllegalArgumentException("ECO identity vector changed");
         for (var task : decoded.tasks()) {

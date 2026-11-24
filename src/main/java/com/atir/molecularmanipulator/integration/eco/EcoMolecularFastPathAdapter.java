@@ -4,9 +4,7 @@ import appeng.api.networking.crafting.ICraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
-import cn.dancingsnow.neoecoae.compat.ae2.AE2PatternIntrospection;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOCraftingFastPathCache;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
+import cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
@@ -14,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** ECO 21.2.9 optional integration. Loaded only through the gated mixins. */
 public final class EcoMolecularFastPathAdapter {
     private EcoMolecularFastPathAdapter() { }
 
@@ -30,24 +27,7 @@ public final class EcoMolecularFastPathAdapter {
             if (model == null) {
                 return null;
             }
-            var execution = context.execution();
-            if (!execution.canUseFastPath() || execution.key() == null) {
-                return null;
-            }
-            // The public calculator requires a cache-issued credential bound
-            // to this precise execution. Issue our independently checked input
-            // model; the molecular batcher verifies actual assembly and all
-            // remainders again before acquiring ownership. The native ECO
-            // pool is admitted only after proving its breaking convention.
-            var cache = new ECOCraftingFastPathCache(ECOCraftingFastPathCache.MIN_CACHE_SIZE);
-            long tick = context.level().getGameTime();
-            cache.putPositive(execution.key(), context.outputs(), context.containerItems(),
-                    context.inputItems(), tick, model.calculatorModel());
-            var lookup = cache.lookup(execution, tick, AE2PatternIntrospection.reloadGeneration());
-            if (!lookup.isVerified()) {
-                return null;
-            }
-            var calculator = ECOStatefulBatchCalculator.create(lookup.recipe(), execution);
+            var calculator = ECOFastPathFacade.prepareStatefulCalculator(context, model.calculatorModel());
             if (calculator == null) {
                 return null;
             }

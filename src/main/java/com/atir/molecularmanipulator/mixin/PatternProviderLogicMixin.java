@@ -1,17 +1,29 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.config.Actionable;
+import appeng.api.config.LockCraftingMode;
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.implementations.blockentities.ICraftingMachine;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
+import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.helpers.patternprovider.PatternProviderTarget;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchAdmission;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchDelivery;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchDelivery.Backpressure;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchDelivery.Ownership;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchDelivery.Receipt;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchDelivery.Rejection;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchDelivery.RejectReason;
+import com.atir.molecularmanipulator.api.crafting.OmniBatchProbe;
 import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
+import com.atir.molecularmanipulator.integration.ae2.MolecularQueuedBatchProvider;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -24,6 +36,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -38,7 +51,7 @@ import java.util.List;
 
 @Mixin(value = PatternProviderLogic.class, remap = false)
 public abstract class PatternProviderLogicMixin
-        implements MolecularBalancedBatchProvider {
+        implements MolecularBalancedBatchProvider, MolecularQueuedBatchProvider {
     @Unique
     private static final long MOLECULARMANIPULATOR_FAIR_SEND_BUDGET_NANOS = 2_000_000L;
     @Unique
@@ -56,6 +69,8 @@ public abstract class PatternProviderLogicMixin
             "molecularmanipulatorSmartQueueVersion";
     @Unique
     private static final int MOLECULARMANIPULATOR_SMART_QUEUE_VERSION = 2;
+    @Unique
+    private static final int MOLECULARMANIPULATOR_QUEUED_BATCH_VERSION = 3;
     @Unique
     private static final int MOLECULARMANIPULATOR_SEED_MOVED = 1;
     @Unique
@@ -81,6 +96,19 @@ public abstract class PatternProviderLogicMixin
     private Direction sendDirection;
 
     @Shadow
+    private int roundRobinIndex;
+
+    @Shadow
+    private void onPushPatternSuccess(IPatternDetails pattern) {
+        throw new AssertionError();
+    }
+
+    @Shadow
+    private boolean sendStacksOut() {
+        throw new AssertionError();
+    }
+
+    @Shadow
     public abstract void saveChanges();
 
     @Unique
@@ -94,10 +122,19 @@ public abstract class PatternProviderLogicMixin
     @Unique
     private boolean molecularmanipulator$balancingBatch;
     @Unique
-    private boolean molecularmanipulator$requireFullBatchAcceptance;
-    // Set only when restoring old saves. Keep the marker until their queued material is sent.
+    private int molecularmanipulator$smartQueueVersion;
     @Unique
-    private boolean molecularmanipulator$smartQueueOwned;
+    private boolean molecularmanipulator$smartQueueProgress;
+    @Unique
+    private boolean molecularmanipulator$sendingSmartQueue;
+    @Unique
+    private boolean molecularmanipulator$committingQueuedBatch;
+    @Unique
+    private KeyCounter[] molecularmanipulator$queuedProbeInputs;
+    @Unique
+    private boolean molecularmanipulator$queuedProbeDedicatedMachine;
+    @Unique
+    private boolean molecularmanipulator$queuedProbeCheckedTargets;
     @Unique
     private MolecularScaledPattern molecularmanipulator$temporaryScaledPattern;
 
@@ -110,7 +147,6 @@ public abstract class PatternProviderLogicMixin
     public void molecularmanipulator$beginBalancedBatch(KeyCounter[] firstInputs) {
         molecularmanipulator$initialBatchAmounts.clear();
         molecularmanipulator$balancingBatch = false;
-        molecularmanipulator$requireFullBatchAcceptance = false;
         if (firstInputs == null || !sendList.isEmpty()) {
             return;
         }
@@ -140,11 +176,206 @@ public abstract class PatternProviderLogicMixin
     }
 
     @Override
-    public void molecularmanipulator$beginAdaptiveBatch(KeyCounter[] firstInputs) {
-        molecularmanipulator$beginBalancedBatch(firstInputs);
-        molecularmanipulator$requireFullBatchAcceptance =
-                molecularmanipulator$balancingBatch;
+    @Nullable
+    public OmniBatchAdmission molecularmanipulator$prepareQueuedBatch(OmniBatchProbe probe) {
+        var provider = (PatternProviderLogic) (Object) this;
+        if (!MolecularQueuedBatchProvider.supports(provider, probe.pattern())
+                || molecularmanipulator$queuedProbeInputs != null || molecularmanipulator$balancingBatch
+                || provider.isBusy() || !mainNode.isActive() || !patterns.contains(probe.pattern())
+                || provider.getCraftingLockedReason() != LockCraftingMode.NONE) {
+            return null;
+        }
+
+        var pattern = (AEProcessingPattern) probe.pattern();
+        var slots = pattern.getInputs();
+        if (probe.oneCraftInputs().size() != slots.length) {
+            return null;
+        }
+        var seedInputs = new KeyCounter[slots.length];
+        var recipe = new Object2LongLinkedOpenHashMap<AEKey>();
+        long maxCrafts = probe.requestedMaxCrafts();
+        for (var input : probe.oneCraftInputs()) {
+            int slot = input.slot();
+            if (slot >= slots.length || seedInputs[slot] != null) {
+                return null;
+            }
+            var candidates = slots[slot].getPossibleInputs();
+            if (candidates.length != 1 || candidates[0] == null
+                    || !input.key().equals(candidates[0].what()) || candidates[0].amount() != 1
+                    || input.amount() != slots[slot].getMultiplier() || recipe.containsKey(input.key())) {
+                return null;
+            }
+            var counter = new KeyCounter();
+            counter.add(input.key(), input.amount());
+            seedInputs[slot] = counter;
+            recipe.put(input.key(), input.amount());
+            maxCrafts = Math.min(maxCrafts, Long.MAX_VALUE / input.amount());
+        }
+        if (maxCrafts < 2) {
+            return null;
+        }
+
+        var ordered = new ArrayList<GenericStack>();
+        var sparseTotals = new Object2LongOpenHashMap<AEKey>();
+        for (var stack : pattern.getSparseInputs()) {
+            if (stack == null) {
+                continue;
+            }
+            long prior = sparseTotals.getLong(stack.what());
+            if (stack.amount() <= 0 || stack.amount() > recipe.getLong(stack.what()) - prior) {
+                return null;
+            }
+            sparseTotals.put(stack.what(), prior + stack.amount());
+            ordered.add(stack);
+        }
+        if (!recipe.equals(sparseTotals)) {
+            return null;
+        }
+        long capacity = maxCrafts;
+        return MolecularQueuedBatchProvider.admission(capacity,
+                delivery -> molecularmanipulator$commitQueuedBatch(
+                        provider, pattern, seedInputs, recipe, ordered, capacity, delivery));
     }
+
+    @Unique
+    private void molecularmanipulator$commitQueuedBatch(PatternProviderLogic provider, AEProcessingPattern pattern,
+            KeyCounter[] seedInputs, Object2LongLinkedOpenHashMap<AEKey> recipe, List<GenericStack> ordered,
+            long capacity, OmniBatchDelivery delivery) {
+        var request = delivery.request();
+        if (request.pattern() != pattern || !patterns.contains(pattern)) {
+            delivery.reject(Rejection.reject(RejectReason.PATTERN_UNAVAILABLE));
+            return;
+        }
+        long count = request.craftCount();
+        if (count > capacity || request.inputs().size() != seedInputs.length) {
+            delivery.reject(Rejection.reject(RejectReason.UNSUPPORTED_INPUT));
+            return;
+        }
+        var seen = new boolean[seedInputs.length];
+        for (var input : request.inputs()) {
+            int slot = input.slot();
+            if (slot >= seedInputs.length || seen[slot]
+                    || input.amount() != seedInputs[slot].get(input.key()) * count) {
+                delivery.reject(Rejection.reject(RejectReason.UNSUPPORTED_INPUT));
+                return;
+            }
+            seen[slot] = true;
+        }
+        if (provider.isBusy() || !mainNode.isActive()) {
+            delivery.reject(Rejection.reject(RejectReason.CAPACITY_CHANGED));
+            return;
+        }
+        if (molecularmanipulator$queuedProbeInputs != null || molecularmanipulator$balancingBatch
+                || provider.getCraftingLockedReason() != LockCraftingMode.NONE) {
+            delivery.reject(Rejection.reject(RejectReason.OTHER));
+            return;
+        }
+
+        // Run AE2's real selection and simulation, including blocking and mod hooks. The
+        // wraps below defer all stateful parts of the push until its final result is known.
+        var oldDirection = sendDirection;
+        int oldRoundRobinIndex = roundRobinIndex;
+        molecularmanipulator$queuedProbeInputs = seedInputs;
+        Direction selectedDirection;
+        int nextRoundRobinIndex;
+        boolean accepted;
+        boolean dedicatedMachine;
+        boolean checkedTargets;
+        try {
+            sendDirection = null;
+            accepted = provider.pushPattern(pattern, seedInputs);
+            selectedDirection = sendDirection;
+            nextRoundRobinIndex = roundRobinIndex;
+            dedicatedMachine = molecularmanipulator$queuedProbeDedicatedMachine;
+            checkedTargets = molecularmanipulator$queuedProbeCheckedTargets;
+        } finally {
+            sendDirection = oldDirection;
+            roundRobinIndex = oldRoundRobinIndex;
+            molecularmanipulator$queuedProbeInputs = null;
+            molecularmanipulator$queuedProbeDedicatedMachine = false;
+            molecularmanipulator$queuedProbeCheckedTargets = false;
+        }
+        if (!accepted || selectedDirection == null || dedicatedMachine) {
+            var reason = checkedTargets && !dedicatedMachine && selectedDirection == null && !accepted
+                    ? RejectReason.CAPACITY_CHANGED : RejectReason.OTHER;
+            delivery.reject(Rejection.reject(reason));
+            return;
+        }
+
+        molecularmanipulator$committingQueuedBatch = true;
+        try {
+            try {
+                // Preserve every encoded slot in the provider's durable ownership queue.
+                for (var stack : ordered) {
+                    sendList.add(new GenericStack(stack.what(), stack.amount() * count));
+                }
+                sendDirection = selectedDirection;
+                molecularmanipulator$queuedBatchAmounts.putAll(recipe);
+                molecularmanipulator$smartQueueVersion = MOLECULARMANIPULATOR_QUEUED_BATCH_VERSION;
+                saveChanges();
+                delivery.accept(new Receipt(Ownership.PERSISTED_PROVIDER_QUEUE, Backpressure.MAY_ACCEPT_MORE));
+            } catch (RuntimeException | Error failure) {
+                sendList.clear();
+                sendDirection = oldDirection;
+                molecularmanipulator$queuedBatchAmounts.clear();
+                molecularmanipulator$smartQueueVersion = 0;
+                throw failure;
+            }
+
+            // The CPU accounts for accepted deliveries before flushing the queue.
+            roundRobinIndex = nextRoundRobinIndex;
+            try {
+                onPushPatternSuccess(pattern);
+            } finally {
+                mainNode.ifPresent((grid, node) -> grid.getTickManager().alertDevice(node));
+            }
+        } finally {
+            molecularmanipulator$committingQueuedBatch = false;
+        }
+    }
+
+    @Override
+    public boolean molecularmanipulator$flushQueuedBatch() {
+        return molecularmanipulator$smartQueueVersion != 0 && sendStacksOut();
+    }
+
+    @Inject(method = "pushPattern", at = @At("HEAD"), cancellable = true)
+    private void molecularmanipulator$preventReentrantPushDuringProbe(IPatternDetails pattern, KeyCounter[] inputs,
+            CallbackInfoReturnable<Boolean> callback) {
+        if (molecularmanipulator$queuedProbeInputs != null && molecularmanipulator$queuedProbeInputs != inputs) {
+            callback.setReturnValue(false);
+        }
+    }
+
+    @WrapOperation(method = "pushPattern", at = @At(value = "INVOKE",
+            target = "Lappeng/api/implementations/blockentities/ICraftingMachine;pushPattern(Lappeng/api/crafting/IPatternDetails;[Lappeng/api/stacks/KeyCounter;Lnet/minecraft/core/Direction;)Z"))
+    private boolean molecularmanipulator$skipDedicatedMachineDuringProbe(ICraftingMachine machine,
+            IPatternDetails pattern, KeyCounter[] inputs, Direction side, Operation<Boolean> original) {
+        if (molecularmanipulator$queuedProbeInputs != null) {
+            molecularmanipulator$queuedProbeDedicatedMachine = true;
+            return false;
+        }
+        return original.call(machine, pattern, inputs, side);
+    }
+
+    @Inject(method = "pushPattern", at = @At(value = "INVOKE",
+            target = "Lappeng/helpers/patternprovider/PatternProviderLogic;rearrangeRoundRobin(Ljava/util/List;)V"))
+    private void molecularmanipulator$markExternalTargetCheck(IPatternDetails pattern, KeyCounter[] inputs,
+            CallbackInfoReturnable<Boolean> callback) {
+        if (molecularmanipulator$queuedProbeInputs != null) {
+            molecularmanipulator$queuedProbeCheckedTargets = true;
+        }
+    }
+
+    @WrapOperation(method = "pushPattern", at = @At(value = "INVOKE",
+            target = "Lappeng/helpers/patternprovider/PatternProviderLogic;onPushPatternSuccess(Lappeng/api/crafting/IPatternDetails;)V"))
+    private void molecularmanipulator$deferPushSuccessDuringProbe(PatternProviderLogic provider,
+            IPatternDetails pattern, Operation<Void> original) {
+        if (molecularmanipulator$queuedProbeInputs == null) {
+            original.call(provider, pattern);
+        }
+    }
+
 
     @Override
     public void molecularmanipulator$endBalancedBatch() {
@@ -162,7 +393,6 @@ public abstract class PatternProviderLogicMixin
             }
         }
         molecularmanipulator$balancingBatch = false;
-        molecularmanipulator$requireFullBatchAcceptance = false;
         molecularmanipulator$initialBatchAmounts.clear();
         if (saveBatchState) {
             saveChanges();
@@ -208,6 +438,9 @@ public abstract class PatternProviderLogicMixin
             PatternProviderTarget target, KeyCounter[] inputs, Operation<Boolean> original,
             @Local(argsOnly = true) IPatternDetails patternDetails,
             @Share("scaledExternalInputs") LocalRef<List<GenericStack>> prepared) {
+        if (molecularmanipulator$queuedProbeDedicatedMachine) {
+            return false;
+        }
         if (!original.call(provider, target, inputs)) {
             return false;
         }
@@ -228,6 +461,10 @@ public abstract class PatternProviderLogicMixin
     private void molecularmanipulator$pushPreparedScaledInputs(IPatternDetails patternDetails,
             KeyCounter[] inputs, IPatternDetails.PatternInputSink inputSink, Operation<Void> original,
             @Share("scaledExternalInputs") LocalRef<List<GenericStack>> prepared) {
+        if (molecularmanipulator$queuedProbeInputs != null) {
+            original.call(patternDetails, inputs, (IPatternDetails.PatternInputSink) (key, amount) -> {});
+            return;
+        }
         var ordered = prepared.get();
         if (ordered == null) {
             original.call(patternDetails, inputs, inputSink);
@@ -236,22 +473,6 @@ public abstract class PatternProviderLogicMixin
         for (var entry : ordered) {
             inputSink.pushInput(entry.what(), entry.amount());
         }
-    }
-
-    @WrapOperation(method = "adapterAcceptsAll", at = @At(value = "INVOKE",
-            target = "Lappeng/helpers/patternprovider/PatternProviderTarget;insert(Lappeng/api/stacks/AEKey;JLappeng/api/config/Actionable;)J"))
-    private long molecularmanipulator$requireCompleteAdaptiveBatch(
-            PatternProviderTarget target, AEKey key, long amount, Actionable mode,
-            Operation<Long> original) {
-        if (molecularmanipulator$requireFullBatchAcceptance) {
-            molecularmanipulator$forgetTemporaryScaledPattern();
-        }
-        long inserted = original.call(target, key, amount, mode);
-        if (molecularmanipulator$requireFullBatchAcceptance
-                && amount > 0 && inserted < amount) {
-            return 0;
-        }
-        return inserted;
     }
 
     @WrapOperation(method = "lambda$pushPattern$2", at = @At(value = "INVOKE",
@@ -274,9 +495,8 @@ public abstract class PatternProviderLogicMixin
         molecularmanipulator$queuedBatchAmounts.clear();
         molecularmanipulator$legacyBatchRefund.clear();
         int smartQueueVersion = tag.getInt(MOLECULARMANIPULATOR_SMART_QUEUE_VERSION_TAG);
-        molecularmanipulator$smartQueueOwned =
-                smartQueueVersion >= MOLECULARMANIPULATOR_SMART_QUEUE_VERSION
-                        && !sendList.isEmpty();
+        molecularmanipulator$smartQueueVersion = !sendList.isEmpty()
+                && smartQueueVersion >= MOLECULARMANIPULATOR_SMART_QUEUE_VERSION ? smartQueueVersion : 0;
         var savedBatchRecipe = tag.getList(
                 MOLECULARMANIPULATOR_BATCH_RECIPE_TAG, Tag.TAG_COMPOUND);
         try {
@@ -305,10 +525,10 @@ public abstract class PatternProviderLogicMixin
 
         boolean recoverUnsafeAdaptiveBatch = !savedBatchRecipe.isEmpty()
                 && !sendList.isEmpty()
-                && !molecularmanipulator$smartQueueOwned
+                && molecularmanipulator$smartQueueVersion == 0
                 && ((Object) this).getClass() == PatternProviderLogic.class;
         if (!recoverUnsafeAdaptiveBatch
-                && (molecularmanipulator$smartQueueOwned
+                && (molecularmanipulator$smartQueueVersion != 0
                         || !molecularmanipulator$isLegacyBatchQueue())) {
             if (sendList.isEmpty()) {
                 molecularmanipulator$queuedBatchAmounts.clear();
@@ -321,7 +541,7 @@ public abstract class PatternProviderLogicMixin
         molecularmanipulator$legacyBatchRefund.addAll(sendList);
         sendList.clear();
         sendDirection = null;
-        molecularmanipulator$smartQueueOwned = false;
+        molecularmanipulator$smartQueueVersion = 0;
         molecularmanipulator$queuedBatchAmounts.clear();
         if (recoverUnsafeAdaptiveBatch) {
             com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
@@ -340,7 +560,7 @@ public abstract class PatternProviderLogicMixin
     private void molecularmanipulator$saveLegacyBatchRefund(CompoundTag tag,
             HolderLookup.Provider registries, CallbackInfo callback) {
         var savedBatchRecipe = new ListTag();
-        if (!sendList.isEmpty() && molecularmanipulator$smartQueueOwned) {
+        if (!sendList.isEmpty() && molecularmanipulator$smartQueueVersion != 0) {
             molecularmanipulator$ensureQueuedBatchAmounts();
             for (var entry : molecularmanipulator$queuedBatchAmounts.object2LongEntrySet()) {
                 if (entry.getLongValue() > 0) {
@@ -350,9 +570,9 @@ public abstract class PatternProviderLogicMixin
             }
         }
         tag.put(MOLECULARMANIPULATOR_BATCH_RECIPE_TAG, savedBatchRecipe);
-        if (!savedBatchRecipe.isEmpty()) {
+        if (!sendList.isEmpty() && molecularmanipulator$smartQueueVersion != 0) {
             tag.putInt(MOLECULARMANIPULATOR_SMART_QUEUE_VERSION_TAG,
-                    MOLECULARMANIPULATOR_SMART_QUEUE_VERSION);
+                    molecularmanipulator$smartQueueVersion);
         } else {
             tag.remove(MOLECULARMANIPULATOR_SMART_QUEUE_VERSION_TAG);
         }
@@ -374,58 +594,63 @@ public abstract class PatternProviderLogicMixin
 
     @Inject(method = "sendStacksOut", at = @At("HEAD"), cancellable = true)
     private void molecularmanipulator$sendEveryIngredientFairly(CallbackInfoReturnable<Boolean> callback) {
-        boolean refundedLegacyBatch = molecularmanipulator$refundLegacyBatch();
-        // Ordinary pushes retain AE2's encoded input order and native retry behavior,
-        // including ExtendedAE providers. Fair transport handles balanced batches and restored smart queues.
-        if (!molecularmanipulator$smartQueueOwned && !molecularmanipulator$balancingBatch) return;
-        if (sendDirection == null) {
-            if (!sendList.isEmpty()) {
-                throw new IllegalStateException("Invalid pattern provider state: queued inputs have no direction");
-            }
-            molecularmanipulator$queuedBatchAmounts.clear();
-            molecularmanipulator$finishSmartQueueIfDrained();
-            callback.setReturnValue(refundedLegacyBatch);
+        if (molecularmanipulator$queuedProbeInputs != null || molecularmanipulator$committingQueuedBatch
+                || molecularmanipulator$sendingSmartQueue) {
+            callback.setReturnValue(false);
             return;
         }
+        boolean refundedLegacyBatch = molecularmanipulator$refundLegacyBatch();
+        boolean ownQueue = molecularmanipulator$smartQueueVersion != 0;
+        if (!ownQueue && !molecularmanipulator$balancingBatch) {
+            return;
+        }
+        molecularmanipulator$sendingSmartQueue = true;
+        molecularmanipulator$smartQueueProgress = false;
+        try {
+            // Avoid short-circuiting transport when legacy refunds also made progress.
+            callback.setReturnValue(molecularmanipulator$drainFairQueue() | refundedLegacyBatch);
+        } finally {
+            molecularmanipulator$sendingSmartQueue = false;
+            if (sendList.isEmpty()) {
+                sendDirection = null;
+                molecularmanipulator$queuedBatchAmounts.clear();
+                molecularmanipulator$smartQueueVersion = 0;
+            }
+            if (ownQueue && (molecularmanipulator$smartQueueProgress || sendList.isEmpty())) {
+                // A later insertion may throw after earlier entries were delivered.
+                saveChanges();
+            }
+        }
+    }
 
+    @Unique
+    private boolean molecularmanipulator$drainFairQueue() {
+        if (sendList.isEmpty()) {
+            return false;
+        }
+        if (sendDirection == null) {
+            throw new IllegalStateException("Invalid pattern provider state: queued inputs have no direction");
+        }
         var target = findAdapter(sendDirection);
         if (target == null) {
-            callback.setReturnValue(refundedLegacyBatch);
-            return;
+            return false;
         }
 
         int seedResult = molecularmanipulator$seedEveryQueuedIngredient(target);
-        boolean movedAny = refundedLegacyBatch
-                || (seedResult & MOLECULARMANIPULATOR_SEED_MOVED) != 0;
-        if (sendList.isEmpty()) {
-            sendDirection = null;
-            molecularmanipulator$queuedBatchAmounts.clear();
-            molecularmanipulator$finishSmartQueueIfDrained();
-            callback.setReturnValue(movedAny);
-            return;
-        }
-        if ((seedResult & MOLECULARMANIPULATOR_SEED_COMPLETE) == 0) {
-            molecularmanipulator$saveSmartQueueProgress(movedAny);
-            callback.setReturnValue(movedAny);
-            return;
+        boolean moved = (seedResult & MOLECULARMANIPULATOR_SEED_MOVED) != 0;
+        boolean seedComplete = (seedResult & MOLECULARMANIPULATOR_SEED_COMPLETE) != 0;
+        if (!seedComplete && molecularmanipulator$smartQueueVersion < MOLECULARMANIPULATOR_QUEUED_BATCH_VERSION) {
+            return moved;
         }
 
         long deadline = System.nanoTime() + MOLECULARMANIPULATOR_FAIR_SEND_BUDGET_NANOS;
-        do {
-            boolean movedThisRound = molecularmanipulator$sendOneFairRound(target);
-            movedAny |= movedThisRound;
-            if (!movedThisRound) {
+        while (!sendList.isEmpty() && molecularmanipulator$sendOneFairRound(target, seedComplete)) {
+            moved = true;
+            if (System.nanoTime() - deadline >= 0) {
                 break;
             }
-        } while (!sendList.isEmpty() && System.nanoTime() < deadline);
-
-        if (sendList.isEmpty()) {
-            sendDirection = null;
-            molecularmanipulator$queuedBatchAmounts.clear();
-            molecularmanipulator$finishSmartQueueIfDrained();
         }
-        molecularmanipulator$saveSmartQueueProgress(movedAny);
-        callback.setReturnValue(movedAny);
+        return moved;
     }
 
     @Inject(method = "clearContent", at = @At("TAIL"))
@@ -434,8 +659,7 @@ public abstract class PatternProviderLogicMixin
         molecularmanipulator$initialBatchAmounts.clear();
         molecularmanipulator$queuedBatchAmounts.clear();
         molecularmanipulator$balancingBatch = false;
-        molecularmanipulator$requireFullBatchAcceptance = false;
-        molecularmanipulator$smartQueueOwned = false;
+        molecularmanipulator$smartQueueVersion = 0;
         molecularmanipulator$forgetTemporaryScaledPattern();
     }
 
@@ -447,25 +671,6 @@ public abstract class PatternProviderLogicMixin
         }
         patterns.remove(temporary);
         molecularmanipulator$temporaryScaledPattern = null;
-    }
-
-    @Unique
-    private void molecularmanipulator$finishSmartQueueIfDrained() {
-        if (!molecularmanipulator$smartQueueOwned || !sendList.isEmpty()) {
-            return;
-        }
-        molecularmanipulator$smartQueueOwned = false;
-        molecularmanipulator$queuedBatchAmounts.clear();
-        saveChanges();
-    }
-
-    @Unique
-    private void molecularmanipulator$saveSmartQueueProgress(boolean movedAny) {
-        if (movedAny && molecularmanipulator$smartQueueOwned && !sendList.isEmpty()) {
-            // Persist partial progress too; otherwise an unload can restore an older,
-            // larger sendList and deliver the same material twice.
-            saveChanges();
-        }
     }
 
     @Unique
@@ -596,6 +801,7 @@ public abstract class PatternProviderLogicMixin
             }
             long consumed = Math.min(remaining, stack.amount());
             remaining -= consumed;
+            molecularmanipulator$smartQueueProgress = true;
             if (consumed >= stack.amount()) {
                 iterator.remove();
             } else {
@@ -605,18 +811,19 @@ public abstract class PatternProviderLogicMixin
     }
 
     @Unique
-    private boolean molecularmanipulator$sendOneFairRound(PatternProviderTarget target) {
+    private boolean molecularmanipulator$sendOneFairRound(PatternProviderTarget target, boolean balanceAmounts) {
         if (sendList.isEmpty()) {
             return false;
         }
 
         double roundScale = 1.0;
-        for (var stack : sendList) {
-            if (stack.amount() <= 0) {
-                continue;
+        if (balanceAmounts) {
+            for (var stack : sendList) {
+                if (stack.amount() > 0) {
+                    long limit = molecularmanipulator$fairTransportLimit(stack.what());
+                    roundScale = Math.min(roundScale, (double) limit / (double) stack.amount());
+                }
             }
-            long limit = molecularmanipulator$fairTransportLimit(stack.what());
-            roundScale = Math.min(roundScale, (double) limit / (double) stack.amount());
         }
 
         boolean moved = false;
@@ -631,9 +838,8 @@ public abstract class PatternProviderLogicMixin
             }
 
             long operation = Math.max(1L, key.getAmountPerOperation());
-            long requested = roundScale >= 1.0
-                    ? remaining
-                    : Math.max(operation, (long) Math.floor(remaining * roundScale));
+            long requested = !balanceAmounts ? Math.min(remaining, molecularmanipulator$fairTransportLimit(key))
+                    : roundScale >= 1.0 ? remaining : Math.max(operation, (long) Math.floor(remaining * roundScale));
             requested = Math.min(remaining, Math.max(operation, requested - requested % operation));
 
             long inserted = molecularmanipulator$insertWithFallback(
@@ -641,9 +847,11 @@ public abstract class PatternProviderLogicMixin
             inserted = Math.max(0, Math.min(inserted, remaining));
             if (inserted >= remaining) {
                 iterator.remove();
+                molecularmanipulator$smartQueueProgress = true;
                 moved = true;
             } else if (inserted > 0) {
                 iterator.set(new GenericStack(key, remaining - inserted));
+                molecularmanipulator$smartQueueProgress = true;
                 moved = true;
             }
         }

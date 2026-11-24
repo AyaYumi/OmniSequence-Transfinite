@@ -1,6 +1,8 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.config.Actionable;
+import appeng.api.config.LockCraftingMode;
+import appeng.api.config.Settings;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.networking.GridHelper;
@@ -10,12 +12,18 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
+import appeng.block.crafting.PatternProviderBlock;
+import appeng.block.crafting.PushDirection;
+import appeng.blockentity.crafting.PatternProviderBlockEntity;
 import appeng.core.definitions.AEBlocks;
 import appeng.crafting.CraftingPlan;
 import appeng.crafting.pattern.AEProcessingPattern;
+import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.hooks.ticking.TickHandler;
 import appeng.me.service.CraftingService;
+import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.verification.RegressionConfigFixture;
 import com.extendedae_plus.api.crafting.ScaledProcessingPattern;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -24,11 +32,15 @@ import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BarrelBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
-/** Real CPU calls into providers implementing only the ordinary ICraftingProvider contract. */
+/** Real CPU calls into ordinary crafting providers. */
 @GameTestHolder("molecularmanipulator")
 @PrefixGameTestTemplate(false)
 public final class AdaptiveDispatchGameTests {
@@ -50,6 +62,95 @@ public final class AdaptiveDispatchGameTests {
     @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 160)
     public static void capacityAndRejectionRemainIndependentAcrossProviders(GameTestHelper helper) {
         run(helper, 1, false, true);
+    }
+
+    @GameTest(template = "multiblock_dismantle_empty", timeoutTicks = 240)
+    public static void vanillaProviderPushesOneRecipeAtATimeIntoCapacityEligibleBarrel(GameTestHelper helper) {
+        var corePos = new BlockPos(1, 1, 1);
+        var providerPos = corePos.east();
+        var targetPos = providerPos.east();
+        helper.setBlock(corePos, ModContent.TRANSFINITE_COMPUTE_NEXUS.get());
+        helper.setBlock(corePos.south(), AEBlocks.CREATIVE_ENERGY_CELL.block());
+        helper.setBlock(providerPos, AEBlocks.PATTERN_PROVIDER.block().defaultBlockState()
+                .setValue(PatternProviderBlock.PUSH_DIRECTION, PushDirection.EAST));
+        var barrelState = Blocks.BARREL.defaultBlockState();
+        helper.setBlock(targetPos, barrelState);
+        var target = new RecordingBarrel(helper.absolutePos(targetPos), barrelState);
+        helper.getLevel().setBlockEntity(target);
+
+        int capacity = 13;
+        for (int slot = 1; slot < target.getContainerSize(); slot++) {
+            target.setItem(slot, new ItemStack(Items.COBBLESTONE, 64));
+        }
+        target.setItem(0, new ItemStack(Items.IRON_INGOT, 64 - capacity));
+        target.insertions.clear();
+
+        var core = (OmniComputationCoreBlockEntity) helper.getBlockEntity(corePos);
+        var host = (PatternProviderBlockEntity) helper.getBlockEntity(providerPos);
+        var provider = host.getLogic();
+        var input = AEItemKey.of(Items.IRON_INGOT);
+        var output = AEItemKey.of(Items.EMERALD);
+        provider.getPatternInv().setItemDirect(0, PatternDetailsHelper.encodeProcessingPattern(
+                new GenericStack[]{new GenericStack(input, 1)}, new GenericStack[]{new GenericStack(output, 2)}));
+
+        // Measure after the other fixtures finish sharing this server's dispatch deadline.
+        helper.runAfterDelay(140, () -> {
+            var grid = core.getMainNode().getGrid();
+            helper.assertTrue(core.isNetworkOnline() && core.getCluster() != null && grid != null
+                            && host.getMainNode().getGrid() == grid && host.getMainNode().isActive(),
+                    "The Nexus CPU and vanilla provider must share a powered grid");
+            helper.assertTrue(provider.getClass() == PatternProviderLogic.class && !provider.isBlocking()
+                            && provider.getConfigManager().getSetting(Settings.LOCK_CRAFTING_MODE) == LockCraftingMode.NONE,
+                    "Use an ordinary unlocked AE2 provider with a single external inventory");
+            var patterns = provider.getAvailablePatterns();
+            helper.assertTrue(patterns.size() == 1 && patterns.get(0).getClass() == AEProcessingPattern.class,
+                    "Use one unmodified single-input AE2 processing pattern");
+            var service = (CraftingService) grid.getCraftingService();
+            var cpu = core.getCluster().craftingLogic;
+            long requested = 23;
+            var plan = new CraftingPlan(new GenericStack(output, requested * 2), 100, false, false,
+                    new KeyCounter(), new KeyCounter(), new KeyCounter(), Map.of(patterns.get(0), requested));
+            helper.assertTrue(service.submitJob(plan, null, core.getCluster(), false, IActionSource.empty())
+                            .successful(), "Vanilla-provider job must submit");
+            cpu.getInventory().insert(input, requested, Actionable.MODULATE);
+
+            helper.startSequence()
+                    .thenWaitUntil(() -> helper.assertTrue(target.getItem(0).getCount() == 64,
+                            "The ordinary provider must fill the available barrel space"))
+                    .thenExecuteAfter(2, () -> {
+                        try {
+                            helper.assertTrue(target.insertions.size() == capacity
+                                            && target.insertions.stream().allMatch(amount -> amount == 1),
+                                    "The barrel must receive thirteen separate full-recipe insertions, got " + target.insertions);
+                            helper.assertTrue(!provider.isBusy(), "The rejected probe must not leave queued inputs");
+                            helper.assertTrue(cpu.getInventory().list.get(input) == requested - capacity
+                                            && cpu.getWaitingFor(output) == capacity * 2
+                                            && cpu.getPendingOutputs(output) == (requested - capacity) * 2,
+                                    "The CPU must consume, await and decrement exactly the accepted recipes");
+                        } finally {
+                            core.clearContent();
+                        }
+                    })
+                    .thenSucceed();
+        });
+    }
+
+    // Forge's real barrel item handler writes the slot only on a non-simulated insert.
+    private static final class RecordingBarrel extends BarrelBlockEntity {
+        private final List<Integer> insertions = new ArrayList<>();
+
+        private RecordingBarrel(BlockPos position, BlockState state) {
+            super(position, state);
+        }
+
+        @Override
+        public void setItem(int slot, ItemStack stack) {
+            int before = getItem(slot).getCount();
+            super.setItem(slot, stack);
+            if (slot == 0 && stack.is(Items.IRON_INGOT) && stack.getCount() > before) {
+                insertions.add(stack.getCount() - before);
+            }
+        }
     }
 
     private static void run(GameTestHelper helper, int multiplier, boolean fillsFirst, boolean multipleProviders) {
@@ -86,6 +187,7 @@ public final class AdaptiveDispatchGameTests {
                 ICraftingProvider.requestUpdate(node);
             }
             helper.runAfterDelay(10, () -> {
+                RegressionConfigFixture.isolate();
                 var cleaned = new boolean[1];
                 Runnable cleanup = () -> {
                     if (cleaned[0]) return;
@@ -117,8 +219,15 @@ public final class AdaptiveDispatchGameTests {
                         public void run() {
                             boolean cleanupNow = true;
                             try {
-                                // Drive the actual CPU every tick, independently of AE's idle scheduling interval.
-                                cpu.tickCraftingLogic(grid.getEnergyService(), service);
+                                // Probe-round assertions must not depend on the server's wall-clock budget.
+                                var limits = ModConfig.OMNI_DISPATCH_LIMITS_ENABLED;
+                                boolean previousLimits = limits.get();
+                                limits.set(false);
+                                try {
+                                    cpu.tickCraftingLogic(grid.getEnergyService(), service);
+                                } finally {
+                                    limits.set(previousLimits);
+                                }
                                 long accepted = providers.stream().mapToLong(provider -> provider.accepted).sum();
                                 helper.assertTrue(cpu.getWaitingFor(output) == accepted * multiplier
                                                 && cpu.getInventory().list.get(input)

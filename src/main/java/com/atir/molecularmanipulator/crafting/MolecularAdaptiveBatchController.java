@@ -3,7 +3,6 @@ package com.atir.molecularmanipulator.crafting;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.hooks.ticking.TickHandler;
-import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider.PushResult;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -73,23 +72,15 @@ public final class MolecularAdaptiveBatchController {
         if (provider != null && patternDetails != null) getState(provider, patternDetails).singleOnly = true;
     }
 
-    /** acceptedCrafts counts successful ordinary calls, including calls using a native batch API. */
-    public void onAccepted(ICraftingProvider provider, IPatternDetails patternDetails,
-            long acceptedCrafts, long requestedCrafts, PushResult result) {
-        if (provider == null || patternDetails == null || acceptedCrafts <= 0 || requestedCrafts <= 0 || result == null) return;
-        if (result == PushResult.REJECTED) {
-            onRejected(provider, patternDetails, requestedCrafts);
-            return;
-        }
+    /** acceptedCalls counts successful pushes, not recipe copies in a native batch. */
+    public void onAccepted(ICraftingProvider provider, IPatternDetails patternDetails, long acceptedCalls) {
+        if (provider == null || patternDetails == null || acceptedCalls <= 0) return;
         var tick = currentTick();
         var state = getState(provider, patternDetails);
         state.beginTick(tick);
         state.lastAttemptOrder = nextAttemptOrder();
-        state.acceptedThisTick = saturatingAdd(state.acceptedThisTick, acceptedCrafts);
-        if (result == PushResult.ACCEPTED_UNVERIFIED) state.singleOnly = true;
-        if (result != PushResult.ACCEPTED_FULL) {
-            state.reachCapacity(tick);
-        } else if (!state.singleOnly && state.acceptedThisTick >= state.target && state.growing) {
+        state.acceptedThisTick = saturatingAdd(state.acceptedThisTick, acceptedCalls);
+        if (!state.singleOnly && state.acceptedThisTick >= state.target && state.growing) {
             state.probeStep = saturatingDouble(state.probeStep);
             state.target = state.recovering ? saturatingAdd(state.probeBase, state.probeStep)
                     : saturatingAdd(state.target, state.probeStep);

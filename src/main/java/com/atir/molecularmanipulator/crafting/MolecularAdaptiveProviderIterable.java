@@ -55,11 +55,8 @@ public final class MolecularAdaptiveProviderIterable
 
         @Override
         public boolean hasNext() {
-            var provider = providerSupplier.get();
-            return activeSupplier.getAsBoolean()
-                    && provider != null
-                    && !provider.isBusy()
-                    && deliveredSerial != serialSupplier.getAsLong();
+            // AE2 checks isBusy immediately after taking each provider from the iterator.
+            return activeSupplier.getAsBoolean() && deliveredSerial != serialSupplier.getAsLong();
         }
 
         @Override

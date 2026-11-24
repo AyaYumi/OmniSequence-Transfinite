@@ -1165,8 +1165,10 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             }
         }
 
-        long waitingForCraftLimit = ecoOmni$limit(patternDetails, BigInteger.valueOf(
-                molecularmanipulator$getWaitingForCraftLimit(expectedOutputs, expectedContainerItems))).longValueExact();
+        long waitingForCraftLimit = molecularmanipulator$getWaitingForCraftLimit(expectedOutputs, expectedContainerItems);
+        if (ecoOmni$managed()) {
+            waitingForCraftLimit = ecoOmni$limit(patternDetails, BigInteger.valueOf(waitingForCraftLimit)).longValueExact();
+        }
         if (waitingForCraftLimit <= 0) {
             CraftingCpuHelper.reinjectPatternInputs(inventory, firstInputs);
             expectedOutputs.reset();
@@ -1211,30 +1213,18 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
 
             var offers = MolecularBatchDispatchSafety.getAvailableBatchOffers(
                     () -> molecularmanipulator$getDispatchProviders(craftingService, patternDetails), patternDetails, firstInputs,
-                    provider -> molecularmanipulator$canUseExplicitBatch(provider, patternDetails)
+                    provider -> MolecularBatchCraftingProvider.supports(provider, patternDetails)
                             && !molecularmanipulator$supportsApiBatch(provider, patternDetails)
-                            && MolecularBatchCraftingProvider.supports(
-                                    provider, patternDetails));
+                            && molecularmanipulator$canUseExplicitBatch(provider, patternDetails));
 
             long directLimit = 0;
             long reusableDirectLimit = 0;
             for (var offer : offers) {
-                if (MolecularBatchCraftingProvider.supports(
-                        offer.provider(), patternDetails)) {
-                    directLimit = Math.max(directLimit, offer.batchLimit());
-                    if (MolecularBatchCraftingProvider.supportsReusable(
-                            offer.provider(), patternDetails)
-                            && !molecularmanipulator$adaptiveBatchController
-                                    .isSingleOnly(offer.provider(),
-                                            patternDetails)) {
-                        reusableDirectLimit = Math.max(
-                                reusableDirectLimit, Math.min(
-                                        offer.batchLimit(),
-                                        molecularmanipulator$adaptiveBatchController
-                                                .getReusableWindowCap(
-                                                        offer.provider(),
-                                                        patternDetails)));
-                    }
+                directLimit = Math.max(directLimit, offer.batchLimit());
+                if (MolecularBatchCraftingProvider.supportsReusable(offer.provider(), patternDetails)) {
+                    reusableDirectLimit = Math.max(reusableDirectLimit, Math.min(offer.batchLimit(),
+                            molecularmanipulator$adaptiveBatchController.getReusableWindowCap(
+                                    offer.provider(), patternDetails)));
                 }
             }
             if (directLimit > 0) {
@@ -1319,35 +1309,26 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             KeyCounter expectedOutputs, KeyCounter expectedContainerItems,
             long taskValue, long waitingForCraftLimit) {
         long requestedMaxCrafts = Math.min(taskValue, waitingForCraftLimit);
-        if (requestedMaxCrafts < 2
-                || !MolecularBatchDispatchSafety.isBatchablePattern(
-                        patternDetails)) {
-            return null;
-        }
-
-        final OmniBatchProbe probe;
-        try {
-            probe = new OmniBatchProbe(
-                    patternDetails,
-                    molecularmanipulator$snapshotProbeInputs(firstInputs),
-                    requestedMaxCrafts);
-        } catch (Throwable exception) {
-            molecularmanipulator$rethrowUnrecoverableApiFailure(exception);
-            molecularmanipulator$logApiBatchFailure(
-                    "invalid one-craft probe", exception);
-            return null;
-        }
+        if (requestedMaxCrafts < 2) return null;
+        OmniBatchProbe probe = null;
 
         for (var provider : molecularmanipulator$getDispatchProviders(craftingService, patternDetails)) {
             if (provider == null
-                    || !molecularmanipulator$canUseExplicitBatch(provider, patternDetails)
                     || !molecularmanipulator$supportsApiBatch(provider, patternDetails)
-                    || provider.isBusy()
-                    || molecularmanipulator$isApiBatchBackpressured(
-                            provider, patternDetails)
-                    || molecularmanipulator$adaptiveBatchController.isSingleOnly(
-                            provider, patternDetails)) {
+                    || !molecularmanipulator$canUseExplicitBatch(provider, patternDetails)
+                    || provider.isBusy()) {
                 continue;
+            }
+            if (probe == null) {
+                // Only providers that can admit a batch need a copy of the single recipe.
+                try {
+                    probe = new OmniBatchProbe(patternDetails,
+                            molecularmanipulator$snapshotProbeInputs(firstInputs), requestedMaxCrafts);
+                } catch (Throwable exception) {
+                    molecularmanipulator$rethrowUnrecoverableApiFailure(exception);
+                    molecularmanipulator$logApiBatchFailure("invalid one-craft probe", exception);
+                    return null;
+                }
             }
 
             final OmniBatchAdmission preparedAdmission;
@@ -1469,6 +1450,9 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             // reservation is precisely for this delivery, so a resulting busy
             // state must not make AE2 skip its already-admitted commit.
             return false;
+        }
+        if (molecularmanipulator$adaptiveProvider == provider) {
+            return original.call(provider);
         }
         if (molecularmanipulator$exactState != null) {
             // AE2's busy bit describes ordinary one-shot pushPattern capacity.
@@ -1795,39 +1779,37 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Unique
     private long molecularmanipulator$getWaitingForCraftLimit(
             KeyCounter expectedOutputs, KeyCounter expectedContainerItems) {
-        var perCraft = new HashMap<AEKey, Long>();
-        if (!molecularmanipulator$mergeExpectedAmounts(
-                perCraft, expectedOutputs)
-                || !molecularmanipulator$mergeExpectedAmounts(
-                        perCraft, expectedContainerItems)) {
+        var stored = getInventory().list;
+        long limit = Long.MAX_VALUE;
+        try {
+            for (var entry : expectedOutputs) {
+                var key = entry.getKey();
+                long output = entry.getLongValue();
+                if (key == null || output <= 0) return 0;
+                long container = expectedContainerItems.get(key);
+                if (container < 0) return 0;
+                limit = Math.min(limit, molecularmanipulator$waitingWindow(
+                        key, Math.addExact(output, container), stored.get(key)));
+                if (limit == 0) return 0;
+            }
+            for (var entry : expectedContainerItems) {
+                var key = entry.getKey();
+                long container = entry.getLongValue();
+                if (key == null || container <= 0) return 0;
+                if (expectedOutputs.get(key) > 0) continue;
+                limit = Math.min(limit, molecularmanipulator$waitingWindow(key, container, stored.get(key)));
+                if (limit == 0) return 0;
+            }
+            return limit;
+        } catch (RuntimeException exception) {
             return 0;
         }
+    }
 
-        long limit = Long.MAX_VALUE;
-        for (var entry : perCraft.entrySet()) {
-            long amountPerCraft = entry.getValue();
-            if (amountPerCraft <= 0) {
-                return 0;
-            }
-
-            long currentlyWaiting;
-            try {
-                currentlyWaiting = Math.addExact(getWaitingFor(entry.getKey()),
-                        ((CraftingCpuLogic) (Object) this).getInventory().list.get(entry.getKey()));
-            } catch (RuntimeException exception) {
-                return 0;
-            }
-            if (currentlyWaiting < 0) {
-                return 0;
-            }
-            limit = Math.min(
-                    limit,
-                    (Long.MAX_VALUE - currentlyWaiting) / amountPerCraft);
-            if (limit <= 0) {
-                return 0;
-            }
-        }
-        return limit;
+    @Unique
+    private long molecularmanipulator$waitingWindow(AEKey key, long unitAmount, long stored) {
+        long waiting = Math.addExact(getWaitingFor(key), stored);
+        return waiting < 0 ? 0 : (Long.MAX_VALUE - waiting) / unitAmount;
     }
 
     @Unique
@@ -1878,26 +1860,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         }
     }
 
-    @Unique
-    private static boolean molecularmanipulator$mergeExpectedAmounts(
-            Map<AEKey, Long> perCraft, KeyCounter expected) {
-        if (expected == null) {
-            return true;
-        }
-        try {
-            for (var entry : expected) {
-                var key = entry.getKey();
-                long amount = entry.getLongValue();
-                if (key == null || amount <= 0) {
-                    return false;
-                }
-                perCraft.merge(key, amount, Math::addExact);
-            }
-            return true;
-        } catch (RuntimeException exception) {
-            return false;
-        }
-    }
 
     @Unique
     private long molecularmanipulator$getAvailableBatchLimit(CraftingService craftingService,
@@ -1984,16 +1946,17 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         } else {
             for (var provider : molecularmanipulator$getDispatchProviders(molecularmanipulator$craftingService, patternDetails)) {
                 if (provider == null || molecularmanipulator$defersSingle(patternDetails, provider)) continue;
+                long order = molecularmanipulator$adaptiveBatchController.getLastAttemptOrder(provider, patternDetails);
+                if ((selected != null && order >= selectedOrder)
+                        || molecularmanipulator$adaptiveBatchController.getAvailableCrafts(provider, patternDetails, maxWindow) <= 0) {
+                    continue;
+                }
                 if (provider.isBusy()) {
                     molecularmanipulator$adaptiveBatchController.onBusy(provider, patternDetails);
                     continue;
                 }
-                if (molecularmanipulator$adaptiveBatchController.getAvailableCrafts(provider, patternDetails, maxWindow) <= 0) continue;
-                long order = molecularmanipulator$adaptiveBatchController.getLastAttemptOrder(provider, patternDetails);
-                if (selected == null || order < selectedOrder) {
-                    selected = provider;
-                    selectedOrder = order;
-                }
+                selected = provider;
+                selectedOrder = order;
             }
         }
         if (selected == null) {

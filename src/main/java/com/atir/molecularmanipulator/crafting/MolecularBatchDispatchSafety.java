@@ -132,18 +132,19 @@ public final class MolecularBatchDispatchSafety {
             var snapshot = providers.get();
             if (snapshot == null) return List.of();
             var iterator = snapshot.iterator();
-            var offers = new ArrayList<BatchOffer>();
+            ArrayList<BatchOffer> offers = null;
             while (iterator.hasNext()) {
                 var provider = iterator.next();
-                if (provider != null && !provider.isBusy() && supportsProvider.test(provider)) {
+                if (provider != null && supportsProvider.test(provider) && !provider.isBusy()) {
                     long batchLimit = MolecularBatchCraftingProvider.getBatchLimit(
                             provider, patternDetails, firstInputs);
                     if (batchLimit > 0) {
+                        if (offers == null) offers = new ArrayList<>();
                         offers.add(new BatchOffer(provider, batchLimit));
                     }
                 }
             }
-            return offers;
+            return offers == null ? List.of() : offers;
         } catch (RuntimeException exception) {
             RateLimitedLog.warn("Molecular batch provider scan failed; using ordinary dispatch", exception);
             return List.of();

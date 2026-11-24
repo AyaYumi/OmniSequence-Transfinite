@@ -3,7 +3,7 @@
 在引擎升级页准备星位锚，即可搭建下一环。整合包作者可按下文格式和示例，用数据包或 KubeJS
 修改升级费用与条件。结构和按钮说明可在游戏内按 G 查看；安装和第一座井见[玩家指南](../README.zh-CN.md)。
 
-当前对应 OmniSequence 21.3.0.3，Minecraft 1.21.1 / NeoForge、Java 21。
+当前对应 OmniSequence 21.3.0.4，Minecraft 1.21.1 / NeoForge、Java 21。
 模组 ID 为 `molecularmanipulator`。
 English: [Star Orrery upgrades](star-orrery-upgrades.md)。
 研究定义另见[物质构筑井研究 API](matter-research-api.zh-CN.md)。

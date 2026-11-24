@@ -8,7 +8,7 @@
 
 ## 安装
 
-万象构序 **21.3.0.3** 适用于 **Minecraft 1.21.1 / NeoForge**，需要 **Java 21**。[下载模组 JAR](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)
+万象构序 **21.3.0.4** 适用于 **Minecraft 1.21.1 / NeoForge**，需要 **Java 21**。[下载模组 JAR](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)
 
 | 必需组件 | 本分支对应版本 |
 | --- | --- |
@@ -178,6 +178,6 @@ L0 就需要完整的中央主体和基座。
 ./gradlew build apiJavadoc
 ```
 
-Windows 使用 `gradlew.bat build apiJavadoc`。运行产物为 `build/libs/omnisequence-transfinite-21.3.0.3.jar`，Java API 文档位于 `build/docs/api/`。
+Windows 使用 `gradlew.bat build apiJavadoc`。运行产物为 `build/libs/omnisequence-transfinite-21.3.0.4.jar`，Java API 文档位于 `build/docs/api/`。
 
 [MIT 代码许可证](LICENSE) · [第三方声明](THIRD_PARTY_NOTICES.md)

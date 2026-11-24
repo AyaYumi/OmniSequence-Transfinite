@@ -4,7 +4,7 @@ For modpack and mod authors: add well recipes, choose which research unlocks the
 or import another machine's supported recipes. For building and operating a well,
 see the [player guide](../README.md) or press G on its controller in game.
 
-Available since OmniSequence: Transfinite 2.0.0; current for 21.3.0.3.
+Available since OmniSequence: Transfinite 2.0.0; current for 21.3.0.4.
 Target: Minecraft 1.21.1 / NeoForge, Java 21, AE2 19.2.18, and the
 required Applied Enhancements 1.1.2+ (compile API 1.1.4). The Mod ID stays
 `molecularmanipulator`.
@@ -606,7 +606,7 @@ ticks, bounded below completion. Queued work stores material ownership and the
 recipe ID and rechecks the current recipe, permission and profile before starting.
 Work that cannot proceed retains its materials inside the assembly.
 
-### 7.1 Known limitations in 21.3.0.3
+### 7.1 Known limitations in 21.3.0.4
 
 - Overlapping alternatives with identical outputs can match a different recipe
   while a batch is split, changing its time and power.

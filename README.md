@@ -8,7 +8,7 @@ Hover over an item in your inventory or JEI and press the AE2 guide key (**G** b
 
 ## Install
 
-OmniSequence **21.3.0.3** runs on **Minecraft 1.21.1 / NeoForge** with **Java 21**. [Download the mod JAR](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)
+OmniSequence **21.3.0.4** runs on **Minecraft 1.21.1 / NeoForge** with **Java 21**. [Download the mod JAR](https://www.curseforge.com/minecraft/mc-mods/omnisequence-transfinite)
 
 | Required component | Version for this branch |
 | --- | --- |
@@ -178,6 +178,6 @@ Use Java 21 and prepare the local build dependencies. [Dependency setup](libs/RE
 ./gradlew build apiJavadoc
 ```
 
-On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-21.3.0.3.jar`; Java API documentation is generated under `build/docs/api/`.
+On Windows, use `gradlew.bat build apiJavadoc`. The runtime JAR is `build/libs/omnisequence-transfinite-21.3.0.4.jar`; Java API documentation is generated under `build/docs/api/`.
 
 [MIT code license](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)

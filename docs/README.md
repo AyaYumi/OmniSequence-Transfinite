@@ -1,6 +1,6 @@
 # Author reference / 作者参考
 
-OmniSequence **21.3.0.3** for Minecraft **1.21.1 / NeoForge**, Java **21**.
+OmniSequence **21.3.0.4** for Minecraft **1.21.1 / NeoForge**, Java **21**.
 
 Use these references to add recipes and research, change server settings, or connect another mod's machines to OmniSequence. For installation and gameplay, start with the [English README](../README.md), [中文 README](../README.zh-CN.md) or the in-game guide, opened with **G**.
 

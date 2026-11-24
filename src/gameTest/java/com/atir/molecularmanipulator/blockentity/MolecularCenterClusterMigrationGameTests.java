@@ -54,7 +54,7 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 /**
  * Opt-in real ECOcraft L4 cluster, its public bus inventory, a segmented host and a finite disk.
- * ECO's public Forge 20.5.0 build/cluster APIs are loaded reflectively: no optional compile dependency,
+ * ECO's public Forge build/cluster APIs are loaded reflectively: no optional compile dependency,
  * substituted bus, forced formation, private inventory access or manual source publication refresh.
  */
 @GameTestHolder("molecularmanipulator")

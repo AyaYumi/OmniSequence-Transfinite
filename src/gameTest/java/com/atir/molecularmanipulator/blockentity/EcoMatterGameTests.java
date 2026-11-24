@@ -54,7 +54,7 @@ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.fluids.FluidStack;
 
-/** Real wells, decoded AE2 processing patterns and ECO 20.5.0 material leases; no API stubs. */
+/** Real wells, decoded AE2 processing patterns and leases from the installed ECO API. */
 @net.minecraftforge.gametest.GameTestHolder("molecularmanipulator")
 @net.minecraftforge.gametest.PrefixGameTestTemplate(false)
 public final class EcoMatterGameTests {

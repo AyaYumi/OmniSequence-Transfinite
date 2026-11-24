@@ -1,7 +1,6 @@
 package com.atir.molecularmanipulator.integration.eco;
 
 import appeng.api.config.Actionable;
-import appeng.api.config.CpuSelectionMode;
 import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingCPU;
 import appeng.api.networking.crafting.ICraftingPlan;
@@ -14,11 +13,9 @@ import appeng.crafting.execution.CraftingSubmitResult;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderAdmission;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderRequest;
-import cn.dancingsnow.neoecoae.api.me.diagnostics.ECOCraftingPlanDiagnostics;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlannerOptions;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlanningResultRegistry;
 import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOCraftingCPU;
 import cn.dancingsnow.neoecoae.crafting.planner.ECOPlannerInventory;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionRequirement;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult;
@@ -32,7 +29,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-/** ECO 20.5.0 menu adapter. Referenced only by the version-gated menu mixin. */
+/** Submits confirmed ECO big orders to the selected Omni CPU. */
 public final class EcoOmniPlanMenu {
     private EcoOmniPlanMenu() {}
 
@@ -47,30 +44,6 @@ public final class EcoOmniPlanMenu {
         return grid != null && isOmni(selected) && selected instanceof CraftingCPUCluster cluster
                 && !cluster.isDestroyed() && cluster.isActive() && !cluster.isBusy() && cluster.getGrid() == grid
                 && grid.getCraftingService().getCpus().stream().anyMatch(cpu -> cpu == selected);
-    }
-
-    /** ECO CPU availability through public CPU APIs, including its automatic-selection policy. */
-    public static boolean ecoAvailable(IGrid grid, ICraftingCPU selected) {
-        if (grid == null) return false;
-        var cpus = grid.getCraftingService().getCpus();
-        if (selected != null) {
-            return selected instanceof ECOCraftingCPU eco && !eco.isBusy() && eco.isActive()
-                    && cpus.contains(eco);
-        }
-        return cpus.stream().anyMatch(cpu -> cpu instanceof ECOCraftingCPU eco && !eco.isBusy() && eco.isActive()
-                && eco.getSelectionMode() != CpuSelectionMode.MACHINE_ONLY);
-    }
-
-    /** Recover ownership using ECO's public diagnostics/registry contract, without its renamed menu helper. */
-    public static ECOPlanningResult resolveOwnedResult(ICraftingPlan plan, boolean ecoPlannerAvailable) {
-        if (plan == null) return null;
-        var resolved = plan instanceof ECOCraftingPlanDiagnostics diagnostics ? diagnostics.neoecoae$getPlanningResult() : null;
-        if (resolved == null) resolved = ECOPlanningResultRegistry.findExact(plan);
-        if (resolved == null && ecoPlannerAvailable) resolved = ECOPlanningResultRegistry.find(plan);
-        if (resolved != null && plan instanceof ECOCraftingPlanDiagnostics diagnostics) {
-            diagnostics.neoecoae$setPlanningResult(resolved);
-        }
-        return resolved;
     }
 
     public static Confirmation prepare(ICraftingPlan visible, ECOPlanningResult confirmed,

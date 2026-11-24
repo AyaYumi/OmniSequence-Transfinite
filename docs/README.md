@@ -15,6 +15,10 @@ AppliedEnhancements mod. Use its [Forge API documentation](https://github.com/Ay
 The runtime minimum is **1.1.2-forge**; the default compile-time API is **1.1.4-forge**.
 Omni's internal planner/Mixin classes are not integration entry points.
 
+NeoECOAE is optional and requires Forge **20.5.10 or later** when installed.
+Provider registration uses `ECOFastPathFacade`. Omni CPU admission, job lifecycle,
+and UUID-directed output use `ECOExternalCrafting`.
+
 Use `compileOnly` with the separate JARs and install each mod at runtime. Do not
 shade or copy their API packages. Optional compatibility classes must load only
 when the corresponding mod is present. Keep the original AE provider object when

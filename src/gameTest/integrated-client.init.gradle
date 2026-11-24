@@ -12,12 +12,6 @@ allprojects { p ->
             property 'forge.enableGameTest', 'true'
             property 'forge.enabledGameTestNamespaces', 'molecularmanipulator'
             property 'molecularmanipulator.gameTestSuite', suite
-            if (suite == 'eco-legacy') {
-                // Named dev classes need no SRG refmap. In remap mode Mixin 0.8.5
-                // incorrectly retries the old mod's absent six-argument overload by name alone.
-                property 'mixin.env.remapRefMap', 'false'
-                property 'mixin.env.disableRefMap', 'true'
-            }
             mods { molecularmanipulator { source p.sourceSets.gameTest } }
         }
         p.tasks.matching { it.name == 'runClient' }.configureEach {

@@ -33,6 +33,9 @@ public final class MolecularManipulator {
     private void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             UselessBigIntegerApiBridge.register();
+            if (net.minecraftforge.fml.ModList.get().isLoaded("neoecoae")) {
+                com.atir.molecularmanipulator.integration.eco.OmniEcoIntegration.register();
+            }
             validateMixins();
             ModContent.bindBlockEntity();
         });

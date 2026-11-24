@@ -14,7 +14,7 @@
 | AppliedEnhancements | 1.1.2-forge 或更高，客户端和服务端都需要；编译 API 为 1.1.4-forge |
 | AE2 | 15.4.10 |
 | ExtendedAE | 1.20-1.4.20-forge 或更高 |
-| NeoECOAE | 可选；最低 20.4.2；原生批量／精确计划兼容要求 20.5.0+ |
+| NeoECOAE | 可选；安装时需使用 Forge 20.5.10 或更高版本 |
 | ExtendedAE Plus | 可选；Forge 集成目标为 1.6.2 |
 | JEI / AdvancedAE | 可选；AdvancedAE 启用对应研究与兼容 |
 
@@ -95,7 +95,7 @@
 | 独立服务端 | `fabrication-upload`（4）：网络空白样板、旧建造者归属迁移与队伍保护 |
 | 独立服务端 | `research`、`singularity`、`singularity-unload`、`adaptive` |
 | 独立服务端 | `advancedae-dispatch`（1）：外部投料前拒绝缺料，足量时保留样板槽位顺序 |
-| 客户端内置服务端 | `eco`（27，NeoECOAE 20.5.0 批量／精确计划）、`eco-legacy`（2，20.4.2 普通派发、归属、取消与重载） |
+| 客户端内置服务端 | `eco`（27）：NeoECOAE 20.5.10 批量派发、精确计划和订单生命周期 |
 | 客户端内置服务端 | `essence`、`native-essence`、`machines`；启用集群参数的 `patterns` |
 
 ```sh
@@ -103,12 +103,12 @@
 ./gradlew --no-daemon -I src/gameTest/integrated-client.init.gradle -PgameTestSuite=<suite> -PgameTestRunName=gametest-client-<suite>-r1 runClient
 ```
 
-客户端入口创建一次性世界并写入 `gametest-result.json`，必需用例失败时任务失败。NeoECOAE 20.5.0 的独立服务端启动引用了 `ClientLevel`，因此需先初始化客户端。`gameTestEcoVersion` 可指定测试运行版本，不改变编译接口版本。
+客户端入口创建一次性世界并写入 `gametest-result.json`，必需用例失败时任务失败。`-PgameTestEcoVersion=<version>` 可指定测试运行版本，不改变编译接口版本。
 
 - `adaptive`：添加 `-PgameTestRecipeModsDir=/path/to/reference-pack/mods`，目录内需有 ExtendedAE Plus 1.6.2。
 - `essence`／`native-essence`：同一目录参数需提供 Cucumber、Mystical Agriculture、Mystical Agradditions 和 MATC；`native-essence` 不加载 ECO。`machines` 需要 AdvancedAE 和 GeckoLib。版本见 `build.gradle`。
 - `advancedae-dispatch`：同一目录参数需提供 `AdvancedAE-1.3.6-1.20.1.jar` 和 `geckolib-forge-1.20.1-4.8.4.jar`。添加 `-Pae2_version=15.4.11` 可使用崩溃报告中的 AE2 版本。
-- `patterns`：`-PgameTestPatternCluster` 使用 NeoECOAE 20.5.0 与 LDLib 1.0.52.a 增加 1 个集群用例，需用客户端入口；`-PgameTestPatternStorageJar=/path/to/ae2omnicells-1.20.1-forge-1.1.6.jar` 独立增加 1 个存储盘用例，不引入集群依赖。两参数同时启用共 18 例。
+- `patterns`：`-PgameTestPatternCluster` 使用 NeoECOAE 20.5.10 与 LDLib 1.0.52.a 增加 1 个集群用例，需用客户端入口；`-PgameTestPatternStorageJar=/path/to/ae2omnicells-1.20.1-forge-1.1.6.jar` 独立增加 1 个存储盘用例，不引入集群依赖。两参数同时启用共 18 例。
 
 独立的**白洞／透镜 GPU 回归**检查 3 种特效 × 9 种相机状态，共 27 项，只打开标题画面，需要能正常渲染的客户端：
 

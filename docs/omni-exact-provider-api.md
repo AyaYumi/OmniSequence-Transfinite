@@ -94,6 +94,10 @@ byproducts, and report actual accepted output rather than planned production.
 A saturated long projection alone does not reject a plan or confer exact CPU
 execution support. Cancellation and rollback still follow material ownership.
 
+With optional NeoECOAE Forge **20.5.10 or later**, the `ECOExternalCrafting`
+adapter handles Omni large-order admission, cancel and restore notifications,
+and exact output insertion for the owning job UUID.
+
 ## 中文
 
 大数能力处理逻辑次数和按 AEKey 区分的精确产物数量。它不替代两阶段 long 批量投料，
@@ -117,6 +121,9 @@ execution support. Cancellation and rollback still follow material ownership.
 保留元数据接口返回的计划、原生包装身份、整批与原样板尾数。可选改写无法换算时
 继续原始完整工作量；主产物和副产物逐 AEKey 记账，按真实接收数量报告，不能用
 计划产量代替已经交付的产量。long 投影饱和不等于拒绝，也不保证 CPU 具备精确执行能力。
+
+安装可选的 NeoECOAE Forge **20.5.10 或更高版本**时，Omni 大单准入、取消与恢复通知，
+以及按任务 UUID 回投精确产物，均通过 `ECOExternalCrafting` 适配器接入。
 
 构筑井计数批次按每个 AEKey 的 long 数量保存；接入可选 CPU 接口不会自动授予
 原生 BigInteger 能力。超出持久表示范围的精确输入必须拒绝并保留完整计划及材料

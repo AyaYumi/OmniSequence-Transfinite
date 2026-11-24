@@ -284,7 +284,7 @@ execution support.
 
 ## Optional native CPU APIs on Forge
 
-Matter Fabrication Pattern Assemblies also implement optional dispatch contracts
+Matter Fabrication Pattern Assemblies also support optional dispatch contracts
 when the installed Forge addon supplies the matching public API. These integrations
 use the same research, catalyst, capacity and durable-ownership checks as ordinary
 delivery; they do not change Omni's batch ABI 1.
@@ -300,10 +300,10 @@ still retain their complete input/output ratio; an accepted batch persists the
 entire material vector. Capacity queries do not transfer inputs or authorize an
 additional material multiplier.
 
-The optional ECO runtime minimum is **20.4.2**. Native batch/exact integration is
-compiled against the real Forge **20.5.0** API and enabled only for that version or
-newer; older supported ECO builds retain ordinary AE dispatch and job-scoped
-cancellation. Compile-only declarations under `src/optionalCpuApi`
+The optional NeoECOAE integration uses the public Forge **20.5.10+** API.
+`ECOFastPathFacade` registers the well's batch adapter and job-aware single
+dispatch against the original provider. Older NeoECOAE versions are unsupported.
+Compile-only declarations under `src/optionalCpuApi`
 supply the other optional Java 17 signatures; they are excluded from runtime
 classpaths and release JARs. Thunderbolt also requires its public batch interface;
 unavailable Data Energistics contracts leave ordinary AE dispatch available.

@@ -14,7 +14,7 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 | AppliedEnhancements | 1.1.2-forge or later, client and server; build API 1.1.4-forge |
 | AE2 | 15.4.10 |
 | ExtendedAE | 1.20-1.4.20-forge or later |
-| NeoECOAE | Optional; 20.4.2 or later; native batch/exact integration requires 20.5.0+ |
+| NeoECOAE | Optional; Forge 20.5.10 or later if installed |
 | ExtendedAE Plus | Optional; Forge integration targets 1.6.2 |
 | JEI / AdvancedAE | Optional; AdvancedAE enables its research/integration |
 
@@ -95,7 +95,7 @@ Tests live in `src/gameTest` and are excluded from release JARs. Use a fresh `-P
 | Server | `fabrication-upload` (4): network blanks, legacy builder migration and team protection |
 | Server | `research`, `singularity`, `singularity-unload`, `adaptive` |
 | Server | `advancedae-dispatch` (1): reject incomplete inputs before external delivery and retain valid pattern slot order |
-| Integrated client | `eco` (27, NeoECOAE 20.5.0 batch/exact integration), `eco-legacy` (2, 20.4.2 ordinary dispatch, ownership, cancellation and reload) |
+| Integrated client | `eco` (27): NeoECOAE 20.5.10 batch dispatch, exact plans and job lifecycle |
 | Integrated client | `essence`, `native-essence`, `machines`; `patterns` with the cluster flag |
 
 ```sh
@@ -103,12 +103,12 @@ Tests live in `src/gameTest` and are excluded from release JARs. Use a fresh `-P
 ./gradlew --no-daemon -I src/gameTest/integrated-client.init.gradle -PgameTestSuite=<suite> -PgameTestRunName=gametest-client-<suite>-r1 runClient
 ```
 
-The integrated runner creates a disposable world and writes `gametest-result.json`; required-test failures fail the task. NeoECOAE 20.5.0 requires client initialization because its dedicated-server startup references `ClientLevel`. `gameTestEcoVersion` overrides the test runtime without changing the compile-only API.
+The integrated runner creates a disposable world and writes `gametest-result.json`; required-test failures fail the task. `-PgameTestEcoVersion=<version>` overrides the test runtime without changing the compile-only API.
 
 - `adaptive`: add `-PgameTestRecipeModsDir=/path/to/reference-pack/mods` containing ExtendedAE Plus 1.6.2.
 - `essence` / `native-essence`: use the same directory flag with Cucumber, Mystical Agriculture, Mystical Agradditions and MATC; `native-essence` omits ECO. `machines` needs AdvancedAE and GeckoLib. Versions are in `build.gradle`.
 - `advancedae-dispatch`: use the same directory flag with `AdvancedAE-1.3.6-1.20.1.jar` and `geckolib-forge-1.20.1-4.8.4.jar`. Add `-Pae2_version=15.4.11` to match the reported crash's AE2 version.
-- `patterns`: `-PgameTestPatternCluster` adds one case using NeoECOAE 20.5.0 and LDLib 1.0.52.a; use the integrated runner. `-PgameTestPatternStorageJar=/path/to/ae2omnicells-1.20.1-forge-1.1.6.jar` independently adds one cell case without the cluster dependencies. Both flags give 18 cases.
+- `patterns`: `-PgameTestPatternCluster` adds one case using NeoECOAE 20.5.10 and LDLib 1.0.52.a; use the integrated runner. `-PgameTestPatternStorageJar=/path/to/ae2omnicells-1.20.1-forge-1.1.6.jar` independently adds one cell case without the cluster dependencies. Both flags give 18 cases.
 
 The separate **white-hole/lens GPU regression** checks 3 effects across 9 camera states (27 checks), opening only the title screen. It requires a graphics-capable client:
 

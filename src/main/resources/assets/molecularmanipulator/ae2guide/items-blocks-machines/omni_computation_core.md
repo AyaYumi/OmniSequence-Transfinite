@@ -55,6 +55,8 @@ The core provides independent crafting capacity for multiple requests and can co
 
 Cyclic recipes need initial seed materials. If a job stalls, check missing ingredients in crafting status and whether the required machines can receive inputs and return products.
 
+Optional NeoECOAE integration for large orders and exact counts requires Forge 20.5.10 or later.
+
 ## Quantum connection
 
 Place one **Quantum Entangled Singularity** in the quantum slot and its partner in a powered remote AE2 quantum bridge. The link requires an additional **512 AE/t and one channel**.

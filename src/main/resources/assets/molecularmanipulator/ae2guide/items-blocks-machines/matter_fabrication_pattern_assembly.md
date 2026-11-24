@@ -56,7 +56,7 @@ Missing catalysts prevent new work from starting. Accepted work retains material
 | Output cache | Products waiting for ME capacity |
 | Catalysts | Reusable items for recipes in this well |
 
-Neo ECO 20.4.2 is supported through ordinary dispatch; 20.5.0+ can submit native batch work to assemblies. Other CPU integrations require a Forge build with a compatible batch provider API. Research, ingredients, power and output capacity determine the actual processing rate.
+Optional NeoECOAE Forge 20.5.10 or later can submit native batch work to assemblies. Other CPU integrations require a Forge build with a compatible batch provider API. Research, ingredients, power and output capacity determine the actual processing rate.
 
 The Transfinite Compute Nexus can deliver a job's complete available material batch at once, up to **9,223,372,036,854,775,807 (9.22E)** per resource. Recipe input/output quantities and existing cache contents limit the accepted craft count. The well consumes processing power as queued work runs; it does not require the entire batch's processing power up front.
 

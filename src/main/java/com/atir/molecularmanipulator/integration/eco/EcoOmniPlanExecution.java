@@ -17,7 +17,6 @@ import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
-import com.atir.molecularmanipulator.mixin.EcoOmniPlanRuntimeInvoker;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -51,43 +50,35 @@ public final class EcoOmniPlanExecution {
     private final BigInteger theoreticalBytes;
     private final UUID planningId;
     private final ECOExecutionRuntime runtime;
-    private final EcoOmniPlanRuntimeAccess access;
     private long revision;
 
     private EcoOmniPlanExecution(ECOExecutionPlan plan, Map<Integer, IPatternDetails> bindings,
             Map<Integer, BigInteger> totals, Map<Integer, BigInteger> remaining,
             Map<AEKey, BigInteger> stock, Map<AEKey, BigInteger> emitted, Set<ResourceLocation> fuzzy,
             BigInteger theoreticalBytes, UUID planningId, ECOExecutionRuntime runtime) {
-        this(plan, bindings, totals, remaining, stock, emitted, fuzzy, theoreticalBytes, planningId, runtime,
-                (EcoOmniPlanRuntimeAccess) (Object) runtime);
-    }
-
-    // Package access permits verifying the real ECO runtime without launching Minecraft's mixin loader.
-    EcoOmniPlanExecution(ECOExecutionPlan plan, Map<Integer, IPatternDetails> bindings,
-            Map<Integer, BigInteger> totals, Map<Integer, BigInteger> remaining,
-            Map<AEKey, BigInteger> stock, Map<AEKey, BigInteger> emitted, Set<ResourceLocation> fuzzy,
-            BigInteger theoreticalBytes, UUID planningId, ECOExecutionRuntime runtime, EcoOmniPlanRuntimeAccess access) {
         this.plan = plan;
         this.bindings = Map.copyOf(bindings);
         this.totals = Map.copyOf(totals);
-        this.remaining = new LinkedHashMap<>(remaining);
+        this.remaining = remaining;
         this.deferredStock = new LinkedHashMap<>(EcoOmniPlanBridge.positive(stock));
         this.deferredEmitted = new LinkedHashMap<>(EcoOmniPlanBridge.positive(emitted));
         this.fuzzy = Set.copyOf(fuzzy);
         this.theoreticalBytes = Objects.requireNonNull(theoreticalBytes);
         this.planningId = planningId;
         this.runtime = runtime;
-        this.access = access;
-        access.ecoOmni$bindRemaining(id -> this.remaining.getOrDefault(id, BigInteger.ZERO));
     }
 
     static EcoOmniPlanExecution start(EcoOmniPlanBridge.Prepared prepared, Iterable<IPatternDetails> submitted) {
         var bindings = bind(prepared.execution(), submitted);
-        return new EcoOmniPlanExecution(prepared.execution(), bindings, prepared.taskTotals(), prepared.taskTotals(),
+        var remaining = new LinkedHashMap<>(prepared.taskTotals());
+        return new EcoOmniPlanExecution(prepared.execution(), bindings, prepared.taskTotals(), remaining,
                 prepared.deferredStock(), prepared.deferredEmitted(), prepared.fuzzyPlanningItemIds(),
-                prepared.theoreticalBytes(), prepared.planningId(), EcoOmniPlanRuntimeScope.withRemaining(
-                        id -> prepared.taskTotals().getOrDefault(id, BigInteger.ZERO),
-                        () -> new ECOExecutionRuntime(prepared.execution(), bindings)));
+                prepared.theoreticalBytes(), prepared.planningId(), ECOExecutionRuntime.forExternalCpu(
+                        prepared.execution(), bindings, id -> boundedRemaining(remaining, id)));
+    }
+
+    private static long boundedRemaining(Map<Integer, BigInteger> remaining, int taskId) {
+        return remaining.getOrDefault(taskId, BigInteger.ZERO).min(LONG_MAX).longValueExact();
     }
 
     private static Map<Integer, IPatternDetails> bind(ECOExecutionPlan plan, Iterable<IPatternDetails> submitted) {
@@ -169,8 +160,7 @@ public final class EcoOmniPlanExecution {
 
     /** Re-evaluate after each acceptance: completed feedback tasks must release their last products. */
     public BigInteger reservedInputAmount(AEKey key) {
-        // This runtime binds exact progress through our task-ID hook, not ECO's native
-        // TaskProgress[]. Use the map overload, as with candidates/isComplete.
+        // External CPUs provide task counts by ID instead of ECO's native TaskProgress array.
         var reserve = BigInteger.valueOf(runtime.reservedInputAmount(key, Map.of()));
         var exactInputs = BigInteger.ZERO;
         for (var task : plan.tasks()) {
@@ -178,7 +168,7 @@ public final class EcoOmniPlanExecution {
             exactInputs = exactInputs.add(OmniCpuDispatchLedger.reservedInput(bindings.get(task.id()), count, key));
         }
         // Keep startup stock in addition to exact demand even when ECO's long sum saturates.
-        var startup = BigInteger.valueOf(access.ecoOmni$protectedSeed(null).getOrDefault(key, 0L));
+        var startup = runtime.exactProtectedStartupSeed(null).getOrDefault(key, BigInteger.ZERO);
         return reserve.max(exactInputs.add(startup));
     }
 
@@ -238,7 +228,7 @@ public final class EcoOmniPlanExecution {
         tag.putString("bytes", theoreticalBytes.toString());
         if (planningId != null) tag.putUUID("planningId", planningId);
         var runtimeTag = new CompoundTag();
-        access.ecoOmni$write(runtimeTag);
+        runtime.writeToNBT(runtimeTag);
         tag.put("runtime", runtimeTag);
         return tag;
     }
@@ -274,9 +264,8 @@ public final class EcoOmniPlanExecution {
         }
         var fuzzy = new LinkedHashSet<ResourceLocation>();
         for (var value : tag.getList("fuzzy", Tag.TAG_STRING)) fuzzy.add(ResourceLocation.parse(value.getAsString()));
-        var runtime = EcoOmniPlanRuntimeScope.withRemaining(id -> remaining.getOrDefault(id, BigInteger.ZERO),
-                () -> EcoOmniPlanRuntimeInvoker.molecularmanipulator$restore(plan, bindings,
-                        tag.getCompound("runtime")));
+        var runtime = ECOExecutionRuntime.restoreExternalCpu(plan, bindings,
+                id -> boundedRemaining(remaining, id), tag.getCompound("runtime"));
         var restored = new EcoOmniPlanExecution(plan, bindings, totals, remaining,
                 EcoOmniPlanCodec.readAmounts(tag.getList("stock", Tag.TAG_COMPOUND)),
                 EcoOmniPlanCodec.readAmounts(tag.getList("emitted", Tag.TAG_COMPOUND)), fuzzy,
@@ -311,7 +300,7 @@ public final class EcoOmniPlanExecution {
         }
         public BigInteger maximum() {
             check();
-            var allowed = owner.access.ecoOmni$exactAllowance(candidate, owner.remaining.get(taskId()));
+            var allowed = owner.runtime.exactAllowance(candidate, owner.remaining.get(taskId()));
             // An input allocation run is an atomic choice. Never batch across a key transition.
             var completed = owner.totals.get(taskId()).subtract(owner.remaining.get(taskId()));
             for (var allocation : owner.plan.task(taskId()).inputAllocations()) {
@@ -330,9 +319,9 @@ public final class EcoOmniPlanExecution {
             return allowed;
         }
 
-        public Map<AEKey, Long> protectedSeeds() {
+        public Map<AEKey, BigInteger> protectedSeeds() {
             check();
-            return Map.copyOf(owner.access.ecoOmni$protectedSeed(candidate));
+            return owner.runtime.exactProtectedStartupSeed(candidate);
         }
 
         public ICraftingInventory guard(ICraftingInventory physical, Function<AEKey, BigInteger> physicalAmount) {
@@ -342,7 +331,7 @@ public final class EcoOmniPlanExecution {
                 @Override public void insert(AEKey key, long amount, Actionable mode) { physical.insert(key, amount, mode); }
                 @Override public long extract(AEKey key, long amount, Actionable mode) {
                     if (amount <= 0) return 0;
-                    var free = physicalAmount.apply(key).subtract(BigInteger.valueOf(protectedAmounts.getOrDefault(key, 0L)))
+                    var free = physicalAmount.apply(key).subtract(protectedAmounts.getOrDefault(key, BigInteger.ZERO))
                             .max(BigInteger.ZERO).min(BigInteger.valueOf(amount));
                     return free.signum() == 0 ? 0 : physical.extract(key, free.longValueExact(), mode);
                 }
@@ -359,7 +348,7 @@ public final class EcoOmniPlanExecution {
             var units = unitTotals(unitInputs);
             for (var entry : units.entrySet()) {
                 var free = physicalAmount.apply(entry.getKey())
-                        .subtract(BigInteger.valueOf(seeds.getOrDefault(entry.getKey(), 0L))).max(BigInteger.ZERO);
+                        .subtract(seeds.getOrDefault(entry.getKey(), BigInteger.ZERO)).max(BigInteger.ZERO);
                 upper = upper.min(free.divide(entry.getValue()));
             }
             if (upper.signum() <= 0) return BigInteger.ZERO;
@@ -377,7 +366,7 @@ public final class EcoOmniPlanExecution {
                     if (amount.signum() > 0) amounts.put(key, amount);
                 }
                 snapshot.restore(amounts);
-                long safe = owner.access.ecoOmni$limitCycleBatch(candidate, unitInputs, snapshot,
+                long safe = owner.runtime.limitCycleBatch(candidate, unitInputs, snapshot,
                         upper.min(LONG_MAX).longValueExact());
                 upper = upper.min(BigInteger.valueOf(safe));
             }
@@ -469,7 +458,7 @@ public final class EcoOmniPlanExecution {
             var next = owner.remaining.get(taskId()).subtract(count);
             owner.remaining.put(taskId(), next);
             // ECO records bounded witness progress and startup seed consumption.
-            owner.access.ecoOmni$acceptedExact(candidate, count, unitInputs);
+            owner.runtime.onAcceptedExact(candidate, count, unitInputs);
             owner.revision++;
             accepted = true;
         }

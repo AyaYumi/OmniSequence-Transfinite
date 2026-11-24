@@ -39,7 +39,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Outer lifecycle boundary; loaded by the existing ECO >=20.5.0 optional-mixin gate. */
+/** Outer lifecycle boundary for Omni CPUs running ECO parent orders. */
 @Mixin(value = CraftingCpuLogic.class, priority = 800, remap = false)
 public abstract class EcoOmniParentOrderMixin implements EcoOmniParentOrderCpu, EcoOmniParentOrder.Host, OmniCpuDispatchRunner {
     @Shadow @Final private CraftingCPUCluster cluster;

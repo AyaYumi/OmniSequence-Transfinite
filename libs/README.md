@@ -15,11 +15,10 @@ release is absent from Modrinth Maven. The artifact is byte-identical to the
 and the reference pack's JAR, with SHA-256
 `83bcdee0fc7120bb04e020f3ad28bf486ba9124491a717eb8d2d592d946c100f`.
 No local ExtendedAE JAR is required. Optional ECO integration compiles against
-the actual NeoECOAE 20.5.0 Forge artifact (`neoeco_api_build`), not a local stub.
-The separate optional runtime minimum (`neoeco_version`) is 20.4.2. Older runtimes
-use ordinary AE dispatch; native batch/exact integration remains gated to 20.5.0+.
-The `eco-legacy` test suite compiles its old CPU fixture against the real 20.4.2 API
-and runs that version independently of the production compile-only API.
+the actual NeoECOAE Forge artifact (`neoeco_api_build`, 20.5.10), not a local stub.
+If installed, the runtime must be Forge 20.5.10 or later. For an unpublished
+development build, pass `-Pneoeco_api_repository=<local Maven repository>` with
+the same artifact coordinates.
 
 Thunderbolt and Data Energistics adapters compile against Java 17 ABI declarations
 under `src/optionalCpuApi/java`. Those declarations are excluded from runtime classpaths

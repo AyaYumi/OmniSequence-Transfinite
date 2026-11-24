@@ -156,8 +156,8 @@ long 预览窗口当成完整订单。供应器仍须满足真实材料、容量
 原生计数派发跳过本地智能翻倍。外部倍率样板仍按完整输入/输出比例处理，接收的批次
 保存完整材料向量；容量查询不移交材料，也不授权额外倍增。
 
-ECO 可选运行依赖最低为 **20.4.2**。原生批量／精确计划兼容使用真实 Forge **20.5.0** API
-编译，仅在该版本或更高版本启用；较旧的受支持 ECO 版本保留普通 AE 派发和按任务取消。
+可选 NeoECOAE 联动使用 Forge **20.5.10+** 的公开 API。构筑井的批量适配器与按任务派发的
+单次投料通过 `ECOFastPathFacade` 注册到原供应器；不再支持更旧的 NeoECOAE。
 `src/optionalCpuApi` 为其他可选接口提供 Java 17 编译签名，不进入运行时或发布 JAR。
 Thunderbolt 还须提供公开批量接口；Data Energistics 契约不可用时保留普通 AE 派发。
 这些 Forge 依赖没有 legacy 的 Thunderbolt 原生执行器与 Trinity 计数 CPU 契约，

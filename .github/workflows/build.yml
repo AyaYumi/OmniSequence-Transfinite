@@ -51,12 +51,7 @@ jobs:
             grep -Eq 'All [1-9][0-9]* required tests passed' build/ci-$suite.log
           done
       - name: Compile actual ECO API fixtures
-        # NeoECOAE 20.5.0 initializes a client-only UI on dedicated servers.
-        # Runtime ECO assertions must run in a client/integrated-server environment.
-        run: |
-          for suite in eco eco-legacy; do
-            bash gradlew ${{ matrix.args }} -PgameTestSuite=$suite compileGameTestJava --console=plain
-          done
+        run: bash gradlew ${{ matrix.args }} -PgameTestSuite=eco compileGameTestJava --console=plain
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -29,7 +29,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
-/** Optional ECO 20.5.0 boundary; call-site dispatch must enclose foreign batch dispatchers. */
+/** Optional ECO boundary; call-site dispatch must enclose foreign batch dispatchers. */
 @Mixin(value = CraftingCpuLogic.class, remap = false, priority = 1200)
 public abstract class EcoCpuDispatchMixin implements EcoCpuDispatchAccess, OmniCpuDispatchRunner {
     @Shadow private int executeCrafting(int maxPatterns, CraftingService crafting,

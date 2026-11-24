@@ -101,6 +101,12 @@ sourceSets.main.resources {
 
 repositories {
     flatDir { dirs 'libs' }
+    if (project.hasProperty('neoeco_api_repository')) {
+        maven {
+            url = uri(project.property('neoeco_api_repository'))
+            content { includeModule 'maven.modrinth', 'neoecoae' }
+        }
+    }
 
     maven {
         name = 'AE2UELM'
@@ -194,7 +200,7 @@ tasks.named('processResources', ProcessResources).configure {
             mod_authors            : mod_authors,
             mod_description        : mod_description,
             applied_enhancements_version: applied_enhancements_version,
-            neoeco_version: neoeco_version,
+            neoeco_api_build: neoeco_api_build,
     ]
     inputs.properties replaceProperties
 
@@ -331,7 +337,6 @@ def verifyReleaseMixins = tasks.register('verifyReleaseMixins') {
             }
             def refmap = parser.parse(archive.getInputStream(archive.getEntry(refmapName)), 'UTF-8')
             [
-                'EcoOmniPlanMenuMixin': ['broadcastChanges', 'm_38946_'],
                 'SingularityEntityCollisionMixin': ['tick', 'm_8119_'],
                 'SingularityPlayerCarriageMixin': ['tick', 'm_9933_'],
                 'ForgeMachineRecipeJsonMixin': ['apply', 'm_5787_'],
@@ -376,8 +381,7 @@ def gameTestSuites = [
         'singularity-unload': ['SingularityChunkLoadingGameTests'],
         essence: ['MolecularReusableCraftingGameTests'],
         'native-essence': ['MolecularReusableCraftingGameTests'],
-        eco: ['EcoCpuGameTests', 'EcoMatterGameTests', 'EcoOutputGameTests', 'EcoOmniParentOrderGameTests', 'EcoOmniMenuGameTests'],
-        'eco-legacy': ['MatterCpuBatchGameTests', 'MatterNativeCpuChecks', 'LegacyEcoCpuGameTests']
+        eco: ['EcoCpuGameTests', 'EcoMatterGameTests', 'EcoOutputGameTests', 'EcoOmniParentOrderGameTests', 'EcoOmniMenuGameTests']
 ]
 if (!gameTestSuites.containsKey(gameTestSuite)) throw new GradleException("Unknown gameTestSuite: ${gameTestSuite}")
 if (gameTestSuite == 'patterns') {
@@ -393,13 +397,10 @@ def gameTests = sourceSets.create('gameTest') {
     resources.setSrcDirs(['src/gameTest/resources'])
     if (gameTestSuite == 'fabrication-upload') {
         resources.exclude 'data/molecularmanipulator/recipes/verification_ae_inputs.json'
-    } else if (!(gameTestSuite in ['cpu', 'performance', 'eco', 'eco-legacy'])) {
+    } else if (!(gameTestSuite in ['cpu', 'performance', 'eco'])) {
         resources.exclude 'data/molecularmanipulator/recipes/**'
     }
-    // The old CPU fixture must compile against its real API, not the newer compatibility aliases.
-    compileClasspath += sourceSets.main.compileClasspath.filter {
-        gameTestSuite != 'eco-legacy' || !it.name.startsWith('neoecoae-')
-    } + sourceSets.main.output
+    compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
     runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
 }
 // Forge scans every class in the mod output, including leftovers from another suite.
@@ -418,15 +419,11 @@ minecraft.runs.gameTestServer {
     workingDirectory gameTestDirectory.get().asFile
     mods { "${mod_id}" { source gameTests } }
 }
-if (project.hasProperty('gameTestEco') || gameTestSuite in ['eco', 'eco-legacy', 'essence']
+if (project.hasProperty('gameTestEco') || gameTestSuite in ['eco', 'essence']
         || (gameTestSuite == 'patterns' && project.hasProperty('gameTestPatternCluster'))) {
-    def ecoRuntime = providers.gradleProperty('gameTestEcoVersion')
-            .getOrElse(gameTestSuite == 'eco-legacy' ? neoeco_version : neoeco_api_build)
-    // Use NeoECOAE's project ID so ForgeGradle can remap an older runtime alongside the newer API.
-    def ecoRuntimeDependency = "maven.modrinth:udZtKfzP:${ecoRuntime}"
+    def ecoRuntime = providers.gradleProperty('gameTestEcoVersion').getOrElse(neoeco_api_build)
+    def ecoRuntimeDependency = "maven.modrinth:neoecoae:${ecoRuntime}"
     dependencies.add('localRuntime', fg.deobf(ecoRuntimeDependency))
-    if (gameTestSuite == 'eco-legacy')
-        dependencies.add('gameTestCompileOnly', fg.deobf(ecoRuntimeDependency))
     dependencies.add('localRuntime', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
     dependencies.add('gameTestCompileOnly', fg.deobf('maven.modrinth:ldlib:mc1.20.1-1.0.52.a-forge'))
 }

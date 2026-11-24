@@ -11,13 +11,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Covers ordinary pushes and optional Thunderbolt/ECO dispatches that bypass executeCrafting. */
+/** Covers ordinary pushes and optional Thunderbolt dispatches that bypass executeCrafting. */
 @Pseudo
 @Mixin(targets = {
         "appeng.crafting.execution.CraftingCpuLogic",
-        "net.pedroksl.advanced_ae.common.logic.AdvCraftingCPULogic",
-        "cn.dancingsnow.neoecoae.crafting.execution.ECOCraftingCPULogic",
-        "cn.dancingsnow.neoecoae.api.me.ECOCraftingCPULogic"
+        "net.pedroksl.advanced_ae.common.logic.AdvCraftingCPULogic"
 }, priority = 1200, remap = false)
 public abstract class MatterCpuJobContextMixin {
     @WrapMethod(method = "tickCraftingLogic", require = 0)

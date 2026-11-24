@@ -15,7 +15,8 @@ allprojects {
         }
         neoForge.mods.getByName(project.mod_id).sourceSet(regression)
         def server = neoForge.runs.getByName('gameTestServer')
-        server.gameDirectory = file('build/aae-regression-run')
+        server.gameDirectory = file('build/' +
+                project.providers.gradleProperty('aaeRunName').getOrElse('aae-regression-run'))
         tasks.named('compileAaeRegressionJava', JavaCompile) {
             dependsOn tasks.named('classes')
             options.encoding = 'UTF-8'

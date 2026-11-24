@@ -46,7 +46,7 @@ All entries use `runGameTestServer` unless the client section says otherwise.
 | `fabrication-network-upload.init.gradle` | Well upload using ME blanks, renamed targets and optional EAEP/team integration: 2 or 5 tests; see below |
 | `compact-singularity.init.gradle` | Compact Hub connections, collection/duplication, capacity waits and retained drops |
 | `cosmic-holes.init.gradle` | Hole placement, ownership, routing, item retention, removal fallback and saved bindings |
-| `aae.init.gradle` | AdvancedAE CPU/provider integration, ownership, counts and backpressure; requires explicit JARs |
+| `aae.init.gradle` | AdvancedAE CPU batch ownership and backpressure, plus external processing dispatch with a real provider and barrel: 2 tests |
 | `ae2-compat.init.gradle` | AE2 extraction, native bypass, mixed exact tasks and long-count providers with Applied 1.1.0 |
 | `paired-api.init.gradle` | Paired Applied API integration, native rewriting and exact quantities: 7 tests |
 | `fabrication-dispatch.init.gradle` | Finite-power Nexus deliveries, long counts, durable queues and refunds: 2 server tests |
@@ -142,7 +142,7 @@ into a test runtime. JAR paths below are local inputs, not bundled dependencies.
 | Compact Hub | `-PcompactSingularityRunName=<name>`; add `-PcompactSingularityCollectionOnly` for collection batch/interval checks only |
 | Hub / quantum | `-PsingularityRegressionDirectory=build/<name>` / `-PsingularityQuantumRunName=<name>` |
 | Performance / combined | `-PperformanceRegressionDirectory=build/<name>` / `-PmultiblockRegressionDirectory=build/<name>` |
-| AdvancedAE | `-PaaeJar=<AdvancedAE-1.6.11-JAR>` and `-PgeckoJar=<GeckoLib-4.9.2-JAR>` |
+| AdvancedAE | `-PaaeJar=<AdvancedAE-1.6.12-JAR>`, `-PgeckoJar=<GeckoLib-4.9.3-JAR>` and optional `-PaaeRunName=<name>` |
 | Hole ownership / fabrication upload | Add `-PcosmicFtbTests` / `-PfabricationFtbTests` for real FTB Teams; also run without them for personal ownership |
 | Catalysts | `-PcatalystSharingRunName=<name>`; optional `-PcatalystPackMods=<directory>` needs `ae2lt-2.1.0-beta.6.jar` and `thunderbolt-2.0.0-beta.4.jar` for real recipe imports |
 | Cyclic submission | `-PcyclicRunName=<name>`; run both default explicit planning and `-PcyclicAutomatic`; `-PcyclicAppliedJar=<absolute-JAR-path>` selects a runtime override |

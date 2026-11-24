@@ -19,6 +19,8 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 Install the mod and required dependencies separately in client and server `mods/` folders. Use matching builds on both sides. ExpandedAE 2.1.1 is incompatible with this mod.
 
+When an AdvancedAE provider sends a native processing pattern with compressed inputs to an external inventory, it checks every slot before inserting anything. If the reserved materials fall short, the provider rejects the dispatch and AE2's normal refund path is unchanged.
+
 ## Getting started
 
 1. Build a **Matter Fabrication Well** with basic AE2 materials, connect ME and complete tier 1 research.

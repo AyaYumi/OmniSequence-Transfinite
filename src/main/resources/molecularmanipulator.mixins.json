@@ -18,6 +18,7 @@
     "SingularityLithiumCollisionMixin",
     "SingularityPlayerCarriageMixin",
     "AdvancedAECraftingCpuLogicMixin",
+    "AdvancedAEPatternProviderLogicMixin",
     "CalculatorAssemblerMatrixMixin",
     "ClusterAssemblerMatrixMixin",
     "CraftingCPUClusterAccessor",

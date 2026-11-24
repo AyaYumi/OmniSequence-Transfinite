@@ -36,7 +36,7 @@ All entries use `runGameTestServer` unless the client section says otherwise.
 | `auto-crafting.init.gradle` | Passive crafting, reserves, chained outputs, long counts, recipe reload and machine removal: 12 tests; 13 with the depot opt-in |
 | `performance-regression.init.gradle` | Long-count providers, recipe/research lookups, well queues, dismantling, Nexus and storage-bus access |
 | `cpu-batch-compat.init.gradle` | Optional CPU batch APIs, input/output conservation, queues, refunds and optional-mod absence: 1 test |
-| `processing-dispatch.init.gradle` | ExtendedAE/Lightning providers, smelting/infusion and fallback backpressure: 12 tests |
+| `processing-dispatch.init.gradle` | Real ordinary provider, ExtendedAE/Lightning providers, smelting/infusion and fallback backpressure: 13 tests; 1 with `-PordinaryDispatchOnly` |
 | `eco.init.gradle` | ECO CPU scheduling, dispatch, output, admission and cancellation: 28 tests and `MATTER_ECO_API_PASS` |
 | `performance-backport.init.gradle` | Ownership, native batches, fluids, migration and Hub motion with unavailable chunks: 8 tests |
 | `singularity.init.gradle` | Hub registration, build/dismantle, saved-state migration, protection and material conservation |
@@ -169,6 +169,8 @@ from the dependency directory; the backport suite also accepts these selectors.
 
 ### External processing dispatch
 
+Add `-PordinaryDispatchOnly` to run just the AE2 provider and barrel regression with the standard dependencies. It checks one recipe per push, backpressure, resumption and CPU accounting.
+
 The factory fixture needs Mekanism **and Mekanism Generators**, Mekanism Extras,
 Applied Mekanistics, EAEP and BatchCraft in addition to the selected providers.
 Use actual filenames from one dependency directory, for example:
@@ -184,7 +186,7 @@ Use actual filenames from one dependency directory, for example:
   runGameTestServer --no-configuration-cache
 ```
 
-Require **12** tests, including 10,000-product completion, exact item/chemical
+Require **13** tests, including 10,000-product completion, exact item/chemical
 accounting, empty final queues and per-input backpressure. To include ECO, add it
 to `cpuCompatMods` and select `-PcpuCompatEcoJar=neoecoae-21.2.13.jar`.
 

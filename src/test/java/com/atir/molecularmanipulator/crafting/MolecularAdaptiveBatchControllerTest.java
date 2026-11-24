@@ -4,22 +4,21 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
-import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider;
-import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider.PushResult;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Test;
 
 class MolecularAdaptiveBatchControllerTest {
     private long tick;
     private final MolecularAdaptiveBatchController controller = new MolecularAdaptiveBatchController(() -> tick);
-    private final ICraftingProvider provider = provider(() -> false, false);
+    private final ICraftingProvider provider = provider(() -> false);
     private final IPatternDetails pattern = pattern();
 
     @Test void ordinaryProviderGrowsThroughEveryRoundInTheSameTick() {
         for (long round = 1; round <= 4096; round *= 2) {
             assertEquals(round, available());
-            controller.onAccepted(provider, pattern, round, round, PushResult.ACCEPTED_FULL);
+            controller.onAccepted(provider, pattern, round);
         }
         assertEquals(8192, available());
         assertEquals(0, tick);
@@ -109,24 +108,24 @@ class MolecularAdaptiveBatchControllerTest {
 
     @Test void nativeProviderFillingTheReceiverOnItsFirstPushStopsProbing() {
         var busy = new AtomicBoolean(false);
-        var nativeProvider = provider(busy::get, false);
-        controller.onAccepted(nativeProvider, pattern, 1, 1, PushResult.ACCEPTED_FULL);
+        var nativeProvider = provider(busy::get);
+        controller.onAccepted(nativeProvider, pattern, 1);
         busy.set(true);
         controller.onBusy(nativeProvider, pattern);
         assertEquals(0, controller.getAvailableCrafts(nativeProvider, pattern, Long.MAX_VALUE));
         tick++;
         busy.set(false);
         assertEquals(1, controller.getAvailableCrafts(nativeProvider, pattern, Long.MAX_VALUE));
-        controller.onAccepted(nativeProvider, pattern, 1, 1, PushResult.ACCEPTED_FULL);
+        controller.onAccepted(nativeProvider, pattern, 1);
         assertEquals(0, controller.getAvailableCrafts(nativeProvider, pattern, Long.MAX_VALUE));
     }
 
     @Test void growthDoesNotQueryAnyProviderBatchCapability() {
-        var unsupported = provider(() -> false, true);
+        var unsupported = provider(() -> false);
         assertEquals(1, controller.getAvailableCrafts(unsupported, pattern, 100));
-        controller.onAccepted(unsupported, pattern, 1, 1, PushResult.ACCEPTED_FULL);
+        controller.onAccepted(unsupported, pattern, 1);
         assertEquals(2, controller.getAvailableCrafts(unsupported, pattern, 100));
-        controller.onAccepted(unsupported, pattern, 2, 2, PushResult.ACCEPTED_FULL);
+        controller.onAccepted(unsupported, pattern, 2);
         assertEquals(4, controller.getAvailableCrafts(unsupported, pattern, 100));
     }
 
@@ -159,31 +158,28 @@ class MolecularAdaptiveBatchControllerTest {
         assertEquals(8, available());
     }
 
-    @Test void queuedOwnershipHaltsThisTickAndRetainsItsActualRate() {
-        accept(7);
-        controller.onAccepted(provider, pattern, 1, 1, PushResult.ACCEPTED_QUEUED);
+    @Test void aBusyProviderAfterItsLastAcceptanceRetainsItsActualRate() {
+        accept(8);
+        controller.onBusy(provider, pattern);
         assertEquals(0, available());
         tick++;
         assertEquals(8, available());
         assertFalse(controller.isSingleOnly(provider, pattern));
     }
 
-    @Test void unverifiedOwnershipAndAccountingMismatchForceOneCallPerTick() {
-        controller.onAccepted(provider, pattern, 1, 1, PushResult.ACCEPTED_UNVERIFIED);
+    @Test void accountingMismatchForcesOneCallPerTickUntilTheJobChanges() {
+        accept(7);
+        controller.onStatusVerification(provider, pattern, false);
+        assertTrue(controller.isSingleOnly(provider, pattern));
         assertEquals(0, available());
         tick++;
         assertEquals(1, available());
         accept(1);
         assertEquals(0, available());
-        assertTrue(controller.isSingleOnly(provider, pattern));
         controller.setActiveJob(new Object());
-        assertFalse(controller.isSingleOnly(provider, pattern));
-        tick = 20;
-        accept(7);
-        controller.onStatusVerification(provider, pattern, false);
-        assertEquals(0, available());
         tick++;
-        assertEquals(1, available());
+        assertFalse(controller.isSingleOnly(provider, pattern));
+        assertEquals(15, available());
     }
 
     @Test void forceSingleRemainsUntilTheJobIdentityChanges() {
@@ -207,11 +203,11 @@ class MolecularAdaptiveBatchControllerTest {
 
     @Test void providerAndPatternIdentityKeepIndependentCapacity() {
         barrier(13);
-        var otherProvider = provider(() -> false, false);
+        var otherProvider = provider(() -> false);
         var otherPattern = pattern();
         assertEquals(1, controller.getAvailableCrafts(otherProvider, pattern, 100));
         assertEquals(1, controller.getAvailableCrafts(provider, otherPattern, 100));
-        controller.onAccepted(otherProvider, pattern, 1, 1, PushResult.ACCEPTED_FULL);
+        controller.onAccepted(otherProvider, pattern, 1);
         assertEquals(2, controller.getAvailableCrafts(otherProvider, pattern, 100));
         assertEquals(0, available());
     }
@@ -231,7 +227,7 @@ class MolecularAdaptiveBatchControllerTest {
         for (int round = 0; round < 63; round++) {
             long available = available();
             assertTrue(available > 0);
-            controller.onAccepted(provider, pattern, available, available, PushResult.ACCEPTED_FULL);
+            controller.onAccepted(provider, pattern, available);
         }
         assertEquals(0, available());
         tick = Long.MAX_VALUE - 10;
@@ -264,7 +260,7 @@ class MolecularAdaptiveBatchControllerTest {
     }
 
     @Test void busyDoesNotReduceTheReusableWindow() {
-        var busy = provider(() -> true, false);
+        var busy = provider(() -> true);
         controller.onReusableProviderRejected(busy, pattern, 1000);
         assertEquals(0, controller.getReusableWindowCap(busy, pattern));
         tick++;
@@ -276,7 +272,7 @@ class MolecularAdaptiveBatchControllerTest {
             var broken = provider(() -> {
                 if (linkage) throw new NoClassDefFoundError("busy dependency");
                 throw new IllegalStateException("busy unavailable");
-            }, false);
+            });
             assertDoesNotThrow(() -> controller.onProviderRejected(broken, pattern, 1));
             assertEquals(0, controller.getAvailableCrafts(broken, pattern, 100));
             tick++;
@@ -291,9 +287,10 @@ class MolecularAdaptiveBatchControllerTest {
         assertEquals(0, controller.getAvailableCrafts(null, pattern, 10));
         assertEquals(0, controller.getAvailableCrafts(provider, null, 10));
         assertDoesNotThrow(() -> controller.forceSingle(null, pattern));
-        controller.onAccepted(provider, pattern, 0, 1, PushResult.ACCEPTED_FULL);
-        controller.onAccepted(provider, pattern, 1, 0, PushResult.ACCEPTED_FULL);
-        controller.onAccepted(provider, pattern, 1, 1, null);
+        controller.onAccepted(provider, pattern, 0);
+        controller.onAccepted(provider, pattern, -1);
+        controller.onAccepted(null, pattern, 1);
+        controller.onAccepted(provider, null, 1);
         controller.onRejected(provider, pattern, 0);
         controller.onBusy(null, pattern);
         controller.onStatusVerification(null, pattern, false);
@@ -306,7 +303,7 @@ class MolecularAdaptiveBatchControllerTest {
         while (calls > 0) {
             long step = Math.min(calls, available());
             assertTrue(step > 0, "All requested successful calls must be permitted");
-            controller.onAccepted(provider, pattern, step, step, PushResult.ACCEPTED_FULL);
+            controller.onAccepted(provider, pattern, step);
             calls -= step;
         }
     }
@@ -325,10 +322,9 @@ class MolecularAdaptiveBatchControllerTest {
                 });
     }
 
-    private static ICraftingProvider provider(java.util.function.BooleanSupplier busy, boolean scaledInterface) {
+    private static ICraftingProvider provider(BooleanSupplier busy) {
         return (ICraftingProvider) Proxy.newProxyInstance(MolecularAdaptiveBatchControllerTest.class.getClassLoader(),
-                scaledInterface ? new Class<?>[]{ICraftingProvider.class, MolecularScaledBatchProvider.class}
-                        : new Class<?>[]{ICraftingProvider.class},
+                new Class<?>[]{ICraftingProvider.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "isBusy" -> busy.getAsBoolean();
                     case "hashCode" -> System.identityHashCode(proxy);

@@ -41,6 +41,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -175,32 +176,29 @@ public final class ProcessingDispatchGameTests {
                         helper.absolutePos(factoryPos), Direction.WEST);
                 helper.assertTrue(handler != null, "Factory input side must expose its real item handler");
                 long owned = 0;
-                int occupied = 0;
-                int smallestBuffer = Integer.MAX_VALUE;
                 for (int slot = 0; slot < handler.getSlots(); slot++) {
                     var stack = handler.getStackInSlot(slot);
                     if (stack.is(Items.STONE)) {
                         owned += stack.getCount();
-                        occupied++;
-                        smallestBuffer = Math.min(smallestBuffer, stack.getCount());
                     }
                 }
                 long waiting = cpu.craftingLogic.getWaitingFor(output);
                 long retained = cpu.craftingLogic.getInventory().list.get(input);
-                helper.assertTrue(occupied == 13 && smallestBuffer >= 64,
-                        "All 13 real input slots must receive buffered batches, not single items: occupied=" + occupied
-                                + ", owned=" + owned + ", waiting=" + waiting + ", retained=" + retained);
+                helper.assertTrue(owned > 1 && owned < requested,
+                        "Repeated dispatch must fill the real receiver without admitting the whole order: owned="
+                                + owned + ", waiting=" + waiting + ", retained=" + retained);
                 helper.assertTrue(owned == waiting && retained + owned == requested,
                         "Buffered input must match CPU input and waiting accounting");
-                // Providers may legitimately leave room smaller than their learned batch.
-                // Fill that room from fixture stock to test a genuinely full receiver,
-                // without requiring an arbitrary batch algorithm to occupy every last item.
+                // Fill every exposed input from independent fixture stock, regardless of the provider's learned rate.
                 for (int slot = 0; slot < handler.getSlots(); slot++) {
-                    handler.insertItem(slot, new net.minecraft.world.item.ItemStack(
-                            Items.STONE, handler.getSlotLimit(slot)), false);
+                    handler.insertItem(slot, new ItemStack(Items.STONE, handler.getSlotLimit(slot)), false);
+                    var full = handler.getStackInSlot(slot);
+                    helper.assertTrue(full.is(Items.STONE) && full.getCount() > 0,
+                            "Backpressure fixture must contain stone in each exposed input slot");
                     helper.assertTrue(!handler.insertItem(slot, Items.STONE.getDefaultInstance(), true).isEmpty(),
                             "Backpressure fixture must fill every exposed input slot");
                 }
+                helper.assertTrue(handler.getSlots() == 13, "Real factory must expose all 13 input slots");
                 long fullWaiting = waiting;
                 helper.runAfterDelay(20, () -> {
                     helper.assertTrue(cpu.craftingLogic.getWaitingFor(output) == fullWaiting
@@ -246,14 +244,10 @@ public final class ProcessingDispatchGameTests {
         if (!process) {
             helper.runAfterDelay(80, () -> {
                 long bufferedIron = 0;
-                int occupied = 0;
-                int smallestBuffer = Integer.MAX_VALUE;
                 for (int slot = 0; slot < input.getSlots(); slot++) {
                     var stack = input.getStackInSlot(slot);
                     if (stack.is(Items.IRON_INGOT)) {
                         bufferedIron += stack.getCount();
-                        occupied++;
-                        smallestBuffer = Math.min(smallestBuffer, stack.getCount());
                     }
                 }
                 long waiting = cpu.craftingLogic.getWaitingFor(enriched);
@@ -269,15 +263,25 @@ public final class ProcessingDispatchGameTests {
                     helper.succeed();
                     return;
                 }
-                helper.assertTrue(occupied == 13 && smallestBuffer >= 64,
-                        "Iron/carbon pattern must buffer all 13 processes: occupied=" + occupied
-                                + ", iron=" + bufferedIron + ", carbon=" + bufferedCarbon + ", waiting=" + waiting
+                helper.assertTrue(bufferedIron > 1 && waiting < requested,
+                        "Repeated dispatch must reach the real two-input receiver without admitting the whole order: iron="
+                                + bufferedIron + ", carbon=" + bufferedCarbon + ", waiting=" + waiting
                                 + ", retainedIron=" + retainedIron + ", retainedCarbon=" + retainedCarbon);
                 helper.assertTrue(bufferedIron == waiting && bufferedCarbon == 10 * waiting
                                 && retainedIron + waiting == requested && retainedCarbon + bufferedCarbon == 10 * requested,
                         "Both actual receiver inputs must match the native CPU's exact recipe ratio and waiting count");
                 // Block only the chemical input while leaving item room. No part of another recipe may leave the CPU.
                 factory.getChemicalTank().setStack(carbon.withAmount(factory.getChemicalTank().getCapacity()));
+                factory.getInventorySlots(null).stream().filter(slot -> slot.getStack().is(Items.IRON_INGOT))
+                        .findFirst().orElseThrow().setStack(ItemStack.EMPTY);
+                boolean hasIronRoom = false;
+                for (int slot = 0; slot < input.getSlots(); slot++) {
+                    if (input.insertItem(slot, Items.IRON_INGOT.getDefaultInstance(), true).isEmpty()) {
+                        hasIronRoom = true;
+                        break;
+                    }
+                }
+                helper.assertTrue(hasIronRoom, "Only the chemical tank may be full in this phase");
                 helper.runAfterDelay(20, () -> {
                     helper.assertTrue(cpu.craftingLogic.getWaitingFor(enriched) == waiting
                                     && cpu.craftingLogic.getInventory().list.get(iron) == retainedIron
@@ -286,11 +290,14 @@ public final class ProcessingDispatchGameTests {
                     // Then leave chemical room but fill every item slot from independent fixture stock.
                     factory.getChemicalTank().setEmpty();
                     for (int slot = 0; slot < input.getSlots(); slot++) {
-                        input.insertItem(slot, new net.minecraft.world.item.ItemStack(Items.IRON_INGOT,
-                                input.getSlotLimit(slot)), false);
+                        input.insertItem(slot, new ItemStack(Items.IRON_INGOT, input.getSlotLimit(slot)), false);
+                        var full = input.getStackInSlot(slot);
+                        helper.assertTrue(full.is(Items.IRON_INGOT) && full.getCount() > 0,
+                                "Backpressure fixture must contain iron in each exposed input slot");
                         helper.assertTrue(!input.insertItem(slot, Items.IRON_INGOT.getDefaultInstance(), true).isEmpty(),
                                 "Backpressure fixture must fill each iron input slot");
                     }
+                    helper.assertTrue(input.getSlots() == 13, "Real infusing factory must expose all 13 input slots");
                     helper.runAfterDelay(20, () -> {
                         helper.assertTrue(cpu.craftingLogic.getWaitingFor(enriched) == waiting
                                         && cpu.craftingLogic.getInventory().list.get(iron) == retainedIron

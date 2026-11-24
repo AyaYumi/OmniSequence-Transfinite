@@ -9,7 +9,6 @@ import appeng.api.networking.crafting.ICraftingRequester;
 import appeng.api.networking.crafting.ICraftingSubmitResult;
 import appeng.api.networking.energy.IEnergyService;
 import appeng.api.networking.security.IActionSource;
-import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
@@ -18,7 +17,6 @@ import appeng.crafting.execution.CraftingCpuLogic;
 import appeng.crafting.execution.ExecutingCraftingJob;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.inv.ListCraftingInventory;
-import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.hooks.ticking.TickHandler;
 import appeng.me.service.CraftingService;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
@@ -46,7 +44,6 @@ import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchSafety;
 import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularOmniBatchDelivery;
 import com.atir.molecularmanipulator.crafting.MolecularRotatingTaskEntries;
-import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.crafting.OmniCpuResources;
 import com.atir.molecularmanipulator.integration.ae2.OmniCpuStorage;
@@ -63,15 +60,12 @@ import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchReceipt;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBalancedBatchProvider;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
-import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider;
-import com.atir.molecularmanipulator.integration.ae2.MolecularScaledBatchProvider.PushResult;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -431,8 +425,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     @Unique
     private boolean molecularmanipulator$apiBatchRetryableRejection;
     @Unique
-    private ICraftingProvider molecularmanipulator$scaledBatchProvider;
-    @Unique
     private final Map<ICraftingProvider, Set<IPatternDetails>>
             molecularmanipulator$apiBatchBackpressure =
                     new IdentityHashMap<>();
@@ -489,9 +481,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
     private boolean molecularmanipulator$compatDispatchProgressLane;
     @Unique
     private static final long MOLECULARMANIPULATOR_COMPAT_PATTERN_SLICE_NANOS = 250_000L;
-    @Unique
-    private static final ResourceLocation MOLECULARMANIPULATOR_CHEMICAL_KEY_TYPE =
-            ResourceLocation.fromNamespaceAndPath("appmek", "chemical");
     @Unique
     private final Map<IPatternDetails, Long> molecularmanipulator$compatPatternDeadlines = new IdentityHashMap<>();
     @Unique
@@ -1257,11 +1246,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                     }
                 }
             }
-            if (!molecularmanipulator$cycleBatch.hasCycleProtection()) {
-                var scaled = molecularmanipulator$prepareScaledProcessingBatch(patternDetails, inventory, energyService,
-                        level, firstInputs, expectedOutputs, expectedContainerItems, maximum);
-                if (scaled != null) return scaled;
-            }
             return molecularmanipulator$prepareOrdinaryDispatch(patternDetails, inventory,
                     firstInputs, expectedOutputs, expectedContainerItems, maximum);
         }
@@ -1307,66 +1291,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             Operation<Void> original) {
         var state = molecularmanipulator$exactState;
         original.call(state == null ? inventory : state.wrap(molecularmanipulator$exactInventoryView(inventory)), inputs);
-    }
-
-    @Unique
-    private KeyCounter[] molecularmanipulator$prepareScaledProcessingBatch(IPatternDetails pattern,
-            ICraftingInventory inventory, IEnergyService energy, Level level, KeyCounter[] firstInputs,
-            KeyCounter outputs, KeyCounter containers, long maximum) {
-        if (pattern.getClass() != AEProcessingPattern.class || firstInputs.length == 0
-                || firstInputs.length > 2 || !containers.isEmpty()) {
-            return null;
-        }
-        var ingredients = new GenericStack[firstInputs.length];
-        for (int index = 0; index < firstInputs.length; index++) {
-            var input = firstInputs[index];
-            if (input == null || input.size() != 1) return null;
-            var entry = input.getFirstEntry();
-            if (entry.getKey() == null || entry.getLongValue() <= 0) return null;
-            ingredients[index] = new GenericStack(entry.getKey(), entry.getLongValue());
-        }
-        // Separate item and chemical handlers have independent storage. Two
-        // keys using the same handler could both simulate into one empty slot.
-        if (ingredients.length == 2
-                && !molecularmanipulator$isItemAndChemical(ingredients[0], ingredients[1])
-                && !molecularmanipulator$isItemAndChemical(ingredients[1], ingredients[0])) {
-            return null;
-        }
-        ICraftingProvider selected = null;
-        long maxCrafts = 1;
-        for (var provider : molecularmanipulator$getDispatchProviders(molecularmanipulator$craftingService, pattern)) {
-            if (!(provider instanceof MolecularScaledBatchProvider scaled)
-                    || molecularmanipulator$supportsApiBatch(provider, pattern)
-                    || !molecularmanipulator$canUseExplicitBatch(provider, pattern)) continue;
-            long capacity;
-            try {
-                capacity = Math.min(maximum, scaled.molecularmanipulator$getScaledBatchLimit(pattern,
-                        ingredients, maximum));
-            } catch (RuntimeException exception) {
-                RateLimitedLog.warn("Could not simulate scaled processing batch; using ordinary dispatch", exception);
-                continue;
-            }
-            if (capacity > maxCrafts) {
-                selected = provider;
-                maxCrafts = capacity;
-                if (maxCrafts == maximum) break;
-            }
-        }
-        if (selected == null) return null;
-        var extraction = MolecularBatchCraftingExtractor.expandFromFirst(pattern, inventory, energy, level,
-                firstInputs, outputs, containers, maxCrafts, false);
-        if (extraction == null) return null;
-        molecularmanipulator$scaledBatchProvider = selected;
-        molecularmanipulator$batchPattern = pattern;
-        molecularmanipulator$batchExtraction = extraction;
-        molecularmanipulator$adaptiveSerial++;
-        return extraction.inputs();
-    }
-
-    @Unique
-    private static boolean molecularmanipulator$isItemAndChemical(GenericStack item, GenericStack chemical) {
-        return item.what() instanceof AEItemKey
-                && MOLECULARMANIPULATOR_CHEMICAL_KEY_TYPE.equals(chemical.what().getType().getId());
     }
 
     @Unique
@@ -1508,15 +1432,13 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
 
         return new MolecularAdaptiveProviderIterable(
                 () -> molecularmanipulator$hasSelectedAdaptiveProvider(patternDetails),
-                () -> molecularmanipulator$scaledBatchProvider != null
-                        ? molecularmanipulator$scaledBatchProvider : molecularmanipulator$adaptiveProvider,
+                () -> molecularmanipulator$adaptiveProvider,
                 () -> molecularmanipulator$adaptiveSerial);
     }
 
     @Unique
     private boolean molecularmanipulator$hasSelectedAdaptiveProvider(IPatternDetails pattern) {
-        return (molecularmanipulator$adaptivePattern == pattern && molecularmanipulator$adaptiveProvider != null)
-                || (molecularmanipulator$batchPattern == pattern && molecularmanipulator$scaledBatchProvider != null);
+        return molecularmanipulator$adaptivePattern == pattern && molecularmanipulator$adaptiveProvider != null;
     }
 
     @WrapOperation(method = "executeCrafting", at = @At(value = "INVOKE",
@@ -1611,9 +1533,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                 && extraction.inputs() == inputs;
         boolean apiBatchContext = expandedContext && admittedBatch;
         if (molecularmanipulator$apiBatchAdmission != null && !apiBatchContext) return false;
-        if (molecularmanipulator$scaledBatchProvider != null
-                && (!expandedContext || molecularmanipulator$scaledBatchProvider != provider)) return false;
-        boolean scaledContext = molecularmanipulator$scaledBatchProvider == provider;
         boolean adaptiveContext = molecularmanipulator$dispatchOwner != null
                 && molecularmanipulator$adaptivePattern == patternDetails
                 && molecularmanipulator$adaptiveInputs == inputs
@@ -1621,7 +1540,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         boolean directContext = molecularmanipulator$dispatchOwner != null
                 && molecularmanipulator$directPattern == patternDetails
                 && molecularmanipulator$directInputs == inputs;
-        if (!apiBatchContext && !scaledContext && (molecularmanipulator$cycleBatch == null
+        if (!apiBatchContext && (molecularmanipulator$cycleBatch == null
                 || !molecularmanipulator$cycleBatch.hasCycleProtection())) {
             KeyCounter[] unitPrototype = expandedContext ? extraction.firstInputs() : inputs;
             long accountingDivisor = expandedContext ? extraction.craftCount() : 1;
@@ -1649,10 +1568,9 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         KeyCounter[] firstInputs = expandedContext ? extraction.firstInputs() : inputs;
         boolean explicitBatchProvider = MolecularBatchCraftingProvider.supports(
                 provider, patternDetails);
-        boolean incompatibleProvider = apiBatchContext || scaledContext ? false
-                : directContext ? !explicitBatchProvider
-                : !molecularmanipulator$supportsProvider(provider, patternDetails);
-        boolean insufficientBatchLimit = !apiBatchContext && !scaledContext
+        boolean incompatibleProvider = !apiBatchContext && (directContext ? !explicitBatchProvider
+                : !molecularmanipulator$supportsProvider(provider, patternDetails));
+        boolean insufficientBatchLimit = !apiBatchContext
                 && MolecularBatchCraftingProvider.getBatchLimit(
                         provider, patternDetails, firstInputs) < craftCount;
         if (incompatibleProvider || insufficientBatchLimit) {
@@ -1690,9 +1608,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                 molecularmanipulator$adaptiveBatchController.forceSingle(
                         provider, patternDetails);
                 molecularmanipulator$closeCurrentApiAdmission();
-            } else if (scaledContext) {
-                molecularmanipulator$adaptiveBatchController.forceSingle(provider, patternDetails);
-                molecularmanipulator$retryAdaptiveProviders = true;
             }
             return false;
         }
@@ -1700,10 +1615,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         var acceptedJob = job;
         boolean providerAccepted = false;
         MolecularBatchDispatchContext.Scope batchScope = null;
-        PushResult scaledResult = PushResult.ACCEPTED_UNVERIFIED;
         try {
-            if (expandedContext && explicitBatchProvider
-                    && !apiBatchContext && !scaledContext) {
+            if (expandedContext && explicitBatchProvider && !apiBatchContext) {
                 batchScope = MolecularBatchDispatchContext.open(
                         reusableCraftingId, patternDetails, inputs,
                         firstInputs, craftCount, reusablePlan);
@@ -1716,22 +1629,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                 providerAccepted = accepted;
                 if (!accepted && !molecularmanipulator$apiBatchRetryableRejection) {
                     molecularmanipulator$adaptiveBatchController.forceSingle(provider, patternDetails);
-                }
-            } else if (scaledContext) {
-                var scaled = (MolecularScaledBatchProvider) provider;
-                var scaledPattern = new MolecularScaledPattern(patternDetails, craftCount);
-                scaled.molecularmanipulator$beginScaledBatch(inputs);
-                try {
-                    accepted = original.call(provider, scaledPattern, inputs);
-                    providerAccepted = accepted;
-                } catch (RuntimeException | Error exception) {
-                    scaled.molecularmanipulator$abortScaledBatch();
-                    throw exception;
-                }
-                try {
-                    scaledResult = scaled.molecularmanipulator$endScaledBatch(accepted);
-                } catch (RuntimeException cleanupException) {
-                    molecularmanipulator$logProviderCleanupFailure("scaled batch completion", cleanupException);
                 }
             } else if (provider instanceof MolecularBalancedBatchProvider balancedProvider) {
                 balancedProvider.molecularmanipulator$beginBalancedBatch(firstInputs);
@@ -1774,17 +1671,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
                 molecularmanipulator$adaptiveBatchController.onReusableProviderRejected(
                         provider, patternDetails, craftCount);
             }
-            if (scaledContext) {
-                if (accepted) {
-                    molecularmanipulator$recordAcceptedPush(provider, patternDetails, craftCount, scaledResult);
-                } else {
-                    // AE2 refunds this extraction before retrying other batches or a complete single recipe.
-                    molecularmanipulator$markApiBatchBackpressure(provider, patternDetails);
-                    molecularmanipulator$retryAdaptiveProviders = true;
-                }
-            } else {
-                molecularmanipulator$recordOrdinaryPush(provider, patternDetails, accepted);
-            }
+            molecularmanipulator$recordOrdinaryPush(provider, patternDetails, accepted);
             return accepted;
         } finally {
             if (batchScope != null) {
@@ -2039,7 +1926,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         } catch (Throwable exception) {
             molecularmanipulator$rethrowUnrecoverableApiFailure(exception);
             molecularmanipulator$logApiBatchFailure("adapter capability query", exception);
-            // Unknown capability cannot authorize non-atomic scaled dispatch.
+            // Unknown capability cannot authorize fallback to another batch API.
             return true;
         }
     }
@@ -2113,22 +2000,16 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             IPatternDetails patternDetails, boolean accepted) {
         if (molecularmanipulator$dispatchOwner == null) return;
         if (accepted) {
-            molecularmanipulator$recordAcceptedPush(provider, patternDetails, 1, PushResult.ACCEPTED_FULL);
+            molecularmanipulator$adaptiveBatchController.onAccepted(provider, patternDetails, 1);
+            try {
+                if (provider.isBusy()) molecularmanipulator$adaptiveBatchController.onBusy(provider, patternDetails);
+            } catch (RuntimeException | LinkageError exception) {
+                // Ownership has transferred. Leave AE2 to account for the accepted outputs.
+                molecularmanipulator$adaptiveBatchController.onBusy(provider, patternDetails);
+                molecularmanipulator$logProviderCleanupFailure("post-acceptance availability", exception);
+            }
         } else {
             molecularmanipulator$adaptiveBatchController.onProviderRejected(provider, patternDetails, 1);
-        }
-    }
-
-    @Unique
-    private void molecularmanipulator$recordAcceptedPush(ICraftingProvider provider,
-            IPatternDetails pattern, long copies, PushResult result) {
-        molecularmanipulator$adaptiveBatchController.onAccepted(provider, pattern, copies, copies, result);
-        try {
-            if (provider.isBusy()) molecularmanipulator$adaptiveBatchController.onBusy(provider, pattern);
-        } catch (RuntimeException | LinkageError exception) {
-            // Ownership has transferred. Leave AE2 to account for the accepted outputs.
-            molecularmanipulator$adaptiveBatchController.onBusy(provider, pattern);
-            molecularmanipulator$logProviderCleanupFailure("post-acceptance availability", exception);
         }
     }
 
@@ -2141,7 +2022,6 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         molecularmanipulator$batchExtraction = null;
         molecularmanipulator$apiBatchProvider = null;
         molecularmanipulator$apiBatchPattern = null;
-        molecularmanipulator$scaledBatchProvider = null;
         molecularmanipulator$apiBatchInputs = null;
         molecularmanipulator$apiBatchFirstInputs = null;
         molecularmanipulator$apiBatchExpectedOutputs = null;

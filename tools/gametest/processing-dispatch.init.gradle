@@ -1,13 +1,17 @@
-// Real ExtendedAE/Lightning providers -> Mekanism Extras factory, in a disposable world only.
+// Real external inventories, with an optional provider-only run requiring no Mekanism runtime.
 allprojects {
     afterEvaluate { project ->
         if (project != rootProject) return
-        if (!project.hasProperty('cpuCompatMods')) project.ext.cpuCompatMods = 'thunderbolt,lightning'
-        if (!project.hasProperty('cpuCompatRunName')) project.ext.cpuCompatRunName = 'processing-dispatch'
+        def ordinaryOnly = project.hasProperty('ordinaryDispatchOnly')
+        if (!project.hasProperty('cpuCompatMods') && !ordinaryOnly) project.ext.cpuCompatMods = 'thunderbolt,lightning'
+        if (!project.hasProperty('cpuCompatRunName')) {
+            project.ext.cpuCompatRunName = ordinaryOnly ? 'ordinary-dispatch' : 'processing-dispatch'
+        }
         apply from: file('tools/gametest/cpu-compat-runtime.gradle')
         def regression = sourceSets.create('processingDispatch') {
             java.srcDir file('tools/gametest/java')
-            java.include '**/ProcessingDispatchGameTests.java', '**/AdaptiveDispatchGameTests.java'
+            java.include '**/OrdinaryPatternProviderGameTests.java'
+            if (!ordinaryOnly) java.include '**/ProcessingDispatchGameTests.java', '**/AdaptiveDispatchGameTests.java'
             resources.srcDir file('tools/gametest/resources')
             resources.exclude 'data/molecularmanipulator/recipe/**'
             compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output + project.cpuCompatRuntimeFiles
@@ -25,7 +29,8 @@ allprojects {
         }
         tasks.named('runGameTestServer').configure {
             doLast {
-                if (!new File(runDirectory, 'logs/latest.log').text.contains('All 12 required tests passed'))
+                def expected = ordinaryOnly ? 1 : 13
+                if (!new File(runDirectory, 'logs/latest.log').text.contains("All ${expected} required tests passed"))
                     throw new GradleException('Processing dispatch regression did not pass')
             }
         }

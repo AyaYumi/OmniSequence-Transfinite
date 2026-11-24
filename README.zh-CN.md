@@ -8,7 +8,7 @@
 
 | 组件 | 当前要求 |
 | --- | --- |
-| 本模组 | 2.0.17-forge，源码分支 `1.20.1-forge-legacy` |
+| 本模组 | 2.0.18-forge，源码分支 `1.20.1-forge-legacy` |
 | Minecraft / Java | 1.20.1 / Java 17 |
 | Forge | 47.4.20 或更高 |
 | AppliedEnhancements | 1.1.2-forge 或更高，客户端和服务端都需要；编译 API 为 1.1.4-forge |
@@ -81,7 +81,7 @@
 ./gradlew build apiJavadoc
 ```
 
-运行产物为 `build/libs/omnisequence-transfinite-2.0.17-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
+运行产物为 `build/libs/omnisequence-transfinite-2.0.18-forge.jar`，公开 Java API 文档位于 `build/docs/api/`。依赖安装与本地文件说明见 [libs/README.md](libs/README.md)。
 
 ## 运行回归
 

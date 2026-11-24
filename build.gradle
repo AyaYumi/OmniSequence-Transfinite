@@ -368,6 +368,7 @@ def gameTestSuites = [
         'singularity-menu': ['SingularityMenuSyncGameTests'],
         'fabrication-upload': ['MatterFabricationNetworkUploadGameTests'],
         machines: ['MatterMachineCompatibilityGameTests'],
+        'advancedae-dispatch': ['AdvancedAEProviderDispatchGameTests'],
         research: ['ResearchStockGameTests'],
         singularity: ['SingularityPaletteGameTests', 'SingularityConstructionGameTests', 'SingularityMotionGameTests',
                       'SingularityEmbeddingGameTests', 'SingularitySuspendedGameTests', 'CosmicSingularityGameTests',
@@ -436,7 +437,7 @@ if (gameTestSuite == 'patterns' && project.hasProperty('gameTestPatternStorageJa
     repositories.flatDir { dirs storageJar.parentFile }
     dependencies.add('localRuntime', fg.deobf("pack.local:${storageJar.name[0..-5]}:pattern-migration"))
 }
-if (gameTestSuite in ['essence', 'native-essence', 'machines', 'adaptive']) {
+if (gameTestSuite in ['essence', 'native-essence', 'machines', 'adaptive', 'advancedae-dispatch']) {
     def recipeModsDirectory = providers.gradleProperty('gameTestRecipeModsDir').orNull
     if (recipeModsDirectory == null) {
         throw new GradleException("The ${gameTestSuite} suite requires -PgameTestRecipeModsDir=<reference-pack mods directory>")

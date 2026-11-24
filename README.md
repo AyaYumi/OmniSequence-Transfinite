@@ -20,6 +20,8 @@ An endgame expansion for AE2 and ExtendedAE, with material research, multiblock 
 
 Install the mod and required dependencies separately in client and server `mods/` folders. Use matching builds on both sides. ExpandedAE 2.1.1 is incompatible with this mod.
 
+With AdvancedAE 1.3.6, external delivery of a native processing pattern with compressed inputs is rejected before anything is inserted if the reserved materials are insufficient. AE2's normal refund path is unchanged.
+
 ## Getting started
 
 1. Build a **Matter Fabrication Well** with basic AE2 materials, connect ME and complete tier 1 research.
@@ -92,6 +94,7 @@ Tests live in `src/gameTest` and are excluded from release JARs. Use a fresh `-P
 | Server | `singularity-quantum` (3), `singularity-menu` (2): quantum links and resource/menu synchronization |
 | Server | `fabrication-upload` (4): network blanks, legacy builder migration and team protection |
 | Server | `research`, `singularity`, `singularity-unload`, `adaptive` |
+| Server | `advancedae-dispatch` (1): reject incomplete inputs before external delivery and retain valid pattern slot order |
 | Integrated client | `eco` (27, NeoECOAE 20.5.0 batch/exact integration), `eco-legacy` (2, 20.4.2 ordinary dispatch, ownership, cancellation and reload) |
 | Integrated client | `essence`, `native-essence`, `machines`; `patterns` with the cluster flag |
 
@@ -104,6 +107,7 @@ The integrated runner creates a disposable world and writes `gametest-result.jso
 
 - `adaptive`: add `-PgameTestRecipeModsDir=/path/to/reference-pack/mods` containing ExtendedAE Plus 1.6.2.
 - `essence` / `native-essence`: use the same directory flag with Cucumber, Mystical Agriculture, Mystical Agradditions and MATC; `native-essence` omits ECO. `machines` needs AdvancedAE and GeckoLib. Versions are in `build.gradle`.
+- `advancedae-dispatch`: use the same directory flag with `AdvancedAE-1.3.6-1.20.1.jar` and `geckolib-forge-1.20.1-4.8.4.jar`. Add `-Pae2_version=15.4.11` to match the reported crash's AE2 version.
 - `patterns`: `-PgameTestPatternCluster` adds one case using NeoECOAE 20.5.0 and LDLib 1.0.52.a; use the integrated runner. `-PgameTestPatternStorageJar=/path/to/ae2omnicells-1.20.1-forge-1.1.6.jar` independently adds one cell case without the cluster dependencies. Both flags give 18 cases.
 
 The separate **white-hole/lens GPU regression** checks 3 effects across 9 camera states (27 checks), opening only the title screen. It requires a graphics-capable client:

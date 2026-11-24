@@ -18,6 +18,7 @@
     "SingularityEntityCollisionMixin",
     "SingularityPlayerCarriageMixin",
     "AdvancedAECraftingCpuLogicMixin",
+    "AdvancedAEPatternProviderLogicMixin",
     "CalculatorAssemblerMatrixMixin",
     "ClusterAssemblerMatrixMixin",
     "CraftingCPUClusterAccessor",

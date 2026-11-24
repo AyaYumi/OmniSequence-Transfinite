@@ -14,7 +14,8 @@ import java.util.Set;
 
 public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin {
     private static final DefaultArtifactVersion ECO_NATIVE_API_VERSION = new DefaultArtifactVersion("20.5.0");
-    private static final String ADVANCED_AE_MIXIN = AdvancedAECraftingCpuLogicMixin.class.getName();
+    private static final String ADVANCED_AE_CPU_MIXIN = AdvancedAECraftingCpuLogicMixin.class.getName();
+    private static final String ADVANCED_AE_PROVIDER_MIXIN = AdvancedAEPatternProviderLogicMixin.class.getName();
     private static final String LABELED_PATTERNS_MIXIN = LabeledPatternCheckProviderMixin.class.getName();
     private static final String JEI_RESPONSIVE_SLOT_MIXIN = JeiResponsiveSlotMixin.class.getName();
     private static final String JEI_RESPONSIVE_RENDER_MIXIN = JeiResponsiveRenderMixin.class.getName();
@@ -91,7 +92,7 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         if (mixinClassName.endsWith(".UselessExactOutputReturnMixin")) {
             return loadingModList != null && loadingModList.getModFileById("useless_mod") != null;
         }
-        if (ADVANCED_AE_MIXIN.equals(mixinClassName)) {
+        if (ADVANCED_AE_CPU_MIXIN.equals(mixinClassName) || ADVANCED_AE_PROVIDER_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
         }
         if (LABELED_PATTERNS_MIXIN.equals(mixinClassName)) {

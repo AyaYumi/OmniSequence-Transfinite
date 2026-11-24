@@ -20,6 +20,8 @@
 
 将本模组和必需依赖分别安装到客户端与服务端的 `mods/` 文件夹，两端使用相同构建。ExpandedAE 2.1.1 与本模组不兼容。
 
+使用 AdvancedAE 1.3.6 时，如果预留材料不足以满足原生加工样板的压缩输入，供应器会在写入外部库存前拒绝本次派发。AE2 原有的退料流程不变。
+
 ## 开始使用
 
 1. 用基础 AE2 材料搭建**物质构筑井**，接入 ME 网络并完成一阶研究。
@@ -92,6 +94,7 @@
 | 独立服务端 | `singularity-quantum`（3）、`singularity-menu`（2）：量子连接、资源列表与菜单同步 |
 | 独立服务端 | `fabrication-upload`（4）：网络空白样板、旧建造者归属迁移与队伍保护 |
 | 独立服务端 | `research`、`singularity`、`singularity-unload`、`adaptive` |
+| 独立服务端 | `advancedae-dispatch`（1）：外部投料前拒绝缺料，足量时保留样板槽位顺序 |
 | 客户端内置服务端 | `eco`（27，NeoECOAE 20.5.0 批量／精确计划）、`eco-legacy`（2，20.4.2 普通派发、归属、取消与重载） |
 | 客户端内置服务端 | `essence`、`native-essence`、`machines`；启用集群参数的 `patterns` |
 
@@ -104,6 +107,7 @@
 
 - `adaptive`：添加 `-PgameTestRecipeModsDir=/path/to/reference-pack/mods`，目录内需有 ExtendedAE Plus 1.6.2。
 - `essence`／`native-essence`：同一目录参数需提供 Cucumber、Mystical Agriculture、Mystical Agradditions 和 MATC；`native-essence` 不加载 ECO。`machines` 需要 AdvancedAE 和 GeckoLib。版本见 `build.gradle`。
+- `advancedae-dispatch`：同一目录参数需提供 `AdvancedAE-1.3.6-1.20.1.jar` 和 `geckolib-forge-1.20.1-4.8.4.jar`。添加 `-Pae2_version=15.4.11` 可使用崩溃报告中的 AE2 版本。
 - `patterns`：`-PgameTestPatternCluster` 使用 NeoECOAE 20.5.0 与 LDLib 1.0.52.a 增加 1 个集群用例，需用客户端入口；`-PgameTestPatternStorageJar=/path/to/ae2omnicells-1.20.1-forge-1.1.6.jar` 独立增加 1 个存储盘用例，不引入集群依赖。两参数同时启用共 18 例。
 
 独立的**白洞／透镜 GPU 回归**检查 3 种特效 × 9 种相机状态，共 27 项，只打开标题画面，需要能正常渲染的客户端：

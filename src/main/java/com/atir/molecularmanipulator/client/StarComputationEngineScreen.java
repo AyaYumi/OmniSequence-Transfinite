@@ -613,9 +613,9 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         for (int row = 0; row < 4; row++) {
             int center = 140 + row * 23;
             centeredText(g, tr(BENEFIT_KEYS[row]), 17, center, 172, 7.5f, "ink2", "left");
-            centeredText(g, baseBenefit(current, row), 17, center + 10, 73, 7.5f, "ink2", "left");
+            centeredText(g, benefitValue(current, row), 17, center + 10, 73, 7.5f, "ink2", "left");
             centeredText(g, Component.literal("→"), 91, center + 10, 12, 7.5f, "muted", "center");
-            centeredText(g, baseBenefit(target, row), 105, center + 10, 84, 7.5f, "accent", "right");
+            centeredText(g, benefitValue(target, row), 105, center + 10, 84, 7.5f, "accent", "right");
         }
         centeredText(g, up("benefits_note"), 17, 234, 172, 7.5f, "ink2", "left");
 
@@ -633,10 +633,10 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
 
     private static final String[] BENEFIT_KEYS = {"assembler_parallel", "cpu_parallel", "cpu_storage", "fabrication_speed"};
 
-    private static Component baseBenefit(StarComputationBenefits benefit, int row) {
+    private static Component benefitValue(StarComputationBenefits benefit, int row) {
         return switch (row) {
             case 0 -> amount(benefit.assemblerParallel());
-            case 1 -> amount(benefit.cpuParallel());
+            case 1 -> benefit.level() >= 7 ? tr("batch_dispatch") : amount(benefit.cpuParallel());
             case 2 -> storage(benefit.storageBytes());
             case 3 -> Component.literal("×" + benefit.speedMultiplier());
             default -> throw new IllegalArgumentException("Invalid benefit row " + row);
@@ -698,8 +698,8 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
             int row = Math.min(3, (int) ((y - 133) / 23));
             var current = new StarComputationBenefits(Math.clamp(menu.benefitLevel, 0, 9), false);
             var target = new StarComputationBenefits(selectedUpgrade().level(), false);
-            return List.of(tr(BENEFIT_KEYS[row]), up("benefit_compare", menu.benefitLevel, baseBenefit(current, row),
-                    target.level(), baseBenefit(target, row)), up("benefits_help"));
+            return List.of(tr(BENEFIT_KEYS[row]), up("benefit_compare", menu.benefitLevel, benefitValue(current, row),
+                    target.level(), benefitValue(target, row)), up("benefits_help"));
         }
         if (x >= 17 && x < 190 && y >= 86 && y < 116) return List.of(up("route_help_full"),
                 up("levels_full", menu.benefitLevel, menu.certifiedLevel, litRings()));
@@ -756,9 +756,8 @@ public final class StarComputationEngineScreen extends ResponsiveContainerScreen
         benefitRow(g, 0, "assembler_parallel", amount(benefit.assemblerParallel()),
                 tr("assembler_detail", tr(benefit.level() >= 7 ? "virtual_parallel" : "physical_parallel"),
                         OsqUi.compact(base.assemblerParallel())));
-        benefitRow(g, 1, "cpu_parallel", amount(benefit.cpuParallel()),
-                tr("cpu_detail", tr(benefit.infinite() ? "probe_dispatch" : "batch_dispatch"),
-                        OsqUi.compact(base.cpuParallel())));
+        benefitRow(g, 1, "cpu_parallel", benefitValue(benefit, 1), benefit.level() >= 7 ? tr("capacity_detail")
+                : tr("cpu_detail", OsqUi.compact(base.cpuParallel())));
         benefitRow(g, 2, "cpu_storage", storage(benefit.storageBytes()), tr("storage_detail", storage(base.storageBytes())));
         benefitRow(g, 3, "fabrication_speed", benefit.infinite() ? tr("one_tick")
                 : Component.literal("×" + benefit.speedMultiplier()), tr("duration_detail", processingTime(benefit)));

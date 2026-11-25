@@ -80,10 +80,10 @@ Check JEI's structure page for the full quantities of these parts, then build at
 | --- | --- |
 | No active, valid engine (L0) | All orders share **1 MiB of crafting storage** and a rolling allowance of **16 native AE2 operations**. |
 | L1 to L6 | AE2 sends one craft per push. The rolling allowance ranges from 512 to 16,384 operations, doubling each level. AE2 subtracts operations used in the previous three ticks. |
-| L7 to L9 | The CPU batches crafts by the target's current capacity. The normal limits are 32,768, 65,536 and 131,072 recipe copies per tick. |
-| L9 with sustained overclock | Crafting storage and recipe copies have no fixed limit. Dispatch work and machine capacity still limit throughput. |
+| L7 to L9 | The CPU submits as many complete crafts as the target face can accept. All three tiers can send an entire order in the first batch. |
+| L9 with sustained overclock | Also removes the fixed crafting storage limit. |
 
-Overclocking at L1 to L8 doubles crafting storage and the dispatch allowance for the current tier. Overclocked L6 still uses native AE2 pushes. When Star Signal Flow runs out, limits return to normal. Orders on one core share these limits. The strongest valid engine on the network determines the tier.
+Overclocking doubles crafting storage at L1 to L8 and the native AE2 operation allowance at L1 to L6. From L7, orders share the work available for probing targets and submitting batches each tick. The target's capacity, remaining order, ingredients and power determine each batch size. The strongest valid engine on the network determines the tier. Running out of Star Signal Flow restores normal benefits.
 
 ## Troubleshooting
 
@@ -97,6 +97,8 @@ Overclocking at L1 to L8 doubles crafting storage and the dispatch allowance for
 | L9 suddenly has finite limits again | Check the overclock switch and star signal flow balance. Reaching L9 does not automatically grant unlimited capabilities. |
 
 Point a standard AE2 Pattern Provider at the machine's input face. From L7, it can batch processing patterns with no returned inputs when the complete recipe fits through that face. Supported targets include inventories with shared item slots and machines with verified independent input channels. If a machine takes only part of an accepted batch, the remaining materials stay in the provider's send queue until that side can take them.
+
+When you dismantle a provider, queued items that fit in one stack drop loose. Larger item stacks, fluids and chemicals drop as **Recovered Pattern Inputs**. Use one on an ME interface or ME chest to deposit its contents. Any amount that does not fit stays in the parcel.
 
 When capacity cannot be verified, L7 and above send individual crafts within a server-wide fallback limit. Blocking mode and crafting locks still use native pushes. Supported reusable tools keep their normal durability costs.
 

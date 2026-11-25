@@ -6,6 +6,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.helpers.patternprovider.PatternProviderTarget;
 import appeng.me.storage.CompositeStorage;
+import com.atir.molecularmanipulator.integration.ae2.PatternInputCapacity;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -39,14 +40,12 @@ public final class MekanismBatchSupport {
         AEKey chemical = null;
         long itemsPerCraft = 0;
         long chemicalPerCraft = 0;
-        boolean repeatedItem = false;
         for (int i = 0; i < unitInputs.size(); i++) {
             var input = unitInputs.get(i);
             long amount = input.amount();
             if (amount <= 0) return -1;
             if (input.what() instanceof AEItemKey itemKey) {
                 if ((item != null && !item.equals(itemKey)) || amount > Long.MAX_VALUE - itemsPerCraft) return -1;
-                repeatedItem = item != null;
                 item = itemKey;
                 itemsPerCraft += amount;
             } else if (isChemicalKey(input.what())) {
@@ -62,14 +61,27 @@ public final class MekanismBatchSupport {
         if (chemical == null) return -1;
 
         long copies = Math.min(requestedCrafts, Long.MAX_VALUE / chemicalPerCraft);
+        if (item != null) copies = Math.min(copies, Long.MAX_VALUE / itemsPerCraft);
         if (copies <= 0) return 0;
         try {
-            if (item == null) return simulate(adapter, chemical, chemicalPerCraft, copies);
-            if (target == null) return -1;
-            var machine = MACHINES.get(target.getClass());
-            if (machine == null) return -1;
-            return limitPair(target, items, adapter, machine, item, itemsPerCraft, chemical, chemicalPerCraft,
-                    repeatedItem, copies);
+            if (item != null) {
+                if (target == null) return -1;
+                var machine = MACHINES.get(target.getClass());
+                if (machine == null) return -1;
+                copies = limitItems(target, items, adapter, machine, item, itemsPerCraft, chemical, chemicalPerCraft, copies);
+                if (copies <= 0) return copies;
+            }
+            copies = simulate(adapter, chemical, chemicalPerCraft, copies);
+            if (copies <= 0) return copies;
+            for (var input : unitInputs) {
+                if (chemical.equals(input.what()) && input.amount() != chemicalPerCraft) {
+                    // The aggregate probe reserves the shared tank once. Each sparse chemical
+                    // entry must also pass validation at the amount that AE2 will actually offer.
+                    long amount = input.amount() * copies;
+                    if (adapter.insert(chemical, amount, Actionable.SIMULATE) != amount) return -1;
+                }
+            }
+            return copies;
         } catch (LinkageError unavailable) {
             return -1;
         } catch (RuntimeException | Error failure) {
@@ -79,9 +91,9 @@ public final class MekanismBatchSupport {
         }
     }
 
-    private static long limitPair(BlockEntity target, @Nullable IItemHandler items, PatternProviderTarget adapter,
+    private static long limitItems(BlockEntity target, @Nullable IItemHandler items, PatternProviderTarget adapter,
             Machine machine, AEItemKey item, long itemsPerCraft, AEKey chemical, long chemicalPerCraft,
-            boolean repeatedItem, long copies) throws Throwable {
+            long copies) throws Throwable {
         // Inspect the handlers this adapter will actually insert into. Two positive probes cannot
         // prove independence when either channel maps to a shared or redirected inventory.
         var wrapper = WRAPPED_STORAGE.get(adapter.getClass());
@@ -123,26 +135,35 @@ public final class MekanismBatchSupport {
         }
         if (processSlots == 0) return 0;
         if (machine.findRecipe == null && processSlots != 1) return -1;
-        copies = Math.min(copies, Integer.MAX_VALUE / itemsPerCraft);
-        if (copies == 0) return 0;
+        if (!PatternInputCapacity.hasConstantStackLimit(item)) return -1;
 
-        var unitItem = item.toStack((int) itemsPerCraft);
+        var unitItem = item.toStack((int) Math.min(Integer.MAX_VALUE, itemsPerCraft));
         Object unitChemical = access.withAmount.invokeExact((Object) chemical, chemicalPerCraft);
         // The factory's item predicate and the infuser's tank predicate both consult the other input.
         if (!(boolean) machine.containsPair.invokeExact(target, (Object) unitItem, unitChemical)) return -1;
 
-        long chemicalCopies = simulate(adapter, chemical, chemicalPerCraft, copies);
-        if (chemicalCopies == 0) return 0;
         if (machine.findRecipe != null && !factorySlotsStayValid(target, items, machine, slots, item,
-                unitItem, unitChemical, repeatedItem, access)) return -1;
-        return simulate(adapter, item, itemsPerCraft, chemicalCopies);
+                unitItem, unitChemical, access)) return -1;
+
+        // Each process slot and each native item offer uses an int, but the combined room
+        // across independent lanes can exceed it. Ask the actual sided proxy once per lane.
+        long wanted = itemsPerCraft * copies;
+        int offerSize = (int) Math.min(Integer.MAX_VALUE, wanted);
+        var offer = item.toStack(offerSize);
+        long itemRoom = 0;
+        for (int i = 0; i < slots.size(); i++) {
+            if (hasClass(slots.get(i), machine.inputSlot)) {
+                itemRoom += offerSize - items.insertItem(i, offer, true).getCount();
+                if (itemRoom >= wanted) return copies;
+            }
+        }
+        return itemRoom / itemsPerCraft;
     }
 
     private static boolean factorySlotsStayValid(BlockEntity target, IItemHandler items, Machine machine,
-            List<?> slots, AEItemKey item, ItemStack unitItem, Object unitChemical, boolean repeatedItem,
-            OptionalAccess access) throws Throwable {
-        // A factory's occupied input slots can also validate against their paired output. Prove that
-        // inserting chemistry before the item cannot invalidate a slot used by AE2's ordered scan.
+            List<?> slots, AEItemKey item, ItemStack unitItem, Object unitChemical, OptionalAccess access) throws Throwable {
+        // A factory input consults its paired output. Chemistry can arrive before an empty
+        // lane's first item, or between two native item offers into that lane.
         var allSlots = (List<?>) machine.slots.invokeExact(target, (Direction) null);
         int nextLane = 0;
         ItemStack expectedOutput = null;
@@ -152,13 +173,12 @@ public final class MekanismBatchSupport {
             while (nextLane < allSlots.size() && allSlots.get(nextLane) != slot) nextLane++;
             // Each process registers its input immediately before its output. Matching in order
             // also makes sure we never count a repeated reference to the same slot.
-            if (nextLane + 1 >= allSlots.size()) return false;
+            if (nextLane >= allSlots.size() - 1) return false;
             Object outputSlot = allSlots.get(nextLane + 1);
             if (!hasClass(outputSlot, machine.outputSlot)) return false;
             nextLane += 2;
 
             var present = items.getStackInSlot(i);
-            if (present.isEmpty() && !repeatedItem) continue;
             if (!present.isEmpty() && (!item.matches(present)
                     || present.getCount() >= (int) access.slotLimit.invokeExact(slot, unitItem))) {
                 continue;
@@ -178,7 +198,11 @@ public final class MekanismBatchSupport {
     private static long simulate(PatternProviderTarget adapter, AEKey key, long perCraft, long crafts) {
         long requested = perCraft * crafts;
         long inserted = adapter.insert(key, requested, Actionable.SIMULATE);
-        return Math.max(0, Math.min(requested, inserted)) / perCraft;
+        if (inserted == requested) return crafts;
+        if (inserted < 0 || inserted > requested) return -1;
+        long whole = inserted / perCraft;
+        if (whole == 0) return 0;
+        return adapter.insert(key, whole * perCraft, Actionable.SIMULATE) == whole * perCraft ? whole : -1;
     }
 
     private static boolean hasClass(@Nullable Object value, String className) {

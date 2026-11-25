@@ -1,19 +1,27 @@
 package com.atir.molecularmanipulator.blockentity;
 
+import appeng.api.AECapabilities;
+import appeng.api.config.Actionable;
 import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
 import appeng.api.crafting.PatternDetailsHelper;
+import appeng.api.ids.AEComponents;
 import appeng.api.networking.GridHelper;
+import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.PatternProviderBlockEntity;
 import appeng.blockentity.grid.AENetworkedBlockEntity;
+import appeng.blockentity.storage.MEChestBlockEntity;
 import appeng.core.definitions.AEBlocks;
+import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityAdmission;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityTarget;
+import com.atir.molecularmanipulator.registry.ModContent;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,12 +33,18 @@ import net.minecraft.gametest.framework.GameTestSequence;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -41,6 +55,83 @@ public final class PatternProviderQueueGameTests {
     private static final String RECIPE = "molecularmanipulatorBatchRecipe";
     private static final String VERSION = "molecularmanipulatorSmartQueueVersion";
     private static final String REFUND = "molecularmanipulatorLegacyBatchRefund";
+
+    @GameTest(template = ServerRegressionFixture.TEMPLATE, timeoutTicks = 300)
+    public static void finiteCellAdmitsItsFullRoomAndReloadsTheRemainder(GameTestHelper helper) {
+        var fixture = new ServerRegressionFixture(helper);
+        var provider = fixture.place(fixture.origin, AEBlocks.PATTERN_PROVIDER.block().defaultBlockState(),
+                PatternProviderBlockEntity.class);
+        fixture.place(fixture.origin.north(), AEBlocks.CREATIVE_ENERGY_CELL.block().defaultBlockState());
+        var chest = fixture.place(fixture.origin.west(), AEBlocks.ME_CHEST.block().defaultBlockState(), MEChestBlockEntity.class);
+        chest.setCell(AEItems.ITEM_CELL_16K.stack());
+        var cell = fixture.level.getCapability(AECapabilities.ME_STORAGE, chest.getBlockPos(), Direction.EAST);
+        helper.assertTrue(cell != null, "The ME chest should expose its finite item cell toward the provider");
+        var source = IActionSource.empty();
+        var coal = AEItemKey.of(Items.COAL);
+        long full = cell.insert(coal, 1_000_000, Actionable.MODULATE, source);
+        helper.assertTrue(full >= 100_000 && full < 1_000_000
+                        && cell.extract(coal, 100_000, Actionable.MODULATE, source) == 100_000,
+                "Filling the cell and extracting 100,000 coal should leave exactly that much space");
+        var logic = provider.getLogic();
+        installPattern(logic, PatternDetailsHelper.encodeProcessingPattern(List.of(new GenericStack(coal, 1)),
+                List.of(new GenericStack(AEItemKey.of(Items.IRON_INGOT), 1))));
+        var request = request(fixture, logic, BigInteger.valueOf(1_000_000));
+        var large = BigInteger.valueOf(100_000);
+        var small = BigInteger.valueOf(64);
+        long remainder = 100_000 - 64;
+        var restored = new PatternProviderBlockEntity[1];
+
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(provider.getMainNode().isActive(),
+                "The provider should receive a channel from the adjacent creative cell")).thenExecute(() -> {
+            try (var admission = prepare(request)) {
+                helper.assertTrue(admission != null && large.equals(admission.maximumCrafts()),
+                        "One prediction should offer all 100,000 whole crafts that fit the cell");
+                helper.assertTrue(cell.insert(coal, remainder, Actionable.MODULATE, source) == remainder,
+                        "A competing insertion should leave room for 64 crafts");
+                helper.assertTrue(BigInteger.ZERO.equals(admission.submit(large)), "The stale reservation should reject all 100,000");
+            }
+            assertDrained(fixture, logic);
+            helper.assertTrue(cell.getAvailableStacks().get(coal) == full - 64, "A rejected submit should deliver no coal");
+            try (var admission = prepare(request)) {
+                helper.assertTrue(admission != null && small.equals(admission.maximumCrafts()) && small.equals(admission.submit(small)),
+                        "The same request should now accept exactly 64 crafts in one submit");
+            }
+            assertQueue(fixture, logic, Direction.WEST, new GenericStack(coal, 64));
+        }).thenWaitUntil(() -> helper.assertTrue(!logic.isBusy(), "The 64 coal should drain into the cell"))
+                .thenExecute(() -> {
+                    helper.assertTrue(cell.getAvailableStacks().get(coal) == full
+                                    && cell.extract(coal, 100_000, Actionable.MODULATE, source) == 100_000,
+                            "The small batch should fill the cell before 100,000 spaces are freed again");
+                    try (var admission = prepare(request)) {
+                        helper.assertTrue(admission != null && large.equals(admission.maximumCrafts())
+                                        && large.equals(admission.submit(large)), "One submit should own exactly 100,000 crafts");
+                    }
+                    assertQueue(fixture, logic, Direction.WEST, new GenericStack(coal, 100_000));
+                    helper.assertTrue(cell.getAvailableStacks().get(coal) == full - 100_000
+                                    && cell.insert(coal, remainder, Actionable.MODULATE, source) == remainder,
+                            "The accepted stock should stay in the queue while another insertion leaves only 64 spaces");
+                }).thenWaitUntil(() -> helper.assertTrue(cell.getAvailableStacks().get(coal) == full,
+                        "The native provider should insert the 64 coal that still fit"))
+                .thenExecute(() -> {
+                    var pending = new GenericStack(coal, remainder);
+                    assertQueue(fixture, logic, Direction.WEST, pending);
+                    var registries = fixture.level.registryAccess();
+                    var saved = provider.saveWithFullMetadata(registries);
+                    var state = provider.getBlockState();
+                    fixture.level.removeBlockEntity(fixture.origin);
+                    restored[0] = (PatternProviderBlockEntity) BlockEntity.loadStatic(fixture.origin, state, saved, registries);
+                    helper.assertTrue(restored[0] != null, "The saved provider should restore at its original position");
+                    fixture.level.setBlockEntity(restored[0]);
+                    assertQueue(fixture, restored[0].getLogic(), Direction.WEST, pending);
+                    helper.assertTrue(cell.extract(coal, remainder, Actionable.MODULATE, source) == remainder,
+                            "The chest should free exactly enough room for the persisted remainder");
+                }).thenWaitUntil(() -> helper.assertTrue(!restored[0].getLogic().isBusy(), "The restored queue should drain"))
+                .thenExecute(() -> {
+                    assertDrained(fixture, restored[0].getLogic());
+                    helper.assertTrue(cell.getAvailableStacks().get(coal) == full,
+                            "Exactly 99,936 more coal should arrive after the provider reloads");
+                }).thenSucceed();
+    }
 
     @GameTest(template = ServerRegressionFixture.TEMPLATE, timeoutTicks = 200)
     public static void capacitySelectsOneSideAndKeepsItsPartialRemainder(GameTestHelper helper) {
@@ -306,6 +397,53 @@ public final class PatternProviderQueueGameTests {
                             && chest.getItem(1).is(Items.GOLD_INGOT) && chest.getItem(1).getCount() == 13,
                     "Native push should deliver the exact input quantities of one craft");
             assertDrained(fixture, logic);
+        }).thenSucceed();
+    }
+
+    @GameTest(template = ServerRegressionFixture.TEMPLATE)
+    public static void dismantledProviderReturnsWholeInputsAcrossPartialDeposits(GameTestHelper helper) {
+        var fixture = new ServerRegressionFixture(helper);
+        var provider = fixture.place(fixture.origin, AEBlocks.PATTERN_PROVIDER.block().defaultBlockState(),
+                PatternProviderBlockEntity.class);
+        var chest = fixture.place(fixture.origin.east(2), AEBlocks.ME_CHEST.block().defaultBlockState(), MEChestBlockEntity.class);
+        chest.setCell(AEItems.ITEM_CELL_16K.stack());
+        var cell = fixture.level.getCapability(AECapabilities.ME_STORAGE, chest.getBlockPos(), Direction.EAST);
+        var coal = new GenericStack(AEItemKey.of(Items.COAL), 100_000);
+        var water = new GenericStack(AEFluidKey.of(Fluids.WATER), Long.MAX_VALUE);
+        var queue = new ListTag();
+        var registries = fixture.level.registryAccess();
+        queue.add(GenericStack.writeTag(registries, coal));
+        queue.add(GenericStack.writeTag(registries, water));
+        var tag = new CompoundTag();
+        tag.put(PatternProviderLogic.NBT_SEND_LIST, queue);
+        tag.putByte(PatternProviderLogic.NBT_SEND_DIRECTION, (byte) Direction.WEST.get3DDataValue());
+        provider.getLogic().readFromNBT(tag, registries);
+        var player = fixture.player("recover-input", fixture.origin);
+        var source = IActionSource.ofPlayer(player);
+        long full = cell.insert(coal.what(), Long.MAX_VALUE, Actionable.MODULATE, source);
+        helper.assertTrue(full >= coal.amount() && cell.extract(coal.what(), 64, Actionable.MODULATE, source) == 64,
+                "The ME chest should have exactly 64 free inputs");
+        fixture.level.destroyBlock(fixture.origin, true);
+        helper.startSequence().thenIdle(2).thenExecute(() -> {
+            var parcels = fixture.level.getEntitiesOfClass(ItemEntity.class, new AABB(fixture.origin).inflate(2),
+                    entity -> entity.getItem().is(ModContent.RECOVERED_PATTERN_INPUT.get()));
+            helper.assertTrue(parcels.size() == 2, "Breaking the provider should produce one parcel per undelivered input");
+            helper.assertTrue(parcels.stream().anyMatch(entity -> water.equals(entity.getItem().get(AEComponents.WRAPPED_STACK))),
+                    "The fluid quantity should survive dismantling at the long boundary");
+            var entity = parcels.stream().filter(drop -> coal.equals(drop.getItem().get(AEComponents.WRAPPED_STACK))).findFirst().orElseThrow();
+            var parcel = entity.getItem();
+            entity.discard();
+            player.setItemInHand(InteractionHand.MAIN_HAND, parcel);
+            var pos = chest.getBlockPos();
+            var hit = new BlockHitResult(pos.getCenter(), Direction.EAST, pos, false);
+            player.gameMode.useItemOn(player, fixture.level, parcel, InteractionHand.MAIN_HAND, hit);
+            var remaining = new GenericStack(coal.what(), coal.amount() - 64);
+            helper.assertTrue(remaining.equals(parcel.get(AEComponents.WRAPPED_STACK)) && cell.getAvailableStacks().get(coal.what()) == full,
+                    "Only the 64 coal accepted by the chest should leave the parcel");
+            cell.extract(coal.what(), remaining.amount(), Actionable.MODULATE, source);
+            player.gameMode.useItemOn(player, fixture.level, parcel, InteractionHand.MAIN_HAND, hit);
+            helper.assertTrue(parcel.isEmpty() && cell.getAvailableStacks().get(coal.what()) == full,
+                    "The remaining 99,936 coal should return exactly once");
         }).thenSucceed();
     }
 

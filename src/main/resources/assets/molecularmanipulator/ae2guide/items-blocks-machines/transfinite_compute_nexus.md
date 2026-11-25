@@ -54,10 +54,10 @@ The nexus has the same limits as the Omni Computation Core. **Crafting storage**
 | --- | --- |
 | No active, valid engine (L0) | All orders share **1 MiB of crafting storage** and a rolling allowance of **16 native AE2 operations**. |
 | L1 to L6 | AE2 pushes individual crafts. The rolling allowance doubles each level from 512 to 16,384, minus operations used in the preceding three ticks. |
-| L7 to L9 | The CPU batches by target capacity. The normal copy limits are 32,768, 65,536 and 131,072 per tick. |
-| L9 with sustained overclock | Crafting storage and recipe copies have no fixed limit. Dispatch work, materials, power and machine capacity still constrain production. |
+| L7 to L9 | One submission can contain as many complete crafts as the target face can accept, up to the entire order. Orders share the work available for probes and submissions. |
+| L9 with sustained overclock | Also removes the fixed crafting storage limit. |
 
-The nexus can take several orders at any level. All orders on it share the allowance. Overclocking at L1 to L8 doubles crafting storage and the dispatch allowance for the current tier. Materials in a provider's send queue are still waiting to reach the machine. See the [Omni Computation Core](omni_computation_core.md) for provider behavior.
+The nexus can take several orders at any level. Overclocking doubles crafting storage at L1 to L8 and the native operation allowance at L1 to L6. Materials in a provider's send queue are still waiting to reach the machine. See the [Omni Computation Core](omni_computation_core.md) for provider behavior.
 
 ## Troubleshooting
 

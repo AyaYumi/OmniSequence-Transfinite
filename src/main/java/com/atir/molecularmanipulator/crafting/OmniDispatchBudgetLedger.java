@@ -24,8 +24,7 @@ public final class OmniDispatchBudgetLedger<L> {
     private boolean initialized;
     private long tick;
     private boolean capacityMode;
-    private boolean unlimited;
-    private long returnedCopies;
+    private long returnedNativeCopies;
     private int returnedWork;
 
     public boolean needsTick(long tick) {
@@ -51,8 +50,7 @@ public final class OmniDispatchBudgetLedger<L> {
         initialized = true;
         this.tick = tick;
         capacityMode = benefits.level() >= 7;
-        unlimited = enabled && benefits.infinite();
-        returnedCopies = 0L;
+        returnedNativeCopies = 0L;
         returnedWork = 0;
 
         for (var cpu : activeLanes) {
@@ -64,7 +62,7 @@ public final class OmniDispatchBudgetLedger<L> {
             }
             lane.activeTick = tick;
             lane.claimed = false;
-            lane.copies = 0L;
+            lane.nativeCopies = 0L;
             lane.work = 0;
         }
         rotation.removeIf(cpu -> {
@@ -73,36 +71,34 @@ public final class OmniDispatchBudgetLedger<L> {
             return true;
         });
 
-        long copies = enabled ? benefits.cpuParallel() : 0L;
-        if (!capacityMode) {
-            // AE2 applies its own per-lane history. The caller intersects that
-            // allowance with this controller limit, which already includes all lanes.
-            for (long accepted : acceptedHistory) copies -= Math.min(copies, accepted);
-        }
-        if (copies == 0L || rotation.isEmpty()) return;
-
-        int work = capacityMode ? Math.clamp(configuredWork, MIN_WORK_PER_CONTROLLER, MAX_WORK_PER_CONTROLLER) : 0;
+        if (!enabled || rotation.isEmpty()) return;
         int count = rotation.size();
+        int step = 1;
         if (capacityMode) {
-            // Reserve a whole transaction's worth when possible. The minimum
-            // configured budget still funds one lane and rotates its full share.
-            count = Math.min(count, Math.max(1, work / WORK_PER_TRANSACTION));
+            // Give each funded lane a transaction's worth of work when possible.
+            int work = Math.clamp(configuredWork, MIN_WORK_PER_CONTROLLER, MAX_WORK_PER_CONTROLLER);
+            int funded = Math.min(count, Math.max(1, work / WORK_PER_TRANSACTION));
+            int perLane = work / funded;
+            int extra = work % funded;
+            int offset = 0;
+            for (var cpu : rotation) {
+                lanes.get(cpu).work = perLane + (offset < extra ? 1 : 0);
+                if (++offset == funded) break;
+            }
+            if (funded < count) step = funded;
+        } else {
+            // AE2 also applies its own per-lane history at the native call site.
+            long copies = benefits.cpuParallel();
+            for (long accepted : acceptedHistory) copies -= Math.min(copies, accepted);
+            if (copies == 0L) return;
+            long perLane = copies / count;
+            long extra = copies % count;
+            int offset = 0;
+            for (var cpu : rotation) {
+                lanes.get(cpu).nativeCopies = perLane + (offset++ < extra ? 1L : 0L);
+            }
+            if (copies < count) step = (int) copies;
         }
-        long copiesPerLane = unlimited ? Long.MAX_VALUE : copies / count;
-        long extraCopies = unlimited ? 0L : copies % count;
-        int workPerLane = work / count;
-        int extraWork = work % count;
-        int offset = 0;
-        for (var cpu : rotation) {
-            var lane = lanes.get(cpu);
-            lane.copies = copiesPerLane + (offset < extraCopies ? 1L : 0L);
-            lane.work = workPerLane + (offset < extraWork ? 1 : 0);
-            if (++offset == count) break;
-        }
-        // Unfunded native ticks keep the next lane at the head. Crowded capacity
-        // ticks advance past all funded lanes so every lane gets a full turn.
-        int step = capacityMode && count < rotation.size() ? count : 1;
-        if (!capacityMode && copies < count) step = (int) copies;
         for (int i = 0; i < step; i++) rotation.addLast(rotation.removeFirst());
     }
 
@@ -121,12 +117,12 @@ public final class OmniDispatchBudgetLedger<L> {
         var lane = lanes.get(cpu);
         if (!initialized || this.tick != tick || lane == null || lane.claimed) return noAllowance();
         lane.claimed = true;
-        long copies = unlimited ? Long.MAX_VALUE : lane.copies + returnedCopies;
+        long nativeCopies = lane.nativeCopies + returnedNativeCopies;
         int work = lane.work + returnedWork;
-        if (copies == 0 || (capacityMode && (work == 0 || server == null))) return noAllowance();
-        returnedCopies = 0L;
+        if (capacityMode ? work == 0 || server == null : nativeCopies == 0L) return noAllowance();
+        returnedNativeCopies = 0L;
         returnedWork = 0;
-        return new Allowance(tick, lane, server, copies, work);
+        return new Allowance(tick, lane, server, nativeCopies, work);
     }
 
     public OmniDispatchAllowance noAllowance() {
@@ -141,7 +137,7 @@ public final class OmniDispatchBudgetLedger<L> {
     // lane identities without preventing a weakly keyed server from unloading.
     private static final class Lane {
         private long activeTick;
-        private long copies;
+        private long nativeCopies;
         private int work;
         private boolean claimed;
     }
@@ -151,16 +147,15 @@ public final class OmniDispatchBudgetLedger<L> {
         private final Lane lane;
         private final ServerBudget server;
         private final boolean capacity = capacityMode;
-        private final boolean unbounded = unlimited;
-        private long copies;
+        private long nativeCopies;
         private int work;
         private boolean closed;
 
-        private Allowance(long tick, Lane lane, ServerBudget server, long copies, int work) {
+        private Allowance(long tick, Lane lane, ServerBudget server, long nativeCopies, int work) {
             claimedTick = tick;
             this.lane = lane;
             this.server = server;
-            this.copies = copies;
+            this.nativeCopies = nativeCopies;
             this.work = work;
         }
 
@@ -172,28 +167,32 @@ public final class OmniDispatchBudgetLedger<L> {
         public boolean capacityMode() { return capacity; }
 
         @Override
-        public long remainingCopies() { return open() ? copies : 0L; }
+        public long remainingCopies() {
+            if (!open()) return 0L;
+            return capacity ? Long.MAX_VALUE : nativeCopies;
+        }
 
         @Override
         public boolean tryWork() {
-            if (!open() || !capacity || copies == 0L || work == 0 || !server.tryWork(claimedTick, lane)) return false;
+            if (!open() || !capacity || work == 0 || !server.tryWork(claimedTick, lane)) return false;
             work--;
             return true;
         }
 
         @Override
         public boolean trySingle() {
-            return open() && capacity && copies > 0L && server.trySingle(claimedTick, lane);
+            return open() && capacity && server.trySingle(claimedTick, lane);
         }
 
         @Override
         public void recordAccepted(BigInteger accepted) {
             if (!open() || accepted.signum() == 0) return;
-            if (accepted.signum() < 0 || (!unbounded && (accepted.bitLength() > 63 || accepted.longValue() > copies))) {
+            boolean exceedsLong = accepted.bitLength() > 63;
+            long count = exceedsLong ? Long.MAX_VALUE : accepted.longValue();
+            if (accepted.signum() < 0 || (!capacity && (exceedsLong || count > nativeCopies))) {
                 throw new IllegalArgumentException("Accepted copies exceed dispatch allowance");
             }
-            long count = accepted.bitLength() > 63 ? Long.MAX_VALUE : accepted.longValue();
-            if (!unbounded) copies -= count;
+            if (!capacity) nativeCopies -= count;
             // A transition back to a native tier still sees recent admissions.
             // Total history above Long.MAX_VALUE exhausts every finite native tier.
             int index = historyIndex(claimedTick);
@@ -203,9 +202,12 @@ public final class OmniDispatchBudgetLedger<L> {
         @Override
         public void close() {
             if (open()) {
-                if (!unbounded) returnedCopies += copies;
-                returnedWork += work;
-                if (capacity) server.close(claimedTick, lane);
+                if (capacity) {
+                    returnedWork += work;
+                    server.close(claimedTick, lane);
+                } else {
+                    returnedNativeCopies += nativeCopies;
+                }
             }
             closed = true;
         }

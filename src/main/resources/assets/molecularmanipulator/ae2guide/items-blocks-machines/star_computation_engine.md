@@ -119,13 +119,13 @@ The unlock is **permanent team progress** and survives dismantling or restarting
 ## What do the benefits mean?
 
 - Assembler parallelism is the number of recipe copies a supported sequence machine can make together.
-- Orders on each core share the listed CPU allowance. L1 to L6 use AE2's rolling operation window. L7 to L9 use a per-tick recipe-copy limit for capacity-based batching. Each processing machine still runs at its own speed.
+- L1 to L6 share AE2's rolling operation allowance across orders on each core. From L7 each batch contains as many whole crafts as the target face can accept with the available materials and power. Each machine processes the materials at its own speed.
 - CPU crafting storage is workspace for orders and intermediate ingredients. ME item storage is separate.
 - Well speed reduces production time. Research time stays the same, and nine-round deep research increases batch size separately.
 
 These values apply without overclocking. Check Overview and Upgrade for live capabilities.
 
-| Level | Assembler parallelism | CPU parallelism | CPU crafting storage | Well speed |
+| Level | Assembler parallelism | CPU dispatch | CPU crafting storage | Well speed |
 | --- | ---: | ---: | ---: | ---: |
 | L1 | 4,096 | 512 | 1 GiB | ×2 |
 | L2 | 16,384 | 1,024 | 4 GiB | ×3 |
@@ -133,9 +133,9 @@ These values apply without overclocking. Check Overview and Upgrade for live cap
 | L4 | 262,144 | 4,096 | 64 GiB | ×8 |
 | L5 | 1,048,576 | 8,192 | 256 GiB | ×12 |
 | L6 | 4,194,304 | 16,384 | 1 TiB | ×16 |
-| L7 | 16,777,216 | 32,768 | 4 TiB | ×32 |
-| L8 | 67,108,864 | 65,536 | 16 TiB | ×48 |
-| L9 | 268,435,456 | 131,072 | 64 TiB | ×64 |
+| L7 | 16,777,216 | By capacity | 4 TiB | ×32 |
+| L8 | 67,108,864 | By capacity | 16 TiB | ×48 |
+| L9 | 268,435,456 | By capacity | 64 TiB | ×64 |
 
 A network uses **one best active engine**; engines do not stack. Power, channels, ingredients and output space still limit real production. At every level, computation machines can create additional CPUs for independent orders; see the [Omni Computation Core](omni_computation_core.md).
 
@@ -144,8 +144,8 @@ A network uses **one best active engine**; engines do not stack. Power, channels
 Produce Star Signal Flow with a [Star Sea Calculation Mainframe](star_sea_calculation_mainframe.md), store it in a [Star Signal Storage Cell](star_signal_flow.md), then enable overclock on Overview. Star Signal Flow is not AE power; ordinary benefits do not consume it.
 
 - L1 to L9 consume **2 / 4 / 8 / 16 / 32 / 64 / 128 / 256 / 512 bit per tick**. At normal speed, a second is about 20 ticks.
-- L1 to L8 overclocking doubles the four benefits above. Level and research requirements still apply.
-- Continuously paid **L9 overclock** removes fixed limits on recipe copies and CPU crafting storage and reduces well production to **1 tick**. Dispatch work and target capacity still limit high-tier CPUs.
+- L1 to L8 overclocking doubles assembler parallelism, CPU storage and well speed. At L1 to L6 it also doubles the native AE2 operation allowance.
+- Sustained **L9 overclock** removes the fixed limits on assembler parallelism and CPU crafting storage and reduces well production to **1 tick**.
 - Insufficient signal switches overclock off, returning to normal benefits. Disconnection or broken structure removes benefits. Permanent research is retained.
 
 ## Troubleshooting

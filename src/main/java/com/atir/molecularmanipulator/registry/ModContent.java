@@ -43,6 +43,7 @@ import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.blockentity.StarComputationEngineCoreBlockEntity;
 import com.atir.molecularmanipulator.integration.AdvancedAEIntegration;
 import com.atir.molecularmanipulator.item.CreativeStarSignalDiskItem;
+import com.atir.molecularmanipulator.item.RecoveredPatternInputItem;
 import com.atir.molecularmanipulator.item.StarMarrowSeedItem;
 import com.atir.molecularmanipulator.item.BuildingTerminalItem;
 import com.atir.molecularmanipulator.menu.BuildingTerminalMenu;
@@ -104,6 +105,8 @@ public final class ModContent {
             "building_access_terminal", () -> new BuildingTerminalItem(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<com.atir.molecularmanipulator.item.FoldedBuildingPackageItem> FOLDED_BUILDING_PACKAGE = ITEMS.register(
             "folded_building_package", () -> new com.atir.molecularmanipulator.item.FoldedBuildingPackageItem(new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<RecoveredPatternInputItem> RECOVERED_PATTERN_INPUT = ITEMS.register(
+            "recovered_pattern_input", () -> new RecoveredPatternInputItem(new Item.Properties().stacksTo(1)));
     public static final DeferredItem<BlockItem> MOLECULAR_MANIPULATOR_ITEM =
             ITEMS.register("molecular_manipulator",
                     () -> new BlockItem(MOLECULAR_MANIPULATOR.get(), new Item.Properties()));

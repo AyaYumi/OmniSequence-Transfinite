@@ -31,14 +31,16 @@ double chest. Any accepted materials the machine takes only in part remain in th
 provider's send queue on the selected side.
 
 L0–L6 use AE2's native single-craft loop and its rolling operation window.
-Unverified targets can use `pushPattern` within the L7+ server-wide single-craft
-allowance. Custom providers can use the SPI below to admit complete batches.
+At L7–L9 the CPU requests as many complete crafts as the order, ingredients,
+power, current recipe phase and quantity types allow. A standard provider probes
+the selected face for that quantity and accepts the number that fits in one
+submission. Orders share the controller's dispatch work and the server time window.
+One submission can contain the entire order at any of these tiers.
 
-L7–L9 orders on one controller share the tier's recipe-copy allowance. L9
-overclock removes the fixed copy count. Target capacity, power, materials and
-the per-controller work and server time budgets still apply. A craft with
-returned items can use the bounded single-craft path. AELIS cycle execution
-shares the seed inventory and limits dispatch to the current phase.
+Providers need a batch adapter when Omni cannot verify joint capacity. Without
+one, AE2 can send individual crafts within the server-wide fallback allowance.
+The server log reports multi-input orders using this fallback. Crafts with
+returned items can also use native pushes. AELIS cycles share their seed stock.
 
 The effective tier is sampled once per controller tick. A tier change switches
 the route for the remaining copies while providers continue delivering stock

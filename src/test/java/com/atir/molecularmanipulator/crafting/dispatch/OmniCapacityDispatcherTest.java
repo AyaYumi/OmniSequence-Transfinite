@@ -92,6 +92,44 @@ class OmniCapacityDispatcherTest {
         assertEquals(1, provider.flushed);
     }
 
+    @Test void powerLossBeforeALargeSubmissionRestoresStockAndTheNextTickCanSendTheWholeBatch() throws Exception {
+        int crafts = 100_000;
+        var host = new Host(crafts);
+        host.own(CONTAINER, crafts);
+        host.own(MATERIAL, crafts);
+        var energy = new Energy(2.0 * crafts);
+        var submissions = new AtomicInteger();
+        var provider = new Target(request -> {
+            assertEquals(n(crafts), request.maximumCrafts());
+            return admission(request.maximumCrafts(), count -> {
+                submissions.incrementAndGet();
+                return count;
+            });
+        });
+        var powerCut = new Target(request -> {
+            energy.stored = 0;
+            return admission(request.maximumCrafts(), count -> fail("Power was lost before submission"));
+        });
+        var dispatcher = new OmniCapacityDispatcher();
+        dispatcher.tick(host, new Allowance(Long.MAX_VALUE, 32, 0), service(powerCut), energy.service, null);
+        assertEquals(1, powerCut.preparations);
+        assertEquals(n(crafts), host.omniDispatch$remaining(host.pattern));
+        assertEquals(n(crafts), host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(n(crafts), host.ecoOmni$physicalAmount(CONTAINER));
+        assertEquals(BigInteger.ZERO, host.ledger.available(host.waiting, null, OUTPUT));
+        assertEquals(0.0, energy.paid);
+
+        energy.stored = 2.0 * crafts;
+        dispatcher.tick(host, new Allowance(Long.MAX_VALUE, 32, 0), service(provider), energy.service, null);
+        assertEquals(1, submissions.get());
+        assertEquals(0, provider.singles);
+        assertEquals(BigInteger.ZERO, host.omniDispatch$remaining(host.pattern));
+        assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(CONTAINER));
+        assertEquals(n(crafts), host.ledger.available(host.waiting, null, OUTPUT));
+        assertEquals(2.0 * crafts, energy.paid);
+    }
+
     @Test void providerCursorResumesAcrossTicksAndSkipsKnownSaturation() throws Exception {
         var host = new Host(10);
         host.own(CONTAINER, 10);

@@ -59,6 +59,7 @@ public final class OmniCapacityDispatcher {
     private Iterator<ICraftingProvider> providerCursor;
     private boolean dispatching;
     private boolean clearPending;
+    private boolean reportedSingleFallback;
 
     public void tick(EcoOmniPlanCpuAccess host, OmniDispatchAllowance allowance, CraftingService crafting,
             IEnergyService energy, Level level) {
@@ -83,6 +84,7 @@ public final class OmniCapacityDispatcher {
 
     private void resetSelection() {
         clearPending = false;
+        reportedSingleFallback = false;
         jobId = null;
         tasks = null;
         taskCursor = null;
@@ -315,13 +317,23 @@ public final class OmniCapacityDispatcher {
         } finally {
             closeAdmission(admission);
         }
+        boolean single = admission == null;
         if (accepted.signum() == 0 && admission instanceof PublicAdmission api && api.permitsSingle()
                 && !host.omniDispatch$stopped() && allowance.tryWork() && allowance.tryWork()) {
             // The public endpoint explicitly certified that it owns nothing. One separately
             // budgeted single can preserve compatibility with its ordinary input shape.
-            return attempt(host, allowance, provider, unit, false, power, energy, level);
+            accepted = attempt(host, allowance, provider, unit, false, power, energy, level);
+            single = true;
+        } else if (accepted.signum() > 0) {
+            flushOutputs(provider);
         }
-        if (accepted.signum() > 0) flushOutputs(provider);
+        if (single && batching && accepted.signum() > 0 && !reportedSingleFallback
+                && unit.inputTotals().size() > 1 && unit.maximum().compareTo(BigInteger.ONE) > 0) {
+            reportedSingleFallback = true;
+            RateLimitedLog.warn("Omni job {} sent one craft of {} through {} using native dispatch. "
+                            + "This provider did not admit a batch of the recipe's inputs.",
+                    jobId, unit.outputs().getFirstEntry().getKey(), provider.getClass().getName());
+        }
         return accepted;
     }
 

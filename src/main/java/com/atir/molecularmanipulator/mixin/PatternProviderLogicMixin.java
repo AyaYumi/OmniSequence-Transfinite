@@ -7,8 +7,6 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.implementations.blockentities.ICraftingMachine;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.security.IActionSource;
-import appeng.api.stacks.AEFluidKey;
-import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
@@ -22,11 +20,12 @@ import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityTarget;
 import com.atir.molecularmanipulator.integration.ae2.PatternInputCapacity;
 import com.atir.molecularmanipulator.integration.ae2.PatternProviderSendQueue;
-import com.atir.molecularmanipulator.integration.mekanism.MekanismBatchSupport;
+import com.atir.molecularmanipulator.item.RecoveredPatternInputItem;
 import com.atir.molecularmanipulator.recipelock.RecipeExecutionContext;
 import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -36,6 +35,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -58,10 +58,6 @@ import java.util.Set;
 
 @Mixin(value = PatternProviderLogic.class, remap = false)
 public abstract class PatternProviderLogicMixin implements OmniCapacityTarget, PatternProviderSendQueue {
-    // Cap the generic adapter's work independently of the CPU's exact-job size.
-    @Unique private static final long MAX_ADMISSION_ITEMS = 4096;
-    @Unique private static final long MAX_ADMISSION_FLUID = 1024L * AEFluidKey.AMOUNT_BUCKET;
-    @Unique private static final long MAX_ADMISSION_CHEMICAL = 1_024_000;
     @Unique private static final Direction[] NEIGHBOR_SIDES = Direction.values();
     @Unique private static final String LEGACY_REFUND_TAG = "molecularmanipulatorLegacyBatchRefund";
 
@@ -111,8 +107,7 @@ public abstract class PatternProviderLogicMixin implements OmniCapacityTarget, P
         if (!molecularmanipulator$allowedPattern(machine, processing, level)) return OmniCapacityAdmission.UNAVAILABLE;
         var requestedCopies = request.maximumCrafts();
         if (requestedCopies.signum() <= 0) return OmniCapacityAdmission.UNAVAILABLE;
-        long boundedCopies = molecularmanipulator$boundCopies(unitInputs, requestedCopies);
-        if (boundedCopies == 0) return null;
+        long boundedCopies = molecularmanipulator$queueableCopies(processing, requestedCopies);
 
         long bestCopies = 0;
         Direction bestSide = null;
@@ -304,32 +299,12 @@ public abstract class PatternProviderLogicMixin implements OmniCapacityTarget, P
     }
 
     @Unique
-    private static long molecularmanipulator$boundCopies(List<GenericStack> inputs, BigInteger requested) {
-        long items = 0;
-        long fluid = 0;
-        long chemical = 0;
-        for (int i = 0; i < inputs.size(); i++) {
-            var stack = inputs.get(i);
-            var key = stack.what();
-            long amount = stack.amount();
-            if (key instanceof AEItemKey) {
-                if (amount > MAX_ADMISSION_ITEMS - items) return 0;
-                items += amount;
-            } else if (key instanceof AEFluidKey) {
-                if (amount > MAX_ADMISSION_FLUID - fluid) return 0;
-                fluid += amount;
-            } else if (MekanismBatchSupport.isChemicalKey(key)) {
-                if (amount > MAX_ADMISSION_CHEMICAL - chemical) return 0;
-                chemical += amount;
-            } else {
-                return 0;
-            }
-        }
-        long limit = requested.bitLength() <= 63 ? requested.longValue() : Long.MAX_VALUE;
-        if (items > 0) limit = Math.min(limit, MAX_ADMISSION_ITEMS / items);
-        if (fluid > 0) limit = Math.min(limit, MAX_ADMISSION_FLUID / fluid);
-        if (chemical > 0) limit = Math.min(limit, MAX_ADMISSION_CHEMICAL / chemical);
-        return limit;
+    private static long molecularmanipulator$queueableCopies(AEProcessingPattern pattern, BigInteger requested) {
+        // AE2 combines repeated occurrences of a key in one input. Each scaled amount must fit in a long.
+        long largestInput = 1;
+        for (var input : pattern.getInputs()) largestInput = Math.max(largestInput, input.getMultiplier());
+        long queueLimit = Long.MAX_VALUE / largestInput;
+        return requested.bitLength() > 63 ? queueLimit : Math.min(requested.longValue(), queueLimit);
     }
 
     @Unique
@@ -491,12 +466,17 @@ public abstract class PatternProviderLogicMixin implements OmniCapacityTarget, P
         if (moved && !callback.getReturnValueZ()) callback.setReturnValue(true);
     }
 
+    @WrapOperation(method = "addDrops", at = @At(value = "INVOKE",
+            target = "Lappeng/api/stacks/AEKey;addDrops(JLjava/util/List;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V"))
+    private void molecularmanipulator$dropQueuedInput(AEKey key, long amount, List<ItemStack> drops,
+            Level level, BlockPos pos, Operation<Void> original) {
+        RecoveredPatternInputItem.addDrop(key, amount, drops);
+    }
+
     @Inject(method = "addDrops", at = @At("TAIL"))
     private void molecularmanipulator$dropLegacyStock(List<ItemStack> drops, CallbackInfo callback) {
-        if (molecularmanipulator$legacyRefund.isEmpty()) return;
-        var machine = host.getBlockEntity();
-        for (var stack : molecularmanipulator$legacyRefund) {
-            stack.what().addDrops(stack.amount(), drops, machine.getLevel(), machine.getBlockPos());
+        for (var input : molecularmanipulator$legacyRefund) {
+            RecoveredPatternInputItem.addDrop(input.what(), input.amount(), drops);
         }
     }
 

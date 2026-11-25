@@ -4,6 +4,7 @@ import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.networking.energy.IEnergyService;
+import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
@@ -21,8 +22,11 @@ import com.atir.molecularmanipulator.api.crafting.OmniBatchRequest;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerProviderAdapterRegistry;
 import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputAdapterRegistry;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularOmniBatchDelivery;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.OmniExactInputReservation;
 import com.atir.molecularmanipulator.crafting.OmniNativeSmartDoubling;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
@@ -254,6 +258,10 @@ public final class OmniCapacityDispatcher {
         var unitOutputs = totals(outputs);
         if (unitOutputs.isEmpty()) return null;
         var unitRemainders = totals(remainders);
+        // Phase schedules own their per-craft input allocation. Outside a scheduled phase, a
+        // molecular machine can instead quote the actual tools it will retain for the whole job.
+        long reusableMaximum = !host.ecoOmni$managed() && !cycle.hasCycleProtection()
+                ? maximum.min(LONG_MAX).longValueExact() : 0;
         for (var entry : unitInputs.entrySet()) {
             if (!infinite.contains(entry.getKey())) maximum = maximum.min(
                     host.ecoOmni$physicalAmount(entry.getKey()).divide(entry.getValue()));
@@ -273,12 +281,12 @@ public final class OmniCapacityDispatcher {
         var unitPower = cost == 0 ? BigDecimal.ZERO : new BigDecimal(cost);
         var longMaximum = longLimit(unitInputs, unitOutputs, unitRemainders);
         boolean exact = host.omniDispatch$exactOrder();
-        if (!exact || !remainders.isEmpty() || cycle.hasCycleProtection()) maximum = maximum.min(longMaximum);
+        if (cycle.hasCycleProtection()) maximum = maximum.min(longMaximum);
         if (maximum.signum() <= 0) return null;
         maximum = power.maximum(energy, unitPower, maximum);
         return maximum.signum() <= 0 ? null : new Prototype(pattern, inputs, outputs, remainders,
                 unitInputs, unitOutputs, unitRemainders, infinite, maximum, maximum.min(longMaximum), unitPower,
-                exact, cycle, runtime);
+                exact, cycle, runtime, reusableMaximum, guarded);
     }
 
     private BigInteger attempt(EcoOmniPlanCpuAccess host, OmniDispatchAllowance allowance, ICraftingProvider provider,
@@ -288,8 +296,8 @@ public final class OmniCapacityDispatcher {
         boolean partial;
         try {
             if (provider.isBusy()) return BigInteger.ZERO;
-            if (batching && !unit.inputTotals().isEmpty() && !MolecularBatchCraftingProvider.requiresSerialDispatch(provider)) {
-                admission = host.ecoOmni$withProviderScope(() -> prepare(host, provider, unit, level));
+            if (batching && !MolecularBatchCraftingProvider.requiresSerialDispatch(provider)) {
+                admission = host.ecoOmni$withProviderScope(() -> prepare(host, provider, unit, energy, level));
             }
             if (admission == null) {
                 if (!allowance.trySingle()) return BigInteger.ZERO;
@@ -297,7 +305,8 @@ public final class OmniCapacityDispatcher {
                 partial = false;
             } else {
                 count = admission.maximumCrafts();
-                if (count == null || count.signum() < 0 || count.compareTo(unit.maximum()) > 0)
+                var bound = admission instanceof ReusableAdmission ? BigInteger.valueOf(unit.reusableMaximum()) : unit.maximum();
+                if (count == null || count.signum() < 0 || count.compareTo(bound) > 0)
                     throw new IllegalStateException("Invalid provider capacity");
                 partial = admission.acceptsPartial();
             }
@@ -328,7 +337,7 @@ public final class OmniCapacityDispatcher {
             flushOutputs(provider);
         }
         if (single && batching && accepted.signum() > 0 && !reportedSingleFallback
-                && unit.inputTotals().size() > 1 && unit.maximum().compareTo(BigInteger.ONE) > 0) {
+                && unit.maximum().compareTo(BigInteger.ONE) > 0) {
             reportedSingleFallback = true;
             RateLimitedLog.warn("Omni job {} sent one craft of {} through {} using native dispatch. "
                             + "This provider did not admit a batch of the recipe's inputs.",
@@ -337,35 +346,33 @@ public final class OmniCapacityDispatcher {
         return accepted;
     }
 
-    private OmniCapacityAdmission prepare(EcoOmniPlanCpuAccess host, ICraftingProvider provider, Prototype unit, Level level) {
+    private OmniCapacityAdmission prepare(EcoOmniPlanCpuAccess host, ICraftingProvider provider, Prototype unit,
+            IEnergyService energy, Level level) {
+        boolean hasInputs = !unit.inputTotals().isEmpty();
         var request = unit.request(jobId, provider, unit.longMaximum(), level);
         boolean consumptive = unit.remainders().isEmpty();
-        boolean generic = consumptive && !OmniNativeSmartDoubling.isExternallyManaged(unit.pattern());
-        if (generic && request.maximumCrafts().signum() > 0) {
-            if (request.maximumCrafts().compareTo(BigInteger.ONE) > 0) {
+        boolean needsWideAmounts = unit.maximum().compareTo(unit.longMaximum()) > 0;
+        boolean preferExact = !hasInputs || needsWideAmounts;
+        if (consumptive && preferExact) {
+            var exact = prepareBigInteger(host, provider, unit);
+            if (exact != null) return exact;
+        }
+        if (hasInputs && !OmniNativeSmartDoubling.isExternallyManaged(unit.pattern())) {
+            if (consumptive && request.maximumCrafts().compareTo(BigInteger.ONE) > 0) {
                 var api = preparePublic(request, unit.outputTotals());
                 if (api != null) return api;
             }
             if (provider instanceof MolecularBatchCraftingProvider molecular
                     && molecular.molecularmanipulator$supportsBatching(unit.pattern())) {
-                long limit = molecular.molecularmanipulator$getBatchLimit(unit.pattern(), unit.outputs());
-                if (limit <= 0) return OmniCapacityAdmission.UNAVAILABLE;
-                var count = request.maximumCrafts().min(BigInteger.valueOf(limit));
-                return admission(count, false, crafts -> {
-                    long copies = crafts.longValueExact();
-                    var delivery = scale(unit.inputs(), copies);
-                    try (var scope = MolecularBatchDispatchContext.openFixed(request.jobId(), unit.pattern(),
-                            delivery, unit.inputs(), copies, unit.outputs())) {
-                        return provider.pushPattern(unit.pattern(), delivery) ? crafts : BigInteger.ZERO;
-                    }
-                });
+                var prepared = prepareMolecular(request, unit, molecular, host.omniDispatch$dispatchEnergy(), energy);
+                if (prepared != null) return prepared;
             }
-            if (provider instanceof OmniCapacityTarget target) {
+            if (consumptive && request.maximumCrafts().signum() > 0 && provider instanceof OmniCapacityTarget target) {
                 var prepared = target.omniDispatch$prepareTarget(request);
                 if (prepared != null) return prepared;
             }
         }
-        if (unit.exact() && consumptive) {
+        if (consumptive && !preferExact) {
             var exact = prepareBigInteger(host, provider, unit);
             if (exact != null) return exact;
         }
@@ -374,6 +381,131 @@ public final class OmniCapacityDispatcher {
         if (eco != null) return eco;
         return request.maximumCrafts().signum() > 0 && host instanceof OmniCapacityTarget.Thunderbolt thunderbolt
                 ? thunderbolt.omniDispatch$prepareThunderbolt(request) : null;
+    }
+
+    private static OmniCapacityAdmission prepareMolecular(OmniCapacityRequest request, Prototype unit,
+            MolecularBatchCraftingProvider machine, OmniCpuDispatchLedger.Energy power, IEnergyService energy) {
+        boolean returnsItems = !unit.remainders().isEmpty();
+        if (returnsItems && !machine.molecularmanipulator$supportsReusableBatching(unit.pattern())) return null;
+        long limit = machine.molecularmanipulator$getBatchLimit(unit.pattern(), unit.outputs());
+        if (limit <= 0) return OmniCapacityAdmission.UNAVAILABLE;
+        long reusableLimit = Math.min(limit, unit.reusableMaximum());
+        boolean statefulReturns = returnsItems && hasStatefulReturn(unit);
+        // A tool selected on its final use has no remainder. Other tools in the CPU can still
+        // supply the same job when its physical single-key allocation runs out.
+        boolean checkToolPool = !returnsItems && reusableLimit > 1
+                && request.maximumCrafts().compareTo(BigInteger.valueOf(reusableLimit)) < 0
+                && machine.molecularmanipulator$supportsReusableBatching(unit.pattern())
+                && unit.inputTotals().keySet().stream().anyMatch(MolecularReusableInputAdapters::isDeterministicDamageCandidate);
+        if (statefulReturns || checkToolPool) {
+            var batch = prepareReusable(request, unit, machine, power, energy, reusableLimit);
+            if (batch != null) {
+                return switch (machine.molecularmanipulator$validateReusableBatch(
+                        unit.pattern(), batch.extraction().reusablePlan(), request.jobId())) {
+                    case READY -> batch;
+                    case PENDING -> OmniCapacityAdmission.UNAVAILABLE;
+                    case REJECTED -> null;
+                };
+            }
+            if (statefulReturns) return null;
+        }
+        if (request.maximumCrafts().signum() == 0) return null;
+        if (returnsItems) {
+            // A full bucket consumed per craft returns an empty bucket per craft. The machine
+            // validates the actual aggregate returns before acquiring these independent inputs.
+            var queued = new KeyCounter();
+            queued.addAll(unit.outputs());
+            queued.addAll(unit.remainders());
+            limit = machine.molecularmanipulator$getBatchLimit(unit.pattern(), queued);
+            if (limit <= 0) return OmniCapacityAdmission.UNAVAILABLE;
+        }
+        return admission(request.maximumCrafts().min(BigInteger.valueOf(limit)), false, crafts -> {
+            long copies = crafts.longValueExact();
+            var delivery = scale(unit.inputs(), copies);
+            if (returnsItems) {
+                var expected = new KeyCounter();
+                unit.remainderTotals().forEach((key, amount) -> expected.set(key, amount.multiply(crafts).longValueExact()));
+                try (var batch = copies > 1 ? MolecularBatchDispatchContext.open(request.jobId(), unit.pattern(),
+                        delivery, unit.inputs(), copies, null) : null;
+                        var returns = MolecularRemainderContext.open(unit.pattern(), delivery, expected)) {
+                    return request.provider().pushPattern(unit.pattern(), delivery) ? crafts : BigInteger.ZERO;
+                }
+            }
+            try (var batch = MolecularBatchDispatchContext.openFixed(request.jobId(), unit.pattern(),
+                    delivery, unit.inputs(), copies, unit.outputs())) {
+                return request.provider().pushPattern(unit.pattern(), delivery) ? crafts : BigInteger.ZERO;
+            }
+        });
+    }
+
+    private static boolean hasStatefulReturn(Prototype unit) {
+        var slots = unit.pattern().getInputs();
+        for (int slot = 0; slot < slots.length; slot++) {
+            for (var entry : unit.inputs()[slot]) {
+                var key = entry.getKey();
+                var returned = slots[slot].getRemainingKey(key);
+                if (returned != null && (!(key instanceof AEItemKey before) || !(returned instanceof AEItemKey after)
+                        || before.getItem() == after.getItem())) return true;
+            }
+        }
+        return false;
+    }
+
+    private static ReusableAdmission prepareReusable(OmniCapacityRequest request, Prototype unit,
+            MolecularBatchCraftingProvider machine, OmniCpuDispatchLedger.Energy power, IEnergyService energy, long upper) {
+        long lower = 2;
+        long offered = upper;
+        ReusableAdmission best = null;
+        while (lower <= upper) {
+            var outputs = new KeyCounter();
+            outputs.addAll(unit.outputs());
+            var returns = new KeyCounter();
+            returns.addAll(unit.remainders());
+            var extraction = MolecularBatchCraftingExtractor.previewReusable(unit.pattern(), unit.afterFirst(),
+                    cost -> Double.isFinite(cost) && cost >= 0
+                            && power.maximum(energy, new BigDecimal(cost), BigInteger.ONE).signum() > 0,
+                    request.level(), unit.inputs(), outputs, returns, offered);
+            if (extraction == null || extraction.reusablePlan() == null) break;
+            long crafts = extraction.craftCount();
+            var receipt = new OmniCpuDispatchReceipt(request.jobId(), unit.pattern(), BigInteger.valueOf(crafts),
+                    OmniExactInputReservation.unitInputs(extraction.inputs(), Set.of()), totals(outputs), totals(returns), unit.exact());
+            var finished = bufferContents(receipt.waiting());
+            var refund = bufferContents(receipt.inputs());
+            if (finished != null && refund != null && machine.molecularmanipulator$getBatchLimit(unit.pattern(), finished) > 0
+                    && machine.molecularmanipulator$canBufferRefund(unit.pattern(), refund)) {
+                var cost = new BigDecimal(CraftingCpuHelper.calculatePatternPower(extraction.inputs()));
+                best = new ReusableAdmission(request.provider(), extraction, receipt, returns, cost);
+                if (offered == upper || crafts < offered) break;
+                lower = crafts + 1;
+            } else {
+                upper = crafts - 1;
+            }
+            offered = lower + (upper - lower) / 2;
+        }
+        return best;
+    }
+
+    private static KeyCounter bufferContents(Map<AEKey, BigInteger> amounts) {
+        var result = new KeyCounter();
+        for (var entry : amounts.entrySet()) {
+            if (entry.getValue().bitLength() > 63) return null;
+            result.set(entry.getKey(), entry.getValue().longValueExact());
+        }
+        return result;
+    }
+
+    private record ReusableAdmission(ICraftingProvider provider, MolecularBatchCraftingExtractor.BatchExtraction extraction,
+            OmniCpuDispatchReceipt receipt, KeyCounter remainders, BigDecimal cost) implements OmniCapacityAdmission {
+        @Override public BigInteger maximumCrafts() { return receipt.crafts(); }
+        @Override public boolean acceptsPartial() { return false; }
+        @Override public BigInteger submit(BigInteger crafts) {
+            var inputs = extraction.inputs();
+            try (var batch = MolecularBatchDispatchContext.openVerifiedReusable(receipt.jobId(), receipt.pattern(), inputs,
+                    extraction.firstInputs(), extraction.craftCount(), extraction.reusablePlan());
+                    var returns = MolecularRemainderContext.open(receipt.pattern(), inputs, remainders)) {
+                return provider.pushPattern(receipt.pattern(), inputs) ? crafts : BigInteger.ZERO;
+            }
+        }
     }
 
     private static OmniCapacityAdmission preparePublic(OmniCapacityRequest request, Map<AEKey, BigInteger> outputs) {
@@ -455,24 +587,30 @@ public final class OmniCapacityDispatcher {
             Prototype unit) {
         var exact = OmniBigIntegerProviderAdapterRegistry.resolve(provider, unit.pattern());
         if (exact == null) return null;
-        if (!exact.usesNativeBigIntegerBatch() && !unit.infinite().containsAll(unit.inputTotals().keySet())) return null;
+        if (!exact.usesNativeBigIntegerBatch() && (!unit.exact() || unit.inputTotals().isEmpty()
+                || !unit.infinite().containsAll(unit.inputTotals().keySet()))) return null;
         var maximum = exact.getMaximumBigIntegerCrafts(unit.pattern(), scale(unit.inputs(), 1), unit.maximum());
-        if (maximum == null || maximum.signum() < 0 || maximum.compareTo(unit.maximum()) > 0)
+        if (maximum == null || maximum.signum() == 0) return OmniCapacityAdmission.UNAVAILABLE;
+        if (maximum.signum() < 0 || maximum.compareTo(unit.maximum()) > 0)
             throw new IllegalStateException("Invalid BigInteger capacity");
-        if (maximum.signum() == 0) return OmniCapacityAdmission.UNAVAILABLE;
         return admission(maximum, true, crafts -> {
-            var token = host.omniDispatch$bigIntegerToken(unit.pattern(), crafts);
-            if (!exact.pushBigIntegerCraftingPattern(unit.pattern(), crafts, scale(unit.inputs(), 1), token))
+            var token = host.omniDispatch$bigIntegerToken(unit.outputTotals());
+            if (!exact.pushBigIntegerCraftingPattern(unit.pattern(), crafts, scale(unit.inputs(), 1), token)) {
+                if (token != null) token.onCancelled(BigInteger.ZERO);
                 return BigInteger.ZERO;
-            var accepted = exact.lastAcceptedBigIntegerCrafts();
-            return accepted == null ? crafts : accepted;
+            }
+            var reported = exact.lastAcceptedBigIntegerCrafts();
+            var accepted = reported == null ? crafts : reported;
+            if (token != null && accepted.signum() > 0 && accepted.compareTo(crafts) <= 0) token.confirmAccepted(accepted);
+            return accepted;
         });
     }
 
     private BigInteger transact(EcoOmniPlanCpuAccess host, OmniDispatchAllowance allowance, ICraftingProvider provider,
             Prototype unit, OmniCapacityAdmission admission, BigInteger count, boolean partial,
             OmniCpuDispatchLedger.Energy power, IEnergyService energy) {
-        var receipt = unit.receipt(jobId, count);
+        var reusable = admission instanceof ReusableAdmission prepared ? prepared : null;
+        var receipt = reusable == null ? unit.receipt(jobId, count) : reusable.receipt();
         var finite = finite(receipt.inputs(), unit.infinite());
         OmniCpuDispatchHost.Lease materials = null;
         OmniCpuDispatchHost.Accounting accounting = null;
@@ -488,7 +626,8 @@ public final class OmniCapacityDispatcher {
             accounting = host.omniDispatch$stage(receipt);
             if (accounting != null) {
                 host.omniDispatch$markDirty();
-                paid = power.reserve(energy, unit.power(), count);
+                paid = reusable == null ? power.reserve(energy, unit.power(), count)
+                        : power.reserve(energy, reusable.cost(), BigInteger.ONE);
                 if (paid != null && !host.omniDispatch$stopped() && receipt.jobId().equals(host.omniDispatch$jobId())) {
                     if (unit.cycle().hasCycleProtection()) {
                         if (partial && count.compareTo(BigInteger.ONE) > 0 && unit.runtime().currentStep()
@@ -671,7 +810,8 @@ public final class OmniCapacityDispatcher {
     private record Prototype(IPatternDetails pattern, KeyCounter[] inputs, KeyCounter outputs, KeyCounter remainders,
             Map<AEKey, BigInteger> inputTotals, Map<AEKey, BigInteger> outputTotals, Map<AEKey, BigInteger> remainderTotals,
             Set<AEKey> infinite, BigInteger maximum, BigInteger longMaximum, BigDecimal power, boolean exact,
-            AelisBatchExecutionContext cycle, AelisCycleRuntimeController runtime) {
+            AelisBatchExecutionContext cycle, AelisCycleRuntimeController runtime, long reusableMaximum,
+            ICraftingInventory afterFirst) {
         OmniCapacityRequest request(UUID job, ICraftingProvider provider, BigInteger limit, Level level) {
             return new OmniCapacityRequest(job, provider, pattern, inputs, outputs, remainders, limit, level);
         }

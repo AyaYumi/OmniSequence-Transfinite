@@ -18,9 +18,11 @@ import appeng.menu.MenuOpener;
 import appeng.menu.locator.MenuHostLocator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider.ReusableValidation;
 import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessHost;
 import com.atir.molecularmanipulator.integration.ae2.SequenceWirelessLink;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
@@ -43,6 +45,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import java.util.UUID;
 
 public final class MolecularManipulatorBlockEntity extends PatternProviderBlockEntity
         implements SegmentedPatternContainerHost, SequenceWirelessHost {
@@ -169,6 +172,11 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
         }
         return MolecularCraftingBatcher.outputCapacity(getRemainingAssemblerBudget(), MAX_BUFFERED_TYPES,
                 unitOutputs, bufferedOutputs, null);
+    }
+
+    ReusableValidation validateReusableBatch(IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+        return canAcceptPattern(getLevel()) && plan.craftCount() <= getRemainingAssemblerBudget()
+                ? craftingBatcher.validateReusable(this, pattern, plan, jobId) : ReusableValidation.PENDING;
     }
 
     private boolean canAcceptPattern(Level level) {

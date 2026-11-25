@@ -1,7 +1,11 @@
 package com.atir.molecularmanipulator.blockentity;
 
+import appeng.api.config.Actionable;
 import appeng.api.stacks.AEItemKey;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
+import appeng.crafting.inv.ICraftingInventory;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCraftingExtractor;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.DamageGroup;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputMode;
@@ -49,6 +53,88 @@ class MolecularReusableBatchOwnershipTest {
         assertTrue(restored.isComplete());
         var terminal = worn(worn(worn(tool, 6), 6), 6);
         assertEquals(1, restored.completedRemainders().getLong(terminal));
+    }
+
+    @Test
+    void longWearQuoteAndReloadPreserveThePhysicalToolAtCancellation() throws Exception {
+        int crafts = 4_097;
+        int durability = 6_000;
+        var identity = UUID.randomUUID();
+        var tool = tool(0, durability, identity);
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        var pattern = new EcoMolecularTestPattern(tool, key -> {
+            calls.incrementAndGet();
+            return worn(key, durability);
+        });
+        var inventory = new appeng.crafting.inv.ListCraftingInventory(ignored -> {});
+        inventory.list.add(MATERIAL, crafts - 1);
+        var outputs = counter(OUTPUT, 1);
+        var returns = pattern.remainders();
+        var quote = MolecularBatchCraftingExtractor.previewReusable(pattern, inventory, cost -> true,
+                level(), pattern.first(), outputs, returns, crafts);
+        assertNotNull(quote);
+        assertEquals(crafts, quote.craftCount());
+        assertTrue(calls.get() < 32, "A capacity quote must not evaluate thousands of intermediate states");
+        assertEquals(1, quote.inputs()[0].get(tool));
+        assertEquals(crafts, quote.inputs()[1].get(MATERIAL));
+        assertEquals(crafts - 1, inventory.list.get(MATERIAL));
+        var finalTool = tool(crafts, durability, identity);
+        assertEquals(1, returns.get(finalTool));
+        assertEquals(1, returns.size(), "Only the final tool state belongs in the batch receipt");
+
+        var primary = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<AEKey>();
+        primary.put(OUTPUT, 1);
+        var job = MolecularReusableBatchJob.create(identity, pattern.getDefinition(), quote.reusablePlan(), quote.inputs(), primary);
+        assertNotNull(job);
+        int completed = 3_100;
+        job.advance(completed);
+        var regs = registries();
+        var saved = job.writeToTag(regs);
+        var currentTool = tool(completed, durability, identity);
+        var restored = MolecularReusableBatchJob.readFromTag(saved, regs);
+        assertNotNull(restored);
+        assertEquals(1, restored.cancellationRefunds().getLong(currentTool));
+        assertEquals(crafts - completed, restored.cancellationRefunds().getLong(MATERIAL));
+        assertEquals(1, restored.projectedFinalRemainders().getLong(finalTool));
+
+        var malformed = saved.copy();
+        long impossibleUses = durability + 2L;
+        malformed.putLong("total_crafts", impossibleUses);
+        var inputs = malformed.getList("inputs", 10);
+        var group = inputs.getCompound(0).getList("damage_groups", 10).getCompound(0);
+        group.putLong("uses_per_tool", impossibleUses);
+        group.remove("final_key");
+        inputs.getCompound(1).putLong("remaining_amount", impossibleUses - completed);
+        assertNull(MolecularReusableBatchJob.readFromTag(malformed, regs));
+    }
+
+    @Test
+    void toolPoolFindsStockAfterHundredsOfUnavailableVariants() throws Exception {
+        var identity = new UUID(0, 1);
+        var lastUse = tool(4, 5, identity);
+        var fresh = tool(0, 5, identity);
+        var pattern = new EcoMolecularTestPattern(lastUse, key -> worn(key, 5));
+        var variants = new java.util.ArrayList<AEKey>();
+        for (int i = 0; i < 300; i++) variants.add(tool(0, 5, new UUID(1, i)));
+        variants.add(fresh);
+        var inventory = new ICraftingInventory() {
+            @Override public Iterable<AEKey> findFuzzyTemplates(AEKey key) { return variants; }
+            @Override public long extract(AEKey key, long amount, Actionable mode) {
+                assertEquals(Actionable.SIMULATE, mode);
+                return Math.min(amount, fresh.equals(key) ? 20 : MATERIAL.equals(key) ? 100 : 0);
+            }
+            @Override public void insert(AEKey key, long amount, Actionable mode) { fail("Preview wrote to CPU inventory"); }
+        };
+        var outputs = counter(OUTPUT, 1);
+        var returns = pattern.remainders();
+        var quote = MolecularBatchCraftingExtractor.previewReusable(pattern, inventory, cost -> cost <= 122,
+                level(), pattern.first(), outputs, returns, 101);
+        assertNotNull(quote);
+        assertEquals(101, quote.craftCount());
+        assertEquals(1, quote.inputs()[0].get(lastUse));
+        assertEquals(20, quote.inputs()[0].get(fresh));
+        assertEquals(101, outputs.get(OUTPUT));
+        assertTrue(returns.isEmpty());
     }
 
     @Test

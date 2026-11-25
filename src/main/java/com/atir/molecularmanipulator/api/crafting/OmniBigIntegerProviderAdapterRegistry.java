@@ -53,12 +53,14 @@ public final class OmniBigIntegerProviderAdapterRegistry {
         if (provider == null || pattern == null) {
             return null;
         }
+        var entries = snapshot;
+        if (entries.isEmpty()) return provider instanceof OmniBigIntegerCraftingProvider direct ? direct : null;
         var active = ACTIVE.get();
         if (active.put(provider, Boolean.TRUE) != null) {
             return null;
         }
         try {
-            for (var entry : snapshot) {
+            for (var entry : entries) {
                 if (!entry.supports().test(provider, pattern)) {
                     continue;
                 }
@@ -73,9 +75,6 @@ public final class OmniBigIntegerProviderAdapterRegistry {
             return null;
         } finally {
             active.remove(provider);
-            if (active.isEmpty()) {
-                ACTIVE.remove();
-            }
         }
     }
 

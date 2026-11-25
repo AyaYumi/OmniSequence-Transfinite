@@ -6,6 +6,7 @@ import appeng.api.config.Settings;
 import appeng.api.config.YesNo;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.ids.AEComponents;
+import appeng.api.implementations.blockentities.ICraftingMachine;
 import appeng.api.networking.GridHelper;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEFluidKey;
@@ -22,6 +23,7 @@ import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityAdmission;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityTarget;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.glodblock.github.extendedae.common.EAESingletons;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,6 +132,75 @@ public final class PatternProviderQueueGameTests {
                     assertDrained(fixture, restored[0].getLogic());
                     helper.assertTrue(cell.getAvailableStacks().get(coal) == full,
                             "Exactly 99,936 more coal should arrive after the provider reloads");
+                }).thenSucceed();
+    }
+
+    @GameTest(template = ServerRegressionFixture.TEMPLATE, timeoutTicks = 200)
+    public static void mixedCellBatchReservesBytesAndSkipsUnrelatedAssemblers(GameTestHelper helper) {
+        var fixture = new ServerRegressionFixture(helper);
+        var provider = fixture.place(fixture.origin, EAESingletons.EX_PATTERN_PROVIDER.defaultBlockState(),
+                PatternProviderBlockEntity.class);
+        fixture.place(fixture.origin.east(), AEBlocks.MOLECULAR_ASSEMBLER.block().defaultBlockState());
+        fixture.place(fixture.origin.south(), EAESingletons.EX_ASSEMBLER.defaultBlockState());
+        var chest = fixture.place(fixture.origin.west(), AEBlocks.ME_CHEST.block().defaultBlockState(), MEChestBlockEntity.class);
+        chest.setCell(AEItems.ITEM_CELL_16K.stack());
+        var cell = fixture.level.getCapability(AECapabilities.ME_STORAGE, chest.getBlockPos(), Direction.EAST);
+        var coal = AEItemKey.of(Items.COAL);
+        var gold = AEItemKey.of(Items.GOLD_INGOT);
+        var source = IActionSource.empty();
+        helper.assertTrue(cell != null && cell.insert(coal, 1, Actionable.MODULATE, source) == 1, "Seed the cell with one coal");
+        var logic = provider.getLogic();
+        // Two types cost 128 bytes each. Of the remaining 129,024 item units, one is already occupied.
+        long copies = ((16_384 - 2 * 128) * 8 - 1) / 16;
+        var expected = BigInteger.valueOf(copies);
+        poweredProviders(fixture, provider).thenExecute(() -> {
+            for (var side : List.of(Direction.EAST, Direction.SOUTH)) {
+                var assembler = ICraftingMachine.of(fixture.level, fixture.origin.relative(side), side.getOpposite());
+                helper.assertTrue(assembler != null && assembler.acceptsPlans(), "Both neighboring assemblers must be active targets");
+            }
+            installPattern(logic, mixedPattern());
+            var request = request(fixture, logic, BigInteger.ONE.shiftLeft(80));
+            try (var beforeCanner = prepare(request)) {
+                fixture.place(fixture.origin.north(), EAESingletons.CANER.defaultBlockState());
+                var canner = ICraftingMachine.of(fixture.level, fixture.origin.north(), Direction.SOUTH);
+                helper.assertTrue(canner != null && canner.acceptsPlans() && beforeCanner != null
+                                && beforeCanner.submit(expected).signum() == 0,
+                        "A newly adjacent machine that handles processing patterns should invalidate the chest prediction");
+                try (var withCanner = prepare(request)) {
+                    helper.assertTrue(withCanner == null, "The native processing machine should keep priority over the chest");
+                }
+                assertDrained(fixture, logic);
+                fixture.place(fixture.origin.north(), Blocks.AIR.defaultBlockState());
+            }
+            try (var admission = prepare(request)) {
+                helper.assertTrue(admission != null && expected.equals(admission.maximumCrafts()) && expected.equals(admission.submit(expected)),
+                        "The processing pattern should admit 8,063 whole copies to the ME chest beside both assemblers");
+            }
+            assertQueue(fixture, logic, Direction.WEST, new GenericStack(coal, copies), new GenericStack(gold, 13 * copies),
+                    new GenericStack(coal, 2 * copies));
+            helper.assertTrue(cell.getAvailableStacks().get(coal) == 1 && cell.getAvailableStacks().get(gold) == 0,
+                    "Only the provider should own the accepted batch before its first send");
+        }).thenWaitUntil(() -> helper.assertTrue(!logic.isBusy(), "The ME chest should receive the complete queue"))
+                .thenExecute(() -> {
+                    var stock = cell.getAvailableStacks();
+                    helper.assertTrue(stock.get(coal) == 3 * copies + 1 && stock.get(gold) == 13 * copies,
+                            "The cell should hold the seed and every accepted input");
+                    assertCapacity(fixture, request(fixture, logic, BigInteger.TEN), 0, "Fifteen free item units cannot fit another craft");
+                    var voidCell = AEItems.ITEM_CELL_16K.stack();
+                    var upgrades = AEItems.ITEM_CELL_16K.asItem().getUpgrades(voidCell);
+                    upgrades.setItemDirect(0, AEItems.VOID_CARD.stack());
+                    chest.setCell(voidCell);
+                    helper.assertTrue(upgrades.isInstalled(AEItems.VOID_CARD) && cell.insert(coal, Long.MAX_VALUE, Actionable.SIMULATE, source) == Long.MAX_VALUE,
+                            "The real void cell should report more acceptance than physical room");
+                    try (var voidAdmission = prepare(request(fixture, logic, BigInteger.TEN))) {
+                        helper.assertTrue(voidAdmission == null, "Void acceptance cannot prove physical storage for a mixed batch");
+                    }
+                    installPattern(logic, PatternDetailsHelper.encodeProcessingPattern(List.of(new GenericStack(coal, 1)),
+                            List.of(new GenericStack(gold, 1))));
+                    try (var singleVoid = prepare(request(fixture, logic, BigInteger.valueOf(1_000_000)))) {
+                        helper.assertTrue(singleVoid == null, "A void cell cannot prove it will store a million coal either");
+                    }
+                    assertDrained(fixture, logic);
                 }).thenSucceed();
     }
 

@@ -100,7 +100,9 @@ Point a standard AE2 Pattern Provider at the machine's input face. From L7, it c
 
 When you dismantle a provider, queued items that fit in one stack drop loose. Larger item stacks, fluids and chemicals drop as **Recovered Pattern Inputs**. Use one on an ME interface or ME chest to deposit its contents. Any amount that does not fit stays in the parcel.
 
-When capacity cannot be verified, L7 and above send individual crafts within a server-wide fallback limit. Blocking mode and crafting locks still use native pushes. Supported reusable tools keep their normal durability costs.
+From L7, blocking mode and crafting locks still check each craft individually. Providers that cannot verify a target's capacity can send single crafts within the shared server allowance. If the CPU has ingredients and power for several crafts, search the server log for the output name to see which provider used single-craft dispatch.
+
+Machines such as the Molecular Sequence Rewrite Array accept the tools physically needed for the batch. One tool can cover many crafts. The machine may spend several ticks checking the products and remainders at different wear states before it takes the batch from the CPU.
 
 ### When using machines from other mods
 

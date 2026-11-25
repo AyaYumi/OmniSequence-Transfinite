@@ -5,6 +5,9 @@ import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.KeyCounter;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputProvider;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+
+import java.util.UUID;
 
 public interface MolecularBatchCraftingProvider extends OmniPostAccountingOutputProvider {
 
@@ -27,6 +30,24 @@ public interface MolecularBatchCraftingProvider extends OmniPostAccountingOutput
     default boolean molecularmanipulator$supportsReusableBatching(
             IPatternDetails patternDetails) {
         return false;
+    }
+
+    enum ReusableValidation { READY, PENDING, REJECTED }
+
+    /** Read-only verification of the proposed ownership and wear transitions. */
+    default ReusableValidation molecularmanipulator$validateReusableBatch(
+            IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+        for (var input : plan.inputs()) {
+            if (input.mode() == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE) {
+                return ReusableValidation.REJECTED;
+            }
+        }
+        return ReusableValidation.READY;
+    }
+
+    /** A cancelled reusable job must also fit in the machine's refund inventory. */
+    default boolean molecularmanipulator$canBufferRefund(IPatternDetails pattern, KeyCounter refund) {
+        return molecularmanipulator$getBatchLimit(pattern, refund) > 0;
     }
 
     /**

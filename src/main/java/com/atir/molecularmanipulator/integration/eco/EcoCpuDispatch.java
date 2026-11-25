@@ -2,20 +2,25 @@ package com.atir.molecularmanipulator.integration.eco;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
+import appeng.crafting.inv.ListCraftingInventory;
 import cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProviders;
+import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECORecipeClassifier;
 import cn.dancingsnow.neoecoae.integration.ae2.ECOExternalProviderBlocking;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityAdmission;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -23,8 +28,6 @@ import org.jetbrains.annotations.Nullable;
 
 /** Adapts one selected ECO provider. The common CPU owns materials, power and receipts. */
 public final class EcoCpuDispatch {
-    private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-
     private EcoCpuDispatch() {}
 
     public static @Nullable OmniCapacityAdmission prepare(OmniCapacityRequest request) {
@@ -46,25 +49,23 @@ public final class EcoCpuDispatch {
                 }
             }
             var prepared = fastPath.eco$prepareFastPath(fastContext);
-            if (prepared != null && !prepared.statefulCalculatorRequired() && prepared.statefulCalculator() == null) {
-                var count = BigInteger.valueOf(linearLimit(fastContext, upper.min(BigInteger.valueOf(prepared.capacity()))));
-                return new Admission(count, crafts -> {
-                    long copies = crafts.longValueExact();
-                    return prepared.push(new ECOFastPathDispatchProvider.Batch(copies,
-                            scale(fastContext.inputItems(), copies), scale(fastContext.outputs(), copies),
-                            scale(fastContext.containerItems(), copies)));
-                });
+            if (prepared != null) {
+                long limit = outputLimit(request, fastContext, prepared.capacity());
+                if (limit == 0) return OmniCapacityAdmission.UNAVAILABLE;
+                var admission = prepareLinear(fastContext, prepared, limit);
+                if (admission != null) return admission;
             }
         }
 
-        // A stateful preparation may substitute physical inputs or expect different returns.
-        // Only an independent, linear entry can use the common CPU's reserved receipt.
+        // A different stateful material contract cannot use the CPU's linear reservation.
+        // An independent parallel endpoint can still offer its own capacity.
         var parallel = ECOParallelCraftingProviders.find(provider);
         if (parallel == null) return null;
         int slots = parallel.eco$getAvailableParallelSlots();
         if (slots <= 0) return OmniCapacityAdmission.UNAVAILABLE;
         var parallelContext = fastContext == null ? context(request) : fastContext;
-        var count = BigInteger.valueOf(linearLimit(parallelContext, upper.min(BigInteger.valueOf(slots))));
+        long limit = outputLimit(request, parallelContext, slots);
+        var count = BigInteger.valueOf(stackLimit(parallelContext.inputItems(), limit));
         return new Admission(count, crafts -> {
             long copies = crafts.longValueExact();
             return parallel.eco$pushPatternBatch(request.pattern(), scaleInputs(parallelContext, copies), copies, request.jobId());
@@ -86,12 +87,74 @@ public final class EcoCpuDispatch {
         return parallel != null ? parallel.eco$pushPatternBatch(pattern, inputs, 1, jobId) : ordinary.get();
     }
 
-    private static long linearLimit(ECOBatchDispatchContext context, BigInteger requested) {
-        long limit = requested.min(LONG_MAX).longValueExact();
-        for (var stack : context.inputItems()) limit = Math.min(limit, Long.MAX_VALUE / stack.amount());
-        for (var stack : context.outputs()) limit = Math.min(limit, Long.MAX_VALUE / stack.amount());
-        for (var stack : context.containerItems()) limit = Math.min(limit, Long.MAX_VALUE / stack.amount());
+    private static @Nullable OmniCapacityAdmission prepareLinear(ECOBatchDispatchContext context,
+            ECOFastPathDispatchProvider.Preparation prepared, long limit) {
+        long inputLimit = stackLimit(context.inputItems(), limit);
+        var calculator = prepared.statefulCalculator();
+        if (calculator != null) {
+            // Calculate against exactly the materials this CPU can reserve. The provider may
+            // choose a smaller batch, different tools, or a different set of final remainders.
+            var stock = new ListCraftingInventory(key -> {});
+            for (var stack : context.inputItems()) {
+                stock.list.add(stack.what(), stack.amount() * inputLimit);
+            }
+            var contract = calculator.prepareBatch(stock, inputLimit);
+            if (contract == null) return null;
+            long copies = contract.craftCount();
+            if (copies <= 0 || copies > inputLimit
+                    || !matchesScaled(context.inputItems(), copies, contract.inputs())
+                    || !matchesScaled(context.containerItems(), copies, contract.remainders())) return null;
+            var batch = new ECOFastPathDispatchProvider.Batch(copies, contract.inputs(),
+                    scale(context.outputs(), copies), contract.remainders());
+            var count = BigInteger.valueOf(copies);
+            return new Admission(count, crafts -> crafts.equals(count) && prepared.push(batch));
+        }
+
+        // ECO's own planner uses the ordinary vector for NORMAL even when its bus sets
+        // statefulCalculatorRequired. Other recipe classes require a real calculator.
+        if (prepared.statefulCalculatorRequired() && context.execution().fastPathType() != ECORecipeClassifier.Type.NORMAL) {
+            return null;
+        }
+        var count = BigInteger.valueOf(prepared.supportsExactInputs() ? limit : inputLimit);
+        return new Admission(count, crafts -> {
+            long copies = crafts.longValueExact();
+            var outputs = scale(context.outputs(), copies);
+            var remainders = scale(context.containerItems(), copies);
+            if (copies <= inputLimit) {
+                return prepared.push(new ECOFastPathDispatchProvider.Batch(copies,
+                        scale(context.inputItems(), copies), outputs, remainders));
+            }
+            Map<AEKey, BigInteger> exactInputs = new HashMap<>();
+            for (var stack : context.inputItems()) {
+                exactInputs.put(stack.what(), crafts.multiply(BigInteger.valueOf(stack.amount())));
+            }
+            return prepared.push(new ECOFastPathDispatchProvider.Batch(copies, List.of(), outputs, remainders, exactInputs));
+        });
+    }
+
+    private static long outputLimit(OmniCapacityRequest request, ECOBatchDispatchContext context, long capacity) {
+        long limit = request.maximumCrafts().min(BigInteger.valueOf(capacity)).longValueExact();
+        // ECO represents an output and a container of the same key in one long waiting counter.
+        for (var output : context.outputs()) {
+            long returned = request.unitRemainders().get(output.what());
+            if (returned > Long.MAX_VALUE - output.amount()) return 0;
+            limit = Math.min(limit, Long.MAX_VALUE / (output.amount() + returned));
+        }
+        return stackLimit(context.containerItems(), limit);
+    }
+
+    private static long stackLimit(List<GenericStack> stacks, long limit) {
+        for (var stack : stacks) limit = Math.min(limit, Long.MAX_VALUE / stack.amount());
         return limit;
+    }
+
+    private static boolean matchesScaled(List<GenericStack> unit, long copies, List<GenericStack> actual) {
+        var totals = EcoMolecularBatchModel.counter(actual);
+        if (totals.size() != unit.size()) return false;
+        for (var stack : unit) {
+            if (totals.get(stack.what()) != stack.amount() * copies) return false;
+        }
+        return true;
     }
 
     private static List<GenericStack> scale(List<GenericStack> unit, long copies) {

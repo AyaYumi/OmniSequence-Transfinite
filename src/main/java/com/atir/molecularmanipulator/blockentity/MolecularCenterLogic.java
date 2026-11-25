@@ -11,6 +11,8 @@ import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.util.inv.filter.IAEItemFilter;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.crafting.PatternUploadIndex;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import net.minecraft.world.item.ItemStack;
@@ -21,6 +23,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public final class MolecularCenterLogic extends PatternProviderLogic implements MolecularBatchCraftingProvider {
     private final MolecularCenterBlockEntity machine;
@@ -82,6 +85,8 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
         if (!machine.isOperational() || !availablePatternSet.contains(patternDetails)) {
             return false;
         }
+        var context = MolecularBatchDispatchContext.current(patternDetails, inputHolder);
+        if (context != null && context.requiresReusableProof() && (rebuildScheduled || isBlocking())) return false;
         return machine.acceptPattern(patternDetails, inputHolder);
     }
 
@@ -114,6 +119,19 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     public boolean molecularmanipulator$supportsReusableBatching(
             IPatternDetails patternDetails) {
         return molecularmanipulator$supportsBatching(patternDetails);
+    }
+
+    @Override
+    public ReusableValidation molecularmanipulator$validateReusableBatch(
+            IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+        if (rebuildScheduled) return ReusableValidation.PENDING;
+        return !isBlocking() && molecularmanipulator$supportsReusableBatching(pattern)
+                ? machine.validateReusableBatch(pattern, plan, jobId) : ReusableValidation.REJECTED;
+    }
+
+    @Override
+    public boolean molecularmanipulator$canBufferRefund(IPatternDetails pattern, KeyCounter refund) {
+        return machine.canQueueRefunds(refund);
     }
 
     @Override

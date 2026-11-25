@@ -19,16 +19,12 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.function.DoublePredicate;
 
 public final class MolecularBatchCraftingExtractor {
     private static final double POWER_EPSILON = 0.01;
-    /*
-     * Every selected damage state can become a distinct remainder key. Leave
-     * headroom in the machines' 256-type buffers for the crafted result and
-     * the other eight crafting-grid slots, otherwise a valid extraction could
-     * be rejected forever by the provider's final capacity check.
-     */
-    private static final int MAX_TOOL_POOL_CANDIDATES = 240;
+
+    private enum ReusableProof { DISABLED, SYNCHRONOUS, STAGED }
 
     private MolecularBatchCraftingExtractor() {
     }
@@ -83,19 +79,37 @@ public final class MolecularBatchCraftingExtractor {
             return substitutionExtraction;
         }
 
-        if (allowReusableInputs) {
-            var toolPoolExtraction = expandDeterministicToolPool(
-                    patternDetails, inventory, energyService, level,
-                    firstInputs, expectedOutputs, expectedContainerItems,
-                    maxCrafts);
+        return expandSelected(patternDetails, inventory, cost -> hasEnergyFor(energyService, cost), level,
+                firstInputs, expectedOutputs, expectedContainerItems, maxCrafts,
+                allowReusableInputs ? ReusableProof.SYNCHRONOUS : ReusableProof.DISABLED, queuedProcessing);
+    }
+
+    /**
+     * Quotes a physical candidate without acquiring inputs or charging power. Wear is projected
+     * between sampled endpoints; the machine must prove every selected state before admission.
+     */
+    public static @Nullable BatchExtraction previewReusable(IPatternDetails pattern, ICraftingInventory afterFirst,
+            DoublePredicate canPay, Level level, KeyCounter[] first, KeyCounter outputs, KeyCounter remainders,
+            long maximum) {
+        if (level == null || maximum < 2) return null;
+        return expandSelected(pattern, new ReadOnlyCraftingInventory(afterFirst), canPay, level, first, outputs,
+                remainders, maximum, ReusableProof.STAGED, false);
+    }
+
+    private static BatchExtraction expandSelected(IPatternDetails patternDetails, ICraftingInventory inventory,
+            DoublePredicate canPay, Level level, KeyCounter[] firstInputs, KeyCounter expectedOutputs,
+            KeyCounter expectedContainerItems, long maxCrafts, ReusableProof proof, boolean queuedProcessing) {
+        if (proof != ReusableProof.DISABLED) {
+            var toolPoolExtraction = expandDeterministicToolPool(patternDetails, inventory, canPay, level,
+                    firstInputs, expectedOutputs, expectedContainerItems, maxCrafts, proof);
             if (toolPoolExtraction != null) {
                 return toolPoolExtraction;
             }
         }
 
         var plan = ExpansionPlan.fromFirst(patternDetails, level, firstInputs,
-                expectedOutputs, expectedContainerItems, maxCrafts,
-                allowReusableInputs);
+                expectedOutputs, expectedContainerItems, proof == ReusableProof.STAGED ? 1 : maxCrafts,
+                proof != ReusableProof.DISABLED);
         if (plan == null) {
             return null;
         }
@@ -107,9 +121,9 @@ public final class MolecularBatchCraftingExtractor {
             }
 
             if (queuedProcessing) {
-                if (!hasEnergyFor(energyService, plan, 1)) return null;
+                if (!canPay.test(plan.calculatePatternPower(1))) return null;
             } else {
-                craftCount = limitByEnergy(energyService, plan, craftCount);
+                craftCount = limitByEnergy(canPay, plan, craftCount);
             }
             if (craftCount <= 1) {
                 return null;
@@ -131,9 +145,9 @@ public final class MolecularBatchCraftingExtractor {
     @Nullable
     private static BatchExtraction expandDeterministicToolPool(
             IPatternDetails patternDetails, ICraftingInventory inventory,
-            IEnergyService energyService, Level level,
+            DoublePredicate canPay, Level level,
             KeyCounter[] firstInputs, KeyCounter expectedOutputs,
-            KeyCounter expectedContainerItems, long maxCrafts) {
+            KeyCounter expectedContainerItems, long maxCrafts, ReusableProof proof) {
         if (patternDetails == null || inventory == null || level == null
                 || firstInputs == null || expectedOutputs == null
                 || expectedContainerItems == null || maxCrafts <= 1) {
@@ -162,7 +176,7 @@ public final class MolecularBatchCraftingExtractor {
 
                 var analysis = MolecularReusableInputAdapters.analyze(
                         patternInputs[index], entry.getKey(), level,
-                        maxCrafts);
+                        proof == ReusableProof.STAGED ? 1 : maxCrafts);
                 if (!analysis.isSupported()) {
                     return null;
                 }
@@ -204,7 +218,7 @@ public final class MolecularBatchCraftingExtractor {
             var candidates = collectToolCandidates(
                     patternInputs[damageSlot], firstTool,
                     plannedInputs[damageSlot].analysis(), inventory,
-                    level, maxCrafts);
+                    level, maxCrafts, proof);
             if (candidates.isEmpty()
                     || !candidates.getFirst().key().equals(firstTool)) {
                 return null;
@@ -212,6 +226,9 @@ public final class MolecularBatchCraftingExtractor {
 
             long craftLimit = Math.min(maxCrafts,
                     toolCapacity(candidates));
+            for (var output : firstExpectedOutputs) {
+                craftLimit = Math.min(craftLimit, Long.MAX_VALUE / output.getLongValue());
+            }
             var consumableAmounts = new Object2LongOpenHashMap<AEKey>();
             for (var input : plannedInputs) {
                 if (input.analysis().mode()
@@ -234,14 +251,12 @@ public final class MolecularBatchCraftingExtractor {
                 return null;
             }
 
-            long craftCount = limitToolPoolByEnergy(
-                    energyService, plannedInputs, damageSlot,
-                    candidates, craftLimit);
+            long craftCount = limitToolPoolByEnergy(canPay, plannedInputs, damageSlot, candidates, craftLimit, proof);
             if (craftCount <= 1) {
                 return null;
             }
 
-            var selection = selectTools(candidates, craftCount);
+            var selection = selectTools(candidates, craftCount, proof);
             if (selection == null) {
                 return null;
             }
@@ -284,10 +299,10 @@ public final class MolecularBatchCraftingExtractor {
                             "Tool-pool inputs do not match the dispatch plan");
                 }
 
-                expectedOutputs.reset();
+                expectedOutputs.clear();
                 expectedOutputs.addAll(scaleCounter(
                         firstExpectedOutputs, craftCount));
-                expectedContainerItems.reset();
+                expectedContainerItems.clear();
                 expectedContainerItems.addAll(
                         reusablePlan.expectedRemainders(craftCount));
                 return new BatchExtraction(combinedInputs, firstInputs,
@@ -297,9 +312,9 @@ public final class MolecularBatchCraftingExtractor {
             } catch (RuntimeException exception) {
                 CraftingCpuHelper.reinjectPatternInputs(
                         inventory, additionalInputs);
-                expectedOutputs.reset();
+                expectedOutputs.clear();
                 expectedOutputs.addAll(firstExpectedOutputs);
-                expectedContainerItems.reset();
+                expectedContainerItems.clear();
                 expectedContainerItems.addAll(
                         firstExpectedContainerItems);
                 return null;
@@ -313,45 +328,22 @@ public final class MolecularBatchCraftingExtractor {
             IPatternDetails.IInput input, AEItemKey firstTool,
             MolecularReusableInputAdapters.Analysis firstAnalysis,
             ICraftingInventory inventory, Level level,
-            long requestedCrafts) {
+            long requestedCrafts, ReusableProof proof) {
         var keys = new LinkedHashSet<AEKey>();
         keys.add(firstTool);
         try {
-            // Prefer the actual stored damage states of the already-selected
-            // tool before a very large tag fills the candidate budget.
-            for (var fuzzy : inventory.findFuzzyTemplates(firstTool)) {
-                if (fuzzy != null) {
-                    keys.add(fuzzy);
-                    if (keys.size() >= MAX_TOOL_POOL_CANDIDATES) {
-                        break;
-                    }
-                }
+            // Only encoded alternatives and actual fuzzy matches can supply an AE2 input.
+            // Expanding their returned variants again would rescan the same item index.
+            var templates = new LinkedHashSet<AEKey>();
+            templates.add(firstTool);
+            var possibleInputs = input.getPossibleInputs();
+            if (possibleInputs != null) for (var possible : possibleInputs) {
+                if (possible != null && possible.what() instanceof AEItemKey item) templates.add(item);
             }
-            var possibleInputs = keys.size() < MAX_TOOL_POOL_CANDIDATES
-                    ? input.getPossibleInputs()
-                    : null;
-            if (possibleInputs != null) {
-                for (var possible : possibleInputs) {
-                    if (possible != null && possible.what() != null) {
-                        keys.add(possible.what());
-                        if (keys.size() >= MAX_TOOL_POOL_CANDIDATES) {
-                            break;
-                        }
-                    }
-                }
-            }
-            var seeds = List.copyOf(keys);
-            for (var seed : seeds) {
-                for (var fuzzy : inventory.findFuzzyTemplates(seed)) {
-                    if (fuzzy != null) {
-                        keys.add(fuzzy);
-                        if (keys.size() >= MAX_TOOL_POOL_CANDIDATES) {
-                            break;
-                        }
-                    }
-                }
-                if (keys.size() >= MAX_TOOL_POOL_CANDIDATES) {
-                    break;
+            for (var template : templates) {
+                keys.add(template);
+                for (var fuzzy : inventory.findFuzzyTemplates(template)) {
+                    if (fuzzy instanceof AEItemKey) keys.add(fuzzy);
                 }
             }
         } catch (RuntimeException ignored) {
@@ -359,24 +351,19 @@ public final class MolecularBatchCraftingExtractor {
         }
 
         var result = new ArrayList<ToolCandidate>();
+        long window = proof == ReusableProof.STAGED ? requestedCrafts
+                : Math.min(requestedCrafts, MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS);
         for (var key : keys) {
-            if (!(key instanceof AEItemKey itemKey)
-                    || !input.isValid(itemKey, level)) {
-                continue;
-            }
-            var candidate = itemKey.equals(firstTool)
-                    ? candidateFromAnalysis(itemKey, firstAnalysis)
-                    : probeToolCandidate(input, itemKey, level,
-                            requestedCrafts);
+            if (!(key instanceof AEItemKey itemKey)) continue;
+            long available = inventory.extract(itemKey, Long.MAX_VALUE, Actionable.SIMULATE);
+            boolean first = itemKey.equals(firstTool);
+            if (first) available = saturatedAdd(available, 1);
+            if (available <= 0) continue;
+            var analysis = first ? firstAnalysis : MolecularReusableInputAdapters.analyze(input, itemKey, level, 1);
+            var candidate = first && proof == ReusableProof.SYNCHRONOUS
+                    ? candidateFromAnalysis(itemKey, analysis)
+                    : probeToolCandidate(input, itemKey, level, analysis, window);
             if (candidate == null) {
-                continue;
-            }
-            long available = inventory.extract(itemKey,
-                    Long.MAX_VALUE, Actionable.SIMULATE);
-            if (itemKey.equals(firstTool)) {
-                available = saturatedAdd(available, 1);
-            }
-            if (available <= 0) {
                 continue;
             }
             result.add(new ToolCandidate(itemKey, available,
@@ -390,20 +377,13 @@ public final class MolecularBatchCraftingExtractor {
         return result;
     }
 
-    /**
-     * Probes only the first recipe transition for additional damage states.
-     * The provider later exhaustively validates every distinct state selected
-     * for the batch under one global transition budget. This prevents candidate
-     * discovery from multiplying a 2048-step scan by hundreds of stored tools.
-     */
+    /** Samples the endpoints of a physical window, never the uses or number of copies in it. */
     @Nullable
     private static ToolCandidate probeToolCandidate(
             IPatternDetails.IInput input, AEItemKey key, Level level,
-            long requestedCrafts) {
-        var firstStep = MolecularReusableInputAdapters.analyze(
-                input, key, level, 1);
+            MolecularReusableInputAdapters.Analysis firstStep, long requestedCrafts) {
         var firstCandidate = candidateFromAnalysis(key, firstStep);
-        if (firstCandidate == null || firstCandidate.finalKey() == null) {
+        if (firstCandidate == null) {
             return firstCandidate;
         }
 
@@ -411,14 +391,19 @@ public final class MolecularBatchCraftingExtractor {
         if (physicalUses <= 0) {
             return null;
         }
-        long safeCrafts = Math.min(Math.min(requestedCrafts, physicalUses),
-                MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS);
-        if (safeCrafts == physicalUses && safeCrafts > 1) {
+        long safeCrafts = Math.min(requestedCrafts, physicalUses);
+        if (firstCandidate.finalKey() == null || safeCrafts == 1) return firstCandidate;
+        if (safeCrafts == physicalUses) {
             var beforeMaximum = damageKeyAfter(key, safeCrafts - 2);
-            if (input.isValid(beforeMaximum, level)
-                    && input.getRemainingKey(beforeMaximum) == null) {
-                safeCrafts--;
+            if (!input.isValid(beforeMaximum, level)) return firstCandidate;
+            AEKey atMaximum = input.getRemainingKey(beforeMaximum);
+            if (atMaximum == null) return new ToolCandidate(key, 0, safeCrafts - 1, null);
+            if (!MolecularReusableInputAdapters.isExactDamageStep(beforeMaximum, atMaximum)) return firstCandidate;
+            // Some recipes return the max-damage stack and let it break on the next use.
+            if (input.isValid(atMaximum, level) && input.getRemainingKey(atMaximum) == null) {
+                return new ToolCandidate(key, 0, safeCrafts, null);
             }
+            return new ToolCandidate(key, 0, safeCrafts - 1, (AEItemKey) atMaximum);
         }
         var lastKey = damageKeyAfter(key, safeCrafts - 1);
         if (!input.isValid(lastKey, level)) {
@@ -458,11 +443,10 @@ public final class MolecularBatchCraftingExtractor {
     }
 
     private static long limitToolPoolByEnergy(
-            IEnergyService energyService, ToolPoolInput[] inputs,
+            DoublePredicate canPay, ToolPoolInput[] inputs,
             int damageSlot, List<ToolCandidate> candidates,
-            long craftLimit) {
-        if (hasToolPoolEnergy(energyService, inputs, damageSlot,
-                candidates, craftLimit)) {
+            long craftLimit, ReusableProof proof) {
+        if (hasToolPoolEnergy(canPay, inputs, damageSlot, candidates, craftLimit, proof)) {
             return craftLimit;
         }
         long low = 2;
@@ -470,8 +454,7 @@ public final class MolecularBatchCraftingExtractor {
         long best = 1;
         while (low <= high) {
             long candidate = low + (high - low) / 2;
-            if (hasToolPoolEnergy(energyService, inputs, damageSlot,
-                    candidates, candidate)) {
+            if (hasToolPoolEnergy(canPay, inputs, damageSlot, candidates, candidate, proof)) {
                 best = candidate;
                 low = candidate + 1;
             } else {
@@ -482,18 +465,17 @@ public final class MolecularBatchCraftingExtractor {
     }
 
     private static boolean hasToolPoolEnergy(
-            IEnergyService energyService, ToolPoolInput[] inputs,
+            DoublePredicate canPay, ToolPoolInput[] inputs,
             int damageSlot, List<ToolCandidate> candidates,
-            long craftCount) {
-        var selection = selectTools(candidates, craftCount);
+            long craftCount, ReusableProof proof) {
+        var selection = selectTools(candidates, craftCount, proof);
         if (selection == null) {
             return false;
         }
         try {
             var combined = combinedToolPoolInputs(
                     inputs, damageSlot, selection, craftCount);
-            return hasEnergyFor(energyService,
-                    CraftingCpuHelper.calculatePatternPower(combined));
+            return canPay.test(CraftingCpuHelper.calculatePatternPower(combined));
         } catch (RuntimeException exception) {
             return false;
         }
@@ -501,13 +483,14 @@ public final class MolecularBatchCraftingExtractor {
 
     @Nullable
     private static ToolSelection selectTools(
-            List<ToolCandidate> candidates, long craftCount) {
+            List<ToolCandidate> candidates, long craftCount, ReusableProof proof) {
         if (craftCount <= 0 || candidates.isEmpty()) {
             return null;
         }
 
-        var compact = selectToolsInOrder(candidates, craftCount, false);
-        if (compact != null) {
+        var compact = selectToolsInOrder(candidates, craftCount, false,
+                proof == ReusableProof.STAGED ? null : new HashSet<>());
+        if (compact != null || proof == ReusableProof.STAGED) {
             return compact;
         }
 
@@ -519,17 +502,16 @@ public final class MolecularBatchCraftingExtractor {
          * batch for one craft, then prefer the candidates that cover the most
          * crafts with a shared damage-state range.
          */
-        return selectToolsInOrder(candidates, craftCount, true);
+        return selectToolsInOrder(candidates, craftCount, true, new HashSet<>());
     }
 
     @Nullable
     private static ToolSelection selectToolsInOrder(
             List<ToolCandidate> candidates, long craftCount,
-            boolean preserveFirstTool) {
+            boolean preserveFirstTool, @Nullable HashSet<AEItemKey> validationStates) {
         long remaining = craftCount;
         var groups = new ArrayList<DamageGroup>();
         var selected = new KeyCounter();
-        var validationStates = new HashSet<AEItemKey>();
         try {
             ToolCandidate first = candidates.getFirst();
             if (preserveFirstTool) {
@@ -537,7 +519,7 @@ public final class MolecularBatchCraftingExtractor {
                     return null;
                 }
                 addToolGroup(groups, selected, first, 1, 1);
-                addValidationStates(validationStates, first, 1);
+                if (validationStates != null) addValidationStates(validationStates, first, 1);
                 remaining--;
                 if (remaining == 0) {
                     return new ToolSelection(
@@ -545,8 +527,9 @@ public final class MolecularBatchCraftingExtractor {
                 }
             }
 
-            var ordered = new ArrayList<>(candidates);
+            var ordered = candidates;
             if (preserveFirstTool) {
+                ordered = new ArrayList<>(candidates);
                 ordered.sort(Comparator
                         .comparingLong(
                                 MolecularBatchCraftingExtractor::candidateCapacity)
@@ -569,8 +552,8 @@ public final class MolecularBatchCraftingExtractor {
 
                 long maximumUses = Math.min(
                         candidate.safeCrafts(), remaining);
-                long usesPerTool = limitUsesByValidationBudget(
-                        candidate, maximumUses, validationStates);
+                long usesPerTool = validationStates == null ? maximumUses
+                        : limitUsesByValidationBudget(candidate, maximumUses, validationStates);
                 if (usesPerTool <= 0) {
                     continue;
                 }
@@ -593,7 +576,7 @@ public final class MolecularBatchCraftingExtractor {
                             longestSelectedUses, partialUses);
                     remaining -= partialUses;
                 }
-                if (longestSelectedUses > 0) {
+                if (validationStates != null && longestSelectedUses > 0) {
                     addValidationStates(validationStates, candidate,
                             longestSelectedUses);
                 }
@@ -995,18 +978,18 @@ public final class MolecularBatchCraftingExtractor {
                 }
             }
 
-            expectedOutputs.reset();
+            expectedOutputs.clear();
             expectedOutputs.addAll(probe.scaledExpectedOutputs());
-            expectedContainerItems.reset();
+            expectedContainerItems.clear();
             return new BatchExtraction(
                     probe.combinedInputs(), firstInputs,
                     probe.additionalInputs(), firstExpectedOutputs,
                     firstExpectedContainerItems, probe.craftCount(), null);
         } catch (RuntimeException exception) {
             CraftingCpuHelper.reinjectPatternInputs(inventory, actuallyExtracted);
-            expectedOutputs.reset();
+            expectedOutputs.clear();
             expectedOutputs.addAll(firstExpectedOutputs);
-            expectedContainerItems.reset();
+            expectedContainerItems.clear();
             expectedContainerItems.addAll(firstExpectedContainerItems);
             return null;
         }
@@ -1183,9 +1166,8 @@ public final class MolecularBatchCraftingExtractor {
         }
     }
 
-    private static long limitByEnergy(IEnergyService energyService, ExpansionPlan plan,
-            long craftCount) {
-        if (hasEnergyFor(energyService, plan, craftCount)) {
+    private static long limitByEnergy(DoublePredicate canPay, ExpansionPlan plan, long craftCount) {
+        if (canPay.test(plan.calculatePatternPower(craftCount))) {
             return craftCount;
         }
 
@@ -1194,7 +1176,7 @@ public final class MolecularBatchCraftingExtractor {
         long poweredCrafts = 1;
         while (low <= high) {
             long candidate = low + (high - low) / 2;
-            if (hasEnergyFor(energyService, plan, candidate)) {
+            if (canPay.test(plan.calculatePatternPower(candidate))) {
                 poweredCrafts = candidate;
                 low = candidate + 1;
             } else {
@@ -1202,17 +1184,6 @@ public final class MolecularBatchCraftingExtractor {
             }
         }
         return poweredCrafts;
-    }
-
-    private static boolean hasEnergyFor(IEnergyService energyService, ExpansionPlan plan,
-            long craftCount) {
-        double requestedPower = plan.calculatePatternPower(craftCount);
-        if (!Double.isFinite(requestedPower) || requestedPower <= 0) {
-            return false;
-        }
-        double availablePower = energyService.extractAEPower(requestedPower, Actionable.SIMULATE,
-                PowerMultiplier.CONFIG);
-        return availablePower >= requestedPower - POWER_EPSILON;
     }
 
     private record PlannedInput(AEKey key, long amountPerCraft,
@@ -1411,7 +1382,7 @@ public final class MolecularBatchCraftingExtractor {
                     scaledExpectedOutputs.add(output.key(),
                             Math.multiplyExact(output.amountPerCraft(), craftCount));
                 }
-                expectedOutputs.reset();
+                expectedOutputs.clear();
                 expectedOutputs.addAll(scaledExpectedOutputs);
 
                 var finalExpectedContainerItems = new KeyCounter();
@@ -1436,7 +1407,7 @@ public final class MolecularBatchCraftingExtractor {
                                 finalKey, input.amountPerCraft());
                     }
                 }
-                expectedContainerItems.reset();
+                expectedContainerItems.clear();
                 expectedContainerItems.addAll(finalExpectedContainerItems);
 
                 MolecularReusableBatchPlan reusablePlan = hasReusableInputs
@@ -1448,9 +1419,9 @@ public final class MolecularBatchCraftingExtractor {
                         craftCount, reusablePlan);
             } catch (RuntimeException exception) {
                 CraftingCpuHelper.reinjectPatternInputs(inventory, extraInputs);
-                expectedOutputs.reset();
+                expectedOutputs.clear();
                 expectedOutputs.addAll(firstExpectedOutputs);
-                expectedContainerItems.reset();
+                expectedContainerItems.clear();
                 expectedContainerItems.addAll(firstExpectedContainerItems);
                 return null;
             }
@@ -1510,9 +1481,9 @@ public final class MolecularBatchCraftingExtractor {
         public void rollbackAdditional(ICraftingInventory inventory,
                 KeyCounter expectedOutputs, KeyCounter expectedContainerItems) {
             CraftingCpuHelper.reinjectPatternInputs(inventory, additionalInputs);
-            expectedOutputs.reset();
+            expectedOutputs.clear();
             expectedOutputs.addAll(firstExpectedOutputs);
-            expectedContainerItems.reset();
+            expectedContainerItems.clear();
             expectedContainerItems.addAll(firstExpectedContainerItems);
         }
     }

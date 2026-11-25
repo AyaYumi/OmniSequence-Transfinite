@@ -6,10 +6,13 @@ import appeng.api.stacks.KeyCounter;
 import appeng.helpers.patternprovider.PatternProviderLogic;
 import appeng.util.inv.AppEngInternalInventory;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 public final class MolecularManipulatorLogic extends PatternProviderLogic implements MolecularBatchCraftingProvider {
     private final MolecularManipulatorBlockEntity machine;
@@ -27,6 +30,8 @@ public final class MolecularManipulatorLogic extends PatternProviderLogic implem
         if (!machine.getMainNode().isActive() || !availablePatterns.contains(patternDetails)) {
             return false;
         }
+        var context = MolecularBatchDispatchContext.current(patternDetails, inputHolder);
+        if (context != null && context.requiresReusableProof() && (patternRebuildScheduled || isBlocking())) return false;
         return machine.acceptPattern(patternDetails, inputHolder);
     }
 
@@ -60,6 +65,14 @@ public final class MolecularManipulatorLogic extends PatternProviderLogic implem
     public boolean molecularmanipulator$supportsReusableBatching(
             IPatternDetails patternDetails) {
         return molecularmanipulator$supportsBatching(patternDetails);
+    }
+
+    @Override
+    public ReusableValidation molecularmanipulator$validateReusableBatch(
+            IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+        if (patternRebuildScheduled) return ReusableValidation.PENDING;
+        return !isBlocking() && molecularmanipulator$supportsReusableBatching(pattern)
+                ? machine.validateReusableBatch(pattern, plan, jobId) : ReusableValidation.REJECTED;
     }
 
     @Override

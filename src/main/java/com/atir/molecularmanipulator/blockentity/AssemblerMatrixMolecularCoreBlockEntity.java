@@ -14,9 +14,11 @@ import appeng.crafting.CraftingEvent;
 import appeng.me.helpers.MachineSource;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider.ReusableValidation;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.recipelock.RecipeLocks;
@@ -34,6 +36,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import java.util.UUID;
 
 public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssemblerMatrixFunction implements IGridTickable {
     public static final long VIRTUAL_PARALLEL_LIMIT = Long.MAX_VALUE;
@@ -105,6 +108,11 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         }
         return MolecularCraftingBatcher.outputCapacity(crafts, MAX_BUFFERED_TYPES,
                 unitOutputs, bufferedOutputs, null);
+    }
+
+    public ReusableValidation validateReusableBatch(IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+        return isFormed() && getMainNode().isActive() && plan.craftCount() <= getAcceptingCraftBudget()
+                ? craftingBatcher.validateReusable(this, pattern, plan, jobId) : ReusableValidation.PENDING;
     }
 
     private boolean consumeAssemblerBudget(long crafts) {
@@ -234,7 +242,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             IMolecularAssemblerSupportedPattern pattern, KeyCounter[] inputs,
             MolecularBatchDispatchContext.Context context) {
         var level = getLevel();
-        if (level == null || activeReusableBatch != null
+        if (level == null || activeReusableBatch != null || !isFormed() || !getMainNode().isActive()
                 || context.craftCount() > getRemainingAssemblerBudget()) {
             return false;
         }

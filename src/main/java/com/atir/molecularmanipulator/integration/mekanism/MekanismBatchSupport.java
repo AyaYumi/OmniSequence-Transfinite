@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.integration.mekanism;
 
 import appeng.api.config.Actionable;
+import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
@@ -18,7 +19,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.IItemHandler;
 import org.jetbrains.annotations.Nullable;
 
-/** Capacity proof for Applied Mekanistics keys and Mekanism's separate item and chemical inputs. */
+/** Capacity proof for Applied Mekanistics keys and the sided input stores of known Mekanism machines. */
 public final class MekanismBatchSupport {
     private static final String CHEMICAL_KEY = "me.ramidzkh.mekae2.ae2.MekanismKey";
     private static final String CHEMICAL_FACADE = "me.ramidzkh.mekae2.ae2.stack.ChemicalHandlerFacade";
@@ -26,6 +27,9 @@ public final class MekanismBatchSupport {
     private static final String PROXY_ITEM = "mekanism.common.capabilities.proxy.ProxyItemHandler";
     private static final String PROXY_CHEMICAL = "mekanism.common.capabilities.proxy.ProxyChemicalHandler";
     private static final String BASIC_TANK = "mekanism.api.chemical.BasicChemicalTank";
+    private static final String REACTION_CHAMBER = "mekanism.common.tile.machine.TileEntityPressurizedReactionChamber";
+    private static final String FLUID_FACADE = "appeng.me.storage.ExternalStorageFacade$FluidHandlerFacade";
+    private static final String PROXY_FLUID = "mekanism.common.capabilities.proxy.ProxyFluidHandler";
 
     private MekanismBatchSupport() {}
 
@@ -37,8 +41,10 @@ public final class MekanismBatchSupport {
     public static long limit(@Nullable BlockEntity target, @Nullable IItemHandler items, PatternProviderTarget adapter,
             List<GenericStack> unitInputs, long requestedCrafts) {
         AEItemKey item = null;
+        AEFluidKey fluid = null;
         AEKey chemical = null;
         long itemsPerCraft = 0;
+        long fluidPerCraft = 0;
         long chemicalPerCraft = 0;
         for (int i = 0; i < unitInputs.size(); i++) {
             var input = unitInputs.get(i);
@@ -48,6 +54,10 @@ public final class MekanismBatchSupport {
                 if ((item != null && !item.equals(itemKey)) || amount > Long.MAX_VALUE - itemsPerCraft) return -1;
                 item = itemKey;
                 itemsPerCraft += amount;
+            } else if (input.what() instanceof AEFluidKey fluidKey) {
+                if ((fluid != null && !fluid.equals(fluidKey)) || amount > Long.MAX_VALUE - fluidPerCraft) return -1;
+                fluid = fluidKey;
+                fluidPerCraft += amount;
             } else if (isChemicalKey(input.what())) {
                 if ((chemical != null && !chemical.equals(input.what())) || amount > Long.MAX_VALUE - chemicalPerCraft) {
                     return -1;
@@ -58,27 +68,33 @@ public final class MekanismBatchSupport {
                 return -1;
             }
         }
-        if (chemical == null) return -1;
+        if (chemical == null || (fluid != null && (item == null || !hasClass(target, REACTION_CHAMBER)))) return -1;
 
         long copies = Math.min(requestedCrafts, Long.MAX_VALUE / chemicalPerCraft);
         if (item != null) copies = Math.min(copies, Long.MAX_VALUE / itemsPerCraft);
+        if (fluid != null) copies = Math.min(copies, Long.MAX_VALUE / fluidPerCraft);
         if (copies <= 0) return 0;
         try {
             if (item != null) {
                 if (target == null) return -1;
                 var machine = MACHINES.get(target.getClass());
                 if (machine == null) return -1;
-                copies = limitItems(target, items, adapter, machine, item, itemsPerCraft, chemical, chemicalPerCraft, copies);
+                copies = limitItems(target, items, adapter, machine, item, itemsPerCraft, fluid, fluidPerCraft,
+                        chemical, chemicalPerCraft, copies);
+                if (copies <= 0) return copies;
+            }
+            if (fluid != null) {
+                copies = simulate(adapter, fluid, fluidPerCraft, copies);
                 if (copies <= 0) return copies;
             }
             copies = simulate(adapter, chemical, chemicalPerCraft, copies);
             if (copies <= 0) return copies;
             for (var input : unitInputs) {
-                if (chemical.equals(input.what()) && input.amount() != chemicalPerCraft) {
-                    // The aggregate probe reserves the shared tank once. Each sparse chemical
-                    // entry must also pass validation at the amount that AE2 will actually offer.
+                if ((chemical.equals(input.what()) && input.amount() != chemicalPerCraft)
+                        || (input.what().equals(fluid) && input.amount() != fluidPerCraft)) {
+                    // The aggregate reserves the tank once. Validate each sparse offer at its actual size too.
                     long amount = input.amount() * copies;
-                    if (adapter.insert(chemical, amount, Actionable.SIMULATE) != amount) return -1;
+                    if (adapter.insert(input.what(), amount, Actionable.SIMULATE) != amount) return -1;
                 }
             }
             return copies;
@@ -92,15 +108,13 @@ public final class MekanismBatchSupport {
     }
 
     private static long limitItems(BlockEntity target, @Nullable IItemHandler items, PatternProviderTarget adapter,
-            Machine machine, AEItemKey item, long itemsPerCraft, AEKey chemical, long chemicalPerCraft,
-            long copies) throws Throwable {
+            Machine machine, AEItemKey item, long itemsPerCraft, @Nullable AEFluidKey fluid, long fluidPerCraft,
+            AEKey chemical, long chemicalPerCraft, long copies) throws Throwable {
         // Inspect the handlers this adapter will actually insert into. Two positive probes cannot
         // prove independence when either channel maps to a shared or redirected inventory.
-        var wrapper = WRAPPED_STORAGE.get(adapter.getClass());
+        Object storage = PatternInputCapacity.targetStorage(adapter);
         var access = OptionalAccess.INSTANCE;
-        if (wrapper == null || access == null) return -1;
-        Object storage = wrapper.invokeExact((Object) adapter);
-        if (storage == null || storage.getClass() != CompositeStorage.class) return -1;
+        if (access == null || storage == null || storage.getClass() != CompositeStorage.class) return -1;
         var channels = (Map<?, ?>) access.channels.invokeExact(storage);
         Object itemFacade = channels.get(item.getType());
         Object chemicalFacade = channels.get(chemical.getType());
@@ -118,9 +132,34 @@ public final class MekanismBatchSupport {
 
         var tanks = (List<?>) machine.tanks.invokeExact(target, side);
         if (tanks.isEmpty()) return 0;
-        var internalTanks = (List<?>) machine.tanks.invokeExact(target, (Direction) null);
-        if (tanks.size() != 1 || internalTanks.size() != 1 || tanks.getFirst() != internalTanks.getFirst()
-                || !hasClass(tanks.getFirst(), BASIC_TANK)) return -1;
+        if (machine.reaction != null) {
+            if (fluid == null) return -1;
+            var reaction = machine.reaction;
+            Object facade = channels.get(fluid.getType());
+            if (facade == null) return 0;
+            if (!hasClass(facade, FLUID_FACADE)) return -1;
+            Object handler = reaction.fluidHandler.invokeExact(facade);
+            if (!hasClass(handler, PROXY_FLUID) || reaction.fluidOwner.invokeExact(handler) != target
+                    || (Direction) access.side.invokeExact(handler) != side) return -1;
+            var fluidTanks = (List<?>) reaction.fluidTanks.invokeExact(target, side);
+            if (fluidTanks.isEmpty()) return 0;
+            if (fluidTanks.size() != 1 || fluidTanks.getFirst() != reaction.inputFluid.invokeExact((Object) target)
+                    || !hasClass(fluidTanks.getFirst(), "mekanism.common.capabilities.fluid.BasicFluidTank")) return -1;
+            Object input = reaction.inputChemical.invokeExact((Object) target);
+            if (!hasClass(input, BASIC_TANK)) return -1;
+            // The only other native PRC tank is its output. It rejects external insertion.
+            Object output = reaction.outputChemical.invokeExact((Object) target);
+            boolean hasInput = false;
+            for (var tank : tanks) {
+                if (tank == input && !hasInput) hasInput = true;
+                else if (tank != output || !hasClass(output, BASIC_TANK)) return -1;
+            }
+            if (!hasInput) return 0;
+        } else {
+            var internalTanks = (List<?>) machine.tanks.invokeExact(target, (Direction) null);
+            if (tanks.size() != 1 || internalTanks.size() != 1 || tanks.getFirst() != internalTanks.getFirst()
+                    || !hasClass(tanks.getFirst(), BASIC_TANK)) return -1;
+        }
 
         var slots = (List<?>) machine.slots.invokeExact(target, side);
         int processSlots = 0;
@@ -139,8 +178,11 @@ public final class MekanismBatchSupport {
 
         var unitItem = item.toStack((int) Math.min(Integer.MAX_VALUE, itemsPerCraft));
         Object unitChemical = access.withAmount.invokeExact((Object) chemical, chemicalPerCraft);
-        // The factory's item predicate and the infuser's tank predicate both consult the other input.
-        if (!(boolean) machine.containsPair.invokeExact(target, (Object) unitItem, unitChemical)) return -1;
+        // A valid complete group stays type-compatible as its member inputs arrive in sparse order.
+        if (machine.reaction != null) {
+            Object unitFluid = fluid.toStack((int) Math.min(Integer.MAX_VALUE, fluidPerCraft));
+            if (!(boolean) machine.containsRecipe.invokeExact(target, (Object) unitItem, unitFluid, unitChemical)) return -1;
+        } else if (!(boolean) machine.containsRecipe.invokeExact(target, (Object) unitItem, unitChemical)) return -1;
 
         if (machine.findRecipe != null && !factorySlotsStayValid(target, items, machine, slots, item,
                 unitItem, unitChemical, access)) return -1;
@@ -220,8 +262,11 @@ public final class MekanismBatchSupport {
         };
     }
 
+    private record Reaction(MethodHandle fluidHandler, MethodHandle fluidOwner, MethodHandle fluidTanks,
+            MethodHandle inputFluid, MethodHandle inputChemical, MethodHandle outputChemical) {}
+
     private record Machine(String inputSlot, String outputSlot, MethodHandle slots, MethodHandle tanks,
-            MethodHandle containsPair, @Nullable MethodHandle findRecipe) {}
+            MethodHandle containsRecipe, @Nullable MethodHandle findRecipe, @Nullable Reaction reaction) {}
 
     private static final ClassValue<Machine> MACHINES = new ClassValue<>() {
         @Override
@@ -230,7 +275,10 @@ public final class MekanismBatchSupport {
             String outputSlot = "mekanism.common.inventory.slot.OutputInventorySlot";
             boolean factory = true;
             switch (type.getName()) {
-                case "mekanism.common.tile.machine.TileEntityMetallurgicInfuser" -> {
+                case "mekanism.common.tile.machine.TileEntityMetallurgicInfuser",
+                        "mekanism.common.tile.machine.TileEntityChemicalInjectionChamber",
+                        "mekanism.common.tile.machine.TileEntityOsmiumCompressor",
+                        "mekanism.common.tile.machine.TileEntityPurificationChamber", REACTION_CHAMBER -> {
                     inputSlot = "mekanism.common.inventory.slot.InputInventorySlot";
                     factory = false;
                 }
@@ -244,39 +292,27 @@ public final class MekanismBatchSupport {
             }
             try {
                 var sidedList = MethodType.methodType(List.class, BlockEntity.class, Direction.class);
+                var pair = MethodType.methodType(boolean.class, BlockEntity.class, Object.class, Object.class);
+                var reaction = type.getName().equals(REACTION_CHAMBER)
+                        ? new Reaction(getter(load(FLUID_FACADE), "handler", Object.class),
+                                publicMethod(load(PROXY_FLUID), "getInternalHandler", MethodType.methodType(Object.class, Object.class)),
+                                publicMethod(type, "getFluidTanks", sidedList, Direction.class),
+                                getter(type, "inputFluidTank", Object.class), getter(type, "inputGasTank", Object.class),
+                                getter(type, "outputGasTank", Object.class)) : null;
                 return new Machine(inputSlot, outputSlot,
                         publicMethod(type, "getInventorySlots", sidedList, Direction.class),
                         publicMethod(type, "getChemicalTanks", sidedList, Direction.class),
-                        publicMethod(type, "containsRecipeAB",
-                                MethodType.methodType(boolean.class, BlockEntity.class, Object.class, Object.class),
-                                Object.class, Object.class),
+                        reaction == null ? publicMethod(type, "containsRecipeAB", pair, Object.class, Object.class)
+                                : publicMethod(type, "containsRecipeABC", pair.appendParameterTypes(Object.class),
+                                        Object.class, Object.class, Object.class),
                         factory ? publicMethod(type, "findFirstRecipe",
                                 MethodType.methodType(Object.class, BlockEntity.class, Object.class, Object.class),
-                                Object.class, Object.class) : null);
+                                Object.class, Object.class) : null, reaction);
             } catch (ReflectiveOperationException | LinkageError | SecurityException unavailable) {
                 return null;
             }
         }
     };
-
-    private static final ClassValue<MethodHandle> WRAPPED_STORAGE = new ClassValue<>() {
-        @Override
-        protected @Nullable MethodHandle computeValue(Class<?> type) {
-            return switch (type.getName()) {
-                case "appeng.helpers.patternprovider.PatternProviderTargetCache$1",
-                        "appeng.helpers.patternprovider.PatternProviderTarget$1" -> readStorage(type);
-                default -> null;
-            };
-        }
-    };
-
-    private static @Nullable MethodHandle readStorage(Class<?> type) {
-        try {
-            return getter(type, "val$storage", Object.class);
-        } catch (ReflectiveOperationException | LinkageError | SecurityException unavailable) {
-            return null;
-        }
-    }
 
     private record OptionalAccess(MethodHandle channels, MethodHandle itemHandler, MethodHandle chemicalHandler,
             MethodHandle side, MethodHandle itemOwner, MethodHandle chemicalOwner, MethodHandle withAmount,

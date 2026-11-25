@@ -8,6 +8,7 @@ import appeng.api.stacks.AEKey;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.inv.ListCraftingInventory;
 import appeng.me.service.CraftingService;
+import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.UUID;
@@ -28,7 +29,7 @@ public interface OmniCpuDispatchHost {
     default BigInteger omniDispatch$remaining(IPatternDetails pattern) { return BigInteger.ZERO; }
 
     default OmniCpuDispatchLedger.Energy omniDispatch$dispatchEnergy() { throw new UnsupportedOperationException(); }
-    default Object omniDispatch$bigIntegerToken(IPatternDetails pattern, BigInteger crafts) { return null; }
+    default ExactBatchToken omniDispatch$bigIntegerToken(Map<AEKey, BigInteger> outputsPerCraft) { return null; }
 
     /** Run the selected native recipe after its single slot has been charged. Return actual accepted copies. */
     default int omniDispatch$executeNativeSingle(IPatternDetails pattern, ICraftingProvider provider,
@@ -57,6 +58,11 @@ public interface OmniCpuDispatchHost {
      */
     default BigInteger omniDispatch$insertExact(UUID jobId, AEKey key, BigInteger amount, Actionable mode) {
         return BigInteger.ZERO;
+    }
+
+    interface ExactBatchToken extends OmniBigIntegerBatchCallbacks {
+        /** The provider push returned. Reconcile any synchronous production with the accepted prefix. */
+        void confirmAccepted(BigInteger crafts);
     }
 
     interface Lease {

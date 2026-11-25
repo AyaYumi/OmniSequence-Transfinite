@@ -27,9 +27,11 @@ import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider.ReusableValidation;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHost;
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
@@ -772,6 +774,11 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         }
         return MolecularCraftingBatcher.outputCapacity(getRemainingAssemblerBudget(), MAX_BUFFERED_TYPES,
                 unitOutputs, pendingPrimaryOutputs, pendingByproducts);
+    }
+
+    ReusableValidation validateReusableBatch(IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+        return canAcceptPattern() && plan.craftCount() <= getRemainingAssemblerBudget()
+                ? craftingBatcher.validateReusable(this, pattern, plan, jobId) : ReusableValidation.PENDING;
     }
 
     private boolean canAcceptPattern() {
@@ -2563,6 +2570,10 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         } catch (ArithmeticException exception) {
             return false;
         }
+    }
+
+    boolean canQueueRefunds(KeyCounter refunds) {
+        return MolecularCraftingBatcher.outputCapacity(1, MAX_BUFFERED_TYPES, refunds, reusableBatchRefunds, null) > 0;
     }
 
     private boolean canQueueRefunds(Object2LongOpenHashMap<AEKey> refunds) {

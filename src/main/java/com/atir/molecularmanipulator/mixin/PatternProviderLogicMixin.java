@@ -10,6 +10,8 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
+import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
+import appeng.blockentity.crafting.MolecularAssemblerBlockEntity;
 import appeng.blockentity.networking.CableBusBlockEntity;
 import appeng.crafting.pattern.AEProcessingPattern;
 import appeng.helpers.patternprovider.PatternProviderLogic;
@@ -23,6 +25,7 @@ import com.atir.molecularmanipulator.integration.ae2.PatternProviderSendQueue;
 import com.atir.molecularmanipulator.item.RecoveredPatternInputItem;
 import com.atir.molecularmanipulator.recipelock.RecipeExecutionContext;
 import com.atir.molecularmanipulator.recipelock.RecipeLocks;
+import com.glodblock.github.extendedae.common.tileentities.TileExMolecularAssembler;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -119,9 +122,10 @@ public abstract class PatternProviderLogicMixin implements OmniCapacityTarget, P
         var activeSides = getActiveSides();
         var cursor = new BlockPos.MutableBlockPos();
         try (var scope = RecipeExecutionContext.open(machine)) {
-            // Dedicated machines keep AE2's native priority across all active faces.
-            if (molecularmanipulator$hasDedicatedTarget(level, origin, activeSides)) return null;
+            int dedicatedSides = molecularmanipulator$dedicatedSides(level, origin, activeSides, processing);
+            if (dedicatedSides < 0) return null;
             for (var side : activeSides) {
+                if ((dedicatedSides & (1 << side.ordinal())) != 0) continue;
                 cursor.setWithOffset(origin, side);
                 if (!level.hasChunkAt(cursor)) continue;
                 var state = level.getBlockState(cursor);
@@ -189,7 +193,8 @@ public abstract class PatternProviderLogicMixin implements OmniCapacityTarget, P
         var cursor = new BlockPos.MutableBlockPos();
         if (molecularmanipulator$destinationBusy(level, position, targetState, partner, cursor)) return false;
         try (var scope = RecipeExecutionContext.open(machine)) {
-            if (molecularmanipulator$hasDedicatedTarget(level, machine.getBlockPos(), activeSides)) return false;
+            int dedicatedSides = molecularmanipulator$dedicatedSides(level, machine.getBlockPos(), activeSides, pattern);
+            if (dedicatedSides < 0 || (dedicatedSides & (1 << side.ordinal())) != 0) return false;
             var target = findAdapter(side);
             if (target == null || PatternInputCapacity.limit(level, position, side.getOpposite(),
                     targetEntity, target, unitInputs, crafts) != crafts) return false;
@@ -308,15 +313,23 @@ public abstract class PatternProviderLogicMixin implements OmniCapacityTarget, P
     }
 
     @Unique
-    private static boolean molecularmanipulator$hasDedicatedTarget(ServerLevel level, BlockPos origin,
-            Set<Direction> sides) {
+    private static int molecularmanipulator$dedicatedSides(ServerLevel level, BlockPos origin,
+            Set<Direction> sides, IPatternDetails pattern) {
+        int dedicatedSides = 0;
         for (var side : sides) {
             var position = origin.relative(side);
             if (!level.hasChunkAt(position)) continue;
             var target = ICraftingMachine.of(level, position, side.getOpposite());
-            if (target != null && target.acceptsPlans()) return true;
+            if (target == null || !target.acceptsPlans()) continue;
+            // Both assemblers reject a processing pattern before touching its inputs. AE2 then skips
+            // that face, including its inventory, and still tries the other external targets.
+            if (pattern instanceof IMolecularAssemblerSupportedPattern
+                    || target.getClass() != MolecularAssemblerBlockEntity.class && target.getClass() != TileExMolecularAssembler.class) {
+                return -1;
+            }
+            dedicatedSides |= 1 << side.ordinal();
         }
-        return false;
+        return dedicatedSides;
     }
 
     @Unique

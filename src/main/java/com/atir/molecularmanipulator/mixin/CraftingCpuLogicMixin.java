@@ -22,7 +22,6 @@ import appeng.hooks.ticking.TickHandler;
 import appeng.me.service.CraftingService;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
-import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutputReceiver;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
@@ -1202,9 +1201,8 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         inventory.list.removeZeros();
     }
 
-    @Override public Object omniDispatch$bigIntegerToken(IPatternDetails pattern, BigInteger crafts) {
-        return molecularmanipulator$exactState == null || omniDispatch$stopped()
-                ? null : new NativeBigIntegerBatchCallback(pattern, crafts);
+    @Override public ExactBatchToken omniDispatch$bigIntegerToken(Map<AEKey, BigInteger> outputsPerCraft) {
+        return omniDispatch$stopped() ? null : new NativeBigIntegerBatchCallback(outputsPerCraft);
     }
 
     /**
@@ -1212,10 +1210,12 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
      * and corrects the waiting window for additional dynamic outputs from the provider.
      */
     @Unique
-    private final class NativeBigIntegerBatchCallback implements OmniBigIntegerBatchCallbacks, OmniBigIntegerOutputReceiver {
+    private final class NativeBigIntegerBatchCallback implements ExactBatchToken, OmniBigIntegerOutputReceiver {
         private final OmniExactCraftingState acceptedState = molecularmanipulator$exactState;
         private final UUID jobId = omniDispatch$jobId();
-        private final Map<AEKey, BigInteger> planned = new HashMap<>();
+        private final Map<AEKey, BigInteger> outputsPerCraft;
+        private BigInteger acceptedCrafts;
+        private List<OmniBigIntegerOutput> earlyOutputs;
         private final Set<AEKey> changedKeys = new LinkedHashSet<>();
         private boolean terminal;
 
@@ -1282,45 +1282,43 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
             changedKeys.clear();
         }
 
-        NativeBigIntegerBatchCallback(IPatternDetails pattern, BigInteger count) {
-            for (GenericStack output : pattern.getOutputs()) {
-                if (output == null || output.what() == null || output.amount() <= 0L) {
-                    continue;
-                }
-                planned.merge(output.what(),
-                        BigInteger.valueOf(output.amount()).multiply(count),
-                        BigInteger::add);
+        NativeBigIntegerBatchCallback(Map<AEKey, BigInteger> outputsPerCraft) {
+            this.outputsPerCraft = outputsPerCraft;
+        }
+
+        @Override
+        public void confirmAccepted(BigInteger crafts) {
+            if (terminal || acceptedCrafts != null) return;
+            acceptedCrafts = crafts;
+            if (earlyOutputs != null) {
+                var outputs = earlyOutputs;
+                earlyOutputs = null;
+                onOutputs(outputs);
             }
         }
 
         @Override
-        public void onAdmitted(List<OmniBigIntegerOutput> plannedOutputs) {
-            if (!live() || plannedOutputs == null || plannedOutputs.isEmpty()) return;
-            planned.clear();
-            for (var output : plannedOutputs) planned.merge(output.key(), output.amount(), BigInteger::add);
-        }
-
-        @Override
         public void onOutputs(List<OmniBigIntegerOutput> outputs) {
-            if (terminal) return;
+            if (terminal || earlyOutputs != null) return;
+            if (acceptedCrafts == null) {
+                // Providers can finish inside push, before reporting how many copies they actually accepted.
+                earlyOutputs = outputs == null ? List.of() : List.copyOf(outputs);
+                return;
+            }
             boolean credit = live();
             terminal = true;
-            if (credit && outputs != null) {
+            if (credit && outputs != null && !outputs.isEmpty()) {
+                var produced = new HashMap<AEKey, BigInteger>();
+                for (var output : outputs) produced.merge(output.key(), output.amount(), BigInteger::add);
                 var waiting = ((ExactExecutingJobAccessor) job).molecularmanipulator$getWaitingFor();
-                for (var output : outputs) {
-                    var key = output.key();
-                    var expected = planned.getOrDefault(key, BigInteger.ZERO);
-                    var missing = output.amount().subtract(expected);
-                    if (expected.signum() > 0) {
-                        var left = missing.negate();
-                        if (left.signum() > 0) planned.put(key, left); else planned.remove(key);
-                    }
-                    if (missing.signum() > 0) {
-                        acceptedState.queueOutput(key, missing);
-                        molecularmanipulator$dispatchLedger.refill(waiting, acceptedState, key);
+                produced.forEach((key, amount) -> {
+                    var staged = outputsPerCraft.getOrDefault(key, BigInteger.ZERO).multiply(acceptedCrafts);
+                    var additional = amount.subtract(staged);
+                    if (additional.signum() > 0) {
+                        molecularmanipulator$dispatchLedger.queueWaiting(waiting, acceptedState, key, additional);
                         changedKeys.add(key);
                     }
-                }
+                });
             }
             flushChangedKeys();
         }
@@ -1329,6 +1327,7 @@ public abstract class CraftingCpuLogicMixin implements IOmniCraftingCpu, OmniCpu
         public void onCancelled(BigInteger plannedAmount) {
             if (!terminal) {
                 terminal = true;
+                earlyOutputs = null;
                 flushChangedKeys();
             }
         }

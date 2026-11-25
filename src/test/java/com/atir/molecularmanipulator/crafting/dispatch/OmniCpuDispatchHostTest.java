@@ -23,6 +23,7 @@ import appeng.crafting.inv.ListCraftingInventory;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.helpers.MachineSource;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
+import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern;
@@ -30,6 +31,7 @@ import com.atir.molecularmanipulator.mixin.CraftingCpuLogicMixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import java.lang.reflect.Proxy;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -297,6 +299,16 @@ class OmniCpuDispatchHostTest {
         assertEquals(1, job.waiting.list.get(RETURNED));
     }
 
+    @Test void ordinaryOrderAcceptsAnExactProvidersAdditionalOutputOnce() throws Exception {
+        var callback = nativeCallback();
+        var outputs = java.util.List.of(new com.atir.molecularmanipulator.api.crafting.OmniBigIntegerOutput(RETURNED, HUGE));
+        callback.onOutputs(outputs);
+        callback.onOutputs(outputs);
+        assertEquals(Long.MAX_VALUE, job.waiting.list.get(RETURNED));
+        assertEquals(HUGE, ledger().available(job.waiting, null, RETURNED));
+        assertEquals(10, task.value);
+    }
+
     @Test void nativeBatchCancellationIsTerminalAndDoesNotCreditLateOutputs() throws Exception {
         var state = OmniExactCraftingState.create(Map.of(pattern, HUGE), Map.of());
         set(CraftingCpuLogicMixin.class, cpu, "molecularmanipulator$exactState", state);
@@ -310,9 +322,24 @@ class OmniCpuDispatchHostTest {
         assertTrue(state.completedOutputs().isEmpty());
     }
 
-    private com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks nativeCallback() throws Exception {
-        return (com.atir.molecularmanipulator.api.crafting.OmniBigIntegerBatchCallbacks)
-                cpu.omniDispatch$bigIntegerToken(pattern, BigInteger.ONE);
+    @Test void synchronousProductionUsesTheAcceptedPrefixAndOnlyActualByproducts() throws Exception {
+        var callback = cpu.omniDispatch$bigIntegerToken(Map.of(OUTPUT, BigInteger.TWO));
+        var forecast = List.of(new OmniBigIntegerOutput(OUTPUT, BigInteger.TEN), new OmniBigIntegerOutput(RETURNED, HUGE));
+        callback.onAdmitted(forecast);
+        var produced = List.of(new OmniBigIntegerOutput(OUTPUT, BigInteger.TWO),
+                new OmniBigIntegerOutput(OUTPUT, BigInteger.valueOf(3)), new OmniBigIntegerOutput(RETURNED, BigInteger.ONE));
+        callback.onOutputs(produced);
+        assertEquals(BigInteger.ZERO, ledger().available(job.waiting, null, RETURNED));
+        callback.confirmAccepted(BigInteger.TWO);
+        callback.onOutputs(produced);
+        assertEquals(BigInteger.ONE, ledger().available(job.waiting, null, OUTPUT));
+        assertEquals(BigInteger.ONE, ledger().available(job.waiting, null, RETURNED));
+    }
+
+    private OmniCpuDispatchHost.ExactBatchToken nativeCallback() {
+        var callback = cpu.omniDispatch$bigIntegerToken(Map.of(OUTPUT, BigInteger.ONE));
+        callback.confirmAccepted(BigInteger.ONE);
+        return callback;
     }
 
     @Test void ordinaryCommitAdvancesExactlyCraftCount() throws Exception {

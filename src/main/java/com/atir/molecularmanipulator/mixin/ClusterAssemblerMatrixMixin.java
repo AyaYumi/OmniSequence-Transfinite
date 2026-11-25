@@ -3,6 +3,9 @@ package com.atir.molecularmanipulator.mixin;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.KeyCounter;
 import com.atir.molecularmanipulator.blockentity.AssemblerMatrixMolecularCoreBlockEntity;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider.ReusableValidation;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.glodblock.github.extendedae.common.me.matrix.ClusterAssemblerMatrix;
 import org.spongepowered.asm.mixin.Mixin;
@@ -10,6 +13,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.UUID;
 
 @Mixin(value = ClusterAssemblerMatrix.class, remap = false)
 public abstract class ClusterAssemblerMatrixMixin implements MolecularMatrixCluster {
@@ -42,6 +47,13 @@ public abstract class ClusterAssemblerMatrixMixin implements MolecularMatrixClus
     }
 
     @Override
+    public ReusableValidation molecularmanipulator$validateReusableBatch(
+            IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+        var core = molecularmanipulator$getCore();
+        return core == null ? ReusableValidation.REJECTED : core.validateReusableBatch(pattern, plan, jobId);
+    }
+
+    @Override
     public void molecularmanipulator$flushOutputsAfterCpuAccounting() {
         var core = molecularmanipulator$getCore();
         if (core != null) {
@@ -55,6 +67,9 @@ public abstract class ClusterAssemblerMatrixMixin implements MolecularMatrixClus
         var core = molecularmanipulator$getCore();
         if (core != null) {
             callback.setReturnValue(core.acceptCrafting(patternDetails, inputHolder));
+        } else {
+            var context = MolecularBatchDispatchContext.current(patternDetails, inputHolder);
+            if (context != null && context.requiresReusableProof()) callback.setReturnValue(false);
         }
     }
 

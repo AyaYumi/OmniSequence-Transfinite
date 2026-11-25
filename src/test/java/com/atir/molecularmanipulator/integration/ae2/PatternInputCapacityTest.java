@@ -2,9 +2,11 @@ package com.atir.molecularmanipulator.integration.ae2;
 
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
+import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
+import appeng.helpers.externalstorage.GenericStackInv;
 import appeng.helpers.patternprovider.PatternProviderTarget;
 import appeng.me.storage.ExternalStorageFacade;
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ import net.minecraft.SharedConstants;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.fml.loading.LoadingModList;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.junit.jupiter.api.Test;
@@ -104,6 +107,35 @@ class PatternInputCapacityTest {
             if (target.insert(input.what(), amount, Actionable.MODULATE, IActionSource.empty()) != amount) return false;
         }
         return true;
+    }
+
+    @Test
+    void configuredInterfaceAccountsForSharedSlotsAndRepeatedOffersInOrder() {
+        var first = AEItemKey.of(Items.DIAMOND);
+        var repeated = AEItemKey.of(Items.COAL);
+        var other = AEItemKey.of(Items.GOLD_INGOT);
+        var inputs = List.of(new GenericStack(first, 1), new GenericStack(repeated, 2),
+                new GenericStack(other, 1), new GenericStack(repeated, 1));
+        var storage = new GenericStackInv(Set.of(first.getType()), null, GenericStackInv.Mode.STORAGE, 6) {
+            @Override public boolean isAllowedIn(int slot, AEKey key) { return slot < 5; }
+        };
+        storage.setStack(0, new GenericStack(first, 24));
+        storage.setStack(3, new GenericStack(other, 1));
+        storage.setStack(4, new GenericStack(first, 62));
+        assertEquals(21, PatternInputCapacity.limitInterface(storage, inputs, 32));
+        assertEquals(40, PatternInputCapacity.limitInterface(storage, inputs, Long.MAX_VALUE / 3));
+        assertEquals(24, storage.getAmount(0));
+    }
+
+    @Test
+    void configuredInterfaceUsesTheLargestOfferThatWillNotOverflowAnOccupiedSlot() {
+        var water = AEFluidKey.of(Fluids.WATER);
+        var storage = new GenericStackInv(Set.of(water.getType()), null, GenericStackInv.Mode.STORAGE, 1);
+        storage.setCapacity(water.getType(), Long.MAX_VALUE);
+        storage.setStack(0, new GenericStack(water, 3));
+        assertEquals(Long.MAX_VALUE - 3, PatternInputCapacity.limitInterface(storage,
+                List.of(new GenericStack(water, 1)), Long.MAX_VALUE));
+        assertEquals(3, storage.getAmount(0));
     }
 
     @Test

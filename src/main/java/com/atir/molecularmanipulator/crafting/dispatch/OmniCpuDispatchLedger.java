@@ -107,6 +107,13 @@ public final class OmniCpuDispatchLedger {
         if (fromWindow > 0) waiting.list.set(key, Math.subtractExact(waiting.list.get(key), fromWindow));
     }
 
+    /** Expose newly expected output through AE2's long window and retain the exact tail. */
+    public void queueWaiting(ListCraftingInventory waiting, OmniExactCraftingState state, AEKey key, BigInteger amount) {
+        if (state == null) ordinaryCredits.merge(key, amount, BigInteger::add);
+        else state.queueOutput(key, amount);
+        refill(waiting, state, key);
+    }
+
     public OmniCpuDispatchHost.Accounting stage(ListCraftingInventory waiting, OmniExactCraftingState state,
             OmniCpuDispatchReceipt receipt, Consumer<OmniCpuDispatchReceipt> commit) {
         if (paused() || active != null) return null;
@@ -114,11 +121,7 @@ public final class OmniCpuDispatchLedger {
         // Validate all keys before exposing any of this batch's waiting.
         amounts.keySet().forEach(key -> available(waiting, state, key));
         var stage = new Stage(waiting, state, receipt, amounts, commit);
-        for (var entry : amounts.entrySet()) {
-            if (state == null) ordinaryCredits.merge(entry.getKey(), entry.getValue(), BigInteger::add);
-            else state.queueOutput(entry.getKey(), entry.getValue());
-            refill(waiting, state, entry.getKey());
-        }
+        amounts.forEach((key, amount) -> queueWaiting(waiting, state, key, amount));
         active = stage;
         return stage;
     }

@@ -51,6 +51,8 @@ to decline. The unit prototype is the real extracted one-craft input; a provider
 its keys and reserve every additional finite material required by the accepted
 count. An exact logical count does not create physical input ownership.
 
+An L7+ Omni CPU can use a native atomic provider for an ordinary order. If the complete request would overflow a `long` count or per-key amount, Omni queries the exact endpoint before offering a `long` batch. A provider that accepts an inputless pattern receives an empty prototype. Both ordinary and exact jobs can bind a completion token and account for additional outputs by key.
+
 `pushBigIntegerCraftingPattern` returns false without retaining the prototype.
 Returning true commits the agreed batch and requires durable input/output ownership.
 `lastAcceptedBigIntegerCrafts()` may return a smaller exact positive count when
@@ -114,6 +116,8 @@ only the amount actually awaited advances expected-output progress.
 空间。拒绝不得留下原料，接受必须持久保存原料和产物的所有权；如果实际接受量变小，通过
 `lastAcceptedBigIntegerCrafts()` 返回真实次数。原生一次原子提交才标记
 `usesNativeBigIntegerBatch()`，不能把它当作普通 long 循环不断调用。
+
+从 L7 起，普通订单也可由原生大数供应器一次接收。整单次数或某种材料、产物的总量超出 `long` 时，CPU 优先查询大数接口。无输入样板向支持它的大数供应器传入空原型。普通订单和精确订单都可用完成回调逐键登记额外产物。
 
 输出回调保留每种资源的数量，不能再次执行配方。直接回收只允许当前同网 CPU
 绑定；成功转移按回调扣减源余额一次，剩余继续由来源保存。取消后不能接收迟到输出。

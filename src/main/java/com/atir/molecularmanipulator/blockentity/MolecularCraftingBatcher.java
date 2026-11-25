@@ -1,17 +1,27 @@
 package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
+import appeng.crafting.pattern.AECraftingPattern;
 import appeng.menu.AutoCraftingMenu;
+import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputMode;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputPlan;
+import com.atir.molecularmanipulator.crafting.PatternRecipeReloads;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider.ReusableValidation;
 import com.atir.molecularmanipulator.recipelock.RecipeExecutionContext;
 import com.atir.molecularmanipulator.recipelock.RecipeLocks;
+import com.google.common.collect.Range;
+import com.google.common.collect.TreeRangeSet;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.world.inventory.TransientCraftingContainer;
@@ -20,15 +30,21 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.WeakHashMap;
 
 final class MolecularCraftingBatcher {
     private static final int CRAFTING_GRID_SIZE = 9;
     private static final int MAX_CACHED_PATTERNS = 2048;
-    private static final int MAX_REUSABLE_VALIDATION_STATES =
-            (int) MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS;
+    static final int WEAR_STATES_PER_TICK = 64;
 
     private final TransientCraftingContainer craftingGrid =
             new TransientCraftingContainer(new AutoCraftingMenu(), 3, 3);
@@ -37,6 +53,18 @@ final class MolecularCraftingBatcher {
     private final Object2LongOpenHashMap<AEKey> remainderOutputAmounts = new Object2LongOpenHashMap<>();
     private final Reference2ObjectOpenHashMap<IPatternDetails, CraftPlan> planCache =
             new Reference2ObjectOpenHashMap<>();
+    // The CPU retains its job UUID. An abandoned or completed order owns no machine resources.
+    private final Map<UUID, Map<IPatternDetails, ReusableProof>> reusableProofs = new WeakHashMap<>();
+    private final LinkedHashSet<ReusableProof> requestedProofs = new LinkedHashSet<>();
+    private Level proofLevel;
+    private Object proofRecipeView;
+    private long proofGeneration;
+    private long validationTick = Long.MIN_VALUE;
+    private int validationStepsLeft;
+    private boolean validatingReusable;
+    private TransientCraftingContainer validationGrid;
+    private KeyCounter[] validationInputs = new KeyCounter[0];
+    private final KeyCounter validationRemainders = new KeyCounter();
 
     private KeyCounter[] simulatedInputs = new KeyCounter[0];
     private CraftPlan preparedPlan;
@@ -205,11 +233,40 @@ final class MolecularCraftingBatcher {
         }
     }
 
+    ReusableValidation validateReusable(BlockEntity machine, IPatternDetails pattern,
+            MolecularReusableBatchPlan plan, UUID jobId) {
+        var level = machine.getLevel();
+        if (level == null || level.isClientSide() || machine.isRemoved() || jobId == null
+                || !canValidate(machine, pattern, jobId)) {
+            return ReusableValidation.REJECTED;
+        }
+        try (var scope = RecipeExecutionContext.open(machine)) {
+            return validateReusable(pattern, plan, jobId, level, level.getRecipeManager().getRecipes(), level.getGameTime(), machine);
+        }
+    }
+
+    private boolean canValidate(BlockEntity machine, IPatternDetails pattern, UUID jobId) {
+        if (!MolecularBatchCancellationData.isCanceled(machine.getLevel(), jobId)) return RecipeLocks.allowedPattern(machine, pattern);
+        var canceled = reusableProofs.remove(jobId);
+        if (canceled != null) canceled.values().forEach(requestedProofs::remove);
+        return false;
+    }
+
     MolecularReusableBatchJob prepareReusable(BlockEntity machine, IPatternDetails patternDetails,
             KeyCounter[] inputs, UUID craftingId, MolecularReusableBatchPlan reusablePlan) {
         var level = machine.getLevel();
-        if (level == null || level.isClientSide() || !RecipeLocks.allowedPattern(machine, patternDetails)) return null;
+        if (level == null || level.isClientSide() || machine.isRemoved() || craftingId == null) return null;
         try (var scope = RecipeExecutionContext.open(machine)) {
+            var context = MolecularBatchDispatchContext.current(patternDetails, inputs);
+            if (context != null) {
+                if (!canValidate(machine, patternDetails, craftingId)) return null;
+                if (context.requiresReusableProof()) {
+                    return takeVerifiedReusable(patternDetails, inputs, context.firstInputs(), craftingId, reusablePlan,
+                            level, level.getRecipeManager().getRecipes(), level.getGameTime());
+                }
+            } else if (!RecipeLocks.allowedPattern(machine, patternDetails)) {
+                return null;
+            }
             return prepareReusable(patternDetails, inputs, level, craftingId, reusablePlan);
         }
     }
@@ -410,71 +467,115 @@ final class MolecularCraftingBatcher {
         }
     }
 
-    MolecularReusableBatchJob prepareReusable(IPatternDetails patternDetails,
-            KeyCounter[] inputs, Level level, UUID craftingId,
-            MolecularReusableBatchPlan reusablePlan) {
-        if (!(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)
-                || craftingId == null || reusablePlan == null
-                || !reusablePlan.matchesProvidedInputs(inputs)) {
-            return null;
+    ReusableValidation validateReusable(IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId,
+            Level level, Object recipeView, long gameTime) {
+        return validateReusable(pattern, plan, jobId, level, recipeView, gameTime, null);
+    }
+
+    private ReusableValidation validateReusable(IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId,
+            Level level, Object recipeView, long gameTime, @Nullable BlockEntity machine) {
+        if (!(pattern instanceof IMolecularAssemblerSupportedPattern) || plan == null || jobId == null) {
+            return ReusableValidation.REJECTED;
+        }
+        if (validatingReusable) return ReusableValidation.PENDING;
+        selectProofView(level, recipeView);
+        if (validationTick != gameTime) {
+            validationTick = gameTime;
+            validationStepsLeft = WEAR_STATES_PER_TICK;
         }
 
+        var order = reusableProofs.computeIfAbsent(jobId, ignored -> new HashMap<>());
+        var proof = order.get(pattern);
+        if (proof == null || !proof.matches(pattern, plan)) {
+            if (proof != null) requestedProofs.remove(proof);
+            proof = new ReusableProof(pattern, plan, jobId);
+            order.put(pattern, proof);
+        }
+        if (proof.status == ReusableValidation.PENDING) requestedProofs.add(proof);
+        // Give each request one turn in arrival order. A caller that goes away leaves at most
+        // one slice of speculative work. No other CPU can evict its partially checked recipe.
+        validatingReusable = true;
         try {
-            var firstInputs = createOneCraftInputs(reusablePlan, 0);
-            if (firstInputs == null || !fillCraftingGrid(pattern, firstInputs)) {
-                return null;
+            while (validationStepsLeft > 0 && !requestedProofs.isEmpty()) {
+                var next = requestedProofs.removeFirst();
+                var owner = next == proof ? jobId : next.job.get();
+                if (owner == null || next != proof && machine != null && !canValidate(machine, next.requested, owner)) {
+                    // A different CPU may have lost its license or canceled since it requested this turn.
+                    validationStepsLeft--;
+                    continue;
+                }
+                validationStepsLeft -= advanceProof(next, level, validationStepsLeft);
             }
-
-            var firstCraftingInput = craftingGrid.asPositionedCraftInput().input();
-            ItemStack output = pattern.assemble(firstCraftingInput, level);
-            if (output.isEmpty()) {
-                return null;
-            }
-            var crafted = output.copy();
-            crafted.onCraftedBySystem(level);
-            var primaryPerCraft = new Object2LongOpenHashMap<AEKey>();
-            var expectedPrimaryPerCraft = expectedPrimaryOutputs(
-                    patternDetails);
-            if (!addOutput(primaryPerCraft, crafted)
-                    || expectedPrimaryPerCraft == null
-                    || !mapsEqual(expectedPrimaryPerCraft,
-                            primaryPerCraft)) {
-                return null;
-            }
-            if (!remainingItemsMatch(pattern,
-                    reusablePlan.expectedCraftRemainders(0))) {
-                return null;
-            }
-
-            var firstGrid = new ItemStack[CRAFTING_GRID_SIZE];
-            for (int slot = 0; slot < CRAFTING_GRID_SIZE; slot++) {
-                firstGrid[slot] = craftingGrid.getItem(slot).copy();
-            }
-
-            if (hasTransitioningInput(reusablePlan)
-                    && !validateDamagePool(pattern, reusablePlan, level,
-                            primaryPerCraft)) {
-                return null;
-            }
-
-            clearCraftingGrid();
-            for (int slot = 0; slot < CRAFTING_GRID_SIZE; slot++) {
-                craftingGrid.setItem(slot, firstGrid[slot]);
-            }
-            preparedPlan = null;
-            craftingGridPrepared = true;
-            craftCount = reusablePlan.craftCount();
-            craftedOutput = crafted;
-            outputAmounts.clear();
-            primaryOutputAmounts.clear();
-            remainderOutputAmounts.clear();
-
-            return MolecularReusableBatchJob.create(craftingId,
-                    patternDetails.getDefinition(), reusablePlan, inputs,
-                    primaryPerCraft);
-        } catch (RuntimeException exception) {
-            return null;
+        } finally {
+            validatingReusable = false;
         }
+        if (proof.status == ReusableValidation.READY) {
+            proof.quotedPlan = plan;
+            proof.quotedTick = gameTime;
+        }
+        return proof.status;
+    }
+
+    private void selectProofView(Level level, Object recipes) {
+        long generation = PatternRecipeReloads.generation();
+        if (proofLevel != level || proofRecipeView != recipes || proofGeneration != generation) {
+            reusableProofs.clear();
+            requestedProofs.clear();
+            proofLevel = level;
+            proofRecipeView = recipes;
+            proofGeneration = generation;
+        }
+    }
+
+    MolecularReusableBatchJob takeVerifiedReusable(IPatternDetails pattern, KeyCounter[] inputs, KeyCounter[] firstInputs,
+            UUID jobId, MolecularReusableBatchPlan plan, Level level, Object recipeView, long gameTime) {
+        selectProofView(level, recipeView);
+        var order = reusableProofs.get(jobId);
+        var proof = order == null ? null : order.get(pattern);
+        if (proof == null || proof.requested != pattern || proof.quotedPlan != plan || proof.quotedTick != gameTime
+                || proof.status != ReusableValidation.READY) return null;
+        order.remove(pattern);
+        if (order.isEmpty()) reusableProofs.remove(jobId);
+        if (firstInputs.length != proof.inputs.length) return null;
+        for (int slot = 0; slot < firstInputs.length; slot++) {
+            var selected = proof.inputs[slot];
+            var holder = firstInputs[slot];
+            if (holder == null || holder.size() != 1 || holder.get(selected.initialKey()) != selected.amountPerCraft()) return null;
+        }
+        return finishReusable(proof, inputs, jobId);
+    }
+
+    // Passive crafting and external CPUs deliver synchronously. Their existing bounded contracts
+    // still require a complete real recipe check before their extracted inputs can be acquired.
+    MolecularReusableBatchJob prepareReusable(IPatternDetails patternDetails,
+            KeyCounter[] inputs, Level level, UUID craftingId, MolecularReusableBatchPlan plan) {
+        if (!(patternDetails instanceof IMolecularAssemblerSupportedPattern) || validatingReusable
+                || craftingId == null || plan == null || !plan.matchesProvidedInputs(inputs)) return null;
+        var proof = new ReusableProof(patternDetails, plan, craftingId);
+        validatingReusable = true;
+        try {
+            advanceProof(proof, level, (int) MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS);
+            return proof.status == ReusableValidation.READY ? finishReusable(proof, inputs, craftingId) : null;
+        } finally {
+            validatingReusable = false;
+        }
+    }
+
+    private MolecularReusableBatchJob finishReusable(ReusableProof proof, KeyCounter[] inputs, UUID craftingId) {
+        var expected = expectedPrimaryOutputs(proof.requested);
+        if (expected == null || !mapsEqual(proof.primary, expected)) return null;
+        var job = MolecularReusableBatchJob.create(craftingId, proof.definition, proof.plan,
+                inputs, proof.primary);
+        if (job == null) return null;
+        for (int slot = 0; slot < CRAFTING_GRID_SIZE; slot++) craftingGrid.setItem(slot, proof.firstGrid[slot]);
+        preparedPlan = null;
+        craftingGridPrepared = true;
+        craftCount = proof.plan.craftCount();
+        craftedOutput = proof.firstOutput;
+        outputAmounts.clear();
+        primaryOutputAmounts.clear();
+        remainderOutputAmounts.clear();
+        return job;
     }
 
     private static boolean containsSelection(
@@ -754,25 +855,6 @@ final class MolecularCraftingBatcher {
         }
     }
 
-    private KeyCounter[] createOneCraftInputs(
-            MolecularReusableBatchPlan plan, long completedCrafts) {
-        var plannedInputs = plan.inputs();
-        var result = new KeyCounter[plannedInputs.length];
-        for (int index = 0; index < plannedInputs.length; index++) {
-            var input = plannedInputs[index];
-            AEKey key = input.mode()
-                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE
-                            ? input.keyForCraft(completedCrafts)
-                            : input.initialKey();
-            if (key == null) {
-                return null;
-            }
-            var holder = result[index] = new KeyCounter();
-            holder.add(key, input.amountPerCraft());
-        }
-        return result;
-    }
-
     private boolean fillCraftingGrid(IMolecularAssemblerSupportedPattern pattern,
             KeyCounter[] oneCraftInputs) {
         clearCraftingGrid();
@@ -786,175 +868,198 @@ final class MolecularCraftingBatcher {
         return true;
     }
 
-    private boolean remainingItemsMatch(
-            IMolecularAssemblerSupportedPattern pattern,
-            KeyCounter expectedRemainders) {
-        var actual = new KeyCounter();
-        var craftingInput = craftingGrid.asPositionedCraftInput().input();
-        for (var remainder : pattern.getRemainingItems(craftingInput)) {
-            if (remainder.isEmpty()) {
-                continue;
-            }
-            var key = AEItemKey.of(remainder);
-            if (key == null) {
+    private static final class ReusableProof {
+        final IPatternDetails requested;
+        final MolecularReusableBatchPlan plan;
+        final InputPlan[] inputs;
+        final WeakReference<UUID> job;
+        long quotedTick;
+        MolecularReusableBatchPlan quotedPlan;
+        ReusableValidation status = ReusableValidation.PENDING;
+        IMolecularAssemblerSupportedPattern recipe;
+        Object2LongOpenHashMap<AEKey> primary;
+        AEItemKey definition;
+        List<WearRange> ranges = List.of();
+        int wearSlot = -1;
+        int rangeIndex;
+        long damage;
+        AEItemKey currentTool;
+        ItemStack[] firstGrid;
+        ItemStack firstOutput;
+
+        ReusableProof(IPatternDetails requested, MolecularReusableBatchPlan plan, UUID jobId) {
+            this.requested = requested;
+            this.plan = plan;
+            this.inputs = plan.inputs();
+            this.job = new WeakReference<>(jobId);
+        }
+
+        boolean matches(IPatternDetails pattern, MolecularReusableBatchPlan candidate) {
+            return requested == pattern && (plan == candidate || plan.craftCount() == candidate.craftCount()
+                    && Arrays.equals(inputs, candidate.inputs()));
+        }
+
+        boolean initialize(Level level) {
+            definition = requested.getDefinition();
+            // AE2 decoded patterns retain their original Recipe instance across a datapack reload.
+            var live = PatternDetailsHelper.isEncodedPattern(definition.toStack())
+                    ? PatternDetailsHelper.decodePattern(definition, level) : requested;
+            if (!(live instanceof IMolecularAssemblerSupportedPattern actual) || actual.getInputs().length != inputs.length) {
                 return false;
             }
-            actual.add(key, remainder.getCount());
-        }
-        return countersEqual(actual, expectedRemainders);
-    }
-
-    private static boolean hasTransitioningInput(
-            MolecularReusableBatchPlan plan) {
-        for (var input : plan.inputs()) {
-            if (input.mode()
-                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Validates every distinct damage state once, regardless of how many tools
-     * with that same initial key are present in the pool. The validation budget
-     * applies to the complete pool, not to each tool or group. Multiple
-     * transitioning slots are rejected by the plan before reaching this method.
-     */
-    private boolean validateDamagePool(
-            IMolecularAssemblerSupportedPattern pattern,
-            MolecularReusableBatchPlan plan, Level level,
-            Object2LongOpenHashMap<AEKey> primaryPerCraft) {
-        var longestGroups = new HashMap<AEItemKey,
-                MolecularReusableBatchPlan.DamageGroup>();
-        for (var input : plan.inputs()) {
-            if (input.mode()
-                    != MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE) {
-                continue;
-            }
-            for (var group : input.damageGroups()) {
-                var previous = longestGroups.get(group.initialKey());
-                if (previous == null
-                        || group.usesPerTool() > previous.usesPerTool()) {
-                    longestGroups.put(group.initialKey(), group);
-                } else if (group.usesPerTool() == previous.usesPerTool()
-                        && !java.util.Objects.equals(
-                                group.finalKey(), previous.finalKey())) {
-                    return false;
-                }
-            }
-        }
-
-        if (longestGroups.isEmpty()) {
-            return false;
-        }
-
-        try {
-            var validatedStates = new HashSet<AEItemKey>();
-            for (var entry : longestGroups.entrySet()) {
-                var group = entry.getValue();
-                for (long used = 0; used < group.usesPerTool(); used++) {
-                    if (!validateDamageState(pattern, plan, level, group, used,
-                            primaryPerCraft, validatedStates)) {
-                        return false;
-                    }
+            recipe = actual;
+            primary = expectedPrimaryOutputs(requested);
+            if (primary == null || primary.size() != 1) return false;
+            for (int slot = 0; slot < inputs.length; slot++) {
+                if (inputs[slot].mode() == InputMode.DETERMINISTIC_DAMAGE) {
+                    wearSlot = slot;
+                    ranges = wearRanges(inputs[slot]);
+                    if (ranges.isEmpty()) return false;
+                    damage = ranges.getFirst().first();
                 }
             }
             return true;
-        } catch (RuntimeException exception) {
-            return false;
         }
     }
 
-    private boolean validateDamageState(
-            IMolecularAssemblerSupportedPattern pattern,
-            MolecularReusableBatchPlan plan, Level level,
-            MolecularReusableBatchPlan.DamageGroup group, long used,
-            Object2LongOpenHashMap<AEKey> primaryPerCraft,
-            HashSet<AEItemKey> validatedStates) {
-        AEItemKey stateKey = group.keyAfter(used);
-        if (stateKey == null) {
-            return false;
-        }
-        if (!validatedStates.add(stateKey)) {
-            var stateInputs = createValidationInputs(plan, group, used);
-            return stateInputs != null && fillCraftingGrid(pattern, stateInputs)
-                    && remainingItemsMatch(pattern,
-                            expectedValidationRemainders(plan, group, used));
-        }
-        if (validatedStates.size() > MAX_REUSABLE_VALIDATION_STATES) {
-            return false;
-        }
-        var stateInputs = createValidationInputs(plan, group, used);
-        if (stateInputs == null || !fillCraftingGrid(pattern, stateInputs)) {
-            return false;
-        }
-        var stateCraftingInput = craftingGrid.asPositionedCraftInput().input();
-        ItemStack stateOutput = pattern.assemble(stateCraftingInput, level);
-        if (!stateOutput.isEmpty()) {
-            stateOutput = stateOutput.copy();
-            stateOutput.onCraftedBySystem(level);
-        }
-        var statePrimary = new Object2LongOpenHashMap<AEKey>();
-        return !stateOutput.isEmpty()
-                && addOutput(statePrimary, stateOutput)
-                && mapsEqual(primaryPerCraft, statePrimary)
-                && remainingItemsMatch(pattern,
-                        expectedValidationRemainders(plan, group, used));
+    private record WearRange(AEItemKey template, long first, long end, boolean breaks) {}
+
+    private static AEItemKey damageKeyAt(AEItemKey template, long damage) {
+        var stack = template.toStack();
+        stack.setDamageValue(Math.toIntExact(damage));
+        if (stack.getDamageValue() != damage) throw new IllegalArgumentException("Invalid tool damage");
+        return Objects.requireNonNull(AEItemKey.of(stack));
     }
 
-    private KeyCounter[] createValidationInputs(
-            MolecularReusableBatchPlan plan,
-            MolecularReusableBatchPlan.DamageGroup activeGroup,
-            long used) {
-        var plannedInputs = plan.inputs();
-        var result = new KeyCounter[plannedInputs.length];
-        for (int index = 0; index < plannedInputs.length; index++) {
-            var input = plannedInputs[index];
-            AEKey key = input.mode()
-                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE
-                            ? activeGroup.keyAfter(used)
-                            : input.initialKey();
-            if (key == null) {
-                return null;
+    private static final class WearCoverage {
+        final TreeRangeSet<Long> advances = TreeRangeSet.create();
+        final TreeRangeSet<Long> breaks = TreeRangeSet.create();
+    }
+
+    /** Store intervals per component-identical tool family, independent of durability and tool count. */
+    private static List<WearRange> wearRanges(InputPlan input) {
+        var families = new HashMap<AEItemKey, WearCoverage>();
+        for (var group : input.damageGroups()) {
+            var stack = group.initialKey().toStack();
+            long start = stack.getDamageValue();
+            if (!MolecularReusableInputAdapters.isDeterministicDamageCandidate(group.initialKey())
+                    || group.usesPerTool() > MolecularReusableInputAdapters.physicalUses(group.initialKey())) return List.of();
+            long end = Math.addExact(start, group.usesPerTool());
+            stack.setDamageValue(0);
+            var template = Objects.requireNonNull(AEItemKey.of(stack));
+            if (!group.initialKey().equals(damageKeyAt(template, start))
+                    || group.finalKey() != null && !group.finalKey().equals(damageKeyAt(template, end))) return List.of();
+            var family = families.computeIfAbsent(template, ignored -> new WearCoverage());
+            long advanceEnd = group.finalKey() == null ? end - 1 : end;
+            if (start < advanceEnd) {
+                var advances = Range.closedOpen(start, advanceEnd);
+                if (family.breaks.intersects(advances)) return List.of();
+                family.advances.add(advances);
             }
-            var holder = result[index] = new KeyCounter();
-            holder.add(key, input.amountPerCraft());
+            if (group.finalKey() == null) {
+                var terminal = Range.closedOpen(end - 1, end);
+                if (family.advances.intersects(terminal)) return List.of();
+                family.breaks.add(terminal);
+            }
         }
-        return result;
+        var ranges = new ArrayList<WearRange>();
+        families.forEach((key, family) -> {
+            for (var range : family.advances.asRanges()) {
+                ranges.add(new WearRange(key, range.lowerEndpoint(), range.upperEndpoint(), false));
+            }
+            for (var range : family.breaks.asRanges()) {
+                ranges.add(new WearRange(key, range.lowerEndpoint(), range.upperEndpoint(), true));
+            }
+        });
+        return ranges;
     }
 
-    private static KeyCounter expectedValidationRemainders(
-            MolecularReusableBatchPlan plan,
-            MolecularReusableBatchPlan.DamageGroup activeGroup,
-            long used) {
-        var result = new KeyCounter();
-        for (var input : plan.inputs()) {
-            if (input.mode()
-                    == MolecularReusableBatchPlan.InputMode.INVARIANT_REUSABLE) {
-                result.add(input.initialKey(), input.amountPerCraft());
-            } else if (input.mode()
-                    == MolecularReusableBatchPlan.InputMode.DETERMINISTIC_DAMAGE) {
-                AEKey next = activeGroup.keyAfter(used + 1);
-                if (next != null) {
-                    result.add(next, 1);
+    private int advanceProof(ReusableProof proof, Level level, int allowance) {
+        int spent = 0;
+        try {
+            if (proof.recipe == null && !proof.initialize(level)) {
+                proof.status = ReusableValidation.REJECTED;
+                return 1;
+            }
+            while (spent < allowance && proof.status == ReusableValidation.PENDING) {
+                spent++;
+                WearRange range = proof.wearSlot < 0 ? null : proof.ranges.get(proof.rangeIndex);
+                if (range != null && proof.currentTool == null) proof.currentTool = damageKeyAt(range.template(), proof.damage);
+                var nextTool = range == null || range.breaks() ? null : damageKeyAt(range.template(), proof.damage + 1);
+                if (!validateReusableState(proof, level, nextTool)) {
+                    proof.status = ReusableValidation.REJECTED;
+                } else if (range == null) {
+                    proof.status = ReusableValidation.READY;
+                } else if (++proof.damage < range.end()) {
+                    proof.currentTool = nextTool;
+                } else if (++proof.rangeIndex < proof.ranges.size()) {
+                    proof.damage = proof.ranges.get(proof.rangeIndex).first();
+                    proof.currentTool = null;
+                } else {
+                    proof.status = proof.firstGrid == null ? ReusableValidation.REJECTED : ReusableValidation.READY;
                 }
             }
+        } catch (RuntimeException invalid) {
+            proof.status = ReusableValidation.REJECTED;
         }
-        return result;
+        return Math.max(1, spent);
     }
 
-    private static boolean countersEqual(KeyCounter left, KeyCounter right) {
-        left.removeZeros();
-        right.removeZeros();
-        if (left.size() != right.size()) {
-            return false;
+    private boolean validateReusableState(ReusableProof proof, Level level, @Nullable AEItemKey nextTool) {
+        if (validationGrid == null) validationGrid = new TransientCraftingContainer(new AutoCraftingMenu(), 3, 3);
+        if (validationInputs.length != proof.inputs.length) {
+            validationInputs = new KeyCounter[proof.inputs.length];
+            Arrays.setAll(validationInputs, ignored -> new KeyCounter());
         }
-        for (var entry : left) {
-            if (entry.getKey() == null || entry.getLongValue() <= 0
-                    || right.get(entry.getKey()) != entry.getLongValue()) {
+        validationRemainders.clear();
+        var rules = proof.recipe.getInputs();
+        for (int slot = 0; slot < proof.inputs.length; slot++) {
+            var input = proof.inputs[slot];
+            var key = slot == proof.wearSlot ? proof.currentTool : input.initialKey();
+            var expected = slot == proof.wearSlot ? nextTool : input.finalKey();
+            if (input.mode() == InputMode.INVARIANT_REUSABLE) {
+                var actual = MolecularReusableInputAdapters.analyze(rules[slot], key, level, 1);
+                if (actual.mode() != MolecularReusableInputAdapters.Mode.INVARIANT_REUSABLE) return false;
+            } else if (!rules[slot].isValid(key, level) || !Objects.equals(rules[slot].getRemainingKey(key), expected)) {
                 return false;
             }
+            var holder = validationInputs[slot];
+            holder.clear();
+            holder.add(key, input.amountPerCraft());
+            if (expected != null) validationRemainders.add(expected, input.amountPerCraft());
+        }
+
+        validationGrid.clearContent();
+        proof.recipe.fillCraftingGrid(validationInputs, validationGrid::setItem);
+        if (!allInputsEmpty(validationInputs)) return false;
+        for (int slot = 0; slot < CRAFTING_GRID_SIZE; slot++) {
+            var stack = validationGrid.getItem(slot);
+            if (stack.isEmpty()) continue;
+            if (!proof.recipe.isSlotEnabled(slot)) return false;
+            if (proof.recipe instanceof AECraftingPattern crafting) {
+                var wrapped = GenericStack.unwrapItemStack(stack);
+                if (wrapped != null && wrapped.equals(crafting.getValidFluid(slot))) continue;
+            }
+            if (!proof.recipe.isItemValid(slot, AEItemKey.of(stack), level)) return false;
+        }
+        var grid = validationGrid.asPositionedCraftInput().input();
+        var assembled = proof.recipe.assemble(grid, level);
+        if (assembled.isEmpty()) return false;
+        var crafted = assembled.copy();
+        crafted.onCraftedBySystem(level);
+        if (crafted.isEmpty() || proof.primary.getLong(AEItemKey.of(crafted)) != crafted.getCount()) return false;
+        for (var remainder : proof.recipe.getRemainingItems(grid)) {
+            if (remainder.isEmpty()) continue;
+            var key = AEItemKey.of(remainder);
+            if (validationRemainders.get(key) < remainder.getCount()) return false;
+            validationRemainders.remove(key, remainder.getCount());
+        }
+        validationRemainders.removeZeros();
+        if (!validationRemainders.isEmpty()) return false;
+        if (proof.firstGrid == null && (proof.wearSlot < 0 || proof.currentTool.equals(proof.inputs[proof.wearSlot].initialKey()))) {
+            proof.firstGrid = new ItemStack[CRAFTING_GRID_SIZE];
+            Arrays.setAll(proof.firstGrid, slot -> validationGrid.getItem(slot).copy());
+            proof.firstOutput = crafted;
         }
         return true;
     }

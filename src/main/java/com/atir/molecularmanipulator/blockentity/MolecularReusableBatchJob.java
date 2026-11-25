@@ -351,8 +351,7 @@ final class MolecularReusableBatchJob {
                     return null;
                 }
                 long uses = groupTag.getLong(USES_PER_TOOL_TAG);
-                if (uses > MolecularReusableInputAdapters.physicalUses(groupInitialItem)
-                        || uses > MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS) {
+                if (!validToolUses(groupInitialItem, uses, groupFinal)) {
                     return null;
                 }
                 groups.add(new DamageGroup(groupInitialItem,
@@ -370,8 +369,7 @@ final class MolecularReusableBatchJob {
                         : null;
         long remainingAmount = inputTag.getLong(REMAINING_AMOUNT_TAG);
         if (!(currentKey instanceof AEItemKey)
-                || totalCrafts > MolecularReusableInputAdapters.physicalUses(initialItem)
-                || totalCrafts > MolecularReusableInputAdapters.MAX_DETERMINISTIC_TRANSITIONS
+                || !validToolUses(initialItem, totalCrafts, legacyFinalKey)
                 || legacyFinalKey != null
                         && !(legacyFinalKey instanceof AEItemKey)
                 || remainingAmount != 1
@@ -385,6 +383,12 @@ final class MolecularReusableBatchJob {
         return InputPlan.deterministicDamage(java.util.List.of(
                 new DamageGroup(initialItem, 1, totalCrafts,
                         (AEItemKey) legacyFinalKey)));
+    }
+
+    private static boolean validToolUses(AEItemKey initialKey, long uses, @Nullable AEKey finalKey) {
+        long physical = MolecularReusableInputAdapters.physicalUses(initialKey);
+        // A recipe may spend the stack at maximum damage once more. That use must break it.
+        return uses > 0 && (uses < physical || uses == physical && finalKey == null);
     }
 
     private static void addCheckpointRemainders(

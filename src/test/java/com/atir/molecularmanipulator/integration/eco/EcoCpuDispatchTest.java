@@ -16,11 +16,16 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.execution.CraftingCpuLogic;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
+import cn.dancingsnow.neoecoae.api.me.ECOFastPathFacade;
+import cn.dancingsnow.neoecoae.api.me.pattern.ECOExecutionOptimization;
+import cn.dancingsnow.neoecoae.api.me.pattern.ECOExecutionOptimizationAdapter;
+import cn.dancingsnow.neoecoae.api.me.pattern.ECOExecutionOptimizationRegistry;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProviders;
+import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
@@ -29,12 +34,14 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
@@ -90,6 +97,26 @@ class EcoCpuDispatchTest {
         }
     }
 
+    @Test void inputlessGeneratorCommitsItsAdvertisedExactCapacity() {
+        var pattern = new IPatternDetails() {
+            @Override public AEItemKey getDefinition() { return OUTPUT; }
+            @Override public IInput[] getInputs() { return new IInput[0]; }
+            @Override public List<GenericStack> getOutputs() { return List.of(new GenericStack(OUTPUT, 1)); }
+        };
+        var provider = new FastProvider();
+        provider.exact = true;
+        var count = BigInteger.ONE.shiftLeft(80);
+        var request = new OmniCapacityRequest(job, provider, pattern, new KeyCounter[0],
+                counter(OUTPUT, 1), new KeyCounter(), count, null);
+        try (var admission = EcoCpuDispatch.prepare(request)) {
+            assertNotNull(admission);
+            assertEquals(count, admission.maximumCrafts());
+            assertEquals(count, admission.submit(count));
+        }
+        assertTrue(provider.context.inputItems().isEmpty());
+        assertEquals(1, provider.calls);
+    }
+
     @Test void fixedExactPreparationUsesTheFullBigIntegerCountAndNeedsNoLongLease() {
         var count = BigInteger.ONE.shiftLeft(90);
         var pattern = new EcoMolecularTestPattern(CATALYST, ignored -> null);
@@ -110,10 +137,107 @@ class EcoCpuDispatchTest {
         }
     }
 
+    @Test void normalBusRecipeUsesItsOfferEvenWhenNoStatefulCalculatorIsNeeded() {
+        var provider = new FastProvider();
+        provider.stateful = true;
+        provider.capacity = 40_000;
+        var pattern = new EcoMolecularTestPattern(CATALYST, ignored -> RETURNED);
+        var count = BigInteger.valueOf(provider.capacity);
+        try (var admission = EcoCpuDispatch.prepare(request(provider, pattern, count, pattern.remainders()))) {
+            assertNotNull(admission);
+            assertEquals(count, admission.maximumCrafts());
+            assertEquals(count, admission.submit(count));
+        }
+        assertEquals(List.of(new GenericStack(RETURNED, provider.capacity)), provider.batch.remainingTotal());
+        assertEquals(1, provider.calls);
+    }
+
+    @Test void exactInputAwareOfferAcceptsTwoLongMaxMaterialsInOneLongBatch() {
+        var provider = new FastProvider();
+        provider.capacity = Long.MAX_VALUE;
+        var count = BigInteger.valueOf(Long.MAX_VALUE);
+        // The same key is drawn from two different slots in every craft.
+        var pattern = new EcoMolecularTestPattern(MATERIAL, ignored -> RETURNED);
+        var request = request(provider, pattern, count, pattern.remainders());
+        try (var admission = EcoCpuDispatch.prepare(request)) {
+            assertNotNull(admission);
+            assertEquals(BigInteger.valueOf(Long.MAX_VALUE / 2), admission.maximumCrafts());
+        }
+        provider.exactInputs = true;
+        try (var admission = EcoCpuDispatch.prepare(request)) {
+            assertNotNull(admission);
+            assertEquals(count, admission.maximumCrafts());
+            assertEquals(count, admission.submit(count));
+        }
+        assertEquals(Map.of(MATERIAL, count.multiply(BigInteger.TWO)), provider.batch.exactInputTotal());
+        assertEquals(List.of(new GenericStack(OUTPUT, Long.MAX_VALUE)), provider.batch.outputTotal());
+        assertEquals(List.of(new GenericStack(RETURNED, Long.MAX_VALUE)), provider.batch.remainingTotal());
+        assertEquals(1, request.unitInputs()[0].get(MATERIAL));
+        assertEquals(1, request.unitInputs()[1].get(MATERIAL));
+        assertEquals(1, provider.calls);
+    }
+
+    @Test void aContainerAndOutputOfTheSameKeyShareOneNativeLongCounter() {
+        var provider = new FastProvider();
+        provider.capacity = Long.MAX_VALUE;
+        provider.exactInputs = true;
+        var pattern = new EcoMolecularTestPattern(CATALYST, ignored -> OUTPUT);
+        var offered = BigInteger.valueOf(Long.MAX_VALUE);
+        var expected = offered.divide(BigInteger.TWO);
+        try (var admission = EcoCpuDispatch.prepare(request(provider, pattern, offered, pattern.remainders()))) {
+            assertNotNull(admission);
+            assertEquals(expected, admission.maximumCrafts());
+            assertEquals(expected, admission.submit(expected));
+        }
+        var stack = new GenericStack(OUTPUT, expected.longValueExact());
+        assertEquals(List.of(stack), provider.batch.outputTotal());
+        assertEquals(List.of(stack), provider.batch.remainingTotal());
+        assertEquals(1, provider.calls);
+    }
+
+    @Test void calculatedOfferMustUseTheSameInputsAndReturnsAsTheOmniReservation() throws Exception {
+        var registration = ResourceLocation.fromNamespaceAndPath("molecularmanipulator", "eco_cpu_linear_offer_test");
+        ECOExecutionOptimizationRegistry.register(registration, 1000, new ECOExecutionOptimizationAdapter() {
+            public boolean supports(IPatternDetails pattern) { return pattern instanceof EcoMolecularTestPattern; }
+            public ECOExecutionOptimization describe(IPatternDetails pattern) { return ECOExecutionOptimization.VERIFIED_ASSEMBLER; }
+        });
+        try {
+            var level = EcoMolecularTestPattern.level();
+            var count = BigInteger.valueOf(25_000);
+            for (var pattern : List.of(new EcoMolecularTestPattern(EcoMolecularTestPattern.CONTAINER, ignored -> RETURNED),
+                    new EcoMolecularTestPattern(CATALYST, key -> key))) {
+                var provider = new FastProvider();
+                provider.capacity = count.longValueExact();
+                provider.stateful = true;
+                var context = ECOBatchDispatchContext.create(pattern, pattern.first(), counter(OUTPUT, 1),
+                        pattern.remainders(), level, job);
+                provider.calculator = ECOFastPathFacade.prepareStatefulCalculator(context,
+                        EcoMolecularBatchModel.analyze(context).calculatorModel());
+                assertNotNull(provider.calculator);
+                var request = new OmniCapacityRequest(job, provider, pattern, pattern.first(), counter(OUTPUT, 1),
+                        pattern.remainders(), count, level);
+                try (var admission = EcoCpuDispatch.prepare(request)) {
+                    if (pattern.remainders().get(CATALYST) != 0) {
+                        assertNull(admission, "The calculator reserved one physical catalyst for the entire batch");
+                        assertEquals(0, provider.calls);
+                    } else {
+                        assertNotNull(admission);
+                        assertEquals(count, admission.maximumCrafts());
+                        assertEquals(count, admission.submit(count));
+                        assertEquals(List.of(new GenericStack(RETURNED, 25_000)), provider.batch.remainingTotal());
+                        assertEquals(1, provider.calls);
+                    }
+                }
+            }
+        } finally {
+            ECOExecutionOptimizationRegistry.unregister(registration);
+        }
+    }
+
     @Test void statefulPreparationCannotReplaceThePhysicalPrototypeOrItsReturns() {
         var provider = new FastProvider();
         provider.stateful = true;
-        var pattern = new EcoMolecularTestPattern(CATALYST, ignored -> RETURNED);
+        var pattern = new EcoMolecularTestPattern(CATALYST, key -> key);
         assertNull(EcoCpuDispatch.prepare(request(provider, pattern, BigInteger.TEN, pattern.remainders())));
         assertEquals(0, provider.calls);
     }
@@ -262,16 +386,19 @@ class EcoCpuDispatchTest {
         int calls;
         boolean exact;
         boolean stateful;
+        long capacity = 6;
+        boolean exactInputs;
+        ECOStatefulBatchCalculator calculator;
         boolean accept = true;
 
         public Preparation eco$prepareFastPath(ECOBatchDispatchContext context) {
             this.context = context;
-            return new Preparation(6, null, stateful, batch -> {
+            return new Preparation(capacity, calculator, stateful, batch -> {
                 calls++;
                 this.batch = batch;
                 if (uncertain != null) throw uncertain;
                 return accept;
-            });
+            }, exactInputs);
         }
 
         public ExactPreparation eco$prepareExactFastPath(ECOBatchDispatchContext context, BigInteger maximum) {

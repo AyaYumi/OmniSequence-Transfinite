@@ -3,6 +3,7 @@ package com.atir.molecularmanipulator.crafting.dispatch;
 import static com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern.CONTAINER;
 import static com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern.MATERIAL;
 import static com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern.OUTPUT;
+import static com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern.RETURNED;
 import static org.junit.jupiter.api.Assertions.*;
 
 import appeng.api.config.Actionable;
@@ -22,8 +23,12 @@ import com.atir.molecularmanipulator.api.crafting.OmniBatchProbe;
 import com.atir.molecularmanipulator.api.crafting.OmniBigIntegerCraftingProvider;
 import com.atir.molecularmanipulator.api.crafting.OmniPostAccountingOutputProvider;
 import com.atir.molecularmanipulator.config.ModConfig;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
+import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.crafting.OmniExactInventory;
+import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpuAccess;
 import java.lang.reflect.Field;
@@ -228,7 +233,13 @@ class OmniCapacityDispatcherTest {
         host.tasks.put(host.pattern, count);
         host.exact = OmniExactCraftingState.create(Map.of(host.pattern, count), Map.of(CONTAINER, count));
         host.stock.insertWithoutNotification(host.inventory, MATERIAL, count);
-        var exact = new ExactProvider(host, count);
+        class DualProvider extends ExactProvider implements OmniBatchCraftingProvider {
+            DualProvider(Host cpu, BigInteger requested) { super(cpu, requested); }
+            @Override public OmniBatchAdmission prepareOmniBatch(OmniBatchProbe probe) {
+                return fail("A long-only endpoint split a batch the exact endpoint could accept whole");
+            }
+        }
+        var exact = new DualProvider(host, count);
         var allowance = new Allowance(Long.MAX_VALUE, 32, 0);
         new OmniCapacityDispatcher().tick(host, allowance, service(exact), new Energy(Double.MAX_VALUE).service, null);
         assertEquals(1, exact.submissions);
@@ -240,7 +251,154 @@ class OmniCapacityDispatcherTest {
         assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(MATERIAL));
     }
 
-    @Test void inputlessRecipeUsesOneBoundedProviderCallWithoutPublicBatchProbe() throws Exception {
+    @Test void ordinaryOrderCanSubmitItsWholeStockToANativeExactProvider() throws Exception {
+        int count = 100_000;
+        var host = new Host(count);
+        host.own(CONTAINER, count);
+        host.own(MATERIAL, count);
+        var provider = new ExactProvider(host, n(count));
+        new OmniCapacityDispatcher().tick(host, new Allowance(Long.MAX_VALUE, 32, 0), service(provider),
+                new Energy(2.0 * count).service, null);
+        assertEquals(1, provider.submissions);
+        assertEquals(0, provider.singles);
+        assertTrue(host.tasks.isEmpty());
+        assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(n(count), host.ledger.available(host.waiting, null, OUTPUT));
+    }
+
+    @Test void oneCatalystSupportsAWholeBatchAndIsReturnedOnceEvenAfterARejectedHandoff() throws Exception {
+        int count = 100_000;
+        var host = new Host(count, new EcoMolecularTestPattern(CONTAINER, key -> key));
+        host.own(CONTAINER, 1);
+        host.own(MATERIAL, count);
+        var network = new Energy(count + 1);
+        class Machine extends MolecularProvider {
+            int pushes;
+            @Override public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+                var batch = MolecularBatchDispatchContext.current(pattern, inputs);
+                assertNotNull(batch);
+                assertEquals(host.id, batch.craftingId());
+                assertEquals(count, batch.craftCount());
+                assertEquals(1, inputs[0].get(CONTAINER));
+                assertEquals(count, inputs[1].get(MATERIAL));
+                assertEquals(1, batch.reusablePlan().expectedRemainders(count).get(CONTAINER));
+                assertEquals(BigInteger.ONE, host.ledger.available(host.waiting, null, CONTAINER));
+                return ++pushes == 2;
+            }
+        }
+        var machine = new Machine();
+        var service = service(machine);
+        var dispatcher = new OmniCapacityDispatcher();
+        var level = EcoMolecularTestPattern.level();
+        dispatcher.tick(host, new Allowance(Long.MAX_VALUE, 32, 0), service, network.service, level);
+        assertEquals(BigInteger.ONE, host.ecoOmni$physicalAmount(CONTAINER));
+        assertEquals(n(count), host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ZERO, host.ledger.available(host.waiting, null, OUTPUT));
+        dispatcher.tick(host, new Allowance(Long.MAX_VALUE, 32, 0), service, network.service, level);
+        assertEquals(2, machine.pushes);
+        assertTrue(host.tasks.isEmpty());
+        assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(CONTAINER));
+        assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(n(count), host.ledger.available(host.waiting, null, OUTPUT));
+        assertEquals(BigInteger.ONE, host.ledger.available(host.waiting, null, CONTAINER));
+        assertEquals(count + 1.0, network.paid);
+    }
+
+    @Test void separateRefundCapacityLimitsTheActualCatalystBatch() throws Exception {
+        var host = new Host(100_000, new EcoMolecularTestPattern(CONTAINER, key -> key));
+        host.own(CONTAINER, 1);
+        host.own(MATERIAL, 100_000);
+        var machine = new MolecularProvider() {
+            @Override public boolean molecularmanipulator$canBufferRefund(IPatternDetails pattern, KeyCounter refund) {
+                return refund.get(MATERIAL) <= 31_337;
+            }
+            @Override public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+                assertEquals(1, inputs[0].get(CONTAINER));
+                assertEquals(31_337, inputs[1].get(MATERIAL));
+                return true;
+            }
+        };
+        var allowance = new Allowance(Long.MAX_VALUE, 32, 0);
+        new OmniCapacityDispatcher().tick(host, allowance, service(machine), new Energy(200_000).service,
+                EcoMolecularTestPattern.level());
+        assertEquals(n(31_337), allowance.accepted);
+        assertEquals(n(68_663), host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ONE, host.ledger.available(host.waiting, null, CONTAINER));
+    }
+
+    @Test void wearProofRetainsTheWholeOrderUntilTheMachineCanAcceptIt() throws Exception {
+        int crafts = 4_097;
+        var tool = EcoMolecularTestPattern.tool(0, crafts, UUID.randomUUID());
+        var host = new Host(crafts, new EcoMolecularTestPattern(tool, key -> EcoMolecularTestPattern.worn(key, crafts)));
+        host.own(tool, 1);
+        host.own(MATERIAL, crafts);
+        var network = new Energy(crafts + 1);
+        var machine = new MolecularProvider() {
+            boolean proofReady;
+            int submissions;
+
+            @Override public ReusableValidation molecularmanipulator$validateReusableBatch(
+                    IPatternDetails pattern, MolecularReusableBatchPlan plan, UUID jobId) {
+                assertEquals(host.id, jobId);
+                assertEquals(crafts, plan.craftCount());
+                return proofReady ? ReusableValidation.READY : ReusableValidation.PENDING;
+            }
+
+            @Override public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+                var batch = MolecularBatchDispatchContext.current(pattern, inputs);
+                assertNotNull(batch);
+                assertTrue(batch.requiresReusableProof());
+                assertEquals(crafts, batch.craftCount());
+                assertEquals(1, inputs[0].get(tool));
+                assertEquals(crafts, inputs[1].get(MATERIAL));
+                submissions++;
+                return true;
+            }
+        };
+        var service = service(machine);
+        var dispatcher = new OmniCapacityDispatcher();
+        var level = EcoMolecularTestPattern.level();
+        dispatcher.tick(host, new Allowance(Long.MAX_VALUE, 32, 1), service, network.service, level);
+        assertEquals(0, machine.submissions);
+        assertEquals(n(crafts), host.omniDispatch$remaining(host.pattern));
+        assertEquals(BigInteger.ONE, host.ecoOmni$physicalAmount(tool));
+        assertEquals(n(crafts), host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(BigInteger.ZERO, host.ledger.available(host.waiting, null, OUTPUT));
+        assertEquals(0.0, network.paid);
+
+        machine.proofReady = true;
+        dispatcher.tick(host, new Allowance(Long.MAX_VALUE, 32, 1), service, network.service, level);
+        assertEquals(1, machine.submissions);
+        assertTrue(host.tasks.isEmpty());
+        assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(tool));
+        assertEquals(BigInteger.ZERO, host.ecoOmni$physicalAmount(MATERIAL));
+        assertEquals(n(crafts), host.ledger.available(host.waiting, null, OUTPUT));
+        assertEquals(crafts + 1.0, network.paid);
+    }
+
+    @Test void independentContainersAreChargedAndReturnedPerCopy() throws Exception {
+        var host = new Host(100_000, new EcoMolecularTestPattern(CONTAINER, key -> RETURNED));
+        host.own(CONTAINER, 100_000);
+        host.own(MATERIAL, 100_000);
+        var machine = new MolecularProvider() {
+            @Override public long molecularmanipulator$getBatchLimit(IPatternDetails pattern, KeyCounter outputs) {
+                return outputs.get(RETURNED) == 0 ? 100_000 : 80_000;
+            }
+            @Override public boolean pushPattern(IPatternDetails pattern, KeyCounter[] inputs) {
+                assertEquals(80_000, inputs[0].get(CONTAINER));
+                assertEquals(80_000, MolecularRemainderContext.expected(pattern, inputs).get(RETURNED));
+                return true;
+            }
+        };
+        var allowance = new Allowance(Long.MAX_VALUE, 32, 0);
+        new OmniCapacityDispatcher().tick(host, allowance, service(machine), new Energy(200_000).service,
+                EcoMolecularTestPattern.level());
+        assertEquals(n(80_000), allowance.accepted);
+        assertEquals(n(20_000), host.ecoOmni$physicalAmount(CONTAINER));
+        assertEquals(n(80_000), host.ledger.available(host.waiting, null, RETURNED));
+    }
+
+    @Test void inputlessJobUsesTheNativeCapacityContractWhenAvailable() throws Exception {
         var host = new Host(10, new IPatternDetails() {
             @Override public appeng.api.stacks.AEItemKey getDefinition() { return MATERIAL; }
             @Override public IInput[] getInputs() { return new IInput[0]; }
@@ -253,6 +411,24 @@ class OmniCapacityDispatcherTest {
         assertEquals(0, provider.submissions);
         assertEquals(BigInteger.ONE, allowance.accepted);
         assertEquals(BigInteger.ONE, host.ledger.available(host.waiting, null, OUTPUT));
+
+        var generator = new ExactProvider(host, n(9)) {
+            @Override public BigInteger getMaximumBigIntegerCrafts(IPatternDetails pattern, KeyCounter[] unit, BigInteger limit) {
+                assertEquals(0, unit.length);
+                return limit;
+            }
+            @Override public boolean pushBigIntegerCraftingPattern(IPatternDetails pattern, BigInteger crafts,
+                    KeyCounter[] unit, Object token) {
+                assertEquals(n(9), crafts);
+                assertEquals(0, unit.length);
+                assertSame(host.token, token);
+                return true;
+            }
+        };
+        new OmniCapacityDispatcher().tick(host, new Allowance(Long.MAX_VALUE, 32, 0), service(generator), new Energy(0).service, null);
+        assertTrue(host.tasks.isEmpty());
+        assertEquals(n(9), host.confirmed);
+        assertEquals(n(10), host.ledger.available(host.waiting, null, OUTPUT));
     }
 
     private static BigInteger n(long value) { return BigInteger.valueOf(value); }
@@ -289,6 +465,11 @@ class OmniCapacityDispatcherTest {
         @Override public void flushOutputsAfterCpuAccounting() { flushed++; }
     }
 
+    private abstract static class MolecularProvider extends Provider implements MolecularBatchCraftingProvider {
+        @Override public boolean molecularmanipulator$supportsBatching(IPatternDetails pattern) { return true; }
+        @Override public boolean molecularmanipulator$supportsReusableBatching(IPatternDetails pattern) { return true; }
+    }
+
     private static final class Target extends Provider implements OmniCapacityTarget {
         private final Function<OmniCapacityRequest, OmniCapacityAdmission> prepare;
         int preparations;
@@ -315,7 +496,7 @@ class OmniCapacityDispatcherTest {
         }
     }
 
-    private static final class ExactProvider extends Provider implements OmniBigIntegerCraftingProvider {
+    private static class ExactProvider extends Provider implements OmniBigIntegerCraftingProvider {
         private final Host host;
         private final BigInteger count;
         int submissions;
@@ -374,7 +555,8 @@ class OmniCapacityDispatcherTest {
 
     private static final class Host implements EcoOmniPlanCpuAccess {
         final UUID id = UUID.randomUUID();
-        final Object token = new Object();
+        BigInteger confirmed;
+        final ExactBatchToken token = count -> confirmed = count;
         final IPatternDetails pattern;
         final Map<IPatternDetails, Object> tasks = new LinkedHashMap<>();
         final OmniCpuDispatchLedger ledger = new OmniCpuDispatchLedger();
@@ -392,7 +574,7 @@ class OmniCapacityDispatcherTest {
         @Override public boolean omniDispatch$exactOrder() { return exact != null; }
         @Override public ICraftingInventory omniDispatch$physicalView() { return stock.wrap(inventory); }
         @Override public OmniCpuDispatchLedger.Energy omniDispatch$dispatchEnergy() { return ledger.energy(); }
-        @Override public Object omniDispatch$bigIntegerToken(IPatternDetails pattern, BigInteger crafts) { return token; }
+        @Override public ExactBatchToken omniDispatch$bigIntegerToken(Map<AEKey, BigInteger> outputsPerCraft) { return token; }
         @Override public BigInteger omniDispatch$remaining(IPatternDetails pattern) {
             return (BigInteger) tasks.getOrDefault(pattern, BigInteger.ZERO);
         }

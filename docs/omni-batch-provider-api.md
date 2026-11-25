@@ -21,9 +21,10 @@ transaction from an Omni-Computation Core or Transfinite Compute Nexus.
 From L7, a standard AE2 Pattern Provider can batch processing patterns with no
 returned inputs or output keys that also serve as inputs. The provider must be
 online with an empty send queue, with blocking and crafting locks disabled.
-Omni checks one input face at a time. A single input uses the target's insertion
+Omni selects the eligible face with the most room and can stop as soon as one fits the entire request. A single input uses the target's insertion
 simulation. Multiple inputs need a verified storage layout. They compete for the
 same slots and can use separate storage channels when those channels are independent.
+Configured ME interfaces place inputs in filtered and shared slots in delivery order. An ME chest with a basic storage cell deducts shared bytes and the cost of each new type. Capacity-based dispatch skips cells with a void card because they report discarded materials as accepted. A Mekanism Pressurized Reaction Chamber must expose the recipe's item, fluid and chemical inputs on the selected face, and all three must match the same reaction.
 
 Omni rechecks the selected face at submission. Pending sends from loaded providers
 toward the same inventory hold off new batches, including across both halves of a
@@ -39,8 +40,11 @@ One submission can contain the entire order at any of these tiers.
 
 Providers need a batch adapter when Omni cannot verify joint capacity. Without
 one, AE2 can send individual crafts within the server-wide fallback allowance.
-The server log reports multi-input orders using this fallback. Crafts with
-returned items can also use native pushes. AELIS cycles share their seed stock.
+The server logs the first successful single-craft fallback for a job whose stock and power allow multiple crafts. The message identifies the output and provider type. Crafts with returned items can also use native pushes. AELIS cycles share their seed stock.
+
+The Molecular Sequence Rewrite Array, Sequence Array and Assembler Matrix Sequence Rewrite Core validate returned items when accepting a batch. A recipe consuming one filled container per craft returns one empty container per craft. For an ordinary order with a reusable catalyst or deterministic tool wear, the CPU reserves the tools physically used by the batch and checks room for completed outputs, final tools and cancellation refunds. The machine can check the recipe at different wear states across several ticks. Materials stay in the CPU until the complete batch passes. Scheduled cycles and phases retain their own input allocations.
+
+Ordinary NeoECO bus recipes can use the endpoint's quoted capacity. For endpoints with a stateful calculator, the CPU checks the craft count, material debit and returned items against the proposed batch before submitting it. An endpoint advertising exact inputs can accept a per-key input total beyond `long`. Its craft count and output vectors still follow NeoECO's numeric types.
 
 The effective tier is sampled once per controller tick. A tier change switches
 the route for the remaining copies while providers continue delivering stock

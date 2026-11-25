@@ -15,8 +15,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class MolecularReusableInputAdapters {
     /**
-     * Maximum distinct damage states validated synchronously per dispatch.
-     * Identical tools share validation, so the total batch may be larger.
+     * Work window for callers that must prove a recipe in one synchronous call.
+     * Omni's staged CPU admission validates longer physical wear ranges across ticks.
      */
     public static final long MAX_DETERMINISTIC_TRANSITIONS = 2_048;
 
@@ -185,7 +185,7 @@ public final class MolecularReusableInputAdapters {
                 (long) stack.getMaxDamage() - stack.getDamageValue() + 1L);
     }
 
-    private static boolean isDeterministicDamageCandidate(AEKey key) {
+    public static boolean isDeterministicDamageCandidate(AEKey key) {
         if (!(key instanceof AEItemKey itemKey)) {
             return false;
         }

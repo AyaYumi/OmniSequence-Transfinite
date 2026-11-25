@@ -43,7 +43,6 @@ Research mutations belong on the owning server thread. Live queries also belong 
 | Neo ECO AE Extension | 21.2.19 or later. ECO 21.2.19 requires LDLib2 2.2.40 or later. |
 | Thunderbolt Core provider capacity | Requires 2.0.3-beta or later for the job-aware batch bridge. |
 | ExtendedAE Plus provider-selection and well-upload hooks | 1.6.4.1 only, including renamed assemblies |
-| Data Energistics Digital Storage Depot simulation | 3.3.0 and 3.3.5 only. Counts free space once per slot in a read-only check using actual slot limits. |
 | AdvancedAE Reaction Chamber and Quantum Crafter recipe locks | 1.6.12-1.21.1 only |
 
 ## Configuration / 配置

@@ -42,9 +42,6 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
             }
             return true;
         }
-        if (mixinClassName.endsWith(".TrinityMatterCpuJobContextMixin")) {
-            return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;
-        }
         if (mixinClassName.endsWith(".LegacyAelisTaskReconciliationMixin")) {
             var applied = loadingModList == null ? null : loadingModList.getModFileById("appliedenhancements");
             return applied != null && applied.getMods().stream().anyMatch(mod ->
@@ -63,12 +60,6 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         }
         if (mixinClassName.endsWith(".ThunderboltMatterPatternBatchMixin")) {
             return loadingModList != null && loadingModList.getModFileById("thunderbolt") != null;
-        }
-        if (mixinClassName.endsWith(".DataEnergisticsDepotSimulationMixin")) {
-            var data = loadingModList == null ? null : loadingModList.getModFileById("data_energistics");
-            return data != null && data.getMods().stream().anyMatch(mod ->
-                    mod.getModId().equals("data_energistics")
-                            && java.util.Set.of("3.3.0", "3.3.5").contains(mod.getVersion().toString()));
         }
         if (mixinClassName.endsWith(".DataEnergisticsCpuIdentityMixin")) {
             return loadingModList != null && loadingModList.getModFileById("data_energistics") != null;

@@ -103,7 +103,6 @@ When capacity cannot be verified, L7 and above send individual crafts within a s
 ### When using machines from other mods
 
 - **ECO** autocrafting integration supports **21.2.19 and later**.
-- **Data Energistics** Digital Storage Depot free-space handling supports **3.3.0 / 3.3.5**. The depot still needs actual room.
 - Research-permission integration for **AdvancedAE** Quantum Crafters and Reaction Chambers targets **1.6.12-1.21.1**. That is the supported integration version for those machines. Fabricating this core requires the AdvancedAE materials in its recipes, not that integration-specific version condition.
 
 ## Next steps

@@ -96,6 +96,8 @@ Return inputs sends back work that has not started; active work keeps its materi
 
 Compatible Neo ECO, Data Energistics Trinity and Lightning Tech CPUs can submit batch work. The [Transfinite Compute Nexus](transfinite_compute_nexus.md) can deliver a large available ingredient batch at once; processing draws power as it runs, not as a full-batch advance payment.
 
+Canceling a Trinity CPU job leaves ingredients already accepted by the assembly in its buffer. Use **Return inputs** to recover work that has not started.
+
 ## Next steps
 
 Try [Star Marrow material processing](star_marrow_crystals.md) or [Gravity Crystals](nomai_materials.md), then use [deep research](matter_fabrication_research.md) to increase batch sizes.

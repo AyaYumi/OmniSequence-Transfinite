@@ -96,6 +96,8 @@ ExtendedAE Plus 的自动选择上传目标功能支持 **1.6.4.1**。
 
 兼容的 Neo ECO、数据能源三位一体和闪电科技 CPU 可以提交批量任务。[超限算枢](transfinite_compute_nexus.md)能一次送入当前可用的大批原料；加工按运行进度耗电，不要求预付整批电量。
 
+取消三位一体 CPU 上的任务后，总成已经接收的原料会留在总成中。尚未开始加工的原料可用 **退回待加工原料** 手动取回。
+
 ## 接下来做什么
 
 试做[星髓加工材料](star_marrow_crystals.md)或[引力水晶](nomai_materials.md)，再用[深度研究](matter_fabrication_research.md)提高每批产量。

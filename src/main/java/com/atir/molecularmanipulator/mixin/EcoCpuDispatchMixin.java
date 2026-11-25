@@ -1,71 +1,36 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.config.Actionable;
-import appeng.api.crafting.IPatternDetails;
-import appeng.api.networking.energy.IEnergyService;
-import appeng.api.networking.IGrid;
 import appeng.api.networking.crafting.ICraftingPlan;
-import appeng.api.networking.crafting.ICraftingProvider;
-import appeng.api.networking.crafting.ICraftingRequester;
-import appeng.api.networking.crafting.ICraftingSubmitResult;
-import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.crafting.execution.CraftingCpuLogic;
-import appeng.crafting.execution.CraftingSubmitResult;
-import appeng.me.service.CraftingService;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatch;
-import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchAccess;
-import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
+import appeng.crafting.execution.ExecutingCraftingJob;
 import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
-import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpuAccess;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
+import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchAccess;
+import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchJournal;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanBridge;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.Level;
+import net.minecraft.nbt.Tag;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
 
-/** Optional ECO 21.2.9 boundary; call-site dispatch must enclose foreign batch dispatchers. */
+/** Optional NeoECO plan admission and legacy dispatch ownership migration. */
 @Mixin(value = CraftingCpuLogic.class, remap = false, priority = 1200)
 public abstract class EcoCpuDispatchMixin implements EcoCpuDispatchAccess, OmniCpuDispatchRunner {
-    @Shadow private int executeCrafting(int maxPatterns, CraftingService crafting,
-            IEnergyService energy, Level level) { throw new AssertionError(); }
+    @Shadow private ExecutingCraftingJob job;
+    @Unique private Tag molecularmanipulator$legacyEcoDispatch;
+    @Unique private boolean molecularmanipulator$sharedDispatchPaused;
 
-    /** Outer call-site boundary also encloses Thunderbolt's pre-execute batch dispatcher. */
-    @WrapOperation(method = "tickCraftingLogic", at = @At(value = "INVOKE",
-            target = "Lappeng/crafting/execution/CraftingCpuLogic;executeCrafting(ILappeng/me/service/CraftingService;Lappeng/api/networking/energy/IEnergyService;Lnet/minecraft/world/level/Level;)I"))
-    private int molecularmanipulator$dispatchOwnedCpu(CraftingCpuLogic self, int maxPatterns,
-            CraftingService crafting, IEnergyService energy, Level level, Operation<Integer> original) {
-        // Every owned CPU dispatch must pass the shared exact/phase/material accounting entry.
-        // Thunderbolt can otherwise mutate AE2 tasks before executeCrafting is entered at all.
-        return ((EcoOmniPlanCpuAccess) this).omniDispatch$enabled()
-                ? executeCrafting(maxPatterns, crafting, energy, level)
-                : original.call(self, maxPatterns, crafting, energy, level);
+    @Override public boolean ecoOmni$dispatchPaused() {
+        return molecularmanipulator$sharedDispatchPaused || molecularmanipulator$legacyEcoDispatch != null;
     }
 
-    @Unique private EcoCpuDispatch molecularmanipulator$ecoDispatcher;
-    @Override public EcoCpuDispatch omniDispatch$dispatcher() {
-        if (molecularmanipulator$ecoDispatcher == null) molecularmanipulator$ecoDispatcher = new EcoCpuDispatch();
-        return molecularmanipulator$ecoDispatcher;
-    }
-
-    @Override public int omniDispatch$execute(int maxPatterns, CraftingService crafting,
-            IEnergyService energy, Level level) {
-        return omniDispatch$dispatcher().execute((EcoOmniPlanCpuAccess) this, maxPatterns, crafting, energy, level);
-    }
-    @Override public boolean omniDispatch$defersSingle(IPatternDetails pattern, ICraftingProvider provider) {
-        return omniDispatch$dispatcher().defersSingle(pattern, provider);
-    }
-    @Override public int omniDispatch$executeDeferredSingle(int maximum, CraftingService crafting,
-            IEnergyService energy, Level level) {
-        return omniDispatch$dispatcher().executeDeferredSingle((EcoOmniPlanCpuAccess) this,
-                maximum, crafting, energy, level);
-    }
     @Override public boolean omniDispatch$isExactPlan(ICraftingPlan plan) {
         return plan instanceof ECOExactCraftingPlan;
     }
@@ -84,27 +49,23 @@ public abstract class EcoCpuDispatchMixin implements EcoCpuDispatchAccess, OmniC
         }
         return prepared.theoreticalBytes().max(initial);
     }
+
     @Override public void omniDispatch$suspend(String reason) {
-        omniDispatch$dispatcher().suspend(reason);
+        molecularmanipulator$sharedDispatchPaused = true;
     }
-    @WrapMethod(method = "tickCraftingLogic")
-    private void molecularmanipulator$holdUncertainEco(IEnergyService energy, CraftingService crafting, Operation<Void> original) {
-        if (!omniDispatch$dispatcher().suspended()) original.call(energy, crafting);
-    }
-    @WrapMethod(method = "trySubmitJob")
-    private ICraftingSubmitResult molecularmanipulator$blockUncertainReplacement(IGrid grid, ICraftingPlan plan,
-            IActionSource source, ICraftingRequester requester, Operation<ICraftingSubmitResult> original) {
-        return omniDispatch$dispatcher().suspended() ? CraftingSubmitResult.CPU_BUSY
-                : original.call(grid, plan, source, requester);
-    }
+
     @WrapMethod(method = "finishJob")
     private void molecularmanipulator$preserveUncertainJob(boolean success, Operation<Void> original) {
-        if (!success) molecularmanipulator$ecoDispatcher = null;
-        if (!success || !omniDispatch$dispatcher().suspended()) original.call(success);
+        if (success && ecoOmni$dispatchPaused()) return;
+        original.call(success);
+        if (!success && job == null) {
+            molecularmanipulator$legacyEcoDispatch = null;
+            molecularmanipulator$sharedDispatchPaused = false;
+        }
     }
     @WrapMethod(method = "insert")
     private long molecularmanipulator$preserveUncertainOutput(AEKey key, long amount, Actionable mode, Operation<Long> original) {
-        if (omniDispatch$dispatcher().suspended()) return 0L;
+        if (ecoOmni$dispatchPaused()) return 0L;
         // CraftingServiceStorage calls this while NetworkStorage is already inserting.
         // Keep the original entry so the shared link operation can take physical ownership;
         // it defers destination delivery until the CPU tick, preserving feedback and tails.
@@ -114,14 +75,20 @@ public abstract class EcoCpuDispatchMixin implements EcoCpuDispatchAccess, OmniC
     }
     @WrapMethod(method = "readFromNBT")
     private void molecularmanipulator$readEcoDispatch(CompoundTag tag, HolderLookup.Provider registries, Operation<Void> original) {
-        if (tag.contains(EcoCpuDispatch.NBT_KEY)) omniDispatch$dispatcher().read(tag.getCompound(EcoCpuDispatch.NBT_KEY));
-        else molecularmanipulator$ecoDispatcher = null;
+        var legacy = EcoCpuDispatchJournal.read(tag.get(EcoCpuDispatchJournal.NBT_KEY));
+        molecularmanipulator$legacyEcoDispatch = legacy.held();
+        molecularmanipulator$sharedDispatchPaused = false;
         original.call(tag, registries);
+        // The shared ledger restores its own balance during the original call.
+        if (legacy.credit().signum() > 0)
+            ((OmniCpuDispatchHost) this).omniDispatch$dispatchEnergy().addCredit(legacy.credit());
     }
     @WrapMethod(method = "writeToNBT")
     private void molecularmanipulator$writeEcoDispatch(CompoundTag tag, HolderLookup.Provider registries, Operation<Void> original) {
+        tag.remove(EcoCpuDispatchJournal.NBT_KEY);
         original.call(tag, registries);
-        if (molecularmanipulator$ecoDispatcher != null)
-            tag.put(EcoCpuDispatch.NBT_KEY, molecularmanipulator$ecoDispatcher.write(registries));
+        // A failed plan restore can write the original NBT verbatim, including its old balance.
+        if (!tag.contains(EcoCpuDispatchJournal.NBT_KEY) && molecularmanipulator$legacyEcoDispatch != null)
+            tag.put(EcoCpuDispatchJournal.NBT_KEY, molecularmanipulator$legacyEcoDispatch.copy());
     }
 }

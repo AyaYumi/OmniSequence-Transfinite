@@ -14,7 +14,6 @@ import appeng.crafting.execution.CraftingSubmitResult;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.blockentity.OmniComputationCoreBlockEntity;
-import com.atir.molecularmanipulator.crafting.OmniSmartDoublingPlanner;
 import com.atir.molecularmanipulator.crafting.MolecularExternalScaledPattern;
 import com.atir.molecularmanipulator.crafting.MolecularScaledPattern;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
@@ -33,7 +32,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 import java.util.Set;
 
@@ -73,18 +71,8 @@ public abstract class OmniCraftingServiceMixin implements OmniCraftingServiceBri
         return original.call(plan, requester, target, prioritizePower, source);
     }
 
-    @ModifyVariable(method = "submitJob", at = @At("HEAD"), argsOnly = true, ordinal = 0)
-    private ICraftingPlan molecularmanipulator$rewriteSmartDoublingPlan(ICraftingPlan plan) {
-        if (com.atir.molecularmanipulator.config.ModConfig.OMNI_BATCH_DISPATCH_ENABLED.get()
-                && com.atir.molecularmanipulator.starcomputation.StarComputationNetwork.forGrid(grid).infinite()) {
-            return OmniSmartDoublingPlanner.rewriteForSubmission(plan,
-                    pattern -> ((CraftingService) (Object) this).getProviders(pattern));
-        }
-        return plan;
-    }
-
     @Inject(method = "getProviders", at = @At("HEAD"), cancellable = true)
-    private void molecularmanipulator$resolveSmartPatternProviders(IPatternDetails pattern,
+    private void molecularmanipulator$resolveExistingScaledPatternProviders(IPatternDetails pattern,
             CallbackInfoReturnable<Iterable<ICraftingProvider>> callback) {
         try {
             IPatternDetails original = pattern;

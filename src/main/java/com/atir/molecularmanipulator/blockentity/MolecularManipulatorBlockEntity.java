@@ -27,6 +27,7 @@ import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainerHo
 import com.atir.molecularmanipulator.integration.ae2.SegmentedPatternContainers;
 import com.atir.molecularmanipulator.menu.MolecularManipulatorMenu;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.BlockPos;
@@ -161,6 +162,20 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
                         StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
     }
 
+    long getBatchLimit(IPatternDetails patternDetails, KeyCounter unitOutputs) {
+        if (!canAcceptPattern(getLevel()) || !(patternDetails instanceof IMolecularAssemblerSupportedPattern)
+                || !RecipeLocks.allowedPattern(this, patternDetails)) {
+            return 0;
+        }
+        return MolecularCraftingBatcher.outputCapacity(getRemainingAssemblerBudget(), MAX_BUFFERED_TYPES,
+                unitOutputs, bufferedOutputs, null);
+    }
+
+    private boolean canAcceptPattern(Level level) {
+        return !assembling && !hasActiveReusableBatch() && level != null && !level.isClientSide()
+                && getMainNode().getGrid() != null && getLogic().getReturnInv().isEmpty();
+    }
+
     private boolean consumeAssemblerBudget(long crafts) {
         var level = getLevel();
         return level != null && getMainNode().getGrid() != null
@@ -169,14 +184,8 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
     }
 
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
-        if (assembling || hasActiveReusableBatch()
-                || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
-            return false;
-        }
-
         var level = getLevel();
-        var grid = getMainNode().getGrid();
-        if (level == null || grid == null || !getLogic().getReturnInv().isEmpty()) {
+        if (!canAcceptPattern(level) || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
             return false;
         }
 
@@ -193,16 +202,7 @@ public final class MolecularManipulatorBlockEntity extends PatternProviderBlockE
             if (remainingBudget <= 0) {
                 return false;
             }
-            boolean prepared = batchContext != null
-                    ? craftingBatcher.prepareSelected(
-                            this, patternDetails, inputs,
-                            remainingBudget,
-                            batchContext.firstInputs(),
-                            batchContext.craftCount())
-                    : craftingBatcher.prepare(
-                            this, patternDetails, inputs,
-                            remainingBudget);
-            if (!prepared) {
+            if (!craftingBatcher.prepareDispatch(this, patternDetails, inputs, remainingBudget, batchContext)) {
                 return false;
             }
             var outputAmounts = craftingBatcher.getOutputAmounts();

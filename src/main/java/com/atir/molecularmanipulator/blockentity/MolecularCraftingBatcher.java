@@ -6,6 +6,7 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.menu.AutoCraftingMenu;
+import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
@@ -17,6 +18,7 @@ import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +44,143 @@ final class MolecularCraftingBatcher {
     private long craftCount;
     private boolean craftingGridPrepared;
     private Object planRecipeView;
+
+    static long outputCapacity(long crafts, int maxTypes, KeyCounter unitOutputs,
+            Object2LongOpenHashMap<AEKey> buffered,
+            @Nullable Object2LongOpenHashMap<AEKey> additionalBuffered) {
+        if (crafts <= 0) {
+            return 0;
+        }
+
+        int bufferedTypes = buffered.size();
+        int additionalTypes = additionalBuffered == null ? 0 : additionalBuffered.size();
+        long types = (long) bufferedTypes + additionalTypes;
+        if (additionalBuffered != null && bufferedTypes != 0 && additionalTypes != 0) {
+            // Center splits its buffer by output kind, but both count against one capacity.
+            var smaller = bufferedTypes <= additionalTypes ? buffered : additionalBuffered;
+            var larger = smaller == buffered ? additionalBuffered : buffered;
+            var entries = smaller.object2LongEntrySet().fastIterator();
+            while (entries.hasNext()) {
+                var entry = entries.next();
+                long otherAmount = larger.getLong(entry.getKey());
+                if (otherAmount > 0) {
+                    if (entry.getLongValue() > Long.MAX_VALUE - otherAmount) {
+                        return 0;
+                    }
+                    types--;
+                }
+            }
+        }
+        if (types > maxTypes) {
+            return 0;
+        }
+
+        boolean hasOutput = false;
+        for (var entry : unitOutputs) {
+            long amount = entry.getLongValue();
+            if (amount <= 0) {
+                return 0;
+            }
+            hasOutput = true;
+            var key = entry.getKey();
+            long queued = buffered.getLong(key);
+            if (additionalBuffered != null) {
+                queued += additionalBuffered.getLong(key);
+            }
+            if (queued == 0 && ++types > maxTypes) {
+                return 0;
+            }
+            crafts = Math.min(crafts, (Long.MAX_VALUE - queued) / amount);
+            if (crafts == 0) {
+                return 0;
+            }
+        }
+        return hasOutput ? crafts : 0;
+    }
+
+    boolean prepareDispatch(BlockEntity machine, IPatternDetails patternDetails, KeyCounter[] inputs,
+            long maxCrafts, @Nullable MolecularBatchDispatchContext.Context context) {
+        if (context == null) {
+            return prepare(machine, patternDetails, inputs, maxCrafts);
+        }
+        var unitOutputs = context.fixedUnitOutputs();
+        if (unitOutputs == null) {
+            return prepareSelected(machine, patternDetails, inputs, maxCrafts, context.firstInputs(), context.craftCount());
+        }
+        return prepareFixed(machine, patternDetails, inputs, maxCrafts, context.firstInputs(),
+                unitOutputs, context.craftCount());
+    }
+
+    /** Validates the quoted one-craft selection once before scaling its output. */
+    private boolean prepareFixed(BlockEntity machine, IPatternDetails patternDetails, KeyCounter[] inputs,
+            long maxCrafts, KeyCounter[] unitInputs, KeyCounter unitOutputs, long count) {
+        var level = machine.getLevel();
+        if (level == null || level.isClientSide() || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)
+                || count <= 0 || count > maxCrafts || !matchesFixedInputs(inputs, unitInputs, count)
+                || !RecipeLocks.allowedPattern(machine, patternDetails)) {
+            return false;
+        }
+
+        try (var scope = RecipeExecutionContext.open(machine)) {
+            prepareSimulationInputs(unitInputs);
+            if (!fillCraftingGrid(pattern, simulatedInputs)) {
+                return false;
+            }
+            var craftingInput = craftingGrid.asPositionedCraftInput().input();
+            var output = pattern.assemble(craftingInput, level);
+            if (output.isEmpty()) {
+                return false;
+            }
+            var crafted = output.copy();
+            crafted.onCraftedBySystem(level);
+            var key = AEItemKey.of(crafted);
+            if (key == null || unitOutputs.size() != 1 || unitOutputs.get(key) != crafted.getCount()) {
+                return false;
+            }
+            for (var remainder : pattern.getRemainingItems(craftingInput)) {
+                if (!remainder.isEmpty()) {
+                    return false;
+                }
+            }
+
+            long total = Math.multiplyExact((long) crafted.getCount(), count);
+            primaryOutputAmounts.clear();
+            primaryOutputAmounts.put(key, total);
+            remainderOutputAmounts.clear();
+            outputAmounts.clear();
+            outputAmounts.put(key, total);
+            preparedPlan = null;
+            craftingGridPrepared = true;
+            craftedOutput = crafted;
+            craftCount = count;
+            return true;
+        } catch (RuntimeException exception) {
+            return failSelectedPreparation();
+        }
+    }
+
+    private static boolean matchesFixedInputs(KeyCounter[] inputs, KeyCounter[] unitInputs, long count) {
+        if (inputs.length != unitInputs.length) {
+            return false;
+        }
+        long maxUnitAmount = Long.MAX_VALUE / count;
+        for (int slot = 0; slot < inputs.length; slot++) {
+            var aggregate = inputs[slot];
+            var unit = unitInputs[slot];
+            int keys = 0;
+            for (var entry : unit) {
+                long amount = entry.getLongValue();
+                if (amount <= 0 || amount > maxUnitAmount || aggregate.get(entry.getKey()) != amount * count) {
+                    return false;
+                }
+                keys++;
+            }
+            if (aggregate.size() != keys) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /** Runtime entry: even a warm plan cache requires a fresh machine/grid authorization. */
     boolean prepare(BlockEntity machine, IPatternDetails patternDetails, KeyCounter[] inputs, long maxCrafts) {

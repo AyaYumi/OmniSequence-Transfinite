@@ -20,7 +20,11 @@ import appeng.hooks.ticking.TickHandler;
 import appeng.me.cluster.implementations.CraftingCPUCluster;
 import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityAdmission;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
+import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatch;
+import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchAccess;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanAdmission;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanBridge;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpu;
@@ -38,6 +42,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -47,7 +52,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Loaded only with ECO 21.2.9. The shared CPU never links an ECO implementation class. */
+/** Optional NeoECO plan lifecycle and provider admission. */
 @Mixin(value = CraftingCpuLogic.class, remap = false)
 public abstract class EcoOmniCpuPlanMixin implements EcoOmniPlanCpu, EcoOmniPlanCpuAccess {
     @Shadow @Final private CraftingCPUCluster cluster;
@@ -82,7 +87,8 @@ public abstract class EcoOmniCpuPlanMixin implements EcoOmniPlanCpu, EcoOmniPlan
 
     @Override public boolean ecoOmni$paused() {
         return molecularmanipulator$ecoSuspended || molecularmanipulator$ecoRestoring
-                || molecularmanipulator$ecoFailedSnapshot != null;
+                || molecularmanipulator$ecoFailedSnapshot != null
+                || this instanceof EcoCpuDispatchAccess dispatch && dispatch.ecoOmni$dispatchPaused();
     }
 
     @WrapMethod(method = "trySubmitJob")
@@ -141,8 +147,9 @@ public abstract class EcoOmniCpuPlanMixin implements EcoOmniPlanCpu, EcoOmniPlan
     }
 
     @Override public Set<Map.Entry<IPatternDetails, Object>> ecoOmni$candidates(Map<IPatternDetails, Object> tasks) {
-        return ecoOmni$paused() || molecularmanipulator$ecoExecution == null ? Set.of()
-                : molecularmanipulator$ecoExecution.candidateEntries(tasks);
+        if (ecoOmni$paused()) return Set.of();
+        if (molecularmanipulator$ecoExecution != null) return molecularmanipulator$ecoExecution.candidateEntries(tasks);
+        return ecoOmni$managed() ? Set.of() : tasks.entrySet();
     }
 
     @Override public ICraftingInventory ecoOmni$guard(IPatternDetails pattern, ICraftingInventory physical) {
@@ -159,23 +166,39 @@ public abstract class EcoOmniCpuPlanMixin implements EcoOmniPlanCpu, EcoOmniPlan
 
     @Override public KeyCounter[] ecoOmni$extract(IPatternDetails pattern, ICraftingInventory physical, Level level,
             KeyCounter outputs, KeyCounter containers, Supplier<KeyCounter[]> ordinary) {
+        return molecularmanipulator$extractEcoInputs(physical, level, outputs, containers, ordinary, true);
+    }
+
+    @Override public KeyCounter[] ecoOmni$previewExtract(IPatternDetails pattern, ICraftingInventory physical, Level level,
+            KeyCounter outputs, KeyCounter containers, Supplier<KeyCounter[]> ordinary) {
+        return molecularmanipulator$extractEcoInputs(physical, level, outputs, containers, ordinary, false);
+    }
+
+    @Unique private KeyCounter[] molecularmanipulator$extractEcoInputs(ICraftingInventory physical, Level level,
+            KeyCounter outputs, KeyCounter containers, Supplier<KeyCounter[]> ordinary, boolean fromPhysicalStock) {
         if (!ecoOmni$managed()) return ordinary.get();
         var dispatch = molecularmanipulator$ecoDispatch;
         if (dispatch == null || ecoOmni$paused()) return null;
         var inputs = dispatch.extractInputs(physical, level, outputs, containers);
         if (inputs == null) return null;
-        var units = new LinkedHashMap<AEKey, BigInteger>();
-        molecularmanipulator$ecoUnitInputs = new KeyCounter[inputs.length];
-        for (int slot = 0; slot < inputs.length; slot++) {
-            var copy = molecularmanipulator$ecoUnitInputs[slot] = new KeyCounter();
-            for (var entry : inputs[slot]) {
-                copy.add(entry.getKey(), entry.getLongValue());
-                units.merge(entry.getKey(), BigInteger.valueOf(entry.getLongValue()), BigInteger::add);
+        if (fromPhysicalStock) {
+            var units = new LinkedHashMap<AEKey, BigInteger>();
+            molecularmanipulator$ecoUnitInputs = new KeyCounter[inputs.length];
+            for (int slot = 0; slot < inputs.length; slot++) {
+                var copy = molecularmanipulator$ecoUnitInputs[slot] = new KeyCounter();
+                for (var entry : inputs[slot]) {
+                    copy.add(entry.getKey(), entry.getLongValue());
+                    units.merge(entry.getKey(), BigInteger.valueOf(entry.getLongValue()), BigInteger::add);
+                }
             }
+            // AE2 physically removed this copy during extraction. The provider may mutate its holders.
+            molecularmanipulator$ecoLimit = dispatch.limit(molecularmanipulator$ecoUnitInputs,
+                    key -> ecoOmni$physicalAmount(key).add(units.getOrDefault(key, BigInteger.ZERO)), dispatch.maximum());
+        } else {
+            // The common scheduler's immutable prototype used a local inventory overlay.
+            molecularmanipulator$ecoUnitInputs = inputs;
+            molecularmanipulator$ecoLimit = dispatch.limit(inputs, this::ecoOmni$physicalAmount, dispatch.maximum());
         }
-        // Reconstruct physical stock before the one prototype was reserved. Cache before expansion.
-        molecularmanipulator$ecoLimit = dispatch.limit(molecularmanipulator$ecoUnitInputs,
-                key -> ecoOmni$physicalAmount(key).add(units.getOrDefault(key, BigInteger.ZERO)), dispatch.maximum());
         if (molecularmanipulator$ecoLimit.signum() > 0) return inputs;
         CraftingCpuHelper.reinjectPatternInputs(physical, inputs);
         outputs.reset();
@@ -189,13 +212,22 @@ public abstract class EcoOmniCpuPlanMixin implements EcoOmniPlanCpu, EcoOmniPlan
                 : requested.min(molecularmanipulator$ecoLimit);
     }
 
+    @Override public <T> T ecoOmni$withProviderScope(Supplier<T> action) {
+        var dispatch = molecularmanipulator$ecoDispatch;
+        try (var scope = dispatch == null ? null : dispatch.openProviderScope()) {
+            return action.get();
+        }
+    }
+
+    @Override public @Nullable OmniCapacityAdmission ecoOmni$prepareBatch(OmniCapacityRequest request) {
+        if (ecoOmni$paused() || ecoOmni$managed() && molecularmanipulator$ecoDispatch == null) return null;
+        return EcoCpuDispatch.prepare(request);
+    }
+
     @Override public boolean ecoOmni$pushProvider(ICraftingProvider provider, IPatternDetails pattern,
             KeyCounter[] inputs, Supplier<Boolean> ordinary) {
-        if (!ecoOmni$managed()) return ordinary.get();
-        if (ecoOmni$paused() || molecularmanipulator$ecoDispatch == null) return false;
-        try (var scope = molecularmanipulator$ecoDispatch.openProviderScope()) {
-            return ordinary.get();
-        }
+        if (ecoOmni$paused() || ecoOmni$managed() && molecularmanipulator$ecoDispatch == null) return false;
+        return ecoOmni$withProviderScope(() -> EcoCpuDispatch.pushSingle(provider, pattern, inputs, omniDispatch$jobId(), ordinary));
     }
 
     @Override public void ecoOmni$accepted(IPatternDetails pattern, BigInteger count) {

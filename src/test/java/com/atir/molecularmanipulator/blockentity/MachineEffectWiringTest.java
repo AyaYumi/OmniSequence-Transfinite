@@ -288,7 +288,7 @@ class MachineEffectWiringTest {
         assertTrue(fields(method(motion, "save")).stream().anyMatch(field -> field.name.equals("reclaimAfterDock")));
     }
 
-    @Test void omniRetainsStarGradedPhysicalVirtualCpusAndSharedBudgetsWithoutAutomergeDuplicates() throws IOException {
+    @Test void omniRetainsStarGradedPhysicalVirtualCpusWithoutAutomergeDuplicates() throws IOException {
         var type = read(ROOT + "blockentity/OmniComputationCoreBlockEntity");
         var signatures = new java.util.HashSet<String>();
         for (var method : type.methods) assertTrue(signatures.add(method.name + method.desc), method.name);
@@ -303,9 +303,6 @@ class MachineEffectWiringTest {
         assertCall(create, type.name, "allocateVirtualCpuLaneId");
         assertCall(create, type.name, "hasUnrestoredCpuStates");
         assertCall(method(type, "reserveCpuStorage"), ROOT + "crafting/OmniCpuResources$StorageBudget", "reserve");
-        assertCall(method(type, "claimDispatchAllowance"), ROOT + "crafting/OmniDispatchBudgetLedger", "claim");
-        assertCall(method(type, "recordDispatchWork"), ROOT + "crafting/OmniDispatchBudgetLedger", "record");
-        assertCall(method(type, "prepareDispatchAllowances"), ROOT + "crafting/OmniCpuResources", "singleDispatchLimit");
     }
 
     @Test void fabricationAndOmniOnlyReplaceTheCapturedLevelAndKeepEarlyParallelGeometry() throws IOException {

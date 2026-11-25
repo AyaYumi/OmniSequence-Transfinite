@@ -51,6 +51,12 @@ public final class MolecularManipulatorLogic extends PatternProviderLogic implem
     }
 
     @Override
+    public long molecularmanipulator$getBatchLimit(IPatternDetails patternDetails, KeyCounter unitOutputs) {
+        return machine.getMainNode().isActive() && availablePatterns.contains(patternDetails)
+                ? machine.getBatchLimit(patternDetails, unitOutputs) : 0;
+    }
+
+    @Override
     public boolean molecularmanipulator$supportsReusableBatching(
             IPatternDetails patternDetails) {
         return molecularmanipulator$supportsBatching(patternDetails);

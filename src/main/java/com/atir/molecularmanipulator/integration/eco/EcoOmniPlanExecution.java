@@ -18,11 +18,15 @@ import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
 import java.math.BigInteger;
+import java.util.AbstractSet;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -52,6 +56,7 @@ public final class EcoOmniPlanExecution {
     private final UUID planningId;
     private final ECOExecutionRuntime runtime;
     private long revision;
+    private List<DispatchCandidate> candidates;
 
     EcoOmniPlanExecution(ECOExecutionPlan plan, Map<Integer, IPatternDetails> bindings,
             Map<Integer, BigInteger> totals, Map<Integer, BigInteger> remaining,
@@ -110,33 +115,51 @@ public final class EcoOmniPlanExecution {
         return result;
     }
 
-    /** Fresh candidates are essential after each accepted batch, even within one AE dispatch pass. */
-    public List<IPatternDetails> candidatePatterns() {
-        var result = new LinkedHashSet<IPatternDetails>();
-        for (var candidate : runtime.candidates(Map.of())) result.add(candidate.pattern());
-        return List.copyOf(result);
+    private List<DispatchCandidate> candidates() {
+        if (candidates == null) candidates = runtime.candidates(Map.of());
+        return candidates;
     }
 
     /** AE2's iterator.remove must delete the real task row, while ECO controls visit order. */
     public Set<Map.Entry<IPatternDetails, Object>> candidateEntries(Map<IPatternDetails, Object> tasks) {
-        var patterns = candidatePatterns().stream().filter(tasks::containsKey).toList();
-        return new java.util.AbstractSet<>() {
-            @Override public int size() { return patterns.size(); }
-            @Override public java.util.Iterator<Map.Entry<IPatternDetails, Object>> iterator() {
-                var iterator = patterns.iterator();
-                return new java.util.Iterator<>() {
-                    private IPatternDetails current;
-                    private boolean removable;
-                    @Override public boolean hasNext() { return iterator.hasNext(); }
+        if (tasks.isEmpty()) return Set.of();
+        return new AbstractSet<>() {
+            @Override public int size() {
+                int count = 0;
+                for (var ignored : this) count++;
+                return count;
+            }
+
+            @Override public Iterator<Map.Entry<IPatternDetails, Object>> iterator() {
+                var ordered = candidates().iterator();
+                return new Iterator<>() {
+                    private final Set<IPatternDetails> visited = new HashSet<>();
+                    private Map.Entry<IPatternDetails, Object> current;
+                    private IPatternDetails next;
+
+                    @Override public boolean hasNext() {
+                        if (next != null && tasks.containsKey(next)) return true;
+                        while (ordered.hasNext()) {
+                            var pattern = ordered.next().pattern();
+                            if (tasks.containsKey(pattern) && visited.add(pattern)) {
+                                next = pattern;
+                                return true;
+                            }
+                        }
+                        next = null;
+                        return false;
+                    }
+
                     @Override public Map.Entry<IPatternDetails, Object> next() {
-                        current = iterator.next();
-                        removable = true;
-                        return Map.entry(current, tasks.get(current));
+                        if (!hasNext()) throw new NoSuchElementException();
+                        current = Map.entry(next, tasks.get(next));
+                        next = null;
+                        return current;
                     }
                     @Override public void remove() {
-                        if (!removable) throw new IllegalStateException();
-                        tasks.remove(current);
-                        removable = false;
+                        if (current == null) throw new IllegalStateException();
+                        tasks.remove(current.getKey(), current.getValue());
+                        current = null;
                     }
                 };
             }
@@ -145,7 +168,7 @@ public final class EcoOmniPlanExecution {
 
     /** A token pins the ECO task ID while the CPU probes providers and reserves inputs. */
     public Dispatch begin(IPatternDetails pattern) {
-        for (var candidate : runtime.candidates(Map.of())) {
+        for (var candidate : candidates()) {
             if (candidate.pattern() == pattern || PlanIdentity.samePattern(candidate.pattern(), pattern)) {
                 return new Dispatch(this, candidate, revision);
             }
@@ -375,27 +398,6 @@ public final class EcoOmniPlanExecution {
             return upper;
         }
 
-        /** Stateful tool pools may spend validated wear variants of the extracted prototype. */
-        public boolean allowsInputKeys(KeyCounter[] prototype, Set<AEKey> actualKeys, Level level) {
-            check();
-            var inputs = pattern().getInputs();
-            for (var key : actualKeys) {
-                boolean allowed = false;
-                for (int slot = 0; slot < prototype.length && !allowed; slot++) {
-                    for (var entry : prototype[slot]) {
-                        if (entry.getLongValue() > 0 && (entry.getKey().equals(key)
-                                || MolecularReusableInputAdapters.isDeterministicDamageVariant(
-                                        inputs[slot], entry.getKey(), key, level))) {
-                            allowed = true;
-                            break;
-                        }
-                    }
-                }
-                if (!allowed) return false;
-            }
-            return true;
-        }
-
         /** Use this instead of CraftingCpuHelper for ECO inputs; provider sees the original pattern. */
         public KeyCounter[] extractInputs(ICraftingInventory guardedPhysical, Level level,
                 KeyCounter expectedOutputs, KeyCounter containers) {
@@ -461,6 +463,7 @@ public final class EcoOmniPlanExecution {
             owner.remaining.put(taskId(), next);
             // ECO records bounded witness progress and startup seed consumption.
             owner.runtime.onAcceptedExact(candidate, count, unitInputs);
+            owner.candidates = null;
             owner.revision++;
             accepted = true;
         }

@@ -4,11 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.crafting.ICraftingProvider;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ListCraftingInventory;
+import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
+import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime;
 import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
@@ -16,6 +19,7 @@ import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type;
 import cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode;
 import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -206,9 +210,6 @@ class EcoOmniPlanExecutionTest {
         var wornInputs = next.extractInputs(stock, level, new KeyCounter(), new KeyCounter());
         assertNotNull(wornInputs, "Returned wear must not require the original pristine allocation key");
         assertEquals(1, wornInputs[0].get(returned));
-        assertTrue(next.allowsInputKeys(pattern.first(), Set.of(returned, EcoMolecularTestPattern.MATERIAL), level));
-        assertFalse(next.allowsInputKeys(pattern.first(), Set.of(foreign), level));
-        assertFalse(next.allowsInputKeys(pattern.first(), Set.of(GOLD), level), "Consumables remain allocated");
         next.accepted(BigInteger.ONE, wornInputs);
         stock.insert(foreign, 1, Actionable.MODULATE);
         assertNull(fixture.execution.begin(pattern).extractInputs(stock, level, new KeyCounter(), new KeyCounter()));
@@ -305,6 +306,11 @@ class EcoOmniPlanExecutionTest {
         var tasks = new LinkedHashMap<IPatternDetails, Object>();
         tasks.put(second, new Object());
         tasks.put(first, new Object());
+        var stale = fixture.execution.candidateEntries(tasks).iterator();
+        assertTrue(stale.hasNext());
+        tasks.remove(first);
+        assertFalse(stale.hasNext(), "A cached candidate can disappear from the live task map");
+        tasks.put(first, new Object());
         var iterator = fixture.execution.candidateEntries(tasks).iterator();
         assertEquals(first, iterator.next().getKey());
         assertFalse(iterator.hasNext());
@@ -357,14 +363,23 @@ class EcoOmniPlanExecutionTest {
         assertNotNull(inputs);
         assertEquals(6, cpu.stock.list.get(IRON));
         assertEquals(BigInteger.TWO, cpu.ecoOmni$limit(pattern, BigInteger.TEN));
-        assertFalse(cpu.ecoOmni$pushProvider(null, pattern, inputs, () -> false));
+        SingleProvider rejecting = (sent, delivery, id) -> {
+            assertSame(pattern, sent);
+            assertEquals(cpu.omniDispatch$jobId(), id);
+            return false;
+        };
+        assertFalse(cpu.ecoOmni$pushProvider(rejecting, pattern, inputs, () -> fail("Vanilla push")));
         assertEquals(BigInteger.TWO, fixture.execution.remainingByTask().get(0));
         // A real provider may consume/clear the supplied counters. Seed accounting needs its own prototype.
-        assertTrue(cpu.ecoOmni$pushProvider(null, pattern, inputs, () -> {
-            inputs[0].reset();
-            cpu.ecoOmni$accepted(pattern, BigInteger.ONE);
+        SingleProvider accepting = (sent, delivery, id) -> {
+            assertSame(pattern, sent);
+            assertEquals(cpu.omniDispatch$jobId(), id);
+            delivery[0].reset();
             return true;
-        }));
+        };
+        assertTrue(cpu.ecoOmni$pushProvider(accepting, pattern, inputs, () -> fail("Vanilla push")));
+        assertEquals(BigInteger.TWO, fixture.execution.remainingByTask().get(0));
+        cpu.ecoOmni$accepted(pattern, BigInteger.ONE);
         assertEquals(BigInteger.ONE, fixture.execution.remainingByTask().get(0));
         var seeds = fixture.execution.write(REGISTRIES).getCompound("runtime").getList("startupSeeds", Tag.TAG_COMPOUND);
         assertEquals(1, GenericStack.readTag(REGISTRIES, seeds.getCompound(0)).amount());
@@ -389,6 +404,43 @@ class EcoOmniPlanExecutionTest {
         assertNotNull(cpu.ecoOmni$extract(second, guarded, null, new KeyCounter(), new KeyCounter(), () -> null));
         assertEquals(BigInteger.valueOf(4), cpu.ecoOmni$limit(second, BigInteger.TEN.pow(40)),
                 "Native requests are bounded using physical stock before prototype extraction");
+
+        // The capacity overlay removes its prototype locally. The physical cap must not add it back.
+        cpu.stock.insert(GOLD, 2, Actionable.MODULATE);
+        var overlay = new ListCraftingInventory(key -> {});
+        overlay.insert(GOLD, 9, Actionable.MODULATE);
+        var preview = cpu.ecoOmni$guard(second, overlay);
+        var outputs = new KeyCounter();
+        var remainders = new KeyCounter();
+        var inputs = cpu.ecoOmni$previewExtract(second, preview, null, outputs, remainders,
+                () -> fail("ECO phase must control the preview"));
+        assertNotNull(inputs);
+        assertEquals(9, cpu.stock.list.get(GOLD));
+        assertEquals(7, overlay.list.get(GOLD));
+        var maximum = cpu.ecoOmni$limit(second, BigInteger.TEN);
+        assertEquals(BigInteger.valueOf(4), maximum);
+        CapacityProvider provider = context -> {
+            assertSame(second, context.pattern());
+            assertEquals(cpu.omniDispatch$jobId(), context.craftingJobId());
+            assertEquals(List.of(new GenericStack(GOLD, 2)), context.inputItems());
+            return new ECOFastPathDispatchProvider.Preparation(100, null, false, batch -> {
+                assertEquals(4, batch.craftCount());
+                assertEquals(List.of(new GenericStack(GOLD, 8)), batch.inputTotal());
+                return true;
+            });
+        };
+        var request = new OmniCapacityRequest(cpu.omniDispatch$jobId(), provider, second, inputs,
+                outputs, remainders, maximum, null);
+        try (var admission = cpu.ecoOmni$withProviderScope(() -> cpu.ecoOmni$prepareBatch(request))) {
+            assertNotNull(admission);
+            assertEquals(maximum, admission.maximumCrafts());
+            assertEquals(8, cpu.stock.extract(GOLD, 8, Actionable.MODULATE));
+            var accepted = cpu.ecoOmni$withProviderScope(() -> admission.submit(maximum));
+            assertEquals(BigInteger.TEN, fixture.execution.remainingByTask().get(1));
+            cpu.ecoOmni$accepted(second, accepted);
+        }
+        assertEquals(BigInteger.valueOf(6), fixture.execution.remainingByTask().get(1));
+        assertEquals(1, cpu.stock.list.get(GOLD));
     }
 
     @Test void failedCpuRestoreKeepsAnImmutableFullNbtSnapshotAndBlocksResubmission() throws Exception {
@@ -463,12 +515,14 @@ class EcoOmniPlanExecutionTest {
     }
     private static final class CpuFixture extends com.atir.molecularmanipulator.mixin.EcoOmniCpuPlanMixin {
         private final ListCraftingInventory stock = new ListCraftingInventory(key -> {});
+        private final UUID jobId = UUID.randomUUID();
         private com.atir.molecularmanipulator.crafting.OmniExactCraftingState state;
         CpuFixture() throws ReflectiveOperationException {
             var field = com.atir.molecularmanipulator.mixin.EcoOmniCpuPlanMixin.class.getDeclaredField("cluster");
             field.setAccessible(true);
             field.set(this, new appeng.me.cluster.implementations.CraftingCPUCluster(net.minecraft.core.BlockPos.ZERO, net.minecraft.core.BlockPos.ZERO));
         }
+        @Override public UUID omniDispatch$jobId() { return jobId; }
         @Override public com.atir.molecularmanipulator.crafting.OmniExactCraftingState ecoOmni$exactState() { return state; }
         @Override public void ecoOmni$installExactState(com.atir.molecularmanipulator.crafting.OmniExactCraftingState state) { this.state = state; }
         @Override public Map<IPatternDetails, Object> ecoOmni$tasks() { return Map.of(); }
@@ -479,6 +533,15 @@ class EcoOmniPlanExecutionTest {
             throw new IllegalArgumentException("Missing physical item");
         }
     }
+
+    private interface TestProvider extends ICraftingProvider {
+        default boolean isBusy() { return false; }
+        default List<IPatternDetails> getAvailablePatterns() { return List.of(); }
+        default boolean pushPattern(IPatternDetails pattern, KeyCounter[] items) { return fail("Vanilla push"); }
+    }
+
+    private interface SingleProvider extends TestProvider, ECOJobAwareCraftingProvider {}
+    private interface CapacityProvider extends TestProvider, ECOFastPathDispatchProvider {}
 
     private record Fixture(EcoOmniPlanExecution execution) {}
     private static Fixture fixture(ECOExecutionPlan plan, Map<Integer, BigInteger> totals,

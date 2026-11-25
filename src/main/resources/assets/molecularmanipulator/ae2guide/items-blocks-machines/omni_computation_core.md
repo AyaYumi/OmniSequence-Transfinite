@@ -78,11 +78,12 @@ Check JEI's structure page for the full quantities of these parts, then build at
 
 | Star Computation Engine on the same network | Order and work limits |
 | --- | --- |
-| No active, valid engine | All orders share **1 MiB of crafting storage and 16 recipe copies per tick**. |
-| L1 to L9, normal | Up to 512 recipe copies per tick at L1. Each level doubles that limit, up to 131,072 at L9. |
-| L9, overclocked | While the engine has enough Star Signal Flow, the core has no fixed limit on crafting storage or copies per tick. Each machine still controls how much it accepts and when it finishes. |
+| No active, valid engine (L0) | All orders share **1 MiB of crafting storage** and a rolling allowance of **16 native AE2 operations**. |
+| L1 to L6 | AE2 sends one craft per push. The rolling allowance ranges from 512 to 16,384 operations, doubling each level. AE2 subtracts operations used in the previous three ticks. |
+| L7 to L9 | The CPU batches crafts by the target's current capacity. The normal limits are 32,768, 65,536 and 131,072 recipe copies per tick. |
+| L9 with sustained overclock | Crafting storage and recipe copies have no fixed limit. Dispatch work and machine capacity still limit throughput. |
 
-Overclocking at L1 to L8 doubles crafting storage and copies per tick. When Star Signal Flow runs out, both return to normal. Orders on one core share these limits. If several engines are online, only the strongest one counts.
+Overclocking at L1 to L8 doubles crafting storage and the dispatch allowance for the current tier. Overclocked L6 still uses native AE2 pushes. When Star Signal Flow runs out, limits return to normal. Orders on one core share these limits. The strongest valid engine on the network determines the tier.
 
 ## Troubleshooting
 
@@ -95,13 +96,13 @@ Overclocking at L1 to L8 doubles crafting storage and copies per tick. When Star
 | Products are made, but the order is waiting | Free space in ME and machine outputs. Check that output returns to the same network, with room for tools and returned containers too. |
 | L9 suddenly has finite limits again | Check the overclock switch and star signal flow balance. Reaching L9 does not automatically grant unlimited capabilities. |
 
-Point a standard AE2 Pattern Provider at the machine’s input face. A processing pattern with one ingredient and no returned container can send several copies at once. If the machine reports more room than it actually has, the excess stays in the provider until space opens up.
+Point a standard AE2 Pattern Provider at the machine's input face. From L7, an AE2 processing pattern with one actual ingredient and no returned container can send several copies based on the capacity of one input face. Accepted materials that do not fit immediately wait in the provider's send queue.
 
-When batching is unavailable, the provider sends one complete craft at a time. It does the same for patterns with several ingredients, so one ingredient cannot take every slot before the others arrive. The last craft does not have to wait for a full batch. Supported reusable tools keep their normal durability costs.
+When capacity batching is unavailable, L7 and above send individual crafts within a server-wide fallback limit. Patterns with several ingredients generally use this path. Providers with whole-batch admission can accept several complete crafts at once. The final craft can be sent on its own. Supported reusable tools keep their normal durability costs.
 
 ### When using machines from other mods
 
-- **ECO** autocrafting integration supports **21.2.10 and later**.
+- **ECO** autocrafting integration supports **21.2.19 and later**.
 - **Data Energistics** Digital Storage Depot free-space handling supports **3.3.0 / 3.3.5**. The depot still needs actual room.
 - Research-permission integration for **AdvancedAE** Quantum Crafters and Reaction Chambers targets **1.6.12-1.21.1**. That is the supported integration version for those machines. Fabricating this core requires the AdvancedAE materials in its recipes, not that integration-specific version condition.
 

@@ -2,6 +2,7 @@ package com.atir.molecularmanipulator.crafting;
 
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.KeyCounter;
+import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
@@ -19,11 +20,19 @@ public final class MolecularBatchDispatchContext {
     public static Scope open(@Nullable UUID craftingId, IPatternDetails pattern,
             KeyCounter[] inputs, KeyCounter[] firstInputs, long craftCount,
             @Nullable MolecularReusableBatchPlan reusablePlan) {
-        if (CURRENT.get() != null) {
-            throw new IllegalStateException("Nested molecular batch dispatch");
-        }
-        CURRENT.set(new Context(craftingId, pattern, inputs, firstInputs,
-                craftCount, reusablePlan));
+        return open(new Context(craftingId, pattern, inputs, firstInputs, craftCount, reusablePlan, null));
+    }
+
+    /** Transport for one fixed, consumptive delivery whose quote used these exact unit outputs. */
+    public static Scope openFixed(UUID craftingId, IPatternDetails pattern, KeyCounter[] inputs,
+            KeyCounter[] firstInputs, long craftCount, KeyCounter unitOutputs) {
+        return open(new Context(Objects.requireNonNull(craftingId), pattern, inputs, firstInputs,
+                craftCount, null, Objects.requireNonNull(unitOutputs)));
+    }
+
+    private static Scope open(Context context) {
+        if (CURRENT.get() != null) throw new IllegalStateException("Nested molecular batch dispatch");
+        CURRENT.set(context);
         return new Scope();
     }
 
@@ -36,13 +45,17 @@ public final class MolecularBatchDispatchContext {
 
     public record Context(@Nullable UUID craftingId, IPatternDetails pattern,
             KeyCounter[] inputs, KeyCounter[] firstInputs, long craftCount,
-            @Nullable MolecularReusableBatchPlan reusablePlan) {
+            @Nullable MolecularReusableBatchPlan reusablePlan, @Nullable KeyCounter fixedUnitOutputs) {
+        public Context(@Nullable UUID craftingId, IPatternDetails pattern, KeyCounter[] inputs,
+                KeyCounter[] firstInputs, long craftCount, @Nullable MolecularReusableBatchPlan reusablePlan) {
+            this(craftingId, pattern, inputs, firstInputs, craftCount, reusablePlan, null);
+        }
+
         public Context {
-            if (pattern == null || inputs == null || firstInputs == null
-                    || inputs.length != firstInputs.length || craftCount <= 1
-                    || reusablePlan != null
-                            && (craftingId == null
-                                    || reusablePlan.craftCount() != craftCount)) {
+            if (pattern == null || inputs == null || firstInputs == null || inputs.length != firstInputs.length
+                    || craftCount <= 0 || fixedUnitOutputs == null && craftCount == 1
+                    || fixedUnitOutputs != null && (craftingId == null || reusablePlan != null || fixedUnitOutputs.isEmpty())
+                    || reusablePlan != null && (craftingId == null || reusablePlan.craftCount() != craftCount)) {
                 throw new IllegalArgumentException("Incomplete molecular batch context");
             }
         }

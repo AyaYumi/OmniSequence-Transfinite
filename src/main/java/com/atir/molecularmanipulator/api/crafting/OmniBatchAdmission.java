@@ -11,9 +11,10 @@ package com.atir.molecularmanipulator.api.crafting;
  */
 public interface OmniBatchAdmission extends AutoCloseable {
     /**
-     * Maximum number of complete crafts this admission can accept. Values
-     * below two decline batching. Inventory or AE power may reduce the final
-     * delivery to any value from two through this maximum.
+     * Maximum number of complete crafts this admission can accept. Zero
+     * reports that the target currently has no room. One declines batching
+     * and allows a bounded single push. A batch may contain anywhere from two
+     * through the admitted maximum.
      */
     long maxCrafts();
 

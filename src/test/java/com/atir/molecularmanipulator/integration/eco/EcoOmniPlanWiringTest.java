@@ -22,15 +22,25 @@ class EcoOmniPlanWiringTest {
         var execute = method(base, "executeCrafting");
         assertEquals(2, calls(execute, "extractPatternInputs").size(), "AE2 extracts at task start and after acceptance");
         assertEquals(2, calls(execute, "insert").stream().filter(call -> call.owner.endsWith("ListCraftingInventory")).count());
-        var shared = type(MIXINS + "CraftingCpuLogicMixin");
-        var extraction = method(shared, "molecularmanipulator$extractBatch");
-        assertFalse(calls(extraction, "ecoOmni$guard").isEmpty());
-        assertFalse(calls(extraction, "ecoOmni$extract").isEmpty());
-        assertFalse(calls(extraction, "ecoOmni$limit").isEmpty());
-        assertFalse(calls(method(shared, "molecularmanipulator$pushExactBigIntegerBatch"), "ecoOmni$limit").isEmpty());
-        var commits = shared.methods.stream().filter(value -> value.name.equals("molecularmanipulator$commitExactCraft")).toList();
-        assertEquals(1, commits.stream().flatMap(value -> calls(value, "ecoOmni$accepted").stream()).count());
-        assertFalse(calls(method(shared, "molecularmanipulator$rotateTaskEntries"), "ecoOmni$candidates").isEmpty());
+        var nativeCpu = type(MIXINS + "CraftingCpuLogicMixin");
+        var nativeExtraction = method(nativeCpu, "molecularmanipulator$extractNativeInputs");
+        assertFalse(calls(nativeExtraction, "ecoOmni$guard").isEmpty());
+        assertFalse(calls(nativeExtraction, "ecoOmni$extract").isEmpty());
+        var nativePush = method(nativeCpu, "molecularmanipulator$pushNativeRecipe");
+        assertFalse(calls(nativePush, "ecoOmni$pushProvider").isEmpty());
+        assertEquals(1, calls(nativePush, "ecoOmni$accepted").size());
+        assertFalse(calls(method(nativeCpu, "molecularmanipulator$nativeCandidates"), "ecoOmni$candidates").isEmpty());
+
+        var capacity = type("com/atir/molecularmanipulator/crafting/dispatch/OmniCapacityDispatcher");
+        var preview = method(capacity, "extract");
+        assertFalse(calls(preview, "ecoOmni$guard").isEmpty());
+        assertFalse(calls(preview, "ecoOmni$previewExtract").isEmpty());
+        assertFalse(calls(preview, "ecoOmni$limit").isEmpty());
+        assertFalse(calls(method(capacity, "prepare"), "ecoOmni$prepareBatch").isEmpty());
+        assertTrue(capacity.methods.stream().anyMatch(value -> !calls(value, "ecoOmni$accepted").isEmpty()));
+
+        var optional = type(MIXINS + "EcoCpuDispatchMixin");
+        assertTrue(optional.methods.stream().allMatch(value -> calls(value, "executeCrafting").isEmpty()));
     }
 
     @Test void sharedCpuAndHookDescriptorsHaveNoEcoImplementationClassDependency() throws IOException {

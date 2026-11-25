@@ -19,7 +19,7 @@ public final class EcoCpuDispatchOutput {
             if (!(cluster.craftingLogic instanceof OmniCpuDispatchHost host) || !host.omniDispatch$enabled()
                     || !jobId.equals(host.omniDispatch$jobId())) continue;
             if (cluster.craftingLogic instanceof EcoCpuDispatchAccess access
-                    && !access.omniDispatch$dispatcher().receivingAllowed()) return BigInteger.ZERO;
+                    && access.ecoOmni$dispatchPaused()) return BigInteger.ZERO;
             var inserted = host.omniDispatch$insertExact(jobId, key, amount, mode);
             if (inserted == null || inserted.signum() < 0 || inserted.compareTo(amount) > 0)
                 throw new IllegalStateException("Invalid Omni ECO output acceptance");

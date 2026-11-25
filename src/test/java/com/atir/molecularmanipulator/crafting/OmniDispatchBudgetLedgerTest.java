@@ -5,197 +5,234 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.atir.molecularmanipulator.crafting.dispatch.OmniDispatchAllowance;
+import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 
 class OmniDispatchBudgetLedgerTest {
-    private static OmniDispatchBudgetLedger.Claim claim(long work, int unscaled) {
-        return new OmniDispatchBudgetLedger.Claim(work, unscaled);
+    private static final StarComputationBenefits L7 = new StarComputationBenefits(7, false);
+
+    @Test
+    void nativeLanesShareOneFourTickWindow() {
+        var ledger = new OmniDispatchBudgetLedger<Object>();
+        var a = new Object();
+        var b = new Object();
+        var lanes = List.of(a, b);
+        ledger.beginTick(100, StarComputationBenefits.NONE, true, 64, lanes);
+
+        try (var first = ledger.claim(a, 100, null)) {
+            assertFalse(first.capacityMode());
+            assertEquals(8, first.remainingCopies());
+            assertFalse(first.tryWork());
+            assertFalse(first.trySingle());
+            first.recordAccepted(BigInteger.valueOf(5));
+        }
+        try (var second = ledger.claim(b, 100, null)) {
+            assertEquals(11, second.remainingCopies());
+            acceptAll(second);
+        }
+
+        for (long tick = 101; tick <= 103; tick++) {
+            ledger.beginTick(tick, StarComputationBenefits.NONE, true, 64, lanes);
+            assertEquals(0, ledger.claim(a, tick, null).remainingCopies());
+            assertEquals(0, ledger.claim(b, tick, null).remainingCopies());
+        }
+        ledger.beginTick(104, StarComputationBenefits.NONE, true, 64, lanes);
+        try (var first = ledger.claim(a, 104, null); var second = ledger.claim(b, 104, null)) {
+            assertEquals(16, first.remainingCopies() + second.remainingCopies());
+        }
     }
 
     @Test
-    void duplicateClaimDoesNotStealReturnedAttemptsFromLaterLanes() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(7L, 100L, 100);
-        assertTrue(ledger.reserve("first", 50L, 50));
-        assertTrue(ledger.reserve("second", 50L, 50));
+    void nativeHistoryAgesSkippedTicksAndCountsEachAcceptedCopy() {
+        var ledger = new OmniDispatchBudgetLedger<Object>();
+        var lane = new Object();
+        var lanes = List.of(lane);
+        ledger.beginTick(20, StarComputationBenefits.NONE, true, 64, lanes);
+        try (var allowance = ledger.claim(lane, 20, null)) {
+            allowance.recordAccepted(BigInteger.valueOf(5));
+            allowance.recordAccepted(BigInteger.valueOf(6));
+            assertThrows(IllegalArgumentException.class, () -> allowance.recordAccepted(BigInteger.valueOf(6)));
+        }
 
-        assertEquals(claim(50L, 50), ledger.claim("first"));
-        assertTrue(ledger.record("first", 50L, 50, 0L, 0));
-        assertEquals(100L, ledger.remainingWorkUnits());
-        assertEquals(100, ledger.remainingUnscaledAttempts());
-
-        // The second claim is rejected outright; returned work stays available.
-        assertEquals(OmniDispatchBudgetLedger.EMPTY_CLAIM, ledger.claim("first"));
-        assertEquals(100L, ledger.remainingWorkUnits());
-        assertEquals(100, ledger.remainingUnscaledAttempts());
-        assertFalse(ledger.record("first", 0L, 0, 0L, 0));
-
-        // The later lane can use its own share plus at most one borrowed share.
-        assertEquals(claim(100L, 100), ledger.claim("second"));
-        assertEquals(0L, ledger.remainingWorkUnits());
-        assertEquals(0, ledger.remainingUnscaledAttempts());
+        ledger.beginTick(23, StarComputationBenefits.NONE, true, 64, lanes);
+        try (var allowance = ledger.claim(lane, 23, null)) {
+            assertEquals(5, allowance.remainingCopies());
+            allowance.recordAccepted(BigInteger.valueOf(2));
+        }
+        ledger.beginTick(24, StarComputationBenefits.NONE, true, 64, lanes);
+        try (var allowance = ledger.claim(lane, 24, null)) {
+            assertEquals(14, allowance.remainingCopies());
+        }
+        ledger.beginTick(28, StarComputationBenefits.NONE, true, 64, lanes);
+        try (var allowance = ledger.claim(lane, 28, null)) {
+            assertEquals(16, allowance.remainingCopies());
+        }
     }
 
     @Test
-    void repeatedRecordCannotRefundTheSameClaimTwice() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(1L, 100L, 100);
-        assertTrue(ledger.reserve("lane", 100L, 100));
-        assertEquals(claim(100L, 100), ledger.claim("lane"));
+    void l6OverclockAndFiniteL7UseDifferentTickBudgets() {
+        var ledger = new OmniDispatchBudgetLedger<Object>();
+        var a = new Object();
+        var b = new Object();
+        var lanes = List.of(a, b);
+        var overclockedL6 = new StarComputationBenefits(6, true);
+        var overclockedL7 = new StarComputationBenefits(7, true);
+        var server = new OmniDispatchBudgetLedger.ServerBudget(() -> 0L);
+        ledger.beginTick(1, overclockedL6, true, 64, lanes);
+        try (var first = ledger.claim(a, 1, null)) {
+            assertEquals(16_384, first.remainingCopies());
+            acceptAll(first);
+        }
+        ledger.beginTick(1, overclockedL7, true, 64, lanes);
+        try (var second = ledger.claim(b, 1, null)) {
+            assertFalse(second.capacityMode());
+            assertEquals(16_384, second.remainingCopies());
+            acceptAll(second);
+        }
 
-        assertFalse(ledger.record("lane", 99L, 100, 0L, 0),
-                "A declared allowance that differs from the issued claim is stale");
-        assertEquals(0L, ledger.remainingWorkUnits());
+        ledger.beginTick(2, overclockedL6, true, 64, lanes);
+        assertEquals(0, ledger.claim(a, 2, null).remainingCopies());
+        ledger.beginTick(2, overclockedL7, true, 64, lanes);
+        try (var second = ledger.claim(b, 2, null)) {
+            assertFalse(second.capacityMode());
+            assertEquals(0, second.remainingCopies());
+        }
 
-        assertTrue(ledger.record("lane", 100L, 100, 30L, 40));
-        assertEquals(70L, ledger.remainingWorkUnits());
-        assertEquals(60, ledger.remainingUnscaledAttempts());
-
-        assertFalse(ledger.record("lane", 100L, 100, 0L, 0));
-        assertEquals(70L, ledger.remainingWorkUnits());
-        assertEquals(60, ledger.remainingUnscaledAttempts());
-        assertTrue(ledger.hasClaimed("lane"));
+        for (long tick = 3; tick <= 4; tick++) {
+            ledger.beginTick(tick, overclockedL7, true, 64, lanes);
+            startServerTick(server, tick, 16, 2_000_000, ledger);
+            try (var first = ledger.claim(a, tick, server); var second = ledger.claim(b, tick, server)) {
+                assertTrue(first.capacityMode());
+                assertTrue(second.capacityMode());
+                assertEquals(32_768, first.remainingCopies());
+                assertEquals(32_768, second.remainingCopies());
+                acceptAll(first);
+                acceptAll(second);
+            }
+        }
     }
 
     @Test
-    void unusedWorkIsReturnedButBorrowingIsCappedAtOneShare() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(2L, 100L, 100);
-        assertTrue(ledger.reserve("first", 40L, 40));
-        assertTrue(ledger.reserve("second", 30L, 30));
-        assertTrue(ledger.reserve("third", 30L, 30));
+    void unusedCopiesAndWorkCarryToNextClaimOnlyOnce() {
+        var ledger = new OmniDispatchBudgetLedger<Object>();
+        var a = new Object();
+        var b = new Object();
+        var server = new OmniDispatchBudgetLedger.ServerBudget(() -> 0L);
+        ledger.beginTick(7, L7, true, 64, List.of(a, b));
+        startServerTick(server, 7, 16, 2_000_000, ledger);
 
-        assertEquals(claim(40L, 40), ledger.claim("first"));
-        assertTrue(ledger.record("first", 40L, 40, 0L, 0));
+        var first = ledger.claim(a, 7, server);
+        assertEquals(16_384, first.remainingCopies());
+        assertEquals(0, ledger.claim(a, 7, server).remainingCopies());
+        assertTrue(first.tryWork());
+        first.recordAccepted(BigInteger.valueOf(10));
+        first.close();
+        first.close();
+        assertEquals(0, first.remainingCopies());
+        assertFalse(first.tryWork());
+        assertFalse(first.trySingle());
+        assertEquals(0, ledger.claim(a, 7, server).remainingCopies());
+        assertEquals(0, ledger.claim(new Object(), 7, server).remainingCopies());
 
-        // 40 returned work is available, but the second lane may borrow only
-        // its own 30 reservation instead of draining all 40.
-        assertEquals(claim(60L, 60), ledger.claim("second"));
-        assertTrue(ledger.record("second", 60L, 60, 0L, 0));
-
-        // The last lane still receives its untouched share plus the remaining
-        // returned work, and no lane can exceed the tick total.
-        assertEquals(claim(60L, 60), ledger.claim("third"));
-        assertTrue(ledger.record("third", 60L, 60, 0L, 0));
-        assertEquals(100L, ledger.remainingWorkUnits());
-        assertEquals(100, ledger.remainingUnscaledAttempts());
+        try (var second = ledger.claim(b, 7, server)) {
+            assertEquals(32_758, second.remainingCopies());
+            assertEquals(63, drainWork(second));
+        }
     }
 
     @Test
-    void returnedAttemptsFlowToTheNextLaneWithoutExceedingTheTickTotal() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(3L, 0L, 120);
-        assertTrue(ledger.reserve("a", 0L, 40));
-        assertTrue(ledger.reserve("b", 0L, 40));
-        assertTrue(ledger.reserve("c", 0L, 40));
+    void l9OverclockPreservesUnlimitedCopiesWithoutUnlimitedWork() {
+        var ledger = new OmniDispatchBudgetLedger<Object>();
+        var lane = new Object();
+        var server = new OmniDispatchBudgetLedger.ServerBudget(() -> 0L);
+        ledger.beginTick(1, new StarComputationBenefits(9, true), true, Long.MAX_VALUE, List.of(lane));
+        startServerTick(server, 1, 16, 2_000_000, ledger);
+        try (var allowance = ledger.claim(lane, 1, server)) {
+            assertEquals(Long.MAX_VALUE, allowance.remainingCopies());
+            allowance.recordAccepted(BigInteger.ONE.shiftLeft(100));
+            allowance.recordAccepted(BigInteger.ONE);
+            assertEquals(Long.MAX_VALUE, allowance.remainingCopies());
+            assertEquals(64, drainWork(allowance));
+        }
 
-        assertEquals(claim(0L, 40), ledger.claim("a"));
-        assertTrue(ledger.record("a", 0L, 40, 0L, 10));
-        assertEquals(110, ledger.remainingUnscaledAttempts());
-
-        assertEquals(claim(0L, 70), ledger.claim("b"));
-        assertTrue(ledger.record("b", 0L, 70, 0L, 70));
-
-        assertEquals(claim(0L, 40), ledger.claim("c"));
-        assertTrue(ledger.record("c", 0L, 40, 0L, 40));
-
-        // Actual charges are 10 + 70 + 40 = 120, exactly the tick total.
-        assertEquals(0, ledger.remainingUnscaledAttempts());
+        ledger.beginTick(2, StarComputationBenefits.NONE, true, 64, List.of(lane));
+        assertEquals(0, ledger.claim(lane, 2, null).remainingCopies());
     }
 
     @Test
-    void laneWithNoReservationCannotBorrowReturnedWork() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(4L, 100L, 100);
-        assertTrue(ledger.reserve("old", 100L, 100));
-        assertEquals(claim(100L, 100), ledger.claim("old"));
-        assertTrue(ledger.record("old", 100L, 100, 0L, 0));
-
-        // A lane that became busy after allowances were prepared gets nothing
-        // this tick rather than consuming another lane's returned share.
-        assertEquals(OmniDispatchBudgetLedger.EMPTY_CLAIM, ledger.claim("new"));
-        assertEquals(100L, ledger.remainingWorkUnits());
-        assertEquals(100, ledger.remainingUnscaledAttempts());
+    void minimumControllerWorkRotatesAFullShareAcrossSaturatedLanes() {
+        var ledger = new OmniDispatchBudgetLedger<Object>();
+        var a = new Object();
+        var b = new Object();
+        var lanes = List.of(a, b);
+        var server = new OmniDispatchBudgetLedger.ServerBudget(() -> 0L);
+        for (long tick = 1; tick <= 2; tick++) {
+            ledger.beginTick(tick, L7, true, 8, lanes);
+            startServerTick(server, tick, 16, 250_000, ledger);
+            try (var first = ledger.claim(a, tick, server); var second = ledger.claim(b, tick, server)) {
+                assertTrue(first.capacityMode());
+                assertTrue(second.capacityMode());
+                assertEquals(tick == 1 ? 8 : 0, drainWork(first));
+                assertEquals(tick == 2 ? 8 : 0, drainWork(second));
+            }
+        }
     }
 
     @Test
-    void overUseIsClampedToTheIssuedClaim() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(5L, 50L, 50);
-        assertTrue(ledger.reserve("lane", 50L, 50));
-        assertEquals(claim(50L, 50), ledger.claim("lane"));
-        assertTrue(ledger.record("lane", 50L, 50, 500L, 500));
-        assertEquals(0L, ledger.remainingWorkUnits());
-        assertEquals(0, ledger.remainingUnscaledAttempts());
+    void expiredServerWindowRotatesBoundedWorkAndProtectsOneGlobalSingleSlot() {
+        var earlyController = new OmniDispatchBudgetLedger<Object>();
+        var lateController = new OmniDispatchBudgetLedger<Object>();
+        var early = new Object();
+        var late = new Object();
+        var now = new AtomicLong();
+        var server = new OmniDispatchBudgetLedger.ServerBudget(now::get);
+
+        for (long tick = 1; tick <= 3; tick++) {
+            earlyController.beginTick(tick, L7, true, 64, List.of(early));
+            lateController.beginTick(tick, L7, true, 64, List.of(late));
+            long window = tick == 1 ? Long.MAX_VALUE : 250_000;
+            int singles = tick == 3 ? 1 : Integer.MAX_VALUE;
+            startServerTick(server, tick, singles, window, earlyController, lateController);
+            try (var first = earlyController.claim(early, tick, server)) {
+                assertTrue(first.tryWork());
+                now.addAndGet(Math.min(window, 2_000_000));
+                assertEquals(tick == 2 ? 0 : 11, drainWork(first));
+                if (tick < 3) assertEquals(tick == 2 ? 15 : 16, drainSingles(first));
+            }
+            try (var second = lateController.claim(late, tick, server)) {
+                assertEquals(tick == 2 ? 12 : 0, drainWork(second));
+                assertEquals(tick == 1 ? 0 : 1, drainSingles(second));
+            }
+        }
     }
 
-    @Test
-    void reservationsCannotExceedTheTickTotalAndDuplicatesAreRejected() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(6L, 100L, 100);
-        assertTrue(ledger.reserve("first", 70L, 70));
-        assertFalse(ledger.reserve("first", 10L, 10));
-        assertTrue(ledger.reserve("second", 70L, 70));
-
-        assertEquals(100L, ledger.reservedWorkUnits());
-        assertEquals(100, ledger.reservedUnscaledAttempts());
-        assertEquals(claim(70L, 70), ledger.claim("first"));
-        assertTrue(ledger.record("first", 70L, 70, 0L, 0));
-        assertEquals(claim(60L, 60), ledger.claim("second"),
-                "The capped reservation gets no more than its 30 remaining share plus 30 borrowed");
-        assertEquals(40L, ledger.remainingWorkUnits());
+    private static void acceptAll(OmniDispatchAllowance allowance) {
+        allowance.recordAccepted(BigInteger.valueOf(allowance.remainingCopies()));
+        assertEquals(0, allowance.remainingCopies());
     }
 
-    @Test
-    void longMaxAndIntMaxBudgetsSaturateWithoutOverflow() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        long firstWork = Long.MAX_VALUE / 2L;
-        long secondWork = Long.MAX_VALUE - firstWork;
-        int firstUnscaled = Integer.MAX_VALUE / 2;
-        int secondUnscaled = Integer.MAX_VALUE - firstUnscaled;
-        ledger.beginTick(Long.MAX_VALUE - 1L, Long.MAX_VALUE, Integer.MAX_VALUE);
-        assertTrue(ledger.reserve("first", firstWork, firstUnscaled));
-        assertTrue(ledger.reserve("second", secondWork, secondUnscaled));
-
-        assertEquals(claim(firstWork, firstUnscaled), ledger.claim("first"));
-        assertTrue(ledger.record("first", firstWork, firstUnscaled, 0L, 0));
-        assertEquals(Long.MAX_VALUE, ledger.remainingWorkUnits());
-        assertEquals(Integer.MAX_VALUE, ledger.remainingUnscaledAttempts());
-
-        assertEquals(claim(Long.MAX_VALUE, Integer.MAX_VALUE), ledger.claim("second"));
-        assertEquals(0L, ledger.remainingWorkUnits());
-        assertEquals(0, ledger.remainingUnscaledAttempts());
-        assertTrue(ledger.record(
-                "second", Long.MAX_VALUE, Integer.MAX_VALUE, 0L, 0));
-        assertEquals(Long.MAX_VALUE, ledger.remainingWorkUnits());
-        assertEquals(Integer.MAX_VALUE, ledger.remainingUnscaledAttempts());
+    @SafeVarargs
+    private static void startServerTick(OmniDispatchBudgetLedger.ServerBudget server, long tick, int singles,
+            long nanos, OmniDispatchBudgetLedger<Object>... controllers) {
+        assertTrue(server.beginTick(tick, singles, nanos));
+        for (var controller : controllers) controller.registerServerLanes(tick, server);
+        server.selectPriority();
+        assertFalse(server.beginTick(tick, singles, nanos));
     }
 
-    @Test
-    void claimingClosesReservationPhaseUntilTheNextTick() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(9L, 100L, 100);
-        assertTrue(ledger.reserve("first", 50L, 50));
-        assertEquals(new OmniDispatchBudgetLedger.Claim(100L, 100), ledger.claim("first"));
-        assertTrue(ledger.record("first", 100L, 100, 100L, 100));
-        assertFalse(ledger.reserve("late", 100L, 100), "A late reservation cannot recreate spent work");
-        assertEquals(OmniDispatchBudgetLedger.EMPTY_CLAIM, ledger.claim("late"));
-        ledger.beginTick(10L, 100L, 100);
-        assertTrue(ledger.reserve("late", 100L, 100));
-        assertEquals(new OmniDispatchBudgetLedger.Claim(100L, 100), ledger.claim("late"));
+    private static int drainWork(OmniDispatchAllowance allowance) {
+        int work = 0;
+        while (work <= 64 && allowance.tryWork()) work++;
+        return work;
     }
 
-    @Test
-    void negativeAndDuplicateInputsAreRejected() {
-        var ledger = new OmniDispatchBudgetLedger<String>();
-        ledger.beginTick(8L, 10L, 10);
-        assertThrows(IllegalArgumentException.class,
-                () -> ledger.reserve("lane", -1L, 0));
-        assertThrows(IllegalArgumentException.class,
-                () -> ledger.reserve("lane", 0L, -1));
-        assertThrows(IllegalArgumentException.class,
-                () -> new OmniDispatchBudgetLedger.Claim(-1L, 0));
-        assertThrows(IllegalArgumentException.class,
-                () -> new OmniDispatchBudgetLedger.Claim(0L, -1));
+    private static int drainSingles(OmniDispatchAllowance allowance) {
+        int singles = 0;
+        while (singles <= 16 && allowance.trySingle()) singles++;
+        return singles;
     }
 }

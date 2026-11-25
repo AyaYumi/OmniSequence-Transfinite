@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Immutable capacity probe for one provider and one advertised AE2 pattern.
+ * Immutable capacity query for one provider and one advertised AE2 pattern.
  *
  * @since 1.3.9 (API version 1)
  */
@@ -27,8 +27,8 @@ public record OmniBatchProbe(
     }
 
     /**
-     * One input selected for the initial craft. This is a capacity hint only;
-     * substitutions may select different keys or ratios for the final batch.
+     * One selected input for the one-craft capacity query. The committed
+     * {@link OmniBatchRequest.Input} still defines the authoritative transfer.
      */
     public record Input(int slot, AEKey key, long amount) {
         public Input {

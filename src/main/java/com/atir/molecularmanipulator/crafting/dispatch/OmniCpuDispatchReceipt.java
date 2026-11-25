@@ -19,9 +19,10 @@ public record OmniCpuDispatchReceipt(UUID jobId, IPatternDetails pattern, BigInt
         inputs = positive(inputs);
         outputs = positive(outputs);
         remainders = positive(remainders);
-        if (inputs.isEmpty() || outputs.isEmpty()) throw new IllegalArgumentException("Missing batch materials");
+        if (outputs.isEmpty()) throw new IllegalArgumentException("Missing batch outputs");
     }
     public Map<AEKey, BigInteger> waiting() {
+        if (remainders.isEmpty()) return outputs;
         var result = new LinkedHashMap<>(outputs);
         remainders.forEach((key, amount) -> result.merge(key, amount, BigInteger::add));
         return Map.copyOf(result);

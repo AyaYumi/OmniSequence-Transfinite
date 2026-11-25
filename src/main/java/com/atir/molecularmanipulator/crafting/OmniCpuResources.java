@@ -18,44 +18,6 @@ public final class OmniCpuResources {
         return primary || benefits.virtualCpu();
     }
 
-    public static int singleDispatchLimit(long parallelism, int configured) {
-        return (int) Math.min(Math.max(0L, parallelism), Math.max(0, configured));
-    }
-
-    public static int dispatchShare(int total, int lanes, int offset) {
-        if (lanes <= 0 || offset < 0 || offset >= lanes) throw new IllegalArgumentException("Invalid dispatch lane");
-        return total / lanes + (offset < total % lanes ? 1 : 0);
-    }
-
-    public record DispatchShare(long workUnits, int attempts) {
-        public boolean canProgress() { return workUnits > 0 && attempts > 0; }
-    }
-
-    /** Scarce work and attempt slots must overlap rather than rotate past one another. */
-    public static DispatchShare dispatchLaneShare(long totalWork, int totalAttempts, int lanes,
-            int index, int workRotation, int attemptRotation) {
-        if (totalWork < 0 || totalAttempts < 0 || lanes <= 0 || index < 0 || index >= lanes)
-            throw new IllegalArgumentException("Invalid dispatch shares");
-        int workStart = Math.floorMod(workRotation, lanes);
-        int workOffset = Math.floorMod(index - workStart, lanes);
-        boolean paired = totalWork < 2L * lanes;
-        long work = paired
-                ? (workOffset < totalWork / 2 ? 2L + (workOffset == 0 ? totalWork % 2 : 0) : 0L)
-                : totalWork / lanes + (workOffset < totalWork % lanes ? 1L : 0L);
-        int attemptStart = paired ? workStart : Math.floorMod(attemptRotation, lanes);
-        return new DispatchShare(work, dispatchShare(totalAttempts, lanes,
-                Math.floorMod(index - attemptStart, lanes)));
-    }
-
-    public static int nextDispatchWorkRotation(long totalWork, int totalAttempts, int lanes, int rotation) {
-        if (totalWork < 0 || totalAttempts < 0 || lanes <= 0)
-            throw new IllegalArgumentException("Invalid dispatch rotation");
-        long step = totalWork < 2L * lanes
-                ? Math.min(totalWork / 2, (long) totalAttempts)
-                : totalWork % lanes;
-        return (int) ((Math.floorMod(rotation, lanes) + Math.max(1L, step)) % lanes);
-    }
-
     /** Inventory bytes include each distinct key and all physical overflow, using exact arithmetic. */
     public static BigInteger itemBytes(BigInteger amount, long amountPerByte) {
         if (amount.signum() <= 0) return BigInteger.ZERO;

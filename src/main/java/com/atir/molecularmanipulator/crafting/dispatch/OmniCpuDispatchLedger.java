@@ -1,16 +1,21 @@
 package com.atir.molecularmanipulator.crafting.dispatch;
 
 import appeng.api.config.Actionable;
+import appeng.api.config.PowerMultiplier;
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.energy.IEnergyService;
 import appeng.api.stacks.AEKey;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.inv.ListCraftingInventory;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.crafting.OmniExactInventory;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.DoubleUnaryOperator;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -24,6 +29,7 @@ public final class OmniCpuDispatchLedger {
     // These are owned final products, separate from spendable crafting stock.
     private final Map<AEKey, BigInteger> finalStock = new LinkedHashMap<>();
     private final Map<AEKey, BigInteger> deliveryIntent = new LinkedHashMap<>();
+    private final Energy energy = new Energy();
     private Stage active;
     private String paused = "";
     private boolean exactOrder;
@@ -34,6 +40,7 @@ public final class OmniCpuDispatchLedger {
     public boolean paused() { return !paused.isEmpty() || failedSnapshot != null || !deliveryIntent.isEmpty(); }
     public boolean staging() { return active != null; }
     public boolean hasFinalStock() { return !finalStock.isEmpty() || !deliveryIntent.isEmpty(); }
+    public Energy energy() { return energy; }
     public Map<AEKey, BigInteger> finalStock() { return Map.copyOf(finalStock); }
     public void pause(String reason) { paused = reason == null || reason.isEmpty() ? "Uncertain CPU output ownership" : reason; }
 
@@ -69,7 +76,7 @@ public final class OmniCpuDispatchLedger {
         refill(waiting, state, key);
         // KeyCounter.set(key, 0) retains a row. Completion uses physical emptiness,
         // so a fully consumed UUID output must remove its zero waiting entry.
-        waiting.list.removeZeros();
+        if (waiting.list.get(key) == 0) waiting.list.remove(key);
         if (state != null) state.recordCompleted(key, amount);
     }
     /**
@@ -101,12 +108,12 @@ public final class OmniCpuDispatchLedger {
     }
 
     public OmniCpuDispatchHost.Accounting stage(ListCraftingInventory waiting, OmniExactCraftingState state,
-            OmniCpuDispatchReceipt receipt, Runnable commit) {
+            OmniCpuDispatchReceipt receipt, Consumer<OmniCpuDispatchReceipt> commit) {
         if (paused() || active != null) return null;
         var amounts = receipt.waiting();
         // Validate all keys before exposing any of this batch's waiting.
         amounts.keySet().forEach(key -> available(waiting, state, key));
-        var stage = new Stage(waiting, state, amounts, commit);
+        var stage = new Stage(waiting, state, receipt, amounts, commit);
         for (var entry : amounts.entrySet()) {
             if (state == null) ordinaryCredits.merge(entry.getKey(), entry.getValue(), BigInteger::add);
             else state.queueOutput(entry.getKey(), entry.getValue());
@@ -119,33 +126,67 @@ public final class OmniCpuDispatchLedger {
         final ListCraftingInventory waiting;
         final OmniExactCraftingState state;
         final Map<AEKey, BigInteger> amounts;
-        final Runnable commit;
+        final OmniCpuDispatchReceipt receipt;
+        final Consumer<OmniCpuDispatchReceipt> commit;
         boolean received, settled;
-        Stage(ListCraftingInventory waiting, OmniExactCraftingState state,
-                Map<AEKey, BigInteger> amounts, Runnable commit) {
-            this.waiting = waiting; this.state = state; this.amounts = amounts; this.commit = commit;
+        Stage(ListCraftingInventory waiting, OmniExactCraftingState state, OmniCpuDispatchReceipt receipt,
+                Map<AEKey, BigInteger> amounts, Consumer<OmniCpuDispatchReceipt> commit) {
+            this.waiting = waiting;
+            this.state = state;
+            this.receipt = receipt;
+            this.amounts = amounts;
+            this.commit = commit;
         }
-        public void commit() {
+        @Override public void commit() { commit(receipt); }
+        @Override public void commit(OmniCpuDispatchReceipt actual) {
             if (settled) return;
+            if (!actual.equals(receipt)) {
+                if (!actual.jobId().equals(receipt.jobId()) || !actual.pattern().equals(receipt.pattern())
+                        || actual.exact() != receipt.exact() || actual.crafts().compareTo(receipt.crafts()) >= 0
+                        || !isPrefix(receipt.inputs(), actual.inputs(), actual.crafts())
+                        || !isPrefix(receipt.outputs(), actual.outputs(), actual.crafts())
+                        || !isPrefix(receipt.remainders(), actual.remainders(), actual.crafts())) {
+                    throw new IllegalArgumentException("Actual dispatch is not a prefix of staged dispatch");
+                }
+                var acceptedWaiting = actual.waiting();
+                var rejectedWaiting = new LinkedHashMap<AEKey, BigInteger>();
+                amounts.forEach((key, amount) -> rejectedWaiting.put(key, amount.subtract(acceptedWaiting.get(key))));
+                undo(rejectedWaiting);
+            }
             // Never repeat a partially failed progress callback.
             settled = true;
-            commit.run();
+            commit.accept(actual);
             active = null;
         }
-        public void rollback() {
+        @Override public void rollback() {
             if (settled) return;
             if (received) throw new IllegalStateException("Rejected dispatch batch already returned owned output");
-            for (var entry : amounts.entrySet()) {
-                if (available(waiting, state, entry.getKey()).compareTo(entry.getValue()) < 0)
-                    throw new IllegalStateException("Staged CPU waiting disappeared");
+            undo(amounts);
+            settled = true;
+            active = null;
+        }
+        private boolean isPrefix(Map<AEKey, BigInteger> staged, Map<AEKey, BigInteger> actual,
+                BigInteger actualCount) {
+            if (staged.size() != actual.size()) return false;
+            for (var entry : staged.entrySet()) {
+                var accepted = actual.get(entry.getKey());
+                if (accepted == null || !accepted.multiply(receipt.crafts()).equals(entry.getValue().multiply(actualCount)))
+                    return false;
             }
-            for (var entry : amounts.entrySet()) {
+            return true;
+        }
+        private void undo(Map<AEKey, BigInteger> rejected) {
+            for (var entry : rejected.entrySet()) {
+                if (available(waiting, state, entry.getKey()).compareTo(entry.getValue()) < 0)
+                    throw new IllegalStateException("Rejected CPU waiting has already settled");
+            }
+            for (var entry : rejected.entrySet()) {
                 withdraw(waiting, state, entry.getKey(), entry.getValue());
                 refill(waiting, state, entry.getKey());
+                if (waiting.list.get(entry.getKey()) == 0) waiting.list.remove(entry.getKey());
             }
-            settled = true; active = null;
         }
-        public void retain() {
+        @Override public void retain() {
             settled = true; active = null;
             pause("Uncertain dispatch submission; staged waiting retained");
         }
@@ -181,6 +222,20 @@ public final class OmniCpuDispatchLedger {
         return new OmniCpuDispatchHost.Lease() {
             boolean settled;
             public void commit() { settled = true; }
+            public void commit(Map<AEKey, BigInteger> accepted) {
+                if (settled) return;
+                for (var entry : accepted.entrySet()) {
+                    var reserved = amounts.get(entry.getKey());
+                    if (reserved == null || entry.getValue().signum() <= 0 || entry.getValue().compareTo(reserved) > 0) {
+                        throw new IllegalArgumentException("Accepted material exceeds CPU reservation");
+                    }
+                }
+                settled = true;
+                amounts.forEach((key, amount) -> {
+                    var unused = amount.subtract(accepted.getOrDefault(key, BigInteger.ZERO));
+                    if (unused.signum() > 0) stock.insertWithoutNotification(window, key, unused);
+                });
+            }
             public void refund() {
                 if (settled) return;
                 settled = true;
@@ -203,6 +258,102 @@ public final class OmniCpuDispatchLedger {
             }
             public Iterable<AEKey> findFuzzyTemplates(AEKey key) { return window.findFuzzyTemplates(key); }
         };
+    }
+
+    /** Exact prepaid AE remains reusable across rejections, partial admissions and save/reload. */
+    public static final class Energy {
+        private BigDecimal credit = BigDecimal.ZERO;
+
+        public void addCredit(BigDecimal amount) {
+            if (amount.signum() < 0) throw new IllegalArgumentException("Negative energy credit");
+            credit = credit.add(amount);
+        }
+
+        /** Use prepaid crafting AE through AE2's ordinary simulated and actual draws. */
+        public double extractNative(double requested, Actionable mode, DoubleUnaryOperator extractFromGrid) {
+            if (credit.signum() == 0 || requested <= 0 || !Double.isFinite(requested))
+                return extractFromGrid.applyAsDouble(requested);
+            var cost = new BigDecimal(requested);
+            var prepaid = credit.min(cost);
+            var deficit = cost.subtract(prepaid);
+            if (mode == Actionable.MODULATE) credit = credit.subtract(prepaid);
+            if (deficit.signum() == 0) return requested;
+            double ask = coveringDouble(deficit);
+            double taken = extractFromGrid.applyAsDouble(ask);
+            validateEnergy(taken, ask);
+            var available = prepaid.add(new BigDecimal(taken));
+            if (available.compareTo(cost) >= 0) {
+                if (mode == Actionable.MODULATE) addCredit(available.subtract(cost));
+                return requested;
+            }
+            double value = available.doubleValue();
+            return new BigDecimal(value).compareTo(available) > 0 ? Math.nextDown(value) : value;
+        }
+
+        BigInteger maximum(IEnergyService service, BigDecimal unit, BigInteger requested) {
+            if (unit.signum() == 0) return requested;
+            var deficit = total(unit, requested).subtract(credit);
+            if (deficit.signum() <= 0) return requested;
+            double probe = coveringDouble(deficit);
+            double available = debit(service, Math.min(Double.MAX_VALUE, probe), Actionable.SIMULATE);
+            return credit.add(new BigDecimal(available)).divideToIntegralValue(unit).toBigIntegerExact().min(requested);
+        }
+
+        Reservation reserve(IEnergyService service, BigDecimal unit, BigInteger crafts) {
+            var cost = total(unit, crafts);
+            var deficit = cost.subtract(credit);
+            if (deficit.signum() > 0) {
+                double request = coveringDouble(deficit);
+                if (!Double.isFinite(request)) return null;
+                addCredit(new BigDecimal(debit(service, request, Actionable.MODULATE)));
+                if (credit.compareTo(cost) < 0) return null;
+            }
+            credit = credit.subtract(cost);
+            return new Reservation(unit, crafts);
+        }
+
+        private static BigDecimal total(BigDecimal unit, BigInteger crafts) {
+            return unit.multiply(new BigDecimal(crafts));
+        }
+
+        private static double coveringDouble(BigDecimal exact) {
+            double value = exact.doubleValue();
+            return Double.isFinite(value) && new BigDecimal(value).compareTo(exact) < 0 ? Math.nextUp(value) : value;
+        }
+
+        private static double debit(IEnergyService service, double request, Actionable mode) {
+            double taken = service.extractAEPower(request, mode, PowerMultiplier.CONFIG);
+            validateEnergy(taken, request);
+            return taken;
+        }
+
+        private static void validateEnergy(double taken, double request) {
+            if (!Double.isFinite(taken) || taken < 0 || taken > request)
+                throw new IllegalStateException("Invalid crafting energy extraction");
+        }
+
+        final class Reservation {
+            private final BigDecimal unit;
+            private final BigInteger crafts;
+            private boolean settled;
+
+            private Reservation(BigDecimal unit, BigInteger crafts) {
+                this.unit = unit;
+                this.crafts = crafts;
+            }
+
+            void commit() { settled = true; }
+
+            void commit(BigInteger accepted) {
+                if (settled) return;
+                if (accepted.signum() < 0 || accepted.compareTo(crafts) > 0)
+                    throw new IllegalArgumentException("Accepted work exceeds energy reservation");
+                settled = true;
+                addCredit(total(unit, crafts.subtract(accepted)));
+            }
+
+            void refund() { commit(BigInteger.ZERO); }
+        }
     }
 
     @FunctionalInterface public interface Destination { long insert(AEKey key, long amount, Actionable mode); }
@@ -268,12 +419,14 @@ public final class OmniCpuDispatchLedger {
         tag.put("credits", writeAmounts(ordinaryCredits, registries));
         tag.put("finalStock", writeAmounts(finalStock, registries));
         tag.put("deliveryIntent", writeAmounts(deliveryIntent, registries));
+        if (energy.credit.signum() > 0) tag.putString("dispatchEnergy", energy.credit.toString());
         if (active != null) tag.putBoolean("interruptedStage", true);
         return tag;
     }
     public void read(CompoundTag tag, HolderLookup.Provider registries) {
         active = null; failedSnapshot = null; paused = "";
         ordinaryCredits.clear(); finalStock.clear(); deliveryIntent.clear();
+        energy.credit = BigDecimal.ZERO;
         exactOrder = tag.getBoolean("exactOrder");
         if (tag.isEmpty()) return;
         try {
@@ -281,6 +434,7 @@ public final class OmniCpuDispatchLedger {
             readAmounts(tag.getList("credits", Tag.TAG_COMPOUND), registries, ordinaryCredits);
             readAmounts(tag.getList("finalStock", Tag.TAG_COMPOUND), registries, finalStock);
             readAmounts(tag.getList("deliveryIntent", Tag.TAG_COMPOUND), registries, deliveryIntent);
+            if (tag.contains("dispatchEnergy")) energy.addCredit(new BigDecimal(tag.getString("dispatchEnergy")));
             paused = tag.getString("paused");
             if (tag.getBoolean("interruptedStage")) pause("Interrupted dispatch staged submission");
         } catch (RuntimeException failure) {

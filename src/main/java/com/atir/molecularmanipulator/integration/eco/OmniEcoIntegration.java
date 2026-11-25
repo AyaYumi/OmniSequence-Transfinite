@@ -36,7 +36,7 @@ public final class OmniEcoIntegration {
 
     private static final class CpuAdapter implements ECOExternalCrafting.Adapter {
         @Override public boolean ownsDispatch(Object cpuLogic) {
-        return cpuLogic instanceof EcoCpuDispatchAccess && cpuLogic instanceof OmniCpuDispatchHost host
+            return cpuLogic instanceof EcoCpuDispatchAccess && cpuLogic instanceof OmniCpuDispatchHost host
                     && host.omniDispatch$enabled();
         }
 

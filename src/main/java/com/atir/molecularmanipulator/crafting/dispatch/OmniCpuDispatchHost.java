@@ -2,12 +2,16 @@ package com.atir.molecularmanipulator.crafting.dispatch;
 
 import appeng.api.config.Actionable;
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.networking.energy.IEnergyService;
 import appeng.api.stacks.AEKey;
 import appeng.crafting.inv.ICraftingInventory;
 import appeng.crafting.inv.ListCraftingInventory;
+import appeng.me.service.CraftingService;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.world.level.Level;
 
 /** Shared CPU boundary: descriptors and default methods do not depend on optional integrations. */
 public interface OmniCpuDispatchHost {
@@ -15,20 +19,20 @@ public interface OmniCpuDispatchHost {
     default boolean omniDispatch$enabled() { return false; }
     default UUID omniDispatch$jobId() { return null; }
     default boolean omniDispatch$exactOrder() { return false; }
-    /** Whether this CPU permits aggregate provider calls. */
-    default boolean omniDispatch$virtualCpu() { return true; }
-    default long omniDispatch$maximumCopies() { return Long.MAX_VALUE; }
-    /** Spend a compatibility attempt only for a provider's ordinary single-copy path. */
-    default boolean omniDispatch$trySingle(IPatternDetails pattern) { return true; }
     default boolean omniDispatch$stopped() { return false; }
-    /** Ordinary task selected by the CPU's shared native/fallback rotation. */
-    default IPatternDetails omniDispatch$preferredPattern() { return null; }
     default ListCraftingInventory omniDispatch$inventory() { throw new UnsupportedOperationException(); }
     /** Physical inventory plus Omni overflow; must never include projected/infinite planning stock. */
     default ICraftingInventory omniDispatch$physicalView() { return omniDispatch$inventory(); }
     /** Physical final-key stock needed by unfinished execution, including startup seeds. */
     default BigInteger omniDispatch$reservedInput(AEKey key) { return BigInteger.ZERO; }
     default BigInteger omniDispatch$remaining(IPatternDetails pattern) { return BigInteger.ZERO; }
+
+    default OmniCpuDispatchLedger.Energy omniDispatch$dispatchEnergy() { throw new UnsupportedOperationException(); }
+    default Object omniDispatch$bigIntegerToken(IPatternDetails pattern, BigInteger crafts) { return null; }
+
+    /** Run the selected native recipe after its single slot has been charged. Return actual accepted copies. */
+    default int omniDispatch$executeNativeSingle(IPatternDetails pattern, ICraftingProvider provider,
+            CraftingService crafting, IEnergyService energy, Level level) { return 0; }
 
     /** Reserve ALL exact inputs, including the preview copy, atomically. Null means nothing moved. */
     default Lease omniDispatch$reserveExact(Map<AEKey, BigInteger> inputs) { throw new UnsupportedOperationException(); }
@@ -56,12 +60,15 @@ public interface OmniCpuDispatchHost {
     }
 
     interface Lease {
-        /** Must not throw, transfer the entire reservation, and make subsequent refund a no-op. */
+        /** Transfer the full reservation. Subsequent refunds have no effect. */
         void commit();
+        /** Transfer the accepted finite inputs and return the unused reservation to the CPU. */
+        void commit(Map<AEKey, BigInteger> accepted);
         void refund();
     }
     interface Accounting {
         void commit();
+        void commit(OmniCpuDispatchReceipt actual);
         void rollback();
         void retain();
     }

@@ -100,20 +100,6 @@ class MachineAdmissionWiringTests(unittest.TestCase):
         for obsolete in ("requiredMask", "unlockMask", "StarComputationRecipes"):
             self.assertNotIn(obsolete, source(API))
 
-    def test_every_molecular_runtime_caller_uses_machine_guarded_overloads(self):
-        calls = []
-        for path in MAIN.rglob("*.java"):
-            if path.name == "MolecularCraftingBatcher.java":
-                continue
-            text = path.read_text(encoding="utf-8")
-            for match in re.finditer(r"(?:craftingBatcher|batcher)\.(prepare(?:Selected|Reusable)?)\(\s*([^,]+),", text):
-                calls.append((path.name, match.group(1)))
-                self.assertIn(match.group(2).strip(), ("this", "machine"), str(path))
-        self.assertEqual(12, len(calls))
-        self.assertEqual({"MolecularManipulatorBlockEntity.java", "MolecularCenterBlockEntity.java",
-                          "AssemblerMatrixMolecularCoreBlockEntity.java", "MolecularAutoCrafter.java"},
-                         {file for file, _ in calls})
-
     def test_warm_normal_selected_and_reusable_preparations_all_recheck(self):
         for name in ("prepare", "prepareSelected", "prepareReusable"):
             with self.subTest(entry=name):

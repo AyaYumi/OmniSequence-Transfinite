@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.mixin;
 
 import appeng.api.crafting.IPatternDetails;
+import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
@@ -24,6 +25,16 @@ public abstract class TileAssemblerMatrixPatternMixin implements MolecularBatchC
         var tile = (TileAssemblerMatrixPattern) (Object) this;
         return tile.getCluster() instanceof MolecularMatrixCluster cluster
                 ? cluster.molecularmanipulator$getBatchLimit() : 0;
+    }
+
+    @Override
+    public long molecularmanipulator$getBatchLimit(IPatternDetails patternDetails, KeyCounter unitOutputs) {
+        var tile = (TileAssemblerMatrixPattern) (Object) this;
+        if (!tile.isFormed() || !tile.getMainNode().isActive() || !tile.getAvailablePatterns().contains(patternDetails)) {
+            return 0;
+        }
+        return tile.getCluster() instanceof MolecularMatrixCluster cluster
+                ? cluster.molecularmanipulator$getBatchLimit(patternDetails, unitOutputs) : 0;
     }
 
     @Override

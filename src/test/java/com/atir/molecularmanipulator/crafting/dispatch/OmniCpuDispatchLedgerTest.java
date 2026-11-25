@@ -8,10 +8,12 @@ import appeng.crafting.inv.ListCraftingInventory;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.crafting.OmniExactInventory;
 import com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import org.junit.jupiter.api.Test;
@@ -19,8 +21,6 @@ import org.junit.jupiter.api.Test;
 class OmniCpuDispatchLedgerTest {
     static {
         EcoMolecularTestPattern.bootstrapKeyCodec();
-        try { Class.forName("com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchTest"); }
-        catch (ClassNotFoundException failure) { throw new AssertionError(failure); }
     }
     private static final BigInteger HUGE = BigInteger.ONE.shiftLeft(100);
     private static EcoMolecularTestPattern pattern() { return new EcoMolecularTestPattern(CONTAINER, key -> RETURNED); }
@@ -33,7 +33,7 @@ class OmniCpuDispatchLedgerTest {
     @Test void ordinaryStagingIncludesStatefulReturnsAndRollbackPreservesEarlierWaiting() {
         var ledger = new OmniCpuDispatchLedger(); var waiting = window();
         waiting.list.set(OUTPUT, 9); waiting.list.set(RETURNED, 4);
-        var stage = ledger.stage(waiting, null, receipt(HUGE), () -> fail("Rejected batch committed"));
+        var stage = ledger.stage(waiting, null, receipt(HUGE), actual -> fail("Rejected batch committed"));
         assertEquals(HUGE.add(BigInteger.valueOf(9)), ledger.available(waiting, null, OUTPUT));
         assertEquals(HUGE.add(BigInteger.valueOf(4)), ledger.available(waiting, null, RETURNED));
         assertEquals(Long.MAX_VALUE, waiting.list.get(OUTPUT));
@@ -45,7 +45,7 @@ class OmniCpuDispatchLedgerTest {
         var ledger = new OmniCpuDispatchLedger(); var waiting = window();
         var state = OmniExactCraftingState.create(Map.of(pattern(), HUGE), Map.of());
         state.queueOutput(OUTPUT, HUGE); ledger.refill(waiting, state, OUTPUT);
-        var stage = ledger.stage(waiting, state, receipt(HUGE), () -> {});
+        var stage = ledger.stage(waiting, state, receipt(HUGE), actual -> {});
         assertEquals(HUGE.multiply(BigInteger.TWO), ledger.available(waiting, state, OUTPUT));
         stage.rollback();
         assertEquals(HUGE, ledger.available(waiting, state, OUTPUT));
@@ -55,7 +55,7 @@ class OmniCpuDispatchLedgerTest {
         var ledger = new OmniCpuDispatchLedger(); var waiting = window();
         var state = OmniExactCraftingState.create(Map.of(pattern(), HUGE), Map.of());
         var commits = new AtomicInteger();
-        var stage = ledger.stage(waiting, state, receipt(HUGE), commits::incrementAndGet);
+        var stage = ledger.stage(waiting, state, receipt(HUGE), actual -> commits.incrementAndGet());
         ledger.consume(waiting, state, OUTPUT, HUGE);
         assertEquals(BigInteger.ZERO, ledger.available(waiting, state, OUTPUT));
         assertEquals(HUGE, state.completedOutputs().get(OUTPUT));
@@ -64,7 +64,7 @@ class OmniCpuDispatchLedgerTest {
     }
     @Test void completeUuidReceptionRemovesZeroRowsForWaitingEmptyCompletionGuards() {
         var ledger = new OmniCpuDispatchLedger(); var waiting = window();
-        var stage = ledger.stage(waiting, null, receipt(BigInteger.valueOf(4)), () -> {});
+        var stage = ledger.stage(waiting, null, receipt(BigInteger.valueOf(4)), actual -> {});
         stage.commit();
         ledger.consume(waiting, null, OUTPUT, BigInteger.valueOf(4));
         assertEquals(0, waiting.list.get(OUTPUT));
@@ -72,17 +72,53 @@ class OmniCpuDispatchLedgerTest {
         assertTrue(waiting.list.isEmpty(), "A zero-valued row must not strand a physically complete child");
     }
 
+    @Test void partialCommitWithdrawsOnlyRejectedCreditsAfterAnInlineReturn() {
+        var ledger = new OmniCpuDispatchLedger();
+        var waiting = window();
+        waiting.list.set(OUTPUT, 9);
+        var staged = receipt(HUGE);
+        var actual = new OmniCpuDispatchReceipt(staged.jobId(), staged.pattern(), BigInteger.TWO,
+                Map.of(MATERIAL, BigInteger.TWO), Map.of(OUTPUT, BigInteger.TWO),
+                Map.of(RETURNED, BigInteger.TWO), false);
+        var committed = new AtomicReference<OmniCpuDispatchReceipt>();
+        var stage = ledger.stage(waiting, null, staged, committed::set);
+        ledger.consume(waiting, null, OUTPUT, BigInteger.ONE);
+        stage.commit(actual);
+        stage.commit();
+        stage.rollback();
+        assertSame(actual, committed.get());
+        assertEquals(BigInteger.TEN, ledger.available(waiting, null, OUTPUT));
+        assertEquals(BigInteger.TWO, ledger.available(waiting, null, RETURNED));
+        assertFalse(ledger.staging());
+    }
+
+    @Test void partialCommitCannotEraseCreditsAlreadySettledByProvider() {
+        var ledger = new OmniCpuDispatchLedger();
+        var waiting = window();
+        var staged = receipt(BigInteger.TEN);
+        var actual = new OmniCpuDispatchReceipt(staged.jobId(), staged.pattern(), BigInteger.ONE,
+                Map.of(MATERIAL, BigInteger.ONE), Map.of(OUTPUT, BigInteger.ONE),
+                Map.of(RETURNED, BigInteger.ONE), false);
+        var stage = ledger.stage(waiting, null, staged, ignored -> fail("Invalid acceptance committed"));
+        ledger.consume(waiting, null, OUTPUT, BigInteger.TWO);
+        assertThrows(IllegalStateException.class, () -> stage.commit(actual));
+        stage.retain();
+        assertTrue(ledger.paused());
+        assertEquals(BigInteger.valueOf(8), ledger.available(waiting, null, OUTPUT));
+        assertEquals(BigInteger.TEN, ledger.available(waiting, null, RETURNED));
+    }
+
     @Test void retainSealsStagingWithoutAdvancingOrRefundingIt() {
         var ledger = new OmniCpuDispatchLedger(); var waiting = window();
         var commits = new AtomicInteger();
-        var stage = ledger.stage(waiting, null, receipt(HUGE), commits::incrementAndGet);
+        var stage = ledger.stage(waiting, null, receipt(HUGE), actual -> commits.incrementAndGet());
         stage.retain(); stage.retain(); stage.rollback(); stage.commit();
         assertEquals(0, commits.get()); assertTrue(ledger.paused());
         assertEquals(HUGE, ledger.available(waiting, null, OUTPUT));
     }
     @Test void commitFailureCannotBeReplayedAndRetainKeepsWaiting() {
         var ledger = new OmniCpuDispatchLedger(); var waiting = window(); var calls = new AtomicInteger();
-        var stage = ledger.stage(waiting, null, receipt(HUGE), () -> { calls.incrementAndGet(); throw new IllegalStateException(); });
+        var stage = ledger.stage(waiting, null, receipt(HUGE), actual -> { calls.incrementAndGet(); throw new IllegalStateException(); });
         assertThrows(IllegalStateException.class, stage::commit);
         stage.retain(); stage.commit();
         assertEquals(1, calls.get()); assertEquals(HUGE, ledger.available(waiting, null, OUTPUT));
@@ -99,6 +135,34 @@ class OmniCpuDispatchLedgerTest {
         lease = OmniCpuDispatchLedger.reserve(stock, inventory, Map.of(MATERIAL, HUGE));
         lease.commit(); lease.refund();
         assertEquals(BigInteger.ZERO, stock.amount(inventory, MATERIAL));
+    }
+
+    @Test void partialMaterialCommitRestoresOnlyUnusedOverflow() {
+        var stock = new OmniExactInventory(); var inventory = window();
+        stock.insertWithoutNotification(inventory, MATERIAL, HUGE);
+        var lease = OmniCpuDispatchLedger.reserve(stock, inventory, Map.of(MATERIAL, HUGE));
+        assertNotNull(lease);
+        lease.commit(Map.of(MATERIAL, BigInteger.TEN));
+        lease.refund();
+        assertEquals(HUGE.subtract(BigInteger.TEN), stock.amount(inventory, MATERIAL));
+    }
+
+    @Test void partialEnergyRefundPersistsAndCanFundNativeCraftingWithoutAnotherDebit() {
+        var ledger = new OmniCpuDispatchLedger();
+        var energy = ledger.energy();
+        energy.addCredit(BigDecimal.TEN);
+        var lease = energy.reserve(null, new BigDecimal("1.25"), BigInteger.valueOf(8));
+        assertNotNull(lease);
+        lease.commit(BigInteger.TWO);
+        lease.refund();
+        var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        var restored = new OmniCpuDispatchLedger();
+        restored.read(ledger.write(registries), registries);
+        assertEquals(7.5, restored.energy().extractNative(7.5, Actionable.SIMULATE,
+                amount -> fail("Simulation redrew the paid credit")));
+        assertEquals(7.5, restored.energy().extractNative(7.5, Actionable.MODULATE,
+                amount -> fail("Native crafting redrew the paid credit")));
+        assertEquals(0, restored.energy().extractNative(7.5, Actionable.SIMULATE, amount -> 0));
     }
     @Test void physicalRefillExposesOverflowWithoutCallingObserversInsideOwnershipMutation() {
         var stock = new OmniExactInventory(); var inventory = window();
@@ -165,7 +229,7 @@ class OmniCpuDispatchLedgerTest {
     }
     @Test void ordinaryOverflowExactFlagAndInterruptedStageSurviveReload() {
         var ledger = new OmniCpuDispatchLedger(); var waiting = window();
-        ledger.exactOrder(true); ledger.stage(waiting, null, receipt(HUGE), () -> {});
+        ledger.exactOrder(true); ledger.stage(waiting, null, receipt(HUGE), actual -> {});
         var registries = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
         var saved = ledger.write(registries); var restored = new OmniCpuDispatchLedger(); restored.read(saved, registries);
         assertTrue(restored.exactOrder()); assertTrue(restored.paused());

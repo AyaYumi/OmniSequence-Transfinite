@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 
 public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin {
-    private static final String ADVANCED_AE_MIXIN = AdvancedAECraftingCpuLogicMixin.class.getName();
     private static final String LABELED_PATTERNS_MIXIN = LabeledPatternCheckProviderMixin.class.getName();
     private static final String JEI_RESPONSIVE_SLOT_MIXIN = JeiResponsiveSlotMixin.class.getName();
     private static final String JEI_RESPONSIVE_RENDER_MIXIN = JeiResponsiveRenderMixin.class.getName();
@@ -55,20 +54,12 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
                 || mixinClassName.endsWith(".EcoOmniParentOrderMixin")) {
             return loadingModList != null && loadingModList.getModFileById("neoecoae") != null;
         }
-        if (mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1).startsWith("LightningWireless")) {
-            // Private batch and scheduler hooks are verified only against these implementations.
-            // Do not guess compatible descriptors for older or future Lightning builds.
-            var lightning = loadingModList == null ? null : loadingModList.getModFileById("ae2lt");
-            var supportedVersions = mixinClassName.endsWith(".LightningWirelessBatchRampMixin")
-                    ? Set.of("2.1.4-beta2") : Set.of("2.1.2-beta4", "2.1.4-beta2");
-            return lightning != null && lightning.getMods().stream().anyMatch(mod ->
-                    mod.getModId().equals("ae2lt") && supportedVersions.contains(mod.getVersion().toString()));
-        }
         if (mixinClassName.endsWith(".ThunderboltOmniCpuDispatchMixin")) {
+            // Use the pinned Thunderbolt release as the minimum job-aware batch API.
             var thunderbolt = loadingModList == null ? null : loadingModList.getModFileById("thunderbolt");
             return thunderbolt != null && thunderbolt.getMods().stream().anyMatch(mod ->
                     mod.getModId().equals("thunderbolt") && mod.getVersion().compareTo(
-                            new org.apache.maven.artifact.versioning.DefaultArtifactVersion("2.0.3-beta3")) >= 0);
+                            new org.apache.maven.artifact.versioning.DefaultArtifactVersion("2.0.3-beta")) >= 0);
         }
         if (mixinClassName.endsWith(".ThunderboltMatterPatternBatchMixin")) {
             return loadingModList != null && loadingModList.getModFileById("thunderbolt") != null;
@@ -84,9 +75,6 @@ public final class MolecularManipulatorMixinPlugin implements IMixinConfigPlugin
         }
         if (mixinClassName.endsWith(".UselessExactOutputReturnMixin")) {
             return loadingModList != null && loadingModList.getModFileById("useless_mod") != null;
-        }
-        if (ADVANCED_AE_MIXIN.equals(mixinClassName)) {
-            return loadingModList != null && loadingModList.getModFileById("advanced_ae") != null;
         }
         if (LABELED_PATTERNS_MIXIN.equals(mixinClassName)) {
             return loadingModList != null && loadingModList.getModFileById("ae2labeledpatterns") != null;

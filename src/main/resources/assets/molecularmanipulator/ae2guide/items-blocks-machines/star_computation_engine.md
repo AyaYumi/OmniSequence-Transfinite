@@ -119,7 +119,7 @@ The unlock is **permanent team progress** and survives dismantling or restarting
 ## What do the benefits mean?
 
 - Assembler parallelism is the number of recipe copies a supported sequence machine can make together.
-- CPU parallelism is the number of recipe copies one core can dispatch per tick, shared across all its orders. Each processing machine still runs at its own speed.
+- Orders on each core share the listed CPU allowance. L1 to L6 use AE2's rolling operation window. L7 to L9 use a per-tick recipe-copy limit for capacity-based batching. Each processing machine still runs at its own speed.
 - CPU crafting storage is workspace for orders and intermediate ingredients. ME item storage is separate.
 - Well speed reduces production time. Research time stays the same, and nine-round deep research increases batch size separately.
 
@@ -145,7 +145,7 @@ Produce Star Signal Flow with a [Star Sea Calculation Mainframe](star_sea_calcul
 
 - L1 to L9 consume **2 / 4 / 8 / 16 / 32 / 64 / 128 / 256 / 512 bit per tick**. At normal speed, a second is about 20 ticks.
 - L1 to L8 overclocking doubles the four benefits above. Level and research requirements still apply.
-- Only continuously paid **L9 overclock** provides unlimited parallelism, unlimited CPU crafting storage and **1-tick** well production. Normal L9 remains finite as listed.
+- Continuously paid **L9 overclock** removes fixed limits on recipe copies and CPU crafting storage and reduces well production to **1 tick**. Dispatch work and target capacity still limit high-tier CPUs.
 - Insufficient signal switches overclock off, returning to normal benefits. Disconnection or broken structure removes benefits. Permanent research is retained.
 
 ## Troubleshooting

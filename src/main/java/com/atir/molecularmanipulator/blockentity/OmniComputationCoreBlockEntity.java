@@ -21,7 +21,7 @@ import com.atir.molecularmanipulator.block.TransfiniteComputeNexusBlock;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.OmniCpuResources;
 import com.atir.molecularmanipulator.crafting.OmniDispatchBudgetLedger;
-import com.atir.molecularmanipulator.crafting.OmniDispatchLaneRotation;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniDispatchAllowance;
 import com.atir.molecularmanipulator.starcomputation.StarComputationBenefits;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.OmniCpuStorage;
@@ -77,8 +77,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
     public static final double QUANTUM_LINK_POWER = 512.0;
     private static final int STRUCTURE_CHECK_INTERVAL = 20;
     private static final int BUILD_BLOCKS_PER_TICK = 128;
-    private static final long COMPAT_DISPATCH_TARGET_TICK_NANOS = 45_000_000L;
-    private static final long COMPAT_DISPATCH_MIN_GLOBAL_NANOS = 250_000L;
+    private static final long DISPATCH_TARGET_TICK_NANOS = 45_000_000L;
+    private static final long MIN_DISPATCH_WINDOW_NANOS = 250_000L;
     private static final String VIRTUAL_CPUS_TAG = "omni_virtual_cpus";
     private static final String SUSPENDED_CPUS_TAG = "omni_suspended_cpus";
     private static final String VIRTUAL_CPU_LANE_ID_TAG = "omni_lane_id";
@@ -101,9 +101,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
     private static final String DISMANTLE_OWNER_TAG = "omni_dismantle_owner";
     private static final Map<CraftingCPUCluster, OmniComputationCoreBlockEntity> CPU_OWNERS =
             Collections.synchronizedMap(new WeakHashMap<>());
-    private static final Map<MinecraftServer, SharedCompatDispatchState>
-            SHARED_COMPAT_DISPATCH_STATES =
-                    Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Map<MinecraftServer, OmniDispatchBudgetLedger.ServerBudget> SERVER_DISPATCH_BUDGETS =
+            Collections.synchronizedMap(new WeakHashMap<>());
 
     private final List<CraftingCPUCluster> virtualCpus = new ArrayList<>();
     private final OmniCpuResources.StorageBudget<CraftingCPUCluster> cpuStorageBudget =
@@ -128,22 +127,8 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
     private boolean restoredCpuState;
     private long nextVirtualCpuLaneId = 1L;
     private long nextStructureCheck;
-    private long dispatchBudgetTick = Long.MIN_VALUE;
-    private long dispatchParallelism;
-    private boolean dispatchAdaptive;
-    private long dispatchAdaptiveWorkUnits;
-    private int dispatchLaneRotation;
-    private int dispatchUnscaledTotalAttempts;
-    private int dispatchUnscaledLaneRotation;
     private final OmniDispatchBudgetLedger<CraftingCPUCluster> dispatchBudget =
             new OmniDispatchBudgetLedger<>();
-    private final Set<CraftingCPUCluster> dispatchProgressLanes =
-            Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Object dispatchDemandLock = new Object();
-    private final Set<CraftingCPUCluster> dispatchUnscaledDemandLanes =
-            Collections.newSetFromMap(new IdentityHashMap<>());
-    private final Set<CraftingCPUCluster> dispatchUnscaledDemandThisTick =
-            Collections.newSetFromMap(new IdentityHashMap<>());
     private boolean building;
     private boolean dismantling;
     private boolean rebuildingLegacyStructure;
@@ -940,229 +925,67 @@ public final class OmniComputationCoreBlockEntity extends CraftingBlockEntity
         return allCpus().size();
     }
 
-    public synchronized DispatchAllowance claimDispatchAllowance(CraftingCPUCluster cpu, long tick) {
-        if (!(level instanceof ServerLevel serverLevel)) {
-            return new DispatchAllowance(0, 0, 0, 0, false, false);
-        }
+    public OmniDispatchAllowance claimDispatchAllowance(CraftingCPUCluster cpu, long tick) {
+        if (!(level instanceof ServerLevel serverLevel)) return dispatchBudget.noAllowance();
+        prepareDispatchBudget(tick);
+        if (!structureFormed || cpu.isDestroyed() || !participatesInDispatch(cpu)) return dispatchBudget.noAllowance();
+        if (!dispatchBudget.capacityMode()) return dispatchBudget.claim(cpu, tick, null);
 
+        var server = serverLevel.getServer();
+        var shared = SERVER_DISPATCH_BUDGETS.computeIfAbsent(server, ignored -> new OmniDispatchBudgetLedger.ServerBudget());
+        var allowance = dispatchBudget.claim(cpu, tick, shared);
+        if (allowance.remainingCopies() > 0L && shared.needsTick(tick)
+                && shared.beginTick(tick, ModConfig.OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK.get(),
+                dispatchWindowNanos(server))) {
+            prepareServerDispatchBudget(server, tick, shared);
+        }
+        return allowance;
+    }
+
+    private void prepareDispatchBudget(long tick) {
+        if (!dispatchBudget.needsTick(tick)) return;
         var benefits = entropyBenefits();
-        long parallelism = structureFormed ? benefits.cpuParallel() : 0;
-        if (dispatchBudgetTick != tick) {
-            dispatchBudgetTick = tick;
-            dispatchParallelism = parallelism;
-            dispatchAdaptive = benefits.infinite();
-            dispatchAdaptiveWorkUnits = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
-            prepareDispatchAllowances(tick);
+        List<CraftingCPUCluster> active = List.of();
+        if (structureFormed) {
+            active = allCpus();
+            active.removeIf(cpu -> !participatesInDispatch(cpu));
         }
-
-        // Earlier lanes have already used this tick's allowance. A live downgrade
-        // cannot renew it or admit another lane under the old, higher cap.
-        if (parallelism < dispatchParallelism) {
-            return new DispatchAllowance(0, 0, 0, 0, false, false);
-        }
-        // Reject a re-entrant claim without consuming work returned by earlier lanes.
-        if (dispatchBudget.hasClaimed(cpu)) {
-            return new DispatchAllowance(0, 0, 0, 0, false, false);
-        }
-
-        var claim = dispatchBudget.claim(cpu);
-        var compatWindow = claimSharedCompatDispatchWindow(serverLevel.getServer(), cpu, tick);
-        return new DispatchAllowance(
-                claim.workUnits(), claim.unscaledAttempts(), claim.recipeCopies(),
-                compatWindow.deadlineNanos(), compatWindow.progressLane(), dispatchAdaptive);
+        long work = benefits.level() >= 7 ? ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get() : 0L;
+        dispatchBudget.beginTick(tick, benefits, structureFormed, work, active);
     }
 
-    private void prepareDispatchAllowances(long tick) {
-        synchronized (dispatchDemandLock) {
-            dispatchUnscaledDemandLanes.clear();
-            dispatchUnscaledDemandLanes.addAll(
-                    dispatchUnscaledDemandThisTick);
-            dispatchUnscaledDemandThisTick.clear();
-        }
-        long recipeCopies = dispatchAdaptive ? 0L : dispatchParallelism;
-        dispatchUnscaledTotalAttempts = OmniCpuResources.singleDispatchLimit(
-                dispatchParallelism, ModConfig.OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK.get());
-        var activeCpus = activeDispatchCpus();
-        dispatchBudget.beginTick(tick, dispatchAdaptiveWorkUnits, dispatchUnscaledTotalAttempts, recipeCopies);
-        dispatchProgressLanes.clear();
-        int activeLanes = activeCpus.size();
-        if (activeLanes == 0) return;
-
-        int workStart = Math.floorMod(dispatchLaneRotation, activeLanes);
-        boolean paired = dispatchAdaptiveWorkUnits < 2L * activeLanes;
-        int attemptStart = paired ? workStart : Math.floorMod(dispatchUnscaledLaneRotation, activeLanes);
-        for (int index = 0; index < activeLanes; index++) {
-            var cpu = activeCpus.get(index);
-            var share = OmniCpuResources.dispatchLaneShare(dispatchAdaptiveWorkUnits,
-                    dispatchUnscaledTotalAttempts, activeLanes, index,
-                    dispatchLaneRotation, dispatchUnscaledLaneRotation);
-            int offset = Math.floorMod(index - attemptStart, activeLanes);
-            long copies = recipeCopies / activeLanes + (offset < recipeCopies % activeLanes ? 1L : 0L);
-            dispatchBudget.reserve(cpu, share.workUnits(), share.attempts(), copies);
-            if (share.canProgress()) dispatchProgressLanes.add(cpu);
-        }
-        dispatchLaneRotation = OmniCpuResources.nextDispatchWorkRotation(
-                dispatchAdaptiveWorkUnits, dispatchUnscaledTotalAttempts, activeLanes, dispatchLaneRotation);
-        dispatchUnscaledLaneRotation = (int) ((attemptStart
-                + Math.max(1L, dispatchUnscaledTotalAttempts % activeLanes)) % activeLanes);
+    private static boolean participatesInDispatch(CraftingCPUCluster cpu) {
+        return cpu.isBusy() && cpu.isActive() && !cpu.craftingLogic.isJobSuspended();
     }
 
-    private List<CraftingCPUCluster> activeDispatchCpus() {
-        return allCpus().stream().filter(cpu -> cpu.isBusy() && !cpu.craftingLogic.isJobSuspended()).toList();
-    }
-
-    private Set<CraftingCPUCluster> compatProgressLanes(long tick) {
-        if (dispatchBudgetTick == tick) return dispatchProgressLanes;
-        // The first core selects the server-wide progress lane before other
-        // cores have claimed. Predict their next shares without renewing budgets.
-        var active = activeDispatchCpus();
-        var eligible = Collections.newSetFromMap(new IdentityHashMap<CraftingCPUCluster, Boolean>());
-        long work = ModConfig.OMNI_DISPATCH_MAX_WORK_UNITS.get();
-        int attempts = OmniCpuResources.singleDispatchLimit(getParallelismLimit(),
-                ModConfig.OMNI_COMPAT_DISPATCH_MAX_CALLS_PER_TICK.get());
-        for (int index = 0; index < active.size(); index++) {
-            if (OmniCpuResources.dispatchLaneShare(work, attempts, active.size(), index,
-                    dispatchLaneRotation, dispatchUnscaledLaneRotation).canProgress()) {
-                eligible.add(active.get(index));
-            }
-        }
-        return eligible;
-    }
-
-    public synchronized void recordDispatchWork(
-            CraftingCPUCluster cpu, long tick, long allowance, long used,
-            int unscaledAllowance, int unscaledUsed, long copyAllowance, long copiesUsed,
-            boolean unscaledNeedsMore) {
-        if (cpu == null || tick != dispatchBudgetTick) {
-            return;
-        }
-        // The issued claim is authoritative. A stale caller whose declared
-        // allowance does not match it cannot create budget, and a duplicate
-        // record cannot refund the same unused work twice.
-        if (!dispatchBudget.record(
-                cpu, allowance, unscaledAllowance, copyAllowance, used, unscaledUsed, copiesUsed)) {
-            return;
-        }
-        if (unscaledNeedsMore && cpu.isBusy()) {
-            synchronized (dispatchDemandLock) {
-                dispatchUnscaledDemandThisTick.add(cpu);
-            }
-        }
-    }
-
-    private static CompatDispatchWindow claimSharedCompatDispatchWindow(
-            MinecraftServer server, CraftingCPUCluster cpu, long tick) {
-        synchronized (SHARED_COMPAT_DISPATCH_STATES) {
-            var state = SHARED_COMPAT_DISPATCH_STATES.computeIfAbsent(
-                    server, ignored -> new SharedCompatDispatchState());
-            if (state.tick != tick) {
-                state.tick = tick;
-                state.deadlineNanos = System.nanoTime()
-                        + getAdaptiveCompatTimeBudgetNanos(server);
-                var lanes = getActiveCompatDispatchLanes(server, tick);
-                state.progressLane = state.progressRotation.select(
-                        lanes.active(), lanes.eligible()::contains);
-            }
-            return new CompatDispatchWindow(
-                    state.deadlineNanos, state.progressLane == cpu);
-        }
-    }
-
-    private static long getAdaptiveCompatTimeBudgetNanos(
-            MinecraftServer server) {
-        long configuredMax = Math.multiplyExact(
-                (long) ModConfig.OMNI_COMPAT_DISPATCH_MAX_TIME_US.get(),
-                1_000L);
-        long averageTickNanos = Math.max(
-                0L, server.getAverageTickTimeNanos());
-        float smoothedTickMillis = server.getCurrentSmoothedTickTime();
-        if (Float.isFinite(smoothedTickMillis)
-                && smoothedTickMillis > 0.0F) {
-            averageTickNanos = Math.max(
-                    averageTickNanos,
-                    (long) (smoothedTickMillis * 1_000_000.0F));
-        }
-        long headroom = Math.max(
-                0L, COMPAT_DISPATCH_TARGET_TICK_NANOS - averageTickNanos);
-        return Math.min(
-                configuredMax,
-                Math.max(COMPAT_DISPATCH_MIN_GLOBAL_NANOS, headroom));
-    }
-
-    private static CompatDispatchLanes getActiveCompatDispatchLanes(
-            MinecraftServer server, long tick) {
-        // Release the owner-map lock before querying CPU state or another
-        // core's demand lock.
-        var owners = new ArrayList<CpuOwner>();
+    private void prepareServerDispatchBudget(MinecraftServer server, long tick, OmniDispatchBudgetLedger.ServerBudget shared) {
+        var owners = Collections.newSetFromMap(new IdentityHashMap<OmniComputationCoreBlockEntity, Boolean>());
+        owners.add(this);
         synchronized (CPU_OWNERS) {
             for (var entry : CPU_OWNERS.entrySet()) {
-                var cpu = entry.getKey();
                 var owner = entry.getValue();
-                if (cpu != null && owner != null) {
-                    owners.add(new CpuOwner(cpu, owner));
+                var cpu = entry.getKey();
+                if (owner.structureFormed && owner.level instanceof ServerLevel otherLevel
+                        && otherLevel.getServer() == server && cpu != null && cpu.isBusy()) {
+                    owners.add(owner);
                 }
             }
         }
-
-        var activeLanes = new ArrayList<CraftingCPUCluster>();
-        var demandLanes = new ArrayList<CraftingCPUCluster>();
-        var eligibleLanes = Collections.newSetFromMap(new IdentityHashMap<CraftingCPUCluster, Boolean>());
-        var eligibility = new IdentityHashMap<OmniComputationCoreBlockEntity, Set<CraftingCPUCluster>>();
-        for (var entry : owners) {
-            var cpu = entry.cpu();
-            var owner = entry.owner();
-            if (owner.level instanceof ServerLevel ownerLevel
-                    && ownerLevel.getServer() == server
-                    && !cpu.isDestroyed()
-                    && cpu.isActive()
-                    && cpu.isBusy()) {
-                if (eligibility.computeIfAbsent(owner, core -> core.compatProgressLanes(tick)).contains(cpu)) {
-                    eligibleLanes.add(cpu);
-                }
-                if (owner.hasCompatDispatchDemand(cpu)) {
-                    demandLanes.add(cpu);
-                } else {
-                    activeLanes.add(cpu);
-                }
-            }
+        for (var owner : owners) {
+            owner.prepareDispatchBudget(tick);
+            owner.dispatchBudget.registerServerLanes(tick, shared);
         }
-        // Demand is a tie-break preference, not an exclusive candidate set.
-        // A cold lane that has not yet recorded demand must still get its
-        // progress turn when continuously saturated lanes consume the deadline.
-        demandLanes.addAll(activeLanes);
-        return new CompatDispatchLanes(demandLanes, eligibleLanes);
+        shared.selectPriority();
     }
 
-    private boolean hasCompatDispatchDemand(CraftingCPUCluster cpu) {
-        synchronized (dispatchDemandLock) {
-            return dispatchUnscaledDemandLanes.contains(cpu)
-                    || dispatchUnscaledDemandThisTick.contains(cpu);
+    private static long dispatchWindowNanos(MinecraftServer server) {
+        long averageTickNanos = Math.max(0L, server.getAverageTickTimeNanos());
+        float smoothedTickMillis = server.getCurrentSmoothedTickTime();
+        if (Float.isFinite(smoothedTickMillis) && smoothedTickMillis > 0.0F) {
+            averageTickNanos = Math.max(averageTickNanos, (long) (smoothedTickMillis * 1_000_000.0F));
         }
-    }
-
-    public record DispatchAllowance(
-            long workUnits, int unscaledAttempts, long recipeCopies,
-            long compatDeadlineNanos, boolean compatProgressLane, boolean infinite) {
-    }
-
-    private record CompatDispatchWindow(
-            long deadlineNanos, boolean progressLane) {
-    }
-
-    private record CompatDispatchLanes(
-            List<CraftingCPUCluster> active, Set<CraftingCPUCluster> eligible) {
-    }
-
-    private record CpuOwner(
-            CraftingCPUCluster cpu, OmniComputationCoreBlockEntity owner) {
-    }
-
-    private static final class SharedCompatDispatchState {
-        private long tick = Long.MIN_VALUE;
-        private long deadlineNanos;
-        private final OmniDispatchLaneRotation<CraftingCPUCluster> progressRotation =
-                new OmniDispatchLaneRotation<>();
-        private CraftingCPUCluster progressLane;
+        long headroom = Math.max(MIN_DISPATCH_WINDOW_NANOS, DISPATCH_TARGET_TICK_NANOS - averageTickNanos);
+        return Math.min(ModConfig.OMNI_COMPAT_DISPATCH_MAX_TIME_US.get() * 1_000L, headroom);
     }
 
     public int getClientVisualActivity() {

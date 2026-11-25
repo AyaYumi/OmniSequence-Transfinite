@@ -14,6 +14,11 @@ public interface MolecularBatchCraftingProvider extends OmniPostAccountingOutput
         return Long.MAX_VALUE;
     }
 
+    /** Capacity for copies of the complete, actual output of one craft. */
+    default long molecularmanipulator$getBatchLimit(IPatternDetails patternDetails, KeyCounter unitOutputs) {
+        return molecularmanipulator$getBatchLimit(patternDetails);
+    }
+
     /**
      * Internal capability used only by this mod's three molecular crafting
      * machines. The public Omni Batch Provider API intentionally remains
@@ -55,25 +60,6 @@ public interface MolecularBatchCraftingProvider extends OmniPostAccountingOutput
             return batchProvider.molecularmanipulator$supportsBatching(patternDetails);
         }
         return false;
-    }
-
-    static boolean supportsOmniDispatch(ICraftingProvider provider, IPatternDetails patternDetails) {
-        if (requiresSerialDispatch(provider)) {
-            return false;
-        }
-        if (supports(provider, patternDetails)) {
-            return true;
-        }
-
-        // AE2 and ExtendedAE both instantiate this exact logic class for their
-        // normal pattern providers. Processing inputs that could not be inserted
-        // immediately remain owned by its persistent sendList, so a bounded
-        // aggregate is still a truthful accepted dispatch. Subclasses are not
-        // opted in implicitly because they may override the queue semantics.
-        return provider != null
-                && provider.getClass() == PatternProviderLogic.class
-                && patternDetails != null
-                && patternDetails.supportsPushInputsToExternalInventory();
     }
 
     static boolean supportsReusable(ICraftingProvider provider,

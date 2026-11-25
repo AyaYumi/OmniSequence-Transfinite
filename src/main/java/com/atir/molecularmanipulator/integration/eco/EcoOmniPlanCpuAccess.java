@@ -6,12 +6,15 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ICraftingInventory;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityAdmission;
+import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 /** Optional CPU hooks. Deliberately contains no ECO types, including in method descriptors. */
 public interface EcoOmniPlanCpuAccess extends OmniCpuDispatchHost {
@@ -31,6 +34,13 @@ public interface EcoOmniPlanCpuAccess extends OmniCpuDispatchHost {
     default ICraftingInventory ecoOmni$guard(IPatternDetails pattern, ICraftingInventory physical) { return physical; }
     default KeyCounter[] ecoOmni$extract(IPatternDetails pattern, ICraftingInventory physical, Level level,
             KeyCounter outputs, KeyCounter containers, Supplier<KeyCounter[]> ordinary) { return ordinary.get(); }
+    default KeyCounter[] ecoOmni$previewExtract(IPatternDetails pattern, ICraftingInventory physical, Level level,
+            KeyCounter outputs, KeyCounter containers, Supplier<KeyCounter[]> ordinary) {
+        return ecoOmni$extract(pattern, physical, level, outputs, containers, ordinary);
+    }
+    default <T> T ecoOmni$withProviderScope(Supplier<T> action) { return action.get(); }
+    /** Called with the current provider scope and an immutable one-craft allocation. */
+    default @Nullable OmniCapacityAdmission ecoOmni$prepareBatch(OmniCapacityRequest request) { return null; }
     default BigInteger ecoOmni$limit(IPatternDetails pattern, BigInteger requested) { return requested; }
     default boolean ecoOmni$pushProvider(ICraftingProvider provider, IPatternDetails pattern,
             KeyCounter[] inputs, Supplier<Boolean> ordinary) { return ordinary.get(); }

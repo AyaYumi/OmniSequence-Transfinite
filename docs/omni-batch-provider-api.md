@@ -25,25 +25,26 @@ into adjacent inventories. It takes the largest number of whole crafts that fits
 through a single face, not the sum across faces. If the machine takes less than it
 reported, the rest waits in the provider's send queue. Byproducts do not count as inputs.
 
-Different inputs can compete for the same empty slot, so Omni does not combine
-separate estimates for them. When capacity-based batching does not apply, providers
-can still receive complete crafts through `pushPattern`. Finite tiers share one
-per-core allowance per tick. L9 overclock has no fixed craft count; ordinary dispatch
-adjusts its attempts to how many calls the provider accepts. Native doubled tasks
-retain their identity and counts. Third-party providers that can commit to a whole
-batch should use the two-stage SPI below.
+L0–L6 use AE2's native single-craft loop and its rolling operation window. From
+L7, Omni batches against current target capacity. Separate per-key estimates
+cannot prove that several inputs fit together because they can compete for the
+same slots. A provider that can accept the whole batch should use the SPI below.
+Other providers can use `pushPattern` within the high-tier, server-wide
+single-craft fallback allowance.
 
-A single remaining craft uses the original one-craft path rather than waiting for
-another batch. Reusable-tool handling in built-in machines retains returned tools
-and deterministic durability changes for subsequent crafts, without duplicating
-the tool or charging it as a fresh consumable each time. Cycle execution shares
-its seed inventory and yields when the current phase cannot dispatch, allowing
-other runnable work to proceed. These execution paths remain subject to current
-CPU storage/parallel limits, materials, power and provider backpressure; they do
-not grant unlimited CPU capacity.
+L7–L9 orders on one controller share the tier's recipe-copy allowance. L9
+overclock removes the fixed copy count. Target capacity, power, materials and
+the per-controller work and server time budgets still apply. A craft with
+returned items can use the bounded single-craft path. AELIS cycle execution
+shares the seed inventory and limits dispatch to the current phase.
 
-Advanced AE quantum CPUs also use this provider contract through the optional
-integration. The single-block nexus adds no new provider ABI or resource format.
+The effective tier is sampled once per controller tick. A tier change switches
+the route for the remaining copies while providers continue delivering stock
+from batches they already accepted.
+
+Omni-Computation Cores and Transfinite Compute Nexuses use the same provider
+ABI. The standalone Advanced AE Quantum CPU executes through Advanced AE and its
+own integrations.
 
 The API contains no classes, Mod IDs, or reflection paths for a specific
 integration. Any pattern-provider assembly can opt in.
@@ -113,18 +114,16 @@ public final class ExamplePatternMachine
 }
 ```
 
-Both input lists preserve the original pattern-input slot, and multiple
-substituted keys in one slot remain separate entries. `OmniBatchProbe.Input`
-describes the actual selection for the first craft and is a capacity hint.
-`OmniBatchRequest.Input` gives the authoritative key and total amount delivered
-at commit time. AE2 substitutions may make its keys or ratios differ from
-`probe * craftCount`; never validate the delivery with that multiplication.
+Both input lists preserve the original input slot, with separate entries for
+distinct substituted keys. `OmniBatchProbe.Input` describes the allocation for
+one craft and is used only to quote capacity. `OmniBatchRequest.Input` is the
+authoritative key and total amount at commit. The CPU reserves multiples of the
+selected input from its available stock.
 
 The request also carries a unique dispatch ID, the current AE2 crafting-job ID
-when available, the exact accepted craft count, and the authoritative total
-expected outputs. Inventory or AE power may reduce the final request to any
-count from two through `admission.maxCrafts()`; an admission must accept that
-whole range or reject atomically at commit time.
+when available, the number of crafts to accept, and the total expected outputs.
+The final request can be anywhere from two through `admission.maxCrafts()`.
+An admission must accept that whole range or reject atomically at commit time.
 
 ## Ownership contract
 
@@ -135,16 +134,16 @@ whole range or reject atomically at commit time.
   already be in a durable target or in the provider's persisted queue.
 - `reject` means the provider retained no material and made no irreversible
   change. Partial acceptance is forbidden.
-- `CAPACITY_CHANGED` suppresses this provider/pattern endpoint for the rest of
-  the current tick and permits a fresh admission next tick. Other rejection
-  reasons disable batch delivery for that provider/pattern for the current
-  crafting job; normal one-craft AE2 dispatch remains available.
+- `CAPACITY_CHANGED` yields this provider and pattern for the current tick.
+  An explicit rejection for another reason can be followed by one bounded
+  single-craft attempt after the reservation is returned.
 - If provider code raises a runtime exception, linkage failure, or assertion
   failure after calling `accept`, Omni still treats the delivery as accepted so
   the CPU cannot duplicate the materials by reinjecting them. Other `Error`
   subclasses, including JVM-fatal failures, are never swallowed.
-- Returning without a decision is a rejection. A delivery cannot be completed
-  twice or from another thread.
+- Returning without a terminal decision suspends dispatch while the CPU keeps the
+  reservation for reconciliation. A delivery can be completed once on the
+  server thread.
 - Omni always closes the admission. `close` may release a reservation, but must
   never discard an accepted batch.
 - A queued or saturated provider must keep `isBusy()` truthful until it can
@@ -211,10 +210,9 @@ null; ordinary one-craft dispatch remains available. Registry recursion is guard
 per original provider. Predicate/factory failures cannot commit ownership and
 cannot authorize non-atomic scaled dispatch; admissions still close after failure.
 
-Factories run during an actual batch attempt, not every topology query. No
-capability is cached across attempts. An empty registry uses the direct-interface
-fast path, and registration changes invalidate the CPU's per-tick topology cache.
-This registry is additive; the existing API ABI remains version 1.
+Factories run during capacity admission. Capabilities are resolved for the
+current attempt. An empty registry uses the direct provider interface. The
+existing API ABI remains version 1.
 
 ## Post-accounting output flush
 

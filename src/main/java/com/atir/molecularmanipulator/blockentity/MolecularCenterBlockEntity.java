@@ -27,6 +27,7 @@ import appeng.util.inv.InternalInventoryHost;
 import com.atir.molecularmanipulator.config.ModConfig;
 import com.atir.molecularmanipulator.crafting.MolecularBatchCancellationData;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.ae2.EntangledQuantumFrequencyRegistry;
@@ -762,6 +763,20 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
         return level == null || getMainNode().getGrid() == null ? 0
                 : assemblerBudget.remaining(level.getGameTime(),
                         StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
+    }
+
+    long getBatchLimit(IPatternDetails patternDetails, KeyCounter unitOutputs) {
+        if (!canAcceptPattern() || !(patternDetails instanceof IMolecularAssemblerSupportedPattern)
+                || !RecipeLocks.allowedPattern(this, patternDetails)) {
+            return 0;
+        }
+        return MolecularCraftingBatcher.outputCapacity(getRemainingAssemblerBudget(), MAX_BUFFERED_TYPES,
+                unitOutputs, pendingPrimaryOutputs, pendingByproducts);
+    }
+
+    private boolean canAcceptPattern() {
+        return !assembling && !hasActiveReusableBatch() && level != null && !level.isClientSide()
+                && isOperational() && getMainNode().getGrid() != null && getLogic().getReturnInv().isEmpty();
     }
 
     private boolean consumeAssemblerBudget(long crafts) {
@@ -2405,12 +2420,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
     }
 
     boolean acceptPattern(IPatternDetails patternDetails, KeyCounter[] inputs) {
-        if (assembling || hasActiveReusableBatch() || !isOperational()
-                || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
-            return false;
-        }
-        var grid = getMainNode().getGrid();
-        if (level == null || grid == null || !getLogic().getReturnInv().isEmpty()) {
+        if (!canAcceptPattern() || !(patternDetails instanceof IMolecularAssemblerSupportedPattern pattern)) {
             return false;
         }
         assembling = true;
@@ -2426,16 +2436,7 @@ public final class MolecularCenterBlockEntity extends PatternProviderBlockEntity
             if (remainingBudget <= 0) {
                 return false;
             }
-            boolean prepared = batchContext != null
-                    ? craftingBatcher.prepareSelected(
-                            this, patternDetails, inputs,
-                            remainingBudget,
-                            batchContext.firstInputs(),
-                            batchContext.craftCount())
-                    : craftingBatcher.prepare(
-                            this, patternDetails, inputs,
-                            remainingBudget);
-            if (!prepared) {
+            if (!craftingBatcher.prepareDispatch(this, patternDetails, inputs, remainingBudget, batchContext)) {
                 return false;
             }
             var primaryOutputs = craftingBatcher.getPrimaryOutputAmounts();

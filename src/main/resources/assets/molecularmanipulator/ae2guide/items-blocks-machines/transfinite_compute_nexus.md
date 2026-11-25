@@ -52,11 +52,12 @@ The nexus has the same limits as the Omni Computation Core. **Crafting storage**
 
 | Star Computation Engine state | Nexus capabilities |
 | --- | --- |
-| No active, valid engine | All orders share **1 MiB of crafting storage and 16 recipe copies per tick**. |
-| L1 to L9, normal | Orders share a limit of 512 copies per tick at L1, doubling each level to 131,072 at L9. |
-| L9, overclock enabled and continuously paid | Unlimited crafting-storage and recipe-parallelism limits. Ingredients, power, machine speed and output space still determine actual production. |
+| No active, valid engine (L0) | All orders share **1 MiB of crafting storage** and a rolling allowance of **16 native AE2 operations**. |
+| L1 to L6 | AE2 pushes individual crafts. The rolling allowance doubles each level from 512 to 16,384, minus operations used in the preceding three ticks. |
+| L7 to L9 | The CPU batches by target capacity. The normal copy limits are 32,768, 65,536 and 131,072 per tick. |
+| L9 with sustained overclock | Crafting storage and recipe copies have no fixed limit. Dispatch work, materials, power and machine capacity still constrain production. |
 
-The nexus can take several orders at any level. Overclocking at L1 to L8 doubles crafting storage and dispatch limits until Star Signal Flow runs short. Items waiting in a Pattern Provider have not reached the machine yet. See the [Omni Computation Core](omni_computation_core.md) for single- and multi-ingredient patterns.
+The nexus can take several orders at any level. All orders on it share the allowance. Overclocking at L1 to L8 doubles crafting storage and the dispatch allowance for the current tier. Materials in a provider's send queue are still waiting to reach the machine. See the [Omni Computation Core](omni_computation_core.md) for provider behavior.
 
 ## Troubleshooting
 

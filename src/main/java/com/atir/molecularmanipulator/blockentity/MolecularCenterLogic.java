@@ -4,6 +4,7 @@ import appeng.api.crafting.IPatternDetails;
 import appeng.api.crafting.PatternDetailsHelper;
 import appeng.api.networking.IManagedGridNode;
 import appeng.api.networking.crafting.ICraftingProvider;
+import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
 import appeng.core.definitions.AEItems;
 import appeng.helpers.patternprovider.PatternProviderLogic;
@@ -77,7 +78,7 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     }
 
     @Override
-    public boolean pushPattern(IPatternDetails patternDetails, appeng.api.stacks.KeyCounter[] inputHolder) {
+    public boolean pushPattern(IPatternDetails patternDetails, KeyCounter[] inputHolder) {
         if (!machine.isOperational() || !availablePatternSet.contains(patternDetails)) {
             return false;
         }
@@ -101,6 +102,12 @@ public final class MolecularCenterLogic extends PatternProviderLogic implements 
     @Override
     public long molecularmanipulator$getBatchLimit(IPatternDetails patternDetails) {
         return machine.getRemainingAssemblerBudget();
+    }
+
+    @Override
+    public long molecularmanipulator$getBatchLimit(IPatternDetails patternDetails, KeyCounter unitOutputs) {
+        return availablePatternSet.contains(patternDetails)
+                ? machine.getBatchLimit(patternDetails, unitOutputs) : 0;
     }
 
     @Override

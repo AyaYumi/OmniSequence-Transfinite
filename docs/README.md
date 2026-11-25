@@ -41,6 +41,7 @@ Research mutations belong on the owning server thread. Live queries also belong 
 | Optional integration / 可选集成 | Supported target / 适配版本 |
 | --- | --- |
 | Neo ECO AE Extension | 21.2.19 or later. ECO 21.2.19 requires LDLib2 2.2.40 or later. |
+| Thunderbolt Core provider capacity | Requires 2.0.3-beta or later for the job-aware batch bridge. |
 | ExtendedAE Plus provider-selection and well-upload hooks | 1.6.4.1 only, including renamed assemblies |
 | Data Energistics Digital Storage Depot simulation | 3.3.0 and 3.3.5 only. Counts free space once per slot in a read-only check using actual slot limits. |
 | AdvancedAE Reaction Chamber and Quantum Crafter recipe locks | 1.6.12-1.21.1 only |
@@ -71,10 +72,10 @@ Launch once to create the files, stop the game or server, edit the existing tabl
 | `singularity_hub.singularity_duplication.ae_per_unit` | 256 | 1 to 2,147,483,647 AE/mB |
 | `singularity_hub.singularity_duplication.matter_per_black_hole` | 20 | 1 to 1,000,000 mB per hole per cycle |
 | `singularity_hub.singularity_duplication.interval_ticks` | 20 | 1 to 1200 ticks; missed cycles are not repaid |
-| `omni_computation.dispatch.omni_batch_dispatch_enabled` | true | Enable safe batch dispatch |
-| `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 2147483647 | 256 to 2,147,483,647 complete fallback calls per controller per tick |
-| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 50000 | 250 to 50000 microseconds shared by active controllers; reduces as average server MSPT approaches 45 |
-| `omni_computation.dispatch.omni_dispatch_max_work_units` | 2147483647 | 64 to Long.MAX_VALUE extraction/provider work units per controller per tick |
+| `omni_computation.dispatch.omni_batch_dispatch_enabled` | true | Allow capacity-based batching at L7+. When disabled, use bounded single-craft dispatch. |
+| `omni_computation.dispatch.omni_compat_dispatch_max_calls_per_tick` | 16 | 1 to 16 single-craft fallback attempts per server tick across L7+ controllers |
+| `omni_computation.dispatch.omni_compat_dispatch_max_time_us` | 2000 | Shared soft window of 250 to 2000 microseconds for L7+ dispatch. It shrinks as average server MSPT approaches 45. |
+| `omni_computation.dispatch.omni_dispatch_max_work_units` | 64 | 8 to 64 dispatch work units per L7+ controller per tick |
 | `omni_computation.dispatch.omni_coalesce_return_notifications` | true | Notify each changed key after settling exact ledgers |
 | `omni_computation.dispatch.omni_direct_native_output_return` | true | Return UselessMod intermediate output directly to its live-bound CPU on the same network |
 | `transfinite_compute_nexus.idle_power` | 16384 | 1 to 2,147,483,647 AE/t; also needs a powered network and one channel |

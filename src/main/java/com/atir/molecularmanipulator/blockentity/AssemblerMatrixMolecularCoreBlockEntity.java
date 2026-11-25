@@ -19,6 +19,7 @@ import com.atir.molecularmanipulator.starcomputation.StarComputationNetwork;
 import com.atir.molecularmanipulator.integration.ae2.AEKeyTransferScheduler;
 import com.atir.molecularmanipulator.integration.extendedae.MolecularMatrixCluster;
 import com.atir.molecularmanipulator.registry.ModContent;
+import com.atir.molecularmanipulator.recipelock.RecipeLocks;
 import com.glodblock.github.extendedae.common.me.matrix.ClusterAssemblerMatrix;
 import com.glodblock.github.extendedae.common.tileentities.matrix.TileAssemblerMatrixFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -69,20 +70,24 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
     }
 
     public boolean canAcceptCrafting() {
+        return getAcceptingCraftBudget() > 0;
+    }
+
+    private long getAcceptingCraftBudget() {
         if (assembling || activeReusableBatch != null
                 || quarantinedReusableBatchTag != null) {
-            return false;
+            return 0;
         }
         var level = getLevel();
-        if (level == null) {
-            return false;
+        if (level == null || level.isClientSide()) {
+            return 0;
         }
         long currentTick = level.getGameTime();
         if (availabilityTick != currentTick) {
             availabilityTick = currentTick;
             availableThisTick = isFormed() && getMainNode().isActive();
         }
-        return availableThisTick && getRemainingAssemblerBudget() > 0;
+        return availableThisTick ? getRemainingAssemblerBudget() : 0;
     }
 
     public long getRemainingAssemblerBudget() {
@@ -90,6 +95,16 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
         return level == null || getMainNode().getGrid() == null ? 0
                 : assemblerBudget.remaining(level.getGameTime(),
                         StarComputationNetwork.forGrid(getMainNode().getGrid()).assemblerParallel());
+    }
+
+    public long getBatchLimit(IPatternDetails patternDetails, KeyCounter unitOutputs) {
+        long crafts = getAcceptingCraftBudget();
+        if (crafts <= 0 || !(patternDetails instanceof IMolecularAssemblerSupportedPattern)
+                || !RecipeLocks.allowedPattern(this, patternDetails)) {
+            return 0;
+        }
+        return MolecularCraftingBatcher.outputCapacity(crafts, MAX_BUFFERED_TYPES,
+                unitOutputs, bufferedOutputs, null);
     }
 
     private boolean consumeAssemblerBudget(long crafts) {
@@ -169,16 +184,7 @@ public final class AssemblerMatrixMolecularCoreBlockEntity extends TileAssembler
             if (remainingBudget <= 0) {
                 return false;
             }
-            boolean prepared = batchContext != null
-                    ? craftingBatcher.prepareSelected(
-                            this, patternDetails, inputs,
-                            remainingBudget,
-                            batchContext.firstInputs(),
-                            batchContext.craftCount())
-                    : craftingBatcher.prepare(
-                            this, patternDetails, inputs,
-                            remainingBudget);
-            if (!prepared) {
+            if (!craftingBatcher.prepareDispatch(this, patternDetails, inputs, remainingBudget, batchContext)) {
                 return false;
             }
             var outputAmounts = craftingBatcher.getOutputAmounts();

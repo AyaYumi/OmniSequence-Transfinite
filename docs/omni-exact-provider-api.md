@@ -9,7 +9,7 @@ Players can use the machines without implementing either interface; see the [pla
 普通整批接单先看[批量接口](omni-batch-provider-api.zh-CN.md)。玩家无需实现这些接口，
 搭建与操作见[玩家指南](../README.zh-CN.md)。
 
-Current for OmniSequence 21.3.0.4, Minecraft 1.21.1, Java 21, AE2 19.2.18, AppliedEnhancements 1.1.2+ (compile API 1.1.4).
+Current for OmniSequence 21.3.0.5, Minecraft 1.21.1, Java 21, AE2 19.2.18, AppliedEnhancements 1.1.2+ (compile API 1.1.4).
 [API index](README.md) · [Atomic batch SPI](omni-batch-provider-api.md)
 
 This capability tracks logical recipe/output amounts with `BigInteger`. It is

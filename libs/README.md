@@ -6,7 +6,7 @@ Place the JARs for a source build here. For a released mod, see the [installatio
 
 ## Prepare the local build inputs / 准备本地编译依赖
 
-Build OmniSequence 21.3.0.4 for Minecraft 1.21.1 / NeoForge with Java 21 and AE2 19.2.18.
+Build OmniSequence 21.3.0.5 for Minecraft 1.21.1 / NeoForge with Java 21 and AE2 19.2.18.
 
 Place `appliedenhancements-1.1.4.jar` in this directory before building. Use an
 AppliedEnhancements build that provides `AelisBatchExecutionContext` and

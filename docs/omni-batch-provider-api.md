@@ -18,19 +18,21 @@ Implement this SPI on an AE2 machine that stores encoded patterns and acts as an
 `ICraftingProvider` when it can accept several complete crafts as one atomic
 transaction from an Omni-Computation Core or Transfinite Compute Nexus.
 
-A stock AE2 Pattern Provider needs no SPI for an AE2 processing pattern with one
-actual input key and no returned containers. When the provider is online, its send
-queue is empty, and blocking and crafting locks are off, Omni simulates insertion
-into adjacent inventories. It takes the largest number of whole crafts that fits
-through a single face, not the sum across faces. If the machine takes less than it
-reported, the rest waits in the provider's send queue. Byproducts do not count as inputs.
+From L7, a standard AE2 Pattern Provider can batch processing patterns with no
+returned inputs or output keys that also serve as inputs. The provider must be
+online with an empty send queue, with blocking and crafting locks disabled.
+Omni checks one input face at a time. A single input uses the target's insertion
+simulation. Multiple inputs need a verified storage layout. They compete for the
+same slots and can use separate storage channels when those channels are independent.
 
-L0–L6 use AE2's native single-craft loop and its rolling operation window. From
-L7, Omni batches against current target capacity. Separate per-key estimates
-cannot prove that several inputs fit together because they can compete for the
-same slots. A provider that can accept the whole batch should use the SPI below.
-Other providers can use `pushPattern` within the high-tier, server-wide
-single-craft fallback allowance.
+Omni rechecks the selected face at submission. Pending sends from loaded providers
+toward the same inventory hold off new batches, including across both halves of a
+double chest. Any accepted materials the machine takes only in part remain in the
+provider's send queue on the selected side.
+
+L0–L6 use AE2's native single-craft loop and its rolling operation window.
+Unverified targets can use `pushPattern` within the L7+ server-wide single-craft
+allowance. Custom providers can use the SPI below to admit complete batches.
 
 L7–L9 orders on one controller share the tier's recipe-copy allowance. L9
 overclock removes the fixed copy count. Target capacity, power, materials and

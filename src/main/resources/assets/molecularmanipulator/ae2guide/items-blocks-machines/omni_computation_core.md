@@ -96,9 +96,9 @@ Overclocking at L1 to L8 doubles crafting storage and the dispatch allowance for
 | Products are made, but the order is waiting | Free space in ME and machine outputs. Check that output returns to the same network, with room for tools and returned containers too. |
 | L9 suddenly has finite limits again | Check the overclock switch and star signal flow balance. Reaching L9 does not automatically grant unlimited capabilities. |
 
-Point a standard AE2 Pattern Provider at the machine's input face. From L7, an AE2 processing pattern with one actual ingredient and no returned container can send several copies based on the capacity of one input face. Accepted materials that do not fit immediately wait in the provider's send queue.
+Point a standard AE2 Pattern Provider at the machine's input face. From L7, it can batch processing patterns with no returned inputs when the complete recipe fits through that face. Supported targets include inventories with shared item slots and machines with verified independent input channels. If a machine takes only part of an accepted batch, the remaining materials stay in the provider's send queue until that side can take them.
 
-When capacity batching is unavailable, L7 and above send individual crafts within a server-wide fallback limit. Patterns with several ingredients generally use this path. Providers with whole-batch admission can accept several complete crafts at once. The final craft can be sent on its own. Supported reusable tools keep their normal durability costs.
+When capacity cannot be verified, L7 and above send individual crafts within a server-wide fallback limit. Blocking mode and crafting locks still use native pushes. Supported reusable tools keep their normal durability costs.
 
 ### When using machines from other mods
 

@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 class OmniCpuDispatchLedgerTest {
     static {
-        EcoMolecularTestPattern.bootstrap();
+        EcoMolecularTestPattern.bootstrapKeyCodec();
         try { Class.forName("com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchTest"); }
         catch (ClassNotFoundException failure) { throw new AssertionError(failure); }
     }

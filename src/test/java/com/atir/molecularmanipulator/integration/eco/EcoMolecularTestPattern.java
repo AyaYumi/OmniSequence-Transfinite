@@ -3,19 +3,27 @@ package com.atir.molecularmanipulator.integration.eco;
 import appeng.api.crafting.IPatternDetails;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.AEKey;
+import appeng.api.stacks.AEKeyType;
+import appeng.api.stacks.AEKeyTypesInternal;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.blockentity.crafting.IMolecularAssemblerSupportedPattern;
+import appeng.core.definitions.AEItems;
+import appeng.core.definitions.ItemDefinition;
 import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
+import com.mojang.serialization.Lifecycle;
+import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.registries.DeferredItem;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +41,31 @@ public final class EcoMolecularTestPattern implements IMolecularAssemblerSupport
     }
 
     public static void bootstrap() { }
+
+    public static synchronized void bootstrapKeyCodec() {
+        try {
+            AEKeyTypesInternal.getRegistry();
+        } catch (IllegalStateException uninitialized) {
+            var registry = new MappedRegistry<AEKeyType>(AEKeyType.REGISTRY_KEY, Lifecycle.stable(), false);
+            AEKeyTypesInternal.setRegistry(registry);
+            AEKeyTypesInternal.register(AEKeyType.items());
+            AEKeyTypesInternal.register(AEKeyType.fluids());
+            registry.freeze();
+        }
+
+        // Standalone JUnit does not run AE2's deferred item registration. Give the real codec
+        // a registered vanilla item for its sentinel only when AE2's holder is unbound.
+        var marker = AEItems.MISSING_CONTENT;
+        if (!marker.holder().isBound()) {
+            try {
+                var item = ItemDefinition.class.getDeclaredField("item");
+                item.setAccessible(true);
+                item.set(marker, DeferredItem.createItem(ResourceLocation.withDefaultNamespace("barrier")));
+            } catch (ReflectiveOperationException failure) {
+                throw new ExceptionInInitializerError(failure);
+            }
+        }
+    }
 
     public static final AEItemKey MATERIAL = AEItemKey.of(Items.IRON_INGOT);
     public static final AEItemKey OUTPUT = AEItemKey.of(Items.DIAMOND);

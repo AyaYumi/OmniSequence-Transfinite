@@ -54,7 +54,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /** Exercises the actual shared CPU host methods; only game infrastructure and mixin accessors are fixtures. */
 class OmniCpuDispatchHostTest {
-    static { EcoMolecularTestPattern.bootstrap(); }
+    static {
+        EcoMolecularTestPattern.bootstrapKeyCodec();
+    }
     private static final BigInteger HUGE = BigInteger.ONE.shiftLeft(100);
     private static final HolderLookup.Provider REGISTRIES = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
     private static final Class<?> EXACT_HOOKS = exactHooks();

@@ -11,10 +11,10 @@ import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderRequest;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderState;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlannerOptions;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlanningResultRegistry;
-import cn.dancingsnow.neoecoae.crafting.execution.bigorder.ECOBigCraftingOrder;
-import cn.dancingsnow.neoecoae.crafting.planner.ECOBigOrderPlanner;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult;
-import cn.dancingsnow.neoecoae.crafting.planner.result.PlanningStatus;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.bigorder.ECOBigCraftingOrder;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.ECOBigOrderPlanner;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.ECOPlanningResult;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.PlanningStatus;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
@@ -166,7 +166,7 @@ public final class EcoOmniParentOrder {
     static boolean executable(ECOPlanningResult result, IGrid grid) {
         if (result == null || result.status() != PlanningStatus.SUCCESS || result.plan() == null
                 || result.plan().simulation() || !result.executionContract().executable()
-                || result.executionRequirement() == cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionRequirement.BLOCKED
+                || result.executionRequirement() == cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionRequirement.BLOCKED
                 || result.components().stream().anyMatch(component -> switch (component.status()) {
                     case UNRESOLVED, UNSUPPORTED, SOLVED_NOT_EMITTED -> true;
                     default -> false;

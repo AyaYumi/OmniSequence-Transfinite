@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.client.render;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -43,7 +44,7 @@ final class StarOrreryGpuModels implements AutoCloseable {
             try { initialize(); }
             catch (IOException | RuntimeException failure) {
                 unavailable = true;
-                MolecularManipulator.LOGGER.warn("GPU star_orrery transforms unavailable; retaining CPU submission", failure);
+                RateLimitedLog.warn("GPU star_orrery transforms unavailable; retaining CPU submission", failure);
                 return false;
             }
         }

@@ -1,6 +1,7 @@
 package com.atir.molecularmanipulator.client.render;
 
 import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -42,7 +43,7 @@ public final class GpuEffectLayers {
                 extendedUniform = GL20.glGetUniformLocation(program, "Extended");
             } catch (IOException | RuntimeException failure) {
                 unavailable = true;
-                MolecularManipulator.LOGGER.warn("GPU effect attributes unavailable; retaining CPU vertices", failure);
+                RateLimitedLog.warn("GPU effect attributes unavailable; retaining CPU vertices", failure);
                 return null;
             }
         }

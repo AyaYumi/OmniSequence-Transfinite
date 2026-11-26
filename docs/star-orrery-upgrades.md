@@ -13,27 +13,6 @@ See also the [Matter Fabrication research API](matter-research-api.md).
 By default, upgrades require only the corresponding Star Position Anchors.
 Selecting a level previews it without spending materials.
 
-## How to upgrade
-
-1. Complete the 27-block center (1 core, 22 casing, 4 horizontal face-center ports) and
-   928-block foundation (520 engraved, 408 gilded), using the structure preview. The center
-   alone is not a working 3×3×3 engine. Building from L1 is recommended. L4–L9 certification
-   must advance in order; a higher-level action can also fill missing inner rings.
-2. Put the required anchors in your inventory. Missing inventory materials can come from the
-   same powered, channel-active ME grid; a grid is not required when inventory materials suffice.
-3. Hover a requirement for quantities, available supply and instructions. The list keeps short
-   titles; scroll or drag its scrollbar to see every condition without clicking a row first.
-4. On the Upgrade page, click Auto-build L… rings for L1 to L3 or Upgrade to L… for L4 to L9.
-   Correctly placed anchors count toward the requirement. The server takes only the missing anchors,
-   from inventory first and then ME, to fill gaps in the selected ring and its inner rings.
-5. Keep the affected chunks loaded and placement positions clear. Occupied positions, unavailable
-   chunks or denied placement permission block construction; clear the indicated problem and retry.
-   The core and foundation are not built by this action. Completing one level never starts the next.
-
-L1–L3 still activate automatically if you build their rings by hand, and their internal certification
-ceiling remains 3; that ceiling does not grant unbuilt rings. L4–L9 require the explicit upgrade action
-even if you prebuild all rings. Physical damage lowers usable benefits, not saved certification.
-
 Upgrade declarations are ordinary server recipes of type `molecularmanipulator:star_orrery_upgrade`.
 They do not execute crafting operations or produce items. Normal data packs and KubeJS
 `ServerEvents.recipes` share the same schema; KubeJS is optional. Modpacks may add energy, research,

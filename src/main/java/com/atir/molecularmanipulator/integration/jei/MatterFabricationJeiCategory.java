@@ -2,7 +2,6 @@ package com.atir.molecularmanipulator.integration.jei;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEItemKey;
-import appeng.api.stacks.AEKeyType;
 import appeng.api.stacks.GenericStack;
 import appeng.api.client.AEKeyRendering;
 import com.atir.molecularmanipulator.ae2.StarSignalKey;
@@ -14,6 +13,7 @@ import com.atir.molecularmanipulator.MolecularManipulator;
 import com.atir.molecularmanipulator.client.AeUiTheme;
 import com.atir.molecularmanipulator.client.DisplayNumbers;
 import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.atir.molecularmanipulator.registry.ModContent;
 import com.atir.molecularmanipulator.research.MatterResearchApi;
 import java.util.*;
@@ -42,7 +42,6 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
             MolecularManipulator.id("matter_fabrication_processing"), MatterFabricationRecipe.class);
     private final IDrawable icon, slot;
     private final Map<MatterFabricationRecipe, StageInfo> stages = new WeakHashMap<>();
-    private static final Set<AEKeyType> MISSING_CONVERTERS = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final int FOOTER_TOP = 81;
 
     public MatterFabricationJeiCategory(IGuiHelper helper) {
@@ -124,9 +123,7 @@ public final class MatterFabricationJeiCategory implements IRecipeCategory<Matte
                     .setCustomRenderer(StarSignalJeiIngredient.TYPE, new AeResourceRenderer<>(stack));
         } else if (!ModList.get().isLoaded("ae2jeiintegration")
                 || !MatterFabricationJeiIngredients.add(slot, stack)) {
-            if (MISSING_CONVERTERS.add(stack.what().getType())) {
-                MolecularManipulator.LOGGER.warn("No native JEI ingredient converter for AE key {}", stack.what());
-            }
+            RateLimitedLog.warn("No native JEI ingredient converter for AE key {}", stack.what());
         }
     }
     /** Keep ordinary counted ingredients readable after large recipe-cost increases. */

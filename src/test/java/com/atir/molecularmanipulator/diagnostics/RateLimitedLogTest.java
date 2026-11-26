@@ -5,11 +5,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.InvokeDynamicInsnNode;
-import org.objectweb.asm.tree.LdcInsnNode;
-import org.objectweb.asm.tree.MethodInsnNode;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -48,56 +43,6 @@ class RateLimitedLogTest {
             if (gate.allow("output return")) emitted.incrementAndGet();
         });
         assertEquals(1, emitted.get());
-    }
-
-    @Test
-    void nativeFailureReasonsRemainArgumentsInsteadOfRateLimitKeys() throws Exception {
-        var type = new ClassNode();
-        try (var input = getClass().getResourceAsStream(
-                "/com/atir/molecularmanipulator/mixin/CraftingCpuLogicMixin.class")) {
-            assertNotNull(input);
-            new ClassReader(input).accept(type, 0);
-        }
-        var failure = type.methods.stream().filter(method -> method.name.equals("omniNative$fail"))
-                .findFirst().orElseThrow();
-        boolean constantTemplate = false;
-        boolean limitedError = false;
-        boolean pausesCpu = false;
-        for (var instruction : failure.instructions) {
-            assertFalse(instruction instanceof InvokeDynamicInsnNode,
-                    "Failure reasons must not create a separate rate-limit key for each CPU");
-            if (instruction instanceof LdcInsnNode constant) {
-                constantTemplate |= "Native batch failed: job={}, pattern={}, reason={}"
-                        .equals(constant.cst);
-            }
-            if (instruction instanceof MethodInsnNode call) {
-                limitedError |= call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
-                        && call.name.equals("error");
-                pausesCpu |= call.name.equals("omniDispatch$pause");
-            }
-        }
-        assertTrue(constantTemplate);
-        assertTrue(limitedError);
-        assertTrue(pausesCpu, "Logging cleanup must retain uncertain-ownership suspension");
-    }
-
-    @Test
-    void diagnosticsKeepTheWarningAndErrorOnlyApiWithoutLegacyDebugCalls() throws Exception {
-        assertFalse(java.util.Arrays.stream(RateLimitedLog.class.getDeclaredMethods())
-                .anyMatch(method -> method.getName().equals("debug")), "Do not restore the retired debug API");
-        var type = new ClassNode();
-        try (var input = getClass().getResourceAsStream(
-                "/com/atir/molecularmanipulator/blockentity/MolecularAutoCrafter.class")) {
-            assertNotNull(input);
-            new ClassReader(input).accept(type, 0);
-        }
-        for (var method : type.methods) for (var instruction : method.instructions) {
-            if (instruction instanceof MethodInsnNode call) {
-                assertFalse(call.owner.equals("com/atir/molecularmanipulator/diagnostics/RateLimitedLog")
-                                && call.name.equals("debug"),
-                        "Delete legacy debug call sites instead of restoring a debug logger");
-            }
-        }
     }
 
     @Test

@@ -1,6 +1,6 @@
 package com.atir.molecularmanipulator.client.render;
 
-import com.atir.molecularmanipulator.MolecularManipulator;
+import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
@@ -48,7 +48,7 @@ final class StarOrreryGpuRain {
             catch (IOException | RuntimeException failure) {
                 clear();
                 unavailable = true;
-                MolecularManipulator.LOGGER.warn("GPU star_orrery rain unavailable; retaining complete CPU trails", failure);
+                RateLimitedLog.warn("GPU star_orrery rain unavailable; retaining complete CPU trails", failure);
                 return null;
             }
         }

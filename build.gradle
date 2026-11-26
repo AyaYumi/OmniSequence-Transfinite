@@ -135,12 +135,25 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
+var ecoComputatioJar = layout.buildDirectory.file('tmp/eco-embedded/computatio.jar')
+var extractEcoEmbeddedLibs = tasks.register('extractEcoEmbeddedLibs', Sync) {
+    from(zipTree(layout.projectDirectory.file("libs/neoecoae-${neoeco_api_build}.jar"))) {
+        include 'META-INF/jarjar/computatio-*.jar'
+        eachFile { details -> details.path = 'computatio.jar' }
+        includeEmptyDirs = false
+    }
+    into layout.buildDirectory.dir('tmp/eco-embedded')
+}
+
 dependencies {
     // Optional CPU contracts are compile-only; their mods are never bundled.
     compileOnly files("libs/neoecoae-${neoeco_api_build}.jar", 'libs/thunderbolt-batch-api.jar',
             'libs/data_energistics-3.3.0-api.jar')
     compileOnly files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
     localRuntime files("libs/appliedenhancements-${applied_enhancements_api_build}.jar")
+    testRuntimeOnly files(ecoComputatioJar) {
+        builtBy extractEcoEmbeddedLibs
+    }
     implementation "org.appliedenergistics:appliedenergistics2:${ae2_version}"
     implementation "io.github.glodblock:Glodium:${glodium_version}"
     implementation "curse.maven:ex-pattern-provider-${extendedae_curse_project}:${extendedae_curse_file}"
@@ -248,7 +261,7 @@ tasks.named('compileTestJava', JavaCompile).configure {
 
 def downloadAssetsTask = tasks.named('downloadAssets', net.neoforged.nfrtgradle.DownloadAssets)
 tasks.named('test', Test).configure {
-    dependsOn(downloadAssetsTask)
+    dependsOn(downloadAssetsTask, extractEcoEmbeddedLibs)
     File minecraftAssetPropertiesFile = downloadAssetsTask.get().assetPropertiesFile.get().asFile
     inputs.file(minecraftAssetPropertiesFile)
     useJUnitPlatform()
@@ -261,10 +274,6 @@ tasks.named('test', Test).configure {
     }
     // Structure tests need compile-only contracts; shader tests also need Minecraft's real GLSL resources.
     classpath += sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath
-    // NeoECO's planner uses its nested Computatio library outside the NeoForge loader.
-    classpath += zipTree(layout.projectDirectory.file("libs/neoecoae-${neoeco_api_build}.jar")).matching {
-        include 'META-INF/jarjar/computatio-*.jar'
-    }
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

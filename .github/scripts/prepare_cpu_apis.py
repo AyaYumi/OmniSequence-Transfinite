@@ -11,7 +11,8 @@ LIBS = ROOT / "libs"
 ARTIFACTS = (
     ("neoecoae-21.3.0.jar", "NEOECO_API_JAR_URL",
      "https://github.com/DancingSnow0517/NeoECOAEExtension/releases/download/21.3.0/neoecoae-21.3.0.jar",
-     None, "cn/dancingsnow/neoecoae/grid/crafting/pattern/ECOProcessingComponentMatching$Scope.class"),
+     "f453b62c3676a92682b4487f5f5a87ba738355bc0e51d16bc2ce7e69324e5fbf",
+     "cn/dancingsnow/neoecoae/grid/crafting/pattern/ECOProcessingComponentMatching$Scope.class"),
     ("thunderbolt-batch-api.jar", "THUNDERBOLT_API_JAR_URL",
      "https://github.com/AE2-Lightning-Tech-Reborn/Thunderbolt-Core-Reborn/releases/download/2.0.3-beta/thunderbolt-2.0.3-beta.jar",
      "23c01714582514b37329d674539e0805095aefd9fc56a9bfa84de2f45c331890",

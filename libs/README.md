@@ -35,6 +35,9 @@ The same value sets the minimum when you install ECO. The optional
 dependency uses `ordering="NONE"`.
 
 The helper downloads the official NeoECOAE 21.3.0 release and validates its mod ID, version and provider-matching scope class. Set `NEOECO_API_JAR_URL` to use a matching artifact from another URL.
+It checks the default download against SHA-256
+`f453b62c3676a92682b4487f5f5a87ba738355bc0e51d16bc2ce7e69324e5fbf`. See the
+[ECO 21.3.0 release](https://github.com/DancingSnow0517/NeoECOAEExtension/releases/tag/21.3.0).
 JUnit loads the Computatio library embedded in the NeoECOAE JAR through the Gradle test classpath.
 
 编译时将发布 JAR 按表中名称放到这里，也可以在仓库根目录运行 `python .github/scripts/prepare_cpu_apis.py` 下载固定版本。

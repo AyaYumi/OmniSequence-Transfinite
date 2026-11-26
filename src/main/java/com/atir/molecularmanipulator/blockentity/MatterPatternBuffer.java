@@ -67,6 +67,9 @@ public final class MatterPatternBuffer {
     }
 
     boolean enqueue(IPatternDetails pattern, Map<AEKey, Long> supplied, long crafts, UUID craftingId) {
+        QueuedWork merge = null;
+        AEItemKey definition;
+        ResourceLocation recipeId;
         try {
             if (crafts <= 0 || isUnavailable() || !assembly.isOperational() || supplied.isEmpty()) return false;
             if (MolecularBatchCancellationData.isCanceled(assembly.getLevel(), craftingId)) return false;
@@ -79,21 +82,29 @@ public final class MatterPatternBuffer {
                 long stored = Math.addExact(Math.addExact(inputs.getLong(entry.getKey()), refunds.getLong(entry.getKey())), active.storedInputAmount(entry.getKey()));
                 if (entry.getValue() > Long.MAX_VALUE - stored) return false;
             }
-            QueuedWork merge = null;
+            definition = pattern.getDefinition();
+            recipeId = recipe.id();
             for (var work : queued) {
-                if (!work.canMerge(pattern.getDefinition(), recipe.id(), craftingId, crafts)) continue;
+                if (!work.canMerge(definition, recipeId, craftingId, crafts)) continue;
                 var existing = MatterFabricationBatch.match(controller, candidates, work.inputs, work.crafts);
                 if (existing == null || !existing.id().equals(work.recipe)) continue;
                 long total = crafts + work.crafts;
                 if (total > MatterFabricationBatch.inputCapacity(recipe.value())) continue;
                 merge = work; break;
             }
-            if (merge == null) queued.add(new QueuedWork(pattern.getDefinition(), recipe.id(), crafts, supplied, craftingId));
-            else { merge.crafts += crafts; merge(merge.inputs, supplied); }
-            supplied.forEach(inputs::addTo);
-            changed();
-            return true;
         } catch (ArithmeticException error) { return false; }
+        // Validation and all overflow checks finish before the queue acquires these materials.
+        if (merge == null) queued.add(new QueuedWork(definition, recipeId, crafts, supplied, craftingId));
+        else { merge.crafts += crafts; merge(merge.inputs, supplied); }
+        supplied.forEach(inputs::addTo);
+        try {
+            changed();
+        } catch (RuntimeException error) {
+            com.atir.molecularmanipulator.diagnostics.RateLimitedLog.warn(
+                    "Matter pattern buffer dirty-state update failed after ownership committed at {}",
+                    assembly.getBlockPos(), error);
+        }
+        return true;
     }
 
     /** Called by one controller, at most once per controller tick. */

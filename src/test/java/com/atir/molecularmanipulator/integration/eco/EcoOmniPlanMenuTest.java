@@ -28,6 +28,7 @@ import cn.dancingsnow.neoecoae.grid.crafting.planner.result.ECOPlanningResult;
 import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ExecutionMode;
 import cn.dancingsnow.neoecoae.grid.crafting.planner.result.PlanningStatus;
 import cn.dancingsnow.neoecoae.grid.crafting.planner.report.trace.ECOPlanTrace;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.solve.supply.PlannerInventorySnapshot;
 import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Proxy;
 import java.math.BigInteger;
@@ -41,7 +42,7 @@ import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-/** Runs the actual ECO 21.2.9 adapter, phase builder and metadata registry. */
+/** Runs the actual ECO 21.3.0 adapter, phase builder and metadata registry. */
 class EcoOmniPlanMenuTest {
     static {
         if (net.neoforged.fml.loading.LoadingModList.get() == null) {
@@ -206,10 +207,18 @@ class EcoOmniPlanMenuTest {
         var exact = EcoOmniPlanMenu.prepare(raw.plan(), raw, raw, OPTIONS, false).exact();
         assertEquals(HUGE, EcoOmniPlanMenu.requiredStock(exact).get(INPUT));
         assertEquals(BigInteger.valueOf(7), EcoOmniPlanMenu.requiredStock(exact).get(SEED));
-        assertNotNull(EcoOmniPlanMenu.checkStored(exact, key -> false, (key, amount) -> amount));
-        assertNotNull(EcoOmniPlanMenu.checkStored(exact, key -> true, (key, amount) -> 0L),
+        var finite = PlannerInventorySnapshot.exact(Map.of(INPUT, PlannerAmount.of(HUGE),
+                SEED, PlannerAmount.of(7)), Set.of());
+        assertNull(EcoOmniPlanMenu.checkStored(exact, finite, (key, amount) -> amount));
+        assertNotNull(EcoOmniPlanMenu.checkStored(exact, finite, (key, amount) -> 0L),
+                "Finite exact stock still requires the caller's extraction permission");
+        var insufficient = PlannerInventorySnapshot.exact(Map.of(INPUT, PlannerAmount.of(HUGE.subtract(BigInteger.ONE)),
+                SEED, PlannerAmount.of(7)), Set.of());
+        assertNotNull(EcoOmniPlanMenu.checkStored(exact, insufficient, (key, amount) -> amount));
+        var unbounded = PlannerInventorySnapshot.exact(Map.of(), Set.of(INPUT, SEED));
+        assertNotNull(EcoOmniPlanMenu.checkStored(exact, unbounded, (key, amount) -> 0L),
                 "Unbounded stock still requires the caller's extraction permission");
-        assertNull(EcoOmniPlanMenu.checkStored(exact, key -> true, (key, amount) -> amount));
+        assertNull(EcoOmniPlanMenu.checkStored(exact, unbounded, (key, amount) -> amount));
     }
 
     @Test void noGridOrAutomaticSelectionIsNeverAnOmniAvailabilityClaim() {

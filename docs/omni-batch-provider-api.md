@@ -46,6 +46,10 @@ The Molecular Sequence Rewrite Array, Sequence Array and Assembler Matrix Sequen
 
 Ordinary NeoECO bus recipes can use the endpoint's quoted capacity. For endpoints with a stateful calculator, the CPU checks the craft count, material debit and returned items against the proposed batch before submitting it. An endpoint advertising exact inputs can accept a per-key input total beyond `long`. Its craft count and output vectors still follow NeoECO's numeric types.
 
+The Matter Fabrication Pattern Assembly commits input ownership when it updates
+its queue. A runtime exception from the subsequent dirty-state notification
+preserves the accepted result, so ECO settles the acquired batch once.
+
 The effective tier is sampled once per controller tick. A tier change switches
 the route for the remaining copies while providers continue delivering stock
 from batches they already accepted.

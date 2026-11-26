@@ -106,6 +106,12 @@ batches, final one-craft remainders and blocking fallback retain the original
 crafting-job UUID. Job-directed byproducts and surplus stay in CPU storage;
 only the amount actually awaited advances expected-output progress.
 
+When confirming an ECO plan, check its full reservation against the captured
+`PlannerInventorySnapshot`. Pass `amountOf(key)` and `isUnbounded(key)` to the
+`PlannerAmount` overload of `ECOBigOrderAdmission.hasStoredAmount` to preserve
+finite stock above `Long.MAX_VALUE`. Simulate extraction with the submitting
+action source to check access to those materials.
+
 ## 中文
 
 大数能力处理逻辑次数和按 AEKey 区分的精确产物数量。它不替代两阶段 long 批量投料，
@@ -133,3 +139,8 @@ only the amount actually awaited advances expected-output progress.
 
 可选 ECO 兼容要求 21.3.0 或更高。单份、整批、单份尾单和阻挡回退都保留原合成任务
 UUID。定向返回的副产物和超产余量留在 CPU 中，只有实际等待的数量推进预计产物进度。
+
+确认 ECO 计划时，将完整预留量与捕获的 `PlannerInventorySnapshot` 比较。
+向 `ECOBigOrderAdmission.hasStoredAmount` 的 `PlannerAmount` 重载传入
+`amountOf(key)` 和 `isUnbounded(key)`，保留超过 `Long.MAX_VALUE` 的有限库存数量。
+使用提交者的操作来源模拟提取，检查其对这些材料的访问权限。

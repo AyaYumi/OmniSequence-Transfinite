@@ -17,6 +17,7 @@ import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderRequest;
 import cn.dancingsnow.neoecoae.api.me.diagnostics.ECOCraftingPlanDiagnostics;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlannerOptions;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlanningResultRegistry;
+import cn.dancingsnow.neoecoae.grid.crafting.amount.PlannerAmount;
 import cn.dancingsnow.neoecoae.grid.crafting.planner.ae2.ECOExactCraftingPlan;
 import cn.dancingsnow.neoecoae.grid.crafting.execution.cpu.ECOCraftingCPU;
 import cn.dancingsnow.neoecoae.grid.crafting.planner.ECOPlannerInventory;
@@ -24,13 +25,13 @@ import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecuti
 import cn.dancingsnow.neoecoae.grid.crafting.planner.result.ECOPlanningResult;
 import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ExecutionMode;
 import cn.dancingsnow.neoecoae.grid.crafting.planner.result.PlanningStatus;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.solve.supply.PlannerInventorySnapshot;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Predicate;
 
 /** ECO 21.3.0 menu adapter. Referenced only by the version-gated menu mixin. */
 public final class EcoOmniPlanMenu {
@@ -116,10 +117,11 @@ public final class EcoOmniPlanMenu {
         return required;
     }
 
-    static ICraftingSubmitResult checkStored(ECOExactCraftingPlan plan, Predicate<AEKey> unbounded,
+    static ICraftingSubmitResult checkStored(ECOExactCraftingPlan plan, PlannerInventorySnapshot inventory,
             BiFunction<AEKey, Long, Long> simulate) {
         for (var entry : requiredStock(plan).entrySet()) {
-            if (!ECOBigOrderAdmission.hasStoredAmount(entry.getValue(), unbounded.test(entry.getKey()),
+            if (!ECOBigOrderAdmission.hasStoredAmount(PlannerAmount.of(entry.getValue()),
+                    inventory.amountOf(entry.getKey()), inventory.isUnbounded(entry.getKey()),
                     amount -> simulate.apply(entry.getKey(), amount))) {
                 return CraftingSubmitResult.missingIngredient(new GenericStack(entry.getKey(),
                         ECOExactCraftingPlan.bounded(entry.getValue())));
@@ -142,7 +144,7 @@ public final class EcoOmniPlanMenu {
             }
             if (!forced) {
                 var inventory = ECOPlannerInventory.capture(grid);
-                var missing = checkStored(order.exact(), inventory::isUnbounded,
+                var missing = checkStored(order.exact(), inventory,
                         (key, amount) -> grid.getStorageService().getInventory().extract(key, amount, Actionable.SIMULATE, source));
                 if (missing != null) return new Outcome("MISSING_INGREDIENT", missing);
             }

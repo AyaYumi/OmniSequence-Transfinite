@@ -2,17 +2,36 @@ package com.atir.molecularmanipulator.blockentity;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.KeyCounter;
+import appeng.api.networking.IManagedGridNode;
+import appeng.blockentity.grid.AENetworkedBlockEntity;
+import appeng.blockentity.grid.AENetworkedInvBlockEntity;
+import com.atir.molecularmanipulator.crafting.MatterFabricationRecipe;
+import com.atir.molecularmanipulator.crafting.MatterRecipeIndex;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.DamageGroup;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputMode;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.InputPlan;
 import com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import sun.misc.Unsafe;
 
 import static com.atir.molecularmanipulator.integration.eco.EcoMolecularTestPattern.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -255,6 +274,128 @@ class EcoMolecularBatchOwnershipTest {
         restored.advance(step);
         assertTrue(restored.isComplete());
         assertEquals(1, restored.completedRemainders().getLong(catalyst));
+    }
+
+    @Test
+    void matterQueueKeepsCommittedOwnershipWhenDirtyNotificationThrows() throws Exception {
+        assertMatterQueueOwnership(new IllegalStateException("Failed dirty notification"));
+    }
+
+    @Test
+    void matterQueueKeepsCommittedOwnershipWhenDirtyNotificationOverflows() throws Exception {
+        assertMatterQueueOwnership(new ArithmeticException("Failed dirty notification"));
+    }
+
+    private static void assertMatterQueueOwnership(RuntimeException notificationFailure) throws Exception {
+        try (var fixture = new MatterQueueFixture(notificationFailure)) {
+            var pattern = new EcoMolecularTestPattern(MATERIAL, ignored -> null);
+            var first = new KeyCounter[] {counter(MATERIAL, 6)};
+            assertTrue(fixture.assembly.acceptPattern(pattern, first, 3));
+            assertTrue(first[0].isEmpty(), "Accepted queue ownership consumes the caller's complete delivery");
+            assertEquals(1, fixture.level.notifications);
+            var second = new KeyCounter[] {counter(MATERIAL, 4)};
+            assertTrue(fixture.assembly.acceptPattern(pattern, second, 2));
+            assertTrue(second[0].isEmpty(), "Merging committed work also consumes exactly one delivery");
+            assertEquals(2, fixture.level.notifications);
+            assertEquals(1, fixture.buffer.queuedPatterns());
+            var saved = new net.minecraft.nbt.CompoundTag();
+            fixture.buffer.save(saved, registries());
+            var queued = saved.getCompound("fabrication_pattern_buffer").getList("queued", 10);
+            assertEquals(1, queued.size());
+            assertEquals(5, queued.getCompound(0).getLong("crafts"));
+            var restored = new MatterPatternBuffer(fixture.assembly);
+            restored.load(saved, registries());
+            var retained = new KeyCounter();
+            for (var stack : restored.contents(false)) retained.add(stack.what(), stack.amount());
+            assertEquals(10, retained.get(MATERIAL));
+            assertEquals(1, retained.size());
+            assertEquals(1, restored.queuedPatterns());
+        }
+    }
+
+    /** Real queue, recipe validation and serialization with only unused world infrastructure omitted. */
+    private static final class MatterQueueFixture implements AutoCloseable {
+        final MatterQueueLevel level;
+        final MatterFabricationPatternAssemblyBlockEntity assembly;
+        final MatterPatternBuffer buffer;
+        private final RecipeManager recipes;
+        private final Map<RecipeManager, MatterRecipeIndex> cache;
+
+        @SuppressWarnings("unchecked")
+        MatterQueueFixture(RuntimeException notificationFailure) throws Exception {
+            var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            var unsafe = (Unsafe) unsafeField.get(null);
+            level = (MatterQueueLevel) unsafe.allocateInstance(MatterQueueLevel.class);
+            assembly = (MatterFabricationPatternAssemblyBlockEntity) unsafe.allocateInstance(
+                    MatterFabricationPatternAssemblyBlockEntity.class);
+            var controller = (MatterFabricationBlockEntity) unsafe.allocateInstance(MatterFabricationBlockEntity.class);
+            recipes = new RecipeManager(registries());
+            level.recipes = recipes;
+            level.controller = controller;
+            level.notificationFailure = notificationFailure;
+            set(Level.class, level, "isClientSide", true);
+            var activeNode = Proxy.newProxyInstance(IManagedGridNode.class.getClassLoader(),
+                    new Class<?>[] {IManagedGridNode.class}, (proxy, method, arguments) -> {
+                        if (method.getName().equals("isActive")) return true;
+                        throw new UnsupportedOperationException(method.getName());
+                    });
+            for (var machine : List.of(assembly, controller)) {
+                set(BlockEntity.class, machine, "level", level);
+                set(BlockEntity.class, machine, "worldPosition", BlockPos.ZERO);
+                set(BlockEntity.class, machine, "blockState", Blocks.STONE.defaultBlockState());
+            }
+            set(AENetworkedBlockEntity.class, assembly, "mainNode", activeNode);
+            set(AENetworkedInvBlockEntity.class, controller, "mainNode", activeNode);
+            set(MatterFabricationBlockEntity.class, controller, "structureFormed", true);
+            set(MatterFabricationPatternAssemblyBlockEntity.class, assembly, "controllerPos", BlockPos.ZERO);
+            buffer = new MatterPatternBuffer(assembly);
+            set(MatterFabricationPatternAssemblyBlockEntity.class, assembly, "buffer", buffer);
+            var recipe = new MatterFabricationRecipe(
+                    List.of(new MatterFabricationRecipe.CountedIngredient(Ingredient.of(Items.IRON_INGOT), 2)),
+                    List.of(OUTPUT.toStack()), FluidStack.EMPTY, FluidStack.EMPTY, List.of(), List.of(), 20, 1, false);
+            var holder = new RecipeHolder<>(net.minecraft.resources.ResourceLocation.parse("test:eco_matter_queue"), recipe);
+            var index = (MatterRecipeIndex) unsafe.allocateInstance(MatterRecipeIndex.class);
+            set(MatterRecipeIndex.class, index, "source", recipes.getRecipes());
+            set(MatterRecipeIndex.class, index, "byOutput", Map.of(Map.of(OUTPUT, 1L), List.of(holder)));
+            set(MatterRecipeIndex.class, index, "machineGatedRecipes", Set.of());
+            set(MatterRecipeIndex.class, index, "researchByRecipe", Map.of());
+            set(MatterRecipeIndex.class, index, "dynamicResearchByRecipe", Map.of());
+            var cacheField = MatterRecipeIndex.class.getDeclaredField("CACHE");
+            cacheField.setAccessible(true);
+            cache = (Map<RecipeManager, MatterRecipeIndex>) cacheField.get(null);
+            synchronized (cache) { cache.put(recipes, index); }
+        }
+
+        @Override public void close() {
+            synchronized (cache) { cache.remove(recipes); }
+        }
+    }
+
+    private static final class MatterQueueLevel extends ClientLevel {
+        private RecipeManager recipes;
+        private MatterFabricationBlockEntity controller;
+        private RuntimeException notificationFailure;
+        private int notifications;
+
+        private MatterQueueLevel() {
+            super(null, null, null, null, 0, 0, null, null, false, 0);
+            throw new AssertionError("Allocate the headless queue level with Unsafe");
+        }
+
+        @Override public RecipeManager getRecipeManager() { return recipes; }
+        @Override public boolean hasChunkAt(BlockPos pos) { return true; }
+        @Override public BlockEntity getBlockEntity(BlockPos pos) { return controller; }
+        @Override public void blockEntityChanged(BlockPos pos) {
+            notifications++;
+            throw notificationFailure;
+        }
+    }
+
+    private static void set(Class<?> owner, Object target, String name, Object value) throws Exception {
+        var field = owner.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     private static HolderLookup.Provider registries() throws Exception {

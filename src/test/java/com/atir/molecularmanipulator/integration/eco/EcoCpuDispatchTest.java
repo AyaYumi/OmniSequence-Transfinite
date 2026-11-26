@@ -22,8 +22,8 @@ import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
 import cn.dancingsnow.neoecoae.integration.ae2.AE2PatternIntrospection;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOCraftingFastPathCache;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.verify.ECOCraftingFastPathCache;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.state.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import com.atir.molecularmanipulator.crafting.OmniExactInventory;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
@@ -205,8 +205,8 @@ class EcoCpuDispatchTest {
         f.host.ecoOmni$storePhysical(worn, BigInteger.valueOf(3));
         f.host.ecoOmni$storePhysical(fresh, BigInteger.ONE);
         f.host.ecoOmni$storePhysical(foreign, BigInteger.TEN);
-        var allocation = new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation(0,
-                List.of(new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation.Run(selected, 1, 8)));
+        var allocation = new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation(0,
+                List.of(new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation.Run(selected, 1, 8)));
         attachPlan(f.host, List.of(allocation), 8);
         var provider = new Provider(f.host);
         provider.stateful = true;
@@ -531,9 +531,9 @@ class EcoCpuDispatchTest {
         stack.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("second run"));
         var variant = AEItemKey.of(stack);
         f.host.ecoOmni$storePhysical(variant, BigInteger.valueOf(3));
-        var allocation = new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation(1, List.of(
-                new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation.Run(MATERIAL, 1, 2),
-                new cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation.Run(variant, 1, 3)));
+        var allocation = new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation(1, List.of(
+                new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation.Run(MATERIAL, 1, 2),
+                new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation.Run(variant, 1, 3)));
         attachPlan(f.host, List.of(allocation), 5);
         var provider = new Provider(f.host); provider.stateful = true;
         assertEquals(1, execute(f, provider));
@@ -697,41 +697,41 @@ class EcoCpuDispatchTest {
         attachPlan(host, List.of(), counts);
     }
     private static void attachPlan(Host host,
-            List<cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation> allocations,
+            List<cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation> allocations,
             long... counts) throws Exception {
         attachPlan(host, allocations, Map.of(), counts);
     }
     private static void attachPlan(Host host,
-            List<cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation> allocations,
+            List<cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation> allocations,
             Map<AEKey, Long> delayedSeeds, long... counts) throws Exception {
-        var tasks = new java.util.ArrayList<cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.TaskSpec>();
-        var phases = new java.util.ArrayList<cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.PhaseSpec>();
-        var schedule = new java.util.ArrayList<cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.ComponentExecutionPhase>();
+        var tasks = new java.util.ArrayList<cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.TaskSpec>();
+        var phases = new java.util.ArrayList<cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.PhaseSpec>();
+        var schedule = new java.util.ArrayList<cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule.ComponentExecutionPhase>();
         var totals = new LinkedHashMap<Integer, BigInteger>();
         long total = 0;
-        var identity = cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity.patternIdentityFor(host.pattern);
+        var identity = cn.dancingsnow.neoecoae.grid.crafting.planner.compile.PlanIdentity.patternIdentityFor(host.pattern);
         for (int id = 0; id < counts.length; id++) {
-            tasks.add(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.TaskSpec(id, identity,
-                    host.pattern, cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.PatternRuntimeInfo.from(host.pattern),
-                    counts[id], id, cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.TaskKind.DAG, allocations));
+            tasks.add(new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.TaskSpec(id, identity,
+                    host.pattern, cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.PatternRuntimeInfo.from(host.pattern),
+                    counts[id], id, cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.TaskKind.DAG, allocations));
             boolean seeded = id == counts.length - 1 && !delayedSeeds.isEmpty();
-            var type = seeded ? cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.CYCLE
-                    : cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.DAG;
-            phases.add(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.PhaseSpec(id, id,
-                    type, List.of(id), seeded ? List.of(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.ExecutionStep(id, counts[id])) : List.of(),
+            var type = seeded ? cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule.Type.CYCLE
+                    : cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule.Type.DAG;
+            phases.add(new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.PhaseSpec(id, id,
+                    type, List.of(id), seeded ? List.of(new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.ExecutionStep(id, counts[id])) : List.of(),
                     id == 0 ? List.of() : List.of(id - 1), Map.of(), seeded ? delayedSeeds : Map.of()));
-            schedule.add(new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.ComponentExecutionPhase(id,
+            schedule.add(new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule.ComponentExecutionPhase(id,
                     type, java.util.Set.of(host.pattern), List.of()));
             totals.put(id, BigInteger.valueOf(counts[id]));
             total += counts[id];
         }
-        var signature = new cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity.Signature(OUTPUT, total,
+        var signature = new cn.dancingsnow.neoecoae.grid.crafting.planner.compile.PlanIdentity.Signature(OUTPUT, total,
                 Map.of(identity, total), Map.of(MATERIAL, total), Map.of(), Map.of());
-        var plan = new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan(signature,
-                cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode.PHASED_DAG,
-                tasks, phases, new cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule(schedule));
+        var plan = new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan(signature,
+                cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ExecutionMode.PHASED_DAG,
+                tasks, phases, new cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule(schedule));
         var factory = EcoOmniPlanExecutionTest.class.getDeclaredMethod("fixture",
-                cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan.class, Map.class, Map.class, Map.class);
+                cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan.class, Map.class, Map.class, Map.class);
         factory.setAccessible(true);
         var fixture = factory.invoke(null, plan, totals, Map.of(), Map.of());
         var execution = fixture.getClass().getDeclaredMethod("execution"); execution.setAccessible(true);

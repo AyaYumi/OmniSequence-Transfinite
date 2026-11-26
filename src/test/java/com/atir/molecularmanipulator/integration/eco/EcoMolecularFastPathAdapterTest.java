@@ -15,12 +15,12 @@ import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOIndeterminateBatchException;
 import cn.dancingsnow.neoecoae.integration.ae2.AE2PatternIntrospection;
-import cn.dancingsnow.neoecoae.crafting.execution.batch.ECOBatchExecutor;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOCraftingFastPathCache;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOExtractedPatternExecution;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOFastPathKey;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOFastPathStacks;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.batch.ECOBatchExecutor;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.verify.ECOCraftingFastPathCache;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.ECOExtractedPatternExecution;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.classify.ECOFastPathKey;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.verify.ECOFastPathStacks;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.state.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.MolecularBatchDispatchContext;
 import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.integration.ae2.MolecularBatchCraftingProvider;
@@ -171,7 +171,7 @@ class EcoMolecularFastPathAdapterTest {
         var pattern = new EcoMolecularTestPattern(selected, key -> worn(key, 5));
         var context = context(pattern);
         var model = model(pattern);
-        assertInstanceOf(cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECODurabilityBatchModel.class,
+        assertInstanceOf(cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.state.ECODurabilityBatchModel.class,
                 model.calculatorModel());
         var inventory = inventory(selected, 1, 8);
         inventory.list.add(worn, 3);

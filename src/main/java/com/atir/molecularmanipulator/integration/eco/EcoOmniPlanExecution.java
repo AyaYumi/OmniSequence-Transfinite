@@ -9,12 +9,12 @@ import appeng.api.stacks.KeyCounter;
 import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOExactInventory;
-import cn.dancingsnow.neoecoae.crafting.ECOProcessingComponentMatching;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime.DispatchCandidate;
-import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
-import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
+import cn.dancingsnow.neoecoae.grid.crafting.pattern.ECOProcessingComponentMatching;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.job.ECOExecutionRuntime;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.job.ECOExecutionRuntime.DispatchCandidate;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.compile.PlanIdentity;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
 import java.math.BigInteger;
@@ -295,7 +295,7 @@ public final class EcoOmniPlanExecution {
         public IPatternDetails pattern() { return candidate.pattern(); }
         public boolean hasCycleProtection() {
             return owner.plan.phases().get(candidate.phaseIndex()).type()
-                    != cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.DAG;
+                    != cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule.Type.DAG;
         }
         private void check() {
             if (accepted || revision != owner.revision) throw new IllegalStateException("Stale ECO dispatch token");

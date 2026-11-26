@@ -16,7 +16,7 @@ import appeng.me.service.CraftingService;
 import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatch;
 import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchAccess;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
-import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.ae2.ECOExactCraftingPlan;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanCpuAccess;
 import com.atir.molecularmanipulator.integration.eco.EcoOmniPlanBridge;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;

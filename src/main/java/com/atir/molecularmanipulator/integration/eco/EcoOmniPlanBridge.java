@@ -6,11 +6,11 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import cn.dancingsnow.neoecoae.api.me.diagnostics.ECOCraftingPlanDiagnostics;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlanningResultRegistry;
-import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
-import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.ae2.ECOExactCraftingPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.compile.PlanIdentity;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ExecutionMode;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import java.math.BigInteger;
@@ -33,7 +33,7 @@ public final class EcoOmniPlanBridge {
                 || ECOPlanningResultRegistry.activeSubmissionMetadata(plan) != null;
     }
 
-    private static cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult ownedResult(ICraftingPlan plan) {
+    private static cn.dancingsnow.neoecoae.grid.crafting.planner.result.ECOPlanningResult ownedResult(ICraftingPlan plan) {
         var registered = ECOPlanningResultRegistry.findExact(plan);
         if (registered != null) return registered;
         if (plan instanceof ECOCraftingPlanDiagnostics diagnostics) {
@@ -107,7 +107,7 @@ public final class EcoOmniPlanBridge {
     }
 
     private static Map<AEKey, BigInteger> excess(
-            Map<AEKey, cn.dancingsnow.neoecoae.crafting.amount.PlannerAmount> amounts, KeyCounter window) {
+            Map<AEKey, cn.dancingsnow.neoecoae.grid.crafting.amount.PlannerAmount> amounts, KeyCounter window) {
         var result = new LinkedHashMap<AEKey, BigInteger>();
         amounts.forEach((key, amount) -> {
             var extra = amount.toBigInteger().subtract(BigInteger.valueOf(Math.max(0, window.get(key))));

@@ -15,7 +15,7 @@ import org.objectweb.asm.tree.MethodNode;
 class EcoOmniPlanWiringTest {
     private static final String MIXINS = "com/atir/molecularmanipulator/mixin/";
     private static final String CPU = "appeng/crafting/execution/CraftingCpuLogic";
-    private static final String RUNTIME = "cn/dancingsnow/neoecoae/crafting/execution/ECOExecutionRuntime";
+    private static final String RUNTIME = "cn/dancingsnow/neoecoae/grid/crafting/execution/job/ECOExecutionRuntime";
 
     @Test void bothAeExtractionsAndAllAcceptancePathsReachThePlanHooks() throws IOException {
         var base = type(CPU);
@@ -88,7 +88,7 @@ class EcoOmniPlanWiringTest {
         assertEquals("(L" + RUNTIME + "$DispatchCandidate;Ljava/math/BigInteger;)Ljava/math/BigInteger;",
                 method(runtime, "exactAllowance").desc);
         assertTrue(runtime.methods.stream().anyMatch(value -> value.name.equals("fromNBT")
-                && value.desc.equals("(Lcn/dancingsnow/neoecoae/crafting/planner/result/ECOExecutionPlan;Ljava/util/Map;"
+                && value.desc.equals("(Lcn/dancingsnow/neoecoae/grid/crafting/planner/result/execution/ECOExecutionPlan;Ljava/util/Map;"
                         + "Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/core/HolderLookup$Provider;)L" + RUNTIME + ";")));
     }
 

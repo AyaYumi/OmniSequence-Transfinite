@@ -7,8 +7,8 @@ import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOBatchDispatchContext;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECODurabilityBatchModel;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOReusableStateModel;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.state.ECODurabilityBatchModel;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.state.reusable.ECOReusableStateModel;
 import com.atir.molecularmanipulator.crafting.MolecularRemainderContext;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan;
 import com.atir.molecularmanipulator.crafting.MolecularReusableBatchPlan.DamageGroup;
@@ -132,7 +132,7 @@ final class EcoMolecularBatchModel implements ECOReusableStateModel {
             }
             keys.add(item);
         }
-        // ECO 21.2.9 selects most damaged tools first. Reconstruct that exact
+        // ECO 21.3.0 selects most damaged tools first. Reconstruct that exact
         // order so a cancellation checkpoint returns each actual tool state.
         keys.sort(Comparator.<AEItemKey>comparingInt(key -> key.toStack().getDamageValue())
                 .reversed());

@@ -261,6 +261,10 @@ tasks.named('test', Test).configure {
     }
     // Structure tests need compile-only contracts; shader tests also need Minecraft's real GLSL resources.
     classpath += sourceSets.main.compileClasspath + sourceSets.main.runtimeClasspath
+    // NeoECO's planner uses its nested Computatio library outside the NeoForge loader.
+    classpath += zipTree(layout.projectDirectory.file("libs/neoecoae-${neoeco_api_build}.jar")).matching {
+        include 'META-INF/jarjar/computatio-*.jar'
+    }
 }
 
 // IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.

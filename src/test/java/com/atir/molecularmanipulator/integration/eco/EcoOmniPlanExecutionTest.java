@@ -10,15 +10,17 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.stacks.KeyCounter;
 import appeng.crafting.inv.ListCraftingInventory;
+import appeng.crafting.pattern.AEProcessingPattern;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime;
-import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode;
-import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.job.ECOExecutionRuntime;
+import cn.dancingsnow.neoecoae.grid.crafting.pattern.ECOProcessingComponentMatching;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.compile.PlanIdentity;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule.Type;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ExecutionMode;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
@@ -38,7 +40,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import org.junit.jupiter.api.Test;
 
-/** Executes ECO 21.2.9 itself. Reflection is confined to this test's substitute for mixin invokers. */
+/** Executes ECO 21.3.0 itself. Reflection is confined to this test's substitute for mixin invokers. */
 class EcoOmniPlanExecutionTest {
     static {
         if (net.neoforged.fml.loading.LoadingModList.get() == null) {
@@ -387,6 +389,61 @@ class EcoOmniPlanExecutionTest {
         assertThrows(IllegalStateException.class, () -> cpu.ecoOmni$accepted(pattern, BigInteger.ONE));
     }
 
+    @Test void providerMatchingScopeDeliversReservedComponentsAndUnwindsAfterSuccessAndFailure() throws Exception {
+        var variantStack = new net.minecraft.world.item.ItemStack(Items.IRON_INGOT);
+        variantStack.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME,
+                net.minecraft.network.chat.Component.literal("Reserved iron"));
+        var variant = AEItemKey.of(variantStack);
+        var encoded = new net.minecraft.world.item.ItemStack(Items.PAPER);
+        AEProcessingPattern.encode(encoded, java.util.Arrays.asList(
+                new GenericStack(IRON, 1), null, new GenericStack(IRON, 1), new GenericStack(GOLD, 1)),
+                List.of(new GenericStack(GOLD, 1)));
+        var pattern = new AEProcessingPattern(AEItemKey.of(encoded));
+        var task = new ECOExecutionPlan.TaskSpec(0, PlanIdentity.patternIdentityFor(pattern), pattern,
+                ECOExecutionPlan.PatternRuntimeInfo.from(pattern), 1, 0, ECOExecutionPlan.TaskKind.DAG,
+                List.of(new PlannedInputAllocation(0, List.of(new PlannedInputAllocation.Run(variant, 2, 1)))));
+        var plan = plan(List.of(task), List.of(phase(0, Type.DAG, List.of(0), List.of(), List.of(), Map.of(), Map.of())),
+                ExecutionMode.NATIVE);
+        var fixture = fixture(plan, Map.of(0, BigInteger.ONE), Map.of(), Map.of(),
+                Set.of(BuiltInRegistries.ITEM.getKey(Items.IRON_INGOT)));
+        var cpu = new CpuFixture();
+        cpu.ecoOmni$setExecution(fixture.execution);
+        cpu.stock.insert(variant, 2, Actionable.MODULATE);
+        cpu.stock.insert(GOLD, 1, Actionable.MODULATE);
+        var guarded = cpu.ecoOmni$guard(pattern, cpu.stock);
+        var inputs = cpu.ecoOmni$extract(pattern, guarded, null, new KeyCounter(), new KeyCounter(),
+                () -> fail("The execution plan must extract its reserved components"));
+        assertNotNull(inputs);
+        assertEquals(2, inputs[0].get(variant));
+        assertEquals(0, inputs[0].get(IRON));
+        var delivered = new ArrayList<GenericStack>();
+        IPatternDetails.PatternInputSink sink = (key, amount) -> delivered.add(new GenericStack(key, amount));
+        assertFalse(ECOProcessingComponentMatching.pushInputs(pattern, inputs, sink));
+        assertTrue(delivered.isEmpty());
+        SingleProvider accepting = (sent, delivery, id) -> {
+            assertSame(pattern, sent);
+            assertEquals(cpu.omniDispatch$jobId(), id);
+            return ECOProcessingComponentMatching.pushInputs((AEProcessingPattern) sent, delivery, sink);
+        };
+        assertTrue(cpu.ecoOmni$pushProvider(accepting, pattern, inputs, () -> fail("Vanilla push")));
+        var expected = List.of(new GenericStack(variant, 1), new GenericStack(variant, 1), new GenericStack(GOLD, 1));
+        assertEquals(expected, delivered);
+        assertFalse(ECOProcessingComponentMatching.pushInputs(pattern, inputs,
+                (key, amount) -> fail("Provider matching scope leaked after acceptance")));
+
+        delivered.clear();
+        var failure = new IllegalStateException("Provider failed after receiving inputs");
+        SingleProvider failing = (sent, delivery, id) -> {
+            assertTrue(ECOProcessingComponentMatching.pushInputs((AEProcessingPattern) sent, delivery, sink));
+            throw failure;
+        };
+        assertSame(failure, assertThrows(IllegalStateException.class,
+                () -> cpu.ecoOmni$pushProvider(failing, pattern, inputs, () -> fail("Vanilla push"))));
+        assertEquals(expected, delivered);
+        assertFalse(ECOProcessingComponentMatching.pushInputs(pattern, inputs,
+                (key, amount) -> fail("Provider matching scope leaked after failure")));
+    }
+
     @Test void cpuHooksStopDeferredPhaseBeforeTouchingStockAndCapTheNativeExactRequest() throws Exception {
         var first = pattern(Items.PAPER, IRON, 1, 1);
         var second = pattern(Items.MAP, GOLD, 2, 1);
@@ -546,13 +603,17 @@ class EcoOmniPlanExecutionTest {
     private record Fixture(EcoOmniPlanExecution execution) {}
     private static Fixture fixture(ECOExecutionPlan plan, Map<Integer, BigInteger> totals,
             Map<AEKey, BigInteger> stock, Map<AEKey, BigInteger> emitted) {
+        return fixture(plan, totals, stock, emitted, Set.of(ResourceLocation.parse("test:fuzzy")));
+    }
+    private static Fixture fixture(ECOExecutionPlan plan, Map<Integer, BigInteger> totals,
+            Map<AEKey, BigInteger> stock, Map<AEKey, BigInteger> emitted, Set<ResourceLocation> fuzzy) {
         var bindings = new LinkedHashMap<Integer, IPatternDetails>();
         plan.tasks().forEach(task -> bindings.put(task.id(), task.pattern()));
         var remaining = new LinkedHashMap<>(totals);
         var runtime = ECOExecutionRuntime.forExternalCpu(plan, bindings,
                 id -> EcoOmniPlanExecution.boundedRemaining(remaining, id));
         var execution = new EcoOmniPlanExecution(plan, bindings, totals, remaining, stock, emitted,
-                Set.of(ResourceLocation.parse("test:fuzzy")), BigInteger.TEN.pow(25), UUID.randomUUID(), runtime);
+                fuzzy, BigInteger.TEN.pow(25), UUID.randomUUID(), runtime);
         return new Fixture(execution);
     }
 

@@ -17,13 +17,13 @@ import cn.dancingsnow.neoecoae.api.me.bigorder.ECOBigOrderRequest;
 import cn.dancingsnow.neoecoae.api.me.diagnostics.ECOCraftingPlanDiagnostics;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlannerOptions;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlanningResultRegistry;
-import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOCraftingCPU;
-import cn.dancingsnow.neoecoae.crafting.planner.ECOPlannerInventory;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionRequirement;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode;
-import cn.dancingsnow.neoecoae.crafting.planner.result.PlanningStatus;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.ae2.ECOExactCraftingPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.cpu.ECOCraftingCPU;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.ECOPlannerInventory;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionRequirement;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.ECOPlanningResult;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ExecutionMode;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.PlanningStatus;
 import com.atir.molecularmanipulator.api.crafting.IOmniCraftingCpu;
 import com.atir.molecularmanipulator.diagnostics.RateLimitedLog;
 import java.math.BigInteger;
@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-/** ECO 21.2.9 menu adapter. Referenced only by the version-gated menu mixin. */
+/** ECO 21.3.0 menu adapter. Referenced only by the version-gated menu mixin. */
 public final class EcoOmniPlanMenu {
     private EcoOmniPlanMenu() {}
 
@@ -102,7 +102,7 @@ public final class EcoOmniPlanMenu {
         var metadata = new ECOPlanningResult(PlanningStatus.SUCCESS, projection, confirmed.trace(),
                 confirmed.cycles(), confirmed.components(), confirmed.executionComponentOrder(),
                 confirmed.calculationNanos(), confirmed.planningId(), confirmed.provenance());
-        metadata.setTheoreticalBytes(cn.dancingsnow.neoecoae.crafting.amount.PlannerAmount.of(confirmed.theoreticalBytes()));
+        metadata.setTheoreticalBytes(cn.dancingsnow.neoecoae.grid.crafting.amount.PlannerAmount.of(confirmed.theoreticalBytes()));
         metadata.setExactPatternTimes(confirmed.exactPatternTimes());
         metadata.setExactMaterials(confirmed.exactUsedItems(), confirmed.exactEmittedItems(), confirmed.exactMissingItems());
         metadata.setFuzzyPlanningItemIds(confirmed.fuzzyPlanningItemIds());

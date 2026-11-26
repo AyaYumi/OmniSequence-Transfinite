@@ -25,7 +25,7 @@ import cn.dancingsnow.neoecoae.api.me.provider.ECOFastPathDispatchProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOJobAwareCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProvider;
 import cn.dancingsnow.neoecoae.api.me.provider.ECOParallelCraftingProviders;
-import cn.dancingsnow.neoecoae.crafting.execution.fastpath.ECOStatefulBatchCalculator;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.fastpath.state.ECOStatefulBatchCalculator;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCapacityRequest;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;

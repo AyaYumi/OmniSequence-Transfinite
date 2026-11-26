@@ -21,7 +21,7 @@ for the optional CPU integrations you use.
 
 | File | Tested API |
 | --- | --- |
-| `neoecoae-21.2.19.jar` | `ECOExternalCrafting`, registered providers, and the external scheduler API |
+| `neoecoae-21.3.0.jar` | `ECOExternalCrafting`, registered providers, and the 21.3.0 external scheduler API |
 | `thunderbolt-batch-api.jar` | `IBatchCraftingProvider` (2.0.0-beta.4 through 2.0.3-beta) |
 | `data_energistics-3.3.0-api.jar` | `CountedCraftingProviderAdapter` and its registration methods |
 
@@ -30,14 +30,15 @@ the pinned releases, or copy matching mod JARs under the names in the table.
 For Data Energistics, the public 3.3.0 release and snapshot `51b5e56` of 3.3.0
 provide the same APIs.
 
-In `gradle.properties`, `neoeco_api_build=21.2.19` selects the ECO build JAR.
+In `gradle.properties`, `neoeco_api_build=21.3.0` selects the ECO build JAR.
 The same value sets the minimum when you install ECO. The optional
 dependency uses `ordering="NONE"`.
 
-The helper validates the ECO mod ID, version and integration class. Before the release is available, place the companion NeoECOAE build here or set `NEOECO_API_JAR_URL`.
+The helper downloads the official NeoECOAE 21.3.0 release and validates its mod ID, version and provider-matching scope class. Set `NEOECO_API_JAR_URL` to use a matching artifact from another URL.
+JUnit loads the Computatio library embedded in the NeoECOAE JAR through the Gradle test classpath.
 
 编译时将发布 JAR 按表中名称放到这里，也可以在仓库根目录运行 `python .github/scripts/prepare_cpu_apis.py` 下载固定版本。
-运行时按需单独安装这些模组。ECO 为可选依赖，安装时最低为 21.2.19。
+运行时按需单独安装这些模组。ECO 为可选依赖，安装时最低为 21.3.0。
 
 For runtime integration versions, see the [author reference](../docs/README.md).
 

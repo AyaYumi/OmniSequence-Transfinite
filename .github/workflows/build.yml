@@ -102,23 +102,6 @@ jobs:
           mkdir -p libs
           curl --fail --location --retry 3 "$APPLIED_ENHANCEMENTS_JAR_URL" -o "libs/appliedenhancements-${APPLIED_ENHANCEMENTS_API_BUILD}.jar"
 
-      - name: Checkout companion NeoECOAE API
-        if: env.NEOECO_API_JAR_URL == ''
-        uses: actions/checkout@v4
-        with:
-          repository: Yang120231/NeoECOAEExtension
-          ref: 39a1c9e80a6272673d83f19df5be52c1934f9712
-          path: .build-dependencies/neoecoae
-          persist-credentials: false
-
-      - name: Build companion NeoECOAE API
-        if: env.NEOECO_API_JAR_URL == ''
-        shell: bash
-        run: |
-          bash .build-dependencies/neoecoae/gradlew -p .build-dependencies/neoecoae jar
-          mkdir -p libs
-          cp .build-dependencies/neoecoae/build/libs/neoecoae-21.2.19.jar libs/
-
       - name: Build and generate API docs
         # Fetch compile-only optional APIs; these are not bundled or needed by players.
         # Existing local copies are preserved by the helper.

@@ -106,7 +106,7 @@ Machines such as the Molecular Sequence Rewrite Array accept the tools physicall
 
 ### When using machines from other mods
 
-- **ECO** autocrafting integration supports **21.2.19 and later**.
+- **ECO** autocrafting integration supports **21.3.0 and later**.
 - Research-permission integration for **AdvancedAE** Quantum Crafters and Reaction Chambers targets **1.6.12-1.21.1**. That is the supported integration version for those machines. Fabricating this core requires the AdvancedAE materials in its recipes, not that integration-specific version condition.
 
 ## Next steps

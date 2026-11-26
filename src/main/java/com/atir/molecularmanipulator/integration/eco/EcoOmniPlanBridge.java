@@ -6,11 +6,12 @@ import appeng.api.stacks.AEKey;
 import appeng.api.stacks.KeyCounter;
 import cn.dancingsnow.neoecoae.api.me.diagnostics.ECOCraftingPlanDiagnostics;
 import cn.dancingsnow.neoecoae.api.me.planning.ECOPlanningResultRegistry;
-import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
-import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ExecutionMode;
+import cn.dancingsnow.neoecoae.grid.crafting.amount.PlannerAmount;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.ae2.ECOExactCraftingPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.compile.PlanIdentity;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ExecutionMode;
 import com.appliedenhancements.api.AelisExactCraftingPlanApi;
 import com.atir.molecularmanipulator.crafting.OmniExactCraftingState;
 import java.math.BigInteger;
@@ -33,7 +34,7 @@ public final class EcoOmniPlanBridge {
                 || ECOPlanningResultRegistry.activeSubmissionMetadata(plan) != null;
     }
 
-    private static cn.dancingsnow.neoecoae.crafting.planner.result.ECOPlanningResult ownedResult(ICraftingPlan plan) {
+    private static cn.dancingsnow.neoecoae.grid.crafting.planner.result.ECOPlanningResult ownedResult(ICraftingPlan plan) {
         var registered = ECOPlanningResultRegistry.findExact(plan);
         if (registered != null) return registered;
         if (plan instanceof ECOCraftingPlanDiagnostics diagnostics) {
@@ -95,7 +96,7 @@ public final class EcoOmniPlanBridge {
             for (var allocation : task.inputAllocations()) {
                 long multiplier = task.pattern().getInputs()[allocation.slot()].getMultiplier();
                 for (var run : allocation.runs()) {
-                    if (multiplier <= 0 || run.amount() % multiplier != 0) {
+                    if (multiplier <= 0 || !run.plannerAmount().remainder(PlannerAmount.of(multiplier)).isZero()) {
                         throw new IllegalArgumentException("ECO allocated input is not a whole input multiplier");
                     }
                 }
@@ -107,7 +108,7 @@ public final class EcoOmniPlanBridge {
     }
 
     private static Map<AEKey, BigInteger> excess(
-            Map<AEKey, cn.dancingsnow.neoecoae.crafting.amount.PlannerAmount> amounts, KeyCounter window) {
+            Map<AEKey, PlannerAmount> amounts, KeyCounter window) {
         var result = new LinkedHashMap<AEKey, BigInteger>();
         amounts.forEach((key, amount) -> {
             var extra = amount.toBigInteger().subtract(BigInteger.valueOf(Math.max(0, window.get(key))));
@@ -148,7 +149,7 @@ public final class EcoOmniPlanBridge {
                     .filter(pattern -> PlanIdentity.samePattern(task.pattern(), pattern)).toList();
             if (matches.size() != 1) throw new IllegalArgumentException("ECO task identity changed");
             var pattern = matches.getFirst();
-            var count = BigInteger.valueOf(task.totalCount());
+            var count = task.plannerTotalCount().toBigInteger();
             var rest = remaining.get(pattern).subtract(count);
             if (rest.signum() < 0) throw new IllegalArgumentException("ECO task vector exceeds exact task count");
             result.put(task.id(), count);

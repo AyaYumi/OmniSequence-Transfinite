@@ -9,12 +9,13 @@ import appeng.api.stacks.KeyCounter;
 import appeng.crafting.execution.CraftingCpuHelper;
 import appeng.crafting.inv.ICraftingInventory;
 import cn.dancingsnow.neoecoae.api.me.bigorder.ECOExactInventory;
-import cn.dancingsnow.neoecoae.crafting.ECOProcessingComponentMatching;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime;
-import cn.dancingsnow.neoecoae.crafting.execution.ECOExecutionRuntime.DispatchCandidate;
-import cn.dancingsnow.neoecoae.crafting.planner.identity.PlanIdentity;
-import cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionPlan;
-import cn.dancingsnow.neoecoae.crafting.planner.result.PlannedInputAllocation;
+import cn.dancingsnow.neoecoae.grid.crafting.amount.PlannerAmount;
+import cn.dancingsnow.neoecoae.grid.crafting.pattern.ECOProcessingComponentMatching;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.job.ECOExecutionRuntime;
+import cn.dancingsnow.neoecoae.grid.crafting.execution.job.ECOExecutionRuntime.DispatchCandidate;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.compile.PlanIdentity;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.PlannedInputAllocation;
 import com.atir.molecularmanipulator.crafting.MolecularReusableInputAdapters;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchLedger;
 import java.math.BigInteger;
@@ -281,7 +282,7 @@ public final class EcoOmniPlanExecution {
             var total = new BigInteger(entry.getString("total"));
             var rest = new BigInteger(entry.getString("remaining"));
             if (entry.getInt("id") != id || total.signum() <= 0 || rest.signum() < 0 || rest.compareTo(total) > 0
-                    || total.compareTo(BigInteger.valueOf(plan.task(id).totalCount())) < 0) {
+                    || total.compareTo(plan.task(id).plannerTotalCount().toBigInteger()) < 0) {
                 throw new IllegalArgumentException("Invalid ECO exact task progress");
             }
             totals.put(id, total);
@@ -318,7 +319,7 @@ public final class EcoOmniPlanExecution {
         public IPatternDetails pattern() { return candidate.pattern(); }
         public boolean hasCycleProtection() {
             return owner.plan.phases().get(candidate.phaseIndex()).type()
-                    != cn.dancingsnow.neoecoae.crafting.planner.result.ECOExecutionSchedule.Type.DAG;
+                    != cn.dancingsnow.neoecoae.grid.crafting.planner.result.execution.ECOExecutionSchedule.Type.DAG;
         }
         private void check() {
             if (accepted || revision != owner.revision) throw new IllegalStateException("Stale ECO dispatch token");
@@ -331,12 +332,11 @@ public final class EcoOmniPlanExecution {
             for (var allocation : owner.plan.task(taskId()).inputAllocations()) {
                 // ECO's default single run is a fixed input choice, also valid for the exact tail.
                 if (allocation.runs().size() == 1) continue;
-                long position = completed.longValueExact();
-                long boundary = 0;
+                var boundary = BigInteger.ZERO;
                 for (var run : allocation.runs()) {
-                    boundary = Math.addExact(boundary, run.crafts());
-                    if (position < boundary) {
-                        allowed = allowed.min(BigInteger.valueOf(boundary - position));
+                    boundary = boundary.add(run.plannerCrafts().toBigInteger());
+                    if (completed.compareTo(boundary) < 0) {
+                        allowed = allowed.min(boundary.subtract(completed));
                         break;
                     }
                 }
@@ -414,14 +414,15 @@ public final class EcoOmniPlanExecution {
                 PlannedInputAllocation.Run selected = null;
                 for (var allocation : allocations) if (allocation.slot() == slot) {
                     selected = allocation.runs().size() == 1 ? allocation.runs().getFirst()
-                            : allocation.at(completed.longValueExact());
+                            : allocation.at(PlannerAmount.of(completed));
                 }
                 var allocationRun = selected;
                 inputs[slot] = new IPatternDetails.IInput() {
                     @Override public GenericStack[] getPossibleInputs() {
                         return allocationRun == null ? delegate.getPossibleInputs()
                                 : new GenericStack[]{new GenericStack(allocationRun.key(),
-                                        allocationRun.amount() / delegate.getMultiplier())};
+                                        allocationRun.plannerAmount().divide(PlannerAmount.of(delegate.getMultiplier()))
+                                                .longValueExact())};
                     }
                     @Override public long getMultiplier() { return delegate.getMultiplier(); }
                     @Override public boolean isValid(AEKey key, Level world) {

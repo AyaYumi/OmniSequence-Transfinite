@@ -5,7 +5,7 @@ import appeng.api.networking.crafting.ICraftingPlan;
 import appeng.api.stacks.AEKey;
 import appeng.crafting.execution.CraftingCpuLogic;
 import appeng.crafting.execution.ExecutingCraftingJob;
-import cn.dancingsnow.neoecoae.crafting.adapter.ae2.ECOExactCraftingPlan;
+import cn.dancingsnow.neoecoae.grid.crafting.planner.ae2.ECOExactCraftingPlan;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchHost;
 import com.atir.molecularmanipulator.crafting.dispatch.OmniCpuDispatchRunner;
 import com.atir.molecularmanipulator.integration.eco.EcoCpuDispatchAccess;

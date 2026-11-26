@@ -40,7 +40,7 @@ Research mutations belong on the owning server thread. Live queries also belong 
 
 | Optional integration / 可选集成 | Supported target / 适配版本 |
 | --- | --- |
-| Neo ECO AE Extension | 21.2.19 or later. ECO 21.2.19 requires LDLib2 2.2.40 or later. |
+| Neo ECO AE Extension | 21.3.0 or later, with LDLib2 2.2.40 or later. Uses the 21.3.0 API package layout. |
 | Thunderbolt Core provider capacity | Requires 2.0.3-beta or later for the job-aware batch bridge. |
 | ExtendedAE Plus provider-selection and well-upload hooks | 1.6.4.1 only, including renamed assemblies |
 | AdvancedAE Reaction Chamber and Quantum Crafter recipe locks | 1.6.12-1.21.1 only |

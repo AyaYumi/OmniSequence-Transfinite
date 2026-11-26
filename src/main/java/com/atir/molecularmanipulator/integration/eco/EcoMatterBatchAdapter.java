@@ -8,7 +8,7 @@ import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** ECO 21.2.9 transactions backed by the well's durable, per-key long material queue. */
+/** ECO 21.3.0 transactions backed by the well's durable, per-key long material queue. */
 public final class EcoMatterBatchAdapter {
     private EcoMatterBatchAdapter() {}
 

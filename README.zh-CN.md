@@ -27,7 +27,7 @@
 <details>
 <summary>可选模组兼容版本</summary>
 
-- 安装 Neo ECO AE Extension **21.2.19** 或更高版本时，两端都要装 **LDLib2 2.2.40** 或更高版本。
+- 安装 Neo ECO AE Extension **21.3.0** 或更高版本时，两端都要装 **LDLib2 2.2.40** 或更高版本。
 - AdvancedAE 从 **1.6.11** 起支持加载。反应室和量子合成器的配方权限适配 **1.6.12-1.21.1**。
 - ExtendedAE Plus **1.6.4.1** 支持自动选择供应器和构筑井上传联动。
 - ExpandedAE **2.1.1** 的样板供应器修改会与本模组冲突。
